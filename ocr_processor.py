@@ -6,15 +6,11 @@ import sys
 from datetime import datetime
 import re
 import importlib.util
-from html_parser import parse_lottery_html
 
 logger = logging.getLogger(__name__)
 
 # Check if Anthropic library is installed
 anthropic_installed = importlib.util.find_spec("anthropic") is not None
-
-# Check if BeautifulSoup is installed
-bs4_installed = importlib.util.find_spec("bs4") is not None
 
 # Initialize with custom environment variable name
 ANTHROPIC_API_KEY = os.environ.get("Lotto_scape_ANTHROPIC_KEY")
@@ -30,14 +26,7 @@ if anthropic_installed:
     except Exception as e:
         logger.error(f"Error initializing Anthropic client: {str(e)}")
 
-# Import the HTML parser status check
-html_parser = None
-if bs4_installed:
-    try:
-        # Already imported parse_lottery_html at the top
-        html_parser = True
-    except ImportError:
-        logger.warning("html_parser module not found, will use AI-only processing")
+# No HTML parser needed for screenshot-based OCR processing
 
 def process_screenshot(screenshot_path, lottery_type):
     """
@@ -50,10 +39,6 @@ def process_screenshot(screenshot_path, lottery_type):
     Returns:
         dict: Extracted lottery data
     """
-    results = {
-        "ai_processed": None
-    }
-    
     # Check file type
     file_extension = os.path.splitext(screenshot_path)[1].lower()
     is_image = file_extension in ['.png', '.jpg', '.jpeg']
@@ -77,33 +62,31 @@ def process_screenshot(screenshot_path, lottery_type):
     # Process with AI-based OCR if client is available
     if client:
         try:
-            results["ai_processed"] = process_with_ai(screenshot_path, lottery_type)
+            result = process_with_ai(screenshot_path, lottery_type)
             logger.info(f"AI processing completed for {lottery_type}")
+            if result and "results" in result and result["results"]:
+                logger.info(f"Content processing completed successfully for {lottery_type}")
+                return result
         except Exception as e:
             logger.error(f"Error in AI processing: {str(e)}")
     else:
         logger.error("Anthropic client not available. Cannot process without API key.")
     
-    # Return the AI-processed result, or a default if it failed
-    if results["ai_processed"] and "results" in results["ai_processed"] and results["ai_processed"]["results"]:
-        logger.info(f"Content processing completed successfully for {lottery_type}")
-        return results["ai_processed"]
-    else:
-        # Return default structure with empty data
-        default_result = {
-            "lottery_type": lottery_type,
-            "results": [
-                {
-                    "draw_number": "Unknown",
-                    "draw_date": datetime.now().strftime("%Y-%m-%d"),
-                    "numbers": [0, 0, 0, 0, 0, 0] if "powerball" not in lottery_type.lower() and "daily lotto" not in lottery_type.lower() else [0, 0, 0, 0, 0],
-                    "bonus_numbers": [] if "daily lotto" in lottery_type.lower() else [0]
-                }
-            ],
-            "ocr_timestamp": datetime.utcnow().isoformat()
-        }
-        logger.info(f"Content processing completed successfully for {lottery_type}")
-        return default_result
+    # Return default structure with empty data if processing failed
+    default_result = {
+        "lottery_type": lottery_type,
+        "results": [
+            {
+                "draw_number": "Unknown",
+                "draw_date": datetime.now().strftime("%Y-%m-%d"),
+                "numbers": [0, 0, 0, 0, 0, 0] if "powerball" not in lottery_type.lower() and "daily lotto" not in lottery_type.lower() else [0, 0, 0, 0, 0],
+                "bonus_numbers": [] if "daily lotto" in lottery_type.lower() else [0]
+            }
+        ],
+        "ocr_timestamp": datetime.utcnow().isoformat()
+    }
+    logger.info(f"Using default result for {lottery_type}")
+    return default_result
 
 def process_with_ai(screenshot_path, lottery_type):
     """
@@ -206,59 +189,7 @@ def process_with_ai(screenshot_path, lottery_type):
             "error": f"AI processing error: {str(e)}"
         }
 
-def combine_results(results, lottery_type):
-    """
-    Combine results from different processing methods, taking the best data from each.
-    
-    Args:
-        results (dict): Dictionary with different processing results
-        lottery_type (str): Type of lottery
-        
-    Returns:
-        dict: Combined result
-    """
-    # Initialize with a default structure
-    combined = {
-        "lottery_type": lottery_type,
-        "results": [
-            {
-                "draw_number": "Unknown",
-                "draw_date": datetime.now().strftime("%Y-%m-%d"),
-                "numbers": [0, 0, 0, 0, 0, 0] if "powerball" not in lottery_type.lower() and "daily lotto" not in lottery_type.lower() else [0, 0, 0, 0, 0],
-                "bonus_numbers": [] if "daily lotto" in lottery_type.lower() else [0]
-            }
-        ],
-        "ocr_timestamp": datetime.utcnow().isoformat()
-    }
-    
-    # If we have HTML-processed results, start with those
-    if results["html_processed"] and "results" in results["html_processed"] and results["html_processed"]["results"]:
-        combined = results["html_processed"]
-        combined["ocr_timestamp"] = datetime.utcnow().isoformat()
-        
-        # If numbers are all zeros or not found, we'll try to improve that from AI results
-        html_numbers = combined["results"][0]["numbers"]
-        html_bonus = combined["results"][0].get("bonus_numbers", [])
-        
-        if all(n == 0 for n in html_numbers) and results["ai_processed"] and "results" in results["ai_processed"] and results["ai_processed"]["results"]:
-            ai_numbers = results["ai_processed"]["results"][0]["numbers"]
-            if not all(n == 0 for n in ai_numbers):
-                combined["results"][0]["numbers"] = ai_numbers
-            
-            # Also get bonus numbers from AI if needed
-            if "bonus_numbers" in results["ai_processed"]["results"][0]:
-                ai_bonus = results["ai_processed"]["results"][0]["bonus_numbers"]
-                if all(n == 0 for n in html_bonus) and not all(n == 0 for n in ai_bonus):
-                    combined["results"][0]["bonus_numbers"] = ai_bonus
-    
-    # If no HTML results or they're incomplete, use AI results
-    elif results["ai_processed"] and "results" in results["ai_processed"] and results["ai_processed"]["results"]:
-        combined = results["ai_processed"]
-    
-    # Ensure lottery_type is set correctly
-    combined["lottery_type"] = lottery_type
-    
-    return combined
+# This function is no longer needed since we only use AI OCR processing
 
 def create_system_prompt(lottery_type):
     """

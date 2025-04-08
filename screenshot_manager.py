@@ -9,7 +9,6 @@ import traceback
 from pathlib import Path
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
-import html_parser
 from models import db, Screenshot
 
 logger = logging.getLogger(__name__)
