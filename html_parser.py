@@ -12,11 +12,15 @@ def parse_lottery_html(html_content, lottery_type):
     Enhanced to handle JavaScript-rendered content and dynamically-added numbers.
     
     Args:
-        html_content (str): HTML content of the lottery website
-        lottery_type (str): Type of lottery (e.g., 'Lotto', 'Powerball')
+        html_content (str): HTML content of the website
+        lottery_type (str): Game Type (e.g., 'Lotto', 'Powerball')
         
     Returns:
-        dict: Extracted lottery data in a structured format
+        dict: Extracted lottery data in a structured format with priority fields:
+              - Game Type
+              - Draw ID
+              - Game Date
+              - Winning Numbers
     """
     try:
         logger.info(f"Parsing HTML for {lottery_type}")
@@ -26,29 +30,31 @@ def parse_lottery_html(html_content, lottery_type):
         
         # Initialize result structure
         result = {
-            "lottery_type": lottery_type,
+            "lottery_type": lottery_type,  # Game Type
             "results": []
         }
         
-        # Extract draw number using multiple approaches
+        # PRIORITY FIELD #1: Game Type is already set from the input parameter
+        
+        # PRIORITY FIELD #2: Extract Draw ID using multiple approaches
         draw_number = extract_draw_number(soup, html_content)
-        logger.info(f"Extracted draw number: {draw_number}")
+        logger.info(f"Extracted Draw ID: {draw_number}")
         
-        # Extract date using multiple approaches
+        # PRIORITY FIELD #3: Extract Game Date using multiple approaches
         draw_date = extract_draw_date(soup, html_content)
-        logger.info(f"Extracted draw date: {draw_date}")
+        logger.info(f"Extracted Game Date: {draw_date}")
         
-        # Extract lottery ball numbers using multiple strategies
+        # PRIORITY FIELD #4: Extract Winning Numbers using multiple strategies
         main_numbers, bonus_numbers = extract_ball_numbers(soup, html_content, lottery_type)
-        logger.info(f"Extracted main numbers: {main_numbers}")
-        logger.info(f"Extracted bonus numbers: {bonus_numbers}")
+        logger.info(f"Extracted Winning Numbers: {main_numbers}")
+        logger.info(f"Extracted Bonus Numbers: {bonus_numbers}")
         
         # Add the result to our structure
         result["results"].append({
-            "draw_number": draw_number or "Unknown",
-            "draw_date": draw_date,
-            "numbers": main_numbers,
-            "bonus_numbers": bonus_numbers
+            "draw_number": draw_number or "Unknown",  # Draw ID
+            "draw_date": draw_date,                   # Game Date
+            "numbers": main_numbers,                  # Winning Numbers
+            "bonus_numbers": bonus_numbers            # Additional information
         })
         
         logger.info(f"Successfully parsed results for {lottery_type}")

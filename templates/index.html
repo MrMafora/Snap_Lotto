@@ -71,10 +71,10 @@
                                         <table class="table table-striped">
                                             <thead>
                                                 <tr>
-                                                    <th>Lottery</th>
-                                                    <th>Draw</th>
-                                                    <th>Date</th>
-                                                    <th>Numbers</th>
+                                                    <th class="fw-bold">Game Type</th>
+                                                    <th class="fw-bold">Draw ID</th>
+                                                    <th class="fw-bold">Game Date</th>
+                                                    <th class="fw-bold">Winning Numbers</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -126,8 +126,14 @@
                 </p>
                 <div class="mb-3">
                     <h6>Get Results by Lottery Type</h6>
-                    <code>GET /api/results/:lottery_type</code>
                     <p class="text-muted">Example: <code>/api/results/Lotto</code></p>
+                    <p>Priority data fields returned:</p>
+                    <ul class="text-muted">
+                        <li><strong>game_type</strong> - Type of lottery (e.g., Lotto, Lotto Plus 1)</li>
+                        <li><strong>draw_id</strong> - Unique identifier for the draw</li>
+                        <li><strong>game_date</strong> - Date of the lottery draw</li>
+                        <li><strong>winning_numbers</strong> - Array of winning numbers</li>
+                    </ul>
                 </div>
                 <div class="mb-3">
                     <h6>Get Screenshot Information</h6>

@@ -17,11 +17,11 @@ class Screenshot(db.Model):
 class LotteryResult(db.Model):
     """Model for storing lottery results extracted from screenshots"""
     id = db.Column(db.Integer, primary_key=True)
-    lottery_type = db.Column(db.String(50), nullable=False)
-    draw_number = db.Column(db.String(20), nullable=True)
-    draw_date = db.Column(db.DateTime, nullable=False)
-    numbers = db.Column(db.String(255), nullable=False)  # Stored as JSON string
-    bonus_numbers = db.Column(db.String(255), nullable=True)  # Stored as JSON string
+    lottery_type = db.Column(db.String(50), nullable=False, comment="Game Type")
+    draw_number = db.Column(db.String(20), nullable=True, comment="Draw ID")
+    draw_date = db.Column(db.DateTime, nullable=False, comment="Game Date")
+    numbers = db.Column(db.String(255), nullable=False, comment="Winning Numbers (JSON string array)")  # Stored as JSON string
+    bonus_numbers = db.Column(db.String(255), nullable=True, comment="Bonus Numbers (JSON string array)")  # Stored as JSON string
     source_url = db.Column(db.String(255), nullable=False)
     screenshot_id = db.Column(db.Integer, db.ForeignKey('screenshot.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -48,10 +48,10 @@ class LotteryResult(db.Model):
         """Convert model to dictionary for API responses"""
         return {
             'id': self.id,
-            'lottery_type': self.lottery_type,
-            'draw_number': self.draw_number,
-            'draw_date': self.draw_date.isoformat() if self.draw_date else None,
-            'numbers': self.get_numbers_list(),
+            'game_type': self.lottery_type,  # Updated field name for API
+            'draw_id': self.draw_number,     # Updated field name for API
+            'game_date': self.draw_date.isoformat() if self.draw_date else None,  # Updated field name for API
+            'winning_numbers': self.get_numbers_list(),  # Updated field name for API
             'bonus_numbers': self.get_bonus_numbers_list(),
             'source_url': self.source_url
         }

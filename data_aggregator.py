@@ -10,9 +10,15 @@ def aggregate_data(extracted_data, lottery_type, source_url):
     """
     Aggregate and store lottery results extracted from OCR.
     
+    Priority data fields processed:
+    1. Game Type (lottery_type)
+    2. Draw ID (draw_number)
+    3. Game Date (draw_date)
+    4. Winning Numbers (numbers)
+    
     Args:
         extracted_data (dict): The data extracted from OCR
-        lottery_type (str): Type of lottery
+        lottery_type (str): Game Type (e.g., 'Lotto', 'Powerball')
         source_url (str): Source URL of the screenshot
         
     Returns:
