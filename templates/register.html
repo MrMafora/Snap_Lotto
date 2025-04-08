@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Create Admin Account | Snap Lotto{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header lottery-header">
+                <h5 class="mb-0">CREATE ADMIN ACCOUNT</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('register') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label fw-bold">Username</label>
+                        {{ form.username(class="form-control", id="username", placeholder="Enter username") }}
+                        {% for error in form.username.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-bold">Email</label>
+                        {{ form.email(class="form-control", id="email", placeholder="Enter email") }}
+                        {% for error in form.email.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label fw-bold">Password</label>
+                        {{ form.password(class="form-control", id="password", placeholder="Enter password") }}
+                        {% for error in form.password.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label fw-bold">Confirm Password</label>
+                        {{ form.confirm_password(class="form-control", id="confirm_password", placeholder="Confirm password") }}
+                        {% for error in form.confirm_password.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-lottery-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

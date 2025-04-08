@@ -41,9 +41,22 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/ticket-scanner"><i class="fas fa-ticket-alt me-1"></i> Ticket Scanner</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/settings"><i class="fas fa-cog me-1"></i> Settings</a>
-                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.is_admin %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin_dashboard') }}"><i class="fas fa-shield-alt me-1"></i> Admin</a>
+                            </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-1"></i> Logout</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt me-1"></i> Admin Login</a>
+                        </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>

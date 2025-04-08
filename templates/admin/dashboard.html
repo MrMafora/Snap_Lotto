@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | Snap Lotto{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header lottery-header">
+                <h5 class="mb-0">ADMIN DASHBOARD</h5>
+            </div>
+            <div class="card-body">
+                <p class="lead">Welcome, {{ current_user.username }}!</p>
+                <p>This is the administrator dashboard for Snap Lotto data management.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header lottery-header">
+                <h5 class="mb-0">DATA MANAGEMENT</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('import_data') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-file-upload me-2"></i> Import Spreadsheet Data
+                        </div>
+                        <span class="badge bg-primary rounded-pill">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </a>
+                    <a href="{{ url_for('settings') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-cog me-2"></i> Manage Data Sync Schedules
+                        </div>
+                        <span class="badge bg-primary rounded-pill">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </a>
+                    <a href="{{ url_for('cleanup_screenshots') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-trash me-2"></i> Clean Up Storage
+                        </div>
+                        <span class="badge bg-primary rounded-pill">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header lottery-header">
+                <h5 class="mb-0">USER MANAGEMENT</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('register') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-user-plus me-2"></i> Create Admin User
+                        </div>
+                        <span class="badge bg-primary rounded-pill">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </a>
+                    <a href="{{ url_for('logout') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-sign-out-alt me-2"></i> Log Out
+                        </div>
+                        <span class="badge bg-danger rounded-pill">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

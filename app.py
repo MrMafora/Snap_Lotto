@@ -4,10 +4,15 @@ Application configuration and setup.
 import os
 import logging
 import shutil
+from functools import wraps
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
-from models import db, Screenshot, LotteryResult, ScheduleConfig
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_wtf import FlaskForm, CSRFProtect
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, EmailField
+from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError
+from models import db, Screenshot, LotteryResult, ScheduleConfig, User
 from data_aggregator import aggregate_data, validate_and_correct_known_draws
 from scheduler import run_lottery_task
 from ticket_scanner import process_ticket_image
@@ -32,6 +37,22 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Initialize the app with the database
 db.init_app(app)
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page'
+login_manager.login_message_category = 'info'
+
+# Initialize CSRF protection
+csrf = CSRFProtect()
+csrf.init_app(app)
+
+# User loader for Flask-Login
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 # Create all database tables
 with app.app_context():
@@ -98,6 +119,98 @@ with app.app_context():
     # Schedule active tasks
     for config in ScheduleConfig.query.filter_by(active=True).all():
         schedule_task(scheduler, config)
+
+# Define authentication forms
+class LoginForm(FlaskForm):
+    """Login form for admin authentication"""
+    username = StringField('Username', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    remember = BooleanField('Remember Me')
+    submit = SubmitField('Log In')
+
+class RegistrationForm(FlaskForm):
+    """Registration form for admin accounts"""
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=50)])
+    email = EmailField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Create Account')
+    
+    # Custom validators
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
+        if user:
+            raise ValidationError('Username is already taken. Please choose another one.')
+    
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+        if user:
+            raise ValidationError('Email is already registered. Please use another one or reset your password.')
+
+# Admin access decorator
+def admin_required(f):
+    """Decorator for routes that require admin privileges"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash("You don't have permission to access this page. Please log in as an administrator.", "warning")
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Authentication routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Admin login route"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user and user.check_password(form.password.data):
+            login_user(user, remember=form.remember.data)
+            next_page = request.args.get('next')
+            return redirect(next_page if next_page else url_for('admin_dashboard'))
+        else:
+            flash('Login failed. Please check your username and password.', 'danger')
+    
+    return render_template('login.html', form=form)
+
+@app.route('/logout')
+@login_required
+def logout():
+    """Admin logout route"""
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('index'))
+
+@app.route('/admin/register', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def register():
+    """Admin registration route (only accessible by existing admins)"""
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            is_admin=True
+        )
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash(f'Account created for {form.username.data}!', 'success')
+        return redirect(url_for('admin_dashboard'))
+    
+    return render_template('register.html', form=form)
+
+@app.route('/admin')
+@login_required
+@admin_required
+def admin_dashboard():
+    """Admin dashboard showing links to admin-only features"""
+    return render_template('admin/dashboard.html')
 
 # Routes
 # Export route functions for use by main.py
@@ -215,8 +328,10 @@ def results():
     return render_template('results.html', results=pagination, lottery_type=lottery_type)
 
 @app.route('/settings', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def settings():
-    """Page for configuring screenshot schedules"""
+    """Page for configuring screenshot schedules (admin only)"""
     if request.method == 'POST':
         url = request.form.get('url')
         lottery_type = request.form.get('lottery_type')
@@ -253,8 +368,10 @@ def settings():
     return render_template('settings.html', schedules=schedules)
 
 @app.route('/toggle_schedule/<int:id>')
+@login_required
+@admin_required
 def toggle_schedule(id):
-    """Toggle a schedule on or off"""
+    """Toggle a schedule on or off (admin only)"""
     config = ScheduleConfig.query.get_or_404(id)
     config.active = not config.active
     db.session.commit()
@@ -269,8 +386,10 @@ def toggle_schedule(id):
     return redirect(url_for('settings'))
 
 @app.route('/delete_schedule/<int:id>')
+@login_required
+@admin_required
 def delete_schedule(id):
-    """Delete a schedule"""
+    """Delete a schedule (admin only)"""
     config = ScheduleConfig.query.get_or_404(id)
     remove_task(scheduler, config.id)
     db.session.delete(config)
@@ -279,8 +398,10 @@ def delete_schedule(id):
     return redirect(url_for('settings'))
 
 @app.route('/api/run_now/<int:id>')
+@login_required
+@admin_required
 def run_now(id):
-    """Manually run a scheduled task immediately in a background thread"""
+    """Manually run a scheduled task immediately in a background thread (admin only)"""
     config = ScheduleConfig.query.get_or_404(id)
     
     # Simply call the task function directly and let it handle threading
@@ -327,8 +448,10 @@ def visualizations():
                           latest_results=latest_results)
 
 @app.route('/import-data', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def import_data():
-    """Page for importing lottery data from spreadsheets"""
+    """Page for importing lottery data from spreadsheets (admin only)"""
     if request.method == 'POST':
         # Check if a file was uploaded
         if 'file' not in request.files:
@@ -576,8 +699,10 @@ def visualization_data():
     return jsonify({'error': 'Invalid data type'})
 
 @app.route('/admin/cleanup-screenshots', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def cleanup_screenshots():
-    """Admin endpoint to manually clean up old screenshots"""
+    """Admin endpoint to manually clean up old screenshots (admin only)"""
     if request.method == 'POST':
         from screenshot_manager import cleanup_old_screenshots
         try:
