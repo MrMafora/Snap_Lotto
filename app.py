@@ -163,21 +163,44 @@ def results():
     end_idx = start_idx + per_page
     paged_results = unique_results[start_idx:end_idx]
     
-    # Create a pagination object similar to Flask-SQLAlchemy's
-    from collections import namedtuple
-    Pagination = namedtuple('Pagination', ['items', 'page', 'per_page', 'total', 'pages', 'has_next', 'has_prev'])
+    # Create a pagination class similar to Flask-SQLAlchemy's but with added iter_pages method
+    class Pagination:
+        def __init__(self, items, page, per_page, total):
+            self.items = items
+            self.page = page
+            self.per_page = per_page
+            self.total = total
+            self.pages = (total + per_page - 1) // per_page  # Ceiling division
+            self.has_next = page < self.pages
+            self.has_prev = page > 1
+            
+        @property
+        def prev_num(self):
+            return self.page - 1 if self.has_prev else None
+            
+        @property
+        def next_num(self):
+            return self.page + 1 if self.has_next else None
+            
+        def iter_pages(self, left_edge=2, left_current=2, right_current=5, right_edge=2):
+            """Iterate over page numbers."""
+            last = 0
+            for num in range(1, self.pages + 1):
+                if (num <= left_edge or
+                    (self.page - left_current - 1 < num < self.page + right_current) or
+                    num > self.pages - right_edge):
+                    if last + 1 != num:
+                        yield None
+                    yield num
+                    last = num
     
+    # Create our pagination object
     total = len(unique_results)
-    pages = (total + per_page - 1) // per_page  # Ceiling division
-    
     pagination = Pagination(
         items=paged_results,
         page=page,
         per_page=per_page,
-        total=total,
-        pages=pages,
-        has_next=page < pages,
-        has_prev=page > 1
+        total=total
     )
     
     return render_template('results.html', results=pagination, lottery_type=lottery_type)
