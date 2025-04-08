@@ -25,56 +25,79 @@ body {
     color: #333 !important;
 }
 
-/* Fix dark background in dashboard tables */
+/* Fix dark background in dashboard tables - with better contrast */
+body {
+    color: #000 !important;
+    background-color: #fff !important;
+}
+
 .card-body {
     background-color: #fff !important;
+    color: #000 !important;
 }
 
 .table-lottery {
     background-color: #fff !important;
+    color: #000 !important;
 }
 
-.table-lottery tr {
-    background-color: #fff !important;
+/* Force override dark theme for all tables */
+.table {
+    --bs-table-bg: transparent !important;
+    --bs-table-color: #000 !important;
+    --bs-table-striped-bg: #f9f9f9 !important;
+    --bs-table-striped-color: #000 !important;
+    --bs-table-active-bg: #f5f5f5 !important;
+    --bs-table-active-color: #000 !important;
+    --bs-table-hover-bg: #f5f5f5 !important;
+    --bs-table-hover-color: #000 !important;
+    color: #000 !important;
+    border-color: #dee2e6 !important;
 }
 
-.table-lottery tr:nth-child(even) {
-    background-color: #f9f9f9 !important;
-}
-
-.table-lottery td,
-.table-lottery th {
-    color: #333 !important;
-}
-
-/* Fix dark backgrounds in all views */
-body, html {
-    background-color: #fff !important;
-}
-
-.card {
-    background-color: #fff !important;
-}
-
-.table-lottery tbody {
-    background-color: #fff !important;
-}
-
-.table-lottery thead tr {
-    background-color: #f2f2f2 !important;
-}
-
-/* Force override any dark backgrounds in rows */
+/* Force white background for all rows and increase text contrast */
+.table-lottery tr, 
 .table-lottery tbody tr {
     background-color: #fff !important;
+    color: #000 !important;
+}
+
+.table-lottery tbody tr:nth-child(even) {
+    background-color: #f9f9f9 !important;
 }
 
 .table-lottery tbody tr:nth-child(odd) {
     background-color: #fff !important;
 }
 
-.table-lottery tbody tr:nth-child(even) {
-    background-color: #f9f9f9 !important;
+.table-lottery td,
+.table-lottery th {
+    color: #000 !important;
+    font-weight: 500 !important;
+    border-bottom-color: #eee !important;
+}
+
+/* Ensure lottery balls are visible */
+.lottery-ball {
+    color: #000 !important;
+    border: 2px solid rgba(0,0,0,0.1) !important;
+}
+
+/* Make all text in tables more visible */
+tbody, td, th {
+    color: #000 !important;
+}
+
+/* Improve text contrast in all cards */
+.card {
+    background-color: #fff !important;
+    color: #000 !important;
+}
+
+/* Ensure white backgrounds everywhere */
+.bg-dark {
+    background-color: #fff !important;
+    color: #000 !important;
 }
 
 /* Header styling */
