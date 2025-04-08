@@ -114,12 +114,73 @@ def results():
     page = request.args.get('page', 1, type=int)
     per_page = 20
     
-    query = LotteryResult.query
-    if lottery_type:
-        query = query.filter_by(lottery_type=lottery_type)
+    # Import the normalization functions
+    from data_aggregator import normalize_lottery_type
     
-    results = query.order_by(LotteryResult.draw_date.desc()).paginate(page=page, per_page=per_page)
-    return render_template('results.html', results=results, lottery_type=lottery_type)
+    # Create a query that avoids showing duplicate entries
+    query = db.session.query(LotteryResult)
+    
+    # Filter by lottery type if specified
+    if lottery_type:
+        # Remove "Results" suffix if present for consistent filtering
+        normalized_type = normalize_lottery_type(lottery_type)
+        query = query.filter(
+            # Match either exact type or the same type with "Results" suffix
+            db.or_(
+                LotteryResult.lottery_type == normalized_type,
+                LotteryResult.lottery_type == f"{normalized_type} Results"
+            )
+        )
+    
+    # Get all results to remove duplicates properly
+    all_results = query.order_by(LotteryResult.draw_date.desc()).all()
+    
+    # Process results to remove duplicates
+    unique_results = []
+    processed_draws = set()
+    
+    for result in all_results:
+        # Normalize draw number to handle both "2530" and "LOTTO DRAW 2530" formats
+        from data_aggregator import normalize_draw_number
+        draw_key = normalize_draw_number(result.draw_number)
+        normalized_type = normalize_lottery_type(result.lottery_type)
+        
+        # Create a unique key for this draw
+        unique_key = f"{normalized_type}_{draw_key}"
+        
+        # Skip if we've already processed this draw
+        if unique_key in processed_draws:
+            continue
+        
+        # Mark this draw as processed
+        processed_draws.add(unique_key)
+        
+        # Add to unique results
+        unique_results.append(result)
+    
+    # Implement manual pagination since we're doing in-memory filtering
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paged_results = unique_results[start_idx:end_idx]
+    
+    # Create a pagination object similar to Flask-SQLAlchemy's
+    from collections import namedtuple
+    Pagination = namedtuple('Pagination', ['items', 'page', 'per_page', 'total', 'pages', 'has_next', 'has_prev'])
+    
+    total = len(unique_results)
+    pages = (total + per_page - 1) // per_page  # Ceiling division
+    
+    pagination = Pagination(
+        items=paged_results,
+        page=page,
+        per_page=per_page,
+        total=total,
+        pages=pages,
+        has_next=page < pages,
+        has_prev=page > 1
+    )
+    
+    return render_template('results.html', results=pagination, lottery_type=lottery_type)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():

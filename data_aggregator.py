@@ -97,6 +97,60 @@ KNOWN_CORRECT_DRAWS = {
     # Add more known results as they are verified
 }
 
+def normalize_draw_number(draw_number):
+    """
+    Normalize the draw number to a standard format by removing prefixes and extra text.
+    
+    Args:
+        draw_number (str): The draw number as extracted from OCR
+        
+    Returns:
+        str: Normalized draw number
+    """
+    if not draw_number:
+        return None
+        
+    draw_number = str(draw_number).strip()
+    
+    # Remove common prefixes like "LOTTO DRAW", "POWERBALL DRAW", etc.
+    prefixes = [
+        "LOTTO DRAW ", "LOTTO PLUS 1 DRAW ", "LOTTO PLUS 2 DRAW ",
+        "POWERBALL DRAW ", "POWERBALL PLUS DRAW ", "DAILY LOTTO DRAW "
+    ]
+    
+    for prefix in prefixes:
+        if draw_number.upper().startswith(prefix):
+            draw_number = draw_number[len(prefix):].strip()
+            break
+    
+    # Extract the numeric part if mixed with text
+    import re
+    numeric_match = re.search(r'(\d+)', draw_number)
+    if numeric_match:
+        draw_number = numeric_match.group(1)
+        
+    return draw_number
+
+def normalize_lottery_type(lottery_type):
+    """
+    Normalize lottery type names by removing "Results" suffix.
+    This allows merging data from both history and results pages.
+    
+    Args:
+        lottery_type (str): The lottery type name
+        
+    Returns:
+        str: Normalized lottery type
+    """
+    if not lottery_type:
+        return lottery_type
+        
+    # Remove "Results" suffix if present
+    if lottery_type.endswith(" Results"):
+        return lottery_type[:-8]  # Remove " Results" suffix
+    
+    return lottery_type
+
 def aggregate_data(extracted_data, lottery_type, source_url):
     """
     Aggregate and store lottery results extracted from OCR.
@@ -118,6 +172,12 @@ def aggregate_data(extracted_data, lottery_type, source_url):
     try:
         logger.info(f"Aggregating data for {lottery_type}")
         
+        # Normalize lottery type to remove "Results" suffix
+        normalized_lottery_type = normalize_lottery_type(lottery_type)
+        
+        # Use normalized lottery type for display in logs but keep original for processing
+        logger.info(f"Normalized lottery type from '{lottery_type}' to '{normalized_lottery_type}'")
+        
         # Validate extracted data
         if not extracted_data or 'results' not in extracted_data:
             logger.error(f"Invalid data format from OCR: {extracted_data}")
@@ -131,7 +191,7 @@ def aggregate_data(extracted_data, lottery_type, source_url):
         
         saved_results = []
         total_results = len(extracted_data['results'])
-        logger.info(f"Found {total_results} results to process for {lottery_type}")
+        logger.info(f"Found {total_results} results to process for {normalized_lottery_type}")
         
         # Process each result in the extracted data
         for i, result in enumerate(extracted_data['results']):
@@ -155,18 +215,45 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                     logger.warning(f"Could not parse draw date: {result.get('draw_date', 'Not provided')}, skipping")
                     continue
                 
-                # Get draw number
-                draw_number = result.get('draw_number', None)
-                if not draw_number or draw_number == "Unknown":
+                # Get and normalize draw number
+                raw_draw_number = result.get('draw_number', None)
+                if not raw_draw_number or raw_draw_number == "Unknown":
                     logger.warning(f"Missing draw number for result #{i+1}, trying to generate one from date")
                     # Try to generate a unique identifier based on date
                     draw_number = f"Unknown-{draw_date.strftime('%Y%m%d')}-{i}"
+                else:
+                    # Normalize the draw number to handle prefixes like "LOTTO DRAW 2530"
+                    draw_number = normalize_draw_number(raw_draw_number)
+                    if raw_draw_number != draw_number:
+                        logger.info(f"Normalized draw number from '{raw_draw_number}' to '{draw_number}'")
                 
-                # Check if this result already exists
+                # First, check if this result already exists with the exact lottery type and draw number
                 existing_result = LotteryResult.query.filter_by(
-                    lottery_type=lottery_type,
+                    lottery_type=normalized_lottery_type,
                     draw_number=draw_number
                 ).first()
+                
+                # If not found, check with a broader search using LIKE for variations in prefixes
+                if not existing_result and draw_number and not str(draw_number).startswith("Unknown"):
+                    # Try find with just the numeric part of the draw number
+                    all_matching_results = LotteryResult.query.filter(
+                        LotteryResult.lottery_type.like(f"{normalized_lottery_type}%"),
+                        LotteryResult.draw_number.like(f"%{draw_number}%")
+                    ).all()
+                    
+                    if all_matching_results:
+                        # Find the best match - prioritize those with division data
+                        for match in all_matching_results:
+                            if match.divisions:  # Prefer results with division data
+                                existing_result = match
+                                break
+                        
+                        # If no match with divisions, use the first one
+                        if not existing_result and all_matching_results:
+                            existing_result = all_matching_results[0]
+                            
+                        if existing_result:
+                            logger.info(f"Found similar result for {normalized_lottery_type}, draw {draw_number}")
                 
                 # Convert numbers to JSON strings
                 numbers = result.get('numbers', [])
@@ -174,8 +261,9 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                 divisions_data = result.get('divisions', {})
                 
                 # Check against known correct draws for verification
-                if lottery_type in KNOWN_CORRECT_DRAWS and draw_number in KNOWN_CORRECT_DRAWS[lottery_type]:
-                    known_data = KNOWN_CORRECT_DRAWS[lottery_type][draw_number]
+                normalized_draw = str(draw_number) if draw_number else ""
+                if lottery_type in KNOWN_CORRECT_DRAWS and normalized_draw and normalized_draw in KNOWN_CORRECT_DRAWS[lottery_type]:
+                    known_data = KNOWN_CORRECT_DRAWS[lottery_type][normalized_draw]
                     logger.info(f"Found known correct draw data for {lottery_type} draw {draw_number}")
                     
                     # Check similarity with known numbers
