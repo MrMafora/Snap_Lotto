@@ -22,12 +22,24 @@
                         <label for="lottery_type" class="form-label fw-bold">Lottery Type</label>
                         <select class="form-select" id="lottery_type" name="lottery_type" required>
                             <option value="">Select a lottery type</option>
-                            <option value="Lotto">Lotto</option>
-                            <option value="Lotto Plus 1">Lotto Plus 1</option>
-                            <option value="Lotto Plus 2">Lotto Plus 2</option>
-                            <option value="Powerball">Powerball</option>
-                            <option value="Powerball Plus">Powerball Plus</option>
-                            <option value="Daily Lotto">Daily Lotto</option>
+                            <!-- History pages -->
+                            <optgroup label="History Pages">
+                                <option value="Lotto">Lotto</option>
+                                <option value="Lotto Plus 1">Lotto Plus 1</option>
+                                <option value="Lotto Plus 2">Lotto Plus 2</option>
+                                <option value="Powerball">Powerball</option>
+                                <option value="Powerball Plus">Powerball Plus</option>
+                                <option value="Daily Lotto">Daily Lotto</option>
+                            </optgroup>
+                            <!-- Results pages for division data -->
+                            <optgroup label="Results Pages">
+                                <option value="Lotto Results">Lotto Results</option>
+                                <option value="Lotto Plus 1 Results">Lotto Plus 1 Results</option>
+                                <option value="Lotto Plus 2 Results">Lotto Plus 2 Results</option>
+                                <option value="Powerball Results">Powerball Results</option>
+                                <option value="Powerball Plus Results">Powerball Plus Results</option>
+                                <option value="Daily Lotto Results">Daily Lotto Results</option>
+                            </optgroup>
                             <option value="Other">Other</option>
                         </select>
                     </div>
@@ -207,18 +219,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle quick setup button
     document.getElementById('setupDefault').addEventListener('click', function() {
-        if (confirm('This will set up default schedules for all South African lottery types. Continue?')) {
+        if (confirm('This will set up default schedules for all South African lottery types, including both history and results pages. Continue?')) {
             const defaultUrls = [
+                // History pages (for draw numbers and dates)
                 {url: 'https://www.nationallottery.co.za/lotto-history', type: 'Lotto'},
                 {url: 'https://www.nationallottery.co.za/lotto-plus-1-history', type: 'Lotto Plus 1'},
                 {url: 'https://www.nationallottery.co.za/lotto-plus-2-history', type: 'Lotto Plus 2'},
                 {url: 'https://www.nationallottery.co.za/powerball-history', type: 'Powerball'},
                 {url: 'https://www.nationallottery.co.za/powerball-plus-history', type: 'Powerball Plus'},
-                {url: 'https://www.nationallottery.co.za/daily-lotto-history', type: 'Daily Lotto'}
+                {url: 'https://www.nationallottery.co.za/daily-lotto-history', type: 'Daily Lotto'},
+                
+                // Results pages (for division details, winners, prizes)
+                {url: 'https://www.nationallottery.co.za/results/lotto', type: 'Lotto Results'},
+                {url: 'https://www.nationallottery.co.za/results/lotto-plus-1-results', type: 'Lotto Plus 1 Results'},
+                {url: 'https://www.nationallottery.co.za/results/lotto-plus-2-results', type: 'Lotto Plus 2 Results'},
+                {url: 'https://www.nationallottery.co.za/results/powerball', type: 'Powerball Results'},
+                {url: 'https://www.nationallottery.co.za/results/powerball-plus', type: 'Powerball Plus Results'},
+                {url: 'https://www.nationallottery.co.za/results/daily-lotto', type: 'Daily Lotto Results'}
             ];
             
             // Create a form and submit for each default URL
             let processingCount = 0;
+            const totalUrls = defaultUrls.length;
             
             defaultUrls.forEach((config, index) => {
                 setTimeout(() => {
@@ -227,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('lottery_type').value = config.type;
                     document.getElementById('frequency').value = 'daily';
                     document.getElementById('hour').value = 1;
-                    document.getElementById('minute').value = index * 10;  // Stagger by 10 minutes
+                    document.getElementById('minute').value = index * 5;  // Stagger by 5 minutes to fit all in one hour
                     
                     // Submit form
                     const form = document.querySelector('form');
@@ -238,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Show processing message
                     const alert = document.createElement('div');
                     alert.className = 'alert alert-info';
-                    alert.innerText = `Setting up ${processingCount} of ${defaultUrls.length}...`;
+                    alert.innerText = `Setting up ${processingCount} of ${totalUrls}...`;
                     document.querySelector('.container').prepend(alert);
                     
                 }, index * 1000);  // Stagger submissions to avoid overwhelming the server

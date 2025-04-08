@@ -196,11 +196,13 @@ def create_system_prompt(lottery_type):
     Create a system prompt for OCR based on lottery type.
     
     Args:
-        lottery_type (str): Type of lottery
+        lottery_type (str): Type of lottery (e.g., "Lotto", "Lotto Results", etc.)
         
     Returns:
         str: System prompt for OCR
     """
+    # Strip "Results" suffix for the base prompt
+    base_lottery_type = lottery_type.replace(" Results", "")
     base_prompt = """
     You are a specialized OCR extraction system designed to extract lottery draw results from screenshots of South African lottery websites.
     
@@ -212,6 +214,7 @@ def create_system_prompt(lottery_type):
     
     Secondary information to extract if available:
     - Bonus numbers or PowerBall numbers
+    - Divisions data including winners and prize amounts
     
     The screenshots come from the South African National Lottery website (nationallottery.co.za).
     
@@ -221,12 +224,21 @@ def create_system_prompt(lottery_type):
     - Game dates formatted in various ways
     - Clear headings indicating the lottery type
     - Repeating patterns in tables that might indicate multiple draws
+    - Division information (look for tables with "Division", "Winners", and "Prize" columns)
     
     For the South African lottery website:
     - Look for tables with lottery results, each row likely contains a separate draw
     - Lottery balls are typically displayed as numbers in colored circles
     - Draw dates usually follow a day/month/year format like "05/04/2025"
     - Draw IDs usually appear as "Draw XXXX" where XXXX is a number
+    - Prize amounts appear as monetary values with R prefix (e.g., R5,000,000.00)
+    
+    If this is a RESULTS PAGE (URL contains "/results/"):
+      Include divisions data with winners and prize amounts in the format below.
+      Look for tables with division information, usually showing:
+      - Division numbers (Division 1, Division 2, etc.)
+      - Number of winners
+      - Prize amounts (with "R" prefix for Rand)
     
     Return the data in this exact JSON format:
     {
@@ -236,13 +248,27 @@ def create_system_prompt(lottery_type):
                 "draw_number": "Draw ID as a string",
                 "draw_date": "YYYY-MM-DD",
                 "numbers": [1, 2, 3, 4, 5, 6],
-                "bonus_numbers": [7]  # Only if applicable
+                "bonus_numbers": [7],  # Only if applicable
+                "divisions": {  # Include if this is a results page with division data
+                    "Division 1": {
+                        "winners": "1",
+                        "prize": "R5,000,000.00"
+                    },
+                    "Division 2": {
+                        "winners": "5",
+                        "prize": "R100,000.00"
+                    },
+                    ... more divisions as found ...
+                }
             },
             {
                 "draw_number": "Another Draw ID",
                 "draw_date": "YYYY-MM-DD",
                 "numbers": [7, 8, 9, 10, 11, 12],
-                "bonus_numbers": [13]  # Only if applicable
+                "bonus_numbers": [13],  # Only if applicable
+                "divisions": {  # Include if this is a results page with division data
+                    ... divisions data ...
+                }
             },
             ... more draws as found on the page ...
         ]
@@ -281,7 +307,7 @@ def create_system_prompt(lottery_type):
     """
     
     # Add lottery-specific instructions
-    if "lotto" in lottery_type.lower() and "plus" not in lottery_type.lower():
+    if "lotto" in base_lottery_type.lower() and "plus" not in base_lottery_type.lower():
         return base_prompt + """
         For Lotto:
         - Extract exactly 6 main numbers for EACH draw
@@ -292,7 +318,7 @@ def create_system_prompt(lottery_type):
         - Pay attention to tables or sections containing "Draw 2530" or similar recent draw numbers
         - Important: The page typically shows 5-10 different draws in a table. Extract EACH row as a separate draw.
         """
-    elif "lotto plus" in lottery_type.lower():
+    elif "lotto plus" in base_lottery_type.lower():
         return base_prompt + """
         For Lotto Plus:
         - Extract exactly 6 main numbers for EACH draw
@@ -311,7 +337,7 @@ def create_system_prompt(lottery_type):
         - For March 5, 2025 draw (typically Draw 2521), the numbers should be carefully verified
         - Check the image multiple times before finalizing numbers
         """
-    elif "powerball" in lottery_type.lower():
+    elif "powerball" in base_lottery_type.lower():
         return base_prompt + """
         For PowerBall:
         - Extract exactly 5 main numbers for EACH draw
@@ -322,7 +348,7 @@ def create_system_prompt(lottery_type):
         - If you can't find exactly 5 main numbers for a draw, do not invent them - use zeros as placeholders [0,0,0,0,0]
         - Important: The page typically shows 5-10 different draws in a table. Extract EACH row as a separate draw.
         """
-    elif "daily lotto" in lottery_type.lower():
+    elif "daily lotto" in base_lottery_type.lower():
         return base_prompt + """
         For Daily Lotto:
         - Extract exactly 5 main numbers for EACH draw
