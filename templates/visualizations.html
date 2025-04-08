@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch(`/api/visualization-data?lottery_type=${lotteryType}&data_type=${chartType}`);
             if (!response.ok) {
                 console.error('Server returned error:', response.status);
-                showNoDataMessage();
+                showNoDataMessage('Server error. Please try again later.');
                 clearInsights();
                 return;
             }
@@ -182,8 +182,22 @@ document.addEventListener('DOMContentLoaded', function() {
             // Check if we have valid data
             if (data.error || !data.labels || data.labels.length === 0) {
                 console.log('No valid data received:', data.message || data.error || 'Unknown error');
-                showNoDataMessage();
+                showNoDataMessage(data.message || 'No data available for the selected options');
                 clearInsights();
+                
+                // For prize amounts, add specific message about using only real data
+                if (chartType === 'prize_amounts') {
+                    addInsight("No actual prize amounts are available for this lottery type.");
+                    addInsight("Only real data from lottery results will be shown in charts.");
+                    addInsight("No estimated or placeholder values are used.");
+                }
+                
+                // If there's an existing chart, destroy it
+                if (mainChart) {
+                    mainChart.destroy();
+                    mainChart = null;
+                }
+                
                 return;
             }
             
@@ -197,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
             generateInsights(data, chartType, lotteryType);
         } catch (error) {
             console.error('Error fetching data:', error);
-            showNoDataMessage();
+            showNoDataMessage('Error loading data. Please try again later.');
             clearInsights();
         }
     }
@@ -225,11 +239,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Function to show no data message
-    function showNoDataMessage() {
+    function showNoDataMessage(customMessage) {
         if (mainChart) {
             mainChart.destroy();
             mainChart = null;
         }
+        
+        // Set a custom message if provided
+        if (customMessage) {
+            noDataMessage.textContent = customMessage;
+        } else {
+            noDataMessage.textContent = 'No data available for the selected options';
+        }
+        
         noDataMessage.classList.remove('d-none');
     }
     
