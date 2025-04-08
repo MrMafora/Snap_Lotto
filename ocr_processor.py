@@ -130,31 +130,53 @@ def process_with_ai(screenshot_path, lottery_type):
     Process content using the Anthropic AI.
     
     Args:
-        screenshot_path (str): Path to the file
+        screenshot_path (str): Path to the file (HTML file)
         lottery_type (str): Type of lottery
         
     Returns:
         dict: The processed result
     """
     try:
-        # Read file and convert to base64
-        with open(screenshot_path, "rb") as image_file:
-            base64_content = base64.b64encode(image_file.read()).decode("utf-8")
-        
         # Create system prompt based on lottery type
         system_prompt = create_system_prompt(lottery_type)
         
-        # Determine media type based on file extension
+        # Determine file type based on extension
         file_extension = os.path.splitext(screenshot_path)[1].lower()
+        
+        # Process HTML content (optimized approach)
         if file_extension in ['.html', '.htm']:
-            # Process as text
             logger.info(f"Processing HTML content for {lottery_type}")
             
-            # Read the content again as text
+            # Read the content as text
             with open(screenshot_path, "r", encoding="utf-8", errors="ignore") as html_file:
                 html_content = html_file.read()
+            
+            # Use a simplified approach to extract just the essential content
+            # to prevent exceeding token limits
+            simplified_content = html_content
+            
+            # If HTML is too large, extract just the main section
+            if len(html_content) > 100000:
+                logger.info("HTML content is very large, attempting to extract main section")
+                # Look for main content sections in the HTML
+                main_patterns = [
+                    r'<main[^>]*>(.*?)</main>',
+                    r'<div[^>]*main[^>]*>(.*?)</div>',
+                    r'<div[^>]*content[^>]*>(.*?)</div>',
+                    r'<div[^>]*results[^>]*>(.*?)</div>',
+                    r'<table[^>]*>(.*?)</table>'
+                ]
                 
+                for pattern in main_patterns:
+                    matches = re.findall(pattern, html_content, re.DOTALL | re.IGNORECASE)
+                    if matches:
+                        # Take the largest match
+                        simplified_content = max(matches, key=len)
+                        logger.info(f"Extracted main content section ({len(simplified_content)} chars)")
+                        break
+            
             # Send to Anthropic
+            logger.info(f"Sending HTML content to Anthropic Claude for processing: {lottery_type}")
             response = client.messages.create(
                 model="claude-3-5-sonnet-20241022", # the newest Anthropic model is "claude-3-5-sonnet-20241022" which was released October 22, 2024
                 max_tokens=1500,
@@ -169,13 +191,18 @@ def process_with_ai(screenshot_path, lottery_type):
                             },
                             {
                                 "type": "text",
-                                "text": html_content
+                                "text": simplified_content
                             }
                         ]
                     }
                 ]
             )
+        # Handle image files (rare case now that we're storing HTML)
         else:
+            # Read file and convert to base64
+            with open(screenshot_path, "rb") as image_file:
+                base64_content = base64.b64encode(image_file.read()).decode("utf-8")
+                
             # Process as image
             logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
             response = client.messages.create(

@@ -53,8 +53,8 @@ ensure_playwright_browsers()
 
 async def take_screenshot_async(url):
     """
-    Capture a high-definition screenshot of the specified URL using Playwright.
-    This uses a full browser instance to properly render JavaScript and bypass anti-scraping measures.
+    Capture a screenshot of the specified URL using Playwright.
+    Optimized for reduced memory usage in constrained environments.
     
     Args:
         url (str): The URL to capture
@@ -63,13 +63,14 @@ async def take_screenshot_async(url):
         str: Path to the saved screenshot file, or None if failed
     """
     try:
+        # Create an HTML file instead of PNG to save memory
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{timestamp}_{url.split('/')[-1]}.png"
+        filename = f"{timestamp}_{url.split('/')[-1]}.html"
         filepath = os.path.join(SCREENSHOT_DIR, filename)
         
-        logger.info(f"Capturing screenshot from {url} using Playwright")
+        logger.info(f"Capturing content from {url} using Playwright")
         
-        # Use Playwright to capture a screenshot
+        # Use Playwright to capture the page content
         try:
             # Set browser executable path to use the system installed Chromium
             chromium_path = subprocess.run(
@@ -81,51 +82,54 @@ async def take_screenshot_async(url):
             logger.info(f"Using Chromium from: {chromium_path}")
             
             async with async_playwright() as p:
-                # Launch browser with executable path
+                # Launch browser with minimal resource usage
                 browser = await p.chromium.launch(
                     headless=True,
-                    executable_path=chromium_path if chromium_path else None
+                    executable_path=chromium_path if chromium_path else None,
+                    args=['--disable-gpu', '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas', '--no-sandbox', '--disable-setuid-sandbox']
                 )
                 
-                # Set up context with desktop viewport and realistic user agent
+                # Set up context with smaller viewport to reduce memory usage
                 context = await browser.new_context(
-                    viewport={'width': 1920, 'height': 1080},
+                    viewport={'width': 1366, 'height': 768},
                     user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 )
                 
                 # Create page and navigate to URL
                 page = await context.new_page()
                 
-                # Set extra headers to appear more like a real browser
+                # Set essential headers to appear like a real browser
                 await page.set_extra_http_headers({
                     "Accept-Language": "en-US,en;q=0.9",
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-                    "sec-ch-ua": '"Chromium";v="120", "Google Chrome";v="120"',
-                    "sec-ch-ua-mobile": "?0",
-                    "sec-ch-ua-platform": '"Windows"',
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
                 })
                 
-                # Navigate to the target URL and wait until network is idle
-                await page.goto(url, wait_until='networkidle', timeout=90000)
+                # Reduce default timeout to avoid hanging
+                await page.goto(url, wait_until='domcontentloaded', timeout=60000)
                 
-                # Wait for the page to fully render (important for JavaScript-heavy sites)
-                await page.wait_for_timeout(8000)
+                # Shorter wait time for JS execution
+                await page.wait_for_timeout(3000)
                 
-                # Take the screenshot
-                await page.screenshot(path=filepath, full_page=True)
+                # Save the full HTML instead of taking a screenshot to reduce memory usage
+                content = await page.content()
                 
-                # Close the browser
+                # Write HTML to file
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                
+                # Close immediately to free memory
+                await context.close()
                 await browser.close()
                 
-                logger.info(f"Screenshot successfully saved to {filepath}")
+                logger.info(f"Content successfully saved to {filepath}")
                 return filepath
                 
         except Exception as e:
-            logger.error(f"Playwright screenshot failed: {str(e)}")
+            logger.error(f"Playwright content capture failed: {str(e)}")
             return None
             
     except Exception as e:
-        logger.error(f"Error capturing screenshot: {str(e)}")
+        logger.error(f"Error capturing content: {str(e)}")
         return None
 
 def take_screenshot(url):
