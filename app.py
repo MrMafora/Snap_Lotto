@@ -276,6 +276,13 @@ def visualization_data():
     
     results = query.order_by(LotteryResult.draw_date.desc()).limit(100).all()
     
+    # Check if we have any results to work with
+    if not results:
+        return jsonify({
+            'error': 'No data available',
+            'message': 'No lottery results found for the selected filters.'
+        })
+    
     if data_type == 'numbers_frequency':
         # Calculate frequency of each number
         frequencies = {}

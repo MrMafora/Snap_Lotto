@@ -170,10 +170,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Fetch data from API
         try {
             const response = await fetch(`/api/visualization-data?lottery_type=${lotteryType}&data_type=${chartType}`);
+            if (!response.ok) {
+                console.error('Server returned error:', response.status);
+                showNoDataMessage();
+                clearInsights();
+                return;
+            }
+            
             const data = await response.json();
             
             // Check if we have valid data
             if (data.error || !data.labels || data.labels.length === 0) {
+                console.log('No valid data received:', data.message || data.error || 'Unknown error');
                 showNoDataMessage();
                 clearInsights();
                 return;
@@ -337,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Generate insights based on chart type
         switch (chartType) {
             case 'numbers_frequency':
-                generateNumberFrequencyInsights(data);
+                generateNumberFrequencyInsights(data, lotteryType);
                 break;
             case 'winners_by_division':
                 generateWinnersByDivisionInsights(data);
@@ -365,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Insight generator functions
-    function generateNumberFrequencyInsights(data) {
+    function generateNumberFrequencyInsights(data, lotteryType) {
         let numberFrequencies;
         
         // Use the pre-calculated frequencies if available
@@ -404,7 +412,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Numbers that never appeared
-        const maxPossibleNumber = getLotteryMaxNumber(currentLotteryType); // Get appropriate range based on lottery type
+        const maxPossibleNumber = getLotteryMaxNumber(lotteryType); // Get appropriate range based on lottery type
         const missingNumbers = [];
         for (let i = 1; i <= maxPossibleNumber; i++) {
             // Check if number exists in the frequencies data
