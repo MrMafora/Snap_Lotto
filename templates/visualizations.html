@@ -261,6 +261,20 @@ document.addEventListener('DOMContentLoaded', function() {
             data.datasets[0].borderColor = borderColors;
         }
         
+        // Format Y-axis ticks for prize amounts to use currency format
+        let yAxisTicksCallback = undefined;
+        if (chartType === 'prize_amounts') {
+            yAxisTicksCallback = function(value) {
+                // Format as South African Rand (R) with appropriate formatting for large numbers
+                return value.toLocaleString('en-ZA', { 
+                    style: 'currency', 
+                    currency: 'ZAR',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).replace('ZAR', 'R');
+            };
+        }
+        
         // Determine chart type based on the data
         let chartConfig = {
             type: 'bar',
@@ -324,6 +338,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 data.datasets[0].fill = true;
                 data.datasets[0].tension = 0.3;
             }
+        }
+        
+        // Apply currency formatting for prize amounts
+        if (chartType === 'prize_amounts') {
+            chartConfig.options.scales.y.ticks.callback = yAxisTicksCallback;
+            // Add tooltip formatting for prize amounts
+            chartConfig.options.plugins.tooltip = {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null) {
+                            label += context.parsed.y.toLocaleString('en-ZA', { 
+                                style: 'currency', 
+                                currency: 'ZAR',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }).replace('ZAR', 'R');
+                        }
+                        return label;
+                    }
+                }
+            };
         }
         
         // Create new chart or update existing one
@@ -476,17 +515,27 @@ document.addEventListener('DOMContentLoaded', function() {
         // Sort by prize (descending)
         divisionPrizes.sort((a, b) => b.prize - a.prize);
         
+        // Helper function to format currency with commas as thousands separators
+        function formatCurrency(amount) {
+            return amount.toLocaleString('en-ZA', { 
+                style: 'currency', 
+                currency: 'ZAR',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).replace('ZAR', 'R');
+        }
+        
         // Division with highest average prize
         const highestPrize = divisionPrizes[0];
-        addInsight(`Highest average prize: ${highestPrize.division} (R${highestPrize.prize.toFixed(2)})`);
+        addInsight(`Highest average prize: ${highestPrize.division} (${formatCurrency(highestPrize.prize)})`);
         
         // Division with lowest average prize
         const lowestPrize = divisionPrizes[divisionPrizes.length - 1];
-        addInsight(`Lowest average prize: ${lowestPrize.division} (R${lowestPrize.prize.toFixed(2)})`);
+        addInsight(`Lowest average prize: ${lowestPrize.division} (${formatCurrency(lowestPrize.prize)})`);
         
         // Calculate prize difference between highest and lowest division
         const priceDifference = highestPrize.prize - lowestPrize.prize;
-        addInsight(`Prize difference between highest and lowest: R${priceDifference.toFixed(2)}`);
+        addInsight(`Prize difference between highest and lowest: ${formatCurrency(priceDifference)}`);
         
         // Check for outliers (prizes significantly higher than others)
         const averagePrize = prizes.reduce((sum, prize) => sum + prize, 0) / prizes.length;
