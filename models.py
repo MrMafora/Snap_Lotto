@@ -37,7 +37,7 @@ class LotteryResult(db.Model):
     divisions = db.Column(db.Text, nullable=True, comment="Prize Divisions Data (JSON string)")  # Stored as JSON string with division, winners, and prize amount
     source_url = db.Column(db.String(255), nullable=False)
     screenshot_id = db.Column(db.Integer, db.ForeignKey('screenshot.id'), nullable=True)
-    ocr_provider = db.Column(db.String(50), nullable=True, comment="OCR Provider (anthropic, mistral, etc.)")
+    ocr_provider = db.Column(db.String(50), nullable=True, comment="OCR Provider (anthropic)")
     ocr_model = db.Column(db.String(100), nullable=True, comment="OCR Model used")
     ocr_timestamp = db.Column(db.DateTime, nullable=True, comment="When OCR was performed")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

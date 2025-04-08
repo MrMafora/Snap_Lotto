@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+
+{% block title %}Lottery Ticket Scanner | Snap Lotto{% endblock %}
+
+{% block additional_head %}
+<style>
+    .ticket-scanner-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .ticket-drop-area {
+        border: 2px dashed var(--bs-secondary);
+        border-radius: 8px;
+        padding: 40px;
+        text-align: center;
+        background-color: rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 20px;
+    }
+    .ticket-drop-area:hover, .ticket-drop-area.highlight {
+        border-color: var(--bs-primary);
+        background-color: rgba(0,0,0,0.2);
+    }
+    .ticket-preview {
+        max-width: 100%;
+        max-height: 300px;
+        margin: 20px 0;
+    }
+    .results-container {
+        margin-top: 30px;
+    }
+    .ball-matched {
+        position: relative;
+    }
+    .ball-matched::after {
+        content: "✓";
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background-color: var(--bs-success);
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .prize-card {
+        border-left: 5px solid var(--bs-success);
+    }
+    #scanner-loading {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="d-flex align-items-center">
+                <i class="fa fa-ticket-alt me-3"></i> Lottery Ticket Scanner
+            </h1>
+            <p class="lead">Upload your lottery ticket to check if you've won a prize</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-dark">
+                <div class="card-body">
+                    <div class="ticket-scanner-container">
+                        <div class="alert alert-info">
+                            <i class="fa fa-info-circle me-2"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
+                        </div>
+
+                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="lottery-type" class="form-label">Select Lottery Type</label>
+                                <select class="form-select" id="lottery-type" name="lottery_type" required>
+                                    <option value="">-- Select Lottery Type --</option>
+                                    <option value="Lotto">Lotto</option>
+                                    <option value="Lotto Plus 1">Lotto Plus 1</option>
+                                    <option value="Lotto Plus 2">Lotto Plus 2</option>
+                                    <option value="Powerball">Powerball</option>
+                                    <option value="Powerball Plus">Powerball Plus</option>
+                                    <option value="Daily Lotto">Daily Lotto</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="draw-number" class="form-label">Draw Number (optional)</label>
+                                <input type="text" class="form-control" id="draw-number" name="draw_number" 
+                                    placeholder="Leave blank to check against latest draw">
+                            </div>
+
+                            <div class="ticket-drop-area" id="drop-area">
+                                <div class="mb-3">
+                                    <i class="fa fa-upload fa-2x mb-3"></i>
+                                    <h5>Drag and drop your ticket image here</h5>
+                                    <p>or</p>
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
+                                    <button type="button" id="file-select-btn" class="btn btn-primary">Select Image</button>
+                                </div>
+                            </div>
+
+                            <div id="preview-container" class="text-center d-none">
+                                <h6>Preview</h6>
+                                <img id="ticket-preview" class="ticket-preview img-fluid rounded" src="">
+                                <div class="mt-2">
+                                    <button type="button" id="remove-image" class="btn btn-sm btn-outline-danger">
+                                        <i class="fa fa-times"></i> Remove
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-4">
+                                <button type="submit" id="scan-button" class="btn btn-success btn-lg" disabled>
+                                    <i class="fa fa-search me-2"></i> Scan Ticket
+                                </button>
+                                <div id="scanner-loading" class="mt-3">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p>Scanning your ticket...</p>
+                                </div>
+                            </div>
+                        </form>
+
+                        <div id="results-container" class="results-container d-none">
+                            <hr>
+                            <h3 class="mb-4 text-center">Scanning Results</h3>
+                            
+                            <div id="error-message" class="alert alert-danger d-none">
+                                <i class="fa fa-exclamation-triangle me-2"></i>
+                                <span id="error-text"></span>
+                            </div>
+                            
+                            <div id="success-content" class="d-none">
+                                <div class="card mb-4">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0" id="ticket-info-title">Your Ticket</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <p><strong>Lottery Type:</strong> <span id="result-lottery-type"></span></p>
+                                                <p><strong>Draw Number:</strong> <span id="result-draw-number"></span></p>
+                                                <p><strong>Draw Date:</strong> <span id="result-draw-date"></span></p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p><strong>Your Numbers:</strong></p>
+                                                <div id="ticket-numbers" class="mb-3"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-4">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0">Winning Numbers</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="winning-numbers" class="mb-3"></div>
+                                        
+                                        <div class="mt-4">
+                                            <p><strong>Matched Numbers:</strong> <span id="matched-count" class="badge bg-success">0</span></p>
+                                            <div id="matched-numbers"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="prize-container" class="d-none">
+                                    <div class="card prize-card">
+                                        <div class="card-body">
+                                            <h4 class="text-success mb-3"><i class="fa fa-trophy me-2"></i> Congratulations!</h4>
+                                            <p class="lead">You've won a prize in <span id="prize-lottery-type"></span> Draw <span id="prize-draw-number"></span>!</p>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <p><strong>Division:</strong> <span id="prize-division"></span></p>
+                                                    <p><strong>Match Type:</strong> <span id="prize-match-type"></span></p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h3 class="text-success">Prize: <span id="prize-amount"></span></h3>
+                                                </div>
+                                            </div>
+                                            <p class="small text-muted mt-3">Visit the official South African National Lottery website or an authorized retailer to claim your prize.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="no-prize-container" class="d-none">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h4 class="text-muted mb-3"><i class="fa fa-times-circle me-2"></i> No Prize</h4>
+                                            <p>Sorry, your ticket did not win a prize in this draw.</p>
+                                            <p>Better luck next time!</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('ticket-image');
+        const fileSelectBtn = document.getElementById('file-select-btn');
+        const previewContainer = document.getElementById('preview-container');
+        const ticketPreview = document.getElementById('ticket-preview');
+        const removeImageBtn = document.getElementById('remove-image');
+        const scanButton = document.getElementById('scan-button');
+        const ticketForm = document.getElementById('ticket-form');
+        const lotteryTypeSelect = document.getElementById('lottery-type');
+        const loadingIndicator = document.getElementById('scanner-loading');
+        const resultsContainer = document.getElementById('results-container');
+        
+        // File selection via button
+        fileSelectBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // File selection change
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        // Drag and drop events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('highlight');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('highlight');
+        }
+        
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        }
+        
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            
+            if (file) {
+                // Check if file is an image
+                if (!file.type.match('image.*')) {
+                    alert('Please select an image file');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    ticketPreview.src = e.target.result;
+                    previewContainer.classList.remove('d-none');
+                    updateScanButton();
+                }
+                
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        removeImageBtn.addEventListener('click', function() {
+            ticketPreview.src = '';
+            fileInput.value = '';
+            previewContainer.classList.add('d-none');
+            updateScanButton();
+        });
+        
+        lotteryTypeSelect.addEventListener('change', updateScanButton);
+        
+        function updateScanButton() {
+            scanButton.disabled = !fileInput.files.length || !lotteryTypeSelect.value;
+        }
+        
+        ticketForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Show loading indicator
+            loadingIndicator.style.display = 'block';
+            scanButton.disabled = true;
+            
+            // Create form data
+            const formData = new FormData(ticketForm);
+            
+            // Send request
+            fetch('/scan-ticket', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                displayResults(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('An error occurred while scanning your ticket. Please try again.');
+            })
+            .finally(() => {
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                scanButton.disabled = false;
+            });
+        });
+        
+        function displayResults(data) {
+            // Show results container
+            resultsContainer.classList.remove('d-none');
+            
+            // Hide error message by default
+            document.getElementById('error-message').classList.add('d-none');
+            
+            if (data.error) {
+                showError(data.error);
+                return;
+            }
+            
+            // Show success content
+            const successContent = document.getElementById('success-content');
+            successContent.classList.remove('d-none');
+            
+            // Populate ticket info
+            document.getElementById('result-lottery-type').textContent = data.lottery_type;
+            document.getElementById('result-draw-number').textContent = data.draw_number;
+            document.getElementById('result-draw-date').textContent = data.draw_date;
+            
+            // Display ticket numbers
+            const ticketNumbersContainer = document.getElementById('ticket-numbers');
+            ticketNumbersContainer.innerHTML = '';
+            
+            data.ticket_numbers.forEach(num => {
+                const ball = document.createElement('span');
+                ball.classList.add('lottery-ball');
+                
+                // Add color classes in sequence
+                if (ticketNumbersContainer.children.length % 4 === 0) {
+                    ball.classList.add('lottery-ball-red');
+                } else if (ticketNumbersContainer.children.length % 4 === 1) {
+                    ball.classList.add('lottery-ball-yellow');
+                } else if (ticketNumbersContainer.children.length % 4 === 2) {
+                    ball.classList.add('lottery-ball-green');
+                } else {
+                    ball.classList.add('lottery-ball-blue');
+                }
+                
+                ball.textContent = num;
+                ticketNumbersContainer.appendChild(ball);
+            });
+            
+            // Display winning numbers
+            const winningNumbersContainer = document.getElementById('winning-numbers');
+            winningNumbersContainer.innerHTML = '';
+            
+            data.winning_numbers.forEach(num => {
+                const ball = document.createElement('span');
+                ball.classList.add('lottery-ball');
+                
+                // Add color classes in sequence
+                if (winningNumbersContainer.children.length % 4 === 0) {
+                    ball.classList.add('lottery-ball-red');
+                } else if (winningNumbersContainer.children.length % 4 === 1) {
+                    ball.classList.add('lottery-ball-yellow');
+                } else if (winningNumbersContainer.children.length % 4 === 2) {
+                    ball.classList.add('lottery-ball-green');
+                } else {
+                    ball.classList.add('lottery-ball-blue');
+                }
+                
+                ball.textContent = num;
+                winningNumbersContainer.appendChild(ball);
+            });
+            
+            // Add bonus balls if available
+            if (data.bonus_numbers && data.bonus_numbers.length > 0) {
+                const plusSpan = document.createElement('span');
+                plusSpan.classList.add('mx-2');
+                plusSpan.textContent = '+';
+                winningNumbersContainer.appendChild(plusSpan);
+                
+                data.bonus_numbers.forEach(num => {
+                    const ball = document.createElement('span');
+                    ball.classList.add('lottery-ball', 'lottery-ball-blue', 'lottery-ball-bonus');
+                    ball.textContent = num;
+                    winningNumbersContainer.appendChild(ball);
+                });
+            }
+            
+            // Display matched numbers
+            document.getElementById('matched-count').textContent = data.matched_numbers.length;
+            
+            const matchedNumbersContainer = document.getElementById('matched-numbers');
+            matchedNumbersContainer.innerHTML = '';
+            
+            if (data.matched_numbers.length > 0) {
+                data.matched_numbers.forEach(num => {
+                    const ball = document.createElement('span');
+                    ball.classList.add('lottery-ball', 'ball-matched');
+                    
+                    // Add color classes in sequence
+                    if (matchedNumbersContainer.children.length % 4 === 0) {
+                        ball.classList.add('lottery-ball-red');
+                    } else if (matchedNumbersContainer.children.length % 4 === 1) {
+                        ball.classList.add('lottery-ball-yellow');
+                    } else if (matchedNumbersContainer.children.length % 4 === 2) {
+                        ball.classList.add('lottery-ball-green');
+                    } else {
+                        ball.classList.add('lottery-ball-blue');
+                    }
+                    
+                    ball.textContent = num;
+                    matchedNumbersContainer.appendChild(ball);
+                });
+            } else {
+                matchedNumbersContainer.innerHTML = '<p>No matching numbers found.</p>';
+            }
+            
+            // Display prize information if any
+            const prizeContainer = document.getElementById('prize-container');
+            const noPrizeContainer = document.getElementById('no-prize-container');
+            
+            if (data.has_prize) {
+                prizeContainer.classList.remove('d-none');
+                noPrizeContainer.classList.add('d-none');
+                
+                document.getElementById('prize-lottery-type').textContent = data.lottery_type;
+                document.getElementById('prize-draw-number').textContent = data.draw_number;
+                document.getElementById('prize-division').textContent = data.prize_info.division;
+                document.getElementById('prize-match-type').textContent = data.prize_info.match_type;
+                document.getElementById('prize-amount').textContent = data.prize_info.prize_amount;
+            } else {
+                prizeContainer.classList.add('d-none');
+                noPrizeContainer.classList.remove('d-none');
+            }
+            
+            // Scroll to results
+            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function showError(message) {
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            const successContent = document.getElementById('success-content');
+            
+            errorText.textContent = message;
+            errorMessage.classList.remove('d-none');
+            successContent.classList.add('d-none');
+        }
+    });
+</script>
+{% endblock %}

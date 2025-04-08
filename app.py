@@ -5,9 +5,11 @@ import os
 import logging
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.utils import secure_filename
 from models import db, Screenshot, LotteryResult, ScheduleConfig
 from data_aggregator import aggregate_data, validate_and_correct_known_draws
 from scheduler import run_lottery_task
+from ticket_scanner import process_ticket_image
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
@@ -611,11 +613,46 @@ def get_raw_ocr(lottery_type):
             'ocr_data': raw_data
         }
         
-        # Add chat model info if available (Mistral uses separate OCR and chat models)
+        # Add model version info if available
         if chat_model:
-            response['ocr_info']['chat_model'] = chat_model
+            response['ocr_info']['model_version'] = chat_model
             
         return jsonify(response)
     except Exception as e:
         logger.error(f"Error processing screenshot with OCR: {str(e)}")
         return jsonify({'error': str(e)})
+
+@app.route('/ticket-scanner')
+def ticket_scanner():
+    """Page for scanning lottery tickets and checking if they won"""
+    return render_template('ticket_scanner.html')
+
+@app.route('/scan-ticket', methods=['POST'])
+def scan_ticket():
+    """API endpoint to process a lottery ticket image and check if it's a winner"""
+    if 'ticket_image' not in request.files:
+        return jsonify({'error': 'No ticket image provided'})
+        
+    file = request.files['ticket_image']
+    if file.filename == '':
+        return jsonify({'error': 'No ticket image selected'})
+        
+    lottery_type = request.form.get('lottery_type')
+    if not lottery_type:
+        return jsonify({'error': 'Lottery type is required'})
+        
+    draw_number = request.form.get('draw_number', None)
+    if draw_number and draw_number.strip() == '':
+        draw_number = None
+        
+    # Read the image data
+    try:
+        image_data = file.read()
+        
+        # Process the ticket image
+        result = process_ticket_image(image_data, lottery_type, draw_number)
+        
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error processing ticket image: {str(e)}")
+        return jsonify({'error': f"Failed to process ticket: {str(e)}"})
