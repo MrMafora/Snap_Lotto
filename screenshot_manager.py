@@ -48,109 +48,85 @@ def ensure_playwright_browsers():
 # Run the browser installation check
 ensure_playwright_browsers()
 
-def take_direct_screenshot(url):
-    """
-    Use curl to fetch HTML content directly as a fallback to Playwright.
-    
-    Note: This does not create an actual PNG screenshot,
-    but saves the HTML content which contains the lottery data.
-    The HTML files are sufficient for data extraction.
-    
-    Args:
-        url (str): The URL to capture
-        
-    Returns:
-        str: Path to the saved HTML file, or None if failed
-    """
-    try:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        html_filename = f"{timestamp}_{url.split('/')[-1]}.html"
-        html_filepath = os.path.join(SCREENSHOT_DIR, html_filename)
-        
-        logger.info(f"Fetching HTML content directly from {url}")
-        
-        # Use curl to fetch the HTML with a realistic user agent
-        curl_command = [
-            'curl', 
-            '-A', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
-            '-L',  # Follow redirects
-            '--max-time', '30',  # Timeout after 30 seconds
-            url
-        ]
-        
-        result = subprocess.run(curl_command, capture_output=True, text=True)
-        
-        if result.returncode == 0 and result.stdout:
-            # Save the HTML content
-            with open(html_filepath, 'w', encoding='utf-8') as f:
-                f.write(result.stdout)
-            
-            logger.info(f"HTML content saved to {html_filepath}")
-            return html_filepath
-        else:
-            logger.error(f"Error fetching HTML: {result.stderr}")
-            return None
-            
-    except Exception as e:
-        logger.error(f"Error in direct screenshot: {str(e)}")
-        return None
+# Direct HTML fetching is removed because it doesn't work with anti-scraping websites
+# We'll use only Playwright with proper browser rendering
 
 async def take_screenshot_async(url):
     """
     Capture a high-definition screenshot of the specified URL using Playwright.
     This uses a full browser instance to properly render JavaScript and bypass anti-scraping measures.
-    If Playwright fails, falls back to direct HTML fetching.
     
     Args:
         url (str): The URL to capture
         
     Returns:
-        str: Path to the saved screenshot file or HTML file, or None if failed
+        str: Path to the saved screenshot file, or None if failed
     """
-    # Try direct HTML fetching first as a more reliable method
-    html_path = take_direct_screenshot(url)
-    if html_path:
-        return html_path
-        
-    # If direct fetching fails, we'll try Playwright (though this will likely fail due to dependencies)
     try:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"{timestamp}_{url.split('/')[-1]}.png"
         filepath = os.path.join(SCREENSHOT_DIR, filename)
         
-        logger.info(f"Attempting Playwright screenshot from {url}")
+        logger.info(f"Capturing screenshot from {url} using Playwright")
         
-        # If Playwright is available, try using it (though this will likely fail in Replit)
+        # Use Playwright to capture a screenshot
         try:
+            # Set browser executable path to use the system installed Chromium
+            chromium_path = subprocess.run(
+                ["which", "chromium"], 
+                capture_output=True, 
+                text=True
+            ).stdout.strip()
+            
+            logger.info(f"Using Chromium from: {chromium_path}")
+            
             async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
+                # Launch browser with executable path
+                browser = await p.chromium.launch(
+                    headless=True,
+                    executable_path=chromium_path if chromium_path else None
+                )
+                
+                # Set up context with desktop viewport and realistic user agent
                 context = await browser.new_context(
                     viewport={'width': 1920, 'height': 1080},
-                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36'
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 )
+                
+                # Create page and navigate to URL
                 page = await context.new_page()
-                await page.goto(url, wait_until='networkidle', timeout=60000)
-                await page.wait_for_timeout(5000)
+                
+                # Set extra headers to appear more like a real browser
+                await page.set_extra_http_headers({
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                    "sec-ch-ua": '"Chromium";v="120", "Google Chrome";v="120"',
+                    "sec-ch-ua-mobile": "?0",
+                    "sec-ch-ua-platform": '"Windows"',
+                })
+                
+                # Navigate to the target URL and wait until network is idle
+                await page.goto(url, wait_until='networkidle', timeout=90000)
+                
+                # Wait for the page to fully render (important for JavaScript-heavy sites)
+                await page.wait_for_timeout(8000)
+                
+                # Take the screenshot
                 await page.screenshot(path=filepath, full_page=True)
-                html_content = await page.content()
+                
+                # Close the browser
                 await browser.close()
                 
-                # Save the HTML
-                html_filename = f"{timestamp}_{url.split('/')[-1]}.html"
-                html_filepath = os.path.join(SCREENSHOT_DIR, html_filename)
-                with open(html_filepath, 'w', encoding='utf-8') as f:
-                    f.write(html_content)
-                
-                logger.info(f"Screenshot saved to {filepath}")
-                logger.info(f"HTML content also saved to {html_filepath}")
+                logger.info(f"Screenshot successfully saved to {filepath}")
                 return filepath
+                
         except Exception as e:
             logger.error(f"Playwright screenshot failed: {str(e)}")
-            return html_path  # Return the HTML path we got earlier
+            return None
             
     except Exception as e:
         logger.error(f"Error capturing screenshot: {str(e)}")
-        return html_path  # Return the HTML path we got earlier, or None if that also failed
+        return None
 
 def take_screenshot(url):
     """
@@ -170,18 +146,18 @@ def take_screenshot(url):
 
 def capture_screenshot(url, lottery_type=None):
     """
-    Capture content from the specified URL and save metadata to database.
+    Capture a screenshot from the specified URL and save metadata to database.
     
-    In the current Replit environment, this primarily saves HTML content 
-    rather than actual PNG screenshots, due to system dependency limitations.
-    The HTML content contains all necessary data for lottery extraction.
+    This function takes a proper screenshot using Playwright with Chromium to bypass 
+    anti-scraping measures on lottery websites. The screenshot is then sent to 
+    AI-powered OCR for data extraction.
     
     Args:
         url (str): The URL to capture
         lottery_type (str, optional): The type of lottery. If None, extracted from URL.
         
     Returns:
-        str: Path to the saved HTML file, or None if failed
+        str: Path to the saved screenshot file, or None if failed
     """
     # Extract lottery type from URL if not provided
     if not lottery_type:
