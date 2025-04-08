@@ -17,8 +17,8 @@
                 </div>
                 
                 <div class="row mb-4">
-                    <!-- Original drawn order -->
-                    <div class="col-md-6">
+                    <!-- Main winning numbers display -->
+                    <div class="col-md-12">
                         <h5 class="mb-3">{{ lottery_type }} WINNING NUMBERS</h5>
                         <div class="mb-3">
                             {% for num in result.get_numbers_list() %}
@@ -44,37 +44,6 @@
                                 {% endfor %}
                             {% endif %}
                         </div>
-                    </div>
-                    
-                    <!-- Numerical order -->
-                    <div class="col-md-6">
-                        <h5 class="mb-3">{{ lottery_type }} WINNING NUMBERS</h5>
-                        <div class="mb-3">
-                            {% set sorted_numbers = result.get_numbers_list()|map('int')|list|sort %}
-                            {% for num in sorted_numbers %}
-                                {% set ball_class = 'lottery-ball ' %}
-                                
-                                {% if loop.index0 % 4 == 0 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-red' %}
-                                {% elif loop.index0 % 4 == 1 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-yellow' %}
-                                {% elif loop.index0 % 4 == 2 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-green' %}
-                                {% else %}
-                                    {% set ball_class = ball_class + 'lottery-ball-blue' %}
-                                {% endif %}
-                                
-                                <span class="{{ ball_class }}">{{ num }}</span>
-                            {% endfor %}
-                            
-                            {% if result.get_bonus_numbers_list() %}
-                                <span class="mx-2">+</span>
-                                {% for num in result.get_bonus_numbers_list() %}
-                                    <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                        <small class="text-muted">(NUMERICAL ORDER)</small>
                     </div>
                 </div>
                 
