@@ -25,6 +25,23 @@ body {
     color: #333 !important;
 }
 
+/* Fix dark background in dashboard tables */
+.card-body {
+    background-color: #fff !important;
+}
+
+.table-lottery {
+    background-color: #fff !important;
+}
+
+.table-lottery tr {
+    background-color: #fff !important;
+}
+
+.table-lottery td {
+    color: #333 !important;
+}
+
 /* Header styling */
 .navbar {
     background-color: white !important;
