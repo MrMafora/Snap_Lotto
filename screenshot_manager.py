@@ -52,6 +52,10 @@ def take_direct_screenshot(url):
     """
     Use curl to fetch HTML content directly as a fallback to Playwright.
     
+    Note: This does not create an actual PNG screenshot,
+    but saves the HTML content which contains the lottery data.
+    The HTML files are sufficient for data extraction.
+    
     Args:
         url (str): The URL to capture
         
@@ -168,12 +172,16 @@ def capture_screenshot(url, lottery_type=None):
     """
     Capture content from the specified URL and save metadata to database.
     
+    In the current Replit environment, this primarily saves HTML content 
+    rather than actual PNG screenshots, due to system dependency limitations.
+    The HTML content contains all necessary data for lottery extraction.
+    
     Args:
         url (str): The URL to capture
         lottery_type (str, optional): The type of lottery. If None, extracted from URL.
         
     Returns:
-        str: Path to the saved file, or None if failed
+        str: Path to the saved HTML file, or None if failed
     """
     # Extract lottery type from URL if not provided
     if not lottery_type:
