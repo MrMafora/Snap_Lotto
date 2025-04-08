@@ -212,9 +212,15 @@ def create_system_prompt(lottery_type):
     3. Game Date (convert to ISO format YYYY-MM-DD)
     4. Winning Numbers - The main lottery numbers drawn
     
-    Secondary information to extract if available:
+    EQUAL PRIORITY - CRITICAL INFORMATION to extract accurately:
     - Bonus numbers or PowerBall numbers
     - Divisions data including winners and prize amounts
+    
+    PRIZE AMOUNTS ARE EXTREMELY IMPORTANT - Pay special attention to:
+    - The prize amount for each division
+    - Make sure to include the EXACT amount shown, including commas and decimal places
+    - Format example: "R5,000,000.00" or "R10,567.80"
+    - DO NOT remove commas from prize amounts in your JSON output
     
     The screenshots come from the South African National Lottery website (nationallottery.co.za).
     
@@ -239,6 +245,13 @@ def create_system_prompt(lottery_type):
       - Division numbers (Division 1, Division 2, etc.)
       - Number of winners
       - Prize amounts (with "R" prefix for Rand)
+      
+      PAY VERY CLOSE ATTENTION TO PRIZE AMOUNTS!
+      - Extract prize amounts EXACTLY as they appear, including all commas and decimal places
+      - Example formats: "R5,000,000.00" or "R127,365.20" or "R500.00"
+      - DO NOT remove commas from prize amounts in your JSON output
+      - If you can't clearly read the amount, try different OCR techniques, like focusing on each digit
+      - For prize amounts, preserving the original format is more important than converting to numbers
     
     Return the data in this exact JSON format:
     {

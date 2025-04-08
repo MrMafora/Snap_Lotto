@@ -1,9 +1,54 @@
 import logging
 import json
+import re
 from datetime import datetime
 from models import LotteryResult, Screenshot, db
 
 logger = logging.getLogger(__name__)
+
+def has_better_formatted_prizes(new_divisions, existing_divisions):
+    """
+    Check if the new divisions data has better formatted prize amounts than existing data.
+    Better formatted means having commas and/or decimal places in the amount.
+    
+    Args:
+        new_divisions (dict): Newly extracted divisions data
+        existing_divisions (dict): Existing divisions data from database
+        
+    Returns:
+        bool: True if new divisions have better formatted prize amounts
+    """
+    if not new_divisions or not existing_divisions:
+        return False
+        
+    for division, data in new_divisions.items():
+        if division in existing_divisions:
+            new_prize = data.get('prize', '')
+            existing_prize = existing_divisions[division].get('prize', '')
+            
+            # Check if new prize has commas or decimal points that existing doesn't
+            new_has_commas = ',' in new_prize
+            existing_has_commas = ',' in existing_prize
+            
+            new_has_decimals = '.' in new_prize
+            existing_has_decimals = '.' in existing_prize
+            
+            # Check if new prize has "R" prefix but existing doesn't
+            new_has_currency = 'R' in new_prize
+            existing_has_currency = 'R' in existing_prize
+            
+            # New prize is better if it has formatting that existing doesn't
+            if (new_has_commas and not existing_has_commas) or \
+               (new_has_decimals and not existing_has_decimals) or \
+               (new_has_currency and not existing_has_currency):
+                return True
+                
+            # Check if existing prize is just a number without formatting
+            if existing_prize and re.match(r'^[0-9]+$', existing_prize.replace('R', '').strip()):
+                if new_has_commas or new_has_decimals:
+                    return True
+    
+    return False
 
 # Known correct lottery draw results for verification
 KNOWN_CORRECT_DRAWS = {
@@ -213,7 +258,12 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                         should_update = True
                     
                     # Update if we have divisions data and existing doesn't, or if we have more divisions
-                    if has_divisions and (not existing_has_divisions or len(divisions_data) > len(existing_divisions)):
+                    # or if we have more complete prize amounts (with formatting)
+                    if has_divisions and (
+                        not existing_has_divisions or 
+                        len(divisions_data) > len(existing_divisions) or 
+                        has_better_formatted_prizes(divisions_data, existing_divisions)
+                    ):
                         if hasattr(existing_result, 'divisions'):
                             existing_result.divisions = divisions_json
                             should_update = True

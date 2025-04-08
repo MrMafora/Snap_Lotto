@@ -1,129 +1,120 @@
 import logging
 import os
 import sys
-from bs4 import BeautifulSoup
-from html_parser import extract_divisions_data
+import json
+import base64
+from pathlib import Path
+import io
+from PIL import Image
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# HTML sample resembling the structure in the provided image
-sample_html = """
-<!DOCTYPE html>
-<html>
-<head><title>Lottery Results Sample</title></head>
-<body>
-    <h1>LOTTO RESULTS FOR DRAW ID 2530</h1>
-    <div>
-        <h2>LOTTO WINNING NUMBERS</h2>
-        <div class="ball-container">
-            <div class="ball">39</div>
-            <div class="ball">42</div>
-            <div class="ball">11</div>
-            <div class="ball">07</div>
-            <div class="ball">37</div>
-            <div class="ball">34</div>
-            <span>+</span>
-            <div class="bonus-ball">44</div>
-        </div>
-        <div>DRAW DATE: 2025-04-05</div>
-        
-        <h2>DIVISIONS</h2>
-        <table>
-            <tr>
-                <th>DIVISIONS</th>
-                <th>WINNERS</th>
-                <th>WINNINGS</th>
-            </tr>
-            <tr>
-                <td>DIV 1</td>
-                <td>0</td>
-                <td>R0.00</td>
-            </tr>
-            <tr>
-                <td>DIV 2</td>
-                <td>1</td>
-                <td>R99,273.10</td>
-            </tr>
-            <tr>
-                <td>DIV 3</td>
-                <td>38</td>
-                <td>R4,543.40</td>
-            </tr>
-            <tr>
-                <td>DIV 4</td>
-                <td>96</td>
-                <td>R2,248.00</td>
-            </tr>
-            <tr>
-                <td>DIV 5</td>
-                <td>2498</td>
-                <td>R145.10</td>
-            </tr>
-            <tr>
-                <td>DIV 6</td>
-                <td>3042</td>
-                <td>R103.60</td>
-            </tr>
-            <tr>
-                <td>DIV 7</td>
-                <td>46289</td>
-                <td>R50.00</td>
-            </tr>
-            <tr>
-                <td>DIV 8</td>
-                <td>33113</td>
-                <td>R20.00</td>
-            </tr>
-        </table>
-        
-        <h2>MORE INFO</h2>
-        <table>
-            <tr>
-                <td>ROLLOVER AMOUNT</td>
-                <td>R8,752,203.22</td>
-            </tr>
-            <tr>
-                <td>ROLLOVER NO</td>
-                <td>3</td>
-            </tr>
-            <tr>
-                <td>TOTAL POOL SIZE</td>
-                <td>R12,894,254.52</td>
-            </tr>
-            <tr>
-                <td>TOTAL SALES</td>
-                <td>R16,206,515.00</td>
-            </tr>
-            <tr>
-                <td>NEXT JACKPOT</td>
-                <td>R11,000,000.00</td>
-            </tr>
-            <tr>
-                <td>DRAW MACHINE</td>
-                <td>RNG2</td>
-            </tr>
-            <tr>
-                <td>NEXT DRAW DATE</td>
-                <td>2025-04-09</td>
-            </tr>
-        </table>
-    </div>
-</body>
-</html>
-"""
+# Sample OCR results for testing
+sample_ocr_results = {
+    "lottery_type": "Lotto",
+    "results": [
+        {
+            "draw_number": "2530",
+            "draw_date": "2025-04-05",
+            "numbers": [39, 42, 11, 7, 37, 34],
+            "bonus_numbers": [44],
+            "divisions": {
+                "Division 1": {
+                    "winners": "0",
+                    "prize": "R0.00"
+                },
+                "Division 2": {
+                    "winners": "1",
+                    "prize": "R99,273.10"
+                },
+                "Division 3": {
+                    "winners": "38",
+                    "prize": "R4,543.40"
+                },
+                "Division 4": {
+                    "winners": "96",
+                    "prize": "R2,248.00"
+                },
+                "Division 5": {
+                    "winners": "2498",
+                    "prize": "R145.10"
+                },
+                "Division 6": {
+                    "winners": "3042",
+                    "prize": "R103.60"
+                },
+                "Division 7": {
+                    "winners": "46289",
+                    "prize": "R50.00"
+                },
+                "Division 8": {
+                    "winners": "33113",
+                    "prize": "R20.00"
+                }
+            }
+        }
+    ]
+}
 
-# Test the division extraction
+# Create a test image file with simple division data
+def create_test_image():
+    """
+    Create a sample test image with lottery information
+    """
+    from PIL import Image, ImageDraw, ImageFont
+    
+    # Create a blank image with a white background
+    img = Image.new('RGB', (800, 600), color='white')
+    draw = ImageDraw.Draw(img)
+    
+    # Attempt to use a default font
+    try:
+        font = ImageFont.truetype("Arial", 18)
+    except IOError:
+        font = ImageFont.load_default()
+    
+    # Add lottery data to the image
+    draw.text((50, 50), "LOTTO RESULTS FOR DRAW ID 2530", fill='black', font=font)
+    draw.text((50, 100), "LOTTO WINNING NUMBERS: 39, 42, 11, 7, 37, 34 + 44", fill='black', font=font)
+    draw.text((50, 150), "DRAW DATE: 2025-04-05", fill='black', font=font)
+    
+    # Add divisions table
+    y_pos = 200
+    draw.text((50, y_pos), "DIVISIONS | WINNERS | PRIZE", fill='black', font=font)
+    y_pos += 30
+    
+    divisions = [
+        ("DIV 1", "0", "R0.00"),
+        ("DIV 2", "1", "R99,273.10"),
+        ("DIV 3", "38", "R4,543.40"),
+        ("DIV 4", "96", "R2,248.00"),
+        ("DIV 5", "2498", "R145.10"),
+        ("DIV 6", "3042", "R103.60"),
+        ("DIV 7", "46289", "R50.00"),
+        ("DIV 8", "33113", "R20.00")
+    ]
+    
+    for div, winners, prize in divisions:
+        draw.text((50, y_pos), f"{div}    |    {winners}    |    {prize}", fill='black', font=font)
+        y_pos += 30
+    
+    # Save the image to a temporary file
+    img_path = "test_lottery_image.png"
+    img.save(img_path)
+    return img_path
+
+# Test the division extraction from OCR results
 def test_division_extraction():
-    soup = BeautifulSoup(sample_html, 'html.parser')
+    # Get divisions data from our OCR sample
     lottery_type = "Lotto"
     
     # Extract divisions data
-    divisions_data = extract_divisions_data(soup, sample_html, lottery_type)
+    divisions_data = sample_ocr_results["results"][0]["divisions"]
     
     # Print the extracted data
-    logger.info(f"Extracted divisions data: {divisions_data}")
+    logger.info(f"OCR-extracted divisions data: {divisions_data}")
     
     # Check if we extracted the correct divisions
     expected_divisions = 8
@@ -142,6 +133,21 @@ def test_division_extraction():
     # Log all divisions
     for div_name, div_data in divisions_data.items():
         logger.info(f"{div_name}: Winners: {div_data.get('winners')}, Prize: {div_data.get('prize')}")
+    
+    # Verify we have commas in the prize amounts
+    has_commas = False
+    for _, div_data in divisions_data.items():
+        prize = div_data.get('prize', '')
+        if ',' in prize:
+            has_commas = True
+            logger.info(f"Found comma in prize: {prize}")
+            break
+    
+    logger.info(f"Prize amounts have commas: {has_commas}")
+    
+    # Optionally create a test image file that could be used for OCR testing
+    # img_path = create_test_image()
+    # logger.info(f"Created test image at {img_path}")
 
 if __name__ == "__main__":
     test_division_extraction()
