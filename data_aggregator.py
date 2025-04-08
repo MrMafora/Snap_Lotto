@@ -245,6 +245,11 @@ def aggregate_data(extracted_data, lottery_type, source_url):
     3. Game Date (draw_date)
     4. Winning Numbers (numbers)
     
+    OCR provider information is also stored:
+    - ocr_provider: Name of the AI OCR provider (e.g., 'anthropic', 'mistral')
+    - ocr_model: Specific model used for OCR (e.g., 'claude-3-5-sonnet-20241022', 'mistral-large-vision-2')
+    - ocr_timestamp: When the OCR processing was performed
+    
     Args:
         extracted_data (dict): The data extracted from OCR
         lottery_type (str): Game Type (e.g., 'Lotto', 'Powerball')
