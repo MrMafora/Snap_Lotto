@@ -6,32 +6,46 @@
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h4 class="card-title mb-0">Lottery Data Extraction Dashboard</h4>
+            <div class="card-header lottery-header">
+                <h4 class="card-title mb-0">LOTTERY DATA INTELLIGENCE</h4>
             </div>
             <div class="card-body">
                 <p class="lead">
-                    This tool automatically captures HTML content from lottery websites, extracts data using AI-powered analysis,
-                    and aggregates the results for analysis. 
+                    This platform automatically captures HTML content from lottery websites, extracts data using AI-powered analysis,
+                    and aggregates the results for comprehensive analysis.
                 </p>
-                                <h5 class="card-title mb-0">Active Schedules</h5>
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header lottery-header">
+                                <h5 class="card-title mb-0">ACTIVE SCHEDULES</h5>
                             </div>
                             <div class="card-body">
                                 {% if schedules %}
                                     <div class="table-responsive">
-                                        <table class="table table-striped">
+                                        <table class="table table-lottery">
                                             <thead>
                                                 <tr>
-                                                    <th>Lottery Type</th>
-                                                    <th>Schedule</th>
-                                                    <th>Status</th>
-                                                    <th>Action</th>
+                                                    <th>LOTTERY TYPE</th>
+                                                    <th>SCHEDULE</th>
+                                                    <th>STATUS</th>
+                                                    <th>ACTION</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {% for schedule in schedules %}
                                                 <tr>
-                                                    <td>{{ schedule.lottery_type }}</td>
+                                                    <td>
+                                                        {% if 'Lotto Plus' in schedule.lottery_type %}
+                                                            <span class="game-type-badge game-type-lotto">{{ schedule.lottery_type }}</span>
+                                                        {% elif 'Powerball' in schedule.lottery_type %}
+                                                            <span class="game-type-badge game-type-powerball">{{ schedule.lottery_type }}</span>
+                                                        {% elif 'Daily' in schedule.lottery_type %}
+                                                            <span class="game-type-badge game-type-daily">{{ schedule.lottery_type }}</span>
+                                                        {% else %}
+                                                            <span class="game-type-badge game-type-lotto">{{ schedule.lottery_type }}</span>
+                                                        {% endif %}
+                                                    </td>
                                                     <td>{{ schedule.hour }}:{{ '%02d' % schedule.minute }}</td>
                                                     <td>
                                                         {% if schedule.active %}
@@ -41,7 +55,7 @@
                                                         {% endif %}
                                                     </td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-primary run-now" data-id="{{ schedule.id }}">
+                                                        <button class="btn btn-lottery-primary btn-sm run-now" data-id="{{ schedule.id }}">
                                                             Run Now
                                                         </button>
                                                     </td>
@@ -58,35 +72,56 @@
                     </div>
                     <div class="col-md-6">
                         <div class="card h-100">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">Latest Results</h5>
+                            <div class="card-header lottery-header">
+                                <h5 class="card-title mb-0">LATEST RESULTS</h5>
                             </div>
                             <div class="card-body">
                                 {% if results %}
                                     <div class="table-responsive">
-                                        <table class="table table-striped">
+                                        <table class="table table-lottery">
                                             <thead>
                                                 <tr>
-                                                    <th class="fw-bold">Game Type</th>
-                                                    <th class="fw-bold">Draw ID</th>
-                                                    <th class="fw-bold">Game Date</th>
-                                                    <th class="fw-bold">Winning Numbers</th>
+                                                    <th>GAME TYPE</th>
+                                                    <th>DRAW ID</th>
+                                                    <th>GAME DATE</th>
+                                                    <th>WINNING NUMBERS</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {% for result in results %}
                                                 <tr>
-                                                    <td>{{ result.lottery_type }}</td>
-                                                    <td>{{ result.draw_number }}</td>
+                                                    <td>
+                                                        {% if 'Lotto Plus' in result.lottery_type %}
+                                                            <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
+                                                        {% elif 'Powerball' in result.lottery_type %}
+                                                            <span class="game-type-badge game-type-powerball">{{ result.lottery_type }}</span>
+                                                        {% elif 'Daily' in result.lottery_type %}
+                                                            <span class="game-type-badge game-type-daily">{{ result.lottery_type }}</span>
+                                                        {% else %}
+                                                            <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td><strong>{{ result.draw_number }}</strong></td>
                                                     <td>{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
                                                     <td>
                                                         {% for num in result.get_numbers_list() %}
-                                                            <span class="badge bg-primary rounded-circle">{{ num }}</span>
+                                                            {% set ball_class = 'lottery-ball ' %}
+                                                            
+                                                            {% if loop.index0 % 4 == 0 %}
+                                                                {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                                            {% elif loop.index0 % 4 == 1 %}
+                                                                {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                                            {% elif loop.index0 % 4 == 2 %}
+                                                                {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                                            {% else %}
+                                                                {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                                                            {% endif %}
+                                                            
+                                                            <span class="{{ ball_class }}">{{ num }}</span>
                                                         {% endfor %}
                                                         {% if result.bonus_numbers %}
-                                                            <span class="text-muted">+</span>
                                                             {% for num in result.get_bonus_numbers_list() %}
-                                                                <span class="badge bg-warning rounded-circle">{{ num }}</span>
+                                                                <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
                                                             {% endfor %}
                                                         {% endif %}
                                                     </td>
@@ -96,7 +131,7 @@
                                         </table>
                                     </div>
                                     <div class="text-center mt-3">
-                                        <a href="/results" class="btn btn-outline-primary">View All Results</a>
+                                        <a href="/results" class="btn btn-lottery-primary">View All Results</a>
                                     </div>
                                 {% else %}
                                     <p>No results yet. Run a task to extract lottery data.</p>
@@ -113,15 +148,15 @@
 <div class="row">
     <div class="col-12">
         <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">API Usage</h5>
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">API USAGE</h5>
             </div>
             <div class="card-body">
                 <p>
                     You can access lottery data through our API endpoints:
                 </p>
                 <div class="mb-3">
-                    <h6>Get Results by Lottery Type</h6>
+                    <h6 class="fw-bold">Get Results by Lottery Type</h6>
                     <p class="text-muted">Example: <code>/api/results/Lotto</code></p>
                     <p>Priority data fields returned:</p>
                     <ul class="text-muted">
@@ -132,12 +167,12 @@
                     </ul>
                 </div>
                 <div class="mb-3">
-                    <h6>Get Screenshot Information</h6>
+                    <h6 class="fw-bold">Get Screenshot Information</h6>
                     <code>GET /api/screenshots</code>
                 </div>
                 <div class="mb-3">
-                    <h6>Import into your webapp</h6>
-                    <pre><code>from screenshot_manager import capture_screenshot
+                    <h6 class="fw-bold">Import into your webapp</h6>
+                    <pre class="bg-light p-3 rounded"><code>from screenshot_manager import capture_screenshot
 from ocr_processor import process_screenshot
 from data_aggregator import aggregate_data, get_latest_results
 

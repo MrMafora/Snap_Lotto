@@ -4,11 +4,11 @@
 
 {% block content %}
 <div class="card">
-    <div class="card-header">
+    <div class="card-header lottery-header">
         <div class="d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">Lottery Results</h4>
+            <h4 class="mb-0">HISTORICAL RESULTS</h4>
             <div class="dropdown">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <button class="btn btn-lottery-primary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                     {% if lottery_type %}{{ lottery_type }}{% else %}All Types{% endif %}
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="filterDropdown">
@@ -27,31 +27,53 @@
     <div class="card-body">
         {% if results.items %}
             <div class="table-responsive">
-                <table class="table table-striped table-hover">
+                <table class="table table-lottery">
                     <thead>
                         <tr>
-                            <th class="fw-bold">Game Type</th>
-                            <th class="fw-bold">Draw ID</th>
-                            <th class="fw-bold">Game Date</th>
-                            <th class="fw-bold">Winning Numbers</th>
-                            <th>Bonus Numbers</th>
+                            <th>GAME TYPE</th>
+                            <th>DRAW ID</th>
+                            <th>GAME DATE</th>
+                            <th>WINNING NUMBERS</th>
+                            <th>BONUS NUMBERS</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for result in results.items %}
                             <tr>
-                                <td>{{ result.lottery_type }}</td>
-                                <td>{{ result.draw_number }}</td>
+                                <td>
+                                    {% if 'Lotto Plus' in result.lottery_type %}
+                                        <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
+                                    {% elif 'Powerball' in result.lottery_type %}
+                                        <span class="game-type-badge game-type-powerball">{{ result.lottery_type }}</span>
+                                    {% elif 'Daily' in result.lottery_type %}
+                                        <span class="game-type-badge game-type-daily">{{ result.lottery_type }}</span>
+                                    {% else %}
+                                        <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ result.draw_number }}</strong></td>
                                 <td>{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
                                 <td>
                                     {% for num in result.get_numbers_list() %}
-                                        <span class="badge bg-primary rounded-circle p-2 mx-1">{{ num }}</span>
+                                        {% set ball_class = 'lottery-ball ' %}
+                                        
+                                        {% if loop.index0 % 4 == 0 %}
+                                            {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                        {% elif loop.index0 % 4 == 1 %}
+                                            {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                        {% elif loop.index0 % 4 == 2 %}
+                                            {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                        {% else %}
+                                            {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                                        {% endif %}
+                                        
+                                        <span class="{{ ball_class }}">{{ num }}</span>
                                     {% endfor %}
                                 </td>
                                 <td>
                                     {% if result.bonus_numbers %}
                                         {% for num in result.get_bonus_numbers_list() %}
-                                            <span class="badge bg-warning rounded-circle p-2 mx-1">{{ num }}</span>
+                                            <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
                                         {% endfor %}
                                     {% else %}
                                         <span class="text-muted">None</span>
@@ -114,8 +136,8 @@
 </div>
 
 <div class="card mt-4">
-    <div class="card-header">
-        <h5 class="mb-0">Data Visualization</h5>
+    <div class="card-header lottery-header">
+        <h5 class="mb-0">NUMBERS FREQUENCY</h5>
     </div>
     <div class="card-body">
         {% if results.items %}
@@ -159,6 +181,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const labels = Object.keys(allNumbers);
     const data = Object.values(allNumbers);
     
+    // Create color array that matches lottery ball colors
+    const backgroundColors = labels.map((_, index) => {
+        if (index % 4 === 0) return 'rgba(224, 50, 55, 0.7)'; // Red
+        if (index % 4 === 1) return 'rgba(255, 225, 29, 0.7)'; // Yellow
+        if (index % 4 === 2) return 'rgba(25, 160, 58, 0.7)'; // Green
+        return 'rgba(103, 198, 237, 0.7)'; // Blue
+    });
+    
+    const borderColors = labels.map((_, index) => {
+        if (index % 4 === 0) return 'rgba(224, 50, 55, 1)'; // Red
+        if (index % 4 === 1) return 'rgba(255, 225, 29, 1)'; // Yellow
+        if (index % 4 === 2) return 'rgba(25, 160, 58, 1)'; // Green
+        return 'rgba(103, 198, 237, 1)'; // Blue
+    });
+    
     // Create chart
     const ctx = document.getElementById('numberFrequencyChart').getContext('2d');
     const chart = new Chart(ctx, {
@@ -168,8 +205,8 @@ document.addEventListener('DOMContentLoaded', function() {
             datasets: [{
                 label: 'Number Frequency',
                 data: data,
-                backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
                 borderWidth: 1
             }]
         },
@@ -178,7 +215,12 @@ document.addEventListener('DOMContentLoaded', function() {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Frequency of Lottery Numbers'
+                    text: 'Frequency of Lottery Numbers',
+                    color: '#333',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    }
                 },
                 tooltip: {
                     callbacks: {
@@ -196,13 +238,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Frequency'
+                        text: 'Frequency',
+                        color: '#333',
+                        font: {
+                            weight: 'bold'
+                        }
+                    },
+                    ticks: {
+                        color: '#333'
                     }
                 },
                 x: {
                     title: {
                         display: true,
-                        text: 'Number'
+                        text: 'Number',
+                        color: '#333',
+                        font: {
+                            weight: 'bold'
+                        }
+                    },
+                    ticks: {
+                        color: '#333'
                     }
                 }
             }
