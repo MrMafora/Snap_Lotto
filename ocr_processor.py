@@ -228,7 +228,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
             model="claude-3-7-sonnet-20241022", # Now using Claude 3.7 Sonnet which was released in October 2024
             max_tokens=3000,  # Increased token limit to handle multiple draw results
             system=system_prompt,
-            response_format={"type": "json_object"},  # Force Claude to return properly formatted JSON
+            # Removed response_format parameter as it's not supported in this version
             messages=[
                 {
                     "role": "user",
@@ -250,7 +250,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
             ]
         )
         
-        # With response_format={"type": "json_object"}, the response should be valid JSON already
+        # Get the text content from the response
         response_text = response.content[0].text
         
         # Keep this for logging/debugging purposes
@@ -391,7 +391,7 @@ def process_with_mistral(base64_content, lottery_type, system_prompt):
             # Try to get chat response with error handling
             chat_response = chat_client.chat(
                 model="open-mixtral-8x22b",  # Most powerful open model
-                response_format={"type": "json_object"},  # Force Mistral to return properly formatted JSON
+                # Removed response_format parameter as it's not supported in this version
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Extract the lottery results from this {lottery_type} text:\n\n{ocr_text}"}
@@ -402,7 +402,7 @@ def process_with_mistral(base64_content, lottery_type, system_prompt):
             logger.error(f"Error in Mistral chat processing: {str(e)}")
             raise ValueError(f"Chat processing failed: {str(e)}")
         
-        # With response_format={"type": "json_object"}, the response should be valid JSON already
+        # Get the text content from the Mistral response
         try:
             response_text = chat_response.choices[0].message.content
             if not response_text:
