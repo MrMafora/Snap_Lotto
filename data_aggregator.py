@@ -451,6 +451,87 @@ def export_results_to_json(lottery_type=None, limit=None):
     
     return json.dumps([result.to_dict() for result in results])
 
+# Dictionary of known correct draws
+# Format: {lottery_type: {draw_number: {data}}}
+KNOWN_CORRECT_DRAWS = {
+    'Lotto': {
+        'Draw 2530': {
+            'numbers': [39, 42, 11, 7, 37, 34],
+            'bonus_numbers': [44],
+            'divisions': {
+                "Division 1": {
+                    "winners": "0",
+                    "prize": "R0.00",
+                    "match": "SIX CORRECT NUMBERS"
+                },
+                "Division 2": {
+                    "winners": "1",
+                    "prize": "R99,273.10",
+                    "match": "FIVE CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 3": {
+                    "winners": "38",
+                    "prize": "R4,543.40",
+                    "match": "FIVE CORRECT NUMBERS"
+                },
+                "Division 4": {
+                    "winners": "96",
+                    "prize": "R2,248.00",
+                    "match": "FOUR CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 5": {
+                    "winners": "2498",
+                    "prize": "R145.10",
+                    "match": "FOUR CORRECT NUMBERS"
+                },
+                "Division 6": {
+                    "winners": "3042",
+                    "prize": "R103.60",
+                    "match": "THREE CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 7": {
+                    "winners": "46289",
+                    "prize": "R50.00",
+                    "match": "THREE CORRECT NUMBERS"
+                },
+                "Division 8": {
+                    "winners": "33113",
+                    "prize": "R20.00",
+                    "match": "TWO CORRECT NUMBERS + BONUS BALL"
+                }
+            }
+        }
+    },
+    'Daily Lotto': {
+        'Draw 2215': {
+            'numbers': [10, 13, 17, 32, 34],
+            'bonus_numbers': [],
+            'divisions': {
+                "Division 1": {
+                    "winners": "4",
+                    "prize": "R130,926.70",
+                    "match": "FIVE CORRECT NUMBERS"
+                },
+                "Division 2": {
+                    "winners": "344",
+                    "prize": "R350.70",
+                    "match": "FOUR CORRECT NUMBERS"
+                },
+                "Division 3": {
+                    "winners": "11094",
+                    "prize": "R21.70",
+                    "match": "THREE CORRECT NUMBERS"
+                },
+                "Division 4": {
+                    "winners": "114123",
+                    "prize": "R5.10",
+                    "match": "TWO CORRECT NUMBERS"
+                }
+            }
+        }
+    }
+}
+
 def validate_and_correct_known_draws():
     """
     Validate existing database entries against known correct lottery draws.
@@ -474,16 +555,62 @@ def validate_and_correct_known_draws():
                 existing_numbers = json.loads(existing.numbers)
                 existing_bonus = json.loads(existing.bonus_numbers or '[]')
                 
+                # Get existing divisions data
+                existing_divisions = {}
+                if hasattr(existing, 'divisions') and existing.divisions:
+                    try:
+                        existing_divisions = json.loads(existing.divisions)
+                    except (json.JSONDecodeError, TypeError):
+                        existing_divisions = {}
+                
                 # Compare with known correct data
-                if existing_numbers != known_data['numbers'] or existing_bonus != known_data['bonus_numbers']:
-                    logger.warning(f"Correcting {lottery_type} draw {draw_number}: "
-                                 f"from {existing_numbers}+{existing_bonus} "
-                                 f"to {known_data['numbers']}+{known_data['bonus_numbers']}")
-                    
-                    # Update with correct data
+                should_update = False
+                
+                if existing_numbers != known_data['numbers']:
+                    logger.warning(f"Correcting {lottery_type} {draw_number} numbers: "
+                                  f"from {existing_numbers} to {known_data['numbers']}")
                     existing.numbers = json.dumps(known_data['numbers'])
+                    should_update = True
+                    
+                if existing_bonus != known_data['bonus_numbers']:
+                    logger.warning(f"Correcting {lottery_type} {draw_number} bonus numbers: "
+                                  f"from {existing_bonus} to {known_data['bonus_numbers']}")
                     existing.bonus_numbers = json.dumps(known_data['bonus_numbers'])
+                    should_update = True
+                
+                # Update divisions if provided
+                if 'divisions' in known_data and known_data['divisions'] != existing_divisions:
+                    logger.warning(f"Correcting {lottery_type} {draw_number} divisions")
+                    existing.divisions = json.dumps(known_data['divisions'])
+                    should_update = True
+                
+                if should_update:
                     db.session.commit()
                     corrected_count += 1
+                    logger.info(f"Corrected data for {lottery_type} {draw_number}")
+            else:
+                # Check if we can find the draw with a different format of the draw number
+                search_number = draw_number.replace('Draw ', '')
+                similar_results = LotteryResult.query.filter(
+                    LotteryResult.lottery_type == lottery_type,
+                    LotteryResult.draw_number.like(f"%{search_number}%")
+                ).all()
+                
+                if similar_results:
+                    # We found something with a similar draw number, update it
+                    similar_result = similar_results[0]
+                    logger.warning(f"Found similar draw {similar_result.draw_number} for {lottery_type} {draw_number}")
+                    
+                    # Update all fields with correct data
+                    similar_result.numbers = json.dumps(known_data['numbers'])
+                    similar_result.bonus_numbers = json.dumps(known_data['bonus_numbers'])
+                    similar_result.draw_number = draw_number  # Standardize the draw number format
+                    
+                    if 'divisions' in known_data:
+                        similar_result.divisions = json.dumps(known_data['divisions'])
+                    
+                    db.session.commit()
+                    corrected_count += 1
+                    logger.info(f"Corrected similar entry for {lottery_type} {draw_number}")
     
     return corrected_count

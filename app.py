@@ -43,6 +43,11 @@ scheduler = init_scheduler(app)
 
 # Schedule any active tasks
 with app.app_context():
+    # Run validation to correct any known draw issues
+    corrected_count = validate_and_correct_known_draws()
+    if corrected_count > 0:
+        logger.info(f"Corrected {corrected_count} draws with known good data")
+    
     # Set up initial schedules if none exist
     if ScheduleConfig.query.count() == 0:
         # Add history pages (for drawing numbers/history)

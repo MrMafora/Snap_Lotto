@@ -210,7 +210,14 @@ def create_system_prompt(lottery_type):
     1. Game Type (e.g., Lotto, Lotto Plus 1, Powerball)
     2. Draw ID (e.g., Draw 2530) - This is the unique identifier for the draw
     3. Game Date (convert to ISO format YYYY-MM-DD)
-    4. Winning Numbers - The main lottery numbers drawn
+    4. Winning Numbers - The main lottery numbers drawn IN THE EXACT ORDER they appear
+    
+    WINNING NUMBERS ACCURACY IS CRUCIAL:
+    - Extract numbers in the EXACT order as displayed
+    - If multiple formats are shown (e.g., original order and numerical order), extract the original/drawn order
+    - Pay attention to the visual layout to distinguish between main numbers and bonus numbers
+    - Look for colored balls with numbers inside them
+    - Check for "+" symbols which may indicate bonus numbers
     
     EQUAL PRIORITY - CRITICAL INFORMATION to extract accurately:
     - Bonus numbers or PowerBall numbers
@@ -225,18 +232,19 @@ def create_system_prompt(lottery_type):
     The screenshots come from the South African National Lottery website (nationallottery.co.za).
     
     Pay special attention to:
-    - Lottery ball numbers (often in circles)
-    - Draw IDs that appear near dates
+    - Lottery ball numbers (often in colored circles - red, yellow, green, blue)
+    - Draw IDs that appear near dates or in headers
     - Game dates formatted in various ways
     - Clear headings indicating the lottery type
     - Repeating patterns in tables that might indicate multiple draws
-    - Division information (look for tables with "Division", "Winners", and "Prize" columns)
+    - Division information (look for tables with "Division", "Match", "Winners", and "Prize/Winnings" columns)
     
     For the South African lottery website:
-    - Look for tables with lottery results, each row likely contains a separate draw
-    - Lottery balls are typically displayed as numbers in colored circles
-    - Draw dates usually follow a day/month/year format like "05/04/2025"
-    - Draw IDs usually appear as "Draw XXXX" where XXXX is a number
+    - Look for "WINNING NUMBERS" sections which display the drawn numbers
+    - If there are two sets of numbers, select the one NOT labeled as "(NUMERICAL ORDER)"
+    - Lottery balls are displayed as numbers in colored circles (red, yellow, green, blue)
+    - Draw dates usually follow a day/month/year format like "05/04/2025" or "Saturday, 05 April 2025"
+    - Draw IDs usually appear as "DRAW 2530" or "RESULTS FOR DRAW ID 2530"
     - Prize amounts appear as monetary values with R prefix (e.g., R5,000,000.00)
     
     If this is a RESULTS PAGE (URL contains "/results/"):

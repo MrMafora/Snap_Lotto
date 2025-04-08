@@ -50,7 +50,7 @@
                     <div class="col-md-6">
                         <h5 class="mb-3">{{ lottery_type }} WINNING NUMBERS</h5>
                         <div class="mb-3">
-                            {% set sorted_numbers = result.get_numbers_list()|map('int')|sort %}
+                            {% set sorted_numbers = result.get_numbers_list()|map('int')|list|sort %}
                             {% for num in sorted_numbers %}
                                 {% set ball_class = 'lottery-ball ' %}
                                 
@@ -104,28 +104,44 @@
                                                     <td class="text-center">
                                                         {% if data.match %}
                                                             {{ data.match }}
-                                                        {% elif 'Division 1' in div %}
-                                                            SIX CORRECT NUMBERS
-                                                        {% elif 'Division 2' in div %}
-                                                            FIVE CORRECT NUMBERS + BONUS BALL
-                                                        {% elif 'Division 3' in div %}
-                                                            FIVE CORRECT NUMBERS
-                                                        {% elif 'Division 4' in div %}
-                                                            FOUR CORRECT NUMBERS + BONUS BALL
-                                                        {% elif 'Division 5' in div %}
+                                                        {% elif 'Division 1' in div or div == '1' %}
+                                                            {% if 'Daily Lotto' in lottery_type %}
+                                                                FIVE CORRECT NUMBERS
+                                                            {% else %}
+                                                                SIX CORRECT NUMBERS
+                                                            {% endif %}
+                                                        {% elif 'Division 2' in div or div == '2' %}
+                                                            {% if 'Daily Lotto' in lottery_type %}
+                                                                FOUR CORRECT NUMBERS
+                                                            {% else %}
+                                                                FIVE CORRECT NUMBERS + BONUS BALL
+                                                            {% endif %}
+                                                        {% elif 'Division 3' in div or div == '3' %}
+                                                            {% if 'Daily Lotto' in lottery_type %}
+                                                                THREE CORRECT NUMBERS
+                                                            {% else %}
+                                                                FIVE CORRECT NUMBERS
+                                                            {% endif %}
+                                                        {% elif 'Division 4' in div or div == '4' %}
+                                                            {% if 'Daily Lotto' in lottery_type %}
+                                                                TWO CORRECT NUMBERS
+                                                            {% else %}
+                                                                FOUR CORRECT NUMBERS + BONUS BALL
+                                                            {% endif %}
+                                                        {% elif 'Division 5' in div or div == '5' %}
                                                             FOUR CORRECT NUMBERS
-                                                        {% elif 'Division 6' in div %}
+                                                        {% elif 'Division 6' in div or div == '6' %}
                                                             THREE CORRECT NUMBERS + BONUS BALL
-                                                        {% elif 'Division 7' in div %}
+                                                        {% elif 'Division 7' in div or div == '7' %}
                                                             THREE CORRECT NUMBERS
-                                                        {% elif 'Division 8' in div %}
+                                                        {% elif 'Division 8' in div or div == '8' %}
                                                             TWO CORRECT NUMBERS + BONUS BALL
                                                         {% else %}
                                                             N/A
                                                         {% endif %}
                                                     </td>
                                                     <td class="text-center text-danger fw-bold">{{ data.winners if data.winners else '0' }}</td>
-                                                    <td class="text-center fw-bold">{{ data.prize if data.prize else 'R0.00' }}</td>
+                                                    <td class="text-center fw-bold">{{ data.prize if data.prize and data.prize != '0' else 'R0.00' }}</td>
                                                 </tr>
                                             {% endfor %}
                                         </tbody>
