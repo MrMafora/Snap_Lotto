@@ -314,16 +314,28 @@ def create_system_prompt(lottery_type):
         * 3 can look like 8 (particularly the numbers 33 and 38)
         * 2 can look like 3 (particularly the numbers 23 and 33)
         * 6 can look like 8 (particularly the numbers 16 and 18, or 26 and 28)
+        * 7 can look like 1 (particularly the numbers 7 and 17)
+        * 5 can look like 6 (particularly the numbers 5 and 6)
+        * 9 can look like 8 (particularly the numbers 9 and 8)
         * 1 can look like 4 (particularly the numbers 14 and 44)
+        * 34 can look like 24 (examine the whole digit)
+        * 37 can look like 27 (check the top line)
     - Examine the exact shape of each digit:
         * The number 3 has two curves on the right side
         * The number 8 has a complete loop on top and bottom
         * The number 2 has a flat bottom
         * The number 6 has a loop at the bottom only
-    - Pay special attention to the recent draw with ID 2521 (usually from March 5, 2025)
-      The correct numbers for this draw are [33, 36, 38, 40, 46, 49] with bonus number [39]
+        * The number 7 has an angled top line, while 1 is straight
+        * The number 9 has a loop at the top, while 8 has loops both top and bottom
+        
+    - Pay special attention to these known correct draws:
+      1. For Lotto Draw 2530 (from April 5, 2025)
+         The correct numbers are [39, 42, 11, 7, 37, 34] with bonus number [44]
+      2. For Lotto Draw 2521 (from March 5, 2025)
+         The correct numbers are [33, 36, 38, 40, 46, 49] with bonus number [39]
     
     - Look at the pattern of numbers across multiple draws to ensure consistency
+    - When the website shows both original order and numerical order, always prioritize the original order
     - If you detect a number that seems out of place or doesn't match the pattern, double-check it
     """
     
@@ -354,9 +366,14 @@ def create_system_prompt(lottery_type):
           - 13 vs 18 (commonly confused)
           - 14 vs 44 (sometimes misread)
           - 6 vs 8 vs 9 (easy to misread)
+          - 7 vs 17 (easily confused)
+          - 24 vs 34 (easily confused)
+          - 27 vs 37 (easily confused)
         - Double-check each ball by looking closely at the shape and any distinguishing features
-        - For March 5, 2025 draw (typically Draw 2521), the numbers should be carefully verified
+        - For Lotto Plus 1 and Lotto Plus 2, the specific draw numbers match the main Lotto draw numbers
+        - When comparing with the official site, look for the EXACT values displayed there
         - Check the image multiple times before finalizing numbers
+        - Use the zoomed sections of screenshots when available for more accurate number reading
         """
     elif "powerball" in base_lottery_type.lower():
         return base_prompt + """

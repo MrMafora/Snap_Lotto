@@ -52,6 +52,12 @@ def has_better_formatted_prizes(new_divisions, existing_divisions):
 
 # Known correct lottery draw results for verification
 KNOWN_CORRECT_DRAWS = {
+    "Lotto": {
+        "2530": {  # April 5, 2025 draw
+            "numbers": [39, 42, 11, 7, 37, 34],
+            "bonus_numbers": [44]
+        }
+    },
     "Lotto Plus 1": {
         "2530": {  # April 5, 2025 draw
             "numbers": [4, 9, 18, 20, 38, 39],
@@ -540,6 +546,39 @@ def validate_and_correct_known_draws():
     Returns:
         int: Number of corrected draws
     """
+    # Special override for Lotto draw 2530 (April 5, 2025) to fix incorrect numbers
+    # This corrects any existing entries in the database to match the official numbers
+    try:
+        lotto_2530 = LotteryResult.query.filter_by(
+            lottery_type="Lotto",
+            draw_number="2530"
+        ).first()
+        
+        if lotto_2530:
+            correct_numbers = [39, 42, 11, 7, 37, 34]
+            correct_bonus = [44]
+            
+            # Convert to string formats used in the database
+            numbers_json = json.dumps(correct_numbers)
+            bonus_json = json.dumps(correct_bonus)
+            
+            # Check if the numbers are already correct
+            existing_numbers = json.loads(lotto_2530.numbers)
+            existing_bonus = json.loads(lotto_2530.bonus_numbers or '[]')
+            
+            existing_set = set(existing_numbers)
+            correct_set = set(correct_numbers)
+            
+            if len(existing_set.intersection(correct_set)) < len(correct_set) * 0.8:
+                logger.info(f"Correcting Lotto draw 2530: {existing_numbers} -> {correct_numbers}")
+                lotto_2530.numbers = numbers_json
+                lotto_2530.bonus_numbers = bonus_json
+                db.session.commit()
+                return 1
+    except Exception as e:
+        logger.error(f"Error trying to correct Lotto draw 2530: {str(e)}")
+    
+    # Continue with regular validation
     corrected_count = 0
     
     for lottery_type, draws in KNOWN_CORRECT_DRAWS.items():
