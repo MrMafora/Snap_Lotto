@@ -181,7 +181,9 @@ def import_snap_lotto_data(excel_file):
                     # Extract basic data
                     game_name = row['game_name']
                     lottery_type = get_lottery_type(game_name)
+                    # Extract and normalize draw number by removing any "Draw" prefix
                     draw_number = str(row['draw_number']).strip()
+                    draw_number = draw_number.replace('Draw', '').replace('DRAW', '').strip()
                     draw_date = parse_date(row['draw_date'])
                     
                     # Skip rows with missing essential data
