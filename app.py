@@ -220,6 +220,167 @@ def get_results(lottery_type):
     results = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).limit(limit).all()
     return jsonify([r.to_dict() for r in results])
 
+@app.route('/visualizations')
+def visualizations():
+    """Data visualization dashboard for lottery results"""
+    # Get all lottery types for filter options
+    lottery_types = db.session.query(LotteryResult.lottery_type).distinct().all()
+    lottery_types = [lt[0] for lt in lottery_types]  # Convert from tuples to strings
+    
+    # Get latest results for initial display
+    latest_results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).limit(20).all()
+    
+    return render_template('visualizations.html', 
+                          lottery_types=lottery_types,
+                          latest_results=latest_results)
+
+@app.route('/api/visualization-data')
+def visualization_data():
+    """API endpoint to fetch data for visualizations"""
+    lottery_type = request.args.get('lottery_type', None)
+    data_type = request.args.get('data_type', 'numbers_frequency')
+    
+    if lottery_type:
+        query = LotteryResult.query.filter_by(lottery_type=lottery_type)
+    else:
+        query = LotteryResult.query
+    
+    results = query.order_by(LotteryResult.draw_date.desc()).limit(100).all()
+    
+    if data_type == 'numbers_frequency':
+        # Calculate frequency of each number
+        frequencies = {}
+        for result in results:
+            numbers = result.get_numbers_list()
+            for num in numbers:
+                if num in frequencies:
+                    frequencies[num] += 1
+                else:
+                    frequencies[num] = 1
+        
+        # Format for Chart.js
+        chart_data = {
+            'labels': list(frequencies.keys()),
+            'datasets': [{
+                'label': f'Number Frequency for {lottery_type if lottery_type else "All Types"}',
+                'data': list(frequencies.values()),
+                'backgroundColor': 'rgba(54, 162, 235, 0.6)',
+                'borderColor': 'rgba(54, 162, 235, 1)',
+                'borderWidth': 1
+            }]
+        }
+        
+        return jsonify(chart_data)
+    
+    elif data_type == 'winners_by_division':
+        # Get winners by division
+        division_winners = {}
+        
+        for result in results:
+            divisions = result.get_divisions()
+            if divisions:
+                for div, data in divisions.items():
+                    if div not in division_winners:
+                        division_winners[div] = 0
+                    
+                    # Add winners from this draw
+                    try:
+                        winners = int(data.get('winners', 0))
+                        division_winners[div] += winners
+                    except (ValueError, TypeError):
+                        # Skip if winners not a valid number
+                        pass
+        
+        # Sort divisions by division number
+        sorted_divisions = sorted(division_winners.items(), 
+                                key=lambda x: int(x[0].split(' ')[1]) if len(x[0].split(' ')) > 1 and x[0].split(' ')[1].isdigit() else 999)
+        
+        chart_data = {
+            'labels': [div[0] for div in sorted_divisions],
+            'datasets': [{
+                'label': f'Winners by Division for {lottery_type if lottery_type else "All Types"}',
+                'data': [div[1] for div in sorted_divisions],
+                'backgroundColor': 'rgba(255, 99, 132, 0.6)',
+                'borderColor': 'rgba(255, 99, 132, 1)',
+                'borderWidth': 1
+            }]
+        }
+        
+        return jsonify(chart_data)
+    
+    elif data_type == 'prize_amounts':
+        # Get average prize amounts by division
+        division_prizes = {}
+        division_counts = {}
+        
+        for result in results:
+            divisions = result.get_divisions()
+            if divisions:
+                for div, data in divisions.items():
+                    if div not in division_prizes:
+                        division_prizes[div] = 0
+                        division_counts[div] = 0
+                    
+                    # Add prize amount from this draw
+                    try:
+                        prize = float(data.get('prize', 0))
+                        division_prizes[div] += prize
+                        division_counts[div] += 1
+                    except (ValueError, TypeError):
+                        # Skip if prize not a valid number
+                        pass
+        
+        # Calculate averages
+        for div in division_prizes:
+            if division_counts[div] > 0:
+                division_prizes[div] = division_prizes[div] / division_counts[div]
+        
+        # Sort divisions by division number
+        sorted_divisions = sorted(division_prizes.items(), 
+                                key=lambda x: int(x[0].split(' ')[1]) if len(x[0].split(' ')) > 1 and x[0].split(' ')[1].isdigit() else 999)
+        
+        chart_data = {
+            'labels': [div[0] for div in sorted_divisions],
+            'datasets': [{
+                'label': f'Average Prize Amount (R) for {lottery_type if lottery_type else "All Types"}',
+                'data': [div[1] for div in sorted_divisions],
+                'backgroundColor': 'rgba(75, 192, 192, 0.6)',
+                'borderColor': 'rgba(75, 192, 192, 1)',
+                'borderWidth': 1
+            }]
+        }
+        
+        return jsonify(chart_data)
+    
+    elif data_type == 'draw_dates':
+        # Group results by draw date
+        date_counts = {}
+        for result in results:
+            date_str = result.draw_date.strftime('%Y-%m-%d')
+            if date_str in date_counts:
+                date_counts[date_str] += 1
+            else:
+                date_counts[date_str] = 1
+        
+        # Sort by date
+        sorted_dates = sorted(date_counts.items())
+        
+        chart_data = {
+            'labels': [date[0] for date in sorted_dates],
+            'datasets': [{
+                'label': f'Number of Draws for {lottery_type if lottery_type else "All Types"}',
+                'data': [date[1] for date in sorted_dates],
+                'backgroundColor': 'rgba(153, 102, 255, 0.6)',
+                'borderColor': 'rgba(153, 102, 255, 1)',
+                'fill': False,
+                'tension': 0.1
+            }]
+        }
+        
+        return jsonify(chart_data)
+    
+    return jsonify({'error': 'Invalid data type'})
+
 @app.route('/api/raw-html/<lottery_type>')
 def get_raw_ocr(lottery_type):
     """API endpoint to fetch raw HTML data for a specific lottery type"""
