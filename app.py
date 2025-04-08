@@ -3,6 +3,7 @@ Application configuration and setup.
 """
 import os
 import logging
+import shutil
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
@@ -10,6 +11,7 @@ from models import db, Screenshot, LotteryResult, ScheduleConfig
 from data_aggregator import aggregate_data, validate_and_correct_known_draws
 from scheduler import run_lottery_task
 from ticket_scanner import process_ticket_image
+from import_snap_lotto_data import import_snap_lotto_data
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
@@ -323,6 +325,65 @@ def visualizations():
     return render_template('visualizations.html', 
                           lottery_types=lottery_types,
                           latest_results=latest_results)
+
+@app.route('/import-data', methods=['GET', 'POST'])
+def import_data():
+    """Page for importing lottery data from spreadsheets"""
+    if request.method == 'POST':
+        # Check if a file was uploaded
+        if 'file' not in request.files:
+            flash('No file selected', 'danger')
+            return redirect(request.url)
+            
+        file = request.files['file']
+        
+        # Check if no file was selected
+        if file.filename == '':
+            flash('No file selected', 'danger')
+            return redirect(request.url)
+            
+        # Check if the file is an Excel file
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            flash('Only Excel files (.xlsx, .xls) are allowed', 'danger')
+            return redirect(request.url)
+            
+        # Create uploads directory if it doesn't exist
+        uploads_dir = os.path.join(app.root_path, 'uploads')
+        if not os.path.exists(uploads_dir):
+            os.makedirs(uploads_dir)
+            
+        # Save the file securely
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(uploads_dir, filename)
+        file.save(file_path)
+        
+        # Get the purge option
+        purge_option = request.form.get('purge', 'no')
+        should_purge = purge_option == 'yes'
+        
+        # Import the data
+        if should_purge:
+            from purge_data import purge_data
+            purge_data()
+            flash('Existing data purged successfully', 'warning')
+            
+        # Process the Excel file
+        success = import_snap_lotto_data(file_path, flask_app=app)
+        
+        # Clean up - remove the uploaded file
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            logger.error(f"Error removing uploaded file: {str(e)}")
+            
+        if success:
+            flash('Spreadsheet data imported successfully', 'success')
+        else:
+            flash('Error importing spreadsheet data. Check the logs for details.', 'danger')
+            
+        return redirect(url_for('index'))
+        
+    return render_template('import_data.html')
 
 @app.route('/api/visualization-data')
 def visualization_data():

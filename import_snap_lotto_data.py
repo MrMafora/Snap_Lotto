@@ -10,9 +10,7 @@ import logging
 import json
 import pandas as pd
 from datetime import datetime
-from main import app
 from models import db, LotteryResult, Screenshot
-from purge_data import purge_data
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, 
@@ -119,15 +117,24 @@ def format_prize(prize_value):
         # Default to returning as string
         return str(prize_value)
 
-def import_snap_lotto_data(excel_file):
+def import_snap_lotto_data(excel_file, flask_app=None):
     """
     Import lottery data from the Snap Lotto Excel spreadsheet.
     
     Args:
         excel_file (str): Path to Excel file
+        flask_app: Flask app object for context
     """
     try:
-        with app.app_context():
+        # Use the provided Flask app context or try to import the app if in script mode
+        if flask_app:
+            ctx = flask_app.app_context()
+        else:
+            # For standalone script usage, we need to import the app
+            from app import app as flask_app
+            ctx = flask_app.app_context()
+            
+        with ctx:
             logger.info(f"Starting import from {excel_file}...")
             
             # Read Excel file - it has a very specific structure from examination
@@ -305,6 +312,7 @@ if __name__ == "__main__":
     
     if should_purge:
         # First purge existing data
+        from purge_data import purge_data
         if purge_data():
             print("Existing data purged successfully.")
         else:
