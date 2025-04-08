@@ -1,35 +1,37 @@
 from datetime import datetime
-from app import db
 import json
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy.ext.declarative import declared_attr
 
-class Screenshot(db.Model):
+# These models will be bound to the db instance in app.py
+class Screenshot:
     """Model for storing screenshot information"""
-    id = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.String(255), nullable=False)
-    lottery_type = db.Column(db.String(50), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    path = db.Column(db.String(255), nullable=False)
-    processed = db.Column(db.Boolean, default=False)
+    id = Column(Integer, primary_key=True)
+    url = Column(String(255), nullable=False)
+    lottery_type = Column(String(50), nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    path = Column(String(255), nullable=False)
+    processed = Column(Boolean, default=False)
     
     def __repr__(self):
         return f"<Screenshot {self.id}: {self.lottery_type}>"
 
-class LotteryResult(db.Model):
+class LotteryResult:
     """Model for storing lottery results extracted from screenshots"""
-    id = db.Column(db.Integer, primary_key=True)
-    lottery_type = db.Column(db.String(50), nullable=False)
-    draw_number = db.Column(db.String(20), nullable=True)
-    draw_date = db.Column(db.DateTime, nullable=False)
-    numbers = db.Column(db.String(255), nullable=False)  # Stored as JSON string
-    bonus_numbers = db.Column(db.String(255), nullable=True)  # Stored as JSON string
-    source_url = db.Column(db.String(255), nullable=False)
-    screenshot_id = db.Column(db.Integer, db.ForeignKey('screenshot.id'), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    id = Column(Integer, primary_key=True)
+    lottery_type = Column(String(50), nullable=False)
+    draw_number = Column(String(20), nullable=True)
+    draw_date = Column(DateTime, nullable=False)
+    numbers = Column(String(255), nullable=False)  # Stored as JSON string
+    bonus_numbers = Column(String(255), nullable=True)  # Stored as JSON string
+    source_url = Column(String(255), nullable=False)
+    screenshot_id = Column(Integer, ForeignKey('screenshot.id'), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
     
-    # Unique constraint to prevent duplicate entries
-    __table_args__ = (
-        db.UniqueConstraint('lottery_type', 'draw_number', name='uq_lottery_draw'),
-    )
+    @declared_attr
+    def __table_args__(cls):
+        # Unique constraint to prevent duplicate entries
+        return (UniqueConstraint('lottery_type', 'draw_number', name='uq_lottery_draw'),)
     
     def __repr__(self):
         return f"<LotteryResult {self.lottery_type} - {self.draw_number}>"
@@ -56,17 +58,17 @@ class LotteryResult(db.Model):
             'source_url': self.source_url
         }
 
-class ScheduleConfig(db.Model):
+class ScheduleConfig:
     """Model for storing screenshot scheduling configurations"""
-    id = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.String(255), nullable=False, unique=True)
-    lottery_type = db.Column(db.String(50), nullable=False)
-    frequency = db.Column(db.String(20), default='daily')  # daily, weekly, etc.
-    hour = db.Column(db.Integer, default=1)  # Hour of day (0-23)
-    minute = db.Column(db.Integer, default=0)  # Minute (0-59)
-    active = db.Column(db.Boolean, default=True)
-    last_run = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    id = Column(Integer, primary_key=True)
+    url = Column(String(255), nullable=False, unique=True)
+    lottery_type = Column(String(50), nullable=False)
+    frequency = Column(String(20), default='daily')  # daily, weekly, etc.
+    hour = Column(Integer, default=1)  # Hour of day (0-23)
+    minute = Column(Integer, default=0)  # Minute (0-59)
+    active = Column(Boolean, default=True)
+    last_run = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
     
     def __repr__(self):
         return f"<ScheduleConfig {self.lottery_type}: {self.frequency} at {self.hour}:{self.minute}>"

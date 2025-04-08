@@ -131,8 +131,14 @@ def process_screenshot(screenshot_path, lottery_type):
         if json_match:
             result_json = json_match.group(1)
         else:
-            # If no json code block, try to parse the whole response
-            result_json = response_text
+            # If no json code block, try to find JSON within the text
+            json_pattern = r'\{[\s\S]*"lottery_type"[\s\S]*"results"[\s\S]*\}'
+            json_match = re.search(json_pattern, response_text, re.DOTALL)
+            if json_match:
+                result_json = json_match.group(0)
+            else:
+                # If still no JSON found, try to parse the whole response
+                result_json = response_text
         
         # Parse the response
         try:

@@ -4,7 +4,7 @@ import urllib.request
 import urllib.error
 import time
 from datetime import datetime
-from models import Screenshot
+from db_models import Screenshot
 from app import db
 
 logger = logging.getLogger(__name__)

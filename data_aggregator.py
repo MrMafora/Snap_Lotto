@@ -1,7 +1,7 @@
 import logging
 import json
 from datetime import datetime
-from models import LotteryResult, Screenshot
+from db_models import LotteryResult, Screenshot
 from app import db
 
 logger = logging.getLogger(__name__)

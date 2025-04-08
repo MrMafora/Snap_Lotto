@@ -32,8 +32,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Initialize the app with the database
 db.init_app(app)
 
-# Import after initialization to avoid circular imports
-from models import LotteryResult, Screenshot, ScheduleConfig
+# Import models
+from db_models import LotteryResult, Screenshot, ScheduleConfig
 from screenshot_manager import capture_screenshot
 from ocr_processor import process_screenshot
 from data_aggregator import aggregate_data
