@@ -77,45 +77,54 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                 numbers = result.get('numbers', [])
                 bonus_numbers = result.get('bonus_numbers', []) if 'bonus_numbers' in result else []
                 
-                # Check if numbers are not all zeros
-                has_valid_numbers = any(num != 0 for num in numbers)
-                has_valid_bonus = any(num != 0 for num in bonus_numbers)
+                # Check if numbers are valid (not all zeros and not empty)
+                has_valid_numbers = any(num != 0 for num in numbers) if numbers else False
+                has_valid_bonus = any(num != 0 for num in bonus_numbers) if bonus_numbers else False
+                
+                # Skip saving if all numbers are zeros
+                if not has_valid_numbers and len(numbers) > 0 and all(num == 0 for num in numbers):
+                    logger.warning(f"Skipping result with all zero numbers: {lottery_type}, draw {draw_number}")
+                    continue
                 
                 numbers_json = json.dumps(numbers)
                 bonus_numbers_json = json.dumps(bonus_numbers)
                 
                 if not existing_result:
-                    # Create new lottery result
-                    lottery_result = LotteryResult(
-                        lottery_type=lottery_type,
-                        draw_number=draw_number,
-                        draw_date=draw_date,
-                        numbers=numbers_json,
-                        bonus_numbers=bonus_numbers_json,
-                        source_url=source_url,
-                        screenshot_id=screenshot.id if screenshot else None
-                    )
-                    
-                    db.session.add(lottery_result)
-                    saved_results.append(lottery_result)
-                    logger.info(f"Added new lottery result for {lottery_type}, draw {draw_number}")
+                    # Create new lottery result only if we have valid numbers
+                    if has_valid_numbers or draw_number == "Unknown":
+                        lottery_result = LotteryResult(
+                            lottery_type=lottery_type,
+                            draw_number=draw_number,
+                            draw_date=draw_date,
+                            numbers=numbers_json,
+                            bonus_numbers=bonus_numbers_json,
+                            source_url=source_url,
+                            screenshot_id=screenshot.id if screenshot else None
+                        )
+                        
+                        db.session.add(lottery_result)
+                        saved_results.append(lottery_result)
+                        logger.info(f"Added new lottery result for {lottery_type}, draw {draw_number}")
+                    else:
+                        logger.warning(f"Skipping invalid result for {lottery_type}, draw {draw_number}")
                 else:
                     # Check if the new data has better information than the existing one
                     existing_numbers = json.loads(existing_result.numbers)
                     existing_bonus = json.loads(existing_result.bonus_numbers or '[]')
                     
-                    existing_has_zeros = any(num == 0 for num in existing_numbers)
-                    existing_bonus_has_zeros = any(num == 0 for num in existing_bonus)
+                    # Check if existing data is valid
+                    existing_has_valid_numbers = any(num != 0 for num in existing_numbers) if existing_numbers else False
+                    existing_has_valid_bonus = any(num != 0 for num in existing_bonus) if existing_bonus else False
                     
                     should_update = False
                     
-                    # Update if we have valid numbers and existing data has zeros
-                    if has_valid_numbers and existing_has_zeros:
+                    # Update only if new data is better than existing
+                    if has_valid_numbers and not existing_has_valid_numbers:
                         existing_result.numbers = numbers_json
                         should_update = True
                         
-                    # Update if we have valid bonus numbers and existing data has zeros
-                    if has_valid_bonus and existing_bonus_has_zeros:
+                    # Update if we have valid bonus numbers and existing doesn't
+                    if has_valid_bonus and not existing_has_valid_bonus:
                         existing_result.bonus_numbers = bonus_numbers_json
                         should_update = True
                     
