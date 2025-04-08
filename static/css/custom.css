@@ -18,7 +18,7 @@ body {
 
 /* Header styling */
 .navbar {
-    background-color: #292929 !important;
+    background-color: white !important;
     padding: 0.5rem 1rem;
     border-bottom: 2px solid var(--sa-lottery-yellow);
 }
@@ -181,8 +181,8 @@ body {
 .footer {
     margin-top: 2rem;
     padding: 1rem 0;
-    background-color: #292929;
-    color: #fff;
+    background-color: white;
+    color: #333;
     border-top: 2px solid var(--sa-lottery-yellow);
 }
 
@@ -270,6 +270,16 @@ canvas {
     margin-right: 5px;
 }
 
+/* Nav link styling */
+.navbar .nav-link {
+    color: #333 !important;
+    font-weight: 500;
+}
+
+.navbar .nav-link:hover {
+    color: var(--sa-lottery-red) !important;
+}
+
 /* Utility classes */
 .text-truncate {
     overflow: hidden;
@@ -306,14 +316,107 @@ canvas {
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .lottery-ball {
-        width: 35px;
-        height: 35px;
-        font-size: 14px;
-        margin: 0 2px;
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
+        margin: 0 1px;
     }
     
     .table-lottery th,
     .table-lottery td {
-        padding: 8px;
+        padding: 6px;
+        font-size: 0.9rem;
+    }
+    
+    .card-title {
+        font-size: 1.25rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    /* Stack filter controls on mobile */
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    /* Optimize card spacing */
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .card-body {
+        padding: 0.75rem;
+    }
+    
+    /* Adjust button sizes for touch */
+    .btn {
+        padding: 0.375rem 0.6rem;
+    }
+    
+    /* Make lottery game type badges more compact */
+    .game-type-badge {
+        font-size: 0.7rem;
+        padding: 2px 5px;
+    }
+    
+    /* Chart adjustments */
+    .chart-container {
+        height: 40vh !important;
+    }
+}
+
+/* Small phone optimization */
+@media (max-width: 576px) {
+    .lottery-ball {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+        margin: 0 1px;
+    }
+    
+    h1, .h1 {
+        font-size: 1.5rem;
+    }
+    
+    h2, .h2 {
+        font-size: 1.3rem;
+    }
+    
+    h3, .h3 {
+        font-size: 1.2rem;
+    }
+    
+    .card-title {
+        font-size: 1.1rem;
+    }
+    
+    /* Further optimize table for tiny screens */
+    .table-lottery th,
+    .table-lottery td {
+        padding: 4px;
+        font-size: 0.8rem;
+    }
+    
+    /* Make headers wrap better */
+    .card-header {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    /* Make numbers wrap */
+    .numbers-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-start;
     }
 }

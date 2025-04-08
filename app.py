@@ -7,6 +7,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 from werkzeug.middleware.proxy_fix import ProxyFix
 from models import db, Screenshot, LotteryResult, ScheduleConfig
 from data_aggregator import aggregate_data, validate_and_correct_known_draws
+from scheduler import run_lottery_task
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
