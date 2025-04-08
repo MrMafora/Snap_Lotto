@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Script to import lottery data from Excel spreadsheet.
-This script should be run after purging existing data using purge_data.py.
+Script to import South African lottery data from Excel spreadsheet.
+This script purges existing data and imports new data from the provided Excel file.
 """
 
 import os
@@ -9,6 +9,7 @@ import sys
 import logging
 import json
 import pandas as pd
+import numpy as np
 from datetime import datetime
 from main import app
 from models import db, LotteryResult, Screenshot
@@ -21,12 +22,19 @@ logger = logging.getLogger(__name__)
 def parse_date(date_str):
     """Parse date from string format to datetime object"""
     try:
+        if pd.isna(date_str):
+            return None
+            
+        # Convert to string if it's not
+        date_str = str(date_str).strip()
+        
         # Try various date formats
-        for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d']:
+        for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d', '%m/%d/%Y']:
             try:
                 return datetime.strptime(date_str, fmt)
             except ValueError:
                 continue
+                
         # If all formats fail, raise error
         raise ValueError(f"Couldn't parse date: {date_str}")
     except Exception as e:
@@ -36,13 +44,97 @@ def parse_date(date_str):
 def parse_numbers(numbers_str):
     """Parse numbers from string format to list of integers"""
     try:
-        # Remove any non-digit characters and split by whitespace
-        clean_str = ''.join(c if c.isdigit() or c.isspace() else ' ' for c in str(numbers_str))
-        numbers = [int(num) for num in clean_str.split() if num.strip()]
-        return numbers
+        if pd.isna(numbers_str):
+            return []
+            
+        # Handle different formats
+        if isinstance(numbers_str, str):
+            # If numbers are comma-separated
+            if ',' in numbers_str:
+                numbers = [int(num.strip()) for num in numbers_str.split(',') if num.strip().isdigit()]
+                if numbers:
+                    return numbers
+                    
+            # If numbers are space-separated or have other delimiters
+            clean_str = ''.join(c if c.isdigit() or c.isspace() else ' ' for c in numbers_str)
+            numbers = [int(num) for num in clean_str.split() if num.strip().isdigit()]
+            return numbers
+        elif isinstance(numbers_str, (int, float)):
+            # Single number
+            return [int(numbers_str)]
+        else:
+            return []
     except Exception as e:
         logger.error(f"Error parsing numbers {numbers_str}: {str(e)}")
         return []
+
+def parse_divisions(divisions_data):
+    """Parse divisions data from various formats to a structured dictionary"""
+    if pd.isna(divisions_data):
+        return {}
+        
+    divisions = {}
+    try:
+        # If it's already a string that looks like JSON
+        if isinstance(divisions_data, str) and ('{' in divisions_data or ':' in divisions_data):
+            try:
+                # Try to parse as JSON if it looks like a dictionary
+                if '{' in divisions_data:
+                    return json.loads(divisions_data)
+                
+                # Try to parse from semicolon-separated format
+                # Division 1: 0 winners, R0.00; Division 2: 5 winners, R100,563.40
+                if ';' in divisions_data:
+                    division_parts = divisions_data.split(';')
+                    for part in division_parts:
+                        if ':' in part:
+                            div_name, div_data = part.split(':', 1)
+                            div_name = div_name.strip()
+                            div_data = div_data.strip()
+                            if ',' in div_data:
+                                winners_part, prize_part = div_data.split(',', 1)
+                                # Clean up winners part to extract just the number
+                                winners = ''.join(c for c in winners_part if c.isdigit())
+                                # Keep the prize as is with R and commas
+                                prize = prize_part.strip()
+                                divisions[div_name] = {
+                                    "winners": winners,
+                                    "prize": prize
+                                }
+            except Exception as e:
+                logger.warning(f"Error parsing divisions string: {str(e)}")
+                
+        # For more complex division data that might be in columns
+        # We'll handle this in the main import function
+                
+    except Exception as e:
+        logger.error(f"Error parsing divisions: {str(e)}")
+        
+    return divisions
+
+def standardize_lottery_type(lottery_type):
+    """Standardize lottery type names for consistency"""
+    if pd.isna(lottery_type):
+        return ""
+        
+    lt = str(lottery_type).strip().lower()
+    
+    # Normalize common variations
+    if 'lotto plus 1' in lt or 'lotto+1' in lt or 'lotto + 1' in lt:
+        return 'Lotto Plus 1'
+    elif 'lotto plus 2' in lt or 'lotto+2' in lt or 'lotto + 2' in lt:
+        return 'Lotto Plus 2'
+    elif 'powerball plus' in lt or 'powerball+' in lt or 'power ball plus' in lt:
+        return 'Powerball Plus'
+    elif 'powerball' in lt or 'power ball' in lt:
+        return 'Powerball'
+    elif 'daily lotto' in lt or 'dailylotto' in lt:
+        return 'Daily Lotto'
+    elif 'lotto' in lt:
+        return 'Lotto'
+    
+    # If no match, return original with proper capitalization
+    return str(lottery_type).strip()
 
 def import_excel_data(excel_file):
     """
@@ -55,11 +147,57 @@ def import_excel_data(excel_file):
         with app.app_context():
             logger.info(f"Starting import from {excel_file}...")
             
-            # Read Excel file
-            df = pd.read_excel(excel_file)
+            # Read Excel file - try multiple sheets if needed
+            try:
+                # First try reading with default sheet
+                df = pd.read_excel(excel_file)
+                
+                # If we got an empty dataframe or missing expected columns, try reading all sheets
+                if df.empty or not any(col for col in df.columns if 'lotto' in str(col).lower() or 'draw' in str(col).lower()):
+                    logger.info("Initial sheet appears empty or missing lottery data. Checking all sheets...")
+                    xlsx = pd.ExcelFile(excel_file)
+                    
+                    # Try each sheet until we find one with lottery data
+                    for sheet_name in xlsx.sheet_names:
+                        logger.info(f"Trying sheet: {sheet_name}")
+                        df = pd.read_excel(excel_file, sheet_name=sheet_name)
+                        # Check if this sheet has lottery data
+                        if any(col for col in df.columns if 'lotto' in str(col).lower() or 'draw' in str(col).lower() or 'game' in str(col).lower()):
+                            logger.info(f"Found lottery data in sheet: {sheet_name}")
+                            break
+            except Exception as e:
+                logger.error(f"Error reading Excel file: {str(e)}")
+                return False
+            
+            # Replace NaN values with None for cleaner processing
+            df = df.replace({np.nan: None})
             
             # Log column headers for debugging
-            logger.info(f"Excel columns: {', '.join(df.columns)}")
+            logger.info(f"Excel columns: {', '.join(str(col) for col in df.columns)}")
+            
+            # Map standard column names to actual columns in the spreadsheet
+            column_mapping = {}
+            for col in df.columns:
+                col_lower = str(col).lower()
+                
+                # Map standard fields to actual column names
+                if 'game type' in col_lower or 'lottery' in col_lower or 'lotto type' in col_lower:
+                    column_mapping['lottery_type'] = col
+                elif 'draw' in col_lower and ('id' in col_lower or 'number' in col_lower or 'no' in col_lower):
+                    column_mapping['draw_number'] = col
+                elif 'date' in col_lower or 'game date' in col_lower:
+                    column_mapping['draw_date'] = col
+                elif ('winning' in col_lower and 'number' in col_lower) or ('main' in col_lower and 'number' in col_lower):
+                    column_mapping['numbers'] = col
+                elif ('bonus' in col_lower or 'ball' in col_lower) and 'number' in col_lower:
+                    column_mapping['bonus_numbers'] = col
+                elif 'division' in col_lower or 'prize' in col_lower or 'payout' in col_lower:
+                    # Note multiple division columns for later
+                    if 'divisions' not in column_mapping:
+                        column_mapping['divisions'] = []
+                    column_mapping['divisions'].append(col)
+            
+            logger.info(f"Column mapping: {column_mapping}")
             
             # Count records before import
             initial_count = LotteryResult.query.count()
@@ -72,60 +210,76 @@ def import_excel_data(excel_file):
             # Process each row
             for idx, row in df.iterrows():
                 try:
-                    # Extract data from row (adjust column names as needed)
-                    lottery_type = str(row.get('Game Type', '')).strip()
-                    draw_number = str(row.get('Draw ID', '')).strip()
-                    draw_date_str = str(row.get('Game Date', ''))
-                    numbers_str = str(row.get('Winning Numbers', ''))
-                    bonus_numbers_str = str(row.get('Bonus Numbers', ''))
-                    divisions_str = str(row.get('Divisions', ''))
+                    # Skip header rows or rows that appear to be titles/headers
+                    if idx < 1 and any(isinstance(val, str) and val.isupper() for val in row.values):
+                        continue
+                        
+                    # Determine if this is a valid data row
+                    # Skip if row appears empty (more than 50% of values are None/NaN)
+                    if row.isna().sum() > len(row) * 0.5:
+                        continue
+                    
+                    # Extract data using our column mapping
+                    lottery_type = standardize_lottery_type(row.get(column_mapping.get('lottery_type', ''), None))
+                    draw_number = str(row.get(column_mapping.get('draw_number', ''), '')).strip()
+                    draw_date_str = row.get(column_mapping.get('draw_date', ''), None)
+                    numbers_str = row.get(column_mapping.get('numbers', ''), None)
+                    bonus_numbers_str = row.get(column_mapping.get('bonus_numbers', ''), None)
                     
                     # Skip rows with missing essential data
                     if not lottery_type or not draw_date_str or not numbers_str:
-                        logger.warning(f"Skipping row {idx+2} due to missing data: {row.to_dict()}")
-                        errors_count += 1
+                        logger.warning(f"Skipping row {idx+2} due to missing key data")
                         continue
                     
                     # Parse date
                     draw_date = parse_date(draw_date_str)
                     if not draw_date:
                         logger.warning(f"Skipping row {idx+2} due to invalid date: {draw_date_str}")
-                        errors_count += 1
                         continue
                     
                     # Parse numbers
                     numbers = parse_numbers(numbers_str)
                     if not numbers:
                         logger.warning(f"Skipping row {idx+2} due to invalid numbers: {numbers_str}")
-                        errors_count += 1
                         continue
                     
                     # Parse bonus numbers
                     bonus_numbers = parse_numbers(bonus_numbers_str) if bonus_numbers_str else []
                     
-                    # Parse divisions
+                    # Handle divisions
                     divisions = {}
-                    if divisions_str and divisions_str.strip().lower() != 'nan':
-                        try:
-                            # Try to parse as JSON if it looks like a dictionary
-                            if '{' in divisions_str:
-                                divisions = json.loads(divisions_str)
-                            else:
-                                # Otherwise, try to parse from custom format
-                                division_parts = divisions_str.split(';')
-                                for part in division_parts:
-                                    if ':' in part:
-                                        div_name, div_data = part.split(':', 1)
-                                        div_name = div_name.strip()
-                                        div_data = div_data.strip()
-                                        if ',' in div_data:
-                                            winners, prize = div_data.split(',', 1)
-                                            divisions[div_name] = {
-                                                "winners": winners.strip(),
-                                                "prize": prize.strip()
-                                            }
-                        except Exception as e:
-                            logger.warning(f"Error parsing divisions for row {idx+2}: {str(e)}")
+                    # First check if we have a dedicated divisions column
+                    if 'divisions' in column_mapping and isinstance(column_mapping['divisions'], list):
+                        # Check if we have division-specific columns (Div 1, Div 2, etc.)
+                        div_columns = column_mapping['divisions']
+                        
+                        for div_col in div_columns:
+                            div_value = row.get(div_col)
+                            if not pd.isna(div_value):
+                                # Try to extract division number from column name
+                                div_name = div_col
+                                if 'div' in str(div_col).lower():
+                                    div_match = ''.join(c for c in str(div_col) if c.isdigit())
+                                    if div_match:
+                                        div_name = f"Division {div_match}"
+                                
+                                # If the value contains winners and prize together
+                                if isinstance(div_value, str) and ',' in div_value:
+                                    winners_part, prize_part = div_value.split(',', 1)
+                                    # Extract just the number for winners
+                                    winners = ''.join(c for c in winners_part if c.isdigit())
+                                    # Keep the prize with formatting (R, commas)
+                                    prize = prize_part.strip()
+                                    divisions[div_name] = {
+                                        "winners": winners,
+                                        "prize": prize
+                                    }
+                                else:
+                                    # If it's just a raw value, assume it's the prize amount
+                                    divisions[div_name] = {
+                                        "winners": "1",  # Default to 1 winner if not specified
+                                        "prize": f"R{div_value}" if not str(div_value).startswith('R') else str(div_value)
+                                    }
                     
                     # Check if this result already exists
                     existing = LotteryResult.query.filter_by(
