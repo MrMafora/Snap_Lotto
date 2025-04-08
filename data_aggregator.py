@@ -126,6 +126,7 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                 # Convert numbers to JSON strings
                 numbers = result.get('numbers', [])
                 bonus_numbers = result.get('bonus_numbers', []) if 'bonus_numbers' in result else []
+                divisions_data = result.get('divisions', {})
                 
                 # Check against known correct draws for verification
                 if lottery_type in KNOWN_CORRECT_DRAWS and draw_number in KNOWN_CORRECT_DRAWS[lottery_type]:
@@ -148,6 +149,7 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                 # Check if numbers are valid (not all zeros and not empty)
                 has_valid_numbers = any(num != 0 for num in numbers) if numbers else False
                 has_valid_bonus = any(num != 0 for num in bonus_numbers) if bonus_numbers else False
+                has_divisions = bool(divisions_data)
                 
                 # Skip saving if all numbers are zeros
                 if not has_valid_numbers and len(numbers) > 0 and all(num == 0 for num in numbers):
@@ -156,6 +158,10 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                 
                 numbers_json = json.dumps(numbers)
                 bonus_numbers_json = json.dumps(bonus_numbers)
+                divisions_json = json.dumps(divisions_data) if divisions_data else None
+                
+                if has_divisions:
+                    logger.info(f"Extracted {len(divisions_data)} divisions for {lottery_type}, draw {draw_number}")
                 
                 if not existing_result:
                     # Create new lottery result only if we have valid numbers
@@ -166,6 +172,7 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                             draw_date=draw_date,
                             numbers=numbers_json,
                             bonus_numbers=bonus_numbers_json,
+                            divisions=divisions_json,
                             source_url=source_url,
                             screenshot_id=screenshot.id if screenshot else None
                         )
@@ -180,9 +187,18 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                     existing_numbers = json.loads(existing_result.numbers)
                     existing_bonus = json.loads(existing_result.bonus_numbers or '[]')
                     
+                    # Get existing divisions data
+                    existing_divisions = {}
+                    if hasattr(existing_result, 'divisions') and existing_result.divisions:
+                        try:
+                            existing_divisions = json.loads(existing_result.divisions)
+                        except (json.JSONDecodeError, TypeError):
+                            existing_divisions = {}
+                    
                     # Check if existing data is valid
                     existing_has_valid_numbers = any(num != 0 for num in existing_numbers) if existing_numbers else False
                     existing_has_valid_bonus = any(num != 0 for num in existing_bonus) if existing_bonus else False
+                    existing_has_divisions = bool(existing_divisions)
                     
                     should_update = False
                     
@@ -195,6 +211,13 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                     if has_valid_bonus and not existing_has_valid_bonus:
                         existing_result.bonus_numbers = bonus_numbers_json
                         should_update = True
+                    
+                    # Update if we have divisions data and existing doesn't, or if we have more divisions
+                    if has_divisions and (not existing_has_divisions or len(divisions_data) > len(existing_divisions)):
+                        if hasattr(existing_result, 'divisions'):
+                            existing_result.divisions = divisions_json
+                            should_update = True
+                            logger.info(f"Updated divisions data for {lottery_type}, draw {draw_number}")
                     
                     if should_update:
                         existing_result.source_url = source_url

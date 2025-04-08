@@ -16,7 +16,7 @@ class Config:
     # Screenshot directory
     SCREENSHOT_DIR = os.path.join(os.getcwd(), 'screenshots')
     
-    # Default lottery URLS
+    # Default lottery URLS for history pages
     DEFAULT_LOTTERY_URLS = [
         'https://www.nationallottery.co.za/lotto-history',
         'https://www.nationallottery.co.za/lotto-plus-1-history',
@@ -24,6 +24,16 @@ class Config:
         'https://www.nationallottery.co.za/powerball-history',
         'https://www.nationallottery.co.za/powerball-plus-history',
         'https://www.nationallottery.co.za/daily-lotto-history'
+    ]
+    
+    # Current results URLs with divisions data
+    RESULTS_URLS = [
+        {'url': 'https://www.nationallottery.co.za/results/lotto', 'lottery_type': 'Lotto'},
+        {'url': 'https://www.nationallottery.co.za/results/lotto-plus-1-results', 'lottery_type': 'Lotto Plus 1'},
+        {'url': 'https://www.nationallottery.co.za/results/lotto-plus-2-results', 'lottery_type': 'Lotto Plus 2'},
+        {'url': 'https://www.nationallottery.co.za/results/powerball', 'lottery_type': 'Powerball'},
+        {'url': 'https://www.nationallottery.co.za/results/powerball-plus', 'lottery_type': 'Powerball Plus'},
+        {'url': 'https://www.nationallottery.co.za/results/daily-lotto', 'lottery_type': 'Daily Lotto'}
     ]
     
     # Default schedule settings

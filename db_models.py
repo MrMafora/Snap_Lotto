@@ -22,6 +22,7 @@ class LotteryResult(db.Model):
     draw_date = db.Column(db.DateTime, nullable=False, comment="Game Date")
     numbers = db.Column(db.String(255), nullable=False, comment="Winning Numbers (JSON string array)")  # Stored as JSON string
     bonus_numbers = db.Column(db.String(255), nullable=True, comment="Bonus Numbers (JSON string array)")  # Stored as JSON string
+    divisions = db.Column(db.Text, nullable=True, comment="Prize Divisions Data (JSON string)")  # Stored as JSON string with division, winners, and prize amount
     source_url = db.Column(db.String(255), nullable=False)
     screenshot_id = db.Column(db.Integer, db.ForeignKey('screenshot.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -44,6 +45,12 @@ class LotteryResult(db.Model):
             return json.loads(self.bonus_numbers)
         return []
     
+    def get_divisions(self):
+        """Return divisions data as a Python dict, or empty dict if None"""
+        if self.divisions:
+            return json.loads(self.divisions)
+        return {}
+    
     def to_dict(self):
         """Convert model to dictionary for API responses"""
         return {
@@ -53,6 +60,7 @@ class LotteryResult(db.Model):
             'game_date': self.draw_date.isoformat() if self.draw_date else None,  # Updated field name for API
             'winning_numbers': self.get_numbers_list(),  # Updated field name for API
             'bonus_numbers': self.get_bonus_numbers_list(),
+            'divisions': self.get_divisions(),
             'source_url': self.source_url
         }
 

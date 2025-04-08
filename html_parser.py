@@ -21,6 +21,7 @@ def parse_lottery_html(html_content, lottery_type):
               - Draw ID
               - Game Date
               - Winning Numbers
+              - Division Information (if available)
     """
     try:
         logger.info(f"Parsing HTML for {lottery_type}")
@@ -49,13 +50,24 @@ def parse_lottery_html(html_content, lottery_type):
         logger.info(f"Extracted Winning Numbers: {main_numbers}")
         logger.info(f"Extracted Bonus Numbers: {bonus_numbers}")
         
+        # PRIORITY FIELD #5: Extract Divisions, Winners and Winnings if available
+        divisions_data = extract_divisions_data(soup, html_content, lottery_type)
+        if divisions_data:
+            logger.info(f"Extracted Divisions Data: {len(divisions_data)} divisions found")
+        
         # Add the result to our structure
-        result["results"].append({
+        result_item = {
             "draw_number": draw_number or "Unknown",  # Draw ID
             "draw_date": draw_date,                   # Game Date
             "numbers": main_numbers,                  # Winning Numbers
             "bonus_numbers": bonus_numbers            # Additional information
-        })
+        }
+        
+        # Add divisions data if available
+        if divisions_data:
+            result_item["divisions"] = divisions_data
+            
+        result["results"].append(result_item)
         
         logger.info(f"Successfully parsed results for {lottery_type}")
         return result
@@ -349,6 +361,255 @@ def get_ball_counts(lottery_type):
         return 6, True  # 6 main balls + 1 bonus
 
 
+def extract_divisions_data(soup, html_content, lottery_type):
+    """
+    Extract divisions, winners, and winnings data from lottery results.
+    
+    Args:
+        soup (BeautifulSoup): Parsed HTML
+        html_content (str): Raw HTML content
+        lottery_type (str): Type of lottery
+        
+    Returns:
+        dict: Dictionary containing divisions data with keys like "Division 1", "Division 2", etc.
+              Each division contains "winners" and "prize" information.
+    """
+    divisions_data = {}
+    
+    try:
+        # Strategy 1: Look for "DIV X" sections with winners and prizes
+        # This targets layouts like the one in the provided image
+        div_elements = soup.find_all(lambda tag: tag.name and re.match(r'div\s*\d+', tag.get_text().lower().strip()))
+        if div_elements:
+            for div_elem in div_elements:
+                div_text = div_elem.get_text().strip()
+                div_match = re.search(r'div\s*(\d+)', div_text.lower())
+                
+                if div_match:
+                    div_num = div_match.group(1)
+                    division_name = f"Division {div_num}"
+                    
+                    # Look for winners and prize in nearby elements
+                    parent = div_elem.parent
+                    if parent:
+                        # Get all text from this row/container
+                        row_text = parent.get_text()
+                        
+                        # Look for winner count in the text
+                        winner_match = re.search(r'(\d+(?:,\d+)*)\s*(?:winner|win)', row_text, re.IGNORECASE)
+                        if not winner_match:
+                            # If no winner label, just look for a standalone number
+                            winner_match = re.search(r'(?<![a-zA-Z0-9]|[.,])(\d+)(?![a-zA-Z0-9]|[.,])', row_text)
+                        
+                        winners_count = int(winner_match.group(1).replace(',', '')) if winner_match else 0
+                        
+                        # Look for a currency amount with R (South African Rand)
+                        prize_match = re.search(r'R\s*(\d+(?:,\d+)*(?:\.\d+)?)', row_text, re.IGNORECASE)
+                        if not prize_match:
+                            # Try without the R prefix
+                            prize_match = re.search(r'(?<![a-zA-Z])\d+(?:,\d+)*\.\d+', row_text)
+                            
+                        prize_amount = prize_match.group(0).replace('R', '').replace(',', '').strip() if prize_match else "0"
+                        
+                        divisions_data[division_name] = {
+                            "winners": winners_count,
+                            "prize": prize_amount,
+                            "description": parent.get_text().strip()
+                        }
+        
+        # Strategy 2: Look for tables with division data
+        if not divisions_data:
+            prize_tables = soup.find_all('table', class_=lambda c: c and any(x in c.lower() for x in ['prize', 'division', 'winning']))
+            
+            if not prize_tables:
+                # Try finding any table that might contain prize information
+                prize_tables = soup.find_all('table')
+                
+            for table in prize_tables:
+                rows = table.find_all('tr')
+                
+                # Skip tables with fewer than 2 rows (header + data)
+                if len(rows) < 2:
+                    continue
+                    
+                # Check if this looks like a prize breakdown table
+                table_text = table.get_text().lower()
+                if not re.search(r'division|prize|winner|match|div', table_text):
+                    continue
+                    
+                # Extract headers to identify columns
+                headers = rows[0].find_all(['th', 'td'])
+                header_texts = [h.get_text().strip().lower() for h in headers]
+                
+                # Try to identify the column indices
+                division_idx = next((i for i, h in enumerate(header_texts) if re.search(r'division|div|match', h)), None)
+                winners_idx = next((i for i, h in enumerate(header_texts) if re.search(r'winner|won|win', h)), None)
+                prize_idx = next((i for i, h in enumerate(header_texts) if re.search(r'prize|amount|payout|winning', h)), None)
+                
+                # Process data rows if we found at least some column indices
+                if division_idx is not None or winners_idx is not None or prize_idx is not None:
+                    for row in rows[1:]:  # Skip header row
+                        cells = row.find_all(['td', 'th'])
+                        
+                        # Skip rows with not enough cells
+                        valid_indices = [idx for idx in [division_idx, winners_idx, prize_idx] if idx is not None]
+                        if valid_indices:
+                            max_idx = max(valid_indices)
+                            if len(cells) <= max_idx:
+                                continue
+                        else:
+                            continue
+                            
+                        # Extract division name/number
+                        division_name = None
+                        if division_idx is not None and division_idx < len(cells):
+                            division_text = cells[division_idx].get_text().strip()
+                            division_match = re.search(r'(?:division|div)?\s*(\d+|one|two|three|four|five|six|seven|eight)', 
+                                                division_text, re.IGNORECASE)
+                            if division_match:
+                                division_num = division_match.group(1).lower()
+                                # Convert text numbers to digits
+                                number_map = {'one': '1', 'two': '2', 'three': '3', 'four': '4', 
+                                           'five': '5', 'six': '6', 'seven': '7', 'eight': '8'}
+                                if division_num in number_map:
+                                    division_num = number_map[division_num]
+                                division_name = f"Division {division_num}"
+                            else:
+                                # If no clear division number, use the whole text
+                                division_name = f"Division {division_text}"
+                        
+                        # Without a division name, create one based on the row index
+                        if not division_name:
+                            division_name = f"Division {rows.index(row)}"
+                            
+                        # Extract winners count
+                        winners_count = 0
+                        if winners_idx is not None and winners_idx < len(cells):
+                            winners_text = cells[winners_idx].get_text().strip()
+                            winners_match = re.search(r'(\d+(?:,\d+)*)', winners_text)
+                            if winners_match:
+                                winners_count = int(winners_match.group(1).replace(',', ''))
+                                
+                        # Extract prize amount
+                        prize_amount = "0"
+                        if prize_idx is not None and prize_idx < len(cells):
+                            prize_text = cells[prize_idx].get_text().strip()
+                            # Look for currency amounts
+                            prize_match = re.search(r'(?:R|ZAR|£|\$)?\s*(\d+(?:,\d+)*(?:\.\d+)?)', prize_text)
+                            if prize_match:
+                                prize_amount = prize_match.group(1).replace(',', '')
+                                
+                        # Add to divisions data
+                        divisions_data[division_name] = {
+                            "winners": winners_count,
+                            "prize": prize_amount
+                        }
+                        
+                        # Extract match description if available
+                        match_desc = None
+                        for cell in cells:
+                            cell_text = cell.get_text().lower().strip()
+                            if any(match in cell_text for match in ['correct number', 'plus bonus', 'match']):
+                                match_desc = cell.get_text().strip()
+                                break
+                                
+                        if match_desc:
+                            divisions_data[division_name]["description"] = match_desc
+        
+        # Strategy 3: Look for division data in structured divs
+        if not divisions_data:
+            division_divs = soup.find_all('div', class_=lambda c: c and any(x in c.lower() for x in ['prize', 'division', 'winning']))
+            
+            for div in division_divs:
+                # Check if this is a container that might have multiple divisions
+                sub_divs = div.find_all('div', recursive=False)
+                
+                # If this looks like a container with division items
+                if len(sub_divs) >= 2:
+                    for i, sub_div in enumerate(sub_divs, 1):
+                        sub_text = sub_div.get_text().lower()
+                        
+                        # Skip if not a division item
+                        if not re.search(r'division|div|match|prize', sub_text):
+                            continue
+                            
+                        # Extract division number
+                        division_match = re.search(r'(?:division|div)?\s*(\d+)', sub_text)
+                        division_name = f"Division {division_match.group(1)}" if division_match else f"Division {i}"
+                        
+                        # Extract winners
+                        winners_match = re.search(r'winners?:?\s*(\d+)', sub_text)
+                        winners_count = int(winners_match.group(1)) if winners_match else 0
+                        
+                        # Extract prize
+                        prize_match = re.search(r'(?:prize|amount|won):?\s*(?:R|ZAR|£|\$)?\s*(\d+(?:,\d+)*(?:\.\d+)?)', sub_text)
+                        prize_amount = prize_match.group(1).replace(',', '') if prize_match else "0"
+                        
+                        # Add to divisions data
+                        divisions_data[division_name] = {
+                            "winners": winners_count,
+                            "prize": prize_amount
+                        }
+                        
+                        # Look for any match description 
+                        match_desc = re.search(r'((?:two|three|four|five|six)\s+correct\s+numbers(?:\s+\+\s+bonus\s+(?:ball|number))?)', sub_text, re.IGNORECASE)
+                        if match_desc:
+                            divisions_data[division_name]["description"] = match_desc.group(1)
+        
+        # Strategy 4: Look for division data in scripts (JSON data)
+        if not divisions_data:
+            scripts = soup.find_all('script')
+            for script in scripts:
+                if not script.string:
+                    continue
+                    
+                script_text = script.string
+                
+                # Look for JSON-like structures that might contain division data
+                # This pattern matches something like: "divisions": [ ... array of division objects ... ]
+                divisions_pattern = r'"divisions"\s*:\s*\[(.*?)\]'
+                divisions_match = re.search(divisions_pattern, script_text, re.DOTALL)
+                
+                if divisions_match:
+                    divisions_json = divisions_match.group(1)
+                    
+                    # Extract individual division objects using regex (simplified parsing)
+                    division_objects = re.findall(r'{(.*?)}', divisions_json, re.DOTALL)
+                    
+                    for i, div_obj in enumerate(division_objects, 1):
+                        # Extract division number
+                        div_num_match = re.search(r'"(?:division|div|level|tier)"\s*:\s*"?(\d+)"?', div_obj)
+                        division_name = f"Division {div_num_match.group(1)}" if div_num_match else f"Division {i}"
+                        
+                        # Extract winners
+                        winners_match = re.search(r'"(?:winners|winning|count)"\s*:\s*"?(\d+)"?', div_obj)
+                        winners_count = int(winners_match.group(1)) if winners_match else 0
+                        
+                        # Extract prize
+                        prize_match = re.search(r'"(?:prize|amount|winnings|value)"\s*:\s*"?(\d+(?:\.\d+)?)"?', div_obj)
+                        prize_amount = prize_match.group(1) if prize_match else "0"
+                        
+                        # Extract description if available
+                        desc_match = re.search(r'"(?:description|match|text)"\s*:\s*"([^"]*)"', div_obj)
+                        match_desc = desc_match.group(1) if desc_match else None
+                        
+                        # Add to divisions data
+                        divisions_data[division_name] = {
+                            "winners": winners_count,
+                            "prize": prize_amount
+                        }
+                        
+                        if match_desc:
+                            divisions_data[division_name]["description"] = match_desc
+    
+    except Exception as e:
+        logger.error(f"Error extracting divisions data: {str(e)}")
+        # Print full exception traceback for debugging
+        import traceback
+        logger.error(traceback.format_exc())
+    
+    return divisions_data
+
 def create_default_result(lottery_type):
     """Create a default result structure based on the lottery type"""
     main_count, has_bonus = get_ball_counts(lottery_type)
@@ -357,6 +618,9 @@ def create_default_result(lottery_type):
     main_numbers = [27, 14, 36, 5, 49, 43][:main_count]  # Use subset if needed
     bonus_numbers = [17] if has_bonus else []
     
+    # Create default divisions data (empty)
+    # We don't create placeholder divisions data to avoid returning incorrect information
+    
     return {
         "lottery_type": lottery_type,
         "results": [
@@ -364,7 +628,8 @@ def create_default_result(lottery_type):
                 "draw_number": "2530",
                 "draw_date": "2025-04-05",  # Recent default date
                 "numbers": main_numbers,
-                "bonus_numbers": bonus_numbers
+                "bonus_numbers": bonus_numbers,
+                "divisions": {}  # Empty divisions data by default
             }
         ]
     }

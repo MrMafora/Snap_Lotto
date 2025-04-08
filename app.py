@@ -44,6 +44,7 @@ scheduler = init_scheduler(app)
 with app.app_context():
     # Set up initial schedules if none exist
     if ScheduleConfig.query.count() == 0:
+        # Add history pages (for drawing numbers/history)
         default_urls = [
             {'url': 'https://www.nationallottery.co.za/lotto-history', 'lottery_type': 'Lotto'},
             {'url': 'https://www.nationallottery.co.za/lotto-plus-1-history', 'lottery_type': 'Lotto Plus 1'},
@@ -53,10 +54,23 @@ with app.app_context():
             {'url': 'https://www.nationallottery.co.za/daily-lotto-history', 'lottery_type': 'Daily Lotto'}
         ]
         
-        for i, config in enumerate(default_urls):
+        # Add results pages (for divisions, winners, and winnings)
+        results_urls = [
+            {'url': 'https://www.nationallottery.co.za/results/lotto', 'lottery_type': 'Lotto Results'},
+            {'url': 'https://www.nationallottery.co.za/results/lotto-plus-1-results', 'lottery_type': 'Lotto Plus 1 Results'},
+            {'url': 'https://www.nationallottery.co.za/results/lotto-plus-2-results', 'lottery_type': 'Lotto Plus 2 Results'},
+            {'url': 'https://www.nationallottery.co.za/results/powerball', 'lottery_type': 'Powerball Results'},
+            {'url': 'https://www.nationallottery.co.za/results/powerball-plus', 'lottery_type': 'Powerball Plus Results'},
+            {'url': 'https://www.nationallottery.co.za/results/daily-lotto', 'lottery_type': 'Daily Lotto Results'}
+        ]
+        
+        # Combine all URLs
+        all_urls = default_urls + results_urls
+        
+        for i, config in enumerate(all_urls):
             # Stagger the scheduled times to avoid overwhelming the system
             hour = 1  # Run at 1 AM
-            minute = i * 10  # 10 minutes apart
+            minute = i * 5  # 5 minutes apart
             
             schedule = ScheduleConfig(
                 url=config['url'],
