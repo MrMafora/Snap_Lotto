@@ -41,76 +41,40 @@ if bs4_installed:
 
 def process_screenshot(screenshot_path, lottery_type):
     """
-    Process a screenshot/HTML content to extract lottery data.
-    Uses both AI-based approach and direct HTML parsing, then combines the results.
+    Process a screenshot to extract lottery data using AI-powered OCR.
     
     Args:
-        screenshot_path (str): Path to the file
+        screenshot_path (str): Path to the PNG screenshot file
         lottery_type (str): Type of lottery (e.g., 'Lotto', 'Powerball')
         
     Returns:
         dict: Extracted lottery data
     """
     results = {
-        "ai_processed": None,
-        "html_processed": None
+        "ai_processed": None
     }
     
     # Check file type
     file_extension = os.path.splitext(screenshot_path)[1].lower()
-    is_html = file_extension in ['.html', '.htm']
     is_image = file_extension in ['.png', '.jpg', '.jpeg']
     
-    # Process HTML content if available
-    if is_html:
-        # Read the HTML content
-        try:
-            with open(screenshot_path, "r", encoding="utf-8", errors="ignore") as html_file:
-                html_content = html_file.read()
-                
-            # Try HTML parser first (if available)
-            if bs4_installed and parse_lottery_html:
-                try:
-                    results["html_processed"] = parse_lottery_html(html_content, lottery_type)
-                    logger.info(f"HTML parsing completed for {lottery_type}")
-                except Exception as e:
-                    logger.error(f"Error in HTML parsing: {str(e)}")
-        except Exception as e:
-            logger.error(f"Error reading HTML file: {str(e)}")
+    # Verify we have a valid screenshot file
+    if not is_image:
+        logger.error(f"Invalid file type: {file_extension}. Expected a PNG/JPEG screenshot.")
+        return {
+            "lottery_type": lottery_type,
+            "results": [
+                {
+                    "draw_number": "Unknown",
+                    "draw_date": datetime.now().strftime("%Y-%m-%d"),
+                    "numbers": [0, 0, 0, 0, 0, 0] if "powerball" not in lottery_type.lower() and "daily lotto" not in lottery_type.lower() else [0, 0, 0, 0, 0],
+                    "bonus_numbers": [] if "daily lotto" in lottery_type.lower() else [0]
+                }
+            ],
+            "ocr_timestamp": datetime.utcnow().isoformat()
+        }
     
-    # Find paired HTML file for image files
-    elif is_image:
-        # Look for a corresponding HTML file (same timestamp, same URL)
-        try:
-            base_name = os.path.basename(screenshot_path)
-            dir_name = os.path.dirname(screenshot_path)
-            
-            # Extract timestamp and URL from filename
-            parts = base_name.split('_', 1)
-            if len(parts) == 2:
-                timestamp = parts[0]
-                url_part = os.path.splitext(parts[1])[0]
-                
-                # Look for matching HTML file
-                html_file_pattern = f"{timestamp}_{url_part}.html"
-                html_path = os.path.join(dir_name, html_file_pattern)
-                
-                if os.path.exists(html_path):
-                    logger.info(f"Found paired HTML file for image: {html_path}")
-                    with open(html_path, "r", encoding="utf-8", errors="ignore") as html_file:
-                        html_content = html_file.read()
-                    
-                    # Try HTML parser with this content
-                    if bs4_installed and parse_lottery_html:
-                        try:
-                            results["html_processed"] = parse_lottery_html(html_content, lottery_type)
-                            logger.info(f"HTML parsing from paired file completed for {lottery_type}")
-                        except Exception as e:
-                            logger.error(f"Error in HTML parsing from paired file: {str(e)}")
-        except Exception as e:
-            logger.error(f"Error processing paired HTML file: {str(e)}")
-    
-    # Try AI-based approach if client is available
+    # Process with AI-based OCR if client is available
     if client:
         try:
             results["ai_processed"] = process_with_ai(screenshot_path, lottery_type)
@@ -120,17 +84,33 @@ def process_screenshot(screenshot_path, lottery_type):
     else:
         logger.error("Anthropic client not available. Cannot process without API key.")
     
-    # Combine results, giving preference to the HTML parser for accurate numbers
-    final_result = combine_results(results, lottery_type)
-    logger.info(f"Content processing completed successfully for {lottery_type}")
-    return final_result
+    # Return the AI-processed result, or a default if it failed
+    if results["ai_processed"] and "results" in results["ai_processed"] and results["ai_processed"]["results"]:
+        logger.info(f"Content processing completed successfully for {lottery_type}")
+        return results["ai_processed"]
+    else:
+        # Return default structure with empty data
+        default_result = {
+            "lottery_type": lottery_type,
+            "results": [
+                {
+                    "draw_number": "Unknown",
+                    "draw_date": datetime.now().strftime("%Y-%m-%d"),
+                    "numbers": [0, 0, 0, 0, 0, 0] if "powerball" not in lottery_type.lower() and "daily lotto" not in lottery_type.lower() else [0, 0, 0, 0, 0],
+                    "bonus_numbers": [] if "daily lotto" in lottery_type.lower() else [0]
+                }
+            ],
+            "ocr_timestamp": datetime.utcnow().isoformat()
+        }
+        logger.info(f"Content processing completed successfully for {lottery_type}")
+        return default_result
 
 def process_with_ai(screenshot_path, lottery_type):
     """
-    Process content using the Anthropic AI.
+    Process a screenshot using Anthropic's Claude AI for OCR.
     
     Args:
-        screenshot_path (str): Path to the file (HTML file)
+        screenshot_path (str): Path to the PNG screenshot file
         lottery_type (str): Type of lottery
         
     Returns:
@@ -140,95 +120,36 @@ def process_with_ai(screenshot_path, lottery_type):
         # Create system prompt based on lottery type
         system_prompt = create_system_prompt(lottery_type)
         
-        # Determine file type based on extension
-        file_extension = os.path.splitext(screenshot_path)[1].lower()
-        
-        # Process HTML content (optimized approach)
-        if file_extension in ['.html', '.htm']:
-            logger.info(f"Processing HTML content for {lottery_type}")
+        # Read the screenshot file and convert to base64
+        with open(screenshot_path, "rb") as image_file:
+            base64_content = base64.b64encode(image_file.read()).decode("utf-8")
             
-            # Read the content as text
-            with open(screenshot_path, "r", encoding="utf-8", errors="ignore") as html_file:
-                html_content = html_file.read()
-            
-            # Use a simplified approach to extract just the essential content
-            # to prevent exceeding token limits
-            simplified_content = html_content
-            
-            # If HTML is too large, extract just the main section
-            if len(html_content) > 100000:
-                logger.info("HTML content is very large, attempting to extract main section")
-                # Look for main content sections in the HTML
-                main_patterns = [
-                    r'<main[^>]*>(.*?)</main>',
-                    r'<div[^>]*main[^>]*>(.*?)</div>',
-                    r'<div[^>]*content[^>]*>(.*?)</div>',
-                    r'<div[^>]*results[^>]*>(.*?)</div>',
-                    r'<table[^>]*>(.*?)</table>'
-                ]
-                
-                for pattern in main_patterns:
-                    matches = re.findall(pattern, html_content, re.DOTALL | re.IGNORECASE)
-                    if matches:
-                        # Take the largest match
-                        simplified_content = max(matches, key=len)
-                        logger.info(f"Extracted main content section ({len(simplified_content)} chars)")
-                        break
-            
-            # Send to Anthropic
-            logger.info(f"Sending HTML content to Anthropic Claude for processing: {lottery_type}")
-            response = client.messages.create(
-                model="claude-3-5-sonnet-20241022", # the newest Anthropic model is "claude-3-5-sonnet-20241022" which was released October 22, 2024
-                max_tokens=1500,
-                system=system_prompt,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": f"Extract the lottery results for {lottery_type} from this HTML content. Return the data in the specified JSON format."
-                            },
-                            {
-                                "type": "text",
-                                "text": simplified_content
+        # Process as image using Anthropic Claude
+        logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
+        response = client.messages.create(
+            model="claude-3-5-sonnet-20241022", # the newest Anthropic model is "claude-3-5-sonnet-20241022" which was released October 22, 2024
+            max_tokens=1500,
+            system=system_prompt,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Extract the lottery results from this {lottery_type} screenshot. Return the data in the specified JSON format."
+                        },
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/png",
+                                "data": base64_content
                             }
-                        ]
-                    }
-                ]
-            )
-        # Handle image files (rare case now that we're storing HTML)
-        else:
-            # Read file and convert to base64
-            with open(screenshot_path, "rb") as image_file:
-                base64_content = base64.b64encode(image_file.read()).decode("utf-8")
-                
-            # Process as image
-            logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
-            response = client.messages.create(
-                model="claude-3-5-sonnet-20241022", # the newest Anthropic model is "claude-3-5-sonnet-20241022" which was released October 22, 2024
-                max_tokens=1500,
-                system=system_prompt,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": f"Extract the lottery results from this {lottery_type} screenshot. Return the data in the specified JSON format."
-                            },
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": "image/png",
-                                    "data": base64_content
-                                }
-                            }
-                        ]
-                    }
-                ]
-            )
+                        }
+                    ]
+                }
+            ]
+        )
         
         # Extract and parse the JSON response
         response_text = response.content[0].text
@@ -334,7 +255,7 @@ def create_system_prompt(lottery_type):
         str: System prompt for OCR
     """
     base_prompt = """
-    You are a specialized data extraction system designed to extract lottery draw results from HTML content of South African lottery websites.
+    You are a specialized OCR extraction system designed to extract lottery draw results from screenshots of South African lottery websites.
     
     Your PRIMARY task is to accurately extract these FOUR key pieces of information:
     1. Game Type (e.g., Lotto, Lotto Plus 1, Powerball)
@@ -345,17 +266,17 @@ def create_system_prompt(lottery_type):
     Secondary information to extract if available:
     - Bonus numbers or PowerBall numbers
     
-    The HTML content will come from the South African National Lottery website (nationallottery.co.za).
+    The screenshots come from the South African National Lottery website (nationallottery.co.za).
     
     Pay special attention to:
-    - Tables containing lottery results
-    - Elements with class names containing "ball", "number", "result", etc.
+    - Lottery ball numbers (often in circles)
     - Draw IDs that appear near dates
     - Game dates formatted in various ways
+    - Clear headings indicating the lottery type
     
     For the South African lottery website:
-    - Look for HTML tables with lottery results
-    - Winning numbers are often in elements with class names like "lotto-ball", "number-ball", etc.
+    - Look for tables with lottery results
+    - Lottery balls are typically displayed as numbers in colored circles
     - Draw dates usually follow a day/month/year format like "05/04/2025"
     - Draw IDs usually appear as "Draw XXXX" where XXXX is a number
     
@@ -390,9 +311,9 @@ def create_system_prompt(lottery_type):
         - Extract exactly 6 main numbers
         - Extract 1 bonus number
         - Main numbers are typically in the range of 1-52
-        - The HTML content should contain elements with lottery balls, possibly with class names like "lotto-ball" or similar
+        - Look for lottery balls in the screenshot - they are usually displayed as numbers in colored circles
         - If you can't find exactly 6 main numbers, do not invent them - use zeros as placeholders [0,0,0,0,0,0]
-        - Look for tables or sections containing "Draw 2530" or similar recent draw numbers
+        - Pay attention to tables or sections containing "Draw 2530" or similar recent draw numbers
         """
     elif "lotto plus" in lottery_type.lower():
         return base_prompt + """
@@ -400,7 +321,7 @@ def create_system_prompt(lottery_type):
         - Extract exactly 6 main numbers
         - Extract 1 bonus number
         - Main numbers are typically in the range of 1-52
-        - The HTML content should contain elements with lottery balls, possibly with class names like "lotto-ball" or similar
+        - Look for lottery balls in the screenshot - they are usually displayed as numbers in colored circles
         - If you can't find exactly 6 main numbers, do not invent them - use zeros as placeholders [0,0,0,0,0,0]
         """
     elif "powerball" in lottery_type.lower():
@@ -410,7 +331,7 @@ def create_system_prompt(lottery_type):
         - Extract 1 PowerBall number as the bonus_number
         - Main numbers are typically in the range of 1-50
         - PowerBall is typically in the range of 1-20
-        - The HTML content should contain elements with lottery balls, possibly with class names like "powerball-ball" or similar
+        - Look for lottery balls in the screenshot - main numbers and PowerBall will be in different colored circles
         - If you can't find exactly 5 main numbers, do not invent them - use zeros as placeholders [0,0,0,0,0]
         """
     elif "daily lotto" in lottery_type.lower():
@@ -419,7 +340,7 @@ def create_system_prompt(lottery_type):
         - Extract exactly 5 main numbers
         - There is no bonus number
         - Main numbers are typically in the range of 1-36
-        - The HTML content should contain elements with lottery balls, possibly with class names like "daily-lotto-ball" or similar
+        - Look for lottery balls in the screenshot - they are usually displayed as numbers in colored circles
         - If you can't find exactly 5 main numbers, do not invent them - use zeros as placeholders [0,0,0,0,0]
         """
     else:
