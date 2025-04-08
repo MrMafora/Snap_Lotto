@@ -40,21 +40,8 @@ def process_screenshot(screenshot_path, lottery_type):
     """
     # Check if Anthropic client is available
     if not client:
-        logger.warning("Anthropic client not available. Using placeholder data.")
-        # Return a basic placeholder format for testing
-        return {
-            "lottery_type": lottery_type,
-            "results": [
-                {
-                    "draw_number": "Sample 1234",
-                    "draw_date": datetime.now().strftime("%Y-%m-%d"),
-                    "numbers": [1, 2, 3, 4, 5, 6],
-                    "bonus_numbers": [7] if "daily" not in lottery_type.lower() else None
-                }
-            ],
-            "ocr_timestamp": datetime.utcnow().isoformat(),
-            "note": "Placeholder data - Anthropic API not configured"
-        }
+        logger.error("Anthropic client not available. Cannot process without API key.")
+        raise Exception("Anthropic API key is required for OCR processing. Please configure the Lotto_scape_ANTHROPIC_KEY environment variable.")
         
     try:
         # Read file and convert to base64
