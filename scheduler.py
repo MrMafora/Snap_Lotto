@@ -194,6 +194,10 @@ except Exception as e:
                             from datetime import datetime
                             config.last_run = datetime.now()
                             db.session.commit()
+                            
+                            # Clean up old screenshots after successful processing
+                            from screenshot_manager import cleanup_old_screenshots
+                            cleanup_old_screenshots()
                     
                     logger.info(f"Task completed successfully for {lottery_type}")
                     return True

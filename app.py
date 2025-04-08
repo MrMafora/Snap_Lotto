@@ -209,6 +209,11 @@ def run_now(id):
                     config_obj.last_run = datetime.now()
                     db.session.commit()
                     logger.info(f"Updated last run time for {config_obj.lottery_type}")
+                    
+                    # If task was successful, clean up old screenshots
+                    if success:
+                        from screenshot_manager import cleanup_old_screenshots
+                        cleanup_old_screenshots()
             
             if success:
                 logger.info(f"Task completed successfully for {config.lottery_type}")
@@ -452,6 +457,22 @@ def visualization_data():
         return jsonify(chart_data)
     
     return jsonify({'error': 'Invalid data type'})
+
+@app.route('/admin/cleanup-screenshots', methods=['GET', 'POST'])
+def cleanup_screenshots():
+    """Admin endpoint to manually clean up old screenshots"""
+    if request.method == 'POST':
+        from screenshot_manager import cleanup_old_screenshots
+        try:
+            cleanup_old_screenshots()
+            flash('Screenshot cleanup completed successfully', 'success')
+        except Exception as e:
+            logger.error(f"Error during screenshot cleanup: {str(e)}")
+            flash(f'Error during cleanup: {str(e)}', 'danger')
+        
+        return redirect(url_for('settings'))
+    
+    return render_template('cleanup.html')
 
 @app.route('/api/raw-ocr/<lottery_type>')
 def get_raw_ocr(lottery_type):

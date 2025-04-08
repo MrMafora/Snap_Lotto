@@ -279,3 +279,50 @@ def mark_screenshot_as_processed(screenshot_id):
     if screenshot:
         screenshot.processed = True
         db.session.commit()
+
+def cleanup_old_screenshots():
+    """
+    Clean up old screenshots to save disk space.
+    Keep only the most recent screenshot for each URL.
+    
+    This ensures we only have 12 screenshots at any given time (one per URL).
+    """
+    logger.info("Starting screenshot cleanup process")
+    
+    try:
+        # Get all unique URLs
+        unique_urls = db.session.query(Screenshot.url).distinct().all()
+        urls = [url[0] for url in unique_urls]
+        
+        deleted_count = 0
+        
+        # For each URL, keep only the most recent screenshot
+        for url in urls:
+            # Get all screenshots for this URL ordered by timestamp (newest first)
+            screenshots = Screenshot.query.filter_by(url=url).order_by(Screenshot.timestamp.desc()).all()
+            
+            # Keep the most recent one, delete the rest
+            if len(screenshots) > 1:
+                for screenshot in screenshots[1:]:
+                    # Delete the file from disk
+                    try:
+                        if os.path.exists(screenshot.path):
+                            os.remove(screenshot.path)
+                            logger.info(f"Deleted old screenshot file: {screenshot.path}")
+                    except Exception as e:
+                        logger.error(f"Error deleting screenshot file {screenshot.path}: {str(e)}")
+                    
+                    # Delete the database record
+                    db.session.delete(screenshot)
+                    deleted_count += 1
+        
+        # Commit the changes to the database
+        if deleted_count > 0:
+            db.session.commit()
+            logger.info(f"Cleaned up {deleted_count} old screenshots")
+        else:
+            logger.info("No old screenshots to clean up")
+            
+    except Exception as e:
+        logger.error(f"Error during screenshot cleanup: {str(e)}")
+        logger.error(traceback.format_exc())

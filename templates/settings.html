@@ -158,6 +158,21 @@
                 </button>
             </div>
         </div>
+        
+        <div class="card mt-4">
+            <div class="card-header lottery-header">
+                <h5 class="mb-0">STORAGE MANAGEMENT</h5>
+            </div>
+            <div class="card-body">
+                <p>Manage storage by cleaning up old screenshots. The system keeps only the most recent screenshot for each URL.</p>
+                <a href="{{ url_for('cleanup_screenshots') }}" class="btn btn-lottery-danger">
+                    <i class="fas fa-trash"></i> Manage Screenshots
+                </a>
+                <div class="mt-2 small text-secondary">
+                    <i class="fas fa-info-circle"></i> This is automatically run after each successful task, but you can manually trigger it if needed.
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
