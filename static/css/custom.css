@@ -16,6 +16,15 @@ body {
     color: #333;
 }
 
+/* Override dark theme with light theme */
+.bg-dark {
+    background-color: #fff !important;
+}
+
+.text-white {
+    color: #333 !important;
+}
+
 /* Header styling */
 .navbar {
     background-color: white !important;
