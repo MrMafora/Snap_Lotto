@@ -9,22 +9,43 @@ import importlib.util
 
 logger = logging.getLogger(__name__)
 
-# Check if Anthropic library is installed
+# Check for installed libraries
 anthropic_installed = importlib.util.find_spec("anthropic") is not None
+mistral_installed = importlib.util.find_spec("mistralai") is not None
 
-# Initialize with custom environment variable name
+# Initialize API keys from environment variables
 ANTHROPIC_API_KEY = os.environ.get("Lotto_scape_ANTHROPIC_KEY")
-if not ANTHROPIC_API_KEY:
-    logger.error("Lotto_scape_ANTHROPIC_KEY environment variable not set.")
+MISTRAL_API_KEY = os.environ.get("Snap_Lotto_Mistral")
 
-# Initialize Anthropic client (if library is installed)
-client = None
-if anthropic_installed:
+# Log if keys are missing
+if not ANTHROPIC_API_KEY:
+    logger.warning("Lotto_scape_ANTHROPIC_KEY environment variable not set.")
+if not MISTRAL_API_KEY:
+    logger.warning("Snap_Lotto_Mistral environment variable not set.")
+
+# Initialize AI clients
+anthropic_client = None
+mistral_client = None
+
+# Initialize Anthropic client if available
+anthropic_client = None
+if anthropic_installed and ANTHROPIC_API_KEY:
     try:
         from anthropic import Anthropic
-        client = Anthropic(api_key=ANTHROPIC_API_KEY)
+        anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+        logger.info("Anthropic client initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing Anthropic client: {str(e)}")
+
+# Initialize Mistral client if available
+mistral_client = None
+if mistral_installed and MISTRAL_API_KEY:
+    try:
+        from mistralai.client import MistralClient
+        mistral_client = MistralClient(api_key=MISTRAL_API_KEY)
+        logger.info("Mistral client initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing Mistral client: {str(e)}")
 
 # No HTML parser needed for screenshot-based OCR processing
 
@@ -59,18 +80,47 @@ def process_screenshot(screenshot_path, lottery_type):
             "ocr_timestamp": datetime.utcnow().isoformat()
         }
     
-    # Process with AI-based OCR if client is available
-    if client:
+    # Read the screenshot file and convert to base64
+    try:
+        with open(screenshot_path, "rb") as image_file:
+            base64_content = base64.b64encode(image_file.read()).decode("utf-8")
+    except Exception as e:
+        logger.error(f"Error reading image file: {str(e)}")
+        return {
+            "lottery_type": lottery_type,
+            "results": [],
+            "ocr_timestamp": datetime.utcnow().isoformat(),
+            "error": f"Error reading image file: {str(e)}"
+        }
+    
+    # Create system prompt based on lottery type
+    system_prompt = create_system_prompt(lottery_type)
+    
+    # Try processing with Mistral first (if available)
+    if mistral_client:
         try:
-            result = process_with_ai(screenshot_path, lottery_type)
-            logger.info(f"AI processing completed for {lottery_type}")
+            logger.info(f"Processing with Mistral AI for {lottery_type}")
+            result = process_with_mistral(base64_content, lottery_type, system_prompt)
             if result and "results" in result and result["results"]:
-                logger.info(f"Content processing completed successfully for {lottery_type}")
+                logger.info(f"Mistral processing completed successfully for {lottery_type}")
                 return result
         except Exception as e:
-            logger.error(f"Error in AI processing: {str(e)}")
-    else:
-        logger.error("Anthropic client not available. Cannot process without API key.")
+            logger.error(f"Error in Mistral processing: {str(e)}")
+    
+    # Fall back to Anthropic if Mistral failed or is unavailable
+    if anthropic_client:
+        try:
+            logger.info(f"Processing with Anthropic Claude for {lottery_type}")
+            result = process_with_anthropic(base64_content, lottery_type, system_prompt)
+            if result and "results" in result and result["results"]:
+                logger.info(f"Anthropic processing completed successfully for {lottery_type}")
+                return result
+        except Exception as e:
+            logger.error(f"Error in Anthropic processing: {str(e)}")
+    
+    # If no AI clients are available or processing failed
+    if not mistral_client and not anthropic_client:
+        logger.error("No AI clients available. Cannot process without API keys.")
     
     # Return default structure with empty data if processing failed
     default_result = {
@@ -88,28 +138,22 @@ def process_screenshot(screenshot_path, lottery_type):
     logger.info(f"Using default result for {lottery_type}")
     return default_result
 
-def process_with_ai(screenshot_path, lottery_type):
+def process_with_anthropic(base64_content, lottery_type, system_prompt):
     """
     Process a screenshot using Anthropic's Claude AI for OCR.
     
     Args:
-        screenshot_path (str): Path to the PNG screenshot file
+        base64_content (str): Base64-encoded image data
         lottery_type (str): Type of lottery
+        system_prompt (str): System prompt for AI
         
     Returns:
         dict: The processed result
     """
     try:
-        # Create system prompt based on lottery type
-        system_prompt = create_system_prompt(lottery_type)
-        
-        # Read the screenshot file and convert to base64
-        with open(screenshot_path, "rb") as image_file:
-            base64_content = base64.b64encode(image_file.read()).decode("utf-8")
-            
         # Process as image using Anthropic Claude
         logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
-        response = client.messages.create(
+        response = anthropic_client.messages.create(
             model="claude-3-5-sonnet-20241022", # the newest Anthropic model is "claude-3-5-sonnet-20241022" which was released October 22, 2024
             max_tokens=3000,  # Increased token limit to handle multiple draw results
             system=system_prompt,
@@ -180,8 +224,76 @@ def process_with_ai(screenshot_path, lottery_type):
             }
     
     except Exception as e:
-        logger.error(f"Error in AI processing: {str(e)}")
+        logger.error(f"Error in Anthropic processing: {str(e)}")
         # Return error information
+        return {
+            "lottery_type": lottery_type,
+            "results": [],
+            "ocr_timestamp": datetime.utcnow().isoformat(),
+            "error": f"Anthropic processing error: {str(e)}"
+        }
+
+def process_with_mistral(base64_content, lottery_type, system_prompt):
+    """
+    Process a screenshot using Mistral AI for OCR.
+    
+    Args:
+        base64_content (str): Base64-encoded image data
+        lottery_type (str): Type of lottery
+        system_prompt (str): System prompt for AI
+        
+    Returns:
+        dict: The processed result
+    """
+    try:
+        # Mistral currently doesn't have a multimodal API in this version
+        # This is a placeholder for future implementation
+        # In the current version, we'll raise an exception to fall back to Anthropic
+        raise NotImplementedError("Mistral multimodal API is not available in this client version")
+        
+    except Exception as e:
+        logger.error(f"Error in Mistral processing: {str(e)}")
+        # Return error information
+        return {
+            "lottery_type": lottery_type,
+            "results": [],
+            "ocr_timestamp": datetime.utcnow().isoformat(),
+            "error": f"Mistral processing error: {str(e)}"
+        }
+
+def process_with_ai(screenshot_path, lottery_type):
+    """
+    Legacy method to process a screenshot using AI OCR.
+    This is kept for backwards compatibility.
+    
+    Args:
+        screenshot_path (str): Path to the PNG screenshot file
+        lottery_type (str): Type of lottery
+        
+    Returns:
+        dict: The processed result
+    """
+    try:
+        # Create system prompt based on lottery type
+        system_prompt = create_system_prompt(lottery_type)
+        
+        # Read the screenshot file and convert to base64
+        with open(screenshot_path, "rb") as image_file:
+            base64_content = base64.b64encode(image_file.read()).decode("utf-8")
+        
+        # Try Anthropic first since Mistral is not fully set up
+        if anthropic_client:
+            return process_with_anthropic(base64_content, lottery_type, system_prompt)
+        else:
+            # Return error if no AI services are available
+            return {
+                "lottery_type": lottery_type,
+                "results": [],
+                "ocr_timestamp": datetime.utcnow().isoformat(),
+                "error": "No AI services available for processing"
+            }
+    except Exception as e:
+        logger.error(f"Error in AI processing: {str(e)}")
         return {
             "lottery_type": lottery_type,
             "results": [],
