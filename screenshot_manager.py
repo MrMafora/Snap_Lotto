@@ -83,12 +83,21 @@ async def take_screenshot_async(url):
             
             async with async_playwright() as p:
                 # Launch browser with memory optimization flags
-                browser = await p.chromium.launch(
-                    headless=True,
-                    executable_path=chromium_path if chromium_path else None,
-                    args=['--disable-gpu', '--disable-dev-shm-usage', '--no-zygote', 
-                         '--no-sandbox', '--single-process']
-                )
+                # Try with executable path first, then fallback to default if it fails
+                try:
+                    browser = await p.chromium.launch(
+                        headless=True,
+                        executable_path=chromium_path if chromium_path else None,
+                        args=['--disable-gpu', '--disable-dev-shm-usage', '--no-zygote', 
+                             '--no-sandbox', '--single-process']
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to launch with specific path: {str(e)}, trying default installation")
+                    browser = await p.chromium.launch(
+                        headless=True,
+                        args=['--disable-gpu', '--disable-dev-shm-usage', '--no-zygote', 
+                             '--no-sandbox', '--single-process']
+                    )
                 
                 # Set up context with desktop viewport and realistic user agent
                 context = await browser.new_context(
@@ -111,8 +120,8 @@ async def take_screenshot_async(url):
                 # Wait for the page to render (reduced time to save memory)
                 await page.wait_for_timeout(3000)
                 
-                # Take the screenshot with lower quality to save memory
-                await page.screenshot(path=filepath, full_page=True, quality=80)
+                # Take the screenshot
+                await page.screenshot(path=filepath, full_page=True)
                 
                 # Close everything immediately to free memory
                 await context.close()
