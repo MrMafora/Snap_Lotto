@@ -1,4 +1,4 @@
-/* Custom styles for the lottery data extractor application - SA National Lottery Theme */
+/* Custom styles for Snap Lotto - SA National Lottery Theme */
 
 :root {
     --sa-lottery-yellow: #FFE11D;
@@ -97,6 +97,32 @@ body {
     transform: translateY(-50%);
     font-weight: bold;
     font-size: 18px;
+}
+
+/* Sync button styling */
+.btn-sync {
+    background-color: var(--sa-lottery-yellow);
+    border-color: var(--sa-lottery-yellow);
+    color: #333;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 4px;
+    padding: 8px 16px;
+    transition: all 0.2s ease;
+}
+
+.btn-sync:hover {
+    background-color: #f0d200;
+    border-color: #f0d200;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-sync i {
+    font-size: 1rem;
 }
 
 /* Card styling - SA Lottery style */
@@ -313,6 +339,23 @@ canvas {
     color: white;
 }
 
+/* Spinning animation for sync icon */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.fa-sync.spinning {
+    animation: spin 1s linear infinite;
+}
+
+/* Numbers container for wrapping */
+.numbers-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .lottery-ball {
@@ -411,12 +454,5 @@ canvas {
     /* Make headers wrap better */
     .card-header {
         padding: 0.5rem 0.75rem;
-    }
-    
-    /* Make numbers wrap */
-    .numbers-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-start;
     }
 }

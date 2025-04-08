@@ -1,144 +1,165 @@
 {% extends "layout.html" %}
 
-{% block title %} - Dashboard{% endblock %}
+{% block title %} - Data Dashboard{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header lottery-header">
-                <h4 class="card-title mb-0">LOTTERY DATA INTELLIGENCE</h4>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">LOTTERY DATA DASHBOARD</h4>
+                    <button id="sync-all-button" class="btn-sync">
+                        <i class="fas fa-sync"></i> SYNC ALL DATA
+                    </button>
+                </div>
             </div>
             <div class="card-body">
                 <p class="lead">
-                    This platform automatically captures HTML content from lottery websites, extracts data using AI-powered analysis,
-                    and aggregates the results for comprehensive analysis.
+                    Real-time data from the South African National Lottery, with comprehensive results and analytics.
                 </p>
-                <div class="row mt-4">
+                <div class="row">
                     <div class="col-md-6">
-                        <div class="card h-100">
-                            <div class="card-header lottery-header">
-                                <h5 class="card-title mb-0">ACTIVE SCHEDULES</h5>
-                            </div>
-                            <div class="card-body">
-                                {% if schedules %}
-                                    <div class="table-responsive">
-                                        <table class="table table-lottery">
-                                            <thead>
-                                                <tr>
-                                                    <th>LOTTERY TYPE</th>
-                                                    <th>SCHEDULE</th>
-                                                    <th>STATUS</th>
-                                                    <th>ACTION</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for schedule in schedules %}
-                                                <tr>
-                                                    <td>
-                                                        {% if 'Lotto Plus' in schedule.lottery_type %}
-                                                            <span class="game-type-badge game-type-lotto">{{ schedule.lottery_type }}</span>
-                                                        {% elif 'Powerball' in schedule.lottery_type %}
-                                                            <span class="game-type-badge game-type-powerball">{{ schedule.lottery_type }}</span>
-                                                        {% elif 'Daily' in schedule.lottery_type %}
-                                                            <span class="game-type-badge game-type-daily">{{ schedule.lottery_type }}</span>
-                                                        {% else %}
-                                                            <span class="game-type-badge game-type-lotto">{{ schedule.lottery_type }}</span>
-                                                        {% endif %}
-                                                    </td>
-                                                    <td>{{ schedule.hour }}:{{ '%02d' % schedule.minute }}</td>
-                                                    <td>
-                                                        {% if schedule.active %}
-                                                            <span class="badge bg-success">Active</span>
-                                                        {% else %}
-                                                            <span class="badge bg-danger">Inactive</span>
-                                                        {% endif %}
-                                                    </td>
-                                                    <td>
-                                                        <button class="btn btn-lottery-primary btn-sm run-now" data-id="{{ schedule.id }}">
-                                                            Run Now
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                {% else %}
-                                    <p>No schedules configured. <a href="/settings">Configure schedules</a></p>
-                                {% endif %}
-                            </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> Latest lottery data is automatically synced on a scheduled basis.
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="card h-100">
-                            <div class="card-header lottery-header">
-                                <h5 class="card-title mb-0">LATEST RESULTS</h5>
-                            </div>
-                            <div class="card-body">
-                                {% if results %}
-                                    <div class="table-responsive">
-                                        <table class="table table-lottery">
-                                            <thead>
-                                                <tr>
-                                                    <th>GAME TYPE</th>
-                                                    <th>DRAW ID</th>
-                                                    <th>GAME DATE</th>
-                                                    <th>WINNING NUMBERS</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for result in results %}
-                                                <tr>
-                                                    <td>
-                                                        {% if 'Lotto Plus' in result.lottery_type %}
-                                                            <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
-                                                        {% elif 'Powerball' in result.lottery_type %}
-                                                            <span class="game-type-badge game-type-powerball">{{ result.lottery_type }}</span>
-                                                        {% elif 'Daily' in result.lottery_type %}
-                                                            <span class="game-type-badge game-type-daily">{{ result.lottery_type }}</span>
-                                                        {% else %}
-                                                            <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
-                                                        {% endif %}
-                                                    </td>
-                                                    <td><strong>{{ result.draw_number }}</strong></td>
-                                                    <td>{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
-                                                    <td>
-                                                        {% for num in result.get_numbers_list() %}
-                                                            {% set ball_class = 'lottery-ball ' %}
-                                                            
-                                                            {% if loop.index0 % 4 == 0 %}
-                                                                {% set ball_class = ball_class + 'lottery-ball-red' %}
-                                                            {% elif loop.index0 % 4 == 1 %}
-                                                                {% set ball_class = ball_class + 'lottery-ball-yellow' %}
-                                                            {% elif loop.index0 % 4 == 2 %}
-                                                                {% set ball_class = ball_class + 'lottery-ball-green' %}
-                                                            {% else %}
-                                                                {% set ball_class = ball_class + 'lottery-ball-blue' %}
-                                                            {% endif %}
-                                                            
-                                                            <span class="{{ ball_class }}">{{ num }}</span>
-                                                        {% endfor %}
-                                                        {% if result.bonus_numbers %}
-                                                            {% for num in result.get_bonus_numbers_list() %}
-                                                                <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
-                                                            {% endfor %}
-                                                        {% endif %}
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div class="text-center mt-3">
-                                        <a href="/results" class="btn btn-lottery-primary">View All Results</a>
-                                    </div>
-                                {% else %}
-                                    <p>No results yet. Run a task to extract lottery data.</p>
-                                {% endif %}
-                            </div>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-bolt me-2"></i> Use the "SYNC ALL DATA" button to manually refresh all lottery data.
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">LATEST LOTTERY RESULTS</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-lottery">
+                        <thead>
+                            <tr>
+                                <th>GAME TYPE</th>
+                                <th>DRAW ID</th>
+                                <th>DATE</th>
+                                <th>NUMBERS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in results %}
+                            <tr>
+                                <td>
+                                    {% if 'Lotto Plus' in result.lottery_type %}
+                                        <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
+                                    {% elif 'Powerball' in result.lottery_type %}
+                                        <span class="game-type-badge game-type-powerball">{{ result.lottery_type }}</span>
+                                    {% elif 'Daily' in result.lottery_type %}
+                                        <span class="game-type-badge game-type-daily">{{ result.lottery_type }}</span>
+                                    {% else %}
+                                        <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ result.draw_number }}</strong></td>
+                                <td>{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <div class="numbers-container">
+                                        {% for num in result.get_numbers_list() %}
+                                            {% set ball_class = 'lottery-ball ' %}
+                                            
+                                            {% if loop.index0 % 4 == 0 %}
+                                                {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                            {% elif loop.index0 % 4 == 1 %}
+                                                {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                            {% elif loop.index0 % 4 == 2 %}
+                                                {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                            {% else %}
+                                                {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                                            {% endif %}
+                                            
+                                            <span class="{{ ball_class }}">{{ num }}</span>
+                                        {% endfor %}
+                                        {% if result.bonus_numbers %}
+                                            {% for num in result.get_bonus_numbers_list() %}
+                                                <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('results') }}" class="btn btn-lottery-primary">
+                        <i class="fas fa-search me-1"></i> View All Results
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">SCHEDULED DATA SYNCS</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-lottery">
+                        <thead>
+                            <tr>
+                                <th>GAME TYPE</th>
+                                <th>FREQUENCY</th>
+                                <th>LAST RUN</th>
+                                <th>ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for schedule in schedules %}
+                            <tr>
+                                <td>
+                                    {% if 'Lotto Plus' in schedule.lottery_type %}
+                                        <span class="game-type-badge game-type-lotto">{{ schedule.lottery_type }}</span>
+                                    {% elif 'Powerball' in schedule.lottery_type %}
+                                        <span class="game-type-badge game-type-powerball">{{ schedule.lottery_type }}</span>
+                                    {% elif 'Daily' in schedule.lottery_type %}
+                                        <span class="game-type-badge game-type-daily">{{ schedule.lottery_type }}</span>
+                                    {% else %}
+                                        <span class="game-type-badge game-type-lotto">{{ schedule.lottery_type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ schedule.frequency.capitalize() }} at {{ schedule.hour }}:{{ '%02d' % schedule.minute }}</td>
+                                <td>{{ schedule.last_run.strftime('%Y-%m-%d %H:%M') if schedule.last_run else 'Never' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-lottery-primary run-now-btn" data-id="{{ schedule.id }}">
+                                        <i class="fas fa-sync"></i> Sync
+                                    </button>
+                                    {% if schedule.active %}
+                                    <a href="{{ url_for('toggle_schedule', id=schedule.id) }}" class="btn btn-sm btn-lottery-secondary">
+                                        <i class="fas fa-pause"></i>
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('toggle_schedule', id=schedule.id) }}" class="btn btn-sm btn-lottery-primary">
+                                        <i class="fas fa-play"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('settings') }}" class="btn btn-lottery-primary">
+                        <i class="fas fa-cog me-1"></i> Manage Schedules
+                    </a>
                 </div>
             </div>
         </div>
@@ -149,40 +170,39 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header lottery-header">
-                <h5 class="card-title mb-0">API USAGE</h5>
+                <h5 class="card-title mb-0">DATA ANALYTICS PREVIEW</h5>
             </div>
             <div class="card-body">
-                <p>
-                    You can access lottery data through our API endpoints:
-                </p>
-                <div class="mb-3">
-                    <h6 class="fw-bold">Get Results by Lottery Type</h6>
-                    <p class="text-muted">Example: <code>/api/results/Lotto</code></p>
-                    <p>Priority data fields returned:</p>
-                    <ul class="text-muted">
-                        <li><strong>game_type</strong> - Type of lottery (e.g., Lotto, Lotto Plus 1)</li>
-                        <li><strong>draw_id</strong> - Unique identifier for the draw</li>
-                        <li><strong>game_date</strong> - Date of the lottery draw</li>
-                        <li><strong>winning_numbers</strong> - Array of winning numbers</li>
-                    </ul>
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">Most Frequent Numbers</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="position: relative; height:200px;">
+                                    <canvas id="frequency-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">Winners By Division</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="position: relative; height:200px;">
+                                    <canvas id="winners-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <h6 class="fw-bold">Get Screenshot Information</h6>
-                    <code>GET /api/screenshots</code>
-                </div>
-                <div class="mb-3">
-                    <h6 class="fw-bold">Import into your webapp</h6>
-                    <pre class="bg-light p-3 rounded"><code>from screenshot_manager import capture_screenshot
-from ocr_processor import process_screenshot
-from data_aggregator import aggregate_data, get_latest_results
-
-# Example usage
-screenshot_path = capture_screenshot('https://www.nationallottery.co.za/lotto-history')
-extracted_data = process_screenshot(screenshot_path, 'Lotto')
-aggregate_data(extracted_data, 'Lotto', 'https://www.nationallottery.co.za/lotto-history')
-
-# Get latest results
-latest_results = get_latest_results()</code></pre>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('visualizations') }}" class="btn btn-lottery-primary">
+                        <i class="fas fa-chart-bar me-1"></i> View All Analytics
+                    </a>
                 </div>
             </div>
         </div>
@@ -193,58 +213,193 @@ latest_results = get_latest_results()</code></pre>
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle "Run Now" buttons
-    document.querySelectorAll('.run-now').forEach(button => {
+    // Handle Run Now buttons
+    document.querySelectorAll('.run-now-btn').forEach(button => {
         button.addEventListener('click', function() {
             const id = this.getAttribute('data-id');
-            const button = this;
+            const icon = this.querySelector('i');
             
-            // Disable button and show loading state
-            button.disabled = true;
-            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
+            // Add spinning animation
+            icon.classList.add('spinning');
+            this.disabled = true;
             
-            // Call API endpoint
+            // Send AJAX request to run the task
             fetch(`/api/run_now/${id}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        // Show success alert
-                        const alert = document.createElement('div');
-                        alert.className = 'alert alert-success alert-dismissible fade show';
-                        alert.innerHTML = `${data.message} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-                        document.querySelector('.container').prepend(alert);
-                        
-                        // Reload page after 3 seconds to show updated results
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 3000);
+                        // Show success message
+                        alert(data.message);
                     } else {
-                        // Show error alert
-                        const alert = document.createElement('div');
-                        alert.className = 'alert alert-danger alert-dismissible fade show';
-                        alert.innerHTML = `Error: ${data.message} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-                        document.querySelector('.container').prepend(alert);
-                        
-                        // Reset button
-                        button.disabled = false;
-                        button.innerHTML = 'Run Now';
+                        // Show error message
+                        alert(`Error: ${data.message}`);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    
-                    // Show error alert
-                    const alert = document.createElement('div');
-                    alert.className = 'alert alert-danger alert-dismissible fade show';
-                    alert.innerHTML = `Error: ${error.message} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-                    document.querySelector('.container').prepend(alert);
-                    
-                    // Reset button
-                    button.disabled = false;
-                    button.innerHTML = 'Run Now';
+                    alert('An error occurred. Please try again.');
+                })
+                .finally(() => {
+                    // Remove spinning animation and re-enable button
+                    icon.classList.remove('spinning');
+                    this.disabled = false;
                 });
         });
     });
+    
+    // Handle Sync All button
+    document.getElementById('sync-all-button').addEventListener('click', function() {
+        const icon = this.querySelector('i');
+        
+        // Add spinning animation
+        icon.classList.add('spinning');
+        this.disabled = true;
+        
+        // Get all schedule IDs
+        const scheduleIds = Array.from(document.querySelectorAll('.run-now-btn')).map(btn => btn.getAttribute('data-id'));
+        
+        // Counter for completed requests
+        let completed = 0;
+        let errors = 0;
+        
+        // Process each schedule
+        scheduleIds.forEach(id => {
+            fetch(`/api/run_now/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        errors++;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    errors++;
+                })
+                .finally(() => {
+                    completed++;
+                    
+                    // Check if all requests are completed
+                    if (completed === scheduleIds.length) {
+                        // Remove spinning animation and re-enable button
+                        icon.classList.remove('spinning');
+                        this.disabled = false;
+                        
+                        if (errors === 0) {
+                            alert('All data has been successfully synchronized!');
+                            // Reload page to show updated data
+                            window.location.reload();
+                        } else {
+                            alert(`Sync completed with ${errors} errors. Please check the logs.`);
+                        }
+                    }
+                });
+        });
+    });
+    
+    // Simple charts for the dashboard
+    // Fetch frequency data
+    fetch('/api/visualization-data?data_type=numbers_frequency')
+        .then(response => response.json())
+        .then(data => {
+            // Sort the data by frequency (descending)
+            const indices = data.datasets[0].data.map((value, index) => ({ value, index }))
+                .sort((a, b) => b.value - a.value)
+                .slice(0, 10); // Take top 10
+            
+            const sortedLabels = indices.map(i => data.labels[i.index]);
+            const sortedData = indices.map(i => data.datasets[0].data[i.index]);
+            
+            // Create colors for chart
+            const backgroundColors = sortedLabels.map((_, index) => {
+                if (index % 4 === 0) return 'rgba(224, 50, 55, 0.7)'; // Red
+                if (index % 4 === 1) return 'rgba(255, 225, 29, 0.7)'; // Yellow
+                if (index % 4 === 2) return 'rgba(25, 160, 58, 0.7)'; // Green
+                return 'rgba(103, 198, 237, 0.7)'; // Blue
+            });
+            
+            const borderColors = sortedLabels.map((_, index) => {
+                if (index % 4 === 0) return 'rgba(224, 50, 55, 1)'; // Red
+                if (index % 4 === 1) return 'rgba(255, 225, 29, 1)'; // Yellow
+                if (index % 4 === 2) return 'rgba(25, 160, 58, 1)'; // Green
+                return 'rgba(103, 198, 237, 1)'; // Blue
+            });
+            
+            // Create the chart
+            new Chart(document.getElementById('frequency-chart'), {
+                type: 'bar',
+                data: {
+                    labels: sortedLabels,
+                    datasets: [{
+                        label: 'Number Frequency',
+                        data: sortedData,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => console.error('Error fetching frequency data:', error));
+    
+    // Fetch winners data
+    fetch('/api/visualization-data?data_type=winners_by_division')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.labels || data.labels.length === 0) {
+                return; // No data
+            }
+            
+            // Create colors for chart
+            const backgroundColors = data.labels.map((_, index) => {
+                if (index % 4 === 0) return 'rgba(224, 50, 55, 0.7)'; // Red
+                if (index % 4 === 1) return 'rgba(255, 225, 29, 0.7)'; // Yellow
+                if (index % 4 === 2) return 'rgba(25, 160, 58, 0.7)'; // Green
+                return 'rgba(103, 198, 237, 0.7)'; // Blue
+            });
+            
+            // Create the chart
+            new Chart(document.getElementById('winners-chart'), {
+                type: 'pie',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.datasets[0].data,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 10,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => console.error('Error fetching winners data:', error));
 });
 </script>
 {% endblock %}

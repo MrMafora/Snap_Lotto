@@ -3,20 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lottery Data Intelligence{% block title %}{% endblock %}</title>
+    <title>Snap Lotto{% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Mobile optimization -->
+    <meta name="theme-color" content="#FFE11D">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
     <nav class="navbar navbar-expand-lg mb-4">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">
                 <div class="lottery-logo">
-                    <i class="fas fa-ticket-alt"></i>
-                    LOTTO INTELLIGENCE
+                    <i class="fas fa-bolt"></i>
+                    SNAP LOTTO
                 </div>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -25,16 +29,16 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="/"><i class="fas fa-home me-1"></i> Dashboard</a>
+                        <a class="nav-link" href="/"><i class="fas fa-home me-1"></i> Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="/results"><i class="fas fa-list-ol me-1"></i> Results</a>
+                        <a class="nav-link" href="/results"><i class="fas fa-list-ol me-1"></i> Results</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="/visualizations"><i class="fas fa-chart-bar me-1"></i> Analytics</a>
+                        <a class="nav-link" href="/visualizations"><i class="fas fa-chart-bar me-1"></i> Analytics</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="/settings"><i class="fas fa-cog me-1"></i> Settings</a>
+                        <a class="nav-link" href="/settings"><i class="fas fa-cog me-1"></i> Settings</a>
                     </li>
                 </ul>
             </div>
@@ -58,7 +62,7 @@
 
     <footer class="footer mt-5 py-3">
         <div class="container text-center">
-            <span>Lottery Data Intelligence Platform &copy; 2025</span>
+            <span>Snap Lotto - South African Lottery Data &copy; 2025 | <a href="https://www.snaplotto.co.za" target="_blank">www.snaplotto.co.za</a></span>
         </div>
     </footer>
 
