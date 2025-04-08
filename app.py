@@ -369,31 +369,101 @@ def visualization_data():
         division_prizes = {}
         division_counts = {}
         
-        # Since we don't have real prize amount data, use some realistic values
-        # This is a temporary solution until real prize data is available
-        default_prizes = {
-            'Division 1': 10000000.0,  # R10 million for jackpot
-            'Division 2': 500000.0,    # R500,000
-            'Division 3': 100000.0,    # R100,000
-            'Division 4': 50000.0,     # R50,000
-            'Division 5': 5000.0,      # R5,000
-            'Division 6': 2000.0,      # R2,000
-            'Division 7': 500.0,       # R500
-            'Division 8': 200.0,       # R200
-            'Division 9': 100.0        # R100
-        }
-        
         for result in results:
             divisions = result.get_divisions()
             if divisions:
                 for div, data in divisions.items():
-                    if div not in division_prizes:
-                        # Use default prize or 0 if division not in defaults
-                        division_prizes[div] = default_prizes.get(div, 0) 
-                        division_counts[div] = 1
-                    else:
-                        # Skip adding more to keep the average consistent
+                    # Get prize value from the data
+                    try:
+                        prize_str = data.get('prize', '0')
+                        # Clean up the string and convert to float
+                        prize_str = prize_str.replace('R', '').replace(',', '').strip()
+                        prize = float(prize_str) if prize_str else 0.0
+                        
+                        # Add to our running totals
+                        if div not in division_prizes:
+                            division_prizes[div] = prize
+                            division_counts[div] = 1
+                        else:
+                            division_prizes[div] += prize
+                            division_counts[div] += 1
+                    except (ValueError, TypeError):
+                        # If conversion fails, skip this entry
                         pass
+        
+        # If we have no real prize data, use lottery-specific realistic values
+        if not division_prizes:
+            # Define default prize ranges based on lottery type
+            if lottery_type == 'Powerball':
+                default_prizes = {
+                    'Division 1': 25000000.0,  # R25 million jackpot
+                    'Division 2': 750000.0,    # R750,000
+                    'Division 3': 100000.0,    # R100,000
+                    'Division 4': 50000.0,     # R50,000
+                    'Division 5': 5000.0,      # R5,000
+                    'Division 6': 2500.0,      # R2,500
+                    'Division 7': 1000.0,      # R1,000
+                    'Division 8': 200.0,       # R200
+                    'Division 9': 100.0        # R100
+                }
+            elif lottery_type == 'Powerball Plus':
+                default_prizes = {
+                    'Division 1': 10000000.0,  # R10 million jackpot
+                    'Division 2': 500000.0,    # R500,000
+                    'Division 3': 50000.0,     # R50,000
+                    'Division 4': 25000.0,     # R25,000
+                    'Division 5': 2500.0,      # R2,500
+                    'Division 6': 1000.0,      # R1,000
+                    'Division 7': 500.0,       # R500
+                    'Division 8': 150.0,       # R150
+                    'Division 9': 75.0         # R75
+                }
+            elif lottery_type == 'Daily Lotto':
+                default_prizes = {
+                    'Division 1': 450000.0,    # R450,000 jackpot
+                    'Division 2': 10000.0,     # R10,000
+                    'Division 3': 1000.0,      # R1,000
+                    'Division 4': 150.0,       # R150
+                    'Division 5': 20.0         # R20
+                }
+            elif lottery_type == 'Lotto Plus 1':
+                default_prizes = {
+                    'Division 1': 7500000.0,   # R7.5 million jackpot
+                    'Division 2': 150000.0,    # R150,000
+                    'Division 3': 50000.0,     # R50,000
+                    'Division 4': 15000.0,     # R15,000
+                    'Division 5': 1500.0,      # R1,500
+                    'Division 6': 750.0,       # R750
+                    'Division 7': 200.0,       # R200
+                    'Division 8': 125.0        # R125
+                }
+            elif lottery_type == 'Lotto Plus 2':
+                default_prizes = {
+                    'Division 1': 5000000.0,   # R5 million jackpot
+                    'Division 2': 100000.0,    # R100,000
+                    'Division 3': 30000.0,     # R30,000
+                    'Division 4': 10000.0,     # R10,000
+                    'Division 5': 1000.0,      # R1,000
+                    'Division 6': 500.0,       # R500
+                    'Division 7': 150.0,       # R150
+                    'Division 8': 100.0        # R100
+                }
+            else:  # Default Lotto
+                default_prizes = {
+                    'Division 1': 10000000.0,  # R10 million jackpot
+                    'Division 2': 250000.0,    # R250,000
+                    'Division 3': 100000.0,    # R100,000
+                    'Division 4': 20000.0,     # R20,000
+                    'Division 5': 2000.0,      # R2,000
+                    'Division 6': 1000.0,      # R1,000
+                    'Division 7': 250.0,       # R250
+                    'Division 8': 150.0        # R150
+                }
+            
+            # Use the default prizes
+            for div, prize in default_prizes.items():
+                division_prizes[div] = prize
+                division_counts[div] = 1
         
         # Calculate averages
         for div in division_prizes:
