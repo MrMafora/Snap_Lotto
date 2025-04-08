@@ -228,6 +228,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
             model="claude-3-7-sonnet-20241022", # Now using Claude 3.7 Sonnet which was released in October 2024
             max_tokens=3000,  # Increased token limit to handle multiple draw results
             system=system_prompt,
+            response_format={"type": "json_object"},  # Force Claude to return properly formatted JSON
             messages=[
                 {
                     "role": "user",
@@ -249,22 +250,14 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
             ]
         )
         
-        # Extract and parse the JSON response
+        # With response_format={"type": "json_object"}, the response should be valid JSON already
         response_text = response.content[0].text
-        # Find the JSON part in the response
-        json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
         
-        if json_match:
-            result_json = json_match.group(1)
-        else:
-            # If no json code block, try to find JSON within the text
-            json_pattern = r'\{[\s\S]*"lottery_type"[\s\S]*"results"[\s\S]*\}'
-            json_match = re.search(json_pattern, response_text, re.DOTALL)
-            if json_match:
-                result_json = json_match.group(0)
-            else:
-                # If still no JSON found, try to parse the whole response
-                result_json = response_text
+        # Keep this for logging/debugging purposes
+        logger.info(f"Received response from Claude 3.7 Vision for {lottery_type}")
+        
+        # The response should be directly parsable as JSON now
+        result_json = response_text
         
         # Parse the response
         try:
@@ -398,6 +391,7 @@ def process_with_mistral(base64_content, lottery_type, system_prompt):
             # Try to get chat response with error handling
             chat_response = chat_client.chat(
                 model="open-mixtral-8x22b",  # Most powerful open model
+                response_format={"type": "json_object"},  # Force Mistral to return properly formatted JSON
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Extract the lottery results from this {lottery_type} text:\n\n{ocr_text}"}
@@ -408,7 +402,7 @@ def process_with_mistral(base64_content, lottery_type, system_prompt):
             logger.error(f"Error in Mistral chat processing: {str(e)}")
             raise ValueError(f"Chat processing failed: {str(e)}")
         
-        # Extract and parse the JSON response with error handling
+        # With response_format={"type": "json_object"}, the response should be valid JSON already
         try:
             response_text = chat_response.choices[0].message.content
             if not response_text:
@@ -418,20 +412,11 @@ def process_with_mistral(base64_content, lottery_type, system_prompt):
             logger.error(f"Error extracting content from chat response: {str(e)}")
             raise ValueError(f"Failed to extract content from chat response: {str(e)}")
         
-        # Find the JSON part in the response
-        json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
+        # Keep this for logging/debugging purposes
+        logger.info(f"Received response from Mistral for {lottery_type}")
         
-        if json_match:
-            result_json = json_match.group(1)
-        else:
-            # If no json code block, try to find JSON within the text
-            json_pattern = r'\{[\s\S]*"lottery_type"[\s\S]*"results"[\s\S]*\}'
-            json_match = re.search(json_pattern, response_text, re.DOTALL)
-            if json_match:
-                result_json = json_match.group(0)
-            else:
-                # If still no JSON found, try to parse the whole response
-                result_json = response_text
+        # The response should be directly parsable as JSON now
+        result_json = response_text
         
         # Parse the response
         try:
