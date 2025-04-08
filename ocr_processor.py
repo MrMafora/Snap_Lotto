@@ -179,16 +179,32 @@ def process_with_ai(screenshot_path, lottery_type):
             # Add source information
             result['ocr_timestamp'] = datetime.utcnow().isoformat()
             
+            # Save the full raw response for debugging
+            result['raw_response'] = response_text
+            
             return result
             
         except json.JSONDecodeError as e:
             logger.error(f"Error parsing JSON response: {str(e)}")
             logger.error(f"Response content: {response_text}")
-            raise Exception(f"Could not parse JSON response from Claude: {str(e)}")
+            # Still return the raw response for debugging
+            return {
+                "lottery_type": lottery_type,
+                "results": [],
+                "ocr_timestamp": datetime.utcnow().isoformat(),
+                "raw_response": response_text,
+                "error": f"JSON decode error: {str(e)}"
+            }
     
     except Exception as e:
         logger.error(f"Error in AI processing: {str(e)}")
-        raise
+        # Return error information
+        return {
+            "lottery_type": lottery_type,
+            "results": [],
+            "ocr_timestamp": datetime.utcnow().isoformat(),
+            "error": f"AI processing error: {str(e)}"
+        }
 
 def combine_results(results, lottery_type):
     """

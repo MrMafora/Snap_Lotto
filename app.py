@@ -198,3 +198,32 @@ def get_results(lottery_type):
     limit = request.args.get('limit', 10, type=int)
     results = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).limit(limit).all()
     return jsonify([r.to_dict() for r in results])
+
+@app.route('/api/raw-ocr/<lottery_type>')
+def get_raw_ocr(lottery_type):
+    """API endpoint to fetch raw OCR data for a specific lottery type"""
+    from ocr_processor import process_screenshot
+    
+    # Find the most recent screenshot for this lottery type
+    screenshot = Screenshot.query.filter_by(
+        lottery_type=lottery_type
+    ).order_by(Screenshot.timestamp.desc()).first()
+    
+    if not screenshot:
+        return jsonify({'error': 'No screenshot found for this lottery type'})
+    
+    # Process the screenshot with OCR to get raw data
+    try:
+        raw_data = process_screenshot(screenshot.path, lottery_type)
+        return jsonify({
+            'screenshot_info': {
+                'id': screenshot.id,
+                'path': screenshot.path,
+                'timestamp': screenshot.timestamp.isoformat(),
+                'processed': screenshot.processed
+            },
+            'raw_ocr_data': raw_data
+        })
+    except Exception as e:
+        logger.error(f"Error processing screenshot: {str(e)}")
+        return jsonify({'error': str(e)})
