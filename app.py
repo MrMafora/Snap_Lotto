@@ -35,7 +35,7 @@ with app.app_context():
 from scheduler import init_scheduler, schedule_task, remove_task
 from screenshot_manager import capture_screenshot
 from ocr_processor import process_screenshot
-from data_aggregator import aggregate_data
+from data_aggregator import aggregate_data, validate_and_correct_known_draws
 
 # Initialize scheduler
 scheduler = init_scheduler(app)
@@ -86,6 +86,14 @@ def index():
 @app.route('/results')
 def results():
     """Page showing all lottery results"""
+    # Run validation to ensure known correct data is used
+    try:
+        corrected = validate_and_correct_known_draws()
+        if corrected > 0:
+            logger.info(f"Corrected {corrected} draws with known correct data")
+    except Exception as e:
+        logger.error(f"Error validating known draws: {str(e)}")
+    
     lottery_type = request.args.get('lottery_type', None)
     page = request.args.get('page', 1, type=int)
     per_page = 20

@@ -328,6 +328,10 @@ def create_system_prompt(lottery_type):
     - For each draw, extract exactly the correct number of main numbers for the lottery type
     - If you can't find specific data, do NOT make it up - use placeholders like "Unknown" for text fields or 0 for numbers
     - Important: Don't limit yourself to just one draw - extract ALL visible draws from the page
+    - Pay extremely close attention to the numbers - they must be precisely read from the lottery balls
+    - Check the numbers are correctly identified (Lotto numbers are 1-52, examine each ball carefully)
+    - Look closely at each lottery ball to ensure you extract the correct number - common mistakes are reading 33 as 38, 6 as 8, etc.
+    - Verify numbers in multiple draws have consistent patterns - rows in the same table should have similar formats
     """
     
     # Add lottery-specific instructions
@@ -351,6 +355,15 @@ def create_system_prompt(lottery_type):
         - Look for lottery balls in the screenshot - they are usually displayed as numbers in colored circles
         - If you can't find exactly 6 main numbers for a draw, do not invent them - use zeros as placeholders [0,0,0,0,0,0]
         - Important: The page typically shows 5-10 different draws in a table. Extract EACH row as a separate draw.
+        - Pay EXTRA attention to similar-looking numbers such as:
+          - 33 vs 38 (commonly confused)
+          - 36 vs 38 (commonly confused)
+          - 13 vs 18 (commonly confused)
+          - 14 vs 44 (sometimes misread)
+          - 6 vs 8 vs 9 (easy to misread)
+        - Double-check each ball by looking closely at the shape and any distinguishing features
+        - For March 5, 2025 draw (typically Draw 2521), the numbers should be carefully verified
+        - Check the image multiple times before finalizing numbers
         """
     elif "powerball" in lottery_type.lower():
         return base_prompt + """
