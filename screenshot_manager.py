@@ -7,6 +7,7 @@ import asyncio
 from datetime import datetime
 import traceback
 from pathlib import Path
+import threading
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
 from models import db, Screenshot
@@ -16,6 +17,11 @@ logger = logging.getLogger(__name__)
 # Create directory for screenshots if it doesn't exist
 SCREENSHOT_DIR = os.path.join(os.getcwd(), 'screenshots')
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+
+# Thread semaphore to limit concurrent screenshots
+# This prevents "can't start new thread" errors by limiting resource usage
+MAX_CONCURRENT_THREADS = 3
+screenshot_semaphore = threading.Semaphore(MAX_CONCURRENT_THREADS)
 
 def ensure_playwright_browsers():
     """
@@ -245,6 +251,12 @@ def capture_screenshot(url, lottery_type=None):
     if not lottery_type:
         lottery_type = extract_lottery_type_from_url(url)
     
+    # Use semaphore to limit concurrent screenshot captures
+    # This prevents "can't start new thread" errors
+    if not screenshot_semaphore.acquire(blocking=True, timeout=300):
+        logger.error(f"Could not acquire screenshot semaphore for {lottery_type} after waiting 5 minutes")
+        return None, None
+    
     try:
         # Use the sync method instead of async to avoid event loop issues
         filepath, screenshot_data = capture_screenshot_sync(url)
@@ -293,6 +305,12 @@ def capture_screenshot(url, lottery_type=None):
     except Exception as e:
         logger.error(f"Error in capture_screenshot: {str(e)}")
         traceback.print_exc()
+        return None, None
+    finally:
+        # Always release the semaphore in the finally block
+        # to ensure it's released even if an exception occurs
+        screenshot_semaphore.release()
+        logger.debug(f"Released screenshot semaphore for {lottery_type}")
     
     return None, None
 
@@ -357,6 +375,8 @@ def cleanup_old_screenshots():
         
         deleted_count = 0
         
+        from models import LotteryResult
+        
         # For each URL, keep only the most recent screenshot
         for url in urls:
             # Get all screenshots for this URL ordered by timestamp (newest first)
@@ -365,25 +385,37 @@ def cleanup_old_screenshots():
             # Keep the most recent one, delete the rest
             if len(screenshots) > 1:
                 for screenshot in screenshots[1:]:
-                    # Delete the file from disk
                     try:
+                        # First check if screenshot is referenced by lottery results
+                        # We need to handle the foreign key constraint
+                        referenced_results = LotteryResult.query.filter_by(screenshot_id=screenshot.id).all()
+                        
+                        if referenced_results:
+                            # Screenshot is referenced, update these references to NULL
+                            for result in referenced_results:
+                                logger.info(f"Clearing screenshot_id reference for LotteryResult {result.id}")
+                                result.screenshot_id = None
+                            db.session.commit()
+                                
+                        # Delete the file from disk
                         if os.path.exists(screenshot.path):
                             os.remove(screenshot.path)
                             logger.info(f"Deleted old screenshot file: {screenshot.path}")
+                        
+                        # Delete the database record
+                        db.session.delete(screenshot)
+                        deleted_count += 1
+                        db.session.commit()  # Commit after each deletion to avoid large transactions
+                        
                     except Exception as e:
-                        logger.error(f"Error deleting screenshot file {screenshot.path}: {str(e)}")
-                    
-                    # Delete the database record
-                    db.session.delete(screenshot)
-                    deleted_count += 1
+                        logger.error(f"Error deleting screenshot {screenshot.id}: {str(e)}")
+                        logger.error(traceback.format_exc())
+                        # Continue with next screenshot
+                        db.session.rollback()
         
-        # Commit the changes to the database
-        if deleted_count > 0:
-            db.session.commit()
-            logger.info(f"Cleaned up {deleted_count} old screenshots")
-        else:
-            logger.info("No old screenshots to clean up")
+        logger.info(f"Cleaned up {deleted_count} old screenshots" if deleted_count > 0 else "No old screenshots to clean up")
             
     except Exception as e:
         logger.error(f"Error during screenshot cleanup: {str(e)}")
         logger.error(traceback.format_exc())
+        db.session.rollback()

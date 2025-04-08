@@ -6,6 +6,8 @@ from apscheduler.triggers.cron import CronTrigger
 from flask import current_app
 import logging
 import atexit
+import threading
+import time
 
 from screenshot_manager import capture_screenshot
 from ocr_processor import process_screenshot
@@ -13,6 +15,11 @@ from data_aggregator import aggregate_data
 from models import db, ScheduleConfig
 
 logger = logging.getLogger(__name__)
+
+# Thread semaphore to limit concurrent lottery tasks
+# This prevents "can't start new thread" errors
+MAX_CONCURRENT_TASKS = 2
+task_semaphore = threading.Semaphore(MAX_CONCURRENT_TASKS)
 
 def init_scheduler(app):
     """
@@ -88,6 +95,12 @@ def run_lottery_task(url, lottery_type):
     
     def task_thread():
         """Run the task in a separate thread to avoid blocking"""
+        # Acquire semaphore to limit concurrent tasks
+        # This prevents "can't start new thread" errors
+        if not task_semaphore.acquire(blocking=True, timeout=300):
+            logger.error(f"Could not acquire task semaphore for {lottery_type} after waiting 5 minutes")
+            return False
+        
         try:
             # Import here to avoid circular imports
             from flask import current_app
@@ -138,7 +151,11 @@ def run_lottery_task(url, lottery_type):
                     logger.info(f"Updated last run time for {lottery_type}")
                 
                 # Step 4: Clean up old screenshots to save space
-                cleanup_old_screenshots()
+                try:
+                    cleanup_old_screenshots()
+                except Exception as e:
+                    logger.error(f"Error during cleanup: {str(e)}")
+                    # Continue even if cleanup fails
                 
                 return True
                 
@@ -147,12 +164,19 @@ def run_lottery_task(url, lottery_type):
             import traceback
             logger.error(traceback.format_exc())
             return False
+        finally:
+            # Always release the semaphore in the finally block
+            # to ensure it's released even if an exception occurs
+            task_semaphore.release()
+            logger.debug(f"Released task semaphore for {lottery_type}")
     
     # Start the task in a separate thread to avoid blocking the scheduler
-    thread = threading.Thread(target=task_thread)
-    thread.daemon = True
-    thread.start()
-    
-    # Always return True for the calling code since we're running in a thread
-    # The actual success or failure will be logged by the thread
-    return True
+    try:
+        thread = threading.Thread(target=task_thread)
+        thread.daemon = True
+        thread.start()
+        return True
+    except RuntimeError as e:
+        # Handle "can't start new thread" error gracefully
+        logger.error(f"Failed to start thread for {lottery_type}: {str(e)}")
+        return False
