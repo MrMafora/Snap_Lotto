@@ -9,10 +9,6 @@ import importlib.util
 
 logger = logging.getLogger(__name__)
 
-# Check for installed libraries
-anthropic_installed = importlib.util.find_spec("anthropic") is not None
-mistral_installed = importlib.util.find_spec("mistralai") is not None
-
 # Initialize API keys from environment variables
 ANTHROPIC_API_KEY = os.environ.get("Lotto_scape_ANTHROPIC_KEY")
 MISTRAL_API_KEY = os.environ.get("Snap_Lotto_Mistral")
@@ -26,26 +22,94 @@ if not MISTRAL_API_KEY:
 # Initialize AI clients
 anthropic_client = None
 mistral_client = None
+mistral_ocr_client = None  # OCR client
 
-# Initialize Anthropic client if available
-anthropic_client = None
-if anthropic_installed and ANTHROPIC_API_KEY:
+# Initialize Anthropic client if ANTHROPIC_API_KEY is available
+if ANTHROPIC_API_KEY:
     try:
+        import anthropic
         from anthropic import Anthropic
+        
+        # Initialize client
         anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
         logger.info("Anthropic client initialized successfully")
+    except ImportError:
+        logger.error("Failed to import anthropic module. Please check if it's properly installed.")
     except Exception as e:
         logger.error(f"Error initializing Anthropic client: {str(e)}")
 
-# Initialize Mistral client if available
-mistral_client = None
-if mistral_installed and MISTRAL_API_KEY:
+# Initialize Mistral client if MISTRAL_API_KEY is available
+if MISTRAL_API_KEY:
     try:
-        from mistralai.client import MistralClient
-        mistral_client = MistralClient(api_key=MISTRAL_API_KEY)
-        logger.info("Mistral client initialized successfully")
+        # Using lazy imports to avoid errors if the module isn't available
+        # The actual client creation will happen when needed
+        
+        # Flag to indicate if initialization is successful
+        mistral_initialized = False
+        
+        # These will be initialized on first use to avoid the deprecation warning
+        # during startup, which can cause server boot issues
+        _mistral_client_class = None
+        _mistral_ocr_class = None
+        
+        def get_mistral_client():
+            """Get or create the Mistral chat client on demand"""
+            global mistral_client, _mistral_client_class
+            
+            # Return existing client if already initialized
+            if mistral_client is not None:
+                return mistral_client
+                
+            # Import the client class if not already imported
+            if _mistral_client_class is None:
+                try:
+                    from mistralai.client import MistralClient
+                    _mistral_client_class = MistralClient
+                except ImportError as e:
+                    logger.error(f"Failed to import MistralClient: {str(e)}")
+                    return None
+                    
+            # Create the client
+            try:
+                mistral_client = _mistral_client_class(api_key=MISTRAL_API_KEY)
+                logger.info("Mistral chat client initialized on demand")
+                return mistral_client
+            except Exception as e:
+                logger.error(f"Error initializing Mistral chat client: {str(e)}")
+                return None
+                
+        def get_mistral_ocr_client():
+            """Get or create the Mistral OCR client on demand"""
+            global mistral_ocr_client, _mistral_ocr_class
+            
+            # Return existing client if already initialized
+            if mistral_ocr_client is not None:
+                return mistral_ocr_client
+                
+            # Import the client class if not already imported
+            if _mistral_ocr_class is None:
+                try:
+                    from mistralai.ocr import Ocr
+                    _mistral_ocr_class = Ocr
+                except ImportError as e:
+                    logger.error(f"Failed to import Mistral OCR client: {str(e)}")
+                    return None
+                    
+            # Create the client
+            try:
+                mistral_ocr_client = _mistral_ocr_class(api_key=MISTRAL_API_KEY)
+                logger.info("Mistral OCR client initialized on demand")
+                return mistral_ocr_client
+            except Exception as e:
+                logger.error(f"Error initializing Mistral OCR client: {str(e)}")
+                return None
+                
+        # Mark as successfully set up
+        mistral_initialized = True
+        logger.info("Mistral API access configured with lazy initialization")
+        
     except Exception as e:
-        logger.error(f"Error initializing Mistral client: {str(e)}")
+        logger.error(f"Error setting up Mistral API access: {str(e)}")
 
 # No HTML parser needed for screenshot-based OCR processing
 
@@ -96,8 +160,8 @@ def process_screenshot(screenshot_path, lottery_type):
     # Create system prompt based on lottery type
     system_prompt = create_system_prompt(lottery_type)
     
-    # Try processing with Mistral first (if available)
-    if mistral_client:
+    # Try to use Mistral first if the keys are available
+    if MISTRAL_API_KEY and 'mistral_initialized' in globals() and mistral_initialized:
         try:
             logger.info(f"Processing with Mistral AI for {lottery_type}")
             result = process_with_mistral(base64_content, lottery_type, system_prompt)
@@ -119,7 +183,7 @@ def process_screenshot(screenshot_path, lottery_type):
             logger.error(f"Error in Anthropic processing: {str(e)}")
     
     # If no AI clients are available or processing failed
-    if not mistral_client and not anthropic_client:
+    if not MISTRAL_API_KEY and not ANTHROPIC_API_KEY:
         logger.error("No AI clients available. Cannot process without API keys.")
     
     # Return default structure with empty data if processing failed
@@ -246,10 +310,143 @@ def process_with_mistral(base64_content, lottery_type, system_prompt):
         dict: The processed result
     """
     try:
-        # Mistral currently doesn't have a multimodal API in this version
-        # This is a placeholder for future implementation
-        # In the current version, we'll raise an exception to fall back to Anthropic
-        raise NotImplementedError("Mistral multimodal API is not available in this client version")
+        # Get or initialize OCR client using the lazy loading function
+        ocr_client = get_mistral_ocr_client()
+        if not ocr_client:
+            raise ValueError("Failed to initialize Mistral OCR client. Check logs for details.")
+            
+        # Create the image URL with base64 data
+        image_url = {"url": f"data:image/png;base64,{base64_content}"}
+        
+        # Set a default document variable
+        document = None
+        
+        # Import the class only when needed
+        try:
+            # Try to import from the expected location in v1.6.0+
+            from mistralai.models.imageurlchunk import ImageURLChunk
+            
+            # Prepare the document with the image
+            document = ImageURLChunk(
+                image_url=image_url,
+                type="image_url"
+            )
+            logger.info("Successfully created ImageURLChunk document")
+        except ImportError as ie:
+            # If the import fails, create a simple dictionary that matches the structure
+            # This is a fallback that might work with some versions of the SDK
+            logger.warning(f"Could not import ImageURLChunk class: {str(ie)}. Using dictionary fallback")
+            document = {
+                "image_url": image_url,
+                "type": "image_url"
+            }
+        except Exception as e:
+            # Handle any other exception when creating the document
+            logger.error(f"Error creating document object: {str(e)}")
+            raise ValueError(f"Failed to create document object: {str(e)}")
+        
+        if not document:
+            raise ValueError("Failed to create document for OCR processing")
+        
+        logger.info(f"Sending screenshot to Mistral AI OCR for processing: {lottery_type}")
+        
+        # Process the image with OCR
+        try:
+            ocr_response = ocr_client.process(
+                model="mistral-large-vision-2", 
+                document=document
+            )
+            logger.info("Successfully received OCR response from Mistral")
+        except Exception as e:
+            logger.error(f"Error processing image with Mistral OCR: {str(e)}")
+            raise ValueError(f"OCR processing failed: {str(e)}")
+        
+        # Get the OCR processed text with error handling
+        try:
+            ocr_text = ocr_response.pages[0].text
+            if not ocr_text or len(ocr_text.strip()) < 10:
+                logger.warning("OCR result appears empty or too short, may indicate an error")
+        except (AttributeError, IndexError) as e:
+            logger.error(f"Error extracting text from OCR response: {str(e)}")
+            raise ValueError(f"Failed to extract text from OCR response: {str(e)}")
+        
+        # Now we need to send the OCR text to mistral chat client to interpret it
+        # based on our system prompt
+        logger.info(f"Processing OCR text with Mistral AI chat: {lottery_type}")
+        
+        # Get or initialize chat client
+        chat_client = get_mistral_client()
+        if not chat_client:
+            raise ValueError("Failed to initialize Mistral chat client. Check logs for details.")
+        
+        try:
+            # Try to get chat response with error handling
+            chat_response = chat_client.chat(
+                model="open-mixtral-8x22b",  # Most powerful open model
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Extract the lottery results from this {lottery_type} text:\n\n{ocr_text}"}
+                ]
+            )
+            logger.info("Successfully received chat response from Mistral")
+        except Exception as e:
+            logger.error(f"Error in Mistral chat processing: {str(e)}")
+            raise ValueError(f"Chat processing failed: {str(e)}")
+        
+        # Extract and parse the JSON response with error handling
+        try:
+            response_text = chat_response.choices[0].message.content
+            if not response_text:
+                logger.warning("Chat response is empty")
+                raise ValueError("Empty response from Mistral chat")
+        except (AttributeError, IndexError) as e:
+            logger.error(f"Error extracting content from chat response: {str(e)}")
+            raise ValueError(f"Failed to extract content from chat response: {str(e)}")
+        
+        # Find the JSON part in the response
+        json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
+        
+        if json_match:
+            result_json = json_match.group(1)
+        else:
+            # If no json code block, try to find JSON within the text
+            json_pattern = r'\{[\s\S]*"lottery_type"[\s\S]*"results"[\s\S]*\}'
+            json_match = re.search(json_pattern, response_text, re.DOTALL)
+            if json_match:
+                result_json = json_match.group(0)
+            else:
+                # If still no JSON found, try to parse the whole response
+                result_json = response_text
+        
+        # Parse the response
+        try:
+            result = json.loads(result_json)
+            
+            # Add lottery type to result if not present
+            if 'lottery_type' not in result:
+                result['lottery_type'] = lottery_type
+            
+            # Add source information
+            result['ocr_timestamp'] = datetime.utcnow().isoformat()
+            
+            # Save the full raw response for debugging
+            result['raw_response'] = response_text
+            result['ocr_text'] = ocr_text  # Save the raw OCR text
+            
+            return result
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing JSON response: {str(e)}")
+            logger.error(f"Response content: {response_text}")
+            # Still return the raw response for debugging
+            return {
+                "lottery_type": lottery_type,
+                "results": [],
+                "ocr_timestamp": datetime.utcnow().isoformat(),
+                "raw_response": response_text,
+                "ocr_text": ocr_text,
+                "error": f"JSON decode error: {str(e)}"
+            }
         
     except Exception as e:
         logger.error(f"Error in Mistral processing: {str(e)}")
@@ -281,16 +478,28 @@ def process_with_ai(screenshot_path, lottery_type):
         with open(screenshot_path, "rb") as image_file:
             base64_content = base64.b64encode(image_file.read()).decode("utf-8")
         
-        # Try Anthropic first since Mistral is not fully set up
-        if anthropic_client:
+        # Try Mistral first if available
+        if MISTRAL_API_KEY and 'mistral_initialized' in globals() and mistral_initialized:
+            logger.info(f"Processing with Mistral OCR for {lottery_type}")
+            return process_with_mistral(base64_content, lottery_type, system_prompt)
+        # Fall back to Anthropic if Mistral is not available
+        elif anthropic_client:
+            logger.info(f"Processing with Anthropic Claude for {lottery_type}")
             return process_with_anthropic(base64_content, lottery_type, system_prompt)
         else:
-            # Return error if no AI services are available
+            # Provide informative error message including missing API key information
+            error_message = "No AI services available for processing. "
+            if not ANTHROPIC_API_KEY:
+                error_message += "Missing Anthropic API key (Lotto_scape_ANTHROPIC_KEY). "
+            if not MISTRAL_API_KEY:
+                error_message += "Missing Mistral API key (Snap_Lotto_Mistral)."
+                
+            logger.error(error_message)
             return {
                 "lottery_type": lottery_type,
                 "results": [],
                 "ocr_timestamp": datetime.utcnow().isoformat(),
-                "error": "No AI services available for processing"
+                "error": error_message
             }
     except Exception as e:
         logger.error(f"Error in AI processing: {str(e)}")
