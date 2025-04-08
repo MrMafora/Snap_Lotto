@@ -1,68 +1,131 @@
 {% extends "layout.html" %}
 
-{% block title %} - {{ lottery_type }} Draw {{ result.draw_number }} Details{% endblock %}
+{% block title %} - {{ lottery_type }} RESULTS FOR DRAW ID {{ result.draw_number }}{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header lottery-header">
-                <h4 class="card-title mb-0">{{ lottery_type }} DRAW {{ result.draw_number }}</h4>
+                <h4 class="card-title mb-0">{{ lottery_type }} RESULTS FOR DRAW ID {{ result.draw_number }}</h4>
             </div>
             <div class="card-body">
-                <div class="row mb-4">
+                <div class="row mb-3">
                     <div class="col-md-12">
-                        <h5>Draw Date: {{ draw_date }}</h5>
-                        
-                        <div class="mt-4">
-                            <h5>Winning Numbers:</h5>
-                            <div class="mt-2 mb-4">
-                                {% for num in result.get_numbers_list() %}
-                                    {% set ball_class = 'lottery-ball ' %}
-                                    
-                                    {% if loop.index0 % 4 == 0 %}
-                                        {% set ball_class = ball_class + 'lottery-ball-red' %}
-                                    {% elif loop.index0 % 4 == 1 %}
-                                        {% set ball_class = ball_class + 'lottery-ball-yellow' %}
-                                    {% elif loop.index0 % 4 == 2 %}
-                                        {% set ball_class = ball_class + 'lottery-ball-green' %}
-                                    {% else %}
-                                        {% set ball_class = ball_class + 'lottery-ball-blue' %}
-                                    {% endif %}
-                                    
-                                    <span class="{{ ball_class }}">{{ num }}</span>
-                                {% endfor %}
+                        <h5>DRAW DATE: {{ draw_date }}</h5>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <!-- Original drawn order -->
+                    <div class="col-md-6">
+                        <h5 class="mb-3">{{ lottery_type }} WINNING NUMBERS</h5>
+                        <div class="mb-3">
+                            {% for num in result.get_numbers_list() %}
+                                {% set ball_class = 'lottery-ball ' %}
                                 
-                                {% if result.get_bonus_numbers_list() %}
-                                    <span class="mx-2">+</span>
-                                    {% for num in result.get_bonus_numbers_list() %}
-                                        <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
-                                    {% endfor %}
+                                {% if loop.index0 % 4 == 0 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                {% elif loop.index0 % 4 == 1 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                {% elif loop.index0 % 4 == 2 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                {% else %}
+                                    {% set ball_class = ball_class + 'lottery-ball-blue' %}
                                 {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="mt-4">
-                            <h5>Prize Divisions:</h5>
+                                
+                                <span class="{{ ball_class }}">{{ num }}</span>
+                            {% endfor %}
                             
+                            {% if result.get_bonus_numbers_list() %}
+                                <span class="mx-2">+</span>
+                                {% for num in result.get_bonus_numbers_list() %}
+                                    <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Numerical order -->
+                    <div class="col-md-6">
+                        <h5 class="mb-3">{{ lottery_type }} WINNING NUMBERS</h5>
+                        <div class="mb-3">
+                            {% set sorted_numbers = result.get_numbers_list()|map('int')|sort %}
+                            {% for num in sorted_numbers %}
+                                {% set ball_class = 'lottery-ball ' %}
+                                
+                                {% if loop.index0 % 4 == 0 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                {% elif loop.index0 % 4 == 1 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                {% elif loop.index0 % 4 == 2 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                {% else %}
+                                    {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                                {% endif %}
+                                
+                                <span class="{{ ball_class }}">{{ num }}</span>
+                            {% endfor %}
+                            
+                            {% if result.get_bonus_numbers_list() %}
+                                <span class="mx-2">+</span>
+                                {% for num in result.get_bonus_numbers_list() %}
+                                    <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">(NUMERICAL ORDER)</small>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="row">
+                        <div class="col-12">
                             {% if divisions %}
                                 <div class="table-responsive">
                                     <table class="table table-striped table-bordered">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>Division</th>
-                                                <th>Match</th>
-                                                <th>Winners</th>
-                                                <th>Prize Amount</th>
+                                        <thead>
+                                            <tr class="bg-light">
+                                                <th class="text-center" width="15%">
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="{{ url_for('static', filename='images/lotto-icon.png') }}" alt="Lotto" class="me-2" style="max-height: 30px;">
+                                                        <span class="fw-bold">{{ lottery_type }} DIVISIONS</span>
+                                                    </div>
+                                                </th>
+                                                <th class="text-center" width="50%">MATCH</th>
+                                                <th class="text-center" width="15%">WINNERS</th>
+                                                <th class="text-center" width="20%">WINNINGS</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {% for div, data in divisions.items() %}
                                                 <tr>
-                                                    <td><strong>{{ div }}</strong></td>
-                                                    <td>{{ data.match if data.match else 'N/A' }}</td>
-                                                    <td>{{ data.winners if data.winners else '0' }}</td>
-                                                    <td>{{ data.prize if data.prize else 'R0' }}</td>
+                                                    <td class="text-center"><strong>DIV {{ div.replace('Division ', '') }}</strong></td>
+                                                    <td class="text-center">
+                                                        {% if data.match %}
+                                                            {{ data.match }}
+                                                        {% elif 'Division 1' in div %}
+                                                            SIX CORRECT NUMBERS
+                                                        {% elif 'Division 2' in div %}
+                                                            FIVE CORRECT NUMBERS + BONUS BALL
+                                                        {% elif 'Division 3' in div %}
+                                                            FIVE CORRECT NUMBERS
+                                                        {% elif 'Division 4' in div %}
+                                                            FOUR CORRECT NUMBERS + BONUS BALL
+                                                        {% elif 'Division 5' in div %}
+                                                            FOUR CORRECT NUMBERS
+                                                        {% elif 'Division 6' in div %}
+                                                            THREE CORRECT NUMBERS + BONUS BALL
+                                                        {% elif 'Division 7' in div %}
+                                                            THREE CORRECT NUMBERS
+                                                        {% elif 'Division 8' in div %}
+                                                            TWO CORRECT NUMBERS + BONUS BALL
+                                                        {% else %}
+                                                            N/A
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-center text-danger fw-bold">{{ data.winners if data.winners else '0' }}</td>
+                                                    <td class="text-center fw-bold">{{ data.prize if data.prize else 'R0.00' }}</td>
                                                 </tr>
                                             {% endfor %}
                                         </tbody>
