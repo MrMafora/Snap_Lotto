@@ -225,7 +225,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
         # Process as image using Anthropic Claude
         logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
         response = anthropic_client.messages.create(
-            model="claude-3-5-sonnet-20241022", # the newest Anthropic model is "claude-3-5-sonnet-20241022" which was released October 22, 2024
+            model="claude-3-7-sonnet-20241022", # Now using Claude 3.7 Sonnet which was released in October 2024
             max_tokens=3000,  # Increased token limit to handle multiple draw results
             system=system_prompt,
             messages=[
@@ -279,7 +279,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
             
             # Add OCR provider information
             result['ocr_provider'] = "anthropic"
-            result['ocr_model'] = "claude-3-5-sonnet-20241022"
+            result['ocr_model'] = "claude-3-7-sonnet-20241022"
             
             # Save the full raw response for debugging
             result['raw_response'] = response_text
@@ -295,7 +295,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
                 "results": [],
                 "ocr_timestamp": datetime.utcnow().isoformat(),
                 "ocr_provider": "anthropic",
-                "ocr_model": "claude-3-5-sonnet-20241022",
+                "ocr_model": "claude-3-7-sonnet-20241022",
                 "raw_response": response_text,
                 "error": f"JSON decode error: {str(e)}"
             }
@@ -308,7 +308,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
             "results": [],
             "ocr_timestamp": datetime.utcnow().isoformat(),
             "ocr_provider": "anthropic",
-            "ocr_model": "claude-3-5-sonnet-20241022",
+            "ocr_model": "claude-3-7-sonnet-20241022",
             "error": f"Anthropic processing error: {str(e)}"
         }
 
