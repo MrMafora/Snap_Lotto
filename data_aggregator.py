@@ -112,22 +112,32 @@ def normalize_draw_number(draw_number):
         
     draw_number = str(draw_number).strip()
     
-    # Remove common prefixes like "LOTTO DRAW", "POWERBALL DRAW", etc.
-    prefixes = [
-        "LOTTO DRAW ", "LOTTO PLUS 1 DRAW ", "LOTTO PLUS 2 DRAW ",
-        "POWERBALL DRAW ", "POWERBALL PLUS DRAW ", "DAILY LOTTO DRAW "
+    # Convert to uppercase for consistent matching
+    upper_draw = draw_number.upper()
+    
+    # Remove "DRAW" keyword and other prefixes
+    prefixes_to_remove = [
+        "LOTTO DRAW", "LOTTO PLUS 1 DRAW", "LOTTO PLUS 2 DRAW",
+        "POWERBALL DRAW", "POWERBALL PLUS DRAW", "DAILY LOTTO DRAW",
+        "DRAW", "DRAW NUMBER", "DRAW NO", "DRAW NO.", "DRAW #"
     ]
     
-    for prefix in prefixes:
-        if draw_number.upper().startswith(prefix):
-            draw_number = draw_number[len(prefix):].strip()
-            break
+    for prefix in prefixes_to_remove:
+        if prefix in upper_draw:
+            # Replace the prefix with an empty string
+            upper_draw = upper_draw.replace(prefix, "")
+    
+    # Remove any leading/trailing whitespace after replacements
+    upper_draw = upper_draw.strip()
     
     # Extract the numeric part if mixed with text
     import re
-    numeric_match = re.search(r'(\d+)', draw_number)
+    numeric_match = re.search(r'(\d+)', upper_draw)
     if numeric_match:
         draw_number = numeric_match.group(1)
+    else:
+        # If no numeric part found, use the cleaned string
+        draw_number = upper_draw
         
     return draw_number
 

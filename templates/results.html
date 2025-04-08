@@ -51,7 +51,7 @@
                                         <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
                                     {% endif %}
                                 </td>
-                                <td><strong>{{ result.draw_number }}</strong></td>
+                                <td><strong>Draw {{ result.draw_number.replace('DRAW', '').replace('Lotto Draw', '').replace('Lotto Plus 1 Draw', '').replace('Lotto Plus 2 Draw', '').replace('Powerball Draw', '').replace('Powerball Plus Draw', '').replace('Daily Lotto Draw', '').strip() }}</strong></td>
                                 <td>{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
                                 <td>
                                     {% for num in result.get_numbers_list() %}
