@@ -39,9 +39,11 @@ def aggregate_data(extracted_data, lottery_type, source_url):
         ).order_by(Screenshot.timestamp.desc()).first()
         
         saved_results = []
+        total_results = len(extracted_data['results'])
+        logger.info(f"Found {total_results} results to process for {lottery_type}")
         
         # Process each result in the extracted data
-        for result in extracted_data['results']:
+        for i, result in enumerate(extracted_data['results']):
             try:
                 # Parse and validate draw date
                 draw_date = None
@@ -59,19 +61,21 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                                 continue
                 
                 if not draw_date:
-                    logger.warning(f"Could not parse draw date: {result.get('draw_date', 'Not provided')}")
+                    logger.warning(f"Could not parse draw date: {result.get('draw_date', 'Not provided')}, skipping")
                     continue
                 
                 # Get draw number
                 draw_number = result.get('draw_number', None)
+                if not draw_number or draw_number == "Unknown":
+                    logger.warning(f"Missing draw number for result #{i+1}, trying to generate one from date")
+                    # Try to generate a unique identifier based on date
+                    draw_number = f"Unknown-{draw_date.strftime('%Y%m%d')}-{i}"
                 
                 # Check if this result already exists
-                existing_result = None
-                if draw_number:
-                    existing_result = LotteryResult.query.filter_by(
-                        lottery_type=lottery_type,
-                        draw_number=draw_number
-                    ).first()
+                existing_result = LotteryResult.query.filter_by(
+                    lottery_type=lottery_type,
+                    draw_number=draw_number
+                ).first()
                 
                 # Convert numbers to JSON strings
                 numbers = result.get('numbers', [])
@@ -91,7 +95,7 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                 
                 if not existing_result:
                     # Create new lottery result only if we have valid numbers
-                    if has_valid_numbers or draw_number == "Unknown":
+                    if has_valid_numbers:
                         lottery_result = LotteryResult(
                             lottery_type=lottery_type,
                             draw_number=draw_number,
@@ -138,10 +142,10 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                         logger.info(f"Result already exists for {lottery_type}, draw {draw_number} with same or better data")
             
             except Exception as e:
-                logger.error(f"Error processing result: {str(e)}")
+                logger.error(f"Error processing result #{i+1}: {str(e)}")
                 continue
         
-        # Commit all changes to database
+        # Commit all changes to database in batches to avoid memory issues
         db.session.commit()
         
         # Mark screenshot as processed
@@ -149,7 +153,7 @@ def aggregate_data(extracted_data, lottery_type, source_url):
             screenshot.processed = True
             db.session.commit()
         
-        logger.info(f"Successfully aggregated {len(saved_results)} results for {lottery_type}")
+        logger.info(f"Successfully aggregated {len(saved_results)} out of {total_results} results for {lottery_type}")
         return saved_results
     
     except Exception as e:

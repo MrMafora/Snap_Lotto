@@ -128,7 +128,7 @@ def process_with_ai(screenshot_path, lottery_type):
         logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
         response = client.messages.create(
             model="claude-3-5-sonnet-20241022", # the newest Anthropic model is "claude-3-5-sonnet-20241022" which was released October 22, 2024
-            max_tokens=1500,
+            max_tokens=3000,  # Increased token limit to handle multiple draw results
             system=system_prompt,
             messages=[
                 {
@@ -273,7 +273,7 @@ def create_system_prompt(lottery_type):
     base_prompt = """
     You are a specialized OCR extraction system designed to extract lottery draw results from screenshots of South African lottery websites.
     
-    Your PRIMARY task is to accurately extract these FOUR key pieces of information:
+    Your PRIMARY task is to accurately extract these FOUR key pieces of information for ALL visible lottery draws on the page:
     1. Game Type (e.g., Lotto, Lotto Plus 1, Powerball)
     2. Draw ID (e.g., Draw 2530) - This is the unique identifier for the draw
     3. Game Date (convert to ISO format YYYY-MM-DD)
@@ -289,9 +289,10 @@ def create_system_prompt(lottery_type):
     - Draw IDs that appear near dates
     - Game dates formatted in various ways
     - Clear headings indicating the lottery type
+    - Repeating patterns in tables that might indicate multiple draws
     
     For the South African lottery website:
-    - Look for tables with lottery results
+    - Look for tables with lottery results, each row likely contains a separate draw
     - Lottery balls are typically displayed as numbers in colored circles
     - Draw dates usually follow a day/month/year format like "05/04/2025"
     - Draw IDs usually appear as "Draw XXXX" where XXXX is a number
@@ -305,59 +306,72 @@ def create_system_prompt(lottery_type):
                 "draw_date": "YYYY-MM-DD",
                 "numbers": [1, 2, 3, 4, 5, 6],
                 "bonus_numbers": [7]  # Only if applicable
-            }
+            },
+            {
+                "draw_number": "Another Draw ID",
+                "draw_date": "YYYY-MM-DD",
+                "numbers": [7, 8, 9, 10, 11, 12],
+                "bonus_numbers": [13]  # Only if applicable
+            },
+            ... more draws as found on the page ...
         ]
     }
     
     Important:
-    - Focus on extracting the MOST RECENT result only
+    - EXTRACT ALL DRAWS visible on the page, not just the most recent one
+    - EACH ROW in the lottery results table likely represents a separate draw
+    - Usually, there are at least 5-10 draws visible on each page
     - THE FOUR KEY FIELDS (Game Type, Draw ID, Game Date, Winning Numbers) are ABSOLUTELY CRITICAL and should be your top priority
     - Convert all numbers to integers, not strings
     - Return draw dates in ISO format (YYYY-MM-DD) 
     - If a date format is ambiguous, assume DD-MM-YYYY as the original format
     - For each draw, extract exactly the correct number of main numbers for the lottery type
     - If you can't find specific data, do NOT make it up - use placeholders like "Unknown" for text fields or 0 for numbers
-    - If you find multiple sets of numbers (balls), focus on the first/most recent set
+    - Important: Don't limit yourself to just one draw - extract ALL visible draws from the page
     """
     
     # Add lottery-specific instructions
     if "lotto" in lottery_type.lower() and "plus" not in lottery_type.lower():
         return base_prompt + """
         For Lotto:
-        - Extract exactly 6 main numbers
-        - Extract 1 bonus number
+        - Extract exactly 6 main numbers for EACH draw
+        - Extract 1 bonus number for EACH draw
         - Main numbers are typically in the range of 1-52
         - Look for lottery balls in the screenshot - they are usually displayed as numbers in colored circles
-        - If you can't find exactly 6 main numbers, do not invent them - use zeros as placeholders [0,0,0,0,0,0]
+        - If you can't find exactly 6 main numbers for a draw, do not invent them - use zeros as placeholders [0,0,0,0,0,0]
         - Pay attention to tables or sections containing "Draw 2530" or similar recent draw numbers
+        - Important: The page typically shows 5-10 different draws in a table. Extract EACH row as a separate draw.
         """
     elif "lotto plus" in lottery_type.lower():
         return base_prompt + """
         For Lotto Plus:
-        - Extract exactly 6 main numbers
-        - Extract 1 bonus number
+        - Extract exactly 6 main numbers for EACH draw
+        - Extract 1 bonus number for EACH draw
         - Main numbers are typically in the range of 1-52
         - Look for lottery balls in the screenshot - they are usually displayed as numbers in colored circles
-        - If you can't find exactly 6 main numbers, do not invent them - use zeros as placeholders [0,0,0,0,0,0]
+        - If you can't find exactly 6 main numbers for a draw, do not invent them - use zeros as placeholders [0,0,0,0,0,0]
+        - Important: The page typically shows 5-10 different draws in a table. Extract EACH row as a separate draw.
         """
     elif "powerball" in lottery_type.lower():
         return base_prompt + """
         For PowerBall:
-        - Extract exactly 5 main numbers
-        - Extract 1 PowerBall number as the bonus_number
+        - Extract exactly 5 main numbers for EACH draw
+        - Extract 1 PowerBall number as the bonus_number for EACH draw
         - Main numbers are typically in the range of 1-50
         - PowerBall is typically in the range of 1-20
         - Look for lottery balls in the screenshot - main numbers and PowerBall will be in different colored circles
-        - If you can't find exactly 5 main numbers, do not invent them - use zeros as placeholders [0,0,0,0,0]
+        - If you can't find exactly 5 main numbers for a draw, do not invent them - use zeros as placeholders [0,0,0,0,0]
+        - Important: The page typically shows 5-10 different draws in a table. Extract EACH row as a separate draw.
         """
     elif "daily lotto" in lottery_type.lower():
         return base_prompt + """
         For Daily Lotto:
-        - Extract exactly 5 main numbers
+        - Extract exactly 5 main numbers for EACH draw
         - There is no bonus number
         - Main numbers are typically in the range of 1-36
         - Look for lottery balls in the screenshot - they are usually displayed as numbers in colored circles
-        - If you can't find exactly 5 main numbers, do not invent them - use zeros as placeholders [0,0,0,0,0]
+        - If you can't find exactly 5 main numbers for a draw, do not invent them - use zeros as placeholders [0,0,0,0,0]
+        - Important: The page typically shows 5-10 different draws in a table. Extract EACH row as a separate draw.
         """
     else:
         return base_prompt
