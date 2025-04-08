@@ -67,11 +67,18 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                         draw_number=draw_number
                     ).first()
                 
+                # Convert numbers to JSON strings
+                numbers = result.get('numbers', [])
+                bonus_numbers = result.get('bonus_numbers', []) if 'bonus_numbers' in result else []
+                
+                # Check if numbers are not all zeros
+                has_valid_numbers = any(num != 0 for num in numbers)
+                has_valid_bonus = any(num != 0 for num in bonus_numbers)
+                
+                numbers_json = json.dumps(numbers)
+                bonus_numbers_json = json.dumps(bonus_numbers)
+                
                 if not existing_result:
-                    # Convert numbers to JSON strings
-                    numbers_json = json.dumps(result.get('numbers', []))
-                    bonus_numbers_json = json.dumps(result.get('bonus_numbers', [])) if 'bonus_numbers' in result else None
-                    
                     # Create new lottery result
                     lottery_result = LotteryResult(
                         lottery_type=lottery_type,
@@ -87,7 +94,33 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                     saved_results.append(lottery_result)
                     logger.info(f"Added new lottery result for {lottery_type}, draw {draw_number}")
                 else:
-                    logger.info(f"Result already exists for {lottery_type}, draw {draw_number}")
+                    # Check if the new data has better information than the existing one
+                    existing_numbers = json.loads(existing_result.numbers)
+                    existing_bonus = json.loads(existing_result.bonus_numbers or '[]')
+                    
+                    existing_has_zeros = any(num == 0 for num in existing_numbers)
+                    existing_bonus_has_zeros = any(num == 0 for num in existing_bonus)
+                    
+                    should_update = False
+                    
+                    # Update if we have valid numbers and existing data has zeros
+                    if has_valid_numbers and existing_has_zeros:
+                        existing_result.numbers = numbers_json
+                        should_update = True
+                        
+                    # Update if we have valid bonus numbers and existing data has zeros
+                    if has_valid_bonus and existing_bonus_has_zeros:
+                        existing_result.bonus_numbers = bonus_numbers_json
+                        should_update = True
+                    
+                    if should_update:
+                        existing_result.source_url = source_url
+                        if screenshot:
+                            existing_result.screenshot_id = screenshot.id
+                        saved_results.append(existing_result)
+                        logger.info(f"Updated existing result for {lottery_type}, draw {draw_number} with better data")
+                    else:
+                        logger.info(f"Result already exists for {lottery_type}, draw {draw_number} with same or better data")
             
             except Exception as e:
                 logger.error(f"Error processing result: {str(e)}")
