@@ -38,8 +38,43 @@ body {
     background-color: #fff !important;
 }
 
-.table-lottery td {
+.table-lottery tr:nth-child(even) {
+    background-color: #f9f9f9 !important;
+}
+
+.table-lottery td,
+.table-lottery th {
     color: #333 !important;
+}
+
+/* Fix dark backgrounds in all views */
+body, html {
+    background-color: #fff !important;
+}
+
+.card {
+    background-color: #fff !important;
+}
+
+.table-lottery tbody {
+    background-color: #fff !important;
+}
+
+.table-lottery thead tr {
+    background-color: #f2f2f2 !important;
+}
+
+/* Force override any dark backgrounds in rows */
+.table-lottery tbody tr {
+    background-color: #fff !important;
+}
+
+.table-lottery tbody tr:nth-child(odd) {
+    background-color: #fff !important;
+}
+
+.table-lottery tbody tr:nth-child(even) {
+    background-color: #f9f9f9 !important;
 }
 
 /* Header styling */
