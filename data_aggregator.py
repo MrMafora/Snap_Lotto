@@ -2,7 +2,6 @@ import logging
 import json
 from datetime import datetime
 from models import LotteryResult, Screenshot, db
-from app import app
 
 logger = logging.getLogger(__name__)
 
@@ -291,30 +290,29 @@ def validate_and_correct_known_draws():
     """
     corrected_count = 0
     
-    with app.app_context():
-        for lottery_type, draws in KNOWN_CORRECT_DRAWS.items():
-            for draw_number, known_data in draws.items():
-                # Find the draw in the database
-                existing = LotteryResult.query.filter_by(
-                    lottery_type=lottery_type,
-                    draw_number=draw_number
-                ).first()
+    for lottery_type, draws in KNOWN_CORRECT_DRAWS.items():
+        for draw_number, known_data in draws.items():
+            # Find the draw in the database
+            existing = LotteryResult.query.filter_by(
+                lottery_type=lottery_type,
+                draw_number=draw_number
+            ).first()
+            
+            if existing:
+                # Check if the data matches
+                existing_numbers = json.loads(existing.numbers)
+                existing_bonus = json.loads(existing.bonus_numbers or '[]')
                 
-                if existing:
-                    # Check if the data matches
-                    existing_numbers = json.loads(existing.numbers)
-                    existing_bonus = json.loads(existing.bonus_numbers or '[]')
+                # Compare with known correct data
+                if existing_numbers != known_data['numbers'] or existing_bonus != known_data['bonus_numbers']:
+                    logger.warning(f"Correcting {lottery_type} draw {draw_number}: "
+                                 f"from {existing_numbers}+{existing_bonus} "
+                                 f"to {known_data['numbers']}+{known_data['bonus_numbers']}")
                     
-                    # Compare with known correct data
-                    if existing_numbers != known_data['numbers'] or existing_bonus != known_data['bonus_numbers']:
-                        logger.warning(f"Correcting {lottery_type} draw {draw_number}: "
-                                     f"from {existing_numbers}+{existing_bonus} "
-                                     f"to {known_data['numbers']}+{known_data['bonus_numbers']}")
-                        
-                        # Update with correct data
-                        existing.numbers = json.dumps(known_data['numbers'])
-                        existing.bonus_numbers = json.dumps(known_data['bonus_numbers'])
-                        db.session.commit()
-                        corrected_count += 1
+                    # Update with correct data
+                    existing.numbers = json.dumps(known_data['numbers'])
+                    existing.bonus_numbers = json.dumps(known_data['bonus_numbers'])
+                    db.session.commit()
+                    corrected_count += 1
     
     return corrected_count

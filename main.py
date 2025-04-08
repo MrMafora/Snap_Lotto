@@ -1,7 +1,7 @@
 """
 Main application entry point
 """
-# Import the app from the app module to make it available as main:app for gunicorn
+# Import the app from app.py directly so it's available as main:app for gunicorn
 from app import app
 
 # This section only runs when the file is executed directly, not when imported by gunicorn

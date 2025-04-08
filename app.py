@@ -6,6 +6,7 @@ import logging
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 from models import db, Screenshot, LotteryResult, ScheduleConfig
+from data_aggregator import aggregate_data, validate_and_correct_known_draws
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
@@ -76,6 +77,7 @@ with app.app_context():
         schedule_task(scheduler, config)
 
 # Routes
+# Export route functions for use by main.py
 @app.route('/')
 def index():
     """Home page showing scheduled tasks and latest results"""
