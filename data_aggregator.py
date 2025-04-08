@@ -55,13 +55,81 @@ KNOWN_CORRECT_DRAWS = {
     "Lotto": {
         "2530": {  # April 5, 2025 draw
             "numbers": [39, 42, 11, 7, 37, 34],
-            "bonus_numbers": [44]
+            "bonus_numbers": [44],
+            "divisions": {
+                "Division 1": {
+                    "winners": "0",
+                    "prize": "R0.00"
+                },
+                "Division 2": {
+                    "winners": "1",
+                    "prize": "R99,273.10"
+                },
+                "Division 3": {
+                    "winners": "38",
+                    "prize": "R4,543.40"
+                },
+                "Division 4": {
+                    "winners": "96",
+                    "prize": "R2,248.00"
+                },
+                "Division 5": {
+                    "winners": "2498",
+                    "prize": "R145.10"
+                },
+                "Division 6": {
+                    "winners": "3042",
+                    "prize": "R103.60"
+                },
+                "Division 7": {
+                    "winners": "46289",
+                    "prize": "R50.00"
+                },
+                "Division 8": {
+                    "winners": "33113",
+                    "prize": "R20.00"
+                }
+            }
         }
     },
     "Lotto Plus 1": {
         "2530": {  # April 5, 2025 draw
             "numbers": [4, 9, 18, 20, 38, 39],
-            "bonus_numbers": [47]
+            "bonus_numbers": [47],
+            "divisions": {
+                "Division 1": {
+                    "winners": "0",
+                    "prize": "R0.00"
+                },
+                "Division 2": {
+                    "winners": "4",
+                    "prize": "R31,115.10"
+                },
+                "Division 3": {
+                    "winners": "91",
+                    "prize": "R2,230.50"
+                },
+                "Division 4": {
+                    "winners": "244",
+                    "prize": "R1,042.40"
+                },
+                "Division 5": {
+                    "winners": "3483",
+                    "prize": "R121.90"
+                },
+                "Division 6": {
+                    "winners": "4224",
+                    "prize": "R87.30"
+                },
+                "Division 7": {
+                    "winners": "42950",
+                    "prize": "R50.00"
+                },
+                "Division 8": {
+                    "winners": "30532",
+                    "prize": "R20.00"
+                }
+            }
         },
         "2529": {  # April 2, 2025 draw
             "numbers": [5, 16, 27, 32, 36, 44],
@@ -569,10 +637,65 @@ def validate_and_correct_known_draws():
             existing_set = set(existing_numbers)
             correct_set = set(correct_numbers)
             
+            # Always update divisions data since we now have the correct values
+            divisions_data = {
+                "Division 1": {
+                    "winners": "0",
+                    "prize": "R0.00"
+                },
+                "Division 2": {
+                    "winners": "1",
+                    "prize": "R99,273.10"
+                },
+                "Division 3": {
+                    "winners": "38",
+                    "prize": "R4,543.40"
+                },
+                "Division 4": {
+                    "winners": "96",
+                    "prize": "R2,248.00"
+                },
+                "Division 5": {
+                    "winners": "2498",
+                    "prize": "R145.10"
+                },
+                "Division 6": {
+                    "winners": "3042",
+                    "prize": "R103.60"
+                },
+                "Division 7": {
+                    "winners": "46289",
+                    "prize": "R50.00"
+                },
+                "Division 8": {
+                    "winners": "33113",
+                    "prize": "R20.00"
+                }
+            }
+            
+            update_needed = False
+            # Check if numbers need to be updated
             if len(existing_set.intersection(correct_set)) < len(correct_set) * 0.8:
                 logger.info(f"Correcting Lotto draw 2530: {existing_numbers} -> {correct_numbers}")
                 lotto_2530.numbers = numbers_json
                 lotto_2530.bonus_numbers = bonus_json
+                update_needed = True
+            
+            # Check if divisions need to be updated
+            existing_divisions = {}
+            if lotto_2530.divisions:
+                try:
+                    existing_divisions = json.loads(lotto_2530.divisions)
+                except (json.JSONDecodeError, TypeError):
+                    existing_divisions = {}
+            
+            # Update divisions if missing or incomplete
+            if not existing_divisions or len(existing_divisions) < len(divisions_data):
+                logger.info(f"Updating divisions data for Lotto draw 2530")
+                lotto_2530.divisions = json.dumps(divisions_data)
+                update_needed = True
+            
+            if update_needed:
                 db.session.commit()
                 return 1
     except Exception as e:

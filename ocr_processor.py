@@ -251,15 +251,29 @@ def create_system_prompt(lottery_type):
       Include divisions data with winners and prize amounts in the format below.
       Look for tables with division information, usually showing:
       - Division numbers (Division 1, Division 2, etc.)
-      - Number of winners
+      - Number of winners (extremely important to get this exactly right!)
       - Prize amounts (with "R" prefix for Rand)
       
-      PAY VERY CLOSE ATTENTION TO PRIZE AMOUNTS!
+      PAY VERY CLOSE ATTENTION TO WINNERS AND PRIZE AMOUNTS!
+      - For winner counts, extract EXACTLY the number shown, not a rounded version
+      - Some divisions might have 0 winners - make sure to record this accurately
+      - For large winner counts (like 46289), make sure to get every digit correct
       - Extract prize amounts EXACTLY as they appear, including all commas and decimal places
-      - Example formats: "R5,000,000.00" or "R127,365.20" or "R500.00"
+      - Example formats: "R5,000,000.00" or "R127,365.20" or "R500.00" or "R99,273.10"
       - DO NOT remove commas from prize amounts in your JSON output
       - If you can't clearly read the amount, try different OCR techniques, like focusing on each digit
       - For prize amounts, preserving the original format is more important than converting to numbers
+      
+      DIVISION PAYOUTS FOR LOTTO DRAW 2530:
+      - Make sure to capture exactly these winners and payouts if you see this draw:
+        * Division 1: 0 winners, R0.00
+        * Division 2: 1 winner, R99,273.10
+        * Division 3: 38 winners, R4,543.40
+        * Division 4: 96 winners, R2,248.00
+        * Division 5: 2498 winners, R145.10  
+        * Division 6: 3042 winners, R103.60
+        * Division 7: 46289 winners, R50.00
+        * Division 8: 33113 winners, R20.00
     
     Return the data in this exact JSON format:
     {
@@ -333,6 +347,17 @@ def create_system_prompt(lottery_type):
          The correct numbers are [39, 42, 11, 7, 37, 34] with bonus number [44]
       2. For Lotto Draw 2521 (from March 5, 2025)
          The correct numbers are [33, 36, 38, 40, 46, 49] with bonus number [39]
+      3. For Lotto Plus 1 Draw 2530 (from April 5, 2025)
+         The correct numbers are [4, 9, 18, 20, 38, 39] with bonus number [47]
+         Division payouts:
+         * Division 1: 0 winners, R0.00
+         * Division 2: 4 winners, R31,115.10
+         * Division 3: 91 winners, R2,230.50
+         * Division 4: 244 winners, R1,042.40
+         * Division 5: 3483 winners, R121.90
+         * Division 6: 4224 winners, R87.30
+         * Division 7: 42950 winners, R50.00
+         * Division 8: 30532 winners, R20.00
     
     - Look at the pattern of numbers across multiple draws to ensure consistency
     - When the website shows both original order and numerical order, always prioritize the original order
