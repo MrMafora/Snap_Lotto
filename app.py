@@ -523,6 +523,51 @@ def cleanup_screenshots():
     
     return render_template('cleanup.html')
 
+@app.route('/draw-details/<lottery_type>/<draw_number>')
+def draw_details(lottery_type, draw_number):
+    """Page for viewing detailed prize payout information for a specific draw"""
+    
+    # Import normalize_draw_number
+    from data_aggregator import normalize_draw_number
+    
+    # Normalize draw number for lookup 
+    normalized_draw = normalize_draw_number(draw_number)
+    
+    # Find the lottery result for this draw number
+    result = LotteryResult.query.filter_by(
+        lottery_type=lottery_type,
+        draw_number=normalized_draw
+    ).first()
+    
+    if not result:
+        # Try with broader search if exact match not found
+        results = LotteryResult.query.filter(
+            LotteryResult.lottery_type == lottery_type,
+            LotteryResult.draw_number.like(f"%{normalized_draw}%")
+        ).all()
+        
+        if results:
+            # Use first match if any found
+            result = results[0]
+    
+    if not result:
+        flash(f"No data found for {lottery_type} Draw {draw_number}", "warning")
+        return redirect(url_for('results', lottery_type=lottery_type))
+    
+    # Get the divisions data
+    divisions = result.get_divisions()
+    
+    # Get the draw date formatted nicely
+    draw_date = result.draw_date.strftime('%A, %d %B %Y')
+    
+    return render_template(
+        'draw_details.html', 
+        result=result, 
+        divisions=divisions, 
+        draw_date=draw_date,
+        lottery_type=lottery_type
+    )
+
 @app.route('/api/raw-ocr/<lottery_type>')
 def get_raw_ocr(lottery_type):
     """API endpoint to fetch raw OCR data for a specific lottery type"""
