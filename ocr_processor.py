@@ -6,6 +6,7 @@ import sys
 from datetime import datetime
 import re
 import importlib.util
+from html_parser import parse_lottery_html
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +30,12 @@ if anthropic_installed:
     except Exception as e:
         logger.error(f"Error initializing Anthropic client: {str(e)}")
 
-# Import the HTML parser (if BeautifulSoup is installed)
+# Import the HTML parser status check
 html_parser = None
 if bs4_installed:
     try:
-        from html_parser import parse_lottery_html
+        # Already imported parse_lottery_html at the top
+        html_parser = True
     except ImportError:
         logger.warning("html_parser module not found, will use AI-only processing")
 
@@ -54,10 +56,12 @@ def process_screenshot(screenshot_path, lottery_type):
         "html_processed": None
     }
     
-    # Check if this is an HTML file
+    # Check file type
     file_extension = os.path.splitext(screenshot_path)[1].lower()
     is_html = file_extension in ['.html', '.htm']
+    is_image = file_extension in ['.png', '.jpg', '.jpeg']
     
+    # Process HTML content if available
     if is_html:
         # Read the HTML content
         try:
@@ -65,7 +69,7 @@ def process_screenshot(screenshot_path, lottery_type):
                 html_content = html_file.read()
                 
             # Try HTML parser first (if available)
-            if bs4_installed and 'parse_lottery_html' in globals():
+            if bs4_installed and parse_lottery_html:
                 try:
                     results["html_processed"] = parse_lottery_html(html_content, lottery_type)
                     logger.info(f"HTML parsing completed for {lottery_type}")
@@ -73,6 +77,38 @@ def process_screenshot(screenshot_path, lottery_type):
                     logger.error(f"Error in HTML parsing: {str(e)}")
         except Exception as e:
             logger.error(f"Error reading HTML file: {str(e)}")
+    
+    # Find paired HTML file for image files
+    elif is_image:
+        # Look for a corresponding HTML file (same timestamp, same URL)
+        try:
+            base_name = os.path.basename(screenshot_path)
+            dir_name = os.path.dirname(screenshot_path)
+            
+            # Extract timestamp and URL from filename
+            parts = base_name.split('_', 1)
+            if len(parts) == 2:
+                timestamp = parts[0]
+                url_part = os.path.splitext(parts[1])[0]
+                
+                # Look for matching HTML file
+                html_file_pattern = f"{timestamp}_{url_part}.html"
+                html_path = os.path.join(dir_name, html_file_pattern)
+                
+                if os.path.exists(html_path):
+                    logger.info(f"Found paired HTML file for image: {html_path}")
+                    with open(html_path, "r", encoding="utf-8", errors="ignore") as html_file:
+                        html_content = html_file.read()
+                    
+                    # Try HTML parser with this content
+                    if bs4_installed and parse_lottery_html:
+                        try:
+                            results["html_processed"] = parse_lottery_html(html_content, lottery_type)
+                            logger.info(f"HTML parsing from paired file completed for {lottery_type}")
+                        except Exception as e:
+                            logger.error(f"Error in HTML parsing from paired file: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error processing paired HTML file: {str(e)}")
     
     # Try AI-based approach if client is available
     if client:

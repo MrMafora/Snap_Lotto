@@ -1,20 +1,15 @@
+"""
+Application configuration and setup.
+"""
 import os
 import logging
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
+from models import db, Screenshot, LotteryResult, ScheduleConfig
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-
-# Initialize SQLAlchemy base
-class Base(DeclarativeBase):
-    pass
-
-# Initialize database
-db = SQLAlchemy(model_class=Base)
 
 # Create Flask app
 app = Flask(__name__)
@@ -32,15 +27,53 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Initialize the app with the database
 db.init_app(app)
 
-# Import models
-from db_models import LotteryResult, Screenshot, ScheduleConfig
+# Create all database tables
+with app.app_context():
+    db.create_all()
+
+# Import components after database is initialized
+from scheduler import init_scheduler, schedule_task, remove_task
 from screenshot_manager import capture_screenshot
 from ocr_processor import process_screenshot
 from data_aggregator import aggregate_data
-from scheduler import init_scheduler, schedule_task, remove_task
 
 # Initialize scheduler
 scheduler = init_scheduler(app)
+
+# Schedule any active tasks
+with app.app_context():
+    # Set up initial schedules if none exist
+    if ScheduleConfig.query.count() == 0:
+        default_urls = [
+            {'url': 'https://www.nationallottery.co.za/lotto-history', 'lottery_type': 'Lotto'},
+            {'url': 'https://www.nationallottery.co.za/lotto-plus-1-history', 'lottery_type': 'Lotto Plus 1'},
+            {'url': 'https://www.nationallottery.co.za/lotto-plus-2-history', 'lottery_type': 'Lotto Plus 2'},
+            {'url': 'https://www.nationallottery.co.za/powerball-history', 'lottery_type': 'Powerball'},
+            {'url': 'https://www.nationallottery.co.za/powerball-plus-history', 'lottery_type': 'Powerball Plus'},
+            {'url': 'https://www.nationallottery.co.za/daily-lotto-history', 'lottery_type': 'Daily Lotto'}
+        ]
+        
+        for i, config in enumerate(default_urls):
+            # Stagger the scheduled times to avoid overwhelming the system
+            hour = 1  # Run at 1 AM
+            minute = i * 10  # 10 minutes apart
+            
+            schedule = ScheduleConfig(
+                url=config['url'],
+                lottery_type=config['lottery_type'],
+                frequency='daily',
+                hour=hour,
+                minute=minute,
+                active=True
+            )
+            db.session.add(schedule)
+        
+        db.session.commit()
+        logger.info("Added default lottery schedule configurations")
+    
+    # Schedule active tasks
+    for config in ScheduleConfig.query.filter_by(active=True).all():
+        schedule_task(scheduler, config)
 
 # Routes
 @app.route('/')
@@ -82,7 +115,7 @@ def settings():
         config = ScheduleConfig.query.filter_by(url=url).first()
         if not config:
             config = ScheduleConfig(url=url, lottery_type=lottery_type, 
-                                   frequency=frequency, hour=hour, minute=minute, active=True)
+                                  frequency=frequency, hour=hour, minute=minute, active=True)
             db.session.add(config)
         else:
             config.lottery_type = lottery_type
@@ -165,40 +198,3 @@ def get_results(lottery_type):
     limit = request.args.get('limit', 10, type=int)
     results = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).limit(limit).all()
     return jsonify([r.to_dict() for r in results])
-
-# Create all database tables
-with app.app_context():
-    db.create_all()
-    
-    # Set up initial schedules if none exist
-    if ScheduleConfig.query.count() == 0:
-        default_urls = [
-            {'url': 'https://www.nationallottery.co.za/lotto-history', 'lottery_type': 'Lotto'},
-            {'url': 'https://www.nationallottery.co.za/lotto-plus-1-history', 'lottery_type': 'Lotto Plus 1'},
-            {'url': 'https://www.nationallottery.co.za/lotto-plus-2-history', 'lottery_type': 'Lotto Plus 2'},
-            {'url': 'https://www.nationallottery.co.za/powerball-history', 'lottery_type': 'Powerball'},
-            {'url': 'https://www.nationallottery.co.za/powerball-plus-history', 'lottery_type': 'Powerball Plus'},
-            {'url': 'https://www.nationallottery.co.za/daily-lotto-history', 'lottery_type': 'Daily Lotto'}
-        ]
-        
-        for i, config in enumerate(default_urls):
-            # Stagger the scheduled times to avoid overwhelming the system
-            hour = 1  # Run at 1 AM
-            minute = i * 10  # 10 minutes apart
-            
-            schedule = ScheduleConfig(
-                url=config['url'],
-                lottery_type=config['lottery_type'],
-                frequency='daily',
-                hour=hour,
-                minute=minute,
-                active=True
-            )
-            db.session.add(schedule)
-        
-        db.session.commit()
-        logger.info("Added default lottery schedule configurations")
-        
-        # Schedule the initial tasks
-        for config in ScheduleConfig.query.all():
-            schedule_task(scheduler, config)

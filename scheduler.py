@@ -2,6 +2,7 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from flask import Flask
+from models import db, ScheduleConfig
 from screenshot_manager import capture_screenshot
 from ocr_processor import process_screenshot
 from data_aggregator import aggregate_data
