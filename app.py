@@ -190,44 +190,9 @@ def run_now(id):
     """Manually run a scheduled task immediately in a background thread"""
     config = ScheduleConfig.query.get_or_404(id)
     
-    # Run the task in a background thread to avoid blocking and Playwright issues
-    import threading
-    import time
-    
-    def task_thread():
-        try:
-            time.sleep(1)  # Small delay to allow the response to be sent
-            
-            logger.info(f"Manually running task for {config.url}")
-            success = run_lottery_task(config.url, config.lottery_type)
-            
-            # Update the last run time
-            with app.app_context():
-                from datetime import datetime
-                config_obj = ScheduleConfig.query.get(id)
-                if config_obj:
-                    config_obj.last_run = datetime.now()
-                    db.session.commit()
-                    logger.info(f"Updated last run time for {config_obj.lottery_type}")
-                    
-                    # If task was successful, clean up old screenshots
-                    if success:
-                        from screenshot_manager import cleanup_old_screenshots
-                        cleanup_old_screenshots()
-            
-            if success:
-                logger.info(f"Task completed successfully for {config.lottery_type}")
-            else:
-                logger.error(f"Task failed for {config.lottery_type}")
-        except Exception as e:
-            logger.error(f"Error in task thread: {str(e)}")
-            import traceback
-            traceback.print_exc()
-    
-    # Start the thread
-    thread = threading.Thread(target=task_thread)
-    thread.daemon = True
-    thread.start()
+    # Simply call the task function directly and let it handle threading
+    logger.info(f"Manually running task for {config.url}")
+    run_lottery_task(config.url, config.lottery_type)
     
     # Return immediately
     return jsonify({

@@ -121,6 +121,8 @@ def capture_screenshot_sync(url):
     Returns:
         tuple: (filepath, screenshot_data) or (None, None) if failed
     """
+    import time
+
     try:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"{timestamp}_{url.split('/')[-1]}.png"
@@ -128,18 +130,29 @@ def capture_screenshot_sync(url):
         
         logger.info(f"Capturing screenshot from {url} using Playwright (sync)")
         
-        chromium_path = "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium"
-        if os.path.exists(chromium_path):
-            logger.info(f"Using Chromium from: {chromium_path}")
+        # Try to find chromium in common locations
+        chromium_paths = [
+            "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium",
+            "/usr/bin/chromium-browser",
+            "/usr/bin/chromium",
+            "/nix/store/chromium/bin/chromium"
+        ]
         
-        # Use Playwright to capture screenshot
+        chromium_path = None
+        for path in chromium_paths:
+            if os.path.exists(path):
+                logger.info(f"Using Chromium from: {path}")
+                chromium_path = path
+                break
+                
+        # Use Playwright to capture screenshot with built-in timeouts
         with sync_playwright() as p:
             browser_type = p.chromium
             
             try:
                 browser = browser_type.launch(
                     headless=True,
-                    executable_path=chromium_path if os.path.exists(chromium_path) else None
+                    executable_path=chromium_path
                 )
                 
                 context = browser.new_context(
@@ -163,12 +176,28 @@ def capture_screenshot_sync(url):
                     "DNT": "1"
                 })
                 
-                # Navigate and wait for the page to fully load
-                page.goto(url, wait_until='networkidle')
+                # Navigate and wait for the page to fully load with a timeout
+                start_time = time.time()
+                max_time = 30  # Maximum time in seconds
+                
+                try:
+                    # Try to navigate with a 20-second timeout
+                    page.goto(url, wait_until='networkidle', timeout=20000)
+                except Exception as e:
+                    # If timeout occurs, log but continue - we might still get a partial page
+                    logger.warning(f"Page navigation timeout for {url}: {str(e)}")
+                    
+                    # Since we caught the timeout, let's try to continue with whatever page was loaded
+                    if time.time() - start_time > max_time:
+                        logger.error("Exceeded maximum time, aborting")
+                        raise TimeoutError("Screenshot capture exceeded maximum time")
                 
                 # Scroll down to ensure all content is loaded
-                page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-                page.wait_for_timeout(1000)  # Wait a second for any animations
+                try:
+                    page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
+                    page.wait_for_timeout(1000)  # Wait a second for any animations
+                except Exception as e:
+                    logger.warning(f"Error during page scrolling: {str(e)}")
                 
                 # Take a screenshot of the full page
                 page.screenshot(path=filepath, full_page=True)
@@ -185,6 +214,13 @@ def capture_screenshot_sync(url):
             except Exception as e:
                 logger.error(f"Playwright screenshot capture failed: {str(e)}")
                 traceback.print_exc()
+                
+                # Clean up any browser instances
+                try:
+                    browser.close()
+                except:
+                    pass
+                
                 return None, None
             
     except Exception as e:
@@ -214,19 +250,44 @@ def capture_screenshot(url, lottery_type=None):
         filepath, screenshot_data = capture_screenshot_sync(url)
         
         if filepath and screenshot_data:
-            # Save screenshot metadata to database
-            screenshot = Screenshot(
-                url=url,
-                lottery_type=lottery_type,
-                timestamp=datetime.now(),
-                path=filepath,
-                processed=False
-            )
-            
-            db.session.add(screenshot)
-            db.session.commit()
-            
-            logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
+            try:
+                # Check if we need to create an app context
+                from flask import current_app, has_app_context
+                if not has_app_context():
+                    # Import app here to avoid circular imports
+                    from app import app
+                    with app.app_context():
+                        # Save screenshot metadata to database within app context
+                        screenshot = Screenshot(
+                            url=url,
+                            lottery_type=lottery_type,
+                            timestamp=datetime.now(),
+                            path=filepath,
+                            processed=False
+                        )
+                        
+                        db.session.add(screenshot)
+                        db.session.commit()
+                        
+                        logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
+                else:
+                    # We already have an app context, proceed normally
+                    screenshot = Screenshot(
+                        url=url,
+                        lottery_type=lottery_type,
+                        timestamp=datetime.now(),
+                        path=filepath,
+                        processed=False
+                    )
+                    
+                    db.session.add(screenshot)
+                    db.session.commit()
+                    
+                    logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
+            except Exception as e:
+                logger.error(f"Error saving screenshot to database: {str(e)}")
+                traceback.print_exc()
+                # Still return the filepath so OCR can be attempted
             
             return filepath, None  # Return None for extracted data to use OCR
     except Exception as e:
