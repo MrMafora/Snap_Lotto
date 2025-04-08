@@ -1,0 +1,240 @@
+{% extends "layout.html" %}
+
+{% block title %} - Settings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Add/Edit Schedule</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('settings') }}">
+                    <div class="mb-3">
+                        <label for="url" class="form-label">Website URL</label>
+                        <input type="url" class="form-control" id="url" name="url" required 
+                               placeholder="https://www.nationallottery.co.za/lotto-history">
+                        <div class="form-text">The URL of the lottery website to capture</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="lottery_type" class="form-label">Lottery Type</label>
+                        <select class="form-select" id="lottery_type" name="lottery_type" required>
+                            <option value="">Select a lottery type</option>
+                            <option value="Lotto">Lotto</option>
+                            <option value="Lotto Plus 1">Lotto Plus 1</option>
+                            <option value="Lotto Plus 2">Lotto Plus 2</option>
+                            <option value="Powerball">Powerball</option>
+                            <option value="Powerball Plus">Powerball Plus</option>
+                            <option value="Daily Lotto">Daily Lotto</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="frequency" class="form-label">Frequency</label>
+                        <select class="form-select" id="frequency" name="frequency">
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label for="hour" class="form-label">Hour (0-23)</label>
+                            <input type="number" class="form-control" id="hour" name="hour" 
+                                   min="0" max="23" value="1" required>
+                        </div>
+                        <div class="col-6">
+                            <label for="minute" class="form-label">Minute (0-59)</label>
+                            <input type="number" class="form-control" id="minute" name="minute" 
+                                   min="0" max="59" value="0" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Save Schedule</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Current Schedules</h5>
+            </div>
+            <div class="card-body">
+                {% if schedules %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Lottery Type</th>
+                                    <th>URL</th>
+                                    <th>Schedule</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for schedule in schedules %}
+                                <tr>
+                                    <td>{{ schedule.lottery_type }}</td>
+                                    <td>
+                                        <span class="text-truncate d-inline-block" style="max-width: 150px;" title="{{ schedule.url }}">
+                                            {{ schedule.url }}
+                                        </span>
+                                    </td>
+                                    <td>{{ schedule.hour }}:{{ '%02d' % schedule.minute }}</td>
+                                    <td>
+                                        {% if schedule.active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('toggle_schedule', id=schedule.id) }}" class="btn btn-outline-primary">
+                                                {% if schedule.active %}Disable{% else %}Enable{% endif %}
+                                            </a>
+                                            <a href="{{ url_for('delete_schedule', id=schedule.id) }}" class="btn btn-outline-danger" 
+                                               onclick="return confirm('Are you sure you want to delete this schedule?')">
+                                                Delete
+                                            </a>
+                                            <button class="btn btn-outline-success edit-schedule" 
+                                                    data-id="{{ schedule.id }}"
+                                                    data-url="{{ schedule.url }}"
+                                                    data-type="{{ schedule.lottery_type }}"
+                                                    data-frequency="{{ schedule.frequency }}"
+                                                    data-hour="{{ schedule.hour }}"
+                                                    data-minute="{{ schedule.minute }}">
+                                                Edit
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">No schedules configured yet.</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Setup</h5>
+            </div>
+            <div class="card-body">
+                <p>Click the button below to quickly set up default schedules for all South African lottery types:</p>
+                <button id="setupDefault" class="btn btn-primary">
+                    Set Up Default Schedules
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">API Documentation</h5>
+    </div>
+    <div class="card-body">
+        <p>To integrate this tool into your webapp, you can use the following API endpoints:</p>
+        
+        <h6>1. Module Import</h6>
+        <pre><code>from screenshot_manager import capture_screenshot, extract_lottery_type_from_url
+from ocr_processor import process_screenshot
+from data_aggregator import aggregate_data, get_latest_results, export_results_to_json</code></pre>
+        
+        <h6>2. Capture Screenshot and Process</h6>
+        <pre><code># Example usage
+url = 'https://www.nationallottery.co.za/lotto-history'
+lottery_type = extract_lottery_type_from_url(url)  # Or specify manually
+screenshot_path = capture_screenshot(url, lottery_type)
+extracted_data = process_screenshot(screenshot_path, lottery_type)
+aggregate_data(extracted_data, lottery_type, url)</code></pre>
+        
+        <h6>3. Get Results</h6>
+        <pre><code># Get latest results for all lottery types
+all_latest = get_latest_results()
+
+# Get all results for a specific lottery type
+lotto_results = export_results_to_json(lottery_type='Lotto', limit=10)</code></pre>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle edit buttons to fill the form with existing data
+    document.querySelectorAll('.edit-schedule').forEach(button => {
+        button.addEventListener('click', function() {
+            const url = this.getAttribute('data-url');
+            const type = this.getAttribute('data-type');
+            const frequency = this.getAttribute('data-frequency');
+            const hour = this.getAttribute('data-hour');
+            const minute = this.getAttribute('data-minute');
+            
+            // Fill the form
+            document.getElementById('url').value = url;
+            document.getElementById('lottery_type').value = type;
+            document.getElementById('frequency').value = frequency;
+            document.getElementById('hour').value = hour;
+            document.getElementById('minute').value = minute;
+            
+            // Scroll to form
+            document.querySelector('.card').scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    });
+    
+    // Handle quick setup button
+    document.getElementById('setupDefault').addEventListener('click', function() {
+        if (confirm('This will set up default schedules for all South African lottery types. Continue?')) {
+            const defaultUrls = [
+                {url: 'https://www.nationallottery.co.za/lotto-history', type: 'Lotto'},
+                {url: 'https://www.nationallottery.co.za/lotto-plus-1-history', type: 'Lotto Plus 1'},
+                {url: 'https://www.nationallottery.co.za/lotto-plus-2-history', type: 'Lotto Plus 2'},
+                {url: 'https://www.nationallottery.co.za/powerball-history', type: 'Powerball'},
+                {url: 'https://www.nationallottery.co.za/powerball-plus-history', type: 'Powerball Plus'},
+                {url: 'https://www.nationallottery.co.za/daily-lotto-history', type: 'Daily Lotto'}
+            ];
+            
+            // Create a form and submit for each default URL
+            let processingCount = 0;
+            
+            defaultUrls.forEach((config, index) => {
+                setTimeout(() => {
+                    // Set form values
+                    document.getElementById('url').value = config.url;
+                    document.getElementById('lottery_type').value = config.type;
+                    document.getElementById('frequency').value = 'daily';
+                    document.getElementById('hour').value = 1;
+                    document.getElementById('minute').value = index * 10;  // Stagger by 10 minutes
+                    
+                    // Submit form
+                    const form = document.querySelector('form');
+                    form.submit();
+                    
+                    processingCount++;
+                    
+                    // Show processing message
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-info';
+                    alert.innerText = `Setting up ${processingCount} of ${defaultUrls.length}...`;
+                    document.querySelector('.container').prepend(alert);
+                    
+                }, index * 1000);  // Stagger submissions to avoid overwhelming the server
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

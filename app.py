@@ -1,0 +1,204 @@
+import os
+import logging
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+# Setup logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Initialize SQLAlchemy base
+class Base(DeclarativeBase):
+    pass
+
+# Initialize database
+db = SQLAlchemy(model_class=Base)
+
+# Create Flask app
+app = Flask(__name__)
+app.secret_key = os.environ.get("SESSION_SECRET", "lottery-scraper-default-secret")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# Configure database
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///lottery_data.db")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Initialize the app with the database
+db.init_app(app)
+
+# Import after initialization to avoid circular imports
+from models import LotteryResult, Screenshot, ScheduleConfig
+from screenshot_manager import capture_screenshot
+from ocr_processor import process_screenshot
+from data_aggregator import aggregate_data
+from scheduler import init_scheduler, schedule_task, remove_task
+
+# Initialize scheduler
+scheduler = init_scheduler(app)
+
+# Routes
+@app.route('/')
+def index():
+    """Home page showing scheduled tasks and latest results"""
+    schedules = ScheduleConfig.query.all()
+    latest_results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).limit(10).all()
+    return render_template('index.html', schedules=schedules, results=latest_results)
+
+@app.route('/results')
+def results():
+    """Page showing all lottery results"""
+    lottery_type = request.args.get('lottery_type', None)
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    query = LotteryResult.query
+    if lottery_type:
+        query = query.filter_by(lottery_type=lottery_type)
+    
+    results = query.order_by(LotteryResult.draw_date.desc()).paginate(page=page, per_page=per_page)
+    return render_template('results.html', results=results, lottery_type=lottery_type)
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    """Page for configuring screenshot schedules"""
+    if request.method == 'POST':
+        url = request.form.get('url')
+        lottery_type = request.form.get('lottery_type')
+        frequency = request.form.get('frequency', 'daily')
+        hour = request.form.get('hour', 0, type=int)
+        minute = request.form.get('minute', 0, type=int)
+        
+        if not url or not lottery_type:
+            flash('URL and lottery type are required', 'danger')
+            return redirect(url_for('settings'))
+        
+        # Create or update schedule
+        config = ScheduleConfig.query.filter_by(url=url).first()
+        if not config:
+            config = ScheduleConfig(url=url, lottery_type=lottery_type, 
+                                   frequency=frequency, hour=hour, minute=minute, active=True)
+            db.session.add(config)
+        else:
+            config.lottery_type = lottery_type
+            config.frequency = frequency
+            config.hour = hour
+            config.minute = minute
+            config.active = True
+        
+        db.session.commit()
+        
+        # Add to scheduler
+        schedule_task(scheduler, config)
+        
+        flash('Schedule updated successfully', 'success')
+        return redirect(url_for('settings'))
+    
+    schedules = ScheduleConfig.query.all()
+    return render_template('settings.html', schedules=schedules)
+
+@app.route('/toggle_schedule/<int:id>')
+def toggle_schedule(id):
+    """Toggle a schedule on or off"""
+    config = ScheduleConfig.query.get_or_404(id)
+    config.active = not config.active
+    db.session.commit()
+    
+    if config.active:
+        schedule_task(scheduler, config)
+        flash(f'Schedule for {config.lottery_type} activated', 'success')
+    else:
+        remove_task(scheduler, config.id)
+        flash(f'Schedule for {config.lottery_type} deactivated', 'warning')
+        
+    return redirect(url_for('settings'))
+
+@app.route('/delete_schedule/<int:id>')
+def delete_schedule(id):
+    """Delete a schedule"""
+    config = ScheduleConfig.query.get_or_404(id)
+    remove_task(scheduler, config.id)
+    db.session.delete(config)
+    db.session.commit()
+    flash(f'Schedule for {config.lottery_type} deleted', 'warning')
+    return redirect(url_for('settings'))
+
+@app.route('/api/run_now/<int:id>')
+def run_now(id):
+    """Manually run a scheduled task immediately"""
+    config = ScheduleConfig.query.get_or_404(id)
+    try:
+        logger.info(f"Manually capturing screenshot for {config.url}")
+        screenshot_path = capture_screenshot(config.url)
+        if screenshot_path:
+            logger.info(f"Processing screenshot with OCR: {screenshot_path}")
+            extracted_data = process_screenshot(screenshot_path, config.lottery_type)
+            logger.info(f"Aggregating data for {config.lottery_type}")
+            aggregate_data(extracted_data, config.lottery_type, config.url)
+            return jsonify({'status': 'success', 'message': f'Data for {config.lottery_type} updated'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to capture screenshot'})
+    except Exception as e:
+        logger.error(f"Error running task: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/api/screenshots')
+def get_screenshots():
+    """API endpoint to fetch recent screenshots"""
+    screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).limit(20).all()
+    return jsonify([{
+        'id': s.id,
+        'url': s.url,
+        'lottery_type': s.lottery_type,
+        'timestamp': s.timestamp.isoformat(),
+        'path': s.path
+    } for s in screenshots])
+
+@app.route('/api/results/<lottery_type>')
+def get_results(lottery_type):
+    """API endpoint to fetch results for a specific lottery type"""
+    limit = request.args.get('limit', 10, type=int)
+    results = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).limit(limit).all()
+    return jsonify([r.to_dict() for r in results])
+
+# Create all database tables
+with app.app_context():
+    db.create_all()
+    
+    # Set up initial schedules if none exist
+    if ScheduleConfig.query.count() == 0:
+        default_urls = [
+            {'url': 'https://www.nationallottery.co.za/lotto-history', 'lottery_type': 'Lotto'},
+            {'url': 'https://www.nationallottery.co.za/lotto-plus-1-history', 'lottery_type': 'Lotto Plus 1'},
+            {'url': 'https://www.nationallottery.co.za/lotto-plus-2-history', 'lottery_type': 'Lotto Plus 2'},
+            {'url': 'https://www.nationallottery.co.za/powerball-history', 'lottery_type': 'Powerball'},
+            {'url': 'https://www.nationallottery.co.za/powerball-plus-history', 'lottery_type': 'Powerball Plus'},
+            {'url': 'https://www.nationallottery.co.za/daily-lotto-history', 'lottery_type': 'Daily Lotto'}
+        ]
+        
+        for i, config in enumerate(default_urls):
+            # Stagger the scheduled times to avoid overwhelming the system
+            hour = 1  # Run at 1 AM
+            minute = i * 10  # 10 minutes apart
+            
+            schedule = ScheduleConfig(
+                url=config['url'],
+                lottery_type=config['lottery_type'],
+                frequency='daily',
+                hour=hour,
+                minute=minute,
+                active=True
+            )
+            db.session.add(schedule)
+        
+        db.session.commit()
+        logger.info("Added default lottery schedule configurations")
+        
+        # Schedule the initial tasks
+        for config in ScheduleConfig.query.all():
+            schedule_task(scheduler, config)

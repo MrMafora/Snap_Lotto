@@ -1,0 +1,90 @@
+/* Custom styles for the lottery data extractor application */
+
+/* Number balls */
+.badge.rounded-circle {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 2px;
+}
+
+/* Truncate long URLs */
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Card styling */
+.card {
+    margin-bottom: 1.5rem;
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Code blocks */
+pre {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 1rem;
+    border-radius: 0.25rem;
+    overflow-x: auto;
+}
+
+code {
+    color: var(--bs-info);
+}
+
+/* Footer */
+.footer {
+    margin-top: 2rem;
+    padding: 1rem 0;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Table improvements */
+.table-responsive {
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+/* Pagination */
+.pagination .page-link {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+/* Form improvements */
+.form-control, .form-select {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--bs-light);
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/* Make buttons more consistent */
+.btn-outline-primary, .btn-outline-danger, .btn-outline-success, .btn-outline-secondary {
+    border-width: 1px;
+}
+
+/* Chart container */
+canvas {
+    width: 100% !important;
+    max-height: 300px;
+}
