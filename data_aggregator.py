@@ -9,6 +9,42 @@ logger = logging.getLogger(__name__)
 # Known correct lottery draw results for verification
 KNOWN_CORRECT_DRAWS = {
     "Lotto Plus 1": {
+        "2530": {  # April 5, 2025 draw
+            "numbers": [4, 9, 18, 20, 38, 39],
+            "bonus_numbers": [47]
+        },
+        "2529": {  # April 2, 2025 draw
+            "numbers": [5, 16, 27, 32, 36, 44],
+            "bonus_numbers": [51]
+        },
+        "2528": {  # March 29, 2025 draw
+            "numbers": [1, 16, 18, 26, 29, 36],
+            "bonus_numbers": [24]
+        },
+        "2527": {  # March 26, 2025 draw
+            "numbers": [1, 16, 19, 24, 31, 44],
+            "bonus_numbers": [51]
+        },
+        "2526": {  # March 22, 2025 draw
+            "numbers": [16, 25, 32, 39, 45, 52],
+            "bonus_numbers": [40]
+        },
+        "2525": {  # March 19, 2025 draw
+            "numbers": [4, 7, 18, 21, 39, 42],
+            "bonus_numbers": [27]
+        },
+        "2524": {  # March 15, 2025 draw
+            "numbers": [3, 26, 33, 38, 39, 41],
+            "bonus_numbers": [28]
+        },
+        "2523": {  # March 12, 2025 draw
+            "numbers": [10, 15, 17, 27, 29, 47],
+            "bonus_numbers": [31]
+        },
+        "2522": {  # March 8, 2025 draw
+            "numbers": [6, 9, 18, 22, 25, 27],
+            "bonus_numbers": [14]
+        },
         "2521": {  # March 5, 2025 draw
             "numbers": [33, 36, 38, 40, 46, 49],
             "bonus_numbers": [39]

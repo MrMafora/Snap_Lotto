@@ -102,7 +102,8 @@ async def take_screenshot_async(url):
                 # Set up context with desktop viewport and realistic user agent
                 context = await browser.new_context(
                     viewport={'width': 1366, 'height': 768},
-                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    device_scale_factor=1.5  # Higher resolution for better number recognition
                 )
                 
                 # Create page and navigate to URL
@@ -119,6 +120,34 @@ async def take_screenshot_async(url):
                 
                 # Wait for the page to render (reduced time to save memory)
                 await page.wait_for_timeout(3000)
+                
+                # Enhance lottery number display for better OCR recognition
+                await page.evaluate('''() => {
+                    // Find lottery ball elements by various common class names
+                    const ballElements = document.querySelectorAll('.ball, .lottery-ball, .number-circle, .draw-ball, [class*="ball"], [class*="number"]');
+                    
+                    // Apply styling to each ball to make numbers more readable
+                    ballElements.forEach(ball => {
+                        if (ball) {
+                            // Enhance contrast and readability
+                            ball.style.fontWeight = "900";
+                            ball.style.textShadow = "none";
+                            ball.style.fontSize = "larger";
+                            ball.style.letterSpacing = "0.5px";
+                            
+                            // Check if specific problem numbers (33, 36, 38, etc.)
+                            const numberText = ball.textContent.trim();
+                            if (['33', '36', '38', '23', '26', '28'].includes(numberText)) {
+                                // Extra enhancement for commonly misread numbers
+                                ball.style.fontWeight = "900";
+                                ball.style.letterSpacing = "1px";
+                            }
+                        }
+                    });
+                }''')
+                
+                # Wait for styling changes to apply
+                await page.wait_for_timeout(500)
                 
                 # Take the screenshot
                 await page.screenshot(path=filepath, full_page=True)

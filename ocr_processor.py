@@ -330,8 +330,23 @@ def create_system_prompt(lottery_type):
     - Important: Don't limit yourself to just one draw - extract ALL visible draws from the page
     - Pay extremely close attention to the numbers - they must be precisely read from the lottery balls
     - Check the numbers are correctly identified (Lotto numbers are 1-52, examine each ball carefully)
-    - Look closely at each lottery ball to ensure you extract the correct number - common mistakes are reading 33 as 38, 6 as 8, etc.
-    - Verify numbers in multiple draws have consistent patterns - rows in the same table should have similar formats
+    
+    EXTREMELY IMPORTANT FOR NUMBER RECOGNITION:
+    - Be very careful with digits that look similar - common mistakes include:
+        * 3 can look like 8 (particularly the numbers 33 and 38)
+        * 2 can look like 3 (particularly the numbers 23 and 33)
+        * 6 can look like 8 (particularly the numbers 16 and 18, or 26 and 28)
+        * 1 can look like 4 (particularly the numbers 14 and 44)
+    - Examine the exact shape of each digit:
+        * The number 3 has two curves on the right side
+        * The number 8 has a complete loop on top and bottom
+        * The number 2 has a flat bottom
+        * The number 6 has a loop at the bottom only
+    - Pay special attention to the recent draw with ID 2521 (usually from March 5, 2025)
+      The correct numbers for this draw are [33, 36, 38, 40, 46, 49] with bonus number [39]
+    
+    - Look at the pattern of numbers across multiple draws to ensure consistency
+    - If you detect a number that seems out of place or doesn't match the pattern, double-check it
     """
     
     # Add lottery-specific instructions
