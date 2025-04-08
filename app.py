@@ -35,7 +35,6 @@ with app.app_context():
 # Import components after database is initialized
 from scheduler import init_scheduler, schedule_task, remove_task
 from screenshot_manager import capture_screenshot
-from ocr_processor import process_screenshot
 from data_aggregator import aggregate_data, validate_and_correct_known_draws
 
 # Initialize scheduler
@@ -176,16 +175,14 @@ def run_now(id):
     """Manually run a scheduled task immediately"""
     config = ScheduleConfig.query.get_or_404(id)
     try:
-        logger.info(f"Manually capturing screenshot for {config.url}")
-        screenshot_path = capture_screenshot(config.url)
-        if screenshot_path:
-            logger.info(f"Processing screenshot with OCR: {screenshot_path}")
-            extracted_data = process_screenshot(screenshot_path, config.lottery_type)
+        logger.info(f"Manually capturing HTML content for {config.url}")
+        filepath, extracted_data = capture_screenshot(config.url, config.lottery_type)
+        if filepath and extracted_data:
             logger.info(f"Aggregating data for {config.lottery_type}")
             aggregate_data(extracted_data, config.lottery_type, config.url)
             return jsonify({'status': 'success', 'message': f'Data for {config.lottery_type} updated'})
         else:
-            return jsonify({'status': 'error', 'message': 'Failed to capture screenshot'})
+            return jsonify({'status': 'error', 'message': 'Failed to capture HTML content'})
     except Exception as e:
         logger.error(f"Error running task: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)})
@@ -209,31 +206,36 @@ def get_results(lottery_type):
     results = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).limit(limit).all()
     return jsonify([r.to_dict() for r in results])
 
-@app.route('/api/raw-ocr/<lottery_type>')
+@app.route('/api/raw-html/<lottery_type>')
 def get_raw_ocr(lottery_type):
-    """API endpoint to fetch raw OCR data for a specific lottery type"""
-    from ocr_processor import process_screenshot
+    """API endpoint to fetch raw HTML data for a specific lottery type"""
+    import html_parser
     
-    # Find the most recent screenshot for this lottery type
+    # Find the most recent screenshot record for this lottery type
     screenshot = Screenshot.query.filter_by(
         lottery_type=lottery_type
     ).order_by(Screenshot.timestamp.desc()).first()
     
     if not screenshot:
-        return jsonify({'error': 'No screenshot found for this lottery type'})
+        return jsonify({'error': 'No content found for this lottery type'})
     
-    # Process the screenshot with OCR to get raw data
+    # Read the HTML file and parse it
     try:
-        raw_data = process_screenshot(screenshot.path, lottery_type)
+        with open(screenshot.path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # Parse the HTML content
+        raw_data = html_parser.parse_lottery_html(html_content, lottery_type)
+        
         return jsonify({
-            'screenshot_info': {
+            'content_info': {
                 'id': screenshot.id,
                 'path': screenshot.path,
                 'timestamp': screenshot.timestamp.isoformat(),
                 'processed': screenshot.processed
             },
-            'raw_ocr_data': raw_data
+            'parsed_data': raw_data
         })
     except Exception as e:
-        logger.error(f"Error processing screenshot: {str(e)}")
+        logger.error(f"Error processing HTML content: {str(e)}")
         return jsonify({'error': str(e)})

@@ -4,7 +4,6 @@ from apscheduler.triggers.cron import CronTrigger
 from flask import Flask
 from models import db, ScheduleConfig
 from screenshot_manager import capture_screenshot
-from ocr_processor import process_screenshot
 from data_aggregator import aggregate_data
 
 logger = logging.getLogger(__name__)
@@ -86,8 +85,8 @@ def remove_task(scheduler, config_id):
 def run_lottery_task(url, lottery_type):
     """
     Run the lottery task workflow:
-    1. Capture screenshot
-    2. Process with OCR
+    1. Capture HTML content
+    2. Parse HTML directly
     3. Aggregate data
     
     Args:
@@ -97,19 +96,13 @@ def run_lottery_task(url, lottery_type):
     try:
         logger.info(f"Running scheduled task for {lottery_type}")
         
-        # Step 1: Capture screenshot
-        screenshot_path = capture_screenshot(url, lottery_type)
-        if not screenshot_path:
-            logger.error(f"Failed to capture screenshot for {lottery_type}")
+        # Step 1: Capture HTML content and extract data
+        filepath, extracted_data = capture_screenshot(url, lottery_type)
+        if not filepath or not extracted_data:
+            logger.error(f"Failed to capture HTML content for {lottery_type}")
             return
         
-        # Step 2: Process screenshot with OCR
-        extracted_data = process_screenshot(screenshot_path, lottery_type)
-        if not extracted_data:
-            logger.error(f"Failed to extract data from screenshot for {lottery_type}")
-            return
-        
-        # Step 3: Aggregate data
+        # Step 2: Aggregate data directly (HTML parsing is already done in capture_screenshot)
         aggregate_data(extracted_data, lottery_type, url)
         
         logger.info(f"Successfully completed task for {lottery_type}")
