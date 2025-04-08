@@ -125,7 +125,7 @@ def capture_screenshot_sync(url):
         url (str): The URL to capture
         
     Returns:
-        tuple: (filepath, screenshot_data) or (None, None) if failed
+        tuple: (filepath, screenshot_data, zoom_filepath) or (None, None, None) if failed
     """
     import time
 
@@ -205,17 +205,113 @@ def capture_screenshot_sync(url):
                 except Exception as e:
                     logger.warning(f"Error during page scrolling: {str(e)}")
                 
-                # Take a screenshot of the full page
+                # Save the full page screenshot
                 page.screenshot(path=filepath, full_page=True)
+                logger.info(f"Full screenshot saved to {filepath}")
                 
-                logger.info(f"Screenshot successfully saved to {filepath}")
+                # Create a separate zoomed-in screenshot of the main data
+                try:
+                    # For results pages, try to capture the specific lottery results box
+                    if 'results' in url.lower():
+                        # Look for the main results container with lottery numbers and divisions
+                        main_content = None
+                        
+                        # Try several potential selectors for the main content
+                        selectors = [
+                            '.results-section', 
+                            '.lottery-results', 
+                            '.main-content',
+                            '.results-container',
+                            '#results-container',
+                            'table.results-table',
+                            'div.container'
+                        ]
+                        
+                        for selector in selectors:
+                            try:
+                                main_content = page.query_selector(selector)
+                                if main_content:
+                                    logger.info(f"Found main content with selector: {selector}")
+                                    break
+                            except:
+                                continue
+                        
+                        # If we couldn't find a specific selector, try to find the red-bordered section
+                        # by looking for typical content like lottery numbers or division tables
+                        if not main_content:
+                            # Look for lottery number balls (they usually have specific classes)
+                            ball_selectors = [
+                                '.lottery-ball', 
+                                '.ball',
+                                '.number-ball',
+                                '.winning-number',
+                                'span[class*="ball"]',
+                                'div[class*="ball"]'
+                            ]
+                            
+                            for selector in ball_selectors:
+                                try:
+                                    balls = page.query_selector_all(selector)
+                                    if balls and len(balls) > 5:  # Typical lottery has at least 6 numbers
+                                        # Get the parent element that contains all balls
+                                        parent = page.evaluate('el => el.parentElement.parentElement', balls[0])
+                                        if parent:
+                                            main_content = parent
+                                            logger.info(f"Found lottery balls with selector: {selector}")
+                                            break
+                                except:
+                                    continue
+                        
+                        # As a fallback, try using a more generic approach by looking for content
+                        # with lottery keywords like "winning numbers" or "division"
+                        if not main_content:
+                            try:
+                                # Look for text content that indicates lottery results
+                                main_content = page.query_selector('div:has-text("WINNING NUMBERS"), div:has-text("Divisions"), div:has-text("DIVISION"), table:has-text("WINNERS")')
+                                logger.info("Found main content using text content search")
+                            except:
+                                pass
+                        
+                        # If we found content to zoom in on
+                        if main_content:
+                            # Use a custom filename for the zoomed screenshot
+                            zoom_filename = f"{timestamp}_{url.split('/')[-1]}_zoomed.png"
+                            zoom_filepath = os.path.join(SCREENSHOT_DIR, zoom_filename)
+                            
+                            # Take a screenshot of just this element with a bit of padding
+                            bounding_box = main_content.bounding_box()
+                            if bounding_box:
+                                # Add 20px padding around the element
+                                clip = {
+                                    'x': max(0, bounding_box['x'] - 20),
+                                    'y': max(0, bounding_box['y'] - 20),
+                                    'width': bounding_box['width'] + 40,
+                                    'height': bounding_box['height'] + 40
+                                }
+                                
+                                # Take the zoomed screenshot
+                                page.screenshot(path=zoom_filepath, clip=clip)
+                                logger.info(f"Zoomed screenshot saved to {zoom_filepath}")
+                                
+                                # Return both filepaths so they can be saved to the database
+                                return filepath, screenshot_data, zoom_filepath
+                        else:
+                            logger.warning("Could not find a specific content area to zoom in on")
                 
-                # Read the saved screenshot file to return its content
+                except Exception as e:
+                    logger.error(f"Error creating zoomed screenshot: {str(e)}")
+                    # Continue with the regular screenshot even if zoomed fails
+                
+                logger.info(f"Screenshot process completed for {url}")
+                
+                # If we got this far, we didn't capture a zoomed screenshot yet
+                # Read the full screenshot data
                 with open(filepath, 'rb') as f:
                     screenshot_data = f.read()
                 
                 browser.close()
-                return filepath, screenshot_data
+                # Return without zoomed path
+                return filepath, screenshot_data, None
                 
             except Exception as e:
                 logger.error(f"Playwright screenshot capture failed: {str(e)}")
@@ -227,12 +323,12 @@ def capture_screenshot_sync(url):
                 except:
                     pass
                 
-                return None, None
+                return None, None, None
             
     except Exception as e:
         logger.error(f"Error capturing screenshot: {str(e)}")
         traceback.print_exc()
-        return None, None
+        return None, None, None
 
 def capture_screenshot(url, lottery_type=None):
     """
@@ -246,7 +342,7 @@ def capture_screenshot(url, lottery_type=None):
         lottery_type (str, optional): The type of lottery. If None, extracted from URL.
         
     Returns:
-        tuple: (filepath, screenshot_data) or (None, None) if failed
+        tuple: (filepath, screenshot_data, zoom_filepath) or (None, None, None) if failed
     """
     if not lottery_type:
         lottery_type = extract_lottery_type_from_url(url)
@@ -255,11 +351,11 @@ def capture_screenshot(url, lottery_type=None):
     # This prevents "can't start new thread" errors
     if not screenshot_semaphore.acquire(blocking=True, timeout=300):
         logger.error(f"Could not acquire screenshot semaphore for {lottery_type} after waiting 5 minutes")
-        return None, None
+        return None, None, None
     
     try:
         # Use the sync method instead of async to avoid event loop issues
-        filepath, screenshot_data = capture_screenshot_sync(url)
+        filepath, screenshot_data, zoom_filepath = capture_screenshot_sync(url)
         
         if filepath and screenshot_data:
             try:
@@ -275,6 +371,7 @@ def capture_screenshot(url, lottery_type=None):
                             lottery_type=lottery_type,
                             timestamp=datetime.now(),
                             path=filepath,
+                            zoomed_path=zoom_filepath,
                             processed=False
                         )
                         
@@ -289,6 +386,7 @@ def capture_screenshot(url, lottery_type=None):
                         lottery_type=lottery_type,
                         timestamp=datetime.now(),
                         path=filepath,
+                        zoomed_path=zoom_filepath,
                         processed=False
                     )
                     
@@ -301,18 +399,18 @@ def capture_screenshot(url, lottery_type=None):
                 traceback.print_exc()
                 # Still return the filepath so OCR can be attempted
             
-            return filepath, None  # Return None for extracted data to use OCR
+            return filepath, None, zoom_filepath  # Return None for extracted data to use OCR
     except Exception as e:
         logger.error(f"Error in capture_screenshot: {str(e)}")
         traceback.print_exc()
-        return None, None
+        return None, None, None
     finally:
         # Always release the semaphore in the finally block
         # to ensure it's released even if an exception occurs
         screenshot_semaphore.release()
         logger.debug(f"Released screenshot semaphore for {lottery_type}")
     
-    return None, None
+    return None, None, None
 
 def extract_lottery_type_from_url(url):
     """Extract lottery type from the URL"""
@@ -397,10 +495,15 @@ def cleanup_old_screenshots():
                                 result.screenshot_id = None
                             db.session.commit()
                                 
-                        # Delete the file from disk
+                        # Delete the files from disk
                         if os.path.exists(screenshot.path):
                             os.remove(screenshot.path)
                             logger.info(f"Deleted old screenshot file: {screenshot.path}")
+                            
+                        # Delete the zoomed screenshot if it exists
+                        if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                            os.remove(screenshot.zoomed_path)
+                            logger.info(f"Deleted old zoomed screenshot file: {screenshot.zoomed_path}")
                         
                         # Delete the database record
                         db.session.delete(screenshot)
