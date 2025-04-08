@@ -210,18 +210,8 @@ def capture_screenshot(url, lottery_type=None):
         lottery_type = extract_lottery_type_from_url(url)
     
     try:
-        # Try async method first
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        filepath, screenshot_data = loop.run_until_complete(capture_screenshot_async(url))
-        
-        # If async failed, try sync method
-        if not filepath:
-            filepath, screenshot_data = capture_screenshot_sync(url)
+        # Use the sync method instead of async to avoid event loop issues
+        filepath, screenshot_data = capture_screenshot_sync(url)
         
         if filepath and screenshot_data:
             # Save screenshot metadata to database
@@ -241,6 +231,7 @@ def capture_screenshot(url, lottery_type=None):
             return filepath, None  # Return None for extracted data to use OCR
     except Exception as e:
         logger.error(f"Error in capture_screenshot: {str(e)}")
+        traceback.print_exc()
     
     return None, None
 
