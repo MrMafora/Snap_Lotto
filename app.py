@@ -590,15 +590,32 @@ def get_raw_ocr(lottery_type):
     try:
         raw_data = process_screenshot(screenshot.path, lottery_type)
         
-        return jsonify({
+        # Extract OCR provider information
+        ocr_provider = raw_data.get('ocr_provider', 'unknown')
+        ocr_model = raw_data.get('ocr_model', 'unknown')
+        chat_model = raw_data.get('chat_model', None)
+        
+        # Build enhanced response
+        response = {
             'screenshot_info': {
                 'id': screenshot.id,
                 'path': screenshot.path,
                 'timestamp': screenshot.timestamp.isoformat(),
                 'processed': screenshot.processed
             },
+            'ocr_info': {
+                'provider': ocr_provider,
+                'model': ocr_model,
+                'timestamp': raw_data.get('ocr_timestamp')
+            },
             'ocr_data': raw_data
-        })
+        }
+        
+        # Add chat model info if available (Mistral uses separate OCR and chat models)
+        if chat_model:
+            response['ocr_info']['chat_model'] = chat_model
+            
+        return jsonify(response)
     except Exception as e:
         logger.error(f"Error processing screenshot with OCR: {str(e)}")
         return jsonify({'error': str(e)})

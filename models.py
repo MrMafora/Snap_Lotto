@@ -37,6 +37,9 @@ class LotteryResult(db.Model):
     divisions = db.Column(db.Text, nullable=True, comment="Prize Divisions Data (JSON string)")  # Stored as JSON string with division, winners, and prize amount
     source_url = db.Column(db.String(255), nullable=False)
     screenshot_id = db.Column(db.Integer, db.ForeignKey('screenshot.id'), nullable=True)
+    ocr_provider = db.Column(db.String(50), nullable=True, comment="OCR Provider (anthropic, mistral, etc.)")
+    ocr_model = db.Column(db.String(100), nullable=True, comment="OCR Model used")
+    ocr_timestamp = db.Column(db.DateTime, nullable=True, comment="When OCR was performed")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Unique constraint to prevent duplicate entries
@@ -73,7 +76,12 @@ class LotteryResult(db.Model):
             'winning_numbers': self.get_numbers_list(),  # Updated field name for API
             'bonus_numbers': self.get_bonus_numbers_list(),
             'divisions': self.get_divisions(),
-            'source_url': self.source_url
+            'source_url': self.source_url,
+            'ocr_info': {
+                'provider': self.ocr_provider,
+                'model': self.ocr_model,
+                'timestamp': self.ocr_timestamp.isoformat() if self.ocr_timestamp else None
+            }
         }
 
 class ScheduleConfig(db.Model):

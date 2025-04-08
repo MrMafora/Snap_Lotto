@@ -383,6 +383,18 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                 if not existing_result:
                     # Create new lottery result only if we have valid numbers
                     if has_valid_numbers:
+                        # Extract OCR provider information if available
+                        ocr_provider = extracted_data.get('ocr_provider', None)
+                        ocr_model = extracted_data.get('ocr_model', None)
+                        ocr_timestamp = None
+                        
+                        # Parse OCR timestamp if available
+                        if 'ocr_timestamp' in extracted_data:
+                            try:
+                                ocr_timestamp = datetime.fromisoformat(extracted_data['ocr_timestamp'])
+                            except (ValueError, TypeError):
+                                logger.warning(f"Invalid OCR timestamp format: {extracted_data.get('ocr_timestamp')}")
+                        
                         lottery_result = LotteryResult(
                             lottery_type=lottery_type,
                             draw_number=draw_number,
@@ -391,7 +403,10 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                             bonus_numbers=bonus_numbers_json,
                             divisions=divisions_json,
                             source_url=source_url,
-                            screenshot_id=screenshot.id if screenshot else None
+                            screenshot_id=screenshot.id if screenshot else None,
+                            ocr_provider=ocr_provider,
+                            ocr_model=ocr_model,
+                            ocr_timestamp=ocr_timestamp
                         )
                         
                         db.session.add(lottery_result)
@@ -442,6 +457,20 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                             logger.info(f"Updated divisions data for {lottery_type}, draw {draw_number}")
                     
                     if should_update:
+                        # Update OCR provider information if available
+                        if 'ocr_provider' in extracted_data and not existing_result.ocr_provider:
+                            existing_result.ocr_provider = extracted_data.get('ocr_provider')
+                            
+                        if 'ocr_model' in extracted_data and not existing_result.ocr_model:
+                            existing_result.ocr_model = extracted_data.get('ocr_model')
+                            
+                        # Parse and update OCR timestamp if available
+                        if 'ocr_timestamp' in extracted_data and not existing_result.ocr_timestamp:
+                            try:
+                                existing_result.ocr_timestamp = datetime.fromisoformat(extracted_data['ocr_timestamp'])
+                            except (ValueError, TypeError):
+                                logger.warning(f"Invalid OCR timestamp format: {extracted_data.get('ocr_timestamp')}")
+                        
                         existing_result.source_url = source_url
                         if screenshot:
                             existing_result.screenshot_id = screenshot.id

@@ -141,7 +141,10 @@ def process_screenshot(screenshot_path, lottery_type):
                     "bonus_numbers": [] if "daily lotto" in lottery_type.lower() else [0]
                 }
             ],
-            "ocr_timestamp": datetime.utcnow().isoformat()
+            "ocr_timestamp": datetime.utcnow().isoformat(),
+            "ocr_provider": "unknown",
+            "ocr_model": "unknown",
+            "error": f"Invalid file type: {file_extension}. Expected a PNG/JPEG screenshot."
         }
     
     # Read the screenshot file and convert to base64
@@ -154,6 +157,8 @@ def process_screenshot(screenshot_path, lottery_type):
             "lottery_type": lottery_type,
             "results": [],
             "ocr_timestamp": datetime.utcnow().isoformat(),
+            "ocr_provider": "unknown",
+            "ocr_model": "unknown",
             "error": f"Error reading image file: {str(e)}"
         }
     
@@ -197,7 +202,9 @@ def process_screenshot(screenshot_path, lottery_type):
                 "bonus_numbers": [] if "daily lotto" in lottery_type.lower() else [0]
             }
         ],
-        "ocr_timestamp": datetime.utcnow().isoformat()
+        "ocr_timestamp": datetime.utcnow().isoformat(),
+        "ocr_provider": "unknown",
+        "ocr_model": "unknown"
     }
     logger.info(f"Using default result for {lottery_type}")
     return default_result
@@ -270,6 +277,10 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
             # Add source information
             result['ocr_timestamp'] = datetime.utcnow().isoformat()
             
+            # Add OCR provider information
+            result['ocr_provider'] = "anthropic"
+            result['ocr_model'] = "claude-3-5-sonnet-20241022"
+            
             # Save the full raw response for debugging
             result['raw_response'] = response_text
             
@@ -283,6 +294,8 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
                 "lottery_type": lottery_type,
                 "results": [],
                 "ocr_timestamp": datetime.utcnow().isoformat(),
+                "ocr_provider": "anthropic",
+                "ocr_model": "claude-3-5-sonnet-20241022",
                 "raw_response": response_text,
                 "error": f"JSON decode error: {str(e)}"
             }
@@ -294,6 +307,8 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
             "lottery_type": lottery_type,
             "results": [],
             "ocr_timestamp": datetime.utcnow().isoformat(),
+            "ocr_provider": "anthropic",
+            "ocr_model": "claude-3-5-sonnet-20241022",
             "error": f"Anthropic processing error: {str(e)}"
         }
 
@@ -429,6 +444,11 @@ def process_with_mistral(base64_content, lottery_type, system_prompt):
             # Add source information
             result['ocr_timestamp'] = datetime.utcnow().isoformat()
             
+            # Add OCR provider information
+            result['ocr_provider'] = "mistral"
+            result['ocr_model'] = "mistral-large-vision-2"
+            result['chat_model'] = "open-mixtral-8x22b"
+            
             # Save the full raw response for debugging
             result['raw_response'] = response_text
             result['ocr_text'] = ocr_text  # Save the raw OCR text
@@ -443,6 +463,9 @@ def process_with_mistral(base64_content, lottery_type, system_prompt):
                 "lottery_type": lottery_type,
                 "results": [],
                 "ocr_timestamp": datetime.utcnow().isoformat(),
+                "ocr_provider": "mistral",
+                "ocr_model": "mistral-large-vision-2",
+                "chat_model": "open-mixtral-8x22b",
                 "raw_response": response_text,
                 "ocr_text": ocr_text,
                 "error": f"JSON decode error: {str(e)}"
@@ -455,6 +478,9 @@ def process_with_mistral(base64_content, lottery_type, system_prompt):
             "lottery_type": lottery_type,
             "results": [],
             "ocr_timestamp": datetime.utcnow().isoformat(),
+            "ocr_provider": "mistral",
+            "ocr_model": "mistral-large-vision-2",
+            "chat_model": "open-mixtral-8x22b",
             "error": f"Mistral processing error: {str(e)}"
         }
 
@@ -499,6 +525,8 @@ def process_with_ai(screenshot_path, lottery_type):
                 "lottery_type": lottery_type,
                 "results": [],
                 "ocr_timestamp": datetime.utcnow().isoformat(),
+                "ocr_provider": "unknown",
+                "ocr_model": "unknown",
                 "error": error_message
             }
     except Exception as e:
@@ -507,6 +535,8 @@ def process_with_ai(screenshot_path, lottery_type):
             "lottery_type": lottery_type,
             "results": [],
             "ocr_timestamp": datetime.utcnow().isoformat(),
+            "ocr_provider": "unknown",
+            "ocr_model": "unknown",
             "error": f"AI processing error: {str(e)}"
         }
 

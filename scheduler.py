@@ -117,7 +117,16 @@ def run_lottery_task(url, lottery_type):
             # Ensure we have an application context for all database operations
             with app.app_context():
                 # Step 1: Capture screenshot directly
-                filepath, _ = capture_screenshot(url, lottery_type)
+                capture_result = capture_screenshot(url, lottery_type)
+                
+                # Unpack the values - either we get (filepath, screenshot_data, zoom_filepath)
+                # or we get None if the capture failed
+                if not capture_result:
+                    logger.error(f"Failed to capture screenshot for {lottery_type}")
+                    return False
+                    
+                # Unpack the result
+                filepath, screenshot_data, zoom_filepath = capture_result
                 
                 # Only proceed if we have a valid screenshot filepath
                 if not filepath:

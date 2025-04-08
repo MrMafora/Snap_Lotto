@@ -79,6 +79,31 @@
                 </div>
                 
                 <div class="mt-4">
+                    <!-- OCR Provider Information Section -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="card bg-light">
+                                <div class="card-body p-3">
+                                    <h6 class="mb-2">Data Extraction Information</h6>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <small class="text-muted d-block">OCR Provider:</small>
+                                            <span class="fw-bold">{{ result.ocr_provider if result.ocr_provider else 'Unknown' }}</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted d-block">Model Used:</small>
+                                            <span class="fw-bold">{{ result.ocr_model if result.ocr_model else 'Unknown' }}</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted d-block">Extraction Time:</small>
+                                            <span class="fw-bold">{{ result.ocr_timestamp.strftime('%Y-%m-%d %H:%M') if result.ocr_timestamp else 'Unknown' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-12">
                             {% if divisions %}
