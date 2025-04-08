@@ -279,24 +279,44 @@ def visualization_data():
     if data_type == 'numbers_frequency':
         # Calculate frequency of each number
         frequencies = {}
+        total_draws = len(results)
+        
+        # Initialize all possible numbers based on lottery type
+        max_number = 49  # Default for regular lotto
+        if lottery_type and 'daily' in lottery_type.lower():
+            max_number = 36  # Daily Lotto uses 1-36
+        
+        # Initialize all possible numbers with zero frequency
+        for i in range(1, max_number + 1):
+            frequencies[i] = 0
+            
+        # Count actual frequencies
         for result in results:
             numbers = result.get_numbers_list()
             for num in numbers:
                 if num in frequencies:
                     frequencies[num] += 1
-                else:
-                    frequencies[num] = 1
+        
+        # Convert to sorted list of dictionaries for easier manipulation in JavaScript
+        sorted_frequencies = []
+        for num, freq in sorted(frequencies.items(), key=lambda x: int(x[0])):
+            sorted_frequencies.append({
+                'number': str(num),
+                'frequency': freq
+            })
         
         # Format for Chart.js
         chart_data = {
-            'labels': list(frequencies.keys()),
+            'labels': [item['number'] for item in sorted_frequencies],
             'datasets': [{
                 'label': f'Number Frequency for {lottery_type if lottery_type else "All Types"}',
-                'data': list(frequencies.values()),
+                'data': [item['frequency'] for item in sorted_frequencies],
                 'backgroundColor': 'rgba(54, 162, 235, 0.6)',
                 'borderColor': 'rgba(54, 162, 235, 1)',
                 'borderWidth': 1
-            }]
+            }],
+            'frequencies': sorted_frequencies,  # Add sorted frequency data for better insights
+            'totalDraws': total_draws
         }
         
         return jsonify(chart_data)

@@ -366,35 +366,61 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Insight generator functions
     function generateNumberFrequencyInsights(data) {
-        // Find most and least frequent numbers
-        const numbers = data.labels;
-        const frequencies = data.datasets[0].data;
+        let numberFrequencies;
         
-        // Combine numbers and frequencies into an array of objects
-        const numberFrequencies = numbers.map((num, i) => ({ number: num, frequency: frequencies[i] }));
+        // Use the pre-calculated frequencies if available
+        if (data.frequencies) {
+            numberFrequencies = [...data.frequencies];
+        } else {
+            // Legacy handling for older data format
+            const numbers = data.labels;
+            const frequencies = data.datasets[0].data;
+            
+            // Combine numbers and frequencies into an array of objects
+            numberFrequencies = numbers.map((num, i) => ({ number: num, frequency: frequencies[i] }));
+        }
         
         // Sort by frequency (descending)
         numberFrequencies.sort((a, b) => b.frequency - a.frequency);
         
+        // Filter to only include numbers that have appeared at least once
+        const appearedNumbers = numberFrequencies.filter(item => item.frequency > 0);
+        
         // Most frequent numbers (top 3)
-        const mostFrequent = numberFrequencies.slice(0, 3);
-        addInsight(`Most frequent numbers: ${mostFrequent.map(item => `${item.number} (${item.frequency} times)`).join(', ')}`);
+        if (appearedNumbers.length > 0) {
+            const mostFrequent = appearedNumbers.slice(0, 3);
+            addInsight(`Most frequent numbers: ${mostFrequent.map(item => `${item.number} (${item.frequency} times)`).join(', ')}`);
         
-        // Least frequent numbers (bottom 3)
-        const leastFrequent = numberFrequencies.slice(-3).reverse();
-        addInsight(`Least frequent numbers: ${leastFrequent.map(item => `${item.number} (${item.frequency} times)`).join(', ')}`);
-        
-        // Average frequency
-        const totalFrequency = frequencies.reduce((sum, freq) => sum + freq, 0);
-        const averageFrequency = totalFrequency / frequencies.length;
-        addInsight(`Average number frequency: ${averageFrequency.toFixed(2)} times`);
+            // Least frequent numbers (bottom 3)
+            if (appearedNumbers.length >= 3) {
+                const leastFrequent = appearedNumbers.slice(-3).reverse();
+                addInsight(`Least frequent numbers: ${leastFrequent.map(item => `${item.number} (${item.frequency} times)`).join(', ')}`);
+            }
+            
+            // Average frequency of numbers that have appeared
+            const totalFrequency = appearedNumbers.reduce((sum, item) => sum + item.frequency, 0);
+            const averageFrequency = totalFrequency / appearedNumbers.length;
+            addInsight(`Average number frequency: ${averageFrequency.toFixed(2)} times`);
+        }
         
         // Numbers that never appeared
-        const maxPossibleNumber = 49; // Assuming standard lottery range
+        const maxPossibleNumber = getLotteryMaxNumber(currentLotteryType); // Get appropriate range based on lottery type
         const missingNumbers = [];
         for (let i = 1; i <= maxPossibleNumber; i++) {
-            if (!numbers.includes(i.toString())) {
+            // Check if number exists in the frequencies data
+            const numStr = i.toString();
+            const found = numberFrequencies.some(item => item.number === numStr);
+            if (!found) {
                 missingNumbers.push(i);
+            }
+        }
+        
+        // Helper function to determine max number based on lottery type
+        function getLotteryMaxNumber(lotteryType) {
+            if (lotteryType && lotteryType.toLowerCase().includes('daily')) {
+                return 36; // Daily Lotto uses numbers 1-36
+            } else {
+                return 49; // Regular Lotto uses numbers 1-49
             }
         }
         
