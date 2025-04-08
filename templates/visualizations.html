@@ -1,0 +1,417 @@
+{% extends "layout.html" %}
+
+{% block title %} - Data Visualizations{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">Lottery Data Visualizations</h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    Analyze lottery data through interactive visualizations to identify patterns, frequencies, 
+                    and distribution of winners and prizes.
+                </p>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="lottery-type-select">Filter by Lottery Type:</label>
+                            <select id="lottery-type-select" class="form-select">
+                                <option value="">All Types</option>
+                                {% for type in lottery_types %}
+                                <option value="{{ type }}">{{ type }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="chart-type-select">Visualization Type:</label>
+                            <select id="chart-type-select" class="form-select">
+                                <option value="numbers_frequency">Number Frequency</option>
+                                <option value="winners_by_division">Winners by Division</option>
+                                <option value="prize_amounts">Prize Amounts</option>
+                                <option value="draw_dates">Draw Date Distribution</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Visualization Charts -->
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title" id="chart-title">Number Frequency Analysis</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="position: relative; height:50vh; width:100%">
+                    <canvas id="main-chart"></canvas>
+                </div>
+                <div class="text-center mt-3 d-none" id="no-data-message">
+                    <div class="alert alert-warning">
+                        No data available for the selected filters. Try a different lottery type or visualization.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis and Insights -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title">Key Insights</h5>
+            </div>
+            <div class="card-body">
+                <div id="insights-container">
+                    <ul class="list-group list-group-flush" id="insights-list">
+                        <li class="list-group-item">Select a lottery type and visualization to see insights.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title">Latest Draw Results</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="latest-results-table">
+                        <thead>
+                            <tr>
+                                <th>Game Type</th>
+                                <th>Draw ID</th>
+                                <th>Date</th>
+                                <th>Numbers</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in latest_results %}
+                            <tr>
+                                <td>{{ result.lottery_type }}</td>
+                                <td>{{ result.draw_number }}</td>
+                                <td>{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% for num in result.get_numbers_list() %}
+                                        <span class="badge bg-primary rounded-circle">{{ num }}</span>
+                                    {% endfor %}
+                                    {% if result.bonus_numbers %}
+                                        <span class="text-muted">+</span>
+                                        {% for num in result.get_bonus_numbers_list() %}
+                                            <span class="badge bg-warning rounded-circle">{{ num }}</span>
+                                        {% endfor %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize variables
+    let mainChart = null;
+    const chartContainer = document.getElementById('main-chart');
+    const chartTitle = document.getElementById('chart-title');
+    const noDataMessage = document.getElementById('no-data-message');
+    const insightsList = document.getElementById('insights-list');
+    const lotteryTypeSelect = document.getElementById('lottery-type-select');
+    const chartTypeSelect = document.getElementById('chart-type-select');
+    
+    // Function to update the chart
+    async function updateChart() {
+        // Get selected values
+        const lotteryType = lotteryTypeSelect.value;
+        const chartType = chartTypeSelect.value;
+        
+        // Update chart title
+        updateChartTitle(chartType, lotteryType);
+        
+        // Fetch data from API
+        try {
+            const response = await fetch(`/api/visualization-data?lottery_type=${lotteryType}&data_type=${chartType}`);
+            const data = await response.json();
+            
+            // Check if we have valid data
+            if (data.error || !data.labels || data.labels.length === 0) {
+                showNoDataMessage();
+                clearInsights();
+                return;
+            }
+            
+            // Hide no data message if it was previously shown
+            hideNoDataMessage();
+            
+            // Create or update chart
+            createOrUpdateChart(data, chartType);
+            
+            // Generate insights
+            generateInsights(data, chartType, lotteryType);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            showNoDataMessage();
+            clearInsights();
+        }
+    }
+    
+    // Function to update chart title
+    function updateChartTitle(chartType, lotteryType) {
+        const lotteryName = lotteryType ? lotteryType : 'All Lottery Types';
+        
+        switch (chartType) {
+            case 'numbers_frequency':
+                chartTitle.textContent = `Number Frequency Analysis - ${lotteryName}`;
+                break;
+            case 'winners_by_division':
+                chartTitle.textContent = `Winners by Division - ${lotteryName}`;
+                break;
+            case 'prize_amounts':
+                chartTitle.textContent = `Average Prize Amounts - ${lotteryName}`;
+                break;
+            case 'draw_dates':
+                chartTitle.textContent = `Draw Date Distribution - ${lotteryName}`;
+                break;
+            default:
+                chartTitle.textContent = `Lottery Data Analysis - ${lotteryName}`;
+        }
+    }
+    
+    // Function to show no data message
+    function showNoDataMessage() {
+        if (mainChart) {
+            mainChart.destroy();
+            mainChart = null;
+        }
+        noDataMessage.classList.remove('d-none');
+    }
+    
+    // Function to hide no data message
+    function hideNoDataMessage() {
+        noDataMessage.classList.add('d-none');
+    }
+    
+    // Function to create or update the chart
+    function createOrUpdateChart(data, chartType) {
+        // Determine chart type based on the data
+        let chartConfig = {
+            type: 'bar',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                }
+            }
+        };
+        
+        // Customize chart based on data type
+        if (chartType === 'draw_dates') {
+            chartConfig.type = 'line';
+        }
+        
+        // Create new chart or update existing one
+        if (mainChart) {
+            mainChart.data = data;
+            mainChart.config.type = chartConfig.type;
+            mainChart.update();
+        } else {
+            mainChart = new Chart(chartContainer, chartConfig);
+        }
+    }
+    
+    // Function to generate insights
+    function generateInsights(data, chartType, lotteryType) {
+        // Clear previous insights
+        clearInsights();
+        
+        // Generate insights based on chart type
+        switch (chartType) {
+            case 'numbers_frequency':
+                generateNumberFrequencyInsights(data);
+                break;
+            case 'winners_by_division':
+                generateWinnersByDivisionInsights(data);
+                break;
+            case 'prize_amounts':
+                generatePrizeAmountsInsights(data);
+                break;
+            case 'draw_dates':
+                generateDrawDatesInsights(data);
+                break;
+        }
+    }
+    
+    // Function to clear insights
+    function clearInsights() {
+        insightsList.innerHTML = '';
+    }
+    
+    // Function to add an insight
+    function addInsight(text) {
+        const li = document.createElement('li');
+        li.className = 'list-group-item';
+        li.textContent = text;
+        insightsList.appendChild(li);
+    }
+    
+    // Insight generator functions
+    function generateNumberFrequencyInsights(data) {
+        // Find most and least frequent numbers
+        const numbers = data.labels;
+        const frequencies = data.datasets[0].data;
+        
+        // Combine numbers and frequencies into an array of objects
+        const numberFrequencies = numbers.map((num, i) => ({ number: num, frequency: frequencies[i] }));
+        
+        // Sort by frequency (descending)
+        numberFrequencies.sort((a, b) => b.frequency - a.frequency);
+        
+        // Most frequent numbers (top 3)
+        const mostFrequent = numberFrequencies.slice(0, 3);
+        addInsight(`Most frequent numbers: ${mostFrequent.map(item => `${item.number} (${item.frequency} times)`).join(', ')}`);
+        
+        // Least frequent numbers (bottom 3)
+        const leastFrequent = numberFrequencies.slice(-3).reverse();
+        addInsight(`Least frequent numbers: ${leastFrequent.map(item => `${item.number} (${item.frequency} times)`).join(', ')}`);
+        
+        // Average frequency
+        const totalFrequency = frequencies.reduce((sum, freq) => sum + freq, 0);
+        const averageFrequency = totalFrequency / frequencies.length;
+        addInsight(`Average number frequency: ${averageFrequency.toFixed(2)} times`);
+        
+        // Numbers that never appeared
+        const maxPossibleNumber = 49; // Assuming standard lottery range
+        const missingNumbers = [];
+        for (let i = 1; i <= maxPossibleNumber; i++) {
+            if (!numbers.includes(i.toString())) {
+                missingNumbers.push(i);
+            }
+        }
+        
+        if (missingNumbers.length > 0) {
+            addInsight(`Numbers that never appeared: ${missingNumbers.join(', ')}`);
+        }
+    }
+    
+    function generateWinnersByDivisionInsights(data) {
+        // Calculate total winners
+        const totalWinners = data.datasets[0].data.reduce((sum, winners) => sum + winners, 0);
+        addInsight(`Total winners across all divisions: ${totalWinners}`);
+        
+        // Find division with most winners
+        const divisions = data.labels;
+        const winners = data.datasets[0].data;
+        
+        // Combine divisions and winners into an array of objects
+        const divisionWinners = divisions.map((div, i) => ({ division: div, winners: winners[i] }));
+        
+        // Sort by winners (descending)
+        divisionWinners.sort((a, b) => b.winners - a.winners);
+        
+        // Division with most winners
+        const mostWinners = divisionWinners[0];
+        addInsight(`Division with most winners: ${mostWinners.division} (${mostWinners.winners} winners)`);
+        
+        // Division with least winners
+        const leastWinners = divisionWinners[divisionWinners.length - 1];
+        addInsight(`Division with least winners: ${leastWinners.division} (${leastWinners.winners} winners)`);
+        
+        // Percentage of winners in top division
+        const topDivisionPercentage = (mostWinners.winners / totalWinners) * 100;
+        addInsight(`${mostWinners.division} accounts for ${topDivisionPercentage.toFixed(2)}% of all winners`);
+    }
+    
+    function generatePrizeAmountsInsights(data) {
+        // Find highest and lowest average prizes
+        const divisions = data.labels;
+        const prizes = data.datasets[0].data;
+        
+        // Combine divisions and prizes into an array of objects
+        const divisionPrizes = divisions.map((div, i) => ({ division: div, prize: prizes[i] }));
+        
+        // Sort by prize (descending)
+        divisionPrizes.sort((a, b) => b.prize - a.prize);
+        
+        // Division with highest average prize
+        const highestPrize = divisionPrizes[0];
+        addInsight(`Highest average prize: ${highestPrize.division} (R${highestPrize.prize.toFixed(2)})`);
+        
+        // Division with lowest average prize
+        const lowestPrize = divisionPrizes[divisionPrizes.length - 1];
+        addInsight(`Lowest average prize: ${lowestPrize.division} (R${lowestPrize.prize.toFixed(2)})`);
+        
+        // Calculate prize difference between highest and lowest division
+        const priceDifference = highestPrize.prize - lowestPrize.prize;
+        addInsight(`Prize difference between highest and lowest: R${priceDifference.toFixed(2)}`);
+        
+        // Check for outliers (prizes significantly higher than others)
+        const averagePrize = prizes.reduce((sum, prize) => sum + prize, 0) / prizes.length;
+        const outliers = divisionPrizes.filter(item => item.prize > averagePrize * 2);
+        
+        if (outliers.length > 0) {
+            addInsight(`Divisions with unusually high prizes: ${outliers.map(item => item.division).join(', ')}`);
+        }
+    }
+    
+    function generateDrawDatesInsights(data) {
+        // Find dates with most draws
+        const dates = data.labels;
+        const counts = data.datasets[0].data;
+        
+        // Combine dates and counts into an array of objects
+        const dateCounts = dates.map((date, i) => ({ date: date, count: counts[i] }));
+        
+        // Sort by count (descending)
+        dateCounts.sort((a, b) => b.count - a.count);
+        
+        // Date with most draws
+        const mostDraws = dateCounts[0];
+        addInsight(`Date with most draws: ${mostDraws.date} (${mostDraws.count} draws)`);
+        
+        // Calculate total draws
+        const totalDraws = counts.reduce((sum, count) => sum + count, 0);
+        addInsight(`Total number of draws: ${totalDraws}`);
+        
+        // Calculate average draws per date
+        const averageDraws = totalDraws / dates.length;
+        addInsight(`Average draws per date: ${averageDraws.toFixed(2)}`);
+        
+        // Identify date ranges
+        if (dates.length > 1) {
+            const startDate = dates[0];
+            const endDate = dates[dates.length - 1];
+            addInsight(`Date range of recorded draws: ${startDate} to ${endDate}`);
+        }
+    }
+    
+    // Event listeners for selects
+    lotteryTypeSelect.addEventListener('change', updateChart);
+    chartTypeSelect.addEventListener('change', updateChart);
+    
+    // Initial chart update
+    updateChart();
+});
+</script>
+{% endblock %}
