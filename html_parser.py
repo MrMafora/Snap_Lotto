@@ -407,9 +407,20 @@ def extract_divisions_data(soup, html_content, lottery_type):
                         prize_match = re.search(r'R\s*(\d+(?:,\d+)*(?:\.\d+)?)', row_text, re.IGNORECASE)
                         if not prize_match:
                             # Try without the R prefix
-                            prize_match = re.search(r'(?<![a-zA-Z])\d+(?:,\d+)*\.\d+', row_text)
+                            prize_match = re.search(r'(?<![a-zA-Z])(\d+(?:,\d+)*(?:\.\d+)?)', row_text)
                             
-                        prize_amount = prize_match.group(0).replace('R', '').replace(',', '').strip() if prize_match else "0"
+                        if prize_match:
+                            # Keep commas for display/readability but remove 'R'
+                            prize_amount = prize_match.group(0).replace('R', '').strip()
+                            # Check if we have a non-zero amount
+                            try:
+                                float_amount = float(prize_amount.replace(',', ''))
+                                if float_amount == 0:
+                                    prize_amount = ""  # Use empty string for zero amounts
+                            except ValueError:
+                                prize_amount = ""  # Use empty string if conversion fails
+                        else:
+                            prize_amount = ""  # Use empty string instead of "0"
                         
                         divisions_data[division_name] = {
                             "winners": winners_count,
@@ -491,13 +502,21 @@ def extract_divisions_data(soup, html_content, lottery_type):
                                 winners_count = int(winners_match.group(1).replace(',', ''))
                                 
                         # Extract prize amount
-                        prize_amount = "0"
+                        prize_amount = ""  # Default to empty string instead of "0"
                         if prize_idx is not None and prize_idx < len(cells):
                             prize_text = cells[prize_idx].get_text().strip()
                             # Look for currency amounts
                             prize_match = re.search(r'(?:R|ZAR|£|\$)?\s*(\d+(?:,\d+)*(?:\.\d+)?)', prize_text)
                             if prize_match:
-                                prize_amount = prize_match.group(1).replace(',', '')
+                                # Keep commas for display/readability
+                                prize_amount = prize_match.group(0).replace('R', '').replace('ZAR', '').strip()
+                                # Check if we have a non-zero amount
+                                try:
+                                    float_amount = float(prize_amount.replace(',', ''))
+                                    if float_amount == 0:
+                                        prize_amount = ""  # Use empty string for zero amounts
+                                except ValueError:
+                                    prize_amount = ""  # Use empty string if conversion fails
                                 
                         # Add to divisions data
                         divisions_data[division_name] = {
@@ -543,7 +562,18 @@ def extract_divisions_data(soup, html_content, lottery_type):
                         
                         # Extract prize
                         prize_match = re.search(r'(?:prize|amount|won):?\s*(?:R|ZAR|£|\$)?\s*(\d+(?:,\d+)*(?:\.\d+)?)', sub_text)
-                        prize_amount = prize_match.group(1).replace(',', '') if prize_match else "0"
+                        if prize_match:
+                            # Keep commas for display/readability
+                            prize_amount = prize_match.group(0).replace('R', '').replace('ZAR', '').strip()
+                            # Check if we have a non-zero amount
+                            try:
+                                float_amount = float(prize_amount.replace(',', ''))
+                                if float_amount == 0:
+                                    prize_amount = ""  # Use empty string for zero amounts
+                            except ValueError:
+                                prize_amount = ""  # Use empty string if conversion fails
+                        else:
+                            prize_amount = ""  # Use empty string instead of "0"
                         
                         # Add to divisions data
                         divisions_data[division_name] = {
@@ -586,8 +616,19 @@ def extract_divisions_data(soup, html_content, lottery_type):
                         winners_count = int(winners_match.group(1)) if winners_match else 0
                         
                         # Extract prize
-                        prize_match = re.search(r'"(?:prize|amount|winnings|value)"\s*:\s*"?(\d+(?:\.\d+)?)"?', div_obj)
-                        prize_amount = prize_match.group(1) if prize_match else "0"
+                        prize_match = re.search(r'"(?:prize|amount|winnings|value)"\s*:\s*"?(?:R|ZAR|£|\$)?\s*(\d+(?:,\d+)*(?:\.\d+)?)"?', div_obj)
+                        if prize_match:
+                            # Keep commas for display/readability
+                            prize_amount = prize_match.group(1).strip()
+                            # Check if we have a non-zero amount
+                            try:
+                                float_amount = float(prize_amount.replace(',', ''))
+                                if float_amount == 0:
+                                    prize_amount = ""  # Use empty string for zero amounts
+                            except ValueError:
+                                prize_amount = ""  # Use empty string if conversion fails
+                        else:
+                            prize_amount = ""  # Use empty string instead of "0"
                         
                         # Extract description if available
                         desc_match = re.search(r'"(?:description|match|text)"\s*:\s*"([^"]*)"', div_obj)
