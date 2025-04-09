@@ -4,49 +4,50 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
+    <div class="col-lg-5 col-md-7 col-sm-10">
+        <div class="card shadow-sm">
             <div class="card-header lottery-header">
                 <h5 class="mb-0">CREATE ADMIN ACCOUNT</h5>
             </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('register') }}">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('register') }}" autocomplete="off">
                     {{ form.hidden_tag() }}
                     
                     <div class="mb-3">
                         <label for="username" class="form-label fw-bold">Username</label>
-                        {{ form.username(class="form-control", id="username", placeholder="Enter username") }}
+                        {{ form.username(class="form-control", id="username", placeholder="Enter username", autocomplete="username") }}
                         {% for error in form.username.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <div class="text-danger small mt-1">{{ error }}</div>
                         {% endfor %}
                     </div>
                     
                     <div class="mb-3">
                         <label for="email" class="form-label fw-bold">Email</label>
-                        {{ form.email(class="form-control", id="email", placeholder="Enter email") }}
+                        {{ form.email(class="form-control", id="email", placeholder="Enter email", autocomplete="email") }}
                         {% for error in form.email.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <div class="text-danger small mt-1">{{ error }}</div>
                         {% endfor %}
                     </div>
                     
                     <div class="mb-3">
                         <label for="password" class="form-label fw-bold">Password</label>
-                        {{ form.password(class="form-control", id="password", placeholder="Enter password") }}
+                        {{ form.password(class="form-control", id="password", placeholder="Enter password", autocomplete="new-password") }}
                         {% for error in form.password.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <div class="text-danger small mt-1">{{ error }}</div>
                         {% endfor %}
+                        <div class="form-text small">Password must be at least 8 characters</div>
                     </div>
                     
-                    <div class="mb-3">
+                    <div class="mb-4">
                         <label for="confirm_password" class="form-label fw-bold">Confirm Password</label>
-                        {{ form.confirm_password(class="form-control", id="confirm_password", placeholder="Confirm password") }}
+                        {{ form.confirm_password(class="form-control", id="confirm_password", placeholder="Confirm password", autocomplete="new-password") }}
                         {% for error in form.confirm_password.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <div class="text-danger small mt-1">{{ error }}</div>
                         {% endfor %}
                     </div>
                     
                     <div class="d-grid gap-2">
-                        {{ form.submit(class="btn btn-lottery-primary") }}
+                        {{ form.submit(class="btn btn-lottery-primary py-2") }}
                     </div>
                 </form>
             </div>
