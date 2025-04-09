@@ -59,6 +59,46 @@
         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
     
+    /* Camera interface styling */
+    #camera-preview {
+        background-color: #000;
+        width: 100%;
+        height: auto;
+        max-height: 50vh;
+        object-fit: cover;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .camera-controls {
+        margin-top: 15px;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    #capture-btn {
+        position: relative;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    #capture-btn::after {
+        content: "";
+        position: absolute;
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background-color: white;
+        border: 2px solid #0d6efd;
+    }
+    
     /* Form elements */
     .form-label {
         font-weight: 500;
@@ -267,10 +307,35 @@
                         <i class="fa fa-upload fa-2x mb-3 text-primary"></i>
                         <h5>Drag and drop your ticket image here</h5>
                         <p class="text-muted">or</p>
-                        <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
-                        <button type="button" id="file-select-btn" class="btn btn-primary px-4">
-                            Select Image
-                        </button>
+                        <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none" capture="environment">
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button type="button" id="file-select-btn" class="btn btn-primary px-4">
+                                Select Image
+                            </button>
+                            <button type="button" id="camera-btn" class="btn btn-success px-4">
+                                <i class="fa fa-camera"></i> Use Camera
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Camera capture interface (initially hidden) -->
+                    <div id="camera-interface" class="d-none mb-4">
+                        <h5 class="mb-3">Take a picture of your lottery ticket</h5>
+                        <div class="position-relative">
+                            <video id="camera-preview" class="w-100 border rounded" autoplay playsinline></video>
+                            <div class="camera-controls mt-3 d-flex justify-content-center gap-3">
+                                <button id="capture-btn" class="btn btn-primary">
+                                    <i class="fa fa-camera"></i> Capture
+                                </button>
+                                <button id="switch-camera-btn" class="btn btn-secondary">
+                                    <i class="fa fa-sync"></i> Switch Camera
+                                </button>
+                                <button id="cancel-camera-btn" class="btn btn-outline-danger">
+                                    <i class="fa fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                        <canvas id="capture-canvas" class="d-none"></canvas>
                     </div>
 
                     <div id="preview-container" class="text-center d-none">
@@ -416,6 +481,16 @@
 {% block additional_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Camera elements
+        const cameraBtn = document.getElementById('camera-btn');
+        const cameraInterface = document.getElementById('camera-interface');
+        const cameraPreview = document.getElementById('camera-preview');
+        const captureBtn = document.getElementById('capture-btn');
+        const switchCameraBtn = document.getElementById('switch-camera-btn');
+        const cancelCameraBtn = document.getElementById('cancel-camera-btn');
+        const captureCanvas = document.getElementById('capture-canvas');
+        
+        // Regular file upload elements
         const dropArea = document.getElementById('drop-area');
         const fileInput = document.getElementById('ticket-image');
         const fileSelectBtn = document.getElementById('file-select-btn');
@@ -428,6 +503,118 @@
         const loadingIndicator = document.getElementById('scanner-loading');
         const resultsContainer = document.getElementById('results-container');
         const scanNewTicketBtn = document.getElementById('scan-new-ticket');
+        
+        // Camera stream variables
+        let stream = null;
+        let currentFacingMode = 'environment'; // Start with back camera
+        
+        // Camera handling functions
+        function startCamera() {
+            // Hide the drop area and show camera interface
+            dropArea.classList.add('d-none');
+            cameraInterface.classList.remove('d-none');
+            
+            // Get camera access
+            const constraints = {
+                video: {
+                    facingMode: currentFacingMode,
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
+                audio: false
+            };
+            
+            // Stop any existing stream
+            if (stream) {
+                stopCameraStream();
+            }
+            
+            // Request camera access
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(function(mediaStream) {
+                    stream = mediaStream;
+                    cameraPreview.srcObject = stream;
+                    cameraPreview.play();
+                    console.log('Camera started successfully:', currentFacingMode);
+                })
+                .catch(function(err) {
+                    console.error('Error accessing camera:', err);
+                    alert('Could not access the camera. Please ensure you have granted camera permissions and try again. Error: ' + err.message);
+                    stopCamera();
+                });
+        }
+        
+        function stopCameraStream() {
+            if (stream) {
+                stream.getTracks().forEach(track => {
+                    track.stop();
+                });
+                stream = null;
+                cameraPreview.srcObject = null;
+            }
+        }
+        
+        function stopCamera() {
+            stopCameraStream();
+            cameraInterface.classList.add('d-none');
+            dropArea.classList.remove('d-none');
+        }
+        
+        function switchCamera() {
+            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            console.log('Switching camera to:', currentFacingMode);
+            startCamera(); // This will restart the camera with the new facing mode
+        }
+        
+        function captureImage() {
+            if (!stream) {
+                console.error('No camera stream available');
+                return;
+            }
+            
+            // Set canvas dimensions to match video
+            const width = cameraPreview.videoWidth;
+            const height = cameraPreview.videoHeight;
+            captureCanvas.width = width;
+            captureCanvas.height = height;
+            
+            // Draw video frame to canvas
+            const context = captureCanvas.getContext('2d');
+            context.drawImage(cameraPreview, 0, 0, width, height);
+            
+            // Convert to data URL
+            const imageDataUrl = captureCanvas.toDataURL('image/jpeg');
+            
+            // Show the preview with captured image
+            ticketPreview.src = imageDataUrl;
+            previewContainer.classList.remove('d-none');
+            
+            // Create a file object from the data URL for form submission
+            fetch(imageDataUrl)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+                    
+                    // Create a FileList-like object
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    fileInput.files = dataTransfer.files;
+                    
+                    // Stop camera and show preview
+                    stopCamera();
+                    updateScanButton();
+                })
+                .catch(err => {
+                    console.error('Error creating file from canvas:', err);
+                    alert('Error capturing image. Please try again.');
+                });
+        }
+        
+        // Camera button event listeners
+        cameraBtn.addEventListener('click', startCamera);
+        captureBtn.addEventListener('click', captureImage);
+        switchCameraBtn.addEventListener('click', switchCamera);
+        cancelCameraBtn.addEventListener('click', stopCamera);
         
         // Initialize scan button state
         setTimeout(() => {
@@ -551,6 +738,16 @@
             resultsContainer.classList.add('d-none');
             ticketForm.reset();
             previewContainer.classList.add('d-none');
+            
+            // Stop camera if active
+            if (stream) {
+                stopCamera();
+            }
+            
+            // Make sure camera interface is hidden and drop area is visible
+            cameraInterface.classList.add('d-none');
+            dropArea.classList.remove('d-none');
+            
             updateScanButton();
             
             // Scroll back to top of scanner
