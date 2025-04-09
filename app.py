@@ -6,7 +6,7 @@ import json
 import logging
 import shutil
 from functools import wraps
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from flask import render_template, request, jsonify, redirect, url_for, flash, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -24,15 +24,19 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Create Flask app
+from flask import Flask
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "lottery-scraper-default-secret")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Configure database
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///lottery_data.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
+    "connect_args": {
+        "sslmode": "require"
+    }
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -47,8 +51,7 @@ login_manager.login_message = 'Please log in to access this page'
 login_manager.login_message_category = 'info'
 
 # Initialize CSRF protection
-csrf = CSRFProtect()
-csrf.init_app(app)
+csrf = CSRFProtect(app)
 
 # User loader for Flask-Login
 @login_manager.user_loader
