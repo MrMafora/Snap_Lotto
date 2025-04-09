@@ -297,6 +297,12 @@
         const loadingIndicator = document.getElementById('scanner-loading');
         const resultsContainer = document.getElementById('results-container');
         
+        // Initialize scan button state after a short delay
+        setTimeout(() => {
+            updateScanButton();
+            console.log("Initial button state check on page load");
+        }, 500);
+        
         // File selection via button
         fileSelectBtn.addEventListener('click', () => {
             fileInput.click();
@@ -350,6 +356,7 @@
                 // Check if file is an image
                 if (!file.type.match('image.*')) {
                     alert('Please select an image file');
+                    fileInput.value = ''; // Clear the file input
                     return;
                 }
                 
@@ -358,10 +365,21 @@
                 reader.onload = function(e) {
                     ticketPreview.src = e.target.result;
                     previewContainer.classList.remove('d-none');
+                    // Update scan button state
+                    updateScanButton();
+                    console.log("File loaded successfully");
+                }
+                
+                reader.onerror = function() {
+                    alert('Error reading the image file. Please try a different image.');
+                    fileInput.value = ''; // Clear the file input on error
                     updateScanButton();
                 }
                 
                 reader.readAsDataURL(file);
+            } else {
+                previewContainer.classList.add('d-none');
+                updateScanButton();
             }
         }
         
@@ -374,8 +392,22 @@
         
         lotteryTypeSelect.addEventListener('change', updateScanButton);
         
+        // Add a direct click handler for the scan button
+        scanButton.addEventListener('click', function(e) {
+            if (fileInput.files.length && lotteryTypeSelect.value) {
+                e.preventDefault();
+                processTicketWithAds();
+            }
+        });
+        
         function updateScanButton() {
+            // Enable the scan button if there's a file and lottery type selected
             scanButton.disabled = !fileInput.files.length || !lotteryTypeSelect.value;
+            console.log("Button state updated:", {
+                fileCount: fileInput.files.length,
+                lotteryType: lotteryTypeSelect.value,
+                disabled: scanButton.disabled
+            });
         }
         
         // Function to handle showing ads and processing the ticket
