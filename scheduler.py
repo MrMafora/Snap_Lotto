@@ -8,9 +8,10 @@ import logging
 import atexit
 import threading
 import time
+import os
 
-# Use the lightweight screenshot manager by default (much smaller footprint)
-from screenshot_manager_light import capture_screenshot, cleanup_old_screenshots
+# Import screenshot manager factory to dynamically select implementation
+from screenshot_manager_light import get_screenshot_manager
 from ocr_processor import process_screenshot
 from data_aggregator import aggregate_data
 from models import db, ScheduleConfig
@@ -106,36 +107,40 @@ def run_lottery_task(url, lottery_type):
             # Import here to avoid circular imports
             from flask import current_app
             from app import app
-            
-            # Get all the required functions
-            from screenshot_manager_light import capture_screenshot, cleanup_old_screenshots
-            from ocr_processor import process_screenshot
-            from data_aggregator import aggregate_data
             from datetime import datetime
             
             logger.info(f"Starting lottery task for {lottery_type}")
             
             # Ensure we have an application context for all database operations
             with app.app_context():
-                # Step 1: Capture screenshot directly
-                capture_result = capture_screenshot(url, lottery_type)
+                # Step 1: Create screenshot manager and take screenshot
+                logger.info(f"Taking screenshot of {url} for {lottery_type}")
+                screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
                 
-                # Unpack the values - either we get (filepath, screenshot_data, zoom_filepath)
-                # or we get None if the capture failed
-                if not capture_result:
-                    logger.error(f"Failed to capture screenshot for {lottery_type}")
+                # Use the lightweight manager by default (much smaller footprint)
+                # Only use Playwright if specifically configured to do so
+                use_playwright = os.environ.get('USE_PLAYWRIGHT', '').lower() == 'true'
+                screenshot_manager = get_screenshot_manager(use_playwright=use_playwright, 
+                                                           screenshot_dir=screenshot_dir)
+                
+                # Take the screenshot
+                result = screenshot_manager.take_screenshot(url, lottery_type)
+                
+                # Check if screenshot was successful
+                if result['status'] != 'success':
+                    logger.error(f"Failed to capture screenshot for {lottery_type}: {result['message']}")
                     return False
-                    
-                # Unpack the result
-                filepath, screenshot_data, zoom_filepath = capture_result
                 
-                # Only proceed if we have a valid screenshot filepath
+                # Get the screenshot path
+                filepath = result.get('path')
+                html_path = result.get('html_path')
+                
                 if not filepath:
-                    logger.error(f"Failed to capture screenshot for {lottery_type}")
+                    logger.error(f"No screenshot path returned for {lottery_type}")
                     return False
                 
-                logger.info(f"Screenshot captured successfully for {lottery_type}")
-                    
+                logger.info(f"Screenshot captured successfully for {lottery_type} at {filepath}")
+                
                 # Step 2: Process the screenshot with OCR
                 logger.info(f"Processing screenshot with OCR for {lottery_type}")
                 extracted_data = process_screenshot(filepath, lottery_type)
@@ -162,7 +167,16 @@ def run_lottery_task(url, lottery_type):
                 
                 # Step 4: Clean up old screenshots to save space
                 try:
-                    cleanup_old_screenshots()
+                    # Simple cleanup - remove files older than 7 days
+                    logger.info("Cleaning up old screenshots")
+                    now = time.time()
+                    for root, dirs, files in os.walk(screenshot_dir):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            # If file is older than 7 days, delete it
+                            if os.stat(file_path).st_mtime < now - 7 * 86400:
+                                os.remove(file_path)
+                                logger.debug(f"Removed old file: {file_path}")
                 except Exception as e:
                     logger.error(f"Error during cleanup: {str(e)}")
                     # Continue even if cleanup fails

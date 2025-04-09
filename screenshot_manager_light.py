@@ -1,219 +1,188 @@
 """
-Lightweight screenshot manager for capturing lottery website screenshots
-using requests instead of Playwright to reduce dependencies
+Lightweight screenshot manager for lottery websites.
+
+This module provides a lightweight implementation of website screenshot functionality
+using requests and Pillow instead of heavier browser automation like Playwright.
 """
+
 import os
+import time
 import logging
-import traceback
-from datetime import datetime
-from pathlib import Path
-import threading
 import requests
 from io import BytesIO
+from datetime import datetime
 from PIL import Image
-from models import db, Screenshot
 
+# Setup logging
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Create directory for screenshots if it doesn't exist
-SCREENSHOT_DIR = os.path.join(os.getcwd(), 'screenshots')
-os.makedirs(SCREENSHOT_DIR, exist_ok=True)
-
-# Thread semaphore to limit concurrent screenshots
-# This prevents "can't start new thread" errors by limiting resource usage
-MAX_CONCURRENT_THREADS = 3
-screenshot_semaphore = threading.Semaphore(MAX_CONCURRENT_THREADS)
-
-def capture_screenshot_light(url, lottery_type=None):
+class LightScreenshotManager:
     """
-    Capture screenshot of the specified URL using requests instead of Playwright.
-    This is a lightweight alternative that doesn't require browser engines.
+    Lightweight screenshot manager that uses requests and Pillow for screenshots.
     
-    Warning: This method may not work for websites that require JavaScript to render content.
+    This implementation provides a lighter alternative to browser automation
+    tools like Playwright, reducing the installation size significantly.
     
-    Args:
-        url (str): The URL to capture
-        lottery_type (str, optional): The type of lottery. If None, extracted from URL.
-        
-    Returns:
-        tuple: (filepath, screenshot_data, None) or (None, None, None) if failed
+    Note: This implementation has limitations as it can only capture static HTML
+    content and not JavaScript-rendered content. It's suitable for simple static
+    websites only. For sites with dynamic content, use the Playwright implementation.
     """
-    if not lottery_type:
-        lottery_type = extract_lottery_type_from_url(url)
     
-    try:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{timestamp}_{url.split('/')[-1]}.png"
-        filepath = os.path.join(SCREENSHOT_DIR, filename)
+    def __init__(self, screenshot_dir='screenshots'):
+        """
+        Initialize the screenshot manager.
         
-        logger.info(f"Capturing screenshot from {url} using requests")
+        Args:
+            screenshot_dir (str): Directory to store screenshots
+        """
+        self.screenshot_dir = screenshot_dir
         
-        # Set headers to mimic a browser
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1",
-            "DNT": "1"
-        }
-        
-        # Fetch the page content
-        response = requests.get(url, headers=headers, timeout=30)
-        response.raise_for_status()  # Raise exception for 4XX/5XX responses
-        
-        # Save the content directly as text/html
-        html_content = response.text
-        
-        # Generate a simple image with the URL for the screenshot record
-        # This will be used just as a placeholder
-        img = Image.new('RGB', (1200, 800), color = (20, 20, 20))
-        
-        # Save the image to the file system
-        img.save(filepath)
-        
-        # Save HTML content to a file with the same name but .html extension
-        html_filepath = os.path.splitext(filepath)[0] + '.html'
-        with open(html_filepath, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-        
-        logger.info(f"Screenshot saved to {filepath} and HTML saved to {html_filepath}")
-        
-        # Read the saved screenshot file to return its content
-        with open(filepath, 'rb') as f:
-            screenshot_data = f.read()
-        
-        return filepath, screenshot_data, None
-                
-    except Exception as e:
-        logger.error(f"Error capturing screenshot with requests: {str(e)}")
-        traceback.print_exc()
-        return None, None, None
-
-def extract_lottery_type_from_url(url):
-    """
-    Extract lottery type from URL.
+        # Create screenshot directory if it doesn't exist
+        if not os.path.exists(screenshot_dir):
+            os.makedirs(screenshot_dir)
+            logger.info(f"Created screenshot directory: {screenshot_dir}")
     
-    Args:
-        url (str): URL to extract lottery type from
+    def take_screenshot(self, url, lottery_type):
+        """
+        Take a screenshot of a specified URL and save it with a timestamp.
         
-    Returns:
-        str: Lottery type or 'Unknown' if not found
-    """
-    url_lower = url.lower()
-    
-    if 'lotto-plus-1' in url_lower or 'lotto-plus-1-results' in url_lower:
-        return 'Lotto Plus 1'
-    elif 'lotto-plus-2' in url_lower or 'lotto-plus-2-results' in url_lower:
-        return 'Lotto Plus 2'
-    elif 'powerball-plus' in url_lower:
-        return 'Powerball Plus'
-    elif 'powerball' in url_lower:
-        return 'Powerball'
-    elif 'daily-lotto' in url_lower:
-        return 'Daily Lotto'
-    elif 'lotto' in url_lower:
-        return 'Lotto'
-    
-    return 'Unknown'
-
-def capture_screenshot(url, lottery_type=None):
-    """
-    Main function to capture screenshot of the specified URL.
-    This wrapper function will try to use the lightweight method first,
-    and fall back to Playwright if available and needed.
-    
-    Args:
-        url (str): The URL to capture
-        lottery_type (str, optional): The type of lottery. If None, extracted from URL.
-        
-    Returns:
-        tuple: (filepath, screenshot_data, zoom_filepath) or (None, None, None) if failed
-    """
-    if not lottery_type:
-        lottery_type = extract_lottery_type_from_url(url)
-    
-    # Try with lightweight method first
-    result = capture_screenshot_light(url, lottery_type)
-    
-    # If lightweight method worked, return its result
-    if result and result[0]:
-        filepath, screenshot_data, _ = result
-        
-        # Create a Screenshot record in the database
+        Args:
+            url (str): URL to capture
+            lottery_type (str): Type of lottery for organizing screenshots
+            
+        Returns:
+            dict: Result with status, path, and message
+        """
         try:
-            screenshot = Screenshot(
-                url=url,
-                lottery_type=lottery_type,
-                timestamp=datetime.now(),
-                path=filepath,
-                processed=False
-            )
-            db.session.add(screenshot)
-            db.session.commit()
-            logger.info(f"Screenshot record added to database for {lottery_type}")
+            logger.info(f"Taking screenshot of {url} for {lottery_type}")
+            
+            # Create subdirectory for lottery type if needed
+            lottery_dir = os.path.join(self.screenshot_dir, lottery_type.replace(' ', '_'))
+            if not os.path.exists(lottery_dir):
+                os.makedirs(lottery_dir)
+            
+            # Generate unique filename with timestamp
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"{lottery_type.replace(' ', '_')}_{timestamp}.jpg"
+            filepath = os.path.join(lottery_dir, filename)
+            
+            # Make request to the URL
+            logger.info(f"Requesting URL: {url}")
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                              '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(url, headers=headers, timeout=30)
+            response.raise_for_status()  # Raise exception for HTTP errors
+            
+            # Create a blank image for the "screenshot"
+            # This is a limitation of this light implementation - we can't actually
+            # render the HTML/CSS as a browser would. We're just saving a placeholder.
+            img = Image.new('RGB', (1200, 1800), color=(255, 255, 255))
+            
+            # Save the image
+            img.save(filepath, format='JPEG')
+            
+            # Save the HTML content alongside the image for processing
+            html_filepath = filepath.replace('.jpg', '.html')
+            with open(html_filepath, 'w', encoding='utf-8') as f:
+                f.write(response.text)
+            
+            logger.info(f"Saved screenshot to {filepath} and HTML to {html_filepath}")
+            
+            return {
+                'status': 'success',
+                'path': filepath,
+                'html_path': html_filepath,
+                'message': f"Screenshot saved: {filename}"
+            }
+        
+        except requests.RequestException as e:
+            error_msg = f"Request error taking screenshot of {url}: {str(e)}"
+            logger.error(error_msg)
+            return {
+                'status': 'error',
+                'message': error_msg
+            }
+        
         except Exception as e:
-            logger.error(f"Error saving screenshot record to database: {str(e)}")
-        
-        return result
+            error_msg = f"Error taking screenshot of {url}: {str(e)}"
+            logger.error(error_msg)
+            return {
+                'status': 'error',
+                'message': error_msg
+            }
     
-    # Otherwise, try to use Playwright if it's available as a fallback
-    try:
-        logger.info("Lightweight screenshot failed, trying with Playwright if available")
+    def take_full_page_screenshot(self, url, lottery_type, scroll_delay=1.0):
+        """
+        Take a full page screenshot by scrolling down the page.
+        In the lightweight version, this is the same as the regular screenshot.
         
-        # Import Playwright only if needed, to avoid dependency issues if not installed
-        try:
-            from screenshot_manager_playwright import capture_screenshot_with_playwright
-            logger.info("Using Playwright as fallback for screenshot capture")
-            return capture_screenshot_with_playwright(url, lottery_type)
-        except ImportError:
-            logger.warning("Playwright not available. Cannot capture screenshot of dynamic content.")
-            return None, None, None
-    except Exception as e:
-        logger.error(f"Error capturing screenshot with fallback method: {str(e)}")
-        return None, None, None
+        Args:
+            url (str): URL to capture
+            lottery_type (str): Type of lottery 
+            scroll_delay (float): Delay between scrolls in seconds
+            
+        Returns:
+            dict: Result with status, path, and message
+        """
+        # The light implementation doesn't support scrolling,
+        # so we'll just use the regular screenshot method
+        return self.take_screenshot(url, lottery_type)
+    
+    def close(self):
+        """Close any resources. In the lightweight version, this is a no-op."""
+        pass
 
-def cleanup_old_screenshots(days_to_keep=7):
+# Create factory function to get the appropriate screenshot manager
+def get_screenshot_manager(use_playwright=False, **kwargs):
     """
-    Clean up old screenshots to save disk space.
+    Factory function to get the appropriate screenshot manager.
     
     Args:
-        days_to_keep (int): Number of days of screenshots to keep
+        use_playwright (bool): Whether to use Playwright (if available)
+        **kwargs: Additional arguments to pass to the screenshot manager
+        
+    Returns:
+        object: Screenshot manager instance
     """
-    try:
-        from datetime import timedelta
+    if use_playwright:
+        try:
+            # Try to import the Playwright manager
+            from screenshot_manager_playwright import PlaywrightScreenshotManager
+            logger.info("Using Playwright screenshot manager")
+            return PlaywrightScreenshotManager(**kwargs)
+        except ImportError:
+            logger.warning("Playwright not available, falling back to lightweight implementation")
+            return LightScreenshotManager(**kwargs)
+    else:
+        logger.info("Using lightweight screenshot manager")
+        return LightScreenshotManager(**kwargs)
+
+# If script is run directly, take a test screenshot
+if __name__ == "__main__":
+    # Test URLs
+    TEST_URLS = [
+        {
+            'url': 'https://www.nationallottery.co.za/lotto-results', 
+            'lottery_type': 'Lotto'
+        },
+        {
+            'url': 'https://www.nationallottery.co.za/powerball-results', 
+            'lottery_type': 'Powerball'
+        }
+    ]
+    
+    # Create screenshot manager
+    screenshot_manager = LightScreenshotManager()
+    
+    # Take screenshots
+    for test in TEST_URLS:
+        result = screenshot_manager.take_screenshot(test['url'], test['lottery_type'])
+        print(f"Screenshot result: {result['status']} - {result['message']}")
         
-        # Calculate cutoff date
-        cutoff_date = datetime.now() - timedelta(days=days_to_keep)
-        logger.info(f"Cleaning up screenshots older than {cutoff_date}")
-        
-        # Find old screenshots
-        old_screenshots = Screenshot.query.filter(Screenshot.timestamp < cutoff_date).all()
-        
-        # Delete files and records
-        for screenshot in old_screenshots:
-            try:
-                # Delete file if it exists
-                if os.path.isfile(screenshot.path):
-                    os.remove(screenshot.path)
-                    logger.info(f"Deleted old screenshot file: {screenshot.path}")
-                
-                # Check for related HTML file and delete if it exists
-                html_path = os.path.splitext(screenshot.path)[0] + '.html'
-                if os.path.isfile(html_path):
-                    os.remove(html_path)
-                    logger.info(f"Deleted related HTML file: {html_path}")
-                
-                # Delete database record
-                db.session.delete(screenshot)
-                
-            except Exception as e:
-                logger.error(f"Error deleting screenshot {screenshot.id}: {str(e)}")
-        
-        # Commit the transaction
-        db.session.commit()
-        logger.info(f"Cleaned up {len(old_screenshots)} old screenshots")
-        
-    except Exception as e:
-        logger.error(f"Error cleaning up old screenshots: {str(e)}")
+        if result['status'] == 'success':
+            print(f"Screenshot saved to: {result['path']}")
+            print(f"HTML saved to: {result['html_path']}")

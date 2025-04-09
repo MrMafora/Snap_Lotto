@@ -25,3 +25,5 @@ flask-sqlalchemy
 flask-wtf
 pillow
 requests
+pillow
+requests
