@@ -667,15 +667,17 @@ canvas {
 }
 
 .ad-placeholder {
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 25px;
+    background-color: #f8f9fa;
+    color: #333;
+    padding: 35px;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid #dee2e6;
     min-height: 180px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .ad-placeholder .fas {
@@ -922,7 +924,8 @@ canvas {
     justify-content: center;
 }
 
-.ad-placeholder {
+/* Ad placeholder styling (for regular ads)  */
+.ad-container .ad-placeholder {
     display: flex;
     flex-direction: column;
     align-items: center;

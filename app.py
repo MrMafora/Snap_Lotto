@@ -344,6 +344,7 @@ def create_app():
             """Empty form for CSRF protection"""
             pass
             
+        # Create a simple form for CSRF protection
         form = EmptyForm()
         return render_template('ticket_scanner_new.html', form=form)
     

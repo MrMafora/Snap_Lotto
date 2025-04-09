@@ -27,7 +27,7 @@ function initTicketScannerFunctionality() {
     const removeImageBtn = document.getElementById('remove-image');
     const scanButton = document.getElementById('scan-button');
     const ticketForm = document.getElementById('ticket-form');
-    const lotteryTypeSelect = document.getElementById('lottery-type');
+    const lotteryTypeSelect = document.getElementById('lottery_type');
     const loadingIndicator = document.getElementById('scanner-loading');
     const resultsContainer = document.getElementById('results-container');
     const scanNewTicketBtn = document.getElementById('scan-new-ticket');
@@ -327,50 +327,51 @@ function initTicketScannerFunctionality() {
     
     // Function to handle showing ads and processing the ticket
     function processTicketWithAds() {
-        // Show loading indicator
-        if (loadingIndicator) loadingIndicator.style.display = 'block';
+        // Immediately force-display loading indicator
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'block';
+        }
         
         // Disable the scan button while processing
-        if (scanButton) scanButton.disabled = true;
+        if (scanButton) {
+            scanButton.disabled = true;
+        }
         
-        // Try to use AdManager if available, otherwise use fallback
-        if (window.AdManager) {
-            // Use the AdManager to show a loading ad
-            window.AdManager.showLoadingAd(function(adLoaded) {
-                console.log("Ad loaded:", adLoaded);
-                
-                // Process the ticket once the ad is showing
-                processTicket();
-            });
-        } else {
-            console.warn("AdManager not found - using fallback display");
+        // Show ad overlay (force override any previous styling issues)
+        const adOverlayLoading = document.getElementById('ad-overlay-loading');
+        if (adOverlayLoading) {
+            // Ensure the overlay is fully reset
+            adOverlayLoading.style.display = 'flex';
+            adOverlayLoading.style.opacity = '1';
+            adOverlayLoading.style.visibility = 'visible';
+            adOverlayLoading.style.zIndex = '9999';
             
-            // Show ad loading overlay directly
-            const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            if (adOverlayLoading) {
-                adOverlayLoading.style.display = 'flex';
-                adOverlayLoading.style.opacity = '1';  // Ensure visibility
-                adOverlayLoading.style.visibility = 'visible'; // Ensure visibility
-                document.body.style.overflow = 'hidden'; // Prevent scrolling
-                document.body.style.position = 'fixed'; // Prevent mobile scroll
-                document.body.style.width = '100%'; // Maintain width
-                
-                // Create a basic ad placeholder in the container
-                const adContainer = document.getElementById('ad-container-loader');
-                if (adContainer) {
-                    adContainer.innerHTML = `
-                        <div class="text-center">
-                            <div class="ad-placeholder py-4">
-                                <p><i class="fas fa-ad mb-2 fa-2x"></i></p>
-                                <p class="mb-0">Advertisement</p>
-                                <p class="small text-muted mt-1">Advertisements help keep this service free</p>
-                            </div>
+            // Prevent background scrolling
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
+            document.body.style.top = '0';
+            document.body.style.left = '0';
+            
+            // Create a basic ad placeholder in the container
+            const adContainer = document.getElementById('ad-container-loader');
+            if (adContainer) {
+                adContainer.innerHTML = `
+                    <div class="text-center">
+                        <div class="ad-placeholder py-4">
+                            <p><i class="fas fa-ad mb-2 fa-2x"></i></p>
+                            <p class="mb-0">Advertisement</p>
+                            <p class="small text-muted mt-1">Advertisements help keep this service free</p>
                         </div>
-                    `;
-                }
+                    </div>
+                `;
             }
             
-            // Process without ad management
+            // Don't use callbacks here, directly process the ticket
+            processTicket();
+        } else {
+            // Fallback if overlay element is missing
+            console.error("Ad overlay element missing! Using direct processing.");
             processTicket();
         }
     }
