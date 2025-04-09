@@ -230,6 +230,29 @@ tbody, td, th {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* Matched ball styling */
+.ball-matched {
+    position: relative;
+}
+
+/* Glow effect for matched numbers */
+.border-glow {
+    box-shadow: 0 0 10px rgba(255, 255, 0, 0.7);
+    animation: pulse-matched 1.5s infinite;
+}
+
+@keyframes pulse-matched {
+    0% {
+        box-shadow: 0 0 5px rgba(255, 255, 0, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(255, 255, 0, 0.9), 0 0 5px rgba(255, 255, 0, 0.5);
+    }
+    100% {
+        box-shadow: 0 0 5px rgba(255, 255, 0, 0.7);
+    }
+}
+
 /* Small lottery balls for compact displays */
 .lottery-ball-sm {
     width: 30px;

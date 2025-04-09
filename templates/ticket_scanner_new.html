@@ -917,7 +917,86 @@
             const matchedNumbersContainer = document.getElementById('matched-numbers');
             matchedNumbersContainer.innerHTML = '';
             
-            if (data.matched_numbers.length > 0) {
+            // Check if we have specific rows with matches
+            if (data.rows_with_matches && data.rows_with_matches.length > 0) {
+                // Create a heading for matched rows
+                const heading = document.createElement('h5');
+                heading.classList.add('mb-3');
+                heading.textContent = 'Numbers matched in these rows:';
+                matchedNumbersContainer.appendChild(heading);
+                
+                // For each row with matches, show the row name and matched numbers
+                data.rows_with_matches.forEach(rowMatch => {
+                    // Create row container
+                    const rowContainer = document.createElement('div');
+                    rowContainer.classList.add('mb-3', 'p-2', 'border', 'rounded');
+                    
+                    // Add special bg color based on match count
+                    if (rowMatch.matched_numbers.length >= 3) {
+                        rowContainer.classList.add('bg-success', 'bg-opacity-25', 'border-success');
+                    } else if (rowMatch.matched_numbers.length > 0) {
+                        rowContainer.classList.add('bg-warning', 'bg-opacity-25');
+                    } else {
+                        rowContainer.classList.add('bg-dark', 'bg-opacity-10');
+                    }
+                    
+                    // Add row label with match count
+                    const rowLabel = document.createElement('div');
+                    rowLabel.classList.add('fw-bold', 'mb-1', 'd-flex', 'justify-content-between', 'align-items-center');
+                    
+                    // Create label and potential prize indicator 
+                    const labelText = document.createElement('span');
+                    labelText.textContent = `${rowMatch.row}: ${rowMatch.matched_numbers.length} match${rowMatch.matched_numbers.length !== 1 ? 'es' : ''}`;
+                    rowLabel.appendChild(labelText);
+                    
+                    // Add visual indicator for potential prize (3+ matches)
+                    if (rowMatch.matched_numbers.length >= 3) {
+                        const prizeIndicator = document.createElement('span');
+                        prizeIndicator.classList.add('badge', 'bg-success', 'ms-2');
+                        prizeIndicator.innerHTML = '<i class="fas fa-trophy me-1"></i> Potential Prize!';
+                        rowLabel.appendChild(prizeIndicator);
+                    }
+                    rowContainer.appendChild(rowLabel);
+                    
+                    // Add numbers container
+                    const ballsContainer = document.createElement('div');
+                    ballsContainer.classList.add('d-flex', 'flex-wrap', 'gap-1', 'align-items-center');
+                    
+                    // First add all the numbers in the row
+                    const numbersLabel = document.createElement('span');
+                    numbersLabel.classList.add('me-2');
+                    numbersLabel.textContent = 'Row numbers:';
+                    ballsContainer.appendChild(numbersLabel);
+                    
+                    rowMatch.numbers.forEach(num => {
+                        const ball = document.createElement('span');
+                        ball.classList.add('lottery-ball');
+                        
+                        // Highlight matched numbers with a special class
+                        if (rowMatch.matched_numbers.includes(num)) {
+                            ball.classList.add('ball-matched', 'border-glow');
+                        }
+                        
+                        // Add color classes in sequence
+                        if (ballsContainer.children.length % 4 === 0) {
+                            ball.classList.add('lottery-ball-red');
+                        } else if (ballsContainer.children.length % 4 === 1) {
+                            ball.classList.add('lottery-ball-yellow');
+                        } else if (ballsContainer.children.length % 4 === 2) {
+                            ball.classList.add('lottery-ball-green');
+                        } else {
+                            ball.classList.add('lottery-ball-blue');
+                        }
+                        
+                        ball.textContent = num;
+                        ballsContainer.appendChild(ball);
+                    });
+                    
+                    rowContainer.appendChild(ballsContainer);
+                    matchedNumbersContainer.appendChild(rowContainer);
+                });
+            } else if (data.matched_numbers.length > 0) {
+                // Fall back to simple matched numbers display
                 data.matched_numbers.forEach(num => {
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball', 'ball-matched');
