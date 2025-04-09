@@ -1,10 +1,18 @@
-from flask import Flask
+"""
+Main application entry point with Flask application defined for deployment.
 
-app = Flask(__name__)
+This file is imported by gunicorn using the 'main:app' notation.
+"""
+import logging
+from app import create_app
 
-@app.route('/')
-def index():
-    return "Lottery Scraper App is running!"
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+# Create the Flask application using the factory function
+app = create_app()
+
+# When running directly, not through gunicorn
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
