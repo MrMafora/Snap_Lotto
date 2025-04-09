@@ -778,12 +778,7 @@ def get_raw_ocr(lottery_type):
     try:
         raw_data = process_screenshot(screenshot.path, lottery_type)
         
-        # Extract OCR provider information
-        ocr_provider = raw_data.get('ocr_provider', 'unknown')
-        ocr_model = raw_data.get('ocr_model', 'unknown')
-        chat_model = raw_data.get('chat_model', None)
-        
-        # Build enhanced response
+        # Build enhanced response (without OCR provider information)
         response = {
             'screenshot_info': {
                 'id': screenshot.id,
@@ -791,17 +786,8 @@ def get_raw_ocr(lottery_type):
                 'timestamp': screenshot.timestamp.isoformat(),
                 'processed': screenshot.processed
             },
-            'ocr_info': {
-                'provider': ocr_provider,
-                'model': ocr_model,
-                'timestamp': raw_data.get('ocr_timestamp')
-            },
             'ocr_data': raw_data
         }
-        
-        # Add model version info if available
-        if chat_model:
-            response['ocr_info']['model_version'] = chat_model
             
         return jsonify(response)
     except Exception as e:
