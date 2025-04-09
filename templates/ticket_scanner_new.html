@@ -728,8 +728,12 @@
                 displayResults(data);
             };
             
-            // Do not automatically close the ad - let the user click the button
-            // This ensures the ad stays visible for maximum exposure
+            // Auto-close the overlay after 2 seconds to ensure users see results
+            setTimeout(function() {
+                console.log('Auto-displaying results after delay');
+                adOverlayResults.style.display = 'none';
+                displayResults(data);
+            }, 2000);
             
             // Hide loading indicator and re-enable scan button
             const loadingIndicator = document.getElementById('scanner-loading');
@@ -774,8 +778,12 @@
                     displayResults(data);
                 };
                 
-                // Do not automatically close the ad - let the user click the button
-                // This ensures the ad stays visible for maximum exposure
+                // Auto-close the overlay after 2 seconds to ensure users see results
+                setTimeout(function() {
+                    console.log('Auto-displaying results after delay');
+                    adOverlayResults.style.display = 'none';
+                    displayResults(data);
+                }, 2000);
             })
             .catch(error => {
                 console.error('Error:', error);
