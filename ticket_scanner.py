@@ -13,7 +13,7 @@ from models import LotteryResult
 # Setup logging
 logger = logging.getLogger(__name__)
 
-def process_ticket_image(image_data, lottery_type, draw_number=None):
+def process_ticket_image(image_data, lottery_type, draw_number=None, file_extension='.jpeg'):
     """
     Process a lottery ticket image to extract all information and check if it's a winner.
     
@@ -21,6 +21,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None):
         image_data: The uploaded ticket image data
         lottery_type: Type of lottery (Lotto, Powerball, etc.)
         draw_number: Optional specific draw number to check against
+        file_extension: Extension of the uploaded file (e.g., '.jpeg', '.png')
         
     Returns:
         dict: Result of ticket processing including matched numbers and prize info
@@ -28,8 +29,8 @@ def process_ticket_image(image_data, lottery_type, draw_number=None):
     # Convert image to base64 for OCR processing
     image_base64 = base64.b64encode(image_data).decode('utf-8')
     
-    # Get file extension if it's in the data
-    file_extension = '.jpeg'  # Default to JPEG for most uploads from mobile
+    # We already have the file extension from the parameters
+    logger.info(f"Using file extension: {file_extension}")
     
     # Extract ticket information using OCR
     ticket_info = extract_ticket_numbers(image_base64, lottery_type, file_extension)
