@@ -435,22 +435,38 @@ function initTicketScannerFunctionality() {
         
         // Start processing the ticket in the background while showing ads
         // This way, results will be ready when the ad finishes
+        console.log('Sending ticket data to server...');
+        
+        // Add debugging for form data
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + (pair[0] === 'ticket_image' ? '[File data]' : pair[1])); 
+        }
+        
         // No need to manually add CSRF token as it's included in the formData
         // from the hidden_tag() in the form
         fetch('/scan-ticket', {
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
+        .then(response => {
+            // Check if response is ok before trying to parse JSON
+            if (!response.ok) {
+                throw new Error('Server returned status: ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
             console.log('Success:', data);
             ticketData = data;
             ticketProcessed = true;
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Error during scan ticket processing:', error);
             ticketProcessed = true;
-            ticketData = { error: "An error occurred while scanning your ticket. Please try again." };
+            ticketData = { 
+                error: "An error occurred while scanning your ticket. Please try again.",
+                details: error.toString()
+            };
         });
         
         const interval = setInterval(() => {
@@ -490,32 +506,56 @@ function initTicketScannerFunctionality() {
         
         // Function to complete the process and show results
         function completeProcess() {
-            // Clear the interval to stop processing
+            console.log('Completing ticket processing...');
+            
+            // Add timeout to force completion in case the ticket 
+            // is never marked as processed
+            let processingTimeout = setTimeout(() => {
+                console.log('Processing timeout reached - forcing completion');
+                if (!ticketProcessed) {
+                    ticketProcessed = true;
+                    ticketData = { 
+                        error: "Ticket scanning timed out. Please try again.",
+                        details: "Server did not respond within the expected timeframe."
+                    };
+                }
+            }, 5000); // 5 second timeout
+            
+            // Clear the interval to stop processing animation
             clearInterval(interval);
             
             // Hide the loading overlay and ad
-            if (window.AdManager) {
-                window.AdManager.hideLoadingAd();
-            } else {
-                // Manual hide if AdManager not available
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                if (adOverlayLoading) {
-                    adOverlayLoading.style.display = 'none';
+            try {
+                if (window.AdManager) {
+                    window.AdManager.hideLoadingAd();
+                } else {
+                    // Manual hide if AdManager not available
+                    const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                    if (adOverlayLoading) {
+                        adOverlayLoading.style.display = 'none';
+                    }
+                    // Reset body styles
                     document.body.style.overflow = 'auto';
                     document.body.style.position = 'static';
-                    document.body.style.width = '';
-                    document.body.style.height = '';
+                    document.body.style.width = 'auto';
+                    document.body.style.height = 'auto';
+                    document.body.style.top = 'auto';
+                    document.body.style.left = 'auto';
                     document.documentElement.style.overflow = 'auto';
                     document.documentElement.style.position = 'static';
                     document.body.style.touchAction = 'auto';
                 }
+            } catch (e) {
+                console.error('Error hiding overlay:', e);
             }
             
             // Wait for ticket to be processed before showing results
             function checkTicketProcessed() {
                 if (ticketProcessed) {
+                    clearTimeout(processingTimeout);
                     displayResults(ticketData);
                 } else {
+                    console.log('Waiting for ticket processing to complete...');
                     setTimeout(checkTicketProcessed, 500);
                 }
             }
@@ -526,20 +566,46 @@ function initTicketScannerFunctionality() {
     
     // Function to display results on the page
     function displayResults(data) {
-        // Hide loading indicator
-        if (loadingIndicator) loadingIndicator.style.display = 'none';
+        console.log('Displaying results:', data);
         
-        // Construct and display the results
-        if (data && !data.error) {
-            showSuccessResults(data);
-        } else {
-            showErrorResults(data && data.error ? data.error : "An unknown error occurred");
+        // Hide loading indicator
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
         }
         
-        // Enable the scan button again
-        if (scanButton) {
-            scanButton.disabled = false;
-            console.log("Scan completed - button enabled");
+        try {
+            // Construct and display the results
+            if (data && !data.error) {
+                showSuccessResults(data);
+            } else {
+                showErrorResults(data || "An unknown error occurred");
+            }
+        } catch (err) {
+            console.error('Error displaying results:', err);
+            showErrorResults({
+                error: "Error displaying results",
+                details: err.toString()
+            });
+        } finally {
+            // Always ensure the scan button is re-enabled
+            if (scanButton) {
+                scanButton.disabled = false;
+                console.log("Scan completed - button enabled");
+            }
+            
+            // Ensure all overlay elements are hidden and body style reset
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            if (adOverlayLoading) {
+                adOverlayLoading.style.display = 'none';
+            }
+            
+            // Reset body styles as a final failsafe
+            document.body.style.overflow = 'auto';
+            document.body.style.position = 'static';
+            document.body.style.width = 'auto';
+            document.body.style.height = 'auto';
+            document.body.style.top = 'auto';
+            document.body.style.left = 'auto';
         }
     }
     
@@ -666,11 +732,30 @@ function initTicketScannerFunctionality() {
     }
     
     // Show error when ticket scanning fails
-    function showErrorResults(errorMessage) {
+    function showErrorResults(errorInfo) {
+        console.log('Showing error results:', errorInfo);
         const container = document.getElementById('results-content');
-        if (!container) return;
+        if (!container) {
+            console.error('Results container not found');
+            return;
+        }
         
-        if (resultsContainer) resultsContainer.classList.remove('d-none');
+        if (resultsContainer) {
+            resultsContainer.classList.remove('d-none');
+        }
+        
+        // Handle different error formats
+        let errorMessage = "";
+        let errorDetails = "";
+        
+        if (typeof errorInfo === 'string') {
+            errorMessage = errorInfo;
+        } else if (errorInfo && typeof errorInfo === 'object') {
+            errorMessage = errorInfo.error || "Unknown error";
+            errorDetails = errorInfo.details || "";
+        } else {
+            errorMessage = "We couldn't process your ticket. Please try again.";
+        }
         
         let errorHTML = `
             <div class="card mb-4">
@@ -679,8 +764,9 @@ function initTicketScannerFunctionality() {
                 </div>
                 <div class="card-body">
                     <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i> ${errorMessage || "We couldn't process your ticket. Please try again with a clearer image."}
+                        <i class="fas fa-exclamation-triangle me-2"></i> ${errorMessage}
                     </div>
+                    ${errorDetails ? `<div class="small text-muted mb-3">Technical details: ${errorDetails}</div>` : ''}
                     
                     <p class="mb-0">Scanning tips:</p>
                     <ul>
