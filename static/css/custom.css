@@ -11,6 +11,26 @@
     --sa-lottery-border: #E0E0E0;
 }
 
+/* Pulsing animation for the View Results button */
+@keyframes pulse-button {
+    0% {
+        box-shadow: 0 0 0 0 rgba(25, 160, 58, 0.7);
+        transform: scale(1);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(25, 160, 58, 0);
+        transform: scale(1.05);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(25, 160, 58, 0);
+        transform: scale(1);
+    }
+}
+
+.pulse-btn {
+    animation: pulse-button 2s infinite;
+}
+
 body {
     background-color: #f8f9fa;
     color: #333;
@@ -720,4 +740,94 @@ canvas {
 
 .ad-close-btn {
     margin-top: 20px;
+}
+
+/* Step progress indicators */
+.steps-container {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin-bottom: 20px;
+    max-width: 100%;
+}
+
+.steps-container:before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #e9ecef;
+    z-index: 1;
+}
+
+.step {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e9ecef;
+    border: 2px solid #e9ecef;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 6px;
+    transition: all 0.3s ease;
+}
+
+.step-text {
+    font-size: 12px;
+    color: #6c757d;
+    text-align: center;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.step.active .step-circle {
+    background-color: var(--sa-lottery-green);
+    border-color: var(--sa-lottery-green);
+    color: white;
+}
+
+.step.active .step-text {
+    color: var(--sa-lottery-green);
+    font-weight: bold;
+}
+
+.step.completed .step-circle {
+    background-color: var(--sa-lottery-green);
+    border-color: var(--sa-lottery-green);
+    color: white;
+}
+
+.step.completed .step-text {
+    color: var(--sa-lottery-green);
+}
+
+/* Responsive step adjustments */
+@media (max-width: 576px) {
+    .step-circle {
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
+    }
+    
+    .step-text {
+        font-size: 10px;
+    }
+    
+    .steps-container:before {
+        top: 15px;
+    }
 }
