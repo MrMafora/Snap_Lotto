@@ -39,6 +39,9 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     extracted_game_type = ticket_info.get('game_type')
     extracted_draw_number = ticket_info.get('draw_number')
     extracted_draw_date = ticket_info.get('draw_date')
+    
+    # Get both the raw and processed ticket numbers
+    raw_ticket_info = ticket_info.get('raw_selected_numbers', {})
     ticket_numbers = ticket_info.get('selected_numbers', [])
     
     # Use extracted lottery type if available and not manually specified
@@ -76,9 +79,28 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
         bonus_numbers = lottery_result.get_bonus_numbers_list()
         bonus_numbers = [int(num) for num in bonus_numbers]
     
-    # Find matched numbers
+    # Find matched numbers in flattened list
     matched_numbers = [num for num in ticket_numbers if num in winning_numbers]
     matched_bonus = [num for num in ticket_numbers if num in bonus_numbers]
+    
+    # For multiple rows - analyze each row separately to determine which rows have matches
+    rows_with_matches = []
+    
+    # Process each row separately if we have raw_ticket_info
+    if raw_ticket_info and isinstance(raw_ticket_info, dict) and len(raw_ticket_info) > 0:
+        for row_name, numbers in raw_ticket_info.items():
+            row_matches = [num for num in numbers if num in winning_numbers]
+            row_bonus_matches = [num for num in numbers if num in bonus_numbers]
+            
+            if row_matches or row_bonus_matches:
+                # This row has at least one match
+                rows_with_matches.append({
+                    "row": row_name,
+                    "numbers": numbers,
+                    "matched_numbers": row_matches,
+                    "matched_bonus": row_bonus_matches,
+                    "total_matched": len(row_matches) + len(row_bonus_matches)
+                })
     
     # Get prize information based on matches
     prize_info = get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result)
@@ -87,7 +109,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     formatted_date = lottery_result.draw_date.strftime("%A, %d %B %Y")
     
     # Return enhanced result with all extracted ticket information
-    return {
+    result = {
         "lottery_type": lottery_type,
         "draw_number": lottery_result.draw_number,
         "draw_date": formatted_date,
@@ -106,6 +128,12 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
         "has_prize": bool(prize_info),
         "prize_info": prize_info if prize_info else {}
     }
+    
+    # Add rows with matches if we have them
+    if rows_with_matches:
+        result["rows_with_matches"] = rows_with_matches
+        
+    return result
 
 def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
     """
@@ -236,17 +264,31 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
             selected_numbers = []
             
             if 'selected_numbers' in ticket_info:
+                # Check if it's a dictionary directly with row names (A06, B06, etc.)
+                if isinstance(ticket_info['selected_numbers'], dict):
+                    logger.warning("Found dictionary with row names for selected numbers")
+                    ticket_info['raw_selected_numbers'] = {}
+                    for row_name, numbers in ticket_info['selected_numbers'].items():
+                        if isinstance(numbers, list):
+                            row_numbers = [int(num) for num in numbers if isinstance(num, (int, str, float))]
+                            ticket_info['raw_selected_numbers'][row_name] = row_numbers
+                            selected_numbers.extend(row_numbers)
                 # Case 1: Simple list of numbers
-                if isinstance(ticket_info['selected_numbers'], list):
+                elif isinstance(ticket_info['selected_numbers'], list):
                     # Check if we're dealing with a simple list of integers
                     if all(isinstance(x, (int, str, float)) for x in ticket_info['selected_numbers']):
                         selected_numbers = [int(num) for num in ticket_info['selected_numbers']]
                     # Case 2: Nested array of arrays (multiple rows of numbers)
                     elif isinstance(ticket_info['selected_numbers'], list) and len(ticket_info['selected_numbers']) > 0 and isinstance(ticket_info['selected_numbers'][0], list):
                         logger.warning("Found nested arrays of numbers, flattening all rows")
-                        for row in ticket_info['selected_numbers']:
+                        # Store original rows for reference
+                        ticket_info['raw_selected_numbers'] = {}
+                        for i, row in enumerate(ticket_info['selected_numbers']):
                             if isinstance(row, list):
-                                selected_numbers.extend([int(num) for num in row if isinstance(num, (int, str, float))])
+                                row_name = f"Row {i+1}"
+                                row_numbers = [int(num) for num in row if isinstance(num, (int, str, float))]
+                                ticket_info['raw_selected_numbers'][row_name] = row_numbers
+                                selected_numbers.extend(row_numbers)
                     # Case 3: Complex structure with lines/rows
                     elif isinstance(ticket_info['selected_numbers'], list) and len(ticket_info['selected_numbers']) > 0:
                         for item in ticket_info['selected_numbers']:
