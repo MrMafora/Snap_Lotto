@@ -1,15 +1,17 @@
 """
-Main application entry point
+Main application entry point with Flask application defined for deployment.
 
-This file defines the Flask application in a deployment-friendly way.
-It contains the main Flask app instance that Gunicorn/deployment services
-can import directly using the "main:app" module path.
+This file is imported by gunicorn using the 'main:app' notation.
 """
-# Import the Flask app instance from app.py
-from app import app
+import logging
+from app import create_app
 
-# This is what gunicorn looks for by default: the variable named 'app'
-# in the 'main' module (this file). No need to modify anything else.
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Create the Flask application using the factory function
+app = create_app()
 
 # When running directly, not through gunicorn
 if __name__ == "__main__":
