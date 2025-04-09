@@ -94,7 +94,10 @@
 <div id="ad-overlay-loading" class="interstitial-view">
     <h4 class="mb-4">Processing your ticket...</h4>
     <div id="ad-container-loader" class="ad-container">
-        <!-- Ad will be inserted here by JS -->
+        <div class="ad-placeholder">
+            <p><i class="fas fa-ad mb-2"></i></p>
+            <p class="mb-1">Advertisement</p>
+        </div>
     </div>
     <div class="mt-3">
         <div class="spinner-border text-primary" role="status">
@@ -108,7 +111,11 @@
 <div id="ad-overlay-results" class="interstitial-view">
     <h4 class="mb-4">Results ready!</h4>
     <div id="ad-container-interstitial" class="ad-container">
-        <!-- Ad will be inserted here by JS -->
+        <div class="ad-placeholder">
+            <p><i class="fas fa-ad mb-2"></i></p>
+            <p class="mb-1">Advertisement</p>
+            <small class="text-muted">Your results are ready to view</small>
+        </div>
     </div>
     <button class="btn btn-primary ad-close-btn" id="view-results-btn">
         <i class="fas fa-check-circle me-2"></i> View Results
@@ -371,9 +378,8 @@
             scanButton.disabled = !fileInput.files.length || !lotteryTypeSelect.value;
         }
         
-        ticketForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
+        // Function to handle showing ads and processing the ticket
+        function processTicketWithAds() {
             // Show loading indicator
             loadingIndicator.style.display = 'block';
             scanButton.disabled = true;
@@ -382,16 +388,23 @@
             const adOverlayLoading = document.getElementById('ad-overlay-loading');
             adOverlayLoading.style.display = 'flex';
             
-            // Load ad in the loading overlay
-            if (window.AdManager) {
-                AdManager.showLoadingAd(() => {
-                    console.log('Ad loaded during processing');
-                });
-            }
-            
-            // Create form data
+            // Create form data for later use
             const formData = new FormData(ticketForm);
             
+            // Load ad in the loading overlay then process the ticket
+            console.log('Attempting to show loading ad');
+            
+            // Simulate ad loading (would be handled by AdSense in production)
+            setTimeout(() => {
+                console.log('Ad loaded during processing');
+                
+                // Now send the ticket for processing
+                processTicket(formData);
+            }, 2000); // 2 second simulated ad
+        }
+        
+        // Function to process the ticket after ad is shown
+        function processTicket(formData) {
             // Send request
             fetch('/scan-ticket', {
                 method: 'POST',
@@ -402,18 +415,17 @@
                 console.log('Success:', data);
                 
                 // Hide loading overlay
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
                 adOverlayLoading.style.display = 'none';
                 
                 // Show results ad overlay
                 const adOverlayResults = document.getElementById('ad-overlay-results');
                 adOverlayResults.style.display = 'flex';
                 
-                // Load ad in the results overlay
-                if (window.AdManager) {
-                    AdManager.showInterstitialAd(() => {
-                        console.log('Ad loaded before showing results');
-                    });
-                }
+                console.log('Showing results interstitial ad');
+                
+                // Simulate ad loading (would be handled by AdSense in production)
+                const adContainer = document.getElementById('ad-container-interstitial');
                 
                 // Setup the view results button
                 const viewResultsBtn = document.getElementById('view-results-btn');
@@ -425,6 +437,7 @@
             .catch(error => {
                 console.error('Error:', error);
                 // Hide ad loading overlay
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
                 adOverlayLoading.style.display = 'none';
                 showError('An error occurred while scanning your ticket. Please try again.');
             })
@@ -433,6 +446,26 @@
                 loadingIndicator.style.display = 'none';
                 scanButton.disabled = false;
             });
+        }
+        
+        // Event listener for form submission
+        ticketForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Make sure lottery type is selected
+            if (!lotteryTypeSelect.value) {
+                alert('Please select a lottery type');
+                return;
+            }
+            
+            // Make sure file is selected
+            if (!fileInput.files.length) {
+                alert('Please select an image of your ticket');
+                return;
+            }
+            
+            // Process the ticket with ads
+            processTicketWithAds();
         });
         
         function displayResults(data) {
