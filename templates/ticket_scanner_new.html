@@ -972,11 +972,6 @@
                         const ball = document.createElement('span');
                         ball.classList.add('lottery-ball');
                         
-                        // Highlight matched numbers with a special class
-                        if (rowMatch.matched_numbers.includes(num)) {
-                            ball.classList.add('ball-matched', 'border-glow');
-                        }
-                        
                         // Add color classes in sequence
                         if (ballsContainer.children.length % 4 === 0) {
                             ball.classList.add('lottery-ball-red');
@@ -988,7 +983,19 @@
                             ball.classList.add('lottery-ball-blue');
                         }
                         
+                        // Set the number
                         ball.textContent = num;
+                        
+                        // Highlight matched numbers with a special class - do this after setting text
+                        if (rowMatch.matched_numbers.includes(num)) {
+                            ball.classList.add('ball-matched', 'border-glow');
+                            
+                            // Create a separate element for the checkmark to overlay on top
+                            const checkOverlay = document.createElement('div');
+                            checkOverlay.classList.add('check-overlay');
+                            checkOverlay.innerHTML = '<i class="fas fa-check"></i>';
+                            ball.appendChild(checkOverlay);
+                        }
                         ballsContainer.appendChild(ball);
                     });
                     

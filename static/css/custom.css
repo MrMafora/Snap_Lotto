@@ -237,20 +237,59 @@ tbody, td, th {
 
 /* Glow effect for matched numbers */
 .border-glow {
-    box-shadow: 0 0 10px rgba(255, 255, 0, 0.7);
+    box-shadow: 0 0 15px rgba(255, 255, 0, 0.8), 0 0 5px rgba(255, 215, 0, 0.9);
     animation: pulse-matched 1.5s infinite;
+    transform: scale(1.1);
+    z-index: 2;
+    position: relative;
+    border: 2px solid gold !important;
 }
 
 @keyframes pulse-matched {
     0% {
-        box-shadow: 0 0 5px rgba(255, 255, 0, 0.7);
+        box-shadow: 0 0 10px gold, 0 0 5px yellow;
     }
     50% {
-        box-shadow: 0 0 15px rgba(255, 255, 0, 0.9), 0 0 5px rgba(255, 255, 0, 0.5);
+        box-shadow: 0 0 20px gold, 0 0 10px yellow, 0 0 30px rgba(255, 215, 0, 0.5);
+        transform: scale(1.15);
     }
     100% {
-        box-shadow: 0 0 5px rgba(255, 255, 0, 0.7);
+        box-shadow: 0 0 10px gold, 0 0 5px yellow;
     }
+}
+
+/* Check overlay for matched balls */
+.check-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 1rem;
+    pointer-events: none;
+    text-shadow: 0 0 2px white;
+}
+
+.lottery-ball-red .check-overlay,
+.lottery-ball-green .check-overlay {
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 0 2px black;
+}
+
+/* Add a background to make the check mark more visible */
+.check-overlay::before {
+    content: '';
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    z-index: -1;
 }
 
 /* Small lottery balls for compact displays */
