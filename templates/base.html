@@ -152,6 +152,28 @@
                     row.style.backgroundColor = '#f9f9f9';
                 });
             });
+            
+            // Remove the lottery data dashboard section
+            setTimeout(() => {
+                const headings = document.querySelectorAll('h4');
+                for (let heading of headings) {
+                    if (heading.textContent.includes('LOTTERY DATA DASHBOARD')) {
+                        // Find the parent card element and remove it
+                        let element = heading;
+                        // Go up to find the card div (up to 5 parent levels)
+                        for (let i = 0; i < 5; i++) {
+                            if (element.parentElement) {
+                                element = element.parentElement;
+                                if (element.classList.contains('card')) {
+                                    console.log('Found the dashboard card, removing it');
+                                    element.remove();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }, 100);
         });
     </script>
 </body>
