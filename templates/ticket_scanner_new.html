@@ -805,24 +805,73 @@
             const ticketNumbersContainer = document.getElementById('ticket-numbers');
             ticketNumbersContainer.innerHTML = '';
             
-            data.ticket_numbers.forEach(num => {
-                const ball = document.createElement('span');
-                ball.classList.add('lottery-ball');
+            // Check if we have raw_selected_numbers in the ticket_info (multiple rows)
+            if (data.ticket_info && data.ticket_info.raw_selected_numbers) {
+                // Create a heading for multiple rows
+                const heading = document.createElement('h5');
+                heading.classList.add('mb-3');
+                heading.textContent = 'Your ticket contains multiple rows:';
+                ticketNumbersContainer.appendChild(heading);
                 
-                // Add color classes in sequence
-                if (ticketNumbersContainer.children.length % 4 === 0) {
-                    ball.classList.add('lottery-ball-red');
-                } else if (ticketNumbersContainer.children.length % 4 === 1) {
-                    ball.classList.add('lottery-ball-yellow');
-                } else if (ticketNumbersContainer.children.length % 4 === 2) {
-                    ball.classList.add('lottery-ball-green');
-                } else {
-                    ball.classList.add('lottery-ball-blue');
-                }
-                
-                ball.textContent = num;
-                ticketNumbersContainer.appendChild(ball);
-            });
+                // Iterate through each row and create a separate container
+                Object.entries(data.ticket_info.raw_selected_numbers).forEach(([rowName, numbers]) => {
+                    // Create row container
+                    const rowContainer = document.createElement('div');
+                    rowContainer.classList.add('mb-3');
+                    
+                    // Add row label
+                    const rowLabel = document.createElement('div');
+                    rowLabel.classList.add('fw-bold', 'mb-1');
+                    rowLabel.textContent = rowName + ':';
+                    rowContainer.appendChild(rowLabel);
+                    
+                    // Add numbers for this row
+                    const ballsContainer = document.createElement('div');
+                    ballsContainer.classList.add('d-flex', 'flex-wrap', 'gap-1', 'mb-3');
+                    
+                    numbers.forEach(num => {
+                        const ball = document.createElement('span');
+                        ball.classList.add('lottery-ball');
+                        
+                        // Add color classes in sequence
+                        if (ballsContainer.children.length % 4 === 0) {
+                            ball.classList.add('lottery-ball-red');
+                        } else if (ballsContainer.children.length % 4 === 1) {
+                            ball.classList.add('lottery-ball-yellow');
+                        } else if (ballsContainer.children.length % 4 === 2) {
+                            ball.classList.add('lottery-ball-green');
+                        } else {
+                            ball.classList.add('lottery-ball-blue');
+                        }
+                        
+                        ball.textContent = num;
+                        ballsContainer.appendChild(ball);
+                    });
+                    
+                    rowContainer.appendChild(ballsContainer);
+                    ticketNumbersContainer.appendChild(rowContainer);
+                });
+            } else {
+                // Simple display of all ticket numbers in one row
+                data.ticket_numbers.forEach(num => {
+                    const ball = document.createElement('span');
+                    ball.classList.add('lottery-ball');
+                    
+                    // Add color classes in sequence
+                    if (ticketNumbersContainer.children.length % 4 === 0) {
+                        ball.classList.add('lottery-ball-red');
+                    } else if (ticketNumbersContainer.children.length % 4 === 1) {
+                        ball.classList.add('lottery-ball-yellow');
+                    } else if (ticketNumbersContainer.children.length % 4 === 2) {
+                        ball.classList.add('lottery-ball-green');
+                    } else {
+                        ball.classList.add('lottery-ball-blue');
+                    }
+                    
+                    ball.textContent = num;
+                    ticketNumbersContainer.appendChild(ball);
+                });
+            }
             
             // Display winning numbers
             const winningNumbersContainer = document.getElementById('winning-numbers');

@@ -129,6 +129,10 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
         "prize_info": prize_info if prize_info else {}
     }
     
+    # Include raw selected numbers data if available
+    if raw_ticket_info:
+        result["ticket_info"]["raw_selected_numbers"] = raw_ticket_info
+    
     # Add rows with matches if we have them
     if rows_with_matches:
         result["rows_with_matches"] = rows_with_matches
@@ -161,13 +165,16 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
         3. Draw number (ID number of the specific draw)
         4. Selected numbers (the player's chosen numbers on the ticket)
         
+        CRITICAL REQUIREMENT: If the ticket has MULTIPLE ROWS or SETS of numbers (e.g., A01-F01 or multiple games),
+        you MUST extract ALL ROWS and ALL NUMBERS from the ticket. Do not just extract the first row.
+        
         Important notes:
         - South African lottery tickets typically display game type, draw date and draw number clearly
         - Focus on the player's selected numbers (usually circled, marked, or otherwise highlighted)
-        - For Lotto/Lotto Plus tickets, look for 6 selected numbers
-        - For Powerball/Powerball Plus tickets, look for 5 main numbers + 1 Powerball number
-        - For Daily Lotto tickets, look for 5 selected numbers
-        - Return all information in a structured JSON format
+        - For Lotto/Lotto Plus tickets, look for 6 selected numbers per row
+        - For Powerball/Powerball Plus tickets, look for 5 main numbers + 1 Powerball number per row
+        - For Daily Lotto tickets, look for 5 selected numbers per row
+        - Return all information in a structured JSON format with no additional text or explanations
         - If you can't determine certain fields with confidence, use "unknown" as the value
         
         Return the data in this JSON format:
@@ -175,8 +182,21 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
             "game_type": "The detected game type (e.g., Lotto, Powerball)",
             "draw_date": "Draw date in YYYY-MM-DD format if possible",
             "draw_number": "Draw ID number as shown on ticket",
-            "selected_numbers": [array of selected numbers as integers]
+            "selected_numbers": {
+                "A01": [first set of numbers],
+                "B01": [second set of numbers],
+                ...additional rows as needed
+            }
         }
+        
+        Alternatively, you can use this format for the selected numbers if row labels are not visible:
+        "selected_numbers": [
+            [first row numbers],
+            [second row numbers],
+            ...additional rows as needed
+        ]
+        
+        Do not include any explanatory text outside the JSON structure. Return ONLY the JSON.
         """
         
         # Log that we're processing a ticket
