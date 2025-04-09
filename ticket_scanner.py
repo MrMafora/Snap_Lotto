@@ -182,15 +182,119 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
                 if match:
                     cleaned_response = match.group(1).strip()
             
-            # Parse the JSON object
-            ticket_info = json.loads(cleaned_response)
+            # Try to extract just the JSON portion (Claude sometimes adds explanations after JSON)
+            try:
+                # Find where the JSON starts (first {)
+                json_start = cleaned_response.find('{')
+                if json_start >= 0:
+                    # Find the matching closing } by counting braces
+                    brace_count = 0
+                    json_end = -1
+                    in_quotes = False
+                    escape_next = False
+                    
+                    for i, char in enumerate(cleaned_response[json_start:]):
+                        pos = json_start + i
+                        
+                        # Handle string quotes and escaping
+                        if char == '\\' and not escape_next:
+                            escape_next = True
+                            continue
+                        
+                        if char == '"' and not escape_next:
+                            in_quotes = not in_quotes
+                        
+                        escape_next = False
+                        
+                        # Only count braces when not in quotes
+                        if not in_quotes:
+                            if char == '{':
+                                brace_count += 1
+                            elif char == '}':
+                                brace_count -= 1
+                                if brace_count == 0:
+                                    json_end = pos
+                                    break
+                    
+                    if json_end > json_start:
+                        # Extract just the valid JSON portion
+                        json_str = cleaned_response[json_start:json_end+1]
+                        logger.info(f"Extracted clean JSON: {json_str}")
+                        ticket_info = json.loads(json_str)
+                    else:
+                        # Fallback to regular parsing
+                        ticket_info = json.loads(cleaned_response)
+                else:
+                    # No JSON found, try original
+                    ticket_info = json.loads(cleaned_response)
+            except Exception:
+                # If sophisticated parsing fails, try regular parsing
+                logger.warning("JSON extraction failed, trying direct parsing")
+                ticket_info = json.loads(cleaned_response)
             
-            # Ensure numbers are integers
-            if 'selected_numbers' in ticket_info and isinstance(ticket_info['selected_numbers'], list):
-                ticket_info['selected_numbers'] = [int(num) for num in ticket_info['selected_numbers']]
-            else:
-                # If no numbers found, provide a default
-                ticket_info['selected_numbers'] = []
+            # Handle selected numbers which could be in various formats
+            selected_numbers = []
+            
+            if 'selected_numbers' in ticket_info:
+                # Case 1: Simple list of numbers
+                if isinstance(ticket_info['selected_numbers'], list):
+                    # Check if we're dealing with a simple list of integers
+                    if all(isinstance(x, (int, str, float)) for x in ticket_info['selected_numbers']):
+                        selected_numbers = [int(num) for num in ticket_info['selected_numbers']]
+                    # Case 2: Complex structure with lines/rows
+                    elif isinstance(ticket_info['selected_numbers'], list) and len(ticket_info['selected_numbers']) > 0:
+                        for item in ticket_info['selected_numbers']:
+                            if isinstance(item, dict):
+                                # Extract numbers from all fields in the dict
+                                for key, value in item.items():
+                                    if isinstance(value, list):
+                                        selected_numbers.extend([int(num) for num in value if isinstance(num, (int, str, float))])
+                
+                # If we still don't have numbers, try to find any integers in the JSON
+                if not selected_numbers:
+                    logger.warning("Complex number structure found, extracting all numbers")
+                    # Extract all integers from the ticket_info recursively
+                    def extract_all_numbers(obj):
+                        numbers = []
+                        if isinstance(obj, dict):
+                            for value in obj.values():
+                                numbers.extend(extract_all_numbers(value))
+                        elif isinstance(obj, list):
+                            for item in obj:
+                                numbers.extend(extract_all_numbers(item))
+                        elif isinstance(obj, (int, float)) or (isinstance(obj, str) and obj.isdigit()):
+                            numbers.append(int(obj))
+                        return numbers
+                    
+                    all_numbers = extract_all_numbers(ticket_info)
+                    # Filter to reasonable lottery numbers (1-50)
+                    selected_numbers = [num for num in all_numbers if 1 <= num <= 50]
+            
+            # Update the ticket info with our processed numbers
+            ticket_info['selected_numbers'] = selected_numbers if selected_numbers else []
+            
+            # Make sure we have a game type
+            if not ticket_info.get('game_type') or ticket_info.get('game_type') == 'unknown':
+                # Extract game type from Claude response if possible
+                game_type_match = re.search(r'(lotto|powerball|daily\s*lotto)(?:\s*plus\s*[12])?', 
+                                          raw_response, re.IGNORECASE)
+                if game_type_match:
+                    extracted_type = game_type_match.group(0).strip()
+                    # Standardize the format
+                    if "powerball" in extracted_type.lower():
+                        if "plus" in extracted_type.lower():
+                            ticket_info['game_type'] = "Powerball Plus"
+                        else:
+                            ticket_info['game_type'] = "Powerball"
+                    elif "daily" in extracted_type.lower():
+                        ticket_info['game_type'] = "Daily Lotto"
+                    elif "lotto" in extracted_type.lower():
+                        if "plus 1" in extracted_type.lower():
+                            ticket_info['game_type'] = "Lotto Plus 1"
+                        elif "plus 2" in extracted_type.lower():
+                            ticket_info['game_type'] = "Lotto Plus 2"
+                        else:
+                            ticket_info['game_type'] = "Lotto"
             
             # If we have game type but the user already specified it, prioritize user selection
             if lottery_type and lottery_type != "unknown":
@@ -224,8 +328,31 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
             date_match = re.search(r'(\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4})', raw_response)
             draw_date = date_match.group(1) if date_match else "unknown"
             
+            # Try to extract game type if not provided
+            extracted_game_type = lottery_type
+            if not lottery_type or lottery_type == "unknown":
+                game_type_match = re.search(r'(lotto|powerball|daily\s*lotto)(?:\s*plus\s*[12])?', 
+                                         raw_response, re.IGNORECASE)
+                if game_type_match:
+                    extracted_type = game_type_match.group(0).strip()
+                    # Standardize the format
+                    if "powerball" in extracted_type.lower():
+                        if "plus" in extracted_type.lower():
+                            extracted_game_type = "Powerball Plus"
+                        else:
+                            extracted_game_type = "Powerball"
+                    elif "daily" in extracted_type.lower():
+                        extracted_game_type = "Daily Lotto"
+                    elif "lotto" in extracted_type.lower():
+                        if "plus 1" in extracted_type.lower():
+                            extracted_game_type = "Lotto Plus 1"
+                        elif "plus 2" in extracted_type.lower():
+                            extracted_game_type = "Lotto Plus 2"
+                        else:
+                            extracted_game_type = "Lotto"
+            
             ticket_info = {
-                'game_type': lottery_type,
+                'game_type': extracted_game_type,
                 'draw_date': draw_date,
                 'draw_number': draw_number,
                 'selected_numbers': ticket_numbers
