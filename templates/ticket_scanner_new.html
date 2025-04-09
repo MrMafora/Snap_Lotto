@@ -704,9 +704,8 @@
         
         // Show the results overlay with data
         function showResultsOverlay(data) {
-            // Show results ad overlay
-            const adOverlayResults = document.getElementById('ad-overlay-results');
-            adOverlayResults.style.display = 'flex';
+            // Show results ad overlay using the AdManager
+            AdManager.showInterstitialAd();
             
             console.log('Showing results interstitial ad');
             
@@ -714,18 +713,14 @@
             const viewResultsBtn = document.getElementById('view-results-btn');
             viewResultsBtn.onclick = function() {
                 console.log('View Results button clicked!');
-                adOverlayResults.style.display = 'none';
-                // Restore scrolling on body
-                document.body.style.overflow = '';
+                AdManager.hideInterstitialAd();
                 displayResults(data);
             };
             
             // Auto-close the overlay after 2 seconds to ensure users see results
             setTimeout(function() {
                 console.log('Auto-displaying results after delay');
-                adOverlayResults.style.display = 'none';
-                // Restore scrolling on body
-                document.body.style.overflow = '';
+                AdManager.hideInterstitialAd();
                 displayResults(data);
             }, 2000);
             
@@ -756,35 +751,16 @@
                 // Hide loading overlay
                 AdManager.hideLoadingAd();
                 
-                // Show results ad overlay
-                AdManager.showInterstitialAd();
-                
-                console.log('Showing results interstitial ad');
-                
-                // Setup view results button
-                const viewResultsBtn = document.getElementById('view-results-btn');
-                viewResultsBtn.onclick = function() {
-                    console.log('View Results button clicked!');
-                    console.log('Data to display:', data);
-                    AdManager.hideInterstitialAd();
-                    displayResults(data);
-                };
-                
-                // Auto-close the overlay after 2 seconds to ensure users see results
-                setTimeout(function() {
-                    console.log('Auto-displaying results after delay');
-                    AdManager.hideInterstitialAd();
-                    displayResults(data);
-                }, 2000);
+                // Show results with data
+                showResultsOverlay(data);
             })
             .catch(error => {
                 console.error('Error:', error);
                 // Hide ad loading overlay
                 AdManager.hideLoadingAd();
                 showError('An error occurred while scanning your ticket. Please try again.');
-            })
-            .finally(() => {
-                // Hide loading indicator
+                
+                // Hide loading indicator and re-enable scan button
                 loadingIndicator.style.display = 'none';
                 scanButton.disabled = false;
                 console.log("Scan completed - button enabled");
@@ -1076,6 +1052,12 @@
             const errorText = document.getElementById('error-text');
             const successContent = document.getElementById('success-content');
             
+            // Make sure scrolling is re-enabled
+            document.body.style.overflow = '';
+            
+            // Show the results container so the error is visible
+            resultsContainer.classList.remove('d-none');
+            
             // Parse for specific message patterns
             let formattedMessage = message;
             
@@ -1107,6 +1089,9 @@
             errorText.innerHTML = formattedMessage;
             errorMessage.classList.remove('d-none');
             successContent.classList.add('d-none');
+            
+            // Scroll to the error message
+            errorMessage.scrollIntoView({ behavior: 'smooth' });
         }
     });
 </script>
