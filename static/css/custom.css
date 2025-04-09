@@ -16,25 +16,43 @@
     font-weight: bold;
     color: #333;
     font-size: 1.1rem;
+    line-height: 1.4;
 }
 
 .slogan-banner {
     background-color: var(--sa-lottery-yellow);
-    padding: 8px 15px;
-    border-radius: 6px;
+    padding: 10px 20px;
+    border-radius: 8px;
     display: inline-block;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.1);
+    transform: scale(1.05);
+    transition: transform 0.3s ease;
+}
+
+.slogan-banner:hover {
+    transform: scale(1.1);
 }
 
 @media (max-width: 768px) {
     .slogan-text {
-        font-size: 0.9rem;
+        font-size: 1rem;
+    }
+    
+    .slogan-banner {
+        padding: 8px 15px;
     }
 }
 
 @media (max-width: 576px) {
     .slogan-text {
-        font-size: 0.8rem;
+        font-size: 0.9rem;
+    }
+    
+    .slogan-banner {
+        padding: 6px 12px;
+        width: 90%;
+        max-width: 320px;
     }
 }
 
