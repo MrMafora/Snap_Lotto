@@ -20,7 +20,6 @@ class Config:
     
     # Anthropic API settings (Custom environment variable name as requested)
     ANTHROPIC_API_KEY = os.environ.get('Lotto_scape_ANTHROPIC_KEY', '')
-    MISTRAL_API_KEY = os.environ.get('Snap_Lotto_Mistral', '')
     
     # Screenshot directory
     SCREENSHOT_DIR = os.path.join(os.getcwd(), 'screenshots')
