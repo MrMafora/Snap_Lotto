@@ -1,10 +1,14 @@
 /**
- * Snap Lotto Ticket Scanner Module
- * Handles ticket image upload, processing and result display 
+ * Ticket scanner functionality for Snap Lotto
+ * Handles the scanning of lottery tickets using the camera or file upload
  */
 
-// Initialize when the document is ready
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("Ticket scanner script loaded");
+    initTicketScannerFunctionality();
+});
+
+function initTicketScannerFunctionality() {
     // Camera elements
     const cameraBtn = document.getElementById('camera-btn');
     const cameraInterface = document.getElementById('camera-interface');
@@ -22,41 +26,148 @@ document.addEventListener('DOMContentLoaded', function() {
     const ticketPreview = document.getElementById('ticket-preview');
     const removeImageBtn = document.getElementById('remove-image');
     const scanButton = document.getElementById('scan-button');
-    
-    // Results elements
-    const resultsContainer = document.getElementById('results-container');
-    const successContent = document.getElementById('success-content');
-    const errorMessage = document.getElementById('error-message');
-    const errorText = document.getElementById('error-text');
-    
-    // Form and overlays
     const ticketForm = document.getElementById('ticket-form');
-    const loadingOverlay = document.getElementById('ad-overlay-loading');
-    const resultsOverlay = document.getElementById('ad-overlay-results');
-    const viewResultsBtn = document.getElementById('view-results-btn');
+    const lotteryTypeSelect = document.getElementById('lottery-type');
+    const loadingIndicator = document.getElementById('scanner-loading');
+    const resultsContainer = document.getElementById('results-container');
+    const scanNewTicketBtn = document.getElementById('scan-new-ticket');
     
-    // Camera variables
+    // Camera stream variables
     let stream = null;
-    let facingMode = 'environment'; // Start with back camera
+    let currentFacingMode = 'environment'; // Start with back camera
     
-    // Initialize camera button events
-    if (cameraBtn) {
-        cameraBtn.addEventListener('click', startCamera);
+    // Exit early if essential elements are missing (wrong page)
+    if (!scanButton || !ticketForm) {
+        console.log("Not on ticket scanner page, skipping initialization");
+        return;
     }
     
-    if (switchCameraBtn) {
-        switchCameraBtn.addEventListener('click', toggleCamera);
+    // Camera handling functions
+    function startCamera() {
+        // Hide the drop area and show camera interface
+        dropArea.classList.add('d-none');
+        cameraInterface.classList.remove('d-none');
+        
+        // Get camera access
+        const constraints = {
+            video: {
+                facingMode: currentFacingMode,
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            },
+            audio: false
+        };
+        
+        // Stop any existing stream
+        if (stream) {
+            stopCameraStream();
+        }
+        
+        // Request camera access
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then(function(mediaStream) {
+                stream = mediaStream;
+                cameraPreview.srcObject = stream;
+                cameraPreview.play();
+                console.log('Camera started successfully:', currentFacingMode);
+            })
+            .catch(function(err) {
+                console.error('Error accessing camera:', err);
+                alert('Could not access the camera. Please ensure you have granted camera permissions and try again. Error: ' + err.message);
+                stopCamera();
+            });
     }
     
-    if (captureBtn) {
-        captureBtn.addEventListener('click', capturePhoto);
+    function stopCameraStream() {
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                track.stop();
+            });
+            stream = null;
+            cameraPreview.srcObject = null;
+        }
     }
     
-    if (cancelCameraBtn) {
-        cancelCameraBtn.addEventListener('click', stopCamera);
+    function stopCamera() {
+        stopCameraStream();
+        cameraInterface.classList.add('d-none');
+        dropArea.classList.remove('d-none');
     }
     
-    // Initialize drag and drop for ticket image
+    function switchCamera() {
+        currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+        console.log('Switching camera to:', currentFacingMode);
+        startCamera(); // This will restart the camera with the new facing mode
+    }
+    
+    function captureImage() {
+        if (!stream) {
+            console.error('No camera stream available');
+            return;
+        }
+        
+        // Set canvas dimensions to match video
+        const width = cameraPreview.videoWidth;
+        const height = cameraPreview.videoHeight;
+        captureCanvas.width = width;
+        captureCanvas.height = height;
+        
+        // Draw video frame to canvas
+        const context = captureCanvas.getContext('2d');
+        context.drawImage(cameraPreview, 0, 0, width, height);
+        
+        // Convert to data URL
+        const imageDataUrl = captureCanvas.toDataURL('image/jpeg');
+        
+        // Show the preview with captured image
+        ticketPreview.src = imageDataUrl;
+        previewContainer.classList.remove('d-none');
+        
+        // Create a file object from the data URL for form submission
+        fetch(imageDataUrl)
+            .then(res => res.blob())
+            .then(blob => {
+                const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+                
+                // Create a FileList-like object
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+                
+                // Stop camera and show preview
+                stopCamera();
+                updateScanButton();
+            })
+            .catch(err => {
+                console.error('Error creating file from canvas:', err);
+                alert('Error capturing image. Please try again.');
+            });
+    }
+    
+    // Camera button event listeners
+    if (cameraBtn) cameraBtn.addEventListener('click', startCamera);
+    if (captureBtn) captureBtn.addEventListener('click', captureImage);
+    if (switchCameraBtn) switchCameraBtn.addEventListener('click', switchCamera);
+    if (cancelCameraBtn) cancelCameraBtn.addEventListener('click', stopCamera);
+    
+    // Initialize scan button state
+    setTimeout(() => {
+        updateScanButton();
+    }, 500);
+    
+    // File selection via button
+    if (fileSelectBtn) {
+        fileSelectBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+    }
+    
+    // File selection change
+    if (fileInput) {
+        fileInput.addEventListener('change', handleFileSelect);
+    }
+    
+    // Drag and drop events
     if (dropArea) {
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropArea.addEventListener(eventName, preventDefaults, false);
@@ -73,120 +184,6 @@ document.addEventListener('DOMContentLoaded', function() {
         dropArea.addEventListener('drop', handleDrop, false);
     }
     
-    // File select button
-    if (fileSelectBtn) {
-        fileSelectBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
-    }
-    
-    // File input change
-    if (fileInput) {
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files && fileInput.files[0]) {
-                handleFiles(fileInput.files);
-            }
-        });
-    }
-    
-    // Remove image button
-    if (removeImageBtn) {
-        removeImageBtn.addEventListener('click', removeImage);
-    }
-    
-    // View results button
-    if (viewResultsBtn) {
-        viewResultsBtn.addEventListener('click', function() {
-            console.log('View Results button clicked!');
-            if (window.AdManager) {
-                AdManager.hideInterstitialAd();
-            } else {
-                console.error('AdManager not found - using fallback hide');
-                if (resultsOverlay) {
-                    resultsOverlay.style.display = 'none';
-                }
-                document.body.style.overflow = 'auto';
-                document.body.style.position = 'static';
-            }
-            
-            if (window.ticketData) {
-                displayResults(window.ticketData);
-            } else {
-                console.error('No ticket data available');
-                showError('Error: No ticket data available. Please try scanning again.');
-            }
-        });
-    }
-    
-    // Form submission
-    if (ticketForm) {
-        ticketForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const loadingIndicator = document.getElementById('scanner-loading');
-            loadingIndicator.style.display = 'block';
-            scanButton.disabled = true;
-            
-            // Check if we have an image
-            if (!fileInput.files || !fileInput.files[0]) {
-                showError('Please upload an image of your lottery ticket.');
-                loadingIndicator.style.display = 'none';
-                scanButton.disabled = false;
-                return;
-            }
-            
-            // Start processing animations
-            if (window.AdManager) {
-                AdManager.showLoadingAd();
-                console.log('Loading ad shown');
-                
-                startProcessingAnimation();
-            }
-            
-            const formData = new FormData(ticketForm);
-            
-            // Send the form data to the server
-            fetch('/scan-ticket', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Success:', data);
-                
-                // Save ticket data globally
-                window.ticketData = data;
-                
-                // Hide ad loading overlay
-                if (window.AdManager) {
-                    AdManager.hideLoadingAd();
-                }
-                
-                // Show results with data
-                showResultsOverlay(data);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                // Hide ad loading overlay
-                if (window.AdManager) {
-                    AdManager.hideLoadingAd();
-                }
-                showError('An error occurred while scanning your ticket. Please try again.');
-                
-                // Hide loading indicator and re-enable scan button
-                loadingIndicator.style.display = 'none';
-                scanButton.disabled = false;
-                console.log("Scan completed - button enabled");
-            });
-        });
-    }
-    
-    // Helper functions
     function preventDefaults(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -203,437 +200,470 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleDrop(e) {
         const dt = e.dataTransfer;
         const files = dt.files;
-        handleFiles(files);
+        
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect();
+        }
     }
     
-    function handleFiles(files) {
-        if (files.length > 0) {
-            const file = files[0];
-            
+    function handleFileSelect() {
+        const file = fileInput.files[0];
+        
+        if (file) {
+            // Check if file is an image
             if (!file.type.match('image.*')) {
-                showError('Please upload an image file (JPG, PNG, etc.).');
+                alert('Please select an image file');
+                fileInput.value = ''; // Clear the file input
                 return;
             }
             
             const reader = new FileReader();
-            reader.onload = (e) => {
+            
+            reader.onload = function(e) {
                 ticketPreview.src = e.target.result;
-                dropArea.classList.add('d-none');
                 previewContainer.classList.remove('d-none');
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-    
-    function removeImage() {
-        fileInput.value = '';
-        ticketPreview.src = '';
-        previewContainer.classList.add('d-none');
-        dropArea.classList.remove('d-none');
-    }
-    
-    function startCamera() {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            showError('Camera access is not supported in your browser.');
-            return;
-        }
-        
-        // Hide the drop area and show camera interface
-        dropArea.classList.add('d-none');
-        cameraInterface.classList.remove('d-none');
-        
-        // Get camera stream
-        const constraints = {
-            video: {
-                facingMode: facingMode,
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
+                // Update scan button state
+                updateScanButton();
             }
-        };
-        
-        navigator.mediaDevices.getUserMedia(constraints)
-            .then((mediaStream) => {
-                stream = mediaStream;
-                cameraPreview.srcObject = mediaStream;
-                cameraPreview.play();
-            })
-            .catch((err) => {
-                console.error('Error accessing camera:', err);
-                showError('Error accessing camera. Please ensure you have granted camera permissions.');
-                stopCamera();
-            });
+            
+            reader.onerror = function() {
+                alert('Error reading the image file. Please try a different image.');
+                fileInput.value = ''; // Clear the file input on error
+                updateScanButton();
+            }
+            
+            reader.readAsDataURL(file);
+        } else {
+            previewContainer.classList.add('d-none');
+            updateScanButton();
+        }
     }
     
-    function stopCamera() {
+    if (removeImageBtn) {
+        removeImageBtn.addEventListener('click', function() {
+            ticketPreview.src = '';
+            fileInput.value = '';
+            previewContainer.classList.add('d-none');
+            updateScanButton();
+        });
+    }
+    
+    if (lotteryTypeSelect) {
+        lotteryTypeSelect.addEventListener('change', updateScanButton);
+    }
+    
+    // Add a direct click handler for the scan button
+    if (scanButton) {
+        scanButton.addEventListener('click', function(e) {
+            if (fileInput && fileInput.files.length) {
+                e.preventDefault();
+                processTicketWithAds();
+            }
+        });
+    }
+    
+    // Scan new ticket button (success case)
+    if (scanNewTicketBtn) {
+        scanNewTicketBtn.addEventListener('click', function() {
+            resetScannerForm();
+        });
+    }
+    
+    // Scan another button (error case)
+    const scanAnotherBtn = document.getElementById('scan-another-btn');
+    if (scanAnotherBtn) {
+        scanAnotherBtn.addEventListener('click', function() {
+            resetScannerForm();
+        });
+    }
+    
+    // Common function to reset the scanner form
+    function resetScannerForm() {
+        // Hide results and reset the form
+        if (resultsContainer) resultsContainer.classList.add('d-none');
+        if (ticketForm) ticketForm.reset();
+        if (previewContainer) previewContainer.classList.add('d-none');
+        
+        // Stop camera if active
         if (stream) {
-            const tracks = stream.getTracks();
-            tracks.forEach(track => track.stop());
-            stream = null;
-        }
-        
-        // Hide camera interface and show drop area
-        cameraInterface.classList.add('d-none');
-        dropArea.classList.remove('d-none');
-        
-        // Clear preview if it exists
-        if (cameraPreview.srcObject) {
-            cameraPreview.srcObject = null;
-        }
-    }
-    
-    function toggleCamera() {
-        if (stream) {
-            // Stop current stream
-            const tracks = stream.getTracks();
-            tracks.forEach(track => track.stop());
-            
-            // Toggle facing mode
-            facingMode = facingMode === 'environment' ? 'user' : 'environment';
-            
-            // Restart camera with new facing mode
-            const constraints = {
-                video: {
-                    facingMode: facingMode,
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                }
-            };
-            
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then((mediaStream) => {
-                    stream = mediaStream;
-                    cameraPreview.srcObject = mediaStream;
-                    cameraPreview.play();
-                })
-                .catch((err) => {
-                    console.error('Error toggling camera:', err);
-                    showError('Error switching camera. Your device may not support this feature.');
-                    stopCamera();
-                });
-        }
-    }
-    
-    function capturePhoto() {
-        if (!stream) return;
-        
-        // Set canvas dimensions to match video
-        const width = cameraPreview.videoWidth;
-        const height = cameraPreview.videoHeight;
-        captureCanvas.width = width;
-        captureCanvas.height = height;
-        
-        // Draw the current video frame to the canvas
-        const ctx = captureCanvas.getContext('2d');
-        ctx.drawImage(cameraPreview, 0, 0, width, height);
-        
-        // Convert to file
-        captureCanvas.toBlob(function(blob) {
-            const file = new File([blob], "ticket_photo.jpg", { type: "image/jpeg" });
-            
-            // Create a FileList-like object
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            fileInput.files = dataTransfer.files;
-            
-            // Update preview
-            ticketPreview.src = URL.createObjectURL(blob);
-            previewContainer.classList.remove('d-none');
-            
-            // Hide camera interface
             stopCamera();
-        }, 'image/jpeg', 0.95);
+        }
+        
+        // Make sure camera interface is hidden and drop area is visible
+        if (cameraInterface) cameraInterface.classList.add('d-none');
+        if (dropArea) dropArea.classList.remove('d-none');
+        
+        updateScanButton();
+        
+        // Scroll back to top of scanner
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
     }
     
-    function showResultsOverlay(data) {
-        // Store ticket data globally
-        window.ticketData = data;
+    function updateScanButton() {
+        // Enable button if image is selected
+        if (scanButton && fileInput) {
+            scanButton.disabled = !fileInput.files.length;
+        }
+    }
+    
+    // Function to handle showing ads and processing the ticket
+    function processTicketWithAds() {
+        // Show loading indicator
+        if (loadingIndicator) loadingIndicator.style.display = 'block';
         
-        // Start processing animations
-        startProcessingSteps();
+        // Disable the scan button while processing
+        if (scanButton) scanButton.disabled = true;
         
-        // Show interstitial ad after steps are complete
-        function startProcessingSteps() {
-            const steps = document.querySelectorAll('.step');
-            const progressBar = document.getElementById('scan-progress-bar');
-            const stepText = document.getElementById('scan-step-text');
+        // Try to use AdManager if available, otherwise use fallback
+        if (window.AdManager) {
+            // Use the AdManager to show a loading ad
+            window.AdManager.showLoadingAd(function(adLoaded) {
+                console.log("Ad loaded:", adLoaded);
+                
+                // Process the ticket once the ad is showing
+                processTicket();
+            });
+        } else {
+            console.warn("AdManager not found - using fallback display");
             
-            let currentStep = 0;
-            const stepTexts = [
-                'Uploading and analyzing your ticket image...',
-                'Identifying game type and draw details...',
-                'Extracting your selected numbers...',
-                'Comparing with winning numbers...',
-                'Checking for matches...',
-                'Calculating potential prize...',
-                'Results ready!'
-            ];
+            // Show ad loading overlay directly
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            if (adOverlayLoading) {
+                adOverlayLoading.style.display = 'flex';
+                adOverlayLoading.style.opacity = '1';  // Ensure visibility
+                adOverlayLoading.style.visibility = 'visible'; // Ensure visibility
+                document.body.style.overflow = 'hidden'; // Prevent scrolling
+            }
             
-            // Reset steps
-            steps.forEach(step => step.classList.remove('active'));
-            steps[0].classList.add('active');
-            progressBar.style.width = '25%';
-            stepText.textContent = stepTexts[0];
-            
-            // Update steps at intervals
-            const stepInterval = setInterval(() => {
+            // Process without ad management
+            processTicket();
+        }
+    }
+    
+    // Main ticket processing function
+    function processTicket() {
+        // Create form data from the ticket form
+        const formData = new FormData(ticketForm);
+        
+        // Simulate the processing steps with progress updates
+        simulateProcessingSteps(formData);
+    }
+    
+    // Simulate processing steps to make ad viewing time more engaging
+    function simulateProcessingSteps(formData) {
+        const progressBar = document.getElementById('scan-progress-bar');
+        const stepText = document.getElementById('scan-step-text');
+        
+        // Create more steps to extend the processing time to 14 seconds
+        const steps = [
+            { 
+                text: "Initializing ticket scanning process...", 
+                progress: 10,
+                activeStep: 1
+            },
+            { 
+                text: "Uploading and analyzing your ticket image...", 
+                progress: 25,
+                activeStep: 1
+            },
+            { 
+                text: "Using AI to identify game type...", 
+                progress: 40,
+                activeStep: 2
+            },
+            { 
+                text: "Extracting draw information and date...", 
+                progress: 60,
+                activeStep: 2
+            },
+            { 
+                text: "Detecting your selected lottery numbers...", 
+                progress: 75,
+                activeStep: 3
+            },
+            { 
+                text: "Matching your numbers against winning combinations...", 
+                progress: 90,
+                activeStep: 4
+            },
+            { 
+                text: "Results ready! Finishing up...", 
+                progress: 100,
+                activeStep: 4
+            }
+        ];
+        
+        let currentStep = 0;
+        let ticketData = null;
+        let ticketProcessed = false;
+        
+        // Start processing the ticket in the background while showing ads
+        // This way, results will be ready when the ad finishes
+        fetch('/scan-ticket', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            ticketData = data;
+            ticketProcessed = true;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            ticketProcessed = true;
+            ticketData = { error: "An error occurred while scanning your ticket. Please try again." };
+        });
+        
+        const interval = setInterval(() => {
+            if (currentStep < steps.length) {
+                const step = steps[currentStep];
+                
+                // Update step text and progress bar
+                if (stepText) stepText.textContent = step.text;
+                if (progressBar) progressBar.style.width = step.progress + '%';
+                
+                // Update step indicators
+                const allSteps = document.querySelectorAll('.step');
+                allSteps.forEach((stepEl, index) => {
+                    // Reset all steps
+                    stepEl.classList.remove('active', 'completed');
+                    
+                    // Mark completed steps
+                    if (index + 1 < step.activeStep) {
+                        stepEl.classList.add('completed');
+                    }
+                    // Mark active step
+                    else if (index + 1 === step.activeStep) {
+                        stepEl.classList.add('active');
+                    }
+                });
+                
                 currentStep++;
                 
-                if (currentStep < steps.length) {
-                    // Update active step
-                    steps.forEach(step => step.classList.remove('active'));
-                    steps[currentStep].classList.add('active');
-                    
-                    // Update progress bar
-                    progressBar.style.width = `${25 + (currentStep * 25)}%`;
-                }
-                
-                // Update step text
-                if (currentStep < stepTexts.length) {
-                    stepText.textContent = stepTexts[currentStep];
-                }
-                
-                // If we're at the end of the steps, show the results
-                if (currentStep >= steps.length + 1) {
-                    clearInterval(stepInterval);
-                    
-                    // Show the results interstitial ad
-                    console.log('Showing processing ad for 5+ seconds');
-                    
-                    // Show results overlay after a short delay
+                // After last step is shown, wait a bit more for ad view time
+                if (currentStep >= steps.length) {
                     setTimeout(() => {
-                        // If AdManager is available, show interstitial ad
-                        if (window.AdManager) {
-                            AdManager.showInterstitialAd();
-                            
-                            console.log('Showing results interstitial ad');
-                        } else {
-                            // Fallback if AdManager isn't loaded
-                            if (resultsOverlay) {
-                                resultsOverlay.style.display = 'flex';
-                            }
-                            console.warn('AdManager not found - using fallback display');
-                        }
-                        
-                        // Hide loading indicator and re-enable scan button
-                        const loadingIndicator = document.getElementById('scanner-loading');
-                        loadingIndicator.style.display = 'none';
-                        scanButton.disabled = false;
-                        console.log("Scan completed - button enabled");
+                        completeProcess();
                     }, 1000);
                 }
-            }, 2000); // Change steps every 2 seconds for a total of 14 seconds (7 steps)
-        }
-    }
-    
-    function displayResults(data) {
-        console.log('Displaying results:', data);
-        
-        // Force enable scrolling on document body and html
-        document.body.style.overflow = 'auto';
-        document.body.style.position = 'static';
-        document.body.style.width = '';
-        document.body.style.height = '';
-        document.documentElement.style.overflow = 'auto';
-        document.documentElement.style.position = 'static';
-        
-        // Populate result fields
-        document.getElementById('result-lottery-type').textContent = data.lottery_type || 'Unknown';
-        document.getElementById('result-draw-number').textContent = data.draw_number || 'Unknown';
-        document.getElementById('result-draw-date').textContent = data.draw_date || 'Unknown';
-        
-        // Populate detected info
-        if (data.ticket_info) {
-            document.getElementById('detected-game-type').textContent = data.ticket_info.detected_game_type || 'Unknown';
-            document.getElementById('detected-draw-number').textContent = data.ticket_info.detected_draw_number || 'Unknown';
-            document.getElementById('detected-draw-date').textContent = data.ticket_info.detected_draw_date || 'Unknown';
-        }
-        
-        // Show winning numbers
-        const winningNumbersContainer = document.getElementById('winning-numbers-container');
-        if (winningNumbersContainer) {
-            winningNumbersContainer.innerHTML = '';
-            
-            if (data.winning_numbers && data.winning_numbers.length > 0) {
-                data.winning_numbers.forEach(number => {
-                    const ball = document.createElement('div');
-                    ball.className = 'lottery-ball';
-                    ball.textContent = number;
-                    winningNumbersContainer.appendChild(ball);
-                });
-                
-                // Add bonus numbers if available
-                if (data.bonus_numbers && data.bonus_numbers.length > 0) {
-                    // Add separator
-                    const separator = document.createElement('div');
-                    separator.className = 'ball-separator';
-                    separator.textContent = '+';
-                    winningNumbersContainer.appendChild(separator);
-                    
-                    // Add bonus balls
-                    data.bonus_numbers.forEach(number => {
-                        const ball = document.createElement('div');
-                        ball.className = 'lottery-ball bonus';
-                        ball.textContent = number;
-                        winningNumbersContainer.appendChild(ball);
-                    });
-                }
-            } else {
-                winningNumbersContainer.innerHTML = '<p class="text-muted">No winning numbers available</p>';
             }
-        }
+        }, 2000); // Step every 2 seconds
         
-        // Show ticket numbers with matches highlighted
-        const ticketNumbersContainer = document.getElementById('ticket-numbers-container');
-        if (ticketNumbersContainer && data.rows_with_matches) {
-            ticketNumbersContainer.innerHTML = '';
+        // Function to complete the process and show results
+        function completeProcess() {
+            // Clear the interval to stop processing
+            clearInterval(interval);
             
-            data.rows_with_matches.forEach(row => {
-                const rowDiv = document.createElement('div');
-                rowDiv.className = 'ticket-row mb-2';
-                
-                // Add row label
-                const rowLabel = document.createElement('div');
-                rowLabel.className = 'row-label me-2';
-                rowLabel.textContent = row.row || '';
-                rowDiv.appendChild(rowLabel);
-                
-                // Add number balls
-                const ballsContainer = document.createElement('div');
-                ballsContainer.className = 'd-flex flex-wrap';
-                
-                if (row.numbers && row.numbers.length > 0) {
-                    row.numbers.forEach((number, index) => {
-                        const ball = document.createElement('div');
-                        
-                        // Check if this number matches a winning number
-                        const isMatch = row.matched_numbers && row.matched_numbers.includes(number);
-                        const isBonus = row.matched_bonus && row.matched_bonus.includes(number);
-                        
-                        ball.className = 'lottery-ball small ' + 
-                                      (isMatch ? 'matched' : '') + 
-                                      (isBonus ? 'matched-bonus' : '');
-                        
-                        ball.textContent = number;
-                        
-                        // Add checkmark icon inside matched balls
-                        if (isMatch || isBonus) {
-                            const checkmark = document.createElement('i');
-                            checkmark.className = 'fas fa-check match-check';
-                            ball.appendChild(checkmark);
-                        }
-                        
-                        ballsContainer.appendChild(ball);
-                        
-                        // Add + separator before the last ball in Powerball games
-                        if (index === row.numbers.length - 2 && 
-                            (data.lottery_type === 'Powerball' || data.lottery_type === 'Powerball Plus')) {
-                            const separator = document.createElement('div');
-                            separator.className = 'ball-separator small';
-                            separator.textContent = '+';
-                            ballsContainer.appendChild(separator);
-                        }
-                    });
-                }
-                
-                rowDiv.appendChild(ballsContainer);
-                ticketNumbersContainer.appendChild(rowDiv);
-            });
-        }
-        
-        // Show prize info
-        const prizeInfoContainer = document.getElementById('prize-info-container');
-        if (prizeInfoContainer) {
-            if (data.has_prize) {
-                prizeInfoContainer.innerHTML = `
-                    <div class="alert alert-success">
-                        <h5 class="mb-0"><i class="fas fa-trophy me-2"></i> Congratulations! You've won a prize!</h5>
-                    </div>
-                `;
-                
-                // Add prize details if available
-                if (data.prize_info && Object.keys(data.prize_info).length > 0) {
-                    const prizeDetails = document.createElement('div');
-                    prizeDetails.className = 'prize-details mt-3';
-                    
-                    for (const [division, info] of Object.entries(data.prize_info)) {
-                        prizeDetails.innerHTML += `
-                            <div class="prize-row">
-                                <strong>${division}:</strong> ${info.prize || 'Unknown'} 
-                                <span class="text-muted small">(${info.match || 'Unknown match'})</span>
-                            </div>
-                        `;
-                    }
-                    
-                    prizeInfoContainer.appendChild(prizeDetails);
-                }
+            // Hide the loading overlay and ad
+            if (window.AdManager) {
+                window.AdManager.hideLoadingAd();
             } else {
-                // Check if we had any matches
-                if (data.matched_numbers && data.matched_numbers.length > 0) {
-                    prizeInfoContainer.innerHTML = `
-                        <div class="alert alert-warning">
-                            <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> You matched ${data.matched_numbers.length} number(s), but didn't win a prize this time.</h5>
-                        </div>
-                    `;
+                // Manual hide if AdManager not available
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                if (adOverlayLoading) {
+                    adOverlayLoading.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                    document.body.style.position = 'static';
+                }
+            }
+            
+            // Wait for ticket to be processed before showing results
+            function checkTicketProcessed() {
+                if (ticketProcessed) {
+                    displayResults(ticketData);
                 } else {
-                    prizeInfoContainer.innerHTML = `
-                        <div class="alert alert-secondary">
-                            <h5 class="mb-0"><i class="fas fa-times-circle me-2"></i> Sorry, your ticket didn't win this time.</h5>
-                        </div>
-                    `;
+                    setTimeout(checkTicketProcessed, 500);
                 }
             }
+            
+            checkTicketProcessed();
         }
-        
-        // Show the results container
-        if (resultsContainer) {
-            resultsContainer.classList.remove('d-none');
-        }
-        
-        // Show success content
-        if (successContent) {
-            successContent.classList.remove('d-none');
-        }
-        
-        // Hide error message if visible
-        if (errorMessage) {
-            errorMessage.classList.add('d-none');
-        }
-        
-        // Scroll to results
-        resultsContainer.scrollIntoView({ behavior: 'smooth' });
     }
     
-    function showError(message) {
-        console.error('Error:', message);
+    // Function to display results on the page
+    function displayResults(data) {
+        // Hide loading indicator
+        if (loadingIndicator) loadingIndicator.style.display = 'none';
         
-        // Hide success content
-        if (successContent) {
-            successContent.classList.add('d-none');
+        // Construct and display the results
+        if (data && !data.error) {
+            showSuccessResults(data);
+        } else {
+            showErrorResults(data && data.error ? data.error : "An unknown error occurred");
         }
         
-        // Show error message
-        if (errorMessage && errorText) {
-            let formattedMessage;
-            
-            if (message.includes('Please upload') || message.includes('Camera access')) {
-                formattedMessage = `<div class="mb-3">
-                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i> 
-                    ${message}
-                </div>`;
-            } else {
-                formattedMessage = `<div class="mb-3">
-                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i> 
-                    ${message}
-                </div>`;
-            }
-            
-            // Use innerHTML to support formatted messages with HTML
-            errorText.innerHTML = formattedMessage;
-            errorMessage.classList.remove('d-none');
-            successContent.classList.add('d-none');
-            
-            // Scroll to the error message
-            errorMessage.scrollIntoView({ behavior: 'smooth' });
+        // Enable the scan button again
+        if (scanButton) {
+            scanButton.disabled = false;
+            console.log("Scan completed - button enabled");
         }
     }
-});
+    
+    // Show successful ticket scan results
+    function showSuccessResults(data) {
+        const container = document.getElementById('results-content');
+        if (!container) return;
+        
+        if (resultsContainer) resultsContainer.classList.remove('d-none');
+        
+        // Populate results content
+        let resultsHTML = `
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">${data.lottery_type} - Draw #${data.draw_number}</h5>
+                    <div class="small">${data.draw_date}</div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="mb-3">Winning Numbers</h6>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+        `;
+        
+        // Add winning numbers
+        data.winning_numbers.forEach(num => {
+            resultsHTML += `<div class="lottery-ball">${num}</div>`;
+        });
+        
+        // Add bonus numbers if present
+        if (data.bonus_numbers && data.bonus_numbers.length > 0) {
+            resultsHTML += `<div class="lottery-ball bonus">${data.bonus_numbers[0]}</div>`;
+        }
+        
+        resultsHTML += `
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="mb-3">Your Ticket Summary</h6>
+                            <p>You matched <strong>${data.total_matched}</strong> number(s) in total.</p>
+                            
+                            ${data.has_prize ? 
+                                `<div class="alert alert-success">
+                                    <i class="fas fa-trophy me-2"></i> Congratulations! Your ticket has won a prize.
+                                </div>` : 
+                                `<div class="alert alert-secondary">
+                                    <i class="fas fa-info-circle me-2"></i> Your ticket did not win a prize in this draw.
+                                </div>`
+                            }
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="mb-3">Your Ticket Details</h6>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Board</th>
+                                            <th>Your Numbers</th>
+                                            <th>Matched</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+        `;
+        
+        // Add rows with ticket details
+        data.rows_with_matches.forEach(row => {
+            resultsHTML += `
+                <tr>
+                    <td>${row.row}</td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-1">
+            `;
+            
+            // For each number in this row, check if it's a match
+            row.numbers.forEach(num => {
+                const isMatch = row.matched_numbers.includes(num);
+                const isBonus = row.matched_bonus && row.matched_bonus.includes(num);
+                
+                if (isMatch) {
+                    resultsHTML += `<div class="lottery-ball-sm match">${num}</div>`;
+                } else if (isBonus) {
+                    resultsHTML += `<div class="lottery-ball-sm bonus-match">${num}</div>`;
+                } else {
+                    resultsHTML += `<div class="lottery-ball-sm">${num}</div>`;
+                }
+            });
+            
+            resultsHTML += `
+                        </div>
+                    </td>
+                    <td>${row.total_matched} number(s)</td>
+                </tr>
+            `;
+        });
+        
+        resultsHTML += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <button type="button" id="scan-new-ticket" class="btn btn-primary">
+                        <i class="fas fa-redo me-2"></i> Scan Another Ticket
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = resultsHTML;
+        
+        // Add click event to the new scan button
+        const newScanBtn = document.getElementById('scan-new-ticket');
+        if (newScanBtn) {
+            newScanBtn.addEventListener('click', resetScannerForm);
+        }
+    }
+    
+    // Show error when ticket scanning fails
+    function showErrorResults(errorMessage) {
+        const container = document.getElementById('results-content');
+        if (!container) return;
+        
+        if (resultsContainer) resultsContainer.classList.remove('d-none');
+        
+        let errorHTML = `
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Error Scanning Ticket</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i> ${errorMessage || "We couldn't process your ticket. Please try again with a clearer image."}
+                    </div>
+                    
+                    <p class="mb-0">Scanning tips:</p>
+                    <ul>
+                        <li>Make sure the ticket is well-lit and not blurry</li>
+                        <li>Ensure the entire ticket is visible in the image</li>
+                        <li>Try using the camera button for a direct capture</li>
+                    </ul>
+                </div>
+                <div class="card-footer text-center">
+                    <button type="button" id="scan-another-btn" class="btn btn-primary">
+                        <i class="fas fa-redo me-2"></i> Try Again
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = errorHTML;
+        
+        // Add click event to the try again button
+        const scanAnotherBtn = document.getElementById('scan-another-btn');
+        if (scanAnotherBtn) {
+            scanAnotherBtn.addEventListener('click', resetScannerForm);
+        }
+    }
+}

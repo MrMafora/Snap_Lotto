@@ -11,7 +11,7 @@ import time
 import os
 
 # Import screenshot manager factory to dynamically select implementation
-from screenshot_manager_light import get_screenshot_manager
+# Import our own screenshot_manager in run_lottery_task to avoid circular imports
 from ocr_processor import process_screenshot
 from data_aggregator import aggregate_data
 from models import db, ScheduleConfig
@@ -108,6 +108,7 @@ def run_lottery_task(url, lottery_type):
             from flask import current_app
             from app import app
             from datetime import datetime
+            from screenshot_manager import get_screenshot_manager
             
             logger.info(f"Starting lottery task for {lottery_type}")
             
