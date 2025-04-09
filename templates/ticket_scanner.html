@@ -394,13 +394,9 @@
             // Load ad in the loading overlay then process the ticket
             console.log('Attempting to show loading ad');
             
-            // Simulate ad loading (would be handled by AdSense in production)
-            setTimeout(() => {
-                console.log('Ad loaded during processing');
-                
-                // Now send the ticket for processing
-                processTicket(formData);
-            }, 2000); // 2 second simulated ad
+            // Now send the ticket for processing (skip ad loading for now)
+            console.log('Processing ticket');
+            processTicket(formData);
         }
         
         // Function to process the ticket after ad is shown
@@ -427,12 +423,20 @@
                 // Simulate ad loading (would be handled by AdSense in production)
                 const adContainer = document.getElementById('ad-container-interstitial');
                 
-                // Setup the view results button
+                // Auto-show the results after a short delay (simulate ad viewing)
                 const viewResultsBtn = document.getElementById('view-results-btn');
                 viewResultsBtn.onclick = function() {
                     adOverlayResults.style.display = 'none';
                     displayResults(data);
                 };
+                
+                // For testing purposes, automatically trigger the view results after 1 second
+                // This would be removed in production where actual ads would display
+                setTimeout(() => {
+                    if (adOverlayResults.style.display === 'flex') {
+                        viewResultsBtn.click();
+                    }
+                }, 1000);
             })
             .catch(error => {
                 console.error('Error:', error);
