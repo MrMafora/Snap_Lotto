@@ -59,9 +59,29 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     lottery_result = get_lottery_result(lottery_type, draw_number)
     
     if not lottery_result:
+        # Enhanced error message with more helpful information
+        error_message = f"No results found for {lottery_type}"
+        
+        if draw_number:
+            error_message += f" Draw {draw_number}"
+        else:
+            error_message += " (latest draw)"
+            
+        # Check if this is a future draw
+        if extracted_draw_date:
+            try:
+                draw_date = datetime.strptime(extracted_draw_date, '%Y-%m-%d')
+                today = datetime.now()
+                if draw_date > today:
+                    error_message = f"This ticket is for a future draw on {draw_date.strftime('%A, %d %B %Y')}. Results are not available yet."
+            except Exception as e:
+                logger.error(f"Error parsing draw date: {e}")
+        
+        # Add suggestion for what to do next
+        error_message += ". This might be a recent draw not yet in our database, or the ticket information couldn't be read correctly."
+        
         return {
-            "error": f"No results found for {lottery_type}" + 
-                     (f" Draw {draw_number}" if draw_number else " (latest draw)"),
+            "error": error_message,
             "ticket_info": {
                 "lottery_type": lottery_type,
                 "draw_number": draw_number if draw_number else extracted_draw_number,
