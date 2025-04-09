@@ -688,10 +688,28 @@
                     const adOverlayLoading = document.getElementById('ad-overlay-loading');
                     adOverlayLoading.style.display = 'none';
                     
-                    // Wait for ticket processing to complete if it hasn't already
+                    // Wait for ticket processing to complete (but not auto-display) if it hasn't already
                     const waitForTicketData = () => {
                         if (ticketProcessed) {
-                            showResultsOverlay(ticketData);
+                            // Just show results overlay with the "View My Results" button
+                            // The user must click the button to see results
+                            AdManager.showInterstitialAd();
+                            
+                            console.log('Showing results interstitial ad');
+                            
+                            // Setup view results button
+                            const viewResultsBtn = document.getElementById('view-results-btn');
+                            viewResultsBtn.onclick = function() {
+                                console.log('View Results button clicked!');
+                                AdManager.hideInterstitialAd();
+                                displayResults(ticketData);
+                            };
+                            
+                            // Hide loading indicator and re-enable scan button
+                            const loadingIndicator = document.getElementById('scanner-loading');
+                            loadingIndicator.style.display = 'none';
+                            scanButton.disabled = false;
+                            console.log("Scan completed - button enabled");
                         } else {
                             setTimeout(waitForTicketData, 500);
                         }
@@ -702,33 +720,10 @@
             }, 2000); // Change steps every 2 seconds for a total of 14 seconds (7 steps)
         }
         
-        // Show the results overlay with data
+        // This function is now integrated into waitForTicketData
+        // Keeping this as a stub to avoid breaking existing code
         function showResultsOverlay(data) {
-            // Show results ad overlay using the AdManager
-            AdManager.showInterstitialAd();
-            
-            console.log('Showing results interstitial ad');
-            
-            // Setup view results button
-            const viewResultsBtn = document.getElementById('view-results-btn');
-            viewResultsBtn.onclick = function() {
-                console.log('View Results button clicked!');
-                AdManager.hideInterstitialAd();
-                displayResults(data);
-            };
-            
-            // Auto-close the overlay after 2 seconds to ensure users see results
-            setTimeout(function() {
-                console.log('Auto-displaying results after delay');
-                AdManager.hideInterstitialAd();
-                displayResults(data);
-            }, 2000);
-            
-            // Hide loading indicator and re-enable scan button
-            const loadingIndicator = document.getElementById('scanner-loading');
-            loadingIndicator.style.display = 'none';
-            scanButton.disabled = false;
-            console.log("Scan completed - button enabled");
+            console.log('showResultsOverlay called - function has been moved to waitForTicketData');
         }
         
         // Function to process the ticket after ad is shown
