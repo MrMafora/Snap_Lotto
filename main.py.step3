@@ -1,0 +1,315 @@
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, login_required, current_user, login_user, logout_user
+from werkzeug.utils import secure_filename
+import os
+import logging
+import json
+import shutil
+from functools import wraps
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Create the Flask application
+app = Flask(__name__)
+
+# Configure the app
+app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET', 'lottery-scraper-default-secret')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///lottery.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True
+}
+
+# Initialize database
+db = SQLAlchemy(app)
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page'
+login_manager.login_message_category = 'info'
+
+# Import models after database initialization
+from models import Screenshot, LotteryResult, ScheduleConfig, User
+
+# User loader for Flask-Login
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Create database tables if they don't exist
+with app.app_context():
+    db.create_all()
+
+# Import data utilities
+from data_aggregator import validate_and_correct_known_draws, normalize_lottery_type, normalize_draw_number
+from ticket_scanner import process_ticket_image
+from import_snap_lotto_data import import_snap_lotto_data
+
+# Run validation to correct any known draw issues
+with app.app_context():
+    try:
+        corrected_count = validate_and_correct_known_draws()
+        if corrected_count > 0:
+            logger.info(f"Corrected {corrected_count} draws with known good data")
+    except Exception as e:
+        logger.error(f"Error validating known draws: {str(e)}")
+
+# Import scheduler after database setup
+try:
+    from scheduler import init_scheduler, schedule_task, remove_task, run_lottery_task
+    
+    # Initialize scheduler
+    scheduler = init_scheduler(app)
+    
+    # Schedule active tasks
+    with app.app_context():
+        for config in ScheduleConfig.query.filter_by(active=True).all():
+            schedule_task(scheduler, config)
+except Exception as e:
+    logger.error(f"Error initializing scheduler: {str(e)}")
+    scheduler = None
+
+# Admin access decorator
+def admin_required(f):
+    """Decorator for routes that require admin privileges"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash("You don't have permission to access this page. Please log in as an administrator.", "warning")
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Routes
+@app.route('/')
+def index():
+    """Home page showing lottery results and ticket scanning feature"""
+    latest_results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).limit(10).all()
+    return render_template('index.html', results=latest_results)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Admin login route"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        remember = request.form.get('remember', False) == 'on'
+        
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            login_user(user, remember=remember)
+            next_page = request.args.get('next')
+            return redirect(next_page if next_page else url_for('admin_dashboard'))
+        else:
+            flash('Login failed. Please check your username and password.', 'danger')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    """Admin logout route"""
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('index'))
+
+@app.route('/admin')
+@login_required
+@admin_required
+def admin_dashboard():
+    """Admin dashboard showing links to admin-only features"""
+    return render_template('admin/dashboard.html')
+
+@app.route('/results')
+def results():
+    """Page showing all lottery results"""
+    lottery_type = request.args.get('lottery_type', None)
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    # Create a query
+    query = LotteryResult.query
+    
+    # Filter by lottery type if specified
+    if lottery_type:
+        normalized_type = normalize_lottery_type(lottery_type)
+        query = query.filter(
+            db.or_(
+                LotteryResult.lottery_type == normalized_type,
+                LotteryResult.lottery_type == f"{normalized_type} Results"
+            )
+        )
+    
+    # Get paginated results
+    paginated_results = query.order_by(LotteryResult.draw_date.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return render_template('results.html', results=paginated_results, lottery_type=lottery_type)
+
+@app.route('/ticket-scanner')
+def ticket_scanner():
+    """Page for scanning lottery tickets"""
+    return render_template('ticket_scanner_new.html')
+
+@app.route('/scan-ticket', methods=['POST'])
+def scan_ticket():
+    """API endpoint to process a lottery ticket image and check if it's a winner"""
+    logger.info("Scan ticket endpoint called")
+    
+    try:
+        # Get lottery type and draw number from form if provided
+        lottery_type = request.form.get('lottery_type', '')
+        draw_number = request.form.get('draw_number', '')
+        
+        # Get image from request
+        if 'ticket_image' not in request.files:
+            logger.error("No image file in request")
+            return jsonify({'error': 'No image file provided'}), 400
+            
+        image_file = request.files['ticket_image']
+        if image_file.filename == '':
+            logger.error("Empty filename")
+            return jsonify({'error': 'No image selected'}), 400
+            
+        # Process the image and check for winning numbers
+        logger.info(f"Processing ticket image: {image_file.filename}")
+        logger.info(f"Lottery type: {lottery_type}")
+        logger.info(f"Draw number: {draw_number}")
+        
+        # Read image file
+        image_data = image_file.read()
+        logger.info(f"Image data read successfully: {len(image_data)} bytes")
+        
+        # Detect file extension from filename
+        file_ext = os.path.splitext(image_file.filename)[1].lower()
+        logger.info(f"Detected file extension: {file_ext}")
+        
+        # Call the ticket scanner function
+        logger.info("Calling process_ticket_image function")
+        result = process_ticket_image(image_data, lottery_type, draw_number, file_ext)
+        
+        if 'error' in result:
+            return jsonify(result), 400
+            
+        logger.info(f"Ticket processing result: {json.dumps(result)}")
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.exception(f"Error processing ticket: {str(e)}")
+        return jsonify({'error': f'Error processing ticket: {str(e)}'}), 500
+
+@app.route('/api/results/<lottery_type>')
+def get_results(lottery_type):
+    """API endpoint to fetch results for a specific lottery type"""
+    limit = request.args.get('limit', 5, type=int)
+    
+    # Normalize the lottery type to handle suffix differences
+    normalized_type = normalize_lottery_type(lottery_type)
+    
+    # Query for results, handling both exact and suffix matches
+    results = LotteryResult.query.filter(
+        db.or_(
+            LotteryResult.lottery_type == normalized_type,
+            LotteryResult.lottery_type == f"{normalized_type} Results"
+        )
+    ).order_by(LotteryResult.draw_date.desc()).limit(limit).all()
+    
+    return jsonify([result.to_dict() for result in results])
+
+@app.route('/api/visualization-data')
+def visualization_data():
+    """API endpoint to fetch data for visualizations"""
+    lottery_type = request.args.get('lottery_type', None)
+    data_type = request.args.get('data_type', 'numbers_frequency')
+    
+    # Create query with or without lottery type filter
+    if lottery_type:
+        normalized_type = normalize_lottery_type(lottery_type)
+        query = LotteryResult.query.filter(
+            db.or_(
+                LotteryResult.lottery_type == normalized_type,
+                LotteryResult.lottery_type == f"{normalized_type} Results"
+            )
+        )
+    else:
+        query = LotteryResult.query
+    
+    results = query.order_by(LotteryResult.draw_date.desc()).limit(100).all()
+    
+    # Check if we have any results to work with
+    if not results:
+        return jsonify({
+            'error': 'No data available',
+            'message': 'No lottery results found for the selected filters.'
+        })
+    
+    # Process data based on data_type
+    if data_type == 'numbers_frequency':
+        # Calculate frequency of each number
+        frequencies = {}
+        total_draws = len(results)
+        
+        # Initialize all possible numbers based on lottery type
+        max_number = 49  # Default for regular lotto
+        if lottery_type and 'daily' in lottery_type.lower():
+            max_number = 36  # Daily Lotto uses 1-36
+        
+        # Initialize all possible numbers with zero frequency
+        for i in range(1, max_number + 1):
+            frequencies[i] = 0
+            
+        # Count actual frequencies
+        for result in results:
+            numbers = result.get_numbers_list()
+            for num in numbers:
+                if num in frequencies:
+                    frequencies[num] += 1
+        
+        # Convert to sorted list of dictionaries
+        sorted_frequencies = []
+        for num, freq in sorted(frequencies.items(), key=lambda x: int(x[0])):
+            sorted_frequencies.append({
+                'number': str(num),
+                'frequency': freq
+            })
+        
+        # Format for Chart.js
+        chart_data = {
+            'labels': [item['number'] for item in sorted_frequencies],
+            'datasets': [{
+                'label': f'Number Frequency for {lottery_type if lottery_type else "All Types"}',
+                'data': [item['frequency'] for item in sorted_frequencies],
+                'backgroundColor': 'rgba(54, 162, 235, 0.6)',
+                'borderColor': 'rgba(54, 162, 235, 1)',
+                'borderWidth': 1
+            }],
+            'frequencies': sorted_frequencies,
+            'totalDraws': total_draws
+        }
+        
+        return jsonify(chart_data)
+    
+    # Default response if no recognized data type
+    return jsonify({
+        'error': 'Invalid data type',
+        'message': f'The data type {data_type} is not supported'
+    })
+
+@app.route('/visualizations')
+def visualizations():
+    """Data visualization dashboard for lottery results"""
+    return render_template('visualizations.html')
+
+# Run the application
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
