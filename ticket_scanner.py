@@ -28,8 +28,11 @@ def process_ticket_image(image_data, lottery_type, draw_number=None):
     # Convert image to base64 for OCR processing
     image_base64 = base64.b64encode(image_data).decode('utf-8')
     
+    # Get file extension if it's in the data
+    file_extension = '.jpeg'  # Default to JPEG for most uploads from mobile
+    
     # Extract ticket information using OCR
-    ticket_info = extract_ticket_numbers(image_base64, lottery_type)
+    ticket_info = extract_ticket_numbers(image_base64, lottery_type, file_extension)
     
     # Extract details from ticket info
     extracted_game_type = ticket_info.get('game_type')
@@ -103,13 +106,14 @@ def process_ticket_image(image_data, lottery_type, draw_number=None):
         "prize_info": prize_info if prize_info else {}
     }
 
-def extract_ticket_numbers(image_base64, lottery_type):
+def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
     """
     Extract ticket numbers and information from an image using OCR.
     
     Args:
         image_base64: Base64-encoded image data
         lottery_type: Type of lottery for context
+        file_extension: Extension of the uploaded file (e.g., '.jpeg', '.png')
         
     Returns:
         dict: Extracted ticket information including numbers, draw date, and draw number
@@ -149,8 +153,19 @@ def extract_ticket_numbers(image_base64, lottery_type):
         # Log that we're processing a ticket
         logger.info(f"Processing {lottery_type} ticket with OCR")
         
-        # Process the image
-        response = process_with_anthropic(image_base64, lottery_type, system_prompt)
+        # Determine image format from file extension
+        image_format = 'jpeg'  # Default to JPEG
+        if file_extension.lower() == '.png':
+            image_format = 'png'
+        elif file_extension.lower() in ['.jpg', '.jpeg']:
+            image_format = 'jpeg'
+        elif file_extension.lower() == '.webp':
+            image_format = 'webp'
+            
+        logger.info(f"Using image format {image_format} for ticket scanning")
+        
+        # Process the image with the correct format
+        response = process_with_anthropic(image_base64, lottery_type, system_prompt, image_format)
         
         # Extract the text content
         raw_response = response.get('raw_response', '')

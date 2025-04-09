@@ -89,7 +89,20 @@ def process_screenshot(screenshot_path, lottery_type):
     if anthropic_client:
         try:
             logger.info(f"Processing with Anthropic Claude for {lottery_type}")
-            result = process_with_anthropic(base64_content, lottery_type, system_prompt)
+            
+            # Determine the image format from file extension
+            image_format = 'jpeg'  # Default to JPEG
+            if file_extension == '.png':
+                image_format = 'png'
+            elif file_extension in ['.jpg', '.jpeg']:
+                image_format = 'jpeg'
+            elif file_extension == '.webp':
+                image_format = 'webp'
+            
+            logger.info(f"Detected image format: {image_format}")
+            
+            # Process with appropriate image format
+            result = process_with_anthropic(base64_content, lottery_type, system_prompt, image_format)
             if result and "results" in result and result["results"]:
                 logger.info(f"Anthropic processing completed successfully for {lottery_type}")
                 return result
@@ -118,7 +131,7 @@ def process_screenshot(screenshot_path, lottery_type):
     logger.info(f"Using default result for {lottery_type}")
     return default_result
 
-def process_with_anthropic(base64_content, lottery_type, system_prompt):
+def process_with_anthropic(base64_content, lottery_type, system_prompt, image_format='jpeg'):
     """
     Process a screenshot using Anthropic's Claude AI for OCR.
     
@@ -126,11 +139,16 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
         base64_content (str): Base64-encoded image data
         lottery_type (str): Type of lottery
         system_prompt (str): System prompt for AI
+        image_format (str): Format of the image (jpeg, png, etc.)
         
     Returns:
         dict: The processed result
     """
     try:
+        # Set media type based on image format
+        media_type = f"image/{image_format.lower()}"
+        logger.info(f"Using media type: {media_type} for image processing")
+        
         # Process as image using Anthropic Claude
         logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
         response = anthropic_client.messages.create(
@@ -149,7 +167,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt):
                             "type": "image",
                             "source": {
                                 "type": "base64",
-                                "media_type": "image/png",
+                                "media_type": media_type,
                                 "data": base64_content
                             }
                         }

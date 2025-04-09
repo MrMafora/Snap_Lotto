@@ -848,9 +848,13 @@ def scan_ticket():
         image_data = file.read()
         app.logger.info(f"Image data read successfully: {len(image_data)} bytes")
         
-        # Process the ticket image
+        # Get file extension for proper OCR processing
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        app.logger.info(f"Detected file extension: {file_extension}")
+        
+        # Process the ticket image with file extension
         app.logger.info("Calling process_ticket_image function")
-        result = process_ticket_image(image_data, lottery_type, draw_number)
+        result = process_ticket_image(image_data, lottery_type, draw_number, file_extension)
         
         app.logger.info(f"Ticket processing result: {json.dumps(result, default=str)}")
         return jsonify(result)
