@@ -3,26 +3,18 @@
 {% block title %}Data Dashboard | Snap Lotto{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header lottery-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h4 class="card-title mb-0">LOTTERY DATA DASHBOARD</h4>
-                </div>
-            </div>
-            <div class="card-body">
-                <p class="lead">
-                    Real-time data from the South African National Lottery, with comprehensive results and analytics.
-                </p>
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i> All lottery data is imported from official spreadsheets and updated regularly with the latest results.
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="card mb-4">
+    <div class="card-header lottery-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="card-title mb-0">LOTTERY DATA DASHBOARD</h4>
+        </div>
+    </div>
+    <div class="card-body py-2">
+        <p class="mb-1">
+            Real-time data from the South African National Lottery, with comprehensive results and analytics.
+        </p>
+        <div class="alert alert-info py-2 mb-0 mt-2">
+            <i class="fas fa-info-circle me-2"></i> All lottery data is imported from official spreadsheets and updated regularly with the latest results.
         </div>
     </div>
 </div>
@@ -33,21 +25,21 @@
             <div class="card-header lottery-header">
                 <h5 class="card-title mb-0">LATEST LOTTERY RESULTS</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-lottery">
+                    <table class="table table-lottery table-striped mb-0">
                         <thead>
                             <tr>
-                                <th>GAME TYPE</th>
-                                <th>DRAW ID</th>
-                                <th>DATE</th>
-                                <th>NUMBERS</th>
+                                <th class="ps-2 py-2">GAME TYPE</th>
+                                <th class="py-2">DRAW</th>
+                                <th class="py-2">DATE</th>
+                                <th class="py-2">NUMBERS</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for result in results %}
                             <tr>
-                                <td>
+                                <td class="ps-2 py-1">
                                     {% if 'Lotto Plus' in result.lottery_type %}
                                         <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
                                     {% elif 'Powerball' in result.lottery_type %}
@@ -58,12 +50,12 @@
                                         <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
                                     {% endif %}
                                 </td>
-                                <td><strong>{{ result.draw_number }}</strong></td>
-                                <td>{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
-                                <td>
+                                <td class="py-1"><strong>{{ result.draw_number }}</strong></td>
+                                <td class="py-1 text-nowrap">{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
+                                <td class="py-1">
                                     <div class="numbers-container">
                                         {% for num in result.get_numbers_list() %}
-                                            {% set ball_class = 'lottery-ball ' %}
+                                            {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
                                             
                                             {% if loop.index0 % 4 == 0 %}
                                                 {% set ball_class = ball_class + 'lottery-ball-red' %}
@@ -78,8 +70,9 @@
                                             <span class="{{ ball_class }}">{{ num }}</span>
                                         {% endfor %}
                                         {% if result.bonus_numbers %}
+                                            <span class="mx-1">+</span>
                                             {% for num in result.get_bonus_numbers_list() %}
-                                                <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
                                             {% endfor %}
                                         {% endif %}
                                     </div>
@@ -89,8 +82,8 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="text-center mt-3">
-                    <a href="{{ url_for('results') }}" class="btn btn-lottery-primary">
+                <div class="text-center py-2 border-top">
+                    <a href="{{ url_for('results') }}" class="btn btn-lottery-primary btn-sm">
                         <i class="fas fa-search me-1"></i> View All Results
                     </a>
                 </div>
@@ -103,61 +96,45 @@
                 <h5 class="card-title mb-0">CHECK YOUR TICKET</h5>
             </div>
             <div class="card-body">
-                <div class="text-center py-4">
-                    <div class="mb-4">
-                        <i class="fas fa-ticket-alt fa-4x text-primary mb-3"></i>
-                        <h4 class="mb-3">Scan Your Lottery Ticket</h4>
-                        <p class="lead">Have a lottery ticket? Check if you've won instantly!</p>
-                        <p>Simply upload a photo of your ticket and our system will check it against the latest results.</p>
+                <div class="text-center py-2">
+                    <div class="d-flex align-items-center justify-content-center flex-column">
+                        <i class="fas fa-ticket-alt fa-3x text-primary mb-3"></i>
+                        <h4 class="mb-2">Scan Your Lottery Ticket</h4>
+                        <p class="mb-1">Have a lottery ticket? Check if you've won instantly!</p>
+                        <p class="small mb-3">Simply upload a photo of your ticket and our system will check it against the latest results.</p>
+                        <a href="{{ url_for('ticket_scanner') }}" class="btn btn-lottery-primary">
+                            <i class="fas fa-qrcode me-2"></i> Scan Your Ticket Now
+                        </a>
                     </div>
-                    <a href="{{ url_for('ticket_scanner') }}" class="btn btn-lottery-primary btn-lg">
-                        <i class="fas fa-qrcode me-2"></i> Scan Your Ticket Now
-                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header lottery-header">
-                <h5 class="card-title mb-0">DATA ANALYTICS PREVIEW</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header">
-                                <h6 class="card-title mb-0">Most Frequent Numbers</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-container" style="position: relative; height:200px;">
-                                    <canvas id="frequency-chart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-4">
-                        <div class="card h-100">
-                            <div class="card-header">
-                                <h6 class="card-title mb-0">Winners By Division</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-container" style="position: relative; height:200px;">
-                                    <canvas id="winners-chart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-center mt-3">
-                    <a href="{{ url_for('visualizations') }}" class="btn btn-lottery-primary">
-                        <i class="fas fa-chart-bar me-1"></i> View All Analytics
-                    </a>
+<div class="card mb-4">
+    <div class="card-header lottery-header">
+        <h5 class="card-title mb-0">DATA ANALYTICS PREVIEW</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <h6 class="card-subtitle mb-2">Most Frequent Numbers</h6>
+                <div class="chart-container" style="position: relative; height:180px;">
+                    <canvas id="frequency-chart"></canvas>
                 </div>
             </div>
+            <div class="col-md-6 mb-3">
+                <h6 class="card-subtitle mb-2">Winners By Division</h6>
+                <div class="chart-container" style="position: relative; height:180px;">
+                    <canvas id="winners-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-2">
+            <a href="{{ url_for('visualizations') }}" class="btn btn-lottery-primary btn-sm">
+                <i class="fas fa-chart-bar me-1"></i> View Full Analytics Dashboard
+            </a>
         </div>
     </div>
 </div>

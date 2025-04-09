@@ -151,6 +151,16 @@ tbody, td, th {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* Small lottery balls for compact displays */
+.lottery-ball-sm {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+    margin: 0 2px;
+    border-width: 1px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
 .lottery-ball-red {
     background-color: var(--sa-lottery-red);
     color: white;
@@ -173,15 +183,7 @@ tbody, td, th {
     position: relative;
 }
 
-.lottery-ball-bonus:before {
-    content: '+';
-    position: absolute;
-    left: -15px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-weight: bold;
-    font-size: 18px;
-}
+/* We've removed the + prefix from balls and now show it as text */
 
 /* Sync and Import button styling */
 .btn-sync, .btn-import {
