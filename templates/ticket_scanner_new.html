@@ -770,6 +770,26 @@
         function displayResults(data) {
             console.log('Displaying results:', data);
             
+            // Force enable scrolling on document body and html
+            document.body.style.overflow = 'auto';
+            document.body.style.position = 'static';
+            document.body.style.width = '';
+            document.body.style.height = '';
+            document.documentElement.style.overflow = 'auto';
+            document.documentElement.style.position = 'static';
+            
+            // Re-enable zooming
+            const viewportMeta = document.querySelector('meta[name="viewport"]');
+            if (viewportMeta) {
+                viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+            }
+            
+            // Force update body and viewport
+            setTimeout(function() {
+                window.scrollTo(0, 0);
+                window.scrollTo(0, 1);
+            }, 100);
+            
             // Show results container
             resultsContainer.classList.remove('d-none');
             
@@ -1052,8 +1072,25 @@
             const errorText = document.getElementById('error-text');
             const successContent = document.getElementById('success-content');
             
-            // Make sure scrolling is re-enabled
-            document.body.style.overflow = '';
+            // Force enable scrolling on document body and html
+            document.body.style.overflow = 'auto';
+            document.body.style.position = 'static';
+            document.body.style.width = '';
+            document.body.style.height = '';
+            document.documentElement.style.overflow = 'auto';
+            document.documentElement.style.position = 'static';
+            
+            // Re-enable zooming
+            const viewportMeta = document.querySelector('meta[name="viewport"]');
+            if (viewportMeta) {
+                viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+            }
+            
+            // Force update body and viewport
+            setTimeout(function() {
+                window.scrollTo(0, 0);
+                window.scrollTo(0, 1);
+            }, 100);
             
             // Show the results container so the error is visible
             resultsContainer.classList.remove('d-none');

@@ -68,6 +68,8 @@ const AdManager = {
             adOverlayLoading.style.opacity = '1';
             adOverlayLoading.style.visibility = 'visible';
             document.body.style.overflow = 'hidden'; // Prevent scrolling
+            document.body.style.position = 'fixed'; // Prevent mobile scroll
+            document.body.style.width = '100%'; // Maintain width
             console.log('Loading overlay is now visible');
         } else {
             console.error('Loading overlay element not found!');
@@ -87,6 +89,8 @@ const AdManager = {
             adOverlayResults.style.opacity = '1';
             adOverlayResults.style.visibility = 'visible';
             document.body.style.overflow = 'hidden'; // Prevent scrolling
+            document.body.style.position = 'fixed'; // Prevent mobile scroll
+            document.body.style.width = '100%'; // Maintain width
             console.log('Results overlay is now visible');
         } else {
             console.error('Results overlay element not found!');
@@ -107,8 +111,26 @@ const AdManager = {
         const adOverlayLoading = document.getElementById('ad-overlay-loading');
         if (adOverlayLoading) {
             adOverlayLoading.style.display = 'none';
-            // Restore scrolling
-            document.body.style.overflow = '';
+            // Force restore scrolling on all elements
+            document.body.style.overflow = 'auto';
+            document.body.style.position = 'static';
+            document.body.style.width = '';
+            document.body.style.height = '';
+            document.documentElement.style.overflow = 'auto';
+            document.documentElement.style.position = 'static';
+            document.body.style.touchAction = 'auto';
+            
+            // Re-enable zooming
+            const viewportMeta = document.querySelector('meta[name="viewport"]');
+            if (viewportMeta) {
+                viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+            }
+            
+            // Force update body and viewport
+            setTimeout(function() {
+                window.scrollTo(0, 0);
+                window.scrollTo(0, 1);
+            }, 100);
         }
     },
 
@@ -124,8 +146,26 @@ const AdManager = {
         const adOverlayResults = document.getElementById('ad-overlay-results');
         if (adOverlayResults) {
             adOverlayResults.style.display = 'none';
-            // Restore scrolling
-            document.body.style.overflow = '';
+            // Force restore scrolling on all elements
+            document.body.style.overflow = 'auto';
+            document.body.style.position = 'static';
+            document.body.style.width = '';
+            document.body.style.height = '';
+            document.documentElement.style.overflow = 'auto';
+            document.documentElement.style.position = 'static';
+            document.body.style.touchAction = 'auto';
+            
+            // Re-enable zooming
+            const viewportMeta = document.querySelector('meta[name="viewport"]');
+            if (viewportMeta) {
+                viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+            }
+            
+            // Force update body and viewport
+            setTimeout(function() {
+                window.scrollTo(0, 0);
+                window.scrollTo(0, 1);
+            }, 100);
         }
     }
 };
