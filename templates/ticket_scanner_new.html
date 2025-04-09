@@ -549,32 +549,56 @@
             console.log('Showing processing ad for 5+ seconds');
             
             // Simulate a multi-step process for visual interest during ad viewing
-            simulateProcessingSteps();
-            
-            // Process the ticket immediately but the results will still show ads
-            // that require manual user interaction to dismiss
-            processTicket(formData);
+            // Will process the ticket after steps complete (at least 30 seconds)
+            simulateProcessingSteps(formData);
         }
         
         // Simulate processing steps to make ad viewing time more engaging
-        function simulateProcessingSteps() {
+        function simulateProcessingSteps(formData) {
             const progressBar = document.getElementById('scan-progress-bar');
             const stepText = document.getElementById('scan-step-text');
+            
+            // Create more steps to extend the processing time to 30 seconds
             const steps = [
                 { 
-                    text: "Uploading and analyzing your ticket image...", 
-                    progress: 25,
+                    text: "Initializing ticket scanning process...", 
+                    progress: 10,
                     activeStep: 1
                 },
                 { 
-                    text: "Using AI to identify game type and draw information...", 
+                    text: "Uploading and analyzing your ticket image...", 
+                    progress: 20,
+                    activeStep: 1
+                },
+                { 
+                    text: "Processing image with optical character recognition...", 
+                    progress: 30,
+                    activeStep: 1
+                },
+                { 
+                    text: "Using AI to identify game type...", 
+                    progress: 40,
+                    activeStep: 2
+                },
+                { 
+                    text: "Extracting draw information and date...", 
                     progress: 50,
                     activeStep: 2
                 },
                 { 
-                    text: "Detecting and matching your lottery numbers...", 
-                    progress: 75,
+                    text: "Detecting your selected lottery numbers...", 
+                    progress: 60,
                     activeStep: 3
+                },
+                { 
+                    text: "Retrieving latest draw results from database...", 
+                    progress: 70,
+                    activeStep: 3
+                },
+                { 
+                    text: "Matching your numbers against winning combinations...", 
+                    progress: 80,
+                    activeStep: 4
                 },
                 { 
                     text: "Calculating potential prize information...", 
@@ -583,12 +607,37 @@
                 },
                 { 
                     text: "Preparing your results...", 
+                    progress: 95,
+                    activeStep: 4
+                },
+                { 
+                    text: "Results ready! Finishing up...", 
                     progress: 100,
                     activeStep: 4
                 }
             ];
             
             let currentStep = 0;
+            let ticketData = null;
+            let ticketProcessed = false;
+            
+            // Start processing the ticket in the background while showing ads
+            // This way, results will be ready when the ad finishes
+            fetch('/scan-ticket', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Ticket processing completed in background. Data ready:', data);
+                ticketData = data;
+                ticketProcessed = true;
+            })
+            .catch(error => {
+                console.error('Error processing ticket:', error);
+                ticketProcessed = true;
+                ticketData = { error: "An error occurred while scanning your ticket. Please try again." };
+            });
             
             const interval = setInterval(() => {
                 if (currentStep < steps.length) {
@@ -617,8 +666,49 @@
                     currentStep++;
                 } else {
                     clearInterval(interval);
+                    
+                    // Hide loading overlay
+                    const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                    adOverlayLoading.style.display = 'none';
+                    
+                    // Wait for ticket processing to complete if it hasn't already
+                    const waitForTicketData = () => {
+                        if (ticketProcessed) {
+                            showResultsOverlay(ticketData);
+                        } else {
+                            setTimeout(waitForTicketData, 500);
+                        }
+                    };
+                    
+                    waitForTicketData();
                 }
-            }, 3000); // Change step every 3 seconds for longer ad display (total 15 seconds)
+            }, 3000); // Change steps every 3 seconds for a total of 33 seconds (11 steps)
+        }
+        
+        // Show the results overlay with data
+        function showResultsOverlay(data) {
+            // Show results ad overlay
+            const adOverlayResults = document.getElementById('ad-overlay-results');
+            adOverlayResults.style.display = 'flex';
+            
+            console.log('Showing results interstitial ad');
+            
+            // Setup view results button
+            const viewResultsBtn = document.getElementById('view-results-btn');
+            viewResultsBtn.onclick = function() {
+                console.log('View Results button clicked!');
+                adOverlayResults.style.display = 'none';
+                displayResults(data);
+            };
+            
+            // Do not automatically close the ad - let the user click the button
+            // This ensures the ad stays visible for maximum exposure
+            
+            // Hide loading indicator and re-enable scan button
+            const loadingIndicator = document.getElementById('scanner-loading');
+            loadingIndicator.style.display = 'none';
+            scanButton.disabled = false;
+            console.log("Scan completed - button enabled");
         }
         
         // Function to process the ticket after ad is shown
