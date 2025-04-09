@@ -9,7 +9,8 @@ import atexit
 import threading
 import time
 
-from screenshot_manager import capture_screenshot
+# Use the lightweight screenshot manager by default (much smaller footprint)
+from screenshot_manager_light import capture_screenshot, cleanup_old_screenshots
 from ocr_processor import process_screenshot
 from data_aggregator import aggregate_data
 from models import db, ScheduleConfig
@@ -107,7 +108,7 @@ def run_lottery_task(url, lottery_type):
             from app import app
             
             # Get all the required functions
-            from screenshot_manager import capture_screenshot, cleanup_old_screenshots
+            from screenshot_manager_light import capture_screenshot, cleanup_old_screenshots
             from ocr_processor import process_screenshot
             from data_aggregator import aggregate_data
             from datetime import datetime
