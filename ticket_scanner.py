@@ -55,12 +55,29 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     # Log the extracted information
     logger.info(f"Extracted ticket info - Game: {lottery_type}, Draw: {draw_number}, Date: {extracted_draw_date}, Numbers: {ticket_numbers}")
     
-    # Get the lottery result to compare against
-    lottery_result = get_lottery_result(lottery_type, draw_number)
+    # Handle multi-game tickets (e.g., "Lotto, Lotto Plus 1, Lotto Plus 2")
+    if "," in lottery_type:
+        # Split into multiple game types
+        game_types = [game.strip() for game in lottery_type.split(",")]
+        logger.info(f"Multi-game ticket detected: {game_types}")
+        
+        # Try to find a result for any of the detected game types
+        for game in game_types:
+            logger.info(f"Checking results for {game} Draw {draw_number}")
+            lottery_result = get_lottery_result(game, draw_number)
+            if lottery_result:
+                # We found a match! Update lottery_type and continue
+                logger.info(f"Found results for {game} Draw {draw_number}")
+                lottery_type = game
+                break
+    else:
+        # Regular single-game ticket
+        lottery_result = get_lottery_result(lottery_type, draw_number)
     
     if not lottery_result:
+        game_message = "Multiple games" if "," in lottery_type else lottery_type
         return {
-            "error": f"No results found for {lottery_type}" + 
+            "error": f"No results found for {game_message}" + 
                      (f" Draw {draw_number}" if draw_number else " (latest draw)"),
             "ticket_info": {
                 "lottery_type": lottery_type,
