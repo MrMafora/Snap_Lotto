@@ -241,7 +241,13 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
                     # Check if we're dealing with a simple list of integers
                     if all(isinstance(x, (int, str, float)) for x in ticket_info['selected_numbers']):
                         selected_numbers = [int(num) for num in ticket_info['selected_numbers']]
-                    # Case 2: Complex structure with lines/rows
+                    # Case 2: Nested array of arrays (multiple rows of numbers)
+                    elif isinstance(ticket_info['selected_numbers'], list) and len(ticket_info['selected_numbers']) > 0 and isinstance(ticket_info['selected_numbers'][0], list):
+                        logger.warning("Found nested arrays of numbers, flattening all rows")
+                        for row in ticket_info['selected_numbers']:
+                            if isinstance(row, list):
+                                selected_numbers.extend([int(num) for num in row if isinstance(num, (int, str, float))])
+                    # Case 3: Complex structure with lines/rows
                     elif isinstance(ticket_info['selected_numbers'], list) and len(ticket_info['selected_numbers']) > 0:
                         for item in ticket_info['selected_numbers']:
                             if isinstance(item, dict):
