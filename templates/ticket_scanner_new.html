@@ -715,6 +715,8 @@
             viewResultsBtn.onclick = function() {
                 console.log('View Results button clicked!');
                 adOverlayResults.style.display = 'none';
+                // Restore scrolling on body
+                document.body.style.overflow = '';
                 displayResults(data);
             };
             
@@ -722,6 +724,8 @@
             setTimeout(function() {
                 console.log('Auto-displaying results after delay');
                 adOverlayResults.style.display = 'none';
+                // Restore scrolling on body
+                document.body.style.overflow = '';
                 displayResults(data);
             }, 2000);
             
@@ -750,12 +754,10 @@
                 console.log('Success data received:', data);
                 
                 // Hide loading overlay
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                adOverlayLoading.style.display = 'none';
+                AdManager.hideLoadingAd();
                 
                 // Show results ad overlay
-                const adOverlayResults = document.getElementById('ad-overlay-results');
-                adOverlayResults.style.display = 'flex';
+                AdManager.showInterstitialAd();
                 
                 console.log('Showing results interstitial ad');
                 
@@ -764,22 +766,21 @@
                 viewResultsBtn.onclick = function() {
                     console.log('View Results button clicked!');
                     console.log('Data to display:', data);
-                    adOverlayResults.style.display = 'none';
+                    AdManager.hideInterstitialAd();
                     displayResults(data);
                 };
                 
                 // Auto-close the overlay after 2 seconds to ensure users see results
                 setTimeout(function() {
                     console.log('Auto-displaying results after delay');
-                    adOverlayResults.style.display = 'none';
+                    AdManager.hideInterstitialAd();
                     displayResults(data);
                 }, 2000);
             })
             .catch(error => {
                 console.error('Error:', error);
                 // Hide ad loading overlay
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                adOverlayLoading.style.display = 'none';
+                AdManager.hideLoadingAd();
                 showError('An error occurred while scanning your ticket. Please try again.');
             })
             .finally(() => {

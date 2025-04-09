@@ -93,6 +93,40 @@ const AdManager = {
         }
         
         this.loadAd('ad-container-interstitial', callback);
+    },
+    
+    // Hide the loading ad (when results are ready)
+    hideLoadingAd: function() {
+        console.log('Hiding loading ad');
+        const container = document.getElementById('ad-container-loader');
+        if (container) {
+            container.innerHTML = '';
+        }
+        
+        // Also hide the entire overlay
+        const adOverlayLoading = document.getElementById('ad-overlay-loading');
+        if (adOverlayLoading) {
+            adOverlayLoading.style.display = 'none';
+            // Restore scrolling
+            document.body.style.overflow = '';
+        }
+    },
+
+    // Hide the interstitial ad (when viewing results)
+    hideInterstitialAd: function() {
+        console.log('Hiding interstitial ad');
+        const container = document.getElementById('ad-container-interstitial');
+        if (container) {
+            container.innerHTML = '';
+        }
+        
+        // Also hide the entire overlay
+        const adOverlayResults = document.getElementById('ad-overlay-results');
+        if (adOverlayResults) {
+            adOverlayResults.style.display = 'none';
+            // Restore scrolling
+            document.body.style.overflow = '';
+        }
     }
 };
 
