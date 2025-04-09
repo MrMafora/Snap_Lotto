@@ -42,6 +42,21 @@ function initTicketScannerFunctionality() {
         return;
     }
     
+    // Add form submission handler
+    ticketForm.addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevent standard form submission
+        
+        // Check if an image has been selected
+        if (fileInput && fileInput.files.length) {
+            // Process the ticket with ads
+            processTicketWithAds();
+        } else {
+            alert('Please select an image first.');
+        }
+        
+        return false; // Prevent form from submitting normally
+    });
+    
     // Camera handling functions
     function startCamera() {
         // Hide the drop area and show camera interface
@@ -419,8 +434,14 @@ function initTicketScannerFunctionality() {
         
         // Start processing the ticket in the background while showing ads
         // This way, results will be ready when the ad finishes
+        // Get the CSRF token
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        
         fetch('/scan-ticket', {
             method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
             body: formData
         })
         .then(response => response.json())

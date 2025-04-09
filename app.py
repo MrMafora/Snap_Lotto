@@ -351,6 +351,7 @@ def create_app():
     def scan_ticket():
         """API endpoint to process a lottery ticket image and check if it's a winner"""
         logger.info("Scan ticket endpoint called")
+        # Note: CSRF protection is handled automatically by Flask-WTF
         
         try:
             # Get lottery type and draw number from form if provided

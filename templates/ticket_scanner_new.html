@@ -31,7 +31,8 @@
                     <h5 class="mb-0">Scan Your Ticket</h5>
                 </div>
                 <div class="card-body">
-                    <form id="ticket-form" enctype="multipart/form-data">
+                    <form id="ticket-form" enctype="multipart/form-data" method="POST" action="{{ url_for('scan_ticket') }}">
+                        {{ form.hidden_tag() }}
                         <!-- File Upload Area -->
                         <div id="drop-area" class="drop-area text-center p-4 mb-3">
                             <div class="mb-3">
