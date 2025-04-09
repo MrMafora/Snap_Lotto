@@ -200,7 +200,11 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     
                     # Parse numbers
                     winning_numbers = parse_numbers(row['winning_numbers'])
-                    bonus_ball = parse_numbers(row['bonus_ball']) if 'bonus_ball' in row and not pd.isna(row['bonus_ball']) else []
+                    
+                    # Daily Lotto has no bonus balls - handle it differently
+                    bonus_ball = []
+                    if lottery_type != "Daily Lotto":
+                        bonus_ball = parse_numbers(row['bonus_ball']) if 'bonus_ball' in row and not pd.isna(row['bonus_ball']) else []
                     
                     # Skip rows with missing winning numbers
                     if not winning_numbers:
