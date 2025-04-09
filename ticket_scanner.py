@@ -55,29 +55,12 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     # Log the extracted information
     logger.info(f"Extracted ticket info - Game: {lottery_type}, Draw: {draw_number}, Date: {extracted_draw_date}, Numbers: {ticket_numbers}")
     
-    # Handle multi-game tickets (e.g., "Lotto, Lotto Plus 1, Lotto Plus 2")
-    if "," in lottery_type:
-        # Split into multiple game types
-        game_types = [game.strip() for game in lottery_type.split(",")]
-        logger.info(f"Multi-game ticket detected: {game_types}")
-        
-        # Try to find a result for any of the detected game types
-        for game in game_types:
-            logger.info(f"Checking results for {game} Draw {draw_number}")
-            lottery_result = get_lottery_result(game, draw_number)
-            if lottery_result:
-                # We found a match! Update lottery_type and continue
-                logger.info(f"Found results for {game} Draw {draw_number}")
-                lottery_type = game
-                break
-    else:
-        # Regular single-game ticket
-        lottery_result = get_lottery_result(lottery_type, draw_number)
+    # Get the lottery result to compare against
+    lottery_result = get_lottery_result(lottery_type, draw_number)
     
     if not lottery_result:
-        game_message = "Multiple games" if "," in lottery_type else lottery_type
         return {
-            "error": f"No results found for {game_message}" + 
+            "error": f"No results found for {lottery_type}" + 
                      (f" Draw {draw_number}" if draw_number else " (latest draw)"),
             "ticket_info": {
                 "lottery_type": lottery_type,
@@ -178,21 +161,13 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
         3. Draw number (ID number of the specific draw)
         4. Selected numbers (the player's chosen numbers on the ticket)
         
-        IMPORTANT: Many tickets contain MULTIPLE ROWS of numbers. Each row represents a different set of selections, often for 
-        different games. For example, a ticket might contain:
-        - Row A: 6 numbers for the main Lotto game
-        - Row B: 6 numbers for Lotto Plus 1
-        - Row C: 6 numbers for Lotto Plus 2
-        
-        You MUST extract ALL rows of numbers visible on the ticket and identify them with their row labels (e.g., A, B, C, or 
-        sometimes A06, B06, C06, etc.). Do not just return the first row of numbers.
-        
-        Additional notes:
+        Important notes:
         - South African lottery tickets typically display game type, draw date and draw number clearly
-        - Focus on the player's selected numbers (usually printed in rows with labels)
-        - For Lotto/Lotto Plus tickets, look for 6 selected numbers per row
+        - Focus on the player's selected numbers (usually circled, marked, or otherwise highlighted)
+        - For Lotto/Lotto Plus tickets, look for 6 selected numbers
         - For Powerball/Powerball Plus tickets, look for 5 main numbers + 1 Powerball number
         - For Daily Lotto tickets, look for 5 selected numbers
+        - Return all information in a structured JSON format
         - If you can't determine certain fields with confidence, use "unknown" as the value
         
         Return the data in this JSON format:
@@ -200,18 +175,8 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
             "game_type": "The detected game type (e.g., Lotto, Powerball)",
             "draw_date": "Draw date in YYYY-MM-DD format if possible",
             "draw_number": "Draw ID number as shown on ticket",
-            "selected_numbers": {
-                "A": [numbers for row A],
-                "B": [numbers for row B],
-                "C": [numbers for row C],
-                ...etc for all rows visible on the ticket
-            }
+            "selected_numbers": [array of selected numbers as integers]
         }
-        
-        If the row labels include numbers (like A06, B06), use the full label as the key in the JSON.
-        
-        If you can only see a single row of numbers and no row labels, return the selected_numbers as a simple array:
-        "selected_numbers": [1, 2, 3, 4, 5, 6]
         """
         
         # Log that we're processing a ticket
