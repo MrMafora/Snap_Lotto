@@ -44,6 +44,10 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     raw_ticket_info = ticket_info.get('raw_selected_numbers', {})
     ticket_numbers = ticket_info.get('selected_numbers', [])
     
+    # Make sure the lottery_type is not set to the file extension (fix a common issue)
+    if lottery_type and lottery_type.startswith('.'):
+        lottery_type = ''
+        
     # Use extracted lottery type if available and not manually specified
     if extracted_game_type and extracted_game_type != 'unknown' and (not lottery_type or lottery_type == 'unknown'):
         lottery_type = extracted_game_type
@@ -165,7 +169,7 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
     
     Args:
         image_base64: Base64-encoded image data
-        lottery_type: Type of lottery for context
+        lottery_type: Type of lottery for context (empty string if auto-detect)
         file_extension: Extension of the uploaded file (e.g., '.jpeg', '.png')
         
     Returns:
