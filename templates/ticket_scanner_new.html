@@ -85,6 +85,19 @@
         padding: 20px;
     }
     
+    /* Make the View Results button more prominent */
+    #view-results-btn {
+        padding: 12px 30px;
+        font-size: 18px;
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
     .ad-container {
         width: 100%;
         max-width: 500px;
@@ -126,13 +139,21 @@
         <div class="ad-placeholder">
             <i class="fas fa-ad mb-2 fa-2x text-primary"></i>
             <p class="mb-1">Advertisement</p>
+            <p class="text-muted small mt-2">Advertisement helps keep this service free!</p>
         </div>
     </div>
-    <div class="mt-3">
-        <div class="spinner-border text-primary" role="status">
+    <div class="mt-3 text-center">
+        <div class="spinner-border text-primary mb-2" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
-        <p>Scanning in progress...</p>
+        <div id="scan-progress">
+            <p class="mb-1">Analyzing ticket image...</p>
+            <div class="progress mb-3" style="height: 10px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" style="width: 25%"></div>
+            </div>
+            <p id="scan-step-text" class="small text-muted">Using AI to identify ticket type</p>
+        </div>
     </div>
 </div>
 
@@ -488,11 +509,42 @@
             const formData = new FormData(ticketForm);
             
             // Load ad in the loading overlay then process the ticket
-            console.log('Attempting to show loading ad');
+            console.log('Showing processing ad for 5+ seconds');
             
-            // Now send the ticket for processing (skip ad loading for now)
-            console.log('Processing ticket');
-            processTicket(formData);
+            // Simulate a multi-step process for visual interest during ad viewing
+            simulateProcessingSteps();
+            
+            // Send the ticket for processing, but with a minimum delay to view ads
+            setTimeout(() => {
+                console.log('Now processing ticket after ad view time');
+                processTicket(formData);
+            }, 5000); // Minimum 5 seconds to view the ad
+        }
+        
+        // Simulate processing steps to make ad viewing time more engaging
+        function simulateProcessingSteps() {
+            const progressBar = document.querySelector('.progress-bar');
+            const stepText = document.getElementById('scan-step-text');
+            const steps = [
+                { text: "Using AI to identify ticket type", progress: 25 },
+                { text: "Detecting lottery numbers", progress: 50 },
+                { text: "Comparing with winning numbers", progress: 75 },
+                { text: "Calculating prize information", progress: 90 },
+                { text: "Preparing results", progress: 100 }
+            ];
+            
+            let currentStep = 0;
+            
+            const interval = setInterval(() => {
+                if (currentStep < steps.length) {
+                    const step = steps[currentStep];
+                    stepText.textContent = step.text;
+                    progressBar.style.width = step.progress + '%';
+                    currentStep++;
+                } else {
+                    clearInterval(interval);
+                }
+            }, 1000); // Change step every second
         }
         
         // Function to process the ticket after ad is shown
@@ -523,13 +575,8 @@
                     displayResults(data);
                 };
                 
-                // For testing purposes, automatically trigger the view results after 1 second
-                // This would be removed in production where actual ads would display
-                setTimeout(() => {
-                    if (adOverlayResults.style.display === 'flex') {
-                        viewResultsBtn.click();
-                    }
-                }, 1000);
+                // Do not automatically close the ad - let the user click the button
+                // This ensures the ad stays visible for maximum exposure
             })
             .catch(error => {
                 console.error('Error:', error);
