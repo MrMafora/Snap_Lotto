@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def process_ticket_image(image_data, lottery_type, draw_number=None):
     """
-    Process a lottery ticket image to extract numbers and check if it's a winner.
+    Process a lottery ticket image to extract all information and check if it's a winner.
     
     Args:
         image_data: The uploaded ticket image data
@@ -28,8 +28,25 @@ def process_ticket_image(image_data, lottery_type, draw_number=None):
     # Convert image to base64 for OCR processing
     image_base64 = base64.b64encode(image_data).decode('utf-8')
     
-    # Extract ticket numbers using OCR
-    ticket_numbers = extract_ticket_numbers(image_base64, lottery_type)
+    # Extract ticket information using OCR
+    ticket_info = extract_ticket_numbers(image_base64, lottery_type)
+    
+    # Extract details from ticket info
+    extracted_game_type = ticket_info.get('game_type')
+    extracted_draw_number = ticket_info.get('draw_number')
+    extracted_draw_date = ticket_info.get('draw_date')
+    ticket_numbers = ticket_info.get('selected_numbers', [])
+    
+    # Use extracted lottery type if available and not manually specified
+    if extracted_game_type and extracted_game_type != 'unknown' and (not lottery_type or lottery_type == 'unknown'):
+        lottery_type = extracted_game_type
+        
+    # Use extracted draw number if available and not manually specified
+    if extracted_draw_number and extracted_draw_number != 'unknown' and not draw_number:
+        draw_number = extracted_draw_number
+    
+    # Log the extracted information
+    logger.info(f"Extracted ticket info - Game: {lottery_type}, Draw: {draw_number}, Date: {extracted_draw_date}, Numbers: {ticket_numbers}")
     
     # Get the lottery result to compare against
     lottery_result = get_lottery_result(lottery_type, draw_number)
@@ -37,7 +54,13 @@ def process_ticket_image(image_data, lottery_type, draw_number=None):
     if not lottery_result:
         return {
             "error": f"No results found for {lottery_type}" + 
-                     (f" Draw {draw_number}" if draw_number else " (latest draw)")
+                     (f" Draw {draw_number}" if draw_number else " (latest draw)"),
+            "ticket_info": {
+                "lottery_type": lottery_type,
+                "draw_number": draw_number if draw_number else extracted_draw_number,
+                "draw_date": extracted_draw_date,
+                "ticket_numbers": ticket_numbers
+            }
         }
     
     # Get winning numbers from the result
@@ -59,55 +82,68 @@ def process_ticket_image(image_data, lottery_type, draw_number=None):
     # Format draw date for display
     formatted_date = lottery_result.draw_date.strftime("%A, %d %B %Y")
     
-    # Return result
+    # Return enhanced result with all extracted ticket information
     return {
         "lottery_type": lottery_type,
         "draw_number": lottery_result.draw_number,
         "draw_date": formatted_date,
+        "ticket_info": {
+            "detected_game_type": extracted_game_type,
+            "detected_draw_number": extracted_draw_number,
+            "detected_draw_date": extracted_draw_date,
+            "selected_numbers": ticket_numbers
+        },
         "ticket_numbers": ticket_numbers,
         "winning_numbers": winning_numbers,
         "bonus_numbers": bonus_numbers,
-        "matched_numbers": matched_numbers + matched_bonus,
+        "matched_numbers": matched_numbers,
         "matched_bonus": matched_bonus,
+        "total_matched": len(matched_numbers) + len(matched_bonus),
         "has_prize": bool(prize_info),
         "prize_info": prize_info if prize_info else {}
     }
 
 def extract_ticket_numbers(image_base64, lottery_type):
     """
-    Extract ticket numbers from an image using OCR.
+    Extract ticket numbers and information from an image using OCR.
     
     Args:
         image_base64: Base64-encoded image data
         lottery_type: Type of lottery for context
         
     Returns:
-        list: Extracted ticket numbers as integers
+        dict: Extracted ticket information including numbers, draw date, and draw number
     """
     try:
         # For now, we'll use anthropic for OCR as it's already set up in the system
         from ocr_processor import process_with_anthropic
         
-        # Create a prompt specifically for lottery ticket number extraction
+        # Create a prompt specifically for lottery ticket information extraction
         system_prompt = """
-        You are a specialized lottery ticket scanner. Your job is to extract the selected lottery 
-        numbers from a lottery ticket image.
+        You are a specialized South African lottery ticket scanner. Your job is to extract all key information from 
+        a lottery ticket image including:
         
-        - Focus ONLY on the player's selected numbers (usually circled, marked, or otherwise highlighted)
-        - Ignore any other information like ticket purchase date, barcode, etc.
-        - Return ONLY the numbers in a JSON array format
-        - For South African lottery tickets, there are typically 6 numbers for Lotto/Lotto Plus
-          and 5 numbers + 1 Powerball number for Powerball/Powerball Plus
-        - For Daily Lotto, there are 5 numbers
-        - Return numbers as integers, not strings
-        - DO NOT include any explanatory text, ONLY return the JSON array
+        1. Game type (which lottery game: Lotto, Lotto Plus 1, Lotto Plus 2, Powerball, Powerball Plus, Daily Lotto)
+        2. Draw date (in YYYY-MM-DD format if possible)
+        3. Draw number (ID number of the specific draw)
+        4. Selected numbers (the player's chosen numbers on the ticket)
         
-        Example response for Lotto ticket:
-        [5, 11, 23, 27, 34, 42]
+        Important notes:
+        - South African lottery tickets typically display game type, draw date and draw number clearly
+        - Focus on the player's selected numbers (usually circled, marked, or otherwise highlighted)
+        - For Lotto/Lotto Plus tickets, look for 6 selected numbers
+        - For Powerball/Powerball Plus tickets, look for 5 main numbers + 1 Powerball number
+        - For Daily Lotto tickets, look for 5 selected numbers
+        - Return all information in a structured JSON format
+        - If you can't determine certain fields with confidence, use "unknown" as the value
         
-        Example response for Powerball ticket:
-        [4, 15, 26, 37, 45, 20]
-        (where 20 is the Powerball number)
+        Return the data in this JSON format:
+        {
+            "game_type": "The detected game type (e.g., Lotto, Powerball)",
+            "draw_date": "Draw date in YYYY-MM-DD format if possible",
+            "draw_number": "Draw ID number as shown on ticket",
+            "selected_numbers": [array of selected numbers as integers]
+        }
         """
         
         # Log that we're processing a ticket
@@ -116,7 +152,7 @@ def extract_ticket_numbers(image_base64, lottery_type):
         # Process the image
         response = process_with_anthropic(image_base64, lottery_type, system_prompt)
         
-        # Extract just the text content
+        # Extract the text content
         raw_response = response.get('raw_response', '')
         
         # Try to parse the response as JSON
@@ -130,44 +166,67 @@ def extract_ticket_numbers(image_base64, lottery_type):
                 if match:
                     cleaned_response = match.group(1).strip()
             
-            # If response has explanation text, try to extract just the array part
-            if '[' in cleaned_response and ']' in cleaned_response:
-                match = re.search(r'\[(.*?)\]', cleaned_response, re.DOTALL)
-                if match:
-                    cleaned_response = '[' + match.group(1) + ']'
+            # Parse the JSON object
+            ticket_info = json.loads(cleaned_response)
             
-            # Parse the JSON array
-            numbers = json.loads(cleaned_response)
+            # Ensure numbers are integers
+            if 'selected_numbers' in ticket_info and isinstance(ticket_info['selected_numbers'], list):
+                ticket_info['selected_numbers'] = [int(num) for num in ticket_info['selected_numbers']]
+            else:
+                # If no numbers found, provide a default
+                ticket_info['selected_numbers'] = []
             
-            # Ensure all items are integers
-            ticket_numbers = [int(num) for num in numbers]
+            # If we have game type but the user already specified it, prioritize user selection
+            if lottery_type and lottery_type != "unknown":
+                ticket_info['game_type'] = lottery_type
             
-            logger.info(f"Successfully extracted ticket numbers: {ticket_numbers}")
-            return ticket_numbers
+            logger.info(f"Successfully extracted ticket info: {ticket_info}")
+            return ticket_info
             
         except json.JSONDecodeError:
-            # If parsing fails, try to extract numbers using regex
+            # If parsing fails, try to extract data using regex
             logger.warning(f"Failed to parse OCR response as JSON. Trying regex extraction.")
+            
+            # Extract numbers
             number_pattern = r'\d+'
             numbers = re.findall(number_pattern, raw_response)
-            
-            # Convert to integers and take appropriate number based on lottery type
             ticket_numbers = [int(num) for num in numbers if 1 <= int(num) <= 50]
             
-            # Limit to appropriate number of selections
-            if 'Lotto' in lottery_type:
+            # Limit to appropriate number of selections based on lottery type
+            if 'Lotto' in lottery_type and 'Powerball' not in lottery_type:
                 ticket_numbers = ticket_numbers[:6]
             elif 'Powerball' in lottery_type:
-                ticket_numbers = ticket_numbers[:6]
+                ticket_numbers = ticket_numbers[:6]  # 5 main + 1 powerball
             elif 'Daily' in lottery_type:
                 ticket_numbers = ticket_numbers[:5]
-                
-            logger.info(f"Extracted ticket numbers using regex: {ticket_numbers}")
-            return ticket_numbers
+            
+            # Try to extract draw number
+            draw_match = re.search(r'draw\s*(?:number|no|#)?\s*[:#]?\s*(\d+)', raw_response, re.IGNORECASE)
+            draw_number = draw_match.group(1) if draw_match else "unknown"
+            
+            # Try to extract date
+            date_match = re.search(r'(\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4})', raw_response)
+            draw_date = date_match.group(1) if date_match else "unknown"
+            
+            ticket_info = {
+                'game_type': lottery_type,
+                'draw_date': draw_date,
+                'draw_number': draw_number,
+                'selected_numbers': ticket_numbers
+            }
+            
+            logger.info(f"Extracted ticket info using regex: {ticket_info}")
+            return ticket_info
+            
     except Exception as e:
-        logger.error(f"Error extracting ticket numbers: {str(e)}")
-        # For debugging, return sample numbers (will be replaced with manual input in production)
-        return [5, 10, 15, 20, 25, 30]
+        logger.error(f"Error extracting ticket info: {str(e)}")
+        # For debugging, return basic structure with placeholder data
+        return {
+            'game_type': lottery_type,
+            'draw_date': "unknown",
+            'draw_number': "unknown",
+            'selected_numbers': [5, 10, 15, 20, 25, 30]
+        }
 
 def get_lottery_result(lottery_type, draw_number=None):
     """

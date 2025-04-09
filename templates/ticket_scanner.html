@@ -150,6 +150,13 @@
                                                 <p><strong>Lottery Type:</strong> <span id="result-lottery-type"></span></p>
                                                 <p><strong>Draw Number:</strong> <span id="result-draw-number"></span></p>
                                                 <p><strong>Draw Date:</strong> <span id="result-draw-date"></span></p>
+                                                
+                                                <div id="detected-info" class="mt-3 small">
+                                                    <p class="text-muted mb-1"><i class="fas fa-search-plus me-1"></i> <strong>OCR Detected Information:</strong></p>
+                                                    <p class="mb-1"><strong>Game Type:</strong> <span id="detected-game-type"></span></p>
+                                                    <p class="mb-1"><strong>Draw Number:</strong> <span id="detected-draw-number"></span></p>
+                                                    <p class="mb-1"><strong>Draw Date:</strong> <span id="detected-draw-date"></span></p>
+                                                </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <p><strong>Your Numbers:</strong></p>
@@ -358,6 +365,15 @@
             document.getElementById('result-lottery-type').textContent = data.lottery_type;
             document.getElementById('result-draw-number').textContent = data.draw_number;
             document.getElementById('result-draw-date').textContent = data.draw_date;
+            
+            // Populate detected information from OCR if available
+            if (data.ticket_info) {
+                document.getElementById('detected-game-type').textContent = data.ticket_info.detected_game_type || 'Unknown';
+                document.getElementById('detected-draw-number').textContent = data.ticket_info.detected_draw_number || 'Unknown';
+                document.getElementById('detected-draw-date').textContent = data.ticket_info.detected_draw_date || 'Unknown';
+            } else {
+                document.getElementById('detected-info').classList.add('d-none');
+            }
             
             // Display ticket numbers
             const ticketNumbersContainer = document.getElementById('ticket-numbers');
