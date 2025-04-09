@@ -15,6 +15,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="format-detection" content="telephone=no">
     <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+    
     {% block additional_head %}{% endblock %}
 </head>
 <body>
@@ -122,6 +126,7 @@
 
     {% block scripts %}{% endblock %}
     {% block additional_scripts %}{% endblock %}
+    <script src="{{ url_for('static', filename='js/ads.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Force light theme on all tables and rows
