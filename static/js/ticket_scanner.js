@@ -434,14 +434,10 @@ function initTicketScannerFunctionality() {
         
         // Start processing the ticket in the background while showing ads
         // This way, results will be ready when the ad finishes
-        // Get the CSRF token
-        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-        
+        // No need to manually add CSRF token as it's included in the formData
+        // from the hidden_tag() in the form
         fetch('/scan-ticket', {
             method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken
-            },
             body: formData
         })
         .then(response => response.json())
