@@ -225,6 +225,7 @@
                 </div>
 
                 <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label for="lottery-type" class="form-label">
@@ -622,14 +623,20 @@
         
         // Function to process the ticket after ad is shown
         function processTicket(formData) {
-            // Send request
+            console.log('Processing ticket with formData content:', Array.from(formData.entries()));
+            
+            // Send request with debugging
             fetch('/scan-ticket', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                return response.json();
+            })
             .then(data => {
-                console.log('Success:', data);
+                console.log('Success data received:', data);
                 
                 // Hide loading overlay
                 const adOverlayLoading = document.getElementById('ad-overlay-loading');

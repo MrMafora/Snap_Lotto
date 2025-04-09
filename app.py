@@ -811,7 +811,9 @@ def get_raw_ocr(lottery_type):
 @app.route('/ticket-scanner')
 def ticket_scanner():
     """Page for scanning lottery tickets and checking if they won"""
-    return render_template('ticket_scanner_new.html')
+    # Generate a CSRF token for the form
+    from flask_wtf.csrf import generate_csrf
+    return render_template('ticket_scanner_new.html', form={"hidden_tag": lambda: generate_csrf()})
 
 @app.route('/scan-ticket', methods=['POST'])
 @csrf.exempt  # Exempt this route from CSRF protection for fetch API
