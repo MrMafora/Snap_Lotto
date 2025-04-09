@@ -1,0 +1,32 @@
+{% extends "base_simple.html" %}
+
+{% block title %}Home | Snap Lotto{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Latest Lottery Results</h5>
+            </div>
+            <div class="card-body">
+                <p>Coming soon: Latest lottery results from database</p>
+                <p>This page will display the most recent draw results for various lottery games.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Check Your Ticket</h5>
+            </div>
+            <div class="card-body text-center">
+                <p class="mb-3">Have a lottery ticket? Check if you've won instantly!</p>
+                <a href="{{ url_for('ticket_scanner') }}" class="btn btn-primary">
+                    Scan Your Ticket Now
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
