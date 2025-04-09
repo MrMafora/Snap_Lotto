@@ -291,17 +291,32 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
                     if json_end > json_start:
                         # Extract just the valid JSON portion
                         json_str = cleaned_response[json_start:json_end+1]
+                        
+                        # Remove leading zeros from numbers in JSON strings (like "08" -> "8")
+                        # This fixes JSON parsing errors for numbers with leading zeros
+                        json_str = re.sub(r'([^0-9"])0+([1-9][0-9]*)', r'\1\2', json_str)
+                        
                         logger.info(f"Extracted clean JSON: {json_str}")
                         ticket_info = json.loads(json_str)
                     else:
+                        # Remove leading zeros from numbers in JSON strings (like "08" -> "8")
+                        cleaned_response = re.sub(r'([^0-9"])0+([1-9][0-9]*)', r'\1\2', cleaned_response)
+                        
                         # Fallback to regular parsing
                         ticket_info = json.loads(cleaned_response)
                 else:
+                    # Remove leading zeros from numbers in JSON strings (like "08" -> "8")
+                    cleaned_response = re.sub(r'([^0-9"])0+([1-9][0-9]*)', r'\1\2', cleaned_response)
+
                     # No JSON found, try original
                     ticket_info = json.loads(cleaned_response)
             except Exception:
                 # If sophisticated parsing fails, try regular parsing
                 logger.warning("JSON extraction failed, trying direct parsing")
+                
+                # Remove leading zeros from numbers in JSON strings (like "08" -> "8")
+                cleaned_response = re.sub(r'([^0-9"])0+([1-9][0-9]*)', r'\1\2', cleaned_response)
+                
                 ticket_info = json.loads(cleaned_response)
             
             # Handle selected numbers which could be in various formats
