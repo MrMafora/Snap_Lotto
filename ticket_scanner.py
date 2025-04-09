@@ -513,91 +513,28 @@ def get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result)
     if not divisions:
         return None
         
-    # Count total matches
+    # Count total matches excluding bonus numbers
     match_count = len(matched_numbers)
     bonus_match = len(matched_bonus) > 0
     
-    # Determine division based on matches
+    # Initialize variables
     division = None
     match_type = ""
     
+    # Validate game-specific rules and determine prize division
     if "Lotto" in lottery_type and "Powerball" not in lottery_type:
-        # Lotto/Lotto Plus prize structure
-        if match_count == 6:
-            division = "Division 1"
-            match_type = "SIX CORRECT NUMBERS"
-        elif match_count == 5 and bonus_match:
-            division = "Division 2"
-            match_type = "FIVE CORRECT NUMBERS + BONUS BALL"
-        elif match_count == 5:
-            division = "Division 3"
-            match_type = "FIVE CORRECT NUMBERS"
-        elif match_count == 4 and bonus_match:
-            division = "Division 4"
-            match_type = "FOUR CORRECT NUMBERS + BONUS BALL"
-        elif match_count == 4:
-            division = "Division 5"
-            match_type = "FOUR CORRECT NUMBERS"
-        elif match_count == 3 and bonus_match:
-            division = "Division 6"
-            match_type = "THREE CORRECT NUMBERS + BONUS BALL"
-        elif match_count == 3:
-            division = "Division 7"
-            match_type = "THREE CORRECT NUMBERS"
-        elif match_count == 2 and bonus_match:
-            division = "Division 8"
-            match_type = "TWO CORRECT NUMBERS + BONUS BALL"
-    
+        # Lotto/Lotto Plus requires 6 main numbers and 1 bonus
+        division, match_type = validate_lotto_prize(match_count, bonus_match)
     elif "Powerball" in lottery_type:
-        # Powerball/Powerball Plus structure
-        # Assuming last number in selection is the Powerball
-        if match_count == 5 and bonus_match:
-            division = "Division 1"
-            match_type = "FIVE CORRECT NUMBERS + POWERBALL"
-        elif match_count == 5:
-            division = "Division 2"
-            match_type = "FIVE CORRECT NUMBERS"
-        elif match_count == 4 and bonus_match:
-            division = "Division 3"
-            match_type = "FOUR CORRECT NUMBERS + POWERBALL"
-        elif match_count == 4:
-            division = "Division 4"
-            match_type = "FOUR CORRECT NUMBERS"
-        elif match_count == 3 and bonus_match:
-            division = "Division 5"
-            match_type = "THREE CORRECT NUMBERS + POWERBALL"
-        elif match_count == 3:
-            division = "Division 6"
-            match_type = "THREE CORRECT NUMBERS"
-        elif match_count == 2 and bonus_match:
-            division = "Division 7"
-            match_type = "TWO CORRECT NUMBERS + POWERBALL"
-        elif match_count == 1 and bonus_match:
-            division = "Division 8"
-            match_type = "ONE CORRECT NUMBER + POWERBALL"
-        elif bonus_match:
-            division = "Division 9"
-            match_type = "MATCH POWERBALL ONLY"
-    
+        # Powerball/Powerball Plus requires 5 main numbers and 1 powerball
+        division, match_type = validate_powerball_prize(match_count, bonus_match)
     elif "Daily Lotto" in lottery_type:
-        # Daily Lotto structure
-        if match_count == 5:
-            division = "Division 1"
-            match_type = "FIVE CORRECT NUMBERS"
-        elif match_count == 4:
-            division = "Division 2"
-            match_type = "FOUR CORRECT NUMBERS"
-        elif match_count == 3:
-            division = "Division 3"
-            match_type = "THREE CORRECT NUMBERS"
-        elif match_count == 2:
-            division = "Division 4"
-            match_type = "TWO CORRECT NUMBERS"
+        # Daily Lotto requires 5 numbers, no bonus
+        division, match_type = validate_daily_lotto_prize(match_count)
     
-    # If a division is found and exists in the result's divisions data
+    # If a valid division is found and exists in the results data
     if division and division in divisions:
         prize_data = divisions[division]
-        
         return {
             "division": division,
             "match_type": match_type,
@@ -606,3 +543,57 @@ def get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result)
         }
     
     return None
+
+def validate_lotto_prize(match_count, bonus_match):
+    """Validate Lotto prize divisions."""
+    if match_count == 6:
+        return "Division 1", "SIX CORRECT NUMBERS"
+    elif match_count == 5 and bonus_match:
+        return "Division 2", "FIVE CORRECT NUMBERS + BONUS BALL"
+    elif match_count == 5:
+        return "Division 3", "FIVE CORRECT NUMBERS"
+    elif match_count == 4 and bonus_match:
+        return "Division 4", "FOUR CORRECT NUMBERS + BONUS BALL"
+    elif match_count == 4:
+        return "Division 5", "FOUR CORRECT NUMBERS"
+    elif match_count == 3 and bonus_match:
+        return "Division 6", "THREE CORRECT NUMBERS + BONUS BALL"
+    elif match_count == 3:
+        return "Division 7", "THREE CORRECT NUMBERS"
+    elif match_count == 2 and bonus_match:
+        return "Division 8", "TWO CORRECT NUMBERS + BONUS BALL"
+    return None, ""
+
+def validate_powerball_prize(match_count, bonus_match):
+    """Validate Powerball prize divisions."""
+    if match_count == 5 and bonus_match:
+        return "Division 1", "FIVE CORRECT NUMBERS + POWERBALL"
+    elif match_count == 5:
+        return "Division 2", "FIVE CORRECT NUMBERS"
+    elif match_count == 4 and bonus_match:
+        return "Division 3", "FOUR CORRECT NUMBERS + POWERBALL"
+    elif match_count == 4:
+        return "Division 4", "FOUR CORRECT NUMBERS"
+    elif match_count == 3 and bonus_match:
+        return "Division 5", "THREE CORRECT NUMBERS + POWERBALL"
+    elif match_count == 3:
+        return "Division 6", "THREE CORRECT NUMBERS"
+    elif match_count == 2 and bonus_match:
+        return "Division 7", "TWO CORRECT NUMBERS + POWERBALL"
+    elif match_count == 1 and bonus_match:
+        return "Division 8", "ONE CORRECT NUMBER + POWERBALL"
+    elif bonus_match:
+        return "Division 9", "MATCH POWERBALL ONLY"
+    return None, ""
+
+def validate_daily_lotto_prize(match_count):
+    """Validate Daily Lotto prize divisions."""
+    if match_count == 5:
+        return "Division 1", "FIVE CORRECT NUMBERS"
+    elif match_count == 4:
+        return "Division 2", "FOUR CORRECT NUMBERS"
+    elif match_count == 3:
+        return "Division 3", "THREE CORRECT NUMBERS"
+    elif match_count == 2:
+        return "Division 4", "TWO CORRECT NUMBERS"
+    return None, ""
