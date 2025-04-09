@@ -4,7 +4,7 @@
  */
 
 // Global ad manager object
-const AdManager = {
+window.AdManager = {
     // Ad slots
     adSlots: {
         scannerPreloader: null,
@@ -172,5 +172,5 @@ const AdManager = {
 
 // Initialize ads when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    AdManager.init();
+    window.AdManager.init();
 });

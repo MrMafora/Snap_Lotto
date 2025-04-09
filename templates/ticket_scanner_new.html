@@ -220,6 +220,28 @@
 {% endblock %}
 
 {% block additional_scripts %}
-<!-- Load ticket scanner script (ads.js is already loaded in base.html) -->
-<script src="{{ url_for('static', filename='js/ticket_scanner.js') }}"></script>
+<!-- Make sure ads.js is loaded before ticket_scanner.js -->
+<script>
+    // Check if AdManager is already defined (from base.html)
+    if (!window.AdManager) {
+        console.log("AdManager not found - loading ads.js again");
+        // Load ads.js dynamically to ensure it's loaded before ticket_scanner.js
+        const adsScript = document.createElement('script');
+        adsScript.src = "{{ url_for('static', filename='js/ads.js') }}";
+        document.head.appendChild(adsScript);
+        
+        // Wait for ads.js to load before initializing ticket scanner
+        adsScript.onload = function() {
+            const scannerScript = document.createElement('script');
+            scannerScript.src = "{{ url_for('static', filename='js/ticket_scanner.js') }}";
+            document.head.appendChild(scannerScript);
+        };
+    } else {
+        // AdManager already exists, just load the ticket scanner
+        console.log("AdManager found - loading ticket_scanner.js directly");
+        const scannerScript = document.createElement('script');
+        scannerScript.src = "{{ url_for('static', filename='js/ticket_scanner.js') }}";
+        document.head.appendChild(scannerScript);
+    }
+</script>
 {% endblock %}

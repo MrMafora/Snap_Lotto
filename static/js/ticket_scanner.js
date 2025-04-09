@@ -337,6 +337,22 @@ function initTicketScannerFunctionality() {
                 adOverlayLoading.style.opacity = '1';  // Ensure visibility
                 adOverlayLoading.style.visibility = 'visible'; // Ensure visibility
                 document.body.style.overflow = 'hidden'; // Prevent scrolling
+                document.body.style.position = 'fixed'; // Prevent mobile scroll
+                document.body.style.width = '100%'; // Maintain width
+                
+                // Create a basic ad placeholder in the container
+                const adContainer = document.getElementById('ad-container-loader');
+                if (adContainer) {
+                    adContainer.innerHTML = `
+                        <div class="text-center">
+                            <div class="ad-placeholder py-4">
+                                <p><i class="fas fa-ad mb-2 fa-2x"></i></p>
+                                <p class="mb-0">Advertisement</p>
+                                <p class="small text-muted mt-1">Advertisements help keep this service free</p>
+                            </div>
+                        </div>
+                    `;
+                }
             }
             
             // Process without ad management
@@ -469,6 +485,11 @@ function initTicketScannerFunctionality() {
                     adOverlayLoading.style.display = 'none';
                     document.body.style.overflow = 'auto';
                     document.body.style.position = 'static';
+                    document.body.style.width = '';
+                    document.body.style.height = '';
+                    document.documentElement.style.overflow = 'auto';
+                    document.documentElement.style.position = 'static';
+                    document.body.style.touchAction = 'auto';
                 }
             }
             
