@@ -76,13 +76,14 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(255, 255, 255, 0.95);
+        background-color: rgba(255, 255, 255, 0.98);
         z-index: 9999;
         display: none;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         padding: 20px;
+        overflow: hidden; /* Prevent scrolling while overlay is active */
     }
     
     /* Make the View Results button more prominent */
@@ -96,6 +97,18 @@
         0% { transform: scale(1); }
         50% { transform: scale(1.05); }
         100% { transform: scale(1); }
+    }
+    
+    /* Add additional styling for the results ad content */
+    .results-ad-content {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        padding: 30px;
+        text-align: center;
     }
     
     .ad-container {
@@ -157,19 +170,21 @@
     </div>
 </div>
 
-<!-- Ad overlay - Results screen -->
+<!-- Ad overlay - Results screen (fixed position) -->
 <div id="ad-overlay-results" class="ad-overlay">
-    <h4 class="mb-4">Results ready!</h4>
-    <div class="ad-container">
-        <div class="ad-placeholder">
-            <i class="fas fa-ad mb-2 fa-2x text-primary"></i>
-            <p class="mb-1">Advertisement</p>
-            <small class="text-muted">Your results are ready to view</small>
+    <div class="results-ad-content">
+        <h4 class="mb-4">Your Results Are Ready!</h4>
+        <div class="ad-container">
+            <div class="ad-placeholder">
+                <i class="fas fa-ad mb-2 fa-2x text-primary"></i>
+                <p class="mb-1">Advertisement</p>
+                <small class="text-muted">Support from ads keeps this service free</small>
+            </div>
         </div>
+        <button class="btn btn-primary px-4 py-3 mt-4" id="view-results-btn">
+            <i class="fas fa-check-circle me-2"></i> View My Results
+        </button>
     </div>
-    <button class="btn btn-primary px-4 py-2 mt-3" id="view-results-btn">
-        <i class="fas fa-check-circle me-2"></i> View Results
-    </button>
 </div>
 
 <div class="container py-4">
@@ -514,11 +529,9 @@
             // Simulate a multi-step process for visual interest during ad viewing
             simulateProcessingSteps();
             
-            // Send the ticket for processing, but with a minimum delay to view ads
-            setTimeout(() => {
-                console.log('Now processing ticket after ad view time');
-                processTicket(formData);
-            }, 5000); // Minimum 5 seconds to view the ad
+            // Process the ticket immediately but the results will still show ads
+            // that require manual user interaction to dismiss
+            processTicket(formData);
         }
         
         // Simulate processing steps to make ad viewing time more engaging
