@@ -5,97 +5,126 @@
 {% block additional_head %}
 <style>
     .ticket-scanner-container {
-        max-width: 800px;
+        max-width: 700px;
         margin: 0 auto;
     }
-    .ticket-drop-area {
-        border: 2px dashed #aaa;
+    
+    /* Clean, modern interface */
+    .ticket-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border: none;
+        overflow: hidden;
+    }
+    
+    /* Info callout */
+    .info-callout {
+        background-color: #e1f5fe;
         border-radius: 8px;
-        padding: 40px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-left: 4px solid #03a9f4;
+    }
+    
+    /* Drop area styling */
+    .ticket-drop-area {
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        padding: 30px;
         text-align: center;
-        background-color: rgba(0,0,0,0.05);
+        background-color: #f8f9fa;
         cursor: pointer;
         transition: all 0.3s;
         margin-bottom: 20px;
     }
+    
     .ticket-drop-area:hover, .ticket-drop-area.highlight {
-        border-color: var(--sa-lottery-yellow);
-        background-color: rgba(0,0,0,0.1);
+        border-color: #0d6efd;
+        background-color: rgba(13, 110, 253, 0.05);
     }
+    
+    /* Button styling */
+    .btn-scan {
+        padding: 12px 30px;
+        font-size: 18px;
+        border-radius: 8px;
+    }
+    
+    /* Ticket preview */
     .ticket-preview {
         max-width: 100%;
         max-height: 300px;
         margin: 20px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    .results-container {
-        margin-top: 30px;
+    
+    /* Form elements */
+    .form-label {
+        font-weight: 500;
     }
-    .ball-matched {
-        position: relative;
+    
+    .form-control, .form-select {
+        padding: 10px 15px;
+        border-radius: 8px;
     }
-    .ball-matched::after {
-        content: "✓";
-        position: absolute;
-        top: -10px;
-        right: -10px;
-        background-color: var(--bs-success);
-        color: white;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        font-size: 14px;
+    
+    /* Advertisement overlays */
+    .ad-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.95);
+        z-index: 9999;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    
+    .ad-container {
+        width: 100%;
+        max-width: 500px;
+        margin: 20px 0;
+    }
+    
+    .ad-placeholder {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        min-height: 200px;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
     }
-    .prize-card {
-        border-left: 5px solid var(--bs-success);
-    }
+    
+    /* Scanner loading */
     #scanner-loading {
         display: none;
     }
     
-    /* Advertisement - Loading overlay */
-    #ad-overlay-loading {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.95);
-        z-index: 9999;
-        display: none;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-    }
-    
-    /* Advertisement - Results overlay */
-    #ad-overlay-results {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.95);
-        z-index: 9999;
-        display: none;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
+    /* Optional note */
+    .optional-note {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-left: 5px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <!-- Ad overlay - Loading screen -->
-<div id="ad-overlay-loading" class="interstitial-view">
+<div id="ad-overlay-loading" class="ad-overlay">
     <h4 class="mb-4">Processing your ticket...</h4>
-    <div id="ad-container-loader" class="ad-container">
+    <div class="ad-container">
         <div class="ad-placeholder">
-            <p><i class="fas fa-ad mb-2"></i></p>
+            <i class="fas fa-ad mb-2 fa-2x text-primary"></i>
             <p class="mb-1">Advertisement</p>
         </div>
     </div>
@@ -108,171 +137,194 @@
 </div>
 
 <!-- Ad overlay - Results screen -->
-<div id="ad-overlay-results" class="interstitial-view">
+<div id="ad-overlay-results" class="ad-overlay">
     <h4 class="mb-4">Results ready!</h4>
-    <div id="ad-container-interstitial" class="ad-container">
+    <div class="ad-container">
         <div class="ad-placeholder">
-            <p><i class="fas fa-ad mb-2"></i></p>
+            <i class="fas fa-ad mb-2 fa-2x text-primary"></i>
             <p class="mb-1">Advertisement</p>
             <small class="text-muted">Your results are ready to view</small>
         </div>
     </div>
-    <button class="btn btn-primary ad-close-btn" id="view-results-btn">
+    <button class="btn btn-primary px-4 py-2 mt-3" id="view-results-btn">
         <i class="fas fa-check-circle me-2"></i> View Results
     </button>
 </div>
 
 <div class="container py-4">
     <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="d-flex align-items-center">
-                <i class="fa fa-ticket-alt me-3"></i> Lottery Ticket Scanner
-            </h1>
-            <p class="lead">Upload your lottery ticket to check if you've won a prize</p>
+        <div class="col-12 text-center">
+            <h2 class="fw-bold">Lottery Ticket Scanner</h2>
+            <p class="text-muted">Check if your lottery ticket has won a prize</p>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="ticket-scanner-container">
-                        <div class="alert alert-info">
-                            <i class="fa fa-info-circle me-2"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
+    <div class="ticket-scanner-container">
+        <div class="ticket-card card">
+            <div class="card-body p-4">
+                <div class="info-callout mb-4">
+                    <i class="fa fa-info-circle me-2"></i> 
+                    Take a clear photo of your lottery ticket, making sure all numbers are visible.
+                </div>
+
+                <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="lottery-type" class="form-label">
+                                Game Type
+                                <span class="optional-note">(Optional - AI will detect)</span>
+                            </label>
+                            <select class="form-select" id="lottery-type" name="lottery_type">
+                                <option value="">Auto-detect from ticket</option>
+                                <option value="Lotto">Lotto</option>
+                                <option value="Lotto Plus 1">Lotto Plus 1</option>
+                                <option value="Lotto Plus 2">Lotto Plus 2</option>
+                                <option value="Powerball">Powerball</option>
+                                <option value="Powerball Plus">Powerball Plus</option>
+                                <option value="Daily Lotto">Daily Lotto</option>
+                            </select>
                         </div>
+                        
+                        <div class="col-md-6">
+                            <label for="draw-number" class="form-label">
+                                Draw Number
+                                <span class="optional-note">(Optional)</span>
+                            </label>
+                            <input type="text" class="form-control" id="draw-number" name="draw_number" 
+                                placeholder="Leave blank for latest draw">
+                        </div>
+                    </div>
 
-                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
-                            <div class="mb-3">
-                                <label for="lottery-type" class="form-label">Select Lottery Type (Optional - will be detected by AI)</label>
-                                <select class="form-select" id="lottery-type" name="lottery_type">
-                                    <option value="">Auto-detect from ticket</option>
-                                    <option value="Lotto">Lotto</option>
-                                    <option value="Lotto Plus 1">Lotto Plus 1</option>
-                                    <option value="Lotto Plus 2">Lotto Plus 2</option>
-                                    <option value="Powerball">Powerball</option>
-                                    <option value="Powerball Plus">Powerball Plus</option>
-                                    <option value="Daily Lotto">Daily Lotto</option>
-                                </select>
-                            </div>
+                    <div class="ticket-drop-area" id="drop-area">
+                        <i class="fa fa-upload fa-2x mb-3 text-primary"></i>
+                        <h5>Drag and drop your ticket image here</h5>
+                        <p class="text-muted">or</p>
+                        <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
+                        <button type="button" id="file-select-btn" class="btn btn-primary px-4">
+                            Select Image
+                        </button>
+                    </div>
 
-                            <div class="mb-3">
-                                <label for="draw-number" class="form-label">Draw Number (optional)</label>
-                                <input type="text" class="form-control" id="draw-number" name="draw_number" 
-                                    placeholder="Leave blank to check against latest draw">
-                            </div>
+                    <div id="preview-container" class="text-center d-none">
+                        <h6 class="mb-3">Ticket Preview</h6>
+                        <img id="ticket-preview" class="ticket-preview img-fluid" src="">
+                        <div class="mt-3">
+                            <button type="button" id="remove-image" class="btn btn-sm btn-outline-danger">
+                                <i class="fa fa-times"></i> Remove
+                            </button>
+                        </div>
+                    </div>
 
-                            <div class="ticket-drop-area" id="drop-area">
-                                <div class="mb-3">
-                                    <i class="fa fa-upload fa-2x mb-3"></i>
-                                    <h5>Drag and drop your ticket image here</h5>
-                                    <p>or</p>
-                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
-                                    <button type="button" id="file-select-btn" class="btn btn-primary">Select Image</button>
-                                </div>
+                    <div class="text-center mt-4">
+                        <button type="submit" id="scan-button" class="btn btn-success btn-scan">
+                            <i class="fa fa-search me-2"></i> Scan Ticket
+                        </button>
+                        <div id="scanner-loading" class="mt-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
                             </div>
+                            <p>Scanning your ticket...</p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-                            <div id="preview-container" class="text-center d-none">
-                                <h6>Preview</h6>
-                                <img id="ticket-preview" class="ticket-preview img-fluid rounded" src="">
-                                <div class="mt-2">
-                                    <button type="button" id="remove-image" class="btn btn-sm btn-outline-danger">
-                                        <i class="fa fa-times"></i> Remove
-                                    </button>
-                                </div>
+        <!-- Results section will display after scanning -->
+        <div id="results-container" class="results-container mt-4 d-none">
+            <div class="card ticket-card">
+                <div class="card-body p-4">
+                    <h3 class="mb-4 text-center">Scan Results</h3>
+                    
+                    <div id="error-message" class="alert alert-danger d-none">
+                        <i class="fa fa-exclamation-triangle me-2"></i>
+                        <span id="error-text"></span>
+                    </div>
+                    
+                    <div id="success-content" class="d-none">
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0" id="ticket-info-title">Ticket Information</h5>
                             </div>
-
-                            <div class="text-center mt-4">
-                                <button type="submit" id="scan-button" class="btn btn-success btn-lg">
-                                    <i class="fa fa-search me-2"></i> Scan Ticket
-                                </button>
-                                <div id="scanner-loading" class="mt-3">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                    <p>Scanning your ticket...</p>
-                                </div>
-                            </div>
-                        </form>
-
-                        <div id="results-container" class="results-container d-none">
-                            <hr>
-                            <h3 class="mb-4 text-center">Scanning Results</h3>
-                            
-                            <div id="error-message" class="alert alert-danger d-none">
-                                <i class="fa fa-exclamation-triangle me-2"></i>
-                                <span id="error-text"></span>
-                            </div>
-                            
-                            <div id="success-content" class="d-none">
-                                <div class="card mb-4">
-                                    <div class="card-header bg-light">
-                                        <h5 class="mb-0" id="ticket-info-title">Your Ticket</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <p><strong>Lottery Type:</strong> <span id="result-lottery-type"></span></p>
-                                                <p><strong>Draw Number:</strong> <span id="result-draw-number"></span></p>
-                                                <p><strong>Draw Date:</strong> <span id="result-draw-date"></span></p>
-                                                
-                                                <div id="detected-info" class="mt-3 small">
-                                                    <p class="text-muted mb-1"><i class="fas fa-search-plus me-1"></i> <strong>OCR Detected Information:</strong></p>
-                                                    <p class="mb-1"><strong>Game Type:</strong> <span id="detected-game-type"></span></p>
-                                                    <p class="mb-1"><strong>Draw Number:</strong> <span id="detected-draw-number"></span></p>
-                                                    <p class="mb-1"><strong>Draw Date:</strong> <span id="detected-draw-date"></span></p>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <p><strong>Your Numbers:</strong></p>
-                                                <div id="ticket-numbers" class="mb-3"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="card mb-4">
-                                    <div class="card-header bg-light">
-                                        <h5 class="mb-0">Winning Numbers</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div id="winning-numbers" class="mb-3"></div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>Lottery Type:</strong> <span id="result-lottery-type"></span></p>
+                                        <p><strong>Draw Number:</strong> <span id="result-draw-number"></span></p>
+                                        <p><strong>Draw Date:</strong> <span id="result-draw-date"></span></p>
                                         
-                                        <div class="mt-4">
-                                            <p><strong>Matched Numbers:</strong> <span id="matched-count" class="badge bg-success">0</span></p>
-                                            <div id="matched-numbers"></div>
+                                        <div id="detected-info" class="mt-3 small">
+                                            <p class="text-muted mb-1"><i class="fas fa-search-plus me-1"></i> <strong>AI Detected Information:</strong></p>
+                                            <p class="mb-1"><strong>Game Type:</strong> <span id="detected-game-type"></span></p>
+                                            <p class="mb-1"><strong>Draw Number:</strong> <span id="detected-draw-number"></span></p>
+                                            <p class="mb-1"><strong>Draw Date:</strong> <span id="detected-draw-date"></span></p>
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <div id="prize-container" class="d-none">
-                                    <div class="card prize-card">
-                                        <div class="card-body">
-                                            <h4 class="text-success mb-3"><i class="fa fa-trophy me-2"></i> Congratulations!</h4>
-                                            <p class="lead">You've won a prize in <span id="prize-lottery-type"></span> Draw <span id="prize-draw-number"></span>!</p>
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <p><strong>Division:</strong> <span id="prize-division"></span></p>
-                                                    <p><strong>Match Type:</strong> <span id="prize-match-type"></span></p>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <h3 class="text-success">Prize: <span id="prize-amount"></span></h3>
-                                                </div>
-                                            </div>
-                                            <p class="small text-muted mt-3">Visit the official South African National Lottery website or an authorized retailer to claim your prize.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div id="no-prize-container" class="d-none">
-                                    <div class="card">
-                                        <div class="card-body text-center">
-                                            <h4 class="text-muted mb-3"><i class="fa fa-times-circle me-2"></i> No Prize</h4>
-                                            <p>Sorry, your ticket did not win a prize in this draw.</p>
-                                            <p>Better luck next time!</p>
-                                        </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Your Numbers:</strong></p>
+                                        <div id="ticket-numbers" class="mb-3"></div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">Winning Numbers</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="winning-numbers" class="mb-3"></div>
+                                
+                                <div class="mt-4">
+                                    <p><strong>Matched Numbers:</strong> <span id="matched-count" class="badge bg-success">0</span></p>
+                                    <div id="matched-numbers"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="prize-container" class="d-none">
+                            <div class="card prize-card">
+                                <div class="card-header bg-warning">
+                                    <h5 class="mb-0"><i class="fa fa-trophy me-2"></i> Winner!</h5>
+                                </div>
+                                <div class="card-body">
+                                    <h4 class="text-success mb-3 text-center">Congratulations!</h4>
+                                    <p class="lead text-center">You've won a prize in <span id="prize-lottery-type"></span> Draw <span id="prize-draw-number"></span>!</p>
+                                    <div class="row mt-4">
+                                        <div class="col-md-6">
+                                            <p><strong>Division:</strong> <span id="prize-division"></span></p>
+                                            <p><strong>Match Type:</strong> <span id="prize-match-type"></span></p>
+                                        </div>
+                                        <div class="col-md-6 text-center">
+                                            <div class="p-3 bg-light rounded">
+                                                <p class="mb-1">Prize Amount:</p>
+                                                <h3 class="text-success"><span id="prize-amount"></span></h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="small text-muted mt-4 text-center">Visit the official South African National Lottery website or an authorized retailer to claim your prize.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="no-prize-container" class="d-none">
+                            <div class="card">
+                                <div class="card-header bg-secondary text-white">
+                                    <h5 class="mb-0">Result</h5>
+                                </div>
+                                <div class="card-body text-center p-4">
+                                    <i class="fa fa-times-circle fa-3x text-muted mb-3"></i>
+                                    <h4 class="text-muted mb-3">No Prize This Time</h4>
+                                    <p>Sorry, your ticket did not win a prize in this draw.</p>
+                                    <p>Better luck next time!</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <button id="scan-new-ticket" class="btn btn-primary">
+                                <i class="fa fa-redo me-2"></i> Scan Another Ticket
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -296,11 +348,11 @@
         const lotteryTypeSelect = document.getElementById('lottery-type');
         const loadingIndicator = document.getElementById('scanner-loading');
         const resultsContainer = document.getElementById('results-container');
+        const scanNewTicketBtn = document.getElementById('scan-new-ticket');
         
-        // Initialize scan button state after a short delay
+        // Initialize scan button state
         setTimeout(() => {
             updateScanButton();
-            console.log("Initial button state check on page load");
         }, 500);
         
         // File selection via button
@@ -367,7 +419,6 @@
                     previewContainer.classList.remove('d-none');
                     // Update scan button state
                     updateScanButton();
-                    console.log("File loaded successfully");
                 }
                 
                 reader.onerror = function() {
@@ -400,22 +451,34 @@
             }
         });
         
-        function updateScanButton() {
-            // Always keep the button enabled
-            scanButton.disabled = false;
-            console.log("Button state updated:", {
-                fileCount: fileInput.files.length,
-                lotteryType: lotteryTypeSelect.value,
-                disabled: false
+        // Scan new ticket button
+        if (scanNewTicketBtn) {
+            scanNewTicketBtn.addEventListener('click', function() {
+                // Hide results and reset the form
+                resultsContainer.classList.add('d-none');
+                ticketForm.reset();
+                previewContainer.classList.add('d-none');
+                updateScanButton();
+                
+                // Scroll back to top of scanner
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
             });
+        }
+        
+        function updateScanButton() {
+            // Enable button if image is selected
+            scanButton.disabled = !fileInput.files.length;
         }
         
         // Function to handle showing ads and processing the ticket
         function processTicketWithAds() {
             // Show loading indicator
             loadingIndicator.style.display = 'block';
-            // Never disable the scan button
-            scanButton.disabled = false;
+            // Disable the scan button while processing
+            scanButton.disabled = true;
             
             // Show ad loading overlay
             const adOverlayLoading = document.getElementById('ad-overlay-loading');
@@ -453,10 +516,7 @@
                 
                 console.log('Showing results interstitial ad');
                 
-                // Simulate ad loading (would be handled by AdSense in production)
-                const adContainer = document.getElementById('ad-container-interstitial');
-                
-                // Auto-show the results after a short delay (simulate ad viewing)
+                // Setup view results button
                 const viewResultsBtn = document.getElementById('view-results-btn');
                 viewResultsBtn.onclick = function() {
                     adOverlayResults.style.display = 'none';
@@ -485,20 +545,6 @@
                 console.log("Scan completed - button enabled");
             });
         }
-        
-        // Event listener for form submission
-        ticketForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Only check if a file is selected
-            if (!fileInput.files.length) {
-                alert('Please select an image of your ticket');
-                return;
-            }
-            
-            // Process the ticket with ads
-            processTicketWithAds();
-        });
         
         function displayResults(data) {
             // Show results container

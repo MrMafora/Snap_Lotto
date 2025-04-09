@@ -810,7 +810,7 @@ def get_raw_ocr(lottery_type):
 @app.route('/ticket-scanner')
 def ticket_scanner():
     """Page for scanning lottery tickets and checking if they won"""
-    return render_template('ticket_scanner.html')
+    return render_template('ticket_scanner_new.html')
 
 @app.route('/scan-ticket', methods=['POST'])
 def scan_ticket():
@@ -822,9 +822,8 @@ def scan_ticket():
     if file.filename == '':
         return jsonify({'error': 'No ticket image selected'})
         
-    lottery_type = request.form.get('lottery_type')
-    if not lottery_type:
-        return jsonify({'error': 'Lottery type is required'})
+    # Lottery type is now optional - the OCR will detect it if not provided
+    lottery_type = request.form.get('lottery_type', 'unknown')
         
     draw_number = request.form.get('draw_number', None)
     if draw_number and draw_number.strip() == '':
