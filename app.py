@@ -216,10 +216,9 @@ def admin_dashboard():
 # Export route functions for use by main.py
 @app.route('/')
 def index():
-    """Home page showing scheduled tasks and latest results"""
-    schedules = ScheduleConfig.query.all()
+    """Home page showing lottery results and ticket scanning feature"""
     latest_results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).limit(10).all()
-    return render_template('index.html', schedules=schedules, results=latest_results)
+    return render_template('index.html', results=latest_results)
 
 @app.route('/results')
 def results():

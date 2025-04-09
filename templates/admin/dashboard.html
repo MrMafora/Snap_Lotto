@@ -7,75 +7,81 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header lottery-header">
-                <h5 class="mb-0">ADMIN DASHBOARD</h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">ADMIN DASHBOARD</h4>
+                </div>
             </div>
             <div class="card-body">
-                <p class="lead">Welcome, {{ current_user.username }}!</p>
-                <p>This is the administrator dashboard for Snap Lotto data management.</p>
+                <p class="lead">
+                    Welcome {{ current_user.username }}! Manage your lottery data and system settings from this dashboard.
+                </p>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> This area is restricted to administrators. All changes made here will affect the public-facing website.
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row">
-    <div class="col-md-6 mb-4">
-        <div class="card">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
             <div class="card-header lottery-header">
-                <h5 class="mb-0">DATA MANAGEMENT</h5>
+                <h5 class="card-title mb-0">DATA MANAGEMENT</h5>
             </div>
             <div class="card-body">
                 <div class="list-group">
-                    <a href="{{ url_for('import_data') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="fas fa-file-upload me-2"></i> Import Spreadsheet Data
-                        </div>
-                        <span class="badge bg-primary rounded-pill">
-                            <i class="fas fa-arrow-right"></i>
-                        </span>
+                    <a href="{{ url_for('import_data') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-file-excel me-2"></i> Import Spreadsheet
                     </a>
-                    <a href="{{ url_for('settings') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="fas fa-cog me-2"></i> Manage Data Sync Schedules
-                        </div>
-                        <span class="badge bg-primary rounded-pill">
-                            <i class="fas fa-arrow-right"></i>
-                        </span>
+                    <a href="{{ url_for('results') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-search me-2"></i> View All Results
                     </a>
-                    <a href="{{ url_for('cleanup_screenshots') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="fas fa-trash me-2"></i> Clean Up Storage
-                        </div>
-                        <span class="badge bg-primary rounded-pill">
-                            <i class="fas fa-arrow-right"></i>
-                        </span>
+                    <a href="{{ url_for('visualizations') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-bar me-2"></i> Data Analytics
                     </a>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="col-md-6 mb-4">
-        <div class="card">
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
             <div class="card-header lottery-header">
-                <h5 class="mb-0">USER MANAGEMENT</h5>
+                <h5 class="card-title mb-0">SYSTEM SETTINGS</h5>
             </div>
             <div class="card-body">
                 <div class="list-group">
-                    <a href="{{ url_for('register') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="fas fa-user-plus me-2"></i> Create Admin User
-                        </div>
-                        <span class="badge bg-primary rounded-pill">
-                            <i class="fas fa-arrow-right"></i>
-                        </span>
+                    <a href="{{ url_for('settings') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-cog me-2"></i> Manage Data Syncs
                     </a>
-                    <a href="{{ url_for('logout') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="fas fa-sign-out-alt me-2"></i> Log Out
-                        </div>
-                        <span class="badge bg-danger rounded-pill">
-                            <i class="fas fa-arrow-right"></i>
-                        </span>
+                    <a href="{{ url_for('cleanup_screenshots') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-broom me-2"></i> Cleanup Screenshots
+                    </a>
+                    <a href="{{ url_for('register') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-user-plus me-2"></i> Add Admin User
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">PUBLIC FEATURES</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('index') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-home me-2"></i> Public Homepage
+                    </a>
+                    <a href="{{ url_for('ticket_scanner') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-ticket-alt me-2"></i> Ticket Scanner
                     </a>
                 </div>
             </div>

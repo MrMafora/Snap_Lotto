@@ -9,9 +9,6 @@
             <div class="card-header lottery-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <h4 class="card-title mb-0">LOTTERY DATA DASHBOARD</h4>
-                    <a href="/import-data" class="btn-import">
-                        <i class="fas fa-file-excel"></i> IMPORT SPREADSHEET
-                    </a>
                 </div>
             </div>
             <div class="card-body">
@@ -21,7 +18,7 @@
                 <div class="row">
                     <div class="col-md-12">
                         <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i> All lottery data is imported from official spreadsheets. Click "IMPORT SPREADSHEET" to update the database with the latest lottery results.
+                            <i class="fas fa-info-circle me-2"></i> All lottery data is imported from official spreadsheets and updated regularly with the latest results.
                         </div>
                     </div>
                 </div>
@@ -103,57 +100,18 @@
     <div class="col-lg-6">
         <div class="card mb-4">
             <div class="card-header lottery-header">
-                <h5 class="card-title mb-0">SCHEDULED DATA SYNCS</h5>
+                <h5 class="card-title mb-0">CHECK YOUR TICKET</h5>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-lottery">
-                        <thead>
-                            <tr>
-                                <th>GAME TYPE</th>
-                                <th>FREQUENCY</th>
-                                <th>LAST RUN</th>
-                                <th>ACTIONS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for schedule in schedules %}
-                            <tr>
-                                <td>
-                                    {% if 'Lotto Plus' in schedule.lottery_type %}
-                                        <span class="game-type-badge game-type-lotto">{{ schedule.lottery_type }}</span>
-                                    {% elif 'Powerball' in schedule.lottery_type %}
-                                        <span class="game-type-badge game-type-powerball">{{ schedule.lottery_type }}</span>
-                                    {% elif 'Daily' in schedule.lottery_type %}
-                                        <span class="game-type-badge game-type-daily">{{ schedule.lottery_type }}</span>
-                                    {% else %}
-                                        <span class="game-type-badge game-type-lotto">{{ schedule.lottery_type }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ schedule.frequency.capitalize() }} at {{ schedule.hour }}:{{ '%02d' % schedule.minute }}</td>
-                                <td>{{ schedule.last_run.strftime('%Y-%m-%d %H:%M') if schedule.last_run else 'Never' }}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-lottery-primary run-now-btn" data-id="{{ schedule.id }}">
-                                        <i class="fas fa-sync"></i> Sync
-                                    </button>
-                                    {% if schedule.active %}
-                                    <a href="{{ url_for('toggle_schedule', id=schedule.id) }}" class="btn btn-sm btn-lottery-secondary">
-                                        <i class="fas fa-pause"></i>
-                                    </a>
-                                    {% else %}
-                                    <a href="{{ url_for('toggle_schedule', id=schedule.id) }}" class="btn btn-sm btn-lottery-primary">
-                                        <i class="fas fa-play"></i>
-                                    </a>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="text-center mt-3">
-                    <a href="{{ url_for('settings') }}" class="btn btn-lottery-primary">
-                        <i class="fas fa-cog me-1"></i> Manage Schedules
+                <div class="text-center py-4">
+                    <div class="mb-4">
+                        <i class="fas fa-ticket-alt fa-4x text-primary mb-3"></i>
+                        <h4 class="mb-3">Scan Your Lottery Ticket</h4>
+                        <p class="lead">Have a lottery ticket? Check if you've won instantly!</p>
+                        <p>Simply upload a photo of your ticket and our system will check it against the latest results.</p>
+                    </div>
+                    <a href="{{ url_for('ticket_scanner') }}" class="btn btn-lottery-primary btn-lg">
+                        <i class="fas fa-qrcode me-2"></i> Scan Your Ticket Now
                     </a>
                 </div>
             </div>
@@ -208,41 +166,6 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle Run Now buttons
-    document.querySelectorAll('.run-now-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const id = this.getAttribute('data-id');
-            const icon = this.querySelector('i');
-            
-            // Add spinning animation
-            icon.classList.add('spinning');
-            this.disabled = true;
-            
-            // Send AJAX request to run the task
-            fetch(`/api/run_now/${id}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Show success message
-                        alert(data.message);
-                    } else {
-                        // Show error message
-                        alert(`Error: ${data.message}`);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred. Please try again.');
-                })
-                .finally(() => {
-                    // Remove spinning animation and re-enable button
-                    icon.classList.remove('spinning');
-                    this.disabled = false;
-                });
-        });
-    });
-    
-    // Import button already links directly to the import-data page
     
     // Simple charts for the dashboard
     // Fetch frequency data
