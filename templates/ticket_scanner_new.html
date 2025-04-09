@@ -585,7 +585,7 @@
             const progressBar = document.getElementById('scan-progress-bar');
             const stepText = document.getElementById('scan-step-text');
             
-            // Create more steps to extend the processing time to 30 seconds
+            // Create more steps to extend the processing time to 15 seconds
             const steps = [
                 { 
                     text: "Initializing ticket scanning process...", 
@@ -594,12 +594,7 @@
                 },
                 { 
                     text: "Uploading and analyzing your ticket image...", 
-                    progress: 20,
-                    activeStep: 1
-                },
-                { 
-                    text: "Processing image with optical character recognition...", 
-                    progress: 30,
+                    progress: 25,
                     activeStep: 1
                 },
                 { 
@@ -609,32 +604,17 @@
                 },
                 { 
                     text: "Extracting draw information and date...", 
-                    progress: 50,
+                    progress: 60,
                     activeStep: 2
                 },
                 { 
                     text: "Detecting your selected lottery numbers...", 
-                    progress: 60,
-                    activeStep: 3
-                },
-                { 
-                    text: "Retrieving latest draw results from database...", 
-                    progress: 70,
+                    progress: 75,
                     activeStep: 3
                 },
                 { 
                     text: "Matching your numbers against winning combinations...", 
-                    progress: 80,
-                    activeStep: 4
-                },
-                { 
-                    text: "Calculating potential prize information...", 
                     progress: 90,
-                    activeStep: 4
-                },
-                { 
-                    text: "Preparing your results...", 
-                    progress: 95,
                     activeStep: 4
                 },
                 { 
@@ -709,7 +689,7 @@
                     
                     waitForTicketData();
                 }
-            }, 3000); // Change steps every 3 seconds for a total of 33 seconds (11 steps)
+            }, 2000); // Change steps every 2 seconds for a total of 14 seconds (7 steps)
         }
         
         // Show the results overlay with data
