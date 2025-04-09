@@ -1,0 +1,113 @@
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return 'Hello World! Your deployment is working.'
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+modules = ["python-3.11", "python3"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+deploymentTarget = "gce"
+run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 main:app"]
+build = ["sh", "-c", "pip install -r requirements.txt"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
+waitForPort = 5000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+modules = ["python-3.11", "python3"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+deploymentTarget = "gce"
+run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 main:app"]
+build = ["sh", "-c", "pip install -r requirements.txt"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
+waitForPort = 5000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+from flask import Flask, render_template
+from flask_login import LoginManager
+from flask_sqlalchemy import SQLAlchemy
+import os
+
+app = Flask(__name__)
+
+# Configure the app
+app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET', 'default-dev-key')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize extensions
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+@app.route('/')
+def index():
+    return 'Lotto Scraper App is running!'
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)

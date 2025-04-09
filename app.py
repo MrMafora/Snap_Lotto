@@ -382,7 +382,7 @@ def create_app():
             
             # Call the ticket scanner function
             logger.info("Calling process_ticket_image function")
-            result = process_ticket_image(image_data, file_ext, lottery_type, draw_number)
+            result = process_ticket_image(image_data, lottery_type, draw_number, file_ext)
             
             if 'error' in result:
                 return jsonify(result), 400
@@ -585,7 +585,82 @@ def create_app():
     @app.route('/api/visualization-data')
     def visualization_data():
         """API endpoint to fetch data for visualizations"""
-        pass  # Implementation removed for brevity
+        # Import the normalization functions
+        from data_aggregator import normalize_lottery_type
+        
+        lottery_type = request.args.get('lottery_type', None)
+        data_type = request.args.get('data_type', 'numbers_frequency')
+        
+        if lottery_type:
+            normalized_type = normalize_lottery_type(lottery_type)
+            query = LotteryResult.query.filter(
+                db.or_(
+                    LotteryResult.lottery_type == normalized_type,
+                    LotteryResult.lottery_type == f"{normalized_type} Results"
+                )
+            )
+        else:
+            query = LotteryResult.query
+        
+        results = query.order_by(LotteryResult.draw_date.desc()).limit(100).all()
+        
+        # Check if we have any results to work with
+        if not results:
+            return jsonify({
+                'error': 'No data available',
+                'message': 'No lottery results found for the selected filters.'
+            })
+        
+        if data_type == 'numbers_frequency':
+            # Calculate frequency of each number
+            frequencies = {}
+            total_draws = len(results)
+            
+            # Initialize all possible numbers based on lottery type
+            max_number = 49  # Default for regular lotto
+            if lottery_type and 'daily' in lottery_type.lower():
+                max_number = 36  # Daily Lotto uses 1-36
+            
+            # Initialize all possible numbers with zero frequency
+            for i in range(1, max_number + 1):
+                frequencies[i] = 0
+                
+            # Count actual frequencies
+            for result in results:
+                numbers = result.get_numbers_list()
+                for num in numbers:
+                    if num in frequencies:
+                        frequencies[num] += 1
+            
+            # Convert to sorted list of dictionaries for easier manipulation in JavaScript
+            sorted_frequencies = []
+            for num, freq in sorted(frequencies.items(), key=lambda x: int(x[0])):
+                sorted_frequencies.append({
+                    'number': str(num),
+                    'frequency': freq
+                })
+            
+            # Format for Chart.js
+            chart_data = {
+                'labels': [item['number'] for item in sorted_frequencies],
+                'datasets': [{
+                    'label': f'Number Frequency for {lottery_type if lottery_type else "All Types"}',
+                    'data': [item['frequency'] for item in sorted_frequencies],
+                    'backgroundColor': 'rgba(54, 162, 235, 0.6)',
+                    'borderColor': 'rgba(54, 162, 235, 1)',
+                    'borderWidth': 1
+                }],
+                'frequencies': sorted_frequencies,  # Add sorted frequency data for better insights
+                'totalDraws': total_draws
+            }
+            
+            return jsonify(chart_data)
+        
+        # Default response if no recognized data type
+        return jsonify({
+            'error': 'Invalid data type',
+            'message': f'The data type {data_type} is not supported'
+        })
     
     @app.route('/draw/<lottery_type>/<draw_number>')
     def draw_details(lottery_type, draw_number):
