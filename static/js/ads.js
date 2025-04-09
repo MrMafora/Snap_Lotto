@@ -60,12 +60,38 @@ const AdManager = {
     // Show the loading ad (before scan results are ready)
     showLoadingAd: function(callback) {
         console.log('Showing loading ad');
+        
+        // Ensure overlay is visible
+        const adOverlayLoading = document.getElementById('ad-overlay-loading');
+        if (adOverlayLoading) {
+            adOverlayLoading.style.display = 'flex';
+            adOverlayLoading.style.opacity = '1';
+            adOverlayLoading.style.visibility = 'visible';
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+            console.log('Loading overlay is now visible');
+        } else {
+            console.error('Loading overlay element not found!');
+        }
+        
         this.loadAd('ad-container-loader', callback);
     },
 
     // Show the interstitial ad (before showing results)
     showInterstitialAd: function(callback) {
         console.log('Showing interstitial ad');
+        
+        // Ensure results overlay is visible
+        const adOverlayResults = document.getElementById('ad-overlay-results');
+        if (adOverlayResults) {
+            adOverlayResults.style.display = 'flex';
+            adOverlayResults.style.opacity = '1';
+            adOverlayResults.style.visibility = 'visible';
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+            console.log('Results overlay is now visible');
+        } else {
+            console.error('Results overlay element not found!');
+        }
+        
         this.loadAd('ad-container-interstitial', callback);
     }
 };

@@ -69,7 +69,7 @@
         border-radius: 8px;
     }
     
-    /* Advertisement overlays */
+    /* Advertisement overlays - critical to display properly */
     .ad-overlay {
         position: fixed;
         top: 0;
@@ -84,6 +84,9 @@
         justify-content: center;
         padding: 20px;
         overflow: hidden; /* Prevent scrolling while overlay is active */
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.3s ease;
     }
     
     /* Make the View Results button more prominent */
@@ -146,13 +149,15 @@
 
 {% block content %}
 <!-- Ad overlay - Loading screen -->
-<div id="ad-overlay-loading" class="ad-overlay">
+<div id="ad-overlay-loading" class="ad-overlay" style="display: none;">
     <h4 class="mb-4">Processing your ticket...</h4>
     <div class="ad-container">
-        <div class="ad-placeholder">
-            <i class="fas fa-ad mb-2 fa-2x text-primary"></i>
-            <p class="mb-1">Advertisement</p>
-            <p class="text-muted small mt-2">Advertisement helps keep this service free!</p>
+        <div id="ad-container-loader">
+            <div class="ad-placeholder">
+                <i class="fas fa-ad mb-2 fa-2x text-primary"></i>
+                <p class="mb-1">Advertisement</p>
+                <p class="text-muted small mt-2">Advertisement helps keep this service free!</p>
+            </div>
         </div>
     </div>
     <div class="mt-4 text-center" style="max-width: 500px; margin: 0 auto;">
@@ -192,14 +197,16 @@
 </div>
 
 <!-- Ad overlay - Results screen (fixed position) -->
-<div id="ad-overlay-results" class="ad-overlay">
+<div id="ad-overlay-results" class="ad-overlay" style="display: none;">
     <div class="results-ad-content">
         <h4 class="mb-4">Your Results Are Ready!</h4>
         <div class="ad-container">
-            <div class="ad-placeholder">
-                <i class="fas fa-ad mb-2 fa-2x text-primary"></i>
-                <p class="mb-1">Advertisement</p>
-                <small class="text-muted">Support from ads keeps this service free</small>
+            <div id="ad-container-interstitial">
+                <div class="ad-placeholder">
+                    <i class="fas fa-ad mb-2 fa-2x text-primary"></i>
+                    <p class="mb-1">Advertisement</p>
+                    <small class="text-muted">Support from ads keeps this service free</small>
+                </div>
             </div>
         </div>
         <button class="btn btn-success px-4 py-3 mt-4 pulse-btn" id="view-results-btn">
@@ -565,9 +572,12 @@
             // Disable the scan button while processing
             scanButton.disabled = true;
             
-            // Show ad loading overlay
+            // Show ad loading overlay - critical section that must execute
             const adOverlayLoading = document.getElementById('ad-overlay-loading');
             adOverlayLoading.style.display = 'flex';
+            adOverlayLoading.style.opacity = '1';  // Ensure visibility
+            adOverlayLoading.style.visibility = 'visible'; // Ensure visibility
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
             
             // Create form data for later use
             const formData = new FormData(ticketForm);
@@ -576,7 +586,7 @@
             console.log('Showing processing ad for 5+ seconds');
             
             // Simulate a multi-step process for visual interest during ad viewing
-            // Will process the ticket after steps complete (at least 30 seconds)
+            // Will process the ticket after steps complete
             simulateProcessingSteps(formData);
         }
         
