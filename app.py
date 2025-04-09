@@ -2,6 +2,7 @@
 Application configuration and setup.
 """
 import os
+import json
 import logging
 import shutil
 from functools import wraps
@@ -813,30 +814,46 @@ def ticket_scanner():
     return render_template('ticket_scanner_new.html')
 
 @app.route('/scan-ticket', methods=['POST'])
+@csrf.exempt  # Exempt this route from CSRF protection for fetch API
 def scan_ticket():
     """API endpoint to process a lottery ticket image and check if it's a winner"""
+    app.logger.info("Scan ticket endpoint called")
+    
+    # CSRF protection is disabled for this endpoint
+    # This is needed because we're using fetch API without CSRF token
     if 'ticket_image' not in request.files:
+        app.logger.error("No ticket image in request files")
         return jsonify({'error': 'No ticket image provided'})
         
     file = request.files['ticket_image']
     if file.filename == '':
+        app.logger.error("Empty filename in ticket image")
         return jsonify({'error': 'No ticket image selected'})
+        
+    app.logger.info(f"Processing ticket image: {file.filename}")
         
     # Lottery type is now optional - the OCR will detect it if not provided
     lottery_type = request.form.get('lottery_type', 'unknown')
+    app.logger.info(f"Lottery type: {lottery_type}")
         
     draw_number = request.form.get('draw_number', None)
     if draw_number and draw_number.strip() == '':
         draw_number = None
+    app.logger.info(f"Draw number: {draw_number}")
         
     # Read the image data
     try:
         image_data = file.read()
+        app.logger.info(f"Image data read successfully: {len(image_data)} bytes")
         
         # Process the ticket image
+        app.logger.info("Calling process_ticket_image function")
         result = process_ticket_image(image_data, lottery_type, draw_number)
         
+        app.logger.info(f"Ticket processing result: {json.dumps(result, default=str)}")
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error processing ticket image: {str(e)}")
+        app.logger.error(f"Error processing ticket image: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
         return jsonify({'error': f"Failed to process ticket: {str(e)}"})
