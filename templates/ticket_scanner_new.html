@@ -340,6 +340,15 @@
                                     <p><strong>Matched Numbers:</strong> <span id="matched-count" class="badge bg-success">0</span></p>
                                     <div id="matched-numbers"></div>
                                 </div>
+                                
+                                <!-- New section to show matches by row -->
+                                <div id="rows-with-matches-container" class="mt-4 d-none">
+                                    <h5 class="mb-3">Winning Rows</h5>
+                                    <div class="alert alert-info">
+                                        <i class="fa fa-info-circle me-2"></i> The following rows on your ticket have matching numbers:
+                                    </div>
+                                    <div id="rows-with-matches" class="row g-3"></div>
+                                </div>
                             </div>
                         </div>
                         
@@ -887,8 +896,108 @@
                     ball.textContent = num;
                     matchedNumbersContainer.appendChild(ball);
                 });
+                
+                // Display rows with matches if available
+                if (data.rows_with_matches && data.rows_with_matches.length > 0) {
+                    const rowsWithMatchesContainer = document.getElementById('rows-with-matches-container');
+                    const rowsWithMatches = document.getElementById('rows-with-matches');
+                    
+                    rowsWithMatchesContainer.classList.remove('d-none');
+                    rowsWithMatches.innerHTML = '';
+                    
+                    // Create a card for each row that has matches
+                    data.rows_with_matches.forEach((row, index) => {
+                        const colDiv = document.createElement('div');
+                        colDiv.classList.add('col-md-6', 'mb-3');
+                        
+                        const cardDiv = document.createElement('div');
+                        cardDiv.classList.add('card', 'h-100');
+                        
+                        const cardHeader = document.createElement('div');
+                        cardHeader.classList.add('card-header', 'bg-primary', 'text-white');
+                        cardHeader.innerHTML = `<h6 class="mb-0">Row ${row.row} <span class="badge bg-light text-primary float-end">${row.total_matched} match${row.total_matched > 1 ? 'es' : ''}</span></h6>`;
+                        
+                        const cardBody = document.createElement('div');
+                        cardBody.classList.add('card-body');
+                        
+                        // Show all numbers in this row
+                        const numbersDiv = document.createElement('div');
+                        numbersDiv.classList.add('mb-2');
+                        numbersDiv.innerHTML = '<strong>Your Numbers:</strong>';
+                        
+                        const numbersContainer = document.createElement('div');
+                        numbersContainer.classList.add('mt-2');
+                        
+                        row.numbers.forEach(num => {
+                            const ball = document.createElement('span');
+                            ball.classList.add('lottery-ball');
+                            
+                            // Highlight matched numbers
+                            if (row.matched_numbers.includes(num)) {
+                                ball.classList.add('ball-matched');
+                            }
+                            
+                            // Add color classes in sequence
+                            if (numbersContainer.children.length % 4 === 0) {
+                                ball.classList.add('lottery-ball-red');
+                            } else if (numbersContainer.children.length % 4 === 1) {
+                                ball.classList.add('lottery-ball-yellow');
+                            } else if (numbersContainer.children.length % 4 === 2) {
+                                ball.classList.add('lottery-ball-green');
+                            } else {
+                                ball.classList.add('lottery-ball-blue');
+                            }
+                            
+                            ball.textContent = num;
+                            numbersContainer.appendChild(ball);
+                        });
+                        
+                        numbersDiv.appendChild(numbersContainer);
+                        cardBody.appendChild(numbersDiv);
+                        
+                        // Add matched numbers section if there are any
+                        if (row.matched_numbers.length > 0) {
+                            const matchedDiv = document.createElement('div');
+                            matchedDiv.classList.add('mt-3');
+                            matchedDiv.innerHTML = '<strong>Matched Numbers:</strong>';
+                            
+                            const matchedContainer = document.createElement('div');
+                            matchedContainer.classList.add('mt-2');
+                            
+                            row.matched_numbers.forEach(num => {
+                                const ball = document.createElement('span');
+                                ball.classList.add('lottery-ball', 'ball-matched');
+                                
+                                // Add color classes in sequence
+                                if (matchedContainer.children.length % 4 === 0) {
+                                    ball.classList.add('lottery-ball-red');
+                                } else if (matchedContainer.children.length % 4 === 1) {
+                                    ball.classList.add('lottery-ball-yellow');
+                                } else if (matchedContainer.children.length % 4 === 2) {
+                                    ball.classList.add('lottery-ball-green');
+                                } else {
+                                    ball.classList.add('lottery-ball-blue');
+                                }
+                                
+                                ball.textContent = num;
+                                matchedContainer.appendChild(ball);
+                            });
+                            
+                            matchedDiv.appendChild(matchedContainer);
+                            cardBody.appendChild(matchedDiv);
+                        }
+                        
+                        cardDiv.appendChild(cardHeader);
+                        cardDiv.appendChild(cardBody);
+                        colDiv.appendChild(cardDiv);
+                        rowsWithMatches.appendChild(colDiv);
+                    });
+                }
             } else {
                 matchedNumbersContainer.innerHTML = '<p>No matching numbers found.</p>';
+                
+                // Hide rows with matches section
+                document.getElementById('rows-with-matches-container').classList.add('d-none');
             }
             
             // Display prize information if any
