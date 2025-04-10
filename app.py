@@ -344,7 +344,6 @@ def create_app():
             """Empty form for CSRF protection"""
             pass
             
-        # Create a simple form for CSRF protection
         form = EmptyForm()
         return render_template('ticket_scanner_new.html', form=form)
     
@@ -355,68 +354,46 @@ def create_app():
         # Note: CSRF protection is handled automatically by Flask-WTF
         
         try:
-            # Log the entire form data for debugging
-            form_data = {key: value for key, value in request.form.items()}
-            logger.info(f"Form data received: {form_data}")
-            logger.info(f"Files received: {list(request.files.keys())}")
-            
             # Get lottery type and draw number from form if provided
             lottery_type = request.form.get('lottery_type', '')
             draw_number = request.form.get('draw_number', '')
             
             # Get image from request
             if 'ticket_image' not in request.files:
-                logger.error("No image file in request - looking for ticket_image field")
-                logger.info(f"Available file fields: {list(request.files.keys())}")
-                return jsonify({
-                    'error': 'No image file provided',
-                    'details': f"Field 'ticket_image' not found. Available fields: {list(request.files.keys())}"
-                }), 400
+                logger.error("No image file in request")
+                return jsonify({'error': 'No image file provided'}), 400
                 
             image_file = request.files['ticket_image']
             if image_file.filename == '':
                 logger.error("Empty filename")
-                return jsonify({
-                    'error': 'No image selected',
-                    'details': 'The ticket_image field contains an empty filename'
-                }), 400
+                return jsonify({'error': 'No image selected'}), 400
                 
             # Process the image and check for winning numbers
             logger.info(f"Processing ticket image: {image_file.filename}")
             logger.info(f"Lottery type: {lottery_type}")
             logger.info(f"Draw number: {draw_number}")
             
-            try:
-                # Read image file
-                image_data = image_file.read()
-                logger.info(f"Image data read successfully: {len(image_data)} bytes")
+            # Read image file
+            image_data = image_file.read()
+            logger.info(f"Image data read successfully: {len(image_data)} bytes")
+            
+            # Detect file extension from filename
+            file_ext = os.path.splitext(image_file.filename)[1].lower()
+            logger.info(f"Detected file extension: {file_ext}")
+            
+            # Call the ticket scanner function
+            logger.info("Calling process_ticket_image function")
+            result = process_ticket_image(image_data, lottery_type, draw_number, file_ext)
+            
+            if 'error' in result:
+                return jsonify(result), 400
                 
-                # Detect file extension from filename
-                file_ext = os.path.splitext(image_file.filename)[1].lower()
-                logger.info(f"Detected file extension: {file_ext}")
-                
-                # Call the ticket scanner function
-                logger.info("Calling process_ticket_image function")
-                result = process_ticket_image(image_data, lottery_type, draw_number, file_ext)
-                
-                if 'error' in result:
-                    return jsonify(result), 400
-                    
-                logger.info(f"Ticket processing result: {json.dumps(result)}")
-                return jsonify(result)
-            except Exception as inner_e:
-                logger.exception(f"Error in image processing: {str(inner_e)}")
-                return jsonify({
-                    'error': 'Error processing image data',
-                    'details': f"Image processing failed: {str(inner_e)}"
-                }), 500
+            logger.info(f"Ticket processing result: {json.dumps(result)}")
+            return jsonify(result)
             
         except Exception as e:
             logger.exception(f"Error processing ticket: {str(e)}")
-            return jsonify({
-                'error': 'Error processing ticket',
-                'details': f"Backend error: {str(e)}"
-            }), 500
+            return jsonify({'error': f'Error processing ticket: {str(e)}'}), 500
 
     @app.route('/settings', methods=['GET', 'POST'])
     @login_required
