@@ -1,0 +1,53 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local development settings
+.env
+.env.local
+
+# Flask instance folder
+instance/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Screenshots folder (contains large image files)
+screenshots/
+
+# Uploads folder (temporary storage)
+uploads/
+
+# Flask-Session
+flask_session/
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Other
+.DS_Store

@@ -1,67 +1,68 @@
-# Snap Lotto - South African Lottery Data Intelligence Platform
+# Snap Lotto
 
 A Python-powered lottery data intelligence platform that automates sophisticated data capture, AI-driven extraction, and comprehensive result aggregation using advanced web scraping and OCR technologies.
 
-## Optimized File Structure
-
-This application has been optimized to reduce its size while maintaining full functionality:
-
-- **Lightweight Core**: The main application uses lightweight dependencies for basic functionality
-- **Optional Playwright**: Full browser automation with Playwright is available but optional
-- **Modular Design**: Critical components like screenshot capture are isolated for easier maintenance
-
-## Components
-
-- **Python Flask Backend**: Core application server
-- **Claude AI for OCR**: Advanced OCR processing of lottery tickets and results
-- **Responsive Web Interface**: Mobile-friendly Bootstrap design
-- **Admin Authentication**: Secure access for administrative functions
-- **Scheduled Data Collection**: Automated data gathering via API or web screenshots
-
-## Size Optimization
-
-The application has been optimized to reduce its size:
-
-1. **Lightweight Screenshot Capture**: Uses requests library for basic screenshot needs
-2. **Optional Playwright Integration**: Full browser automation available only when needed
-3. **Modular Architecture**: Components can be enabled/disabled as needed
-
-## Getting Started
-
-### Basic Installation (Small Footprint)
-
-```bash
-# Install required dependencies
-pip install -r requirements.txt
-
-# Run the application
-python main.py
-```
-
-### Full Installation (With Browser Automation)
-
-If you need full browser automation for complex websites, install Playwright:
-
-```bash
-# Install Playwright
-pip install playwright
-
-# Install required browsers
-playwright install chromium
-```
-
-## Environment Variables
-
-The following environment variables are required:
-
-- `Lotto_scape_ANTHROPIC_KEY`: API key for Claude AI OCR processing
-- `SESSION_SECRET`: Secret key for Flask session security
-- `DATABASE_URL`: PostgreSQL database connection string
-
 ## Features
 
-- Ticket scanning with OCR technology
-- Real-time data aggregation
-- Comprehensive lottery result storage
-- Admin dashboard for system management
-- Scheduled data collection
+- **Ticket Scanner**: Scan South African lottery tickets to check for winnings
+- **Results Database**: Comprehensive database of historical lottery results
+- **AI-Powered OCR**: Automated extraction of ticket numbers using Claude AI
+- **Prize Calculation**: Automatic calculation of winnings based on matched numbers
+- **Responsive Design**: Mobile-friendly interface for ease of use
+
+## Technologies Used
+
+- **Backend**: Python with Flask framework
+- **OCR Processing**: Claude AI with advanced image recognition
+- **Web Scraping**: Custom web scraper with browser emulation
+- **Data Storage**: PostgreSQL database
+- **Task Scheduling**: APScheduler for automated data collection
+- **Frontend**: Bootstrap with responsive design
+
+## Setup
+
+### Prerequisites
+
+- Python 3.11+
+- PostgreSQL database
+- Anthropic API key for Claude AI
+
+### Environment Variables
+
+The following environment variables need to be set:
+
+- `DATABASE_URL`: PostgreSQL connection string
+- `Lotto_scape_ANTHROPIC_KEY`: Anthropic API key for Claude
+- `SESSION_SECRET`: Secret key for session security
+
+### Installation
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/username/snap-lotto.git
+   cd snap-lotto
+   ```
+
+2. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+3. Setup the database:
+   ```
+   # Database tables will be automatically created on first run
+   ```
+
+4. Run the application:
+   ```
+   python main.py
+   ```
+
+## License
+
+Proprietary - All rights reserved
+
+## Credits
+
+- Created by the Snap Lotto Team
+- Powered by Claude AI for OCR processing
