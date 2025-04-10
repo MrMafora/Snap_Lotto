@@ -818,3 +818,45 @@ function initTicketScannerFunctionality() {
         }
     }
 }
+
+// Initialize close buttons for emergency exit from overlays
+document.addEventListener('DOMContentLoaded', function() {
+    // Add emergency close button handler for overlay
+    const closeOverlayBtns = document.querySelectorAll('.close-overlay-btn');
+    closeOverlayBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            console.log('Emergency close button clicked');
+            
+            // Force hide all overlays
+            const overlays = document.querySelectorAll('.ad-overlay');
+            overlays.forEach(overlay => {
+                overlay.style.display = 'none';
+                overlay.style.opacity = '0';
+                overlay.style.visibility = 'hidden';
+            });
+            
+            // Reset body styles
+            document.body.style.overflow = 'auto';
+            document.body.style.position = 'static';
+            document.body.style.width = 'auto';
+            document.body.style.height = 'auto';
+            document.body.style.top = 'auto';
+            document.body.style.left = 'auto';
+            document.documentElement.style.overflow = 'auto';
+            document.documentElement.style.position = 'static';
+            document.body.style.touchAction = 'auto';
+            
+            // Show the scanner form again
+            const scannerForm = document.getElementById('scanner-form');
+            if (scannerForm) {
+                scannerForm.style.display = 'block';
+            }
+            
+            // Re-enable scan button if it exists
+            const scanButton = document.getElementById('scan-button');
+            if (scanButton) {
+                scanButton.disabled = false;
+            }
+        });
+    });
+});
