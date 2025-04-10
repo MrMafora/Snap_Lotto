@@ -553,39 +553,13 @@ function initTicketScannerFunctionality() {
             function checkTicketProcessed() {
                 if (ticketProcessed) {
                     clearTimeout(processingTimeout);
-                    console.log('Ticket processing completed, displaying results...');
-                    
-                    // Add small delay to ensure UI is ready
-                    setTimeout(() => {
-                        try {
-                            displayResults(ticketData);
-                            console.log('Results displayed successfully');
-                        } catch (err) {
-                            console.error('Error in displayResults:', err);
-                            // Force close overlay if there's an error displaying results
-                            if (document.getElementById('ad-overlay-loading')) {
-                                document.getElementById('ad-overlay-loading').style.display = 'none';
-                            }
-                            // Display error in results area
-                            const resultsContent = document.getElementById('results-content');
-                            if (resultsContent) {
-                                resultsContent.innerHTML = `
-                                    <div class="alert alert-danger">
-                                        <strong>Error displaying results:</strong> ${err.message || 'Unknown error'}
-                                    </div>
-                                    <button id="force-reset-btn" class="btn btn-primary">Try Again</button>
-                                `;
-                                document.getElementById('force-reset-btn')?.addEventListener('click', resetScannerForm);
-                            }
-                        }
-                    }, 100);
+                    displayResults(ticketData);
                 } else {
                     console.log('Waiting for ticket processing to complete...');
                     setTimeout(checkTicketProcessed, 500);
                 }
             }
             
-            // Start checking if ticket is processed
             checkTicketProcessed();
         }
     }
@@ -818,45 +792,3 @@ function initTicketScannerFunctionality() {
         }
     }
 }
-
-// Initialize close buttons for emergency exit from overlays
-document.addEventListener('DOMContentLoaded', function() {
-    // Add emergency close button handler for overlay
-    const closeOverlayBtns = document.querySelectorAll('.close-overlay-btn');
-    closeOverlayBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            console.log('Emergency close button clicked');
-            
-            // Force hide all overlays
-            const overlays = document.querySelectorAll('.ad-overlay');
-            overlays.forEach(overlay => {
-                overlay.style.display = 'none';
-                overlay.style.opacity = '0';
-                overlay.style.visibility = 'hidden';
-            });
-            
-            // Reset body styles
-            document.body.style.overflow = 'auto';
-            document.body.style.position = 'static';
-            document.body.style.width = 'auto';
-            document.body.style.height = 'auto';
-            document.body.style.top = 'auto';
-            document.body.style.left = 'auto';
-            document.documentElement.style.overflow = 'auto';
-            document.documentElement.style.position = 'static';
-            document.body.style.touchAction = 'auto';
-            
-            // Show the scanner form again
-            const scannerForm = document.getElementById('scanner-form');
-            if (scannerForm) {
-                scannerForm.style.display = 'block';
-            }
-            
-            // Re-enable scan button if it exists
-            const scanButton = document.getElementById('scan-button');
-            if (scanButton) {
-                scanButton.disabled = false;
-            }
-        });
-    });
-});
