@@ -553,13 +553,39 @@ function initTicketScannerFunctionality() {
             function checkTicketProcessed() {
                 if (ticketProcessed) {
                     clearTimeout(processingTimeout);
-                    displayResults(ticketData);
+                    console.log('Ticket processing completed, displaying results...');
+                    
+                    // Add small delay to ensure UI is ready
+                    setTimeout(() => {
+                        try {
+                            displayResults(ticketData);
+                            console.log('Results displayed successfully');
+                        } catch (err) {
+                            console.error('Error in displayResults:', err);
+                            // Force close overlay if there's an error displaying results
+                            if (document.getElementById('ad-overlay-loading')) {
+                                document.getElementById('ad-overlay-loading').style.display = 'none';
+                            }
+                            // Display error in results area
+                            const resultsContent = document.getElementById('results-content');
+                            if (resultsContent) {
+                                resultsContent.innerHTML = `
+                                    <div class="alert alert-danger">
+                                        <strong>Error displaying results:</strong> ${err.message || 'Unknown error'}
+                                    </div>
+                                    <button id="force-reset-btn" class="btn btn-primary">Try Again</button>
+                                `;
+                                document.getElementById('force-reset-btn')?.addEventListener('click', resetScannerForm);
+                            }
+                        }
+                    }, 100);
                 } else {
                     console.log('Waiting for ticket processing to complete...');
                     setTimeout(checkTicketProcessed, 500);
                 }
             }
             
+            // Start checking if ticket is processed
             checkTicketProcessed();
         }
     }

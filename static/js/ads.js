@@ -111,27 +111,41 @@ window.AdManager = {
         const adOverlayLoading = document.getElementById('ad-overlay-loading');
         if (adOverlayLoading) {
             adOverlayLoading.style.display = 'none';
-            // Force restore scrolling on all elements
-            document.body.style.overflow = 'auto';
-            document.body.style.position = 'static';
-            document.body.style.width = '';
-            document.body.style.height = '';
-            document.documentElement.style.overflow = 'auto';
-            document.documentElement.style.position = 'static';
-            document.body.style.touchAction = 'auto';
-            
-            // Re-enable zooming
-            const viewportMeta = document.querySelector('meta[name="viewport"]');
-            if (viewportMeta) {
-                viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
-            }
-            
-            // Force update body and viewport
-            setTimeout(function() {
-                window.scrollTo(0, 0);
-                window.scrollTo(0, 1);
-            }, 100);
+            adOverlayLoading.style.opacity = '0';
+            adOverlayLoading.style.visibility = 'hidden';
+            console.log('Loading overlay is now hidden');
+        } else {
+            console.error('Loading overlay element not found when trying to hide it');
         }
+        
+        // Force restore scrolling on all elements - extra cautious
+        document.body.style.overflow = 'auto';
+        document.body.style.position = 'static';
+        document.body.style.width = 'auto';
+        document.body.style.height = 'auto';
+        document.body.style.top = 'auto';
+        document.body.style.left = 'auto';
+        document.documentElement.style.overflow = 'auto';
+        document.documentElement.style.position = 'static';
+        document.body.style.touchAction = 'auto';
+        
+        // Re-enable zooming
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        if (viewportMeta) {
+            viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+        }
+        
+        // Force update body and viewport
+        setTimeout(function() {
+            window.scrollTo(0, 0);
+            document.body.style.overflow = 'auto'; // Apply again after timeout
+            
+            // Additional check to make sure overlay is really gone
+            const checkOverlay = document.getElementById('ad-overlay-loading');
+            if (checkOverlay) {
+                checkOverlay.style.display = 'none';
+            }
+        }, 250);
     },
 
     // Hide the interstitial ad (when viewing results)
