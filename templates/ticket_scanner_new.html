@@ -31,8 +31,7 @@
                     <h5 class="mb-0">Scan Your Ticket</h5>
                 </div>
                 <div class="card-body">
-                    <form id="ticket-form" enctype="multipart/form-data" method="POST" action="{{ url_for('scan_ticket') }}">
-                        {{ form.hidden_tag() }}
+                    <form id="ticket-form" enctype="multipart/form-data">
                         <!-- File Upload Area -->
                         <div id="drop-area" class="drop-area text-center p-4 mb-3">
                             <div class="mb-3">
@@ -221,6 +220,28 @@
 {% endblock %}
 
 {% block additional_scripts %}
-<!-- Direct script loading without dynamic insertion -->
-<script src="{{ url_for('static', filename='js/ticket_scanner.js') }}"></script>
+<!-- Make sure ads.js is loaded before ticket_scanner.js -->
+<script>
+    // Check if AdManager is already defined (from base.html)
+    if (!window.AdManager) {
+        console.log("AdManager not found - loading ads.js again");
+        // Load ads.js dynamically to ensure it's loaded before ticket_scanner.js
+        const adsScript = document.createElement('script');
+        adsScript.src = "{{ url_for('static', filename='js/ads.js') }}";
+        document.head.appendChild(adsScript);
+        
+        // Wait for ads.js to load before initializing ticket scanner
+        adsScript.onload = function() {
+            const scannerScript = document.createElement('script');
+            scannerScript.src = "{{ url_for('static', filename='js/ticket_scanner.js') }}";
+            document.head.appendChild(scannerScript);
+        };
+    } else {
+        // AdManager already exists, just load the ticket scanner
+        console.log("AdManager found - loading ticket_scanner.js directly");
+        const scannerScript = document.createElement('script');
+        scannerScript.src = "{{ url_for('static', filename='js/ticket_scanner.js') }}";
+        document.head.appendChild(scannerScript);
+    }
+</script>
 {% endblock %}

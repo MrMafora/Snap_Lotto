@@ -42,21 +42,6 @@ function initTicketScannerFunctionality() {
         return;
     }
     
-    // Add form submission handler
-    ticketForm.addEventListener('submit', function(e) {
-        e.preventDefault(); // Prevent standard form submission
-        
-        // Check if an image has been selected
-        if (fileInput && fileInput.files.length) {
-            // Process the ticket with ads
-            processTicketWithAds();
-        } else {
-            alert('Please select an image first.');
-        }
-        
-        return false; // Prevent form from submitting normally
-    });
-    
     // Camera handling functions
     function startCamera() {
         // Hide the drop area and show camera interface
@@ -434,8 +419,6 @@ function initTicketScannerFunctionality() {
         
         // Start processing the ticket in the background while showing ads
         // This way, results will be ready when the ad finishes
-        // No need to manually add CSRF token as it's included in the formData
-        // from the hidden_tag() in the form
         fetch('/scan-ticket', {
             method: 'POST',
             body: formData
