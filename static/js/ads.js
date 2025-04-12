@@ -33,66 +33,140 @@ window.AdManager = window.AdManager || {
         const container = document.getElementById(containerId);
         if (!container) {
             console.error(`Mock ad container ${containerId} not found`);
-            return;
+            // Try to create the container if it doesn't exist
+            const createdContainer = this.ensureContainerExists(containerId);
+            if (!createdContainer) {
+                return; // Still couldn't create it
+            }
         }
         
-        // Create a visible mock ad with bright colors and border
-        container.innerHTML = `
-            <div style="width: 300px; height: 250px; background-color: #f8f9fa; border: 3px solid #0d6efd; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                <div style="font-size: 24px; margin-bottom: 10px; color: #0d6efd;">
-                    <i class="fas fa-ad"></i>
+        try {
+            // Get the container again in case it was just created
+            const targetContainer = document.getElementById(containerId);
+            if (!targetContainer) return;
+            
+            // Create a visible mock ad with bright colors and border
+            targetContainer.innerHTML = `
+                <div style="width: 300px; height: 250px; background-color: #f8f9fa; border: 3px solid #0d6efd; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                    <div style="font-size: 24px; margin-bottom: 10px; color: #0d6efd;">
+                        <i class="fas fa-ad"></i>
+                    </div>
+                    <div style="font-weight: bold; font-size: 18px; color: #212529; margin-bottom: 5px;">
+                        Advertisement
+                    </div>
+                    <div style="color: #6c757d; font-size: 14px; text-align: center; padding: 0 20px;">
+                        This placeholder helps keep the service free
+                    </div>
+                    <div style="margin-top: 20px; display: flex; gap: 10px;">
+                        <div style="width: 12px; height: 12px; background-color: #dc3545; border-radius: 50%;"></div>
+                        <div style="width: 12px; height: 12px; background-color: #ffc107; border-radius: 50%;"></div>
+                        <div style="width: 12px; height: 12px; background-color: #198754; border-radius: 50%;"></div>
+                    </div>
                 </div>
-                <div style="font-weight: bold; font-size: 18px; color: #212529; margin-bottom: 5px;">
-                    Advertisement
-                </div>
-                <div style="color: #6c757d; font-size: 14px; text-align: center; padding: 0 20px;">
-                    This placeholder helps keep the service free
-                </div>
-                <div style="margin-top: 20px; display: flex; gap: 10px;">
-                    <div style="width: 12px; height: 12px; background-color: #dc3545; border-radius: 50%;"></div>
-                    <div style="width: 12px; height: 12px; background-color: #ffc107; border-radius: 50%;"></div>
-                    <div style="width: 12px; height: 12px; background-color: #198754; border-radius: 50%;"></div>
-                </div>
-            </div>
-        `;
+            `;
+            
+            console.log(`Mock ad created in ${containerId}`);
+        } catch (e) {
+            console.warn(`Failed to create mock ad in ${containerId}:`, e);
+        }
+    },
+    
+    ensureContainerExists: function(containerId) {
+        // Check if we're dealing with loader or interstitial
+        const isLoader = containerId === 'ad-container-loader';
+        const isInterstitial = containerId === 'ad-container-interstitial';
         
-        console.log(`Mock ad created in ${containerId}`);
+        if (!isLoader && !isInterstitial) return false;
+        
+        const overlayId = isLoader ? 'ad-overlay-loading' : 'ad-overlay-results';
+        const overlay = document.getElementById(overlayId);
+        
+        if (!overlay) return false;
+        
+        // Find or create the ad container
+        let adContainer = overlay.querySelector('.ad-container');
+        if (!adContainer) {
+            adContainer = document.createElement('div');
+            adContainer.className = 'ad-container';
+            adContainer.style.cssText = 'margin: 0 auto; background-color: #f8f9fa; border-radius: 10px; padding: 20px; max-width: 350px;';
+            // Use safe append method
+            try {
+                overlay.appendChild(adContainer);
+            } catch (e) {
+                console.warn('Failed to append ad container to overlay:', e);
+                return false;
+            }
+        }
+        
+        // Create the container with proper ID
+        const container = document.createElement('div');
+        container.id = containerId;
+        container.style.cssText = 'width: 300px; margin: 0 auto;';
+        
+        try {
+            adContainer.appendChild(container);
+            return true;
+        } catch (e) {
+            console.warn(`Failed to create ${containerId}:`, e);
+            return false;
+        }
     },
 
     // Load and display an ad in the specified container
     loadAd: function(containerId, callback) {
-        const container = document.getElementById(containerId);
-        if (!container) {
-            console.error(`Ad container ${containerId} not found`);
+        try {
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.error(`Ad container ${containerId} not found`);
+                // Try to create container if missing
+                const created = this.ensureContainerExists(containerId);
+                if (!created) {
+                    if (callback) callback(false);
+                    return;
+                }
+            }
+            
+            try {
+                // Get fresh reference to container (in case it was just created)
+                const targetContainer = document.getElementById(containerId);
+                if (!targetContainer) {
+                    if (callback) callback(false);
+                    return;
+                }
+                
+                // Clear previous content
+                targetContainer.innerHTML = '';
+    
+                // Create a new ad container
+                const adContainer = document.createElement('div');
+                adContainer.className = 'ad-container py-3';
+                
+                // In production, this would use real AdSense code
+                // Here, we're creating a placeholder for the ad
+                adContainer.innerHTML = `
+                    <div class="text-center">
+                        <div class="ad-placeholder">
+                            <p><i class="fas fa-ad mb-2"></i></p>
+                            <p class="mb-0">Advertisement</p>
+                        </div>
+                    </div>
+                `;
+                
+                targetContainer.appendChild(adContainer);
+                
+                // Simulate ad loading (would be handled by AdSense in production)
+                setTimeout(() => {
+                    console.log(`Ad loaded in ${containerId}`);
+                    if (callback) callback(true);
+                }, 2000); // 2 second delay to simulate ad loading
+            } catch (innerError) {
+                console.warn(`Error loading ad content into ${containerId}:`, innerError);
+                if (callback) callback(false);
+            }
+        } catch (e) {
+            console.error(`Critical error in loadAd for ${containerId}:`, e);
             if (callback) callback(false);
-            return;
         }
-
-        // Clear previous content
-        container.innerHTML = '';
-
-        // Create a new ad container
-        const adContainer = document.createElement('div');
-        adContainer.className = 'ad-container py-3';
-        
-        // In production, this would use real AdSense code
-        // Here, we're creating a placeholder for the ad
-        adContainer.innerHTML = `
-            <div class="text-center">
-                <div class="ad-placeholder">
-                    <p><i class="fas fa-ad mb-2"></i></p>
-                    <p class="mb-0">Advertisement</p>
-                </div>
-            </div>
-        `;
-        
-        container.appendChild(adContainer);
-        
-        // Simulate ad loading (would be handled by AdSense in production)
-        setTimeout(() => {
-            console.log(`Ad loaded in ${containerId}`);
-            if (callback) callback(true);
-        }, 2000); // 2 second delay to simulate ad loading
     },
 
     // Show the loading ad (before scan results are ready)
@@ -246,55 +320,108 @@ window.AdManager = window.AdManager || {
 
 // Create fallback ad containers if they don't exist
 function ensureAdContainersExist() {
-    // Check and create loader container if needed
-    let loaderContainer = document.getElementById('ad-container-loader');
-    if (!loaderContainer) {
-        console.log('Creating missing ad-container-loader');
-        const loadingOverlay = document.getElementById('ad-overlay-loading');
-        if (loadingOverlay) {
-            // Find the ad-container div
-            let adContainer = loadingOverlay.querySelector('.ad-container');
-            if (!adContainer) {
-                adContainer = document.createElement('div');
-                adContainer.className = 'ad-container';
-                adContainer.style.cssText = 'margin: 0 auto; background-color: #f8f9fa; border-radius: 10px; padding: 20px; max-width: 350px;';
-                loadingOverlay.appendChild(adContainer);
+    let loaderCreated = false;
+    let interstitialCreated = false;
+    
+    try {
+        // Check and create loader container if needed
+        let loaderContainer = document.getElementById('ad-container-loader');
+        if (!loaderContainer) {
+            console.log('Creating missing ad-container-loader');
+            const loadingOverlay = document.getElementById('ad-overlay-loading');
+            if (loadingOverlay) {
+                // Find the ad-container div
+                let adContainer = loadingOverlay.querySelector('.ad-container');
+                if (!adContainer) {
+                    adContainer = document.createElement('div');
+                    adContainer.className = 'ad-container';
+                    adContainer.style.cssText = 'margin: 0 auto; background-color: #f8f9fa; border-radius: 10px; padding: 20px; max-width: 350px;';
+                    loadingOverlay.appendChild(adContainer);
+                }
+                
+                // Create the loader container
+                loaderContainer = document.createElement('div');
+                loaderContainer.id = 'ad-container-loader';
+                loaderContainer.style.cssText = 'width: 300px; margin: 0 auto;';
+                adContainer.appendChild(loaderContainer);
+                loaderCreated = true;
             }
-            
-            // Create the loader container
-            loaderContainer = document.createElement('div');
-            loaderContainer.id = 'ad-container-loader';
-            loaderContainer.style.cssText = 'width: 300px; margin: 0 auto;';
-            adContainer.appendChild(loaderContainer);
+        } else {
+            loaderCreated = true;
+        }
+    } catch (e) {
+        console.warn('Error creating loader container:', e);
+        // If there's an error, try a simpler approach with minimal DOM operations
+        try {
+            if (!document.getElementById('ad-container-loader')) {
+                const loadingOverlay = document.getElementById('ad-overlay-loading');
+                if (loadingOverlay) {
+                    // Create a simple container directly
+                    const container = document.createElement('div');
+                    container.id = 'ad-container-loader';
+                    container.style.cssText = 'width: 300px; margin: 0 auto;';
+                    loadingOverlay.appendChild(container);
+                    loaderCreated = true;
+                }
+            } else {
+                loaderCreated = true;
+            }
+        } catch (err) {
+            console.error('Failed to create loader container with fallback method:', err);
         }
     }
     
-    // Check and create interstitial container if needed
-    let interstitialContainer = document.getElementById('ad-container-interstitial');
-    if (!interstitialContainer) {
-        console.log('Creating missing ad-container-interstitial');
-        const resultsOverlay = document.getElementById('ad-overlay-results');
-        if (resultsOverlay) {
-            // Find the ad-container div
-            let adContainer = resultsOverlay.querySelector('.ad-container');
-            if (!adContainer) {
-                adContainer = document.createElement('div');
-                adContainer.className = 'ad-container';
-                adContainer.style.cssText = 'margin: 0 auto; background-color: #f8f9fa; border-radius: 10px; padding: 20px; max-width: 350px;';
-                resultsOverlay.appendChild(adContainer);
+    try {
+        // Check and create interstitial container if needed
+        let interstitialContainer = document.getElementById('ad-container-interstitial');
+        if (!interstitialContainer) {
+            console.log('Creating missing ad-container-interstitial');
+            const resultsOverlay = document.getElementById('ad-overlay-results');
+            if (resultsOverlay) {
+                // Find the ad-container div
+                let adContainer = resultsOverlay.querySelector('.ad-container');
+                if (!adContainer) {
+                    adContainer = document.createElement('div');
+                    adContainer.className = 'ad-container';
+                    adContainer.style.cssText = 'margin: 0 auto; background-color: #f8f9fa; border-radius: 10px; padding: 20px; max-width: 350px;';
+                    resultsOverlay.appendChild(adContainer);
+                }
+                
+                // Create the interstitial container
+                interstitialContainer = document.createElement('div');
+                interstitialContainer.id = 'ad-container-interstitial';
+                interstitialContainer.style.cssText = 'width: 300px; margin: 0 auto;';
+                adContainer.appendChild(interstitialContainer);
+                interstitialCreated = true;
             }
-            
-            // Create the interstitial container
-            interstitialContainer = document.createElement('div');
-            interstitialContainer.id = 'ad-container-interstitial';
-            interstitialContainer.style.cssText = 'width: 300px; margin: 0 auto;';
-            adContainer.appendChild(interstitialContainer);
+        } else {
+            interstitialCreated = true;
+        }
+    } catch (e) {
+        console.warn('Error creating interstitial container:', e);
+        // If there's an error, try a simpler approach with minimal DOM operations
+        try {
+            if (!document.getElementById('ad-container-interstitial')) {
+                const resultsOverlay = document.getElementById('ad-overlay-results');
+                if (resultsOverlay) {
+                    // Create a simple container directly
+                    const container = document.createElement('div');
+                    container.id = 'ad-container-interstitial';
+                    container.style.cssText = 'width: 300px; margin: 0 auto;';
+                    resultsOverlay.appendChild(container);
+                    interstitialCreated = true;
+                }
+            } else {
+                interstitialCreated = true;
+            }
+        } catch (err) {
+            console.error('Failed to create interstitial container with fallback method:', err);
         }
     }
     
     return {
-        loaderExists: !!document.getElementById('ad-container-loader'),
-        interstitialExists: !!document.getElementById('ad-container-interstitial')
+        loaderExists: loaderCreated,
+        interstitialExists: interstitialCreated
     };
 }
 
@@ -302,26 +429,42 @@ function ensureAdContainersExist() {
 document.addEventListener('DOMContentLoaded', function() {
     // Delay initialization to ensure DOM is fully loaded and processed
     setTimeout(function() {
-        console.log('Delayed AdManager initialization after 1000ms');
-        
-        // First ensure the containers exist
-        const containersStatus = ensureAdContainersExist();
-        
-        // Then initialize the ad manager
-        window.AdManager.init();
-        
-        // Force direct overlay styling to ensure visibility
-        const loadingOverlay = document.getElementById('ad-overlay-loading');
-        const resultsOverlay = document.getElementById('ad-overlay-results');
-        
-        if (loadingOverlay && containersStatus.loaderExists) {
-            window.AdManager.createMockAd('ad-container-loader');
-            console.log('Successfully created mock ad in loader container');
-        }
-        
-        if (resultsOverlay && containersStatus.interstitialExists) {
-            window.AdManager.createMockAd('ad-container-interstitial');
-            console.log('Successfully created mock ad in interstitial container');
+        try {
+            console.log('Delayed AdManager initialization after 1000ms');
+            
+            // First ensure the containers exist
+            const containersStatus = ensureAdContainersExist();
+            
+            // Then initialize the ad manager
+            if (typeof window.AdManager === 'object' && typeof window.AdManager.init === 'function') {
+                window.AdManager.init();
+                
+                // Force direct overlay styling to ensure visibility
+                const loadingOverlay = document.getElementById('ad-overlay-loading');
+                const resultsOverlay = document.getElementById('ad-overlay-results');
+                
+                if (loadingOverlay && containersStatus.loaderExists) {
+                    try {
+                        window.AdManager.createMockAd('ad-container-loader');
+                        console.log('Successfully created mock ad in loader container');
+                    } catch (err) {
+                        console.warn('Failed to create mock loader ad:', err);
+                    }
+                }
+                
+                if (resultsOverlay && containersStatus.interstitialExists) {
+                    try {
+                        window.AdManager.createMockAd('ad-container-interstitial');
+                        console.log('Successfully created mock ad in interstitial container');
+                    } catch (err) {
+                        console.warn('Failed to create mock interstitial ad:', err);
+                    }
+                }
+            } else {
+                console.warn('AdManager not available or init method missing');
+            }
+        } catch (e) {
+            console.error('Error during AdManager initialization:', e);
         }
     }, 1000);
 });
