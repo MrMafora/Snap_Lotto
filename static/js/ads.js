@@ -28,35 +28,72 @@ window.AdManager = window.AdManager || {
         this.createMockAd('ad-container-interstitial');
     },
     
-    // Create a visible mock ad for testing
+    // Create a direct ad that doesn't require container elements
     createMockAd: function(containerId) {
-        const container = document.getElementById(containerId);
-        if (!container) {
-            console.error(`Mock ad container ${containerId} not found`);
+        // Instead of looking for existing containers, we'll create a direct ad element
+        console.log(`Creating direct ad for ${containerId}`);
+        
+        // Create a direct ad for the page
+        this.createDirectAdElement(containerId === 'ad-container-loader' ? 'loader' : 'interstitial');
+    },
+    
+    // Create a direct ad element on the page
+    createDirectAdElement: function(adType) {
+        // Create a unique ID for this ad
+        const adId = 'direct-ad-' + adType + '-' + Date.now();
+        
+        // Check if an ad with this ID already exists
+        if (document.getElementById(adId)) {
+            console.log(`Ad ${adId} already exists, not creating duplicate`);
             return;
         }
         
-        // Create a visible mock ad with bright colors and border
-        container.innerHTML = `
-            <div style="width: 300px; height: 250px; background-color: #f8f9fa; border: 3px solid #0d6efd; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                <div style="font-size: 24px; margin-bottom: 10px; color: #0d6efd;">
-                    <i class="fas fa-ad"></i>
+        // Different styling based on ad type
+        const borderColor = adType === 'loader' ? '#0d6efd' : '#198754';
+        const iconColor = adType === 'loader' ? '#0d6efd' : '#198754';
+        const title = adType === 'loader' ? 'PROCESSING YOUR TICKET' : 'YOUR RESULTS ARE READY';
+        
+        // Create a direct ad element
+        const directAdElement = document.createElement('div');
+        directAdElement.id = adId;
+        directAdElement.className = 'direct-ad-element';
+        directAdElement.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 9999999; padding: 20px;';
+        
+        // Create the ad content with appropriate styling
+        directAdElement.innerHTML = `
+            <div style="background-color: white; border-radius: 10px; padding: 20px; max-width: 400px; text-align: center; box-shadow: 0 0 30px rgba(255,255,255,0.2);">
+                <div style="font-size: 24px; color: ${iconColor}; margin-bottom: 15px;"><i class="fas fa-ad"></i></div>
+                <div style="font-size: 20px; font-weight: bold; margin-bottom: 15px;">${title}</div>
+                <div style="border: 3px solid ${borderColor}; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="color: #333; font-size: 16px;">
+                        This advertisement helps keep our lottery scanning service free for everyone!
+                    </div>
+                    <div style="display: flex; justify-content: space-around; margin-top: 15px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; color: #28a745;"><i class="fas fa-ticket-alt"></i></div>
+                            <div style="font-size: 14px;">Scan Tickets</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; color: #007bff;"><i class="fas fa-search"></i></div>
+                            <div style="font-size: 14px;">Check Results</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; color: #ffc107;"><i class="fas fa-trophy"></i></div>
+                            <div style="font-size: 14px;">Win Prizes</div>
+                        </div>
+                    </div>
                 </div>
-                <div style="font-weight: bold; font-size: 18px; color: #212529; margin-bottom: 5px;">
-                    Advertisement
-                </div>
-                <div style="color: #6c757d; font-size: 14px; text-align: center; padding: 0 20px;">
-                    This placeholder helps keep the service free
-                </div>
-                <div style="margin-top: 20px; display: flex; gap: 10px;">
-                    <div style="width: 12px; height: 12px; background-color: #dc3545; border-radius: 50%;"></div>
-                    <div style="width: 12px; height: 12px; background-color: #ffc107; border-radius: 50%;"></div>
-                    <div style="width: 12px; height: 12px; background-color: #198754; border-radius: 50%;"></div>
-                </div>
+                <button id="ad-continue-btn-${adId}" style="background-color: ${borderColor}; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; cursor: pointer;">Continue to ${adType === 'loader' ? 'Processing' : 'Results'}</button>
             </div>
         `;
         
-        console.log(`Mock ad created in ${containerId}`);
+        // Add to body
+        document.body.appendChild(directAdElement);
+        console.log(`Direct ad element created with ID ${adId}`);
+        document.body.style.overflow = 'hidden';
+        
+        // Return the ad element ID for future reference
+        return adId;
     },
 
     // Load and display an ad in the specified container
@@ -99,162 +136,137 @@ window.AdManager = window.AdManager || {
     showLoadingAd: function(callback) {
         console.log('AdManager: Showing loading ad');
         
-        // Use the enhanced showOverlay utility function if available
-        if (typeof showOverlay === 'function') {
-            if (showOverlay('ad-overlay-loading')) {
-                console.log('AdManager: Loading overlay shown via enhanced showOverlay utility');
-            } else {
-                console.error('AdManager: Enhanced showOverlay failed, falling back to direct manipulation');
-                // Fallback to direct DOM manipulation
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                if (adOverlayLoading) {
-                    adOverlayLoading.style.display = 'flex';
-                    adOverlayLoading.style.opacity = '1';
-                    adOverlayLoading.style.visibility = 'visible';
-                    adOverlayLoading.style.zIndex = '2147483647';
-                    document.body.style.overflow = 'hidden'; // Prevent scrolling
-                    document.body.style.position = 'fixed'; // Prevent mobile scroll
-                    document.body.style.width = '100%'; // Maintain width
-                    console.log('AdManager: Loading overlay shown via direct manipulation');
-                } else {
-                    console.error('AdManager: Loading overlay element not found!');
-                }
-            }
-        } else {
-            // Fallback if showOverlay function is not available
-            const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            if (adOverlayLoading) {
-                adOverlayLoading.style.cssText = 'display:flex !important; opacity:1 !important; visibility:visible !important; z-index:2147483647 !important;';
-                document.body.style.overflow = 'hidden'; // Prevent scrolling
-                document.body.style.position = 'fixed'; // Prevent mobile scroll
-                document.body.style.width = '100%'; // Maintain width
-                console.log('AdManager: Loading overlay shown via cssText manipulation');
-            } else {
-                console.error('AdManager: Loading overlay element not found!');
-            }
-        }
+        // Create a direct ad element for the loader
+        const adId = this.createDirectAdElement('loader');
         
-        this.loadAd('ad-container-loader', callback);
+        // Setup button event handler with delay
+        setTimeout(() => {
+            const continueBtn = document.getElementById(`ad-continue-btn-${adId}`);
+            if (continueBtn) {
+                continueBtn.addEventListener('click', () => {
+                    // Remove the ad
+                    const adElement = document.getElementById(adId);
+                    if (adElement) {
+                        adElement.remove();
+                    }
+                    
+                    // Enable scrolling
+                    document.body.style.overflow = 'auto';
+                    
+                    // Call the callback function if provided
+                    if (callback) callback(true);
+                });
+            }
+        }, 100);
+        
+        return adId;
     },
 
     // Show the interstitial ad (before showing results)
     showInterstitialAd: function(callback) {
         console.log('AdManager: Showing interstitial ad');
         
-        // Use the enhanced showOverlay utility function if available
-        if (typeof showOverlay === 'function') {
-            if (showOverlay('ad-overlay-results')) {
-                console.log('AdManager: Results overlay shown via enhanced showOverlay utility');
-            } else {
-                console.error('AdManager: Enhanced showOverlay failed, falling back to direct manipulation');
-                // Fallback to direct DOM manipulation
-                const adOverlayResults = document.getElementById('ad-overlay-results');
-                if (adOverlayResults) {
-                    adOverlayResults.style.display = 'flex';
-                    adOverlayResults.style.opacity = '1';
-                    adOverlayResults.style.visibility = 'visible';
-                    adOverlayResults.style.zIndex = '2147483647';
-                    document.body.style.overflow = 'hidden'; // Prevent scrolling
-                    document.body.style.position = 'fixed'; // Prevent mobile scroll
-                    document.body.style.width = '100%'; // Maintain width
-                    console.log('AdManager: Results overlay shown via direct manipulation');
-                } else {
-                    console.error('AdManager: Results overlay element not found!');
-                }
-            }
-        } else {
-            // Fallback if showOverlay function is not available
-            const adOverlayResults = document.getElementById('ad-overlay-results');
-            if (adOverlayResults) {
-                adOverlayResults.style.cssText = 'display:flex !important; opacity:1 !important; visibility:visible !important; z-index:2147483647 !important;';
-                document.body.style.overflow = 'hidden'; // Prevent scrolling
-                document.body.style.position = 'fixed'; // Prevent mobile scroll
-                document.body.style.width = '100%'; // Maintain width
-                console.log('AdManager: Results overlay shown via cssText manipulation');
-            } else {
-                console.error('AdManager: Results overlay element not found!');
-            }
-        }
+        // Create a direct ad element for the interstitial
+        const adId = this.createDirectAdElement('interstitial');
         
-        // Load ad in the container inside the overlay
-        const adContainerId = 'ad-container-interstitial';
-        this.loadAd(adContainerId, callback);
+        // Setup button event handler with delay
+        setTimeout(() => {
+            const continueBtn = document.getElementById(`ad-continue-btn-${adId}`);
+            if (continueBtn) {
+                continueBtn.addEventListener('click', () => {
+                    // Remove the ad
+                    const adElement = document.getElementById(adId);
+                    if (adElement) {
+                        adElement.remove();
+                    }
+                    
+                    // Enable scrolling
+                    document.body.style.overflow = 'auto';
+                    
+                    // Call the callback function if provided
+                    if (callback) callback(true);
+                });
+            }
+        }, 100);
+        
+        // Auto-close after 2.5 seconds to ensure the user sees results
+        setTimeout(() => {
+            // Remove the ad
+            const adElement = document.getElementById(adId);
+            if (adElement) {
+                adElement.remove();
+            }
+            
+            // Enable scrolling
+            document.body.style.overflow = 'auto';
+            
+            // Call the callback function if provided
+            if (callback) callback(true);
+        }, 2500);
+        
+        return adId;
     },
     
     // Hide the loading ad (when results are ready)
     hideLoadingAd: function() {
-        console.log('Hiding loading ad');
-        const container = document.getElementById('ad-container-loader');
-        if (container) {
-            container.innerHTML = '';
+        console.log('Hiding all loader ads');
+        
+        // Find and remove all direct ad elements with loader in the ID
+        document.querySelectorAll('[id^="direct-ad-loader-"]').forEach(element => {
+            element.remove();
+        });
+        
+        // Force restore scrolling on all elements
+        document.body.style.overflow = 'auto';
+        document.body.style.position = 'static';
+        document.body.style.width = '';
+        document.body.style.height = '';
+        document.documentElement.style.overflow = 'auto';
+        document.documentElement.style.position = 'static';
+        document.body.style.touchAction = 'auto';
+        
+        // Re-enable zooming
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        if (viewportMeta) {
+            viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         }
         
-        // Also hide the entire overlay
-        const adOverlayLoading = document.getElementById('ad-overlay-loading');
-        if (adOverlayLoading) {
-            adOverlayLoading.style.display = 'none';
-            // Force restore scrolling on all elements
-            document.body.style.overflow = 'auto';
-            document.body.style.position = 'static';
-            document.body.style.width = '';
-            document.body.style.height = '';
-            document.documentElement.style.overflow = 'auto';
-            document.documentElement.style.position = 'static';
-            document.body.style.touchAction = 'auto';
-            
-            // Re-enable zooming
-            const viewportMeta = document.querySelector('meta[name="viewport"]');
-            if (viewportMeta) {
-                viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
-            }
-            
-            // Force update body and viewport
-            setTimeout(function() {
-                window.scrollTo(0, 0);
-                window.scrollTo(0, 1);
-            }, 100);
-        }
+        // Force update body and viewport
+        setTimeout(function() {
+            window.scrollTo(0, 0);
+            window.scrollTo(0, 1);
+        }, 100);
     },
 
     // Hide the interstitial ad (when viewing results)
     hideInterstitialAd: function() {
-        console.log('Hiding interstitial ad');
+        console.log('Hiding all interstitial ads');
         
-        // Clear the ad container content
-        const adContainerId = 'ad-container-interstitial';
-        const container = document.getElementById(adContainerId);
-        if (container) {
-            container.innerHTML = '';
+        // Find and remove all direct ad elements with interstitial in the ID
+        document.querySelectorAll('[id^="direct-ad-interstitial-"]').forEach(element => {
+            element.remove();
+        });
+        
+        // Force restore scrolling on all elements
+        document.body.style.overflow = 'auto';
+        document.body.style.position = 'static';
+        document.body.style.width = '';
+        document.body.style.height = '';
+        document.documentElement.style.overflow = 'auto';
+        document.documentElement.style.position = 'static';
+        document.body.style.touchAction = 'auto';
+        
+        // Re-enable zooming
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        if (viewportMeta) {
+            viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         }
         
-        // Also hide the entire overlay - using ad-overlay-results as the element ID
-        const overlayId = 'ad-overlay-results';
-        const adOverlayResults = document.getElementById(overlayId);
-        if (adOverlayResults) {
-            adOverlayResults.style.display = 'none';
-            // Force restore scrolling on all elements
-            document.body.style.overflow = 'auto';
-            document.body.style.position = 'static';
-            document.body.style.width = '';
-            document.body.style.height = '';
-            document.documentElement.style.overflow = 'auto';
-            document.documentElement.style.position = 'static';
-            document.body.style.touchAction = 'auto';
-            
-            // Re-enable zooming
-            const viewportMeta = document.querySelector('meta[name="viewport"]');
-            if (viewportMeta) {
-                viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
-            }
-            
-            // Force update body and viewport
-            setTimeout(function() {
-                window.scrollTo(0, 0);
-                window.scrollTo(0, 1);
-            }, 100);
-        } else {
-            console.error(`${overlayId} element not found`);
-        }
+        // Force update body and viewport
+        setTimeout(function() {
+            window.scrollTo(0, 0);
+            window.scrollTo(0, 1);
+        }, 100);
     }
 };
 
