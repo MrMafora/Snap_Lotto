@@ -14,12 +14,49 @@ window.AdManager = window.AdManager || {
 
     // Note: init() is called at the end of this file
     init: function() {
+        console.log('AdManager initialized from ads.js');
+        
         // Create ad slots if Google AdSense is available
         if (window.adsbygoogle) {
             console.log('AdSense detected, initializing ad slots');
         } else {
             console.warn('AdSense not detected');
         }
+        
+        // Pre-create mock ads for immediate display
+        this.createMockAd('ad-container-loader');
+        this.createMockAd('ad-container-interstitial');
+    },
+    
+    // Create a visible mock ad for testing
+    createMockAd: function(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.error(`Mock ad container ${containerId} not found`);
+            return;
+        }
+        
+        // Create a visible mock ad with bright colors and border
+        container.innerHTML = `
+            <div style="width: 300px; height: 250px; background-color: #f8f9fa; border: 3px solid #0d6efd; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                <div style="font-size: 24px; margin-bottom: 10px; color: #0d6efd;">
+                    <i class="fas fa-ad"></i>
+                </div>
+                <div style="font-weight: bold; font-size: 18px; color: #212529; margin-bottom: 5px;">
+                    Advertisement
+                </div>
+                <div style="color: #6c757d; font-size: 14px; text-align: center; padding: 0 20px;">
+                    This placeholder helps keep the service free
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <div style="width: 12px; height: 12px; background-color: #dc3545; border-radius: 50%;"></div>
+                    <div style="width: 12px; height: 12px; background-color: #ffc107; border-radius: 50%;"></div>
+                    <div style="width: 12px; height: 12px; background-color: #198754; border-radius: 50%;"></div>
+                </div>
+            </div>
+        `;
+        
+        console.log(`Mock ad created in ${containerId}`);
     },
 
     // Load and display an ad in the specified container
