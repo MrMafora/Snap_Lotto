@@ -153,7 +153,7 @@
 
 {% block content %}
 <!-- Ad overlay - Loading screen (pre-initialized with correct visibility properties) -->
-<div id="ad-overlay-loading" class="ad-overlay" style="display: none; opacity: 1; visibility: visible; z-index: 999999;">
+<div id="ad-overlay-loading" class="ad-overlay" style="display: none; opacity: 1; visibility: visible; z-index: 2147483647; position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; background-color: rgba(0, 0, 0, 0.95) !important;">
     <h4 class="mb-4">Processing your ticket...</h4>
     <div class="ad-container">
         <div id="ad-container-loader">
@@ -200,8 +200,8 @@
     </div>
 </div>
 
-<!-- Ad overlay - Results screen (fixed position, pre-initialized with correct visibility) -->
-<div id="ad-overlay-results" class="ad-overlay" style="display: none; opacity: 1; visibility: visible; z-index: 999999;">
+<!-- Ad overlay - Results screen (fixed position, pre-initialized with critical visibility styles) -->
+<div id="ad-overlay-results" class="ad-overlay" style="display: none; opacity: 1; visibility: visible; z-index: 2147483647; position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; background-color: rgba(0, 0, 0, 0.95) !important;">
     <div class="results-ad-content">
         <h4 class="mb-4">Your Results Are Ready!</h4>
         <div class="ad-container">
@@ -288,7 +288,7 @@
                     </div>
 
                     <div class="text-center mt-4">
-                        <button type="submit" id="scan-button" class="btn btn-success btn-scan">
+                        <button type="submit" id="scan-button" class="btn btn-success btn-scan" onclick="if(this.form.querySelector('#ticket-image').files.length) { showOverlay('ad-overlay-loading'); console.log('Direct onclick overlay shown'); }">
                             <i class="fa fa-search me-2"></i> Scan Ticket
                         </button>
                         <div id="scanner-loading" class="mt-3">
@@ -550,6 +550,41 @@
         }
     }
     
+    // CRITICAL: Preload function to prepare overlay elements for immediate display
+    function preloadOverlayElements() {
+        // Get references to overlay elements
+        const loadingOverlay = document.getElementById('ad-overlay-loading');
+        const resultsOverlay = document.getElementById('ad-overlay-results');
+        
+        // Prepare overlay elements with all required properties but keep them hidden
+        [loadingOverlay, resultsOverlay].forEach(overlay => {
+            if (overlay) {
+                // Pre-configure all properties except display
+                overlay.style.position = 'fixed';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.95)';
+                overlay.style.zIndex = '2147483647';
+                overlay.style.opacity = '1';
+                overlay.style.visibility = 'visible';
+                overlay.style.transition = 'none';
+                
+                // Set appropriate ARIA attributes for accessibility
+                overlay.setAttribute('aria-modal', 'true');
+                overlay.setAttribute('role', 'dialog');
+                
+                // Create a clone and append it to the body to ensure it's in the DOM
+                const clone = overlay.cloneNode(true);
+                clone.style.display = 'none';
+                document.body.appendChild(clone);
+                
+                console.log(`Overlay ${overlay.id} preloaded for immediate display`);
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const dropArea = document.getElementById('drop-area');
         const fileInput = document.getElementById('ticket-image');
@@ -564,7 +599,10 @@
         const resultsContainer = document.getElementById('results-container');
         const scanNewTicketBtn = document.getElementById('scan-new-ticket');
         
-        // Preload overlay elements to ensure they're in the DOM
+        // CRITICAL: Preload overlay elements to ensure they're ready for immediate display
+        preloadOverlayElements();
+        
+        // Get references to the overlay elements
         const adOverlayLoading = document.getElementById('ad-overlay-loading');
         const adOverlayResults = document.getElementById('ad-overlay-results');
         
@@ -789,12 +827,18 @@
             // Load ad in the loading overlay then process the ticket
             console.log('Starting processing steps for ticket scan');
             
-            // Add a small delay before starting the process to ensure ad is visible
-            setTimeout(() => {
+            // CRITICAL: Use requestAnimationFrame to ensure overlay is rendered immediately in the next paint cycle
+            window.requestAnimationFrame(() => {
+                // Force another check to ensure the overlay is visible
+                if (document.getElementById('ad-overlay-loading').style.display !== 'flex') {
+                    showOverlay('ad-overlay-loading');
+                    console.log('Overlay visibility enforced in requestAnimationFrame');
+                }
+                
                 // Simulate a multi-step process for visual interest during ad viewing
                 // Will process the ticket after steps complete
                 simulateProcessingSteps(formData);
-            }, 100);
+            });
         }
         
         // Simulate processing steps to make ad viewing time more engaging
