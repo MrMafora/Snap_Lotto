@@ -3,8 +3,9 @@
  * Handles displaying ads at strategic points during the ticket scanning process
  */
 
-// Global ad manager object
-const AdManager = {
+// Global ad manager object 
+// Using window.AdManager instead of const AdManager to avoid duplicate declarations
+window.AdManager = window.AdManager || {
     // Ad slots
     adSlots: {
         scannerPreloader: null,
@@ -172,5 +173,5 @@ const AdManager = {
 
 // Initialize ads when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    AdManager.init();
+    window.AdManager.init();
 });

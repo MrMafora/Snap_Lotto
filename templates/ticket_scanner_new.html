@@ -415,10 +415,9 @@
 
 {% block additional_scripts %}
 <script>
-    // Define the AdManager object only if it doesn't exist yet
+    // Define the AdManager object using object pattern assignment
     // This prevents the "Identifier AdManager has already been declared" error
-    if (typeof window.AdManager === 'undefined') {
-        window.AdManager = {
+    window.AdManager = window.AdManager || {
             showLoadingAd: function() {
                 // Show loading overlay during ticket processing
                 const adOverlayLoading = document.getElementById('ad-overlay-loading');
@@ -468,7 +467,6 @@
             }
         };
         console.log("AdManager initialized");
-    }
 
     document.addEventListener('DOMContentLoaded', function() {
         const dropArea = document.getElementById('drop-area');
