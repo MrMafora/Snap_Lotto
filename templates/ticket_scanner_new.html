@@ -489,24 +489,10 @@
      * @returns {boolean} - Whether overlay was successfully displayed
      */
     function showOverlay(id) {
-        // Ultra-lightweight overlay display function - just the bare minimum
+        // Ultra-barebones version with no additional processing that might block
         try {
-            // Find the overlay element
-            const overlay = document.getElementById(id);
-            if (!overlay) {
-                console.error(`Overlay element with ID ${id} not found!`);
-                return false;
-            }
-
-            // ONLY do this one essential operation - everything else might block the UI
-            overlay.style.display = 'flex';
-            
-            // Don't even block for overflow hidden, do it in the next event loop
-            setTimeout(() => {
-                document.body.style.overflow = 'hidden';
-            }, 0);
-            
-            console.log(`Overlay ${id} displayed with ultra-lightweight approach`);
+            document.getElementById(id).style.display = 'flex';
+            console.log(`Overlay ${id} displayed with ultra-barebones approach`);
             return true;
         } catch (e) {
             console.error('Error in showOverlay:', e);
