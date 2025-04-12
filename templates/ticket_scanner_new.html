@@ -415,6 +415,57 @@
 
 {% block additional_scripts %}
 <script>
+    // Define the AdManager object to handle ad display
+    const AdManager = {
+        showLoadingAd: function() {
+            // Show loading overlay during ticket processing
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            if (adOverlayLoading) {
+                adOverlayLoading.style.display = 'flex';
+                adOverlayLoading.style.opacity = '1';
+                adOverlayLoading.style.visibility = 'visible';
+                document.body.style.overflow = 'hidden';
+                console.log("AdManager: Loading overlay shown");
+            } else {
+                console.error("AdManager: Loading overlay element not found");
+            }
+        },
+        
+        hideLoadingAd: function() {
+            // Hide loading overlay after ticket processing
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            if (adOverlayLoading) {
+                adOverlayLoading.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                console.log("AdManager: Loading overlay hidden");
+            }
+        },
+        
+        showInterstitialAd: function() {
+            // Show interstitial ad after results are ready
+            const adOverlayInterstitial = document.getElementById('ad-overlay-interstitial');
+            if (adOverlayInterstitial) {
+                adOverlayInterstitial.style.display = 'flex';
+                adOverlayInterstitial.style.opacity = '1';
+                adOverlayInterstitial.style.visibility = 'visible';
+                document.body.style.overflow = 'hidden';
+                console.log("AdManager: Interstitial overlay shown");
+            } else {
+                console.error("AdManager: Interstitial overlay element not found");
+            }
+        },
+        
+        hideInterstitialAd: function() {
+            // Hide interstitial ad when user wants to see results
+            const adOverlayInterstitial = document.getElementById('ad-overlay-interstitial');
+            if (adOverlayInterstitial) {
+                adOverlayInterstitial.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                console.log("AdManager: Interstitial overlay hidden");
+            }
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', function() {
         const dropArea = document.getElementById('drop-area');
         const fileInput = document.getElementById('ticket-image');
@@ -580,18 +631,15 @@
             // Disable the scan button while processing
             scanButton.disabled = true;
             
-            // Show ad loading overlay - critical section that must execute
-            const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            adOverlayLoading.style.display = 'flex';
-            adOverlayLoading.style.opacity = '1';  // Ensure visibility
-            adOverlayLoading.style.visibility = 'visible'; // Ensure visibility
-            document.body.style.overflow = 'hidden'; // Prevent scrolling
+            // Show ad loading overlay - use AdManager to ensure consistent behavior
+            console.log('Showing processing overlay with AdManager');
+            AdManager.showLoadingAd();
             
             // Create form data for later use
             const formData = new FormData(ticketForm);
             
             // Load ad in the loading overlay then process the ticket
-            console.log('Showing processing ad for 5+ seconds');
+            console.log('Starting processing steps for ticket scan');
             
             // Simulate a multi-step process for visual interest during ad viewing
             // Will process the ticket after steps complete
@@ -692,9 +740,8 @@
                 } else {
                     clearInterval(interval);
                     
-                    // Hide loading overlay
-                    const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                    adOverlayLoading.style.display = 'none';
+                    // Hide loading overlay using AdManager for consistency
+                    AdManager.hideLoadingAd();
                     
                     // Wait for ticket processing to complete if it hasn't already
                     const waitForTicketData = () => {
