@@ -104,7 +104,7 @@ def run_lottery_task(url, lottery_type):
         try:
             # Import here to avoid circular imports
             from flask import current_app
-            from app import app
+            from main import app
             
             # Get all the required functions
             from screenshot_manager import capture_screenshot, cleanup_old_screenshots
