@@ -244,31 +244,84 @@ window.AdManager = window.AdManager || {
     }
 };
 
+// Create fallback ad containers if they don't exist
+function ensureAdContainersExist() {
+    // Check and create loader container if needed
+    let loaderContainer = document.getElementById('ad-container-loader');
+    if (!loaderContainer) {
+        console.log('Creating missing ad-container-loader');
+        const loadingOverlay = document.getElementById('ad-overlay-loading');
+        if (loadingOverlay) {
+            // Find the ad-container div
+            let adContainer = loadingOverlay.querySelector('.ad-container');
+            if (!adContainer) {
+                adContainer = document.createElement('div');
+                adContainer.className = 'ad-container';
+                adContainer.style.cssText = 'margin: 0 auto; background-color: #f8f9fa; border-radius: 10px; padding: 20px; max-width: 350px;';
+                loadingOverlay.appendChild(adContainer);
+            }
+            
+            // Create the loader container
+            loaderContainer = document.createElement('div');
+            loaderContainer.id = 'ad-container-loader';
+            loaderContainer.style.cssText = 'width: 300px; margin: 0 auto;';
+            adContainer.appendChild(loaderContainer);
+        }
+    }
+    
+    // Check and create interstitial container if needed
+    let interstitialContainer = document.getElementById('ad-container-interstitial');
+    if (!interstitialContainer) {
+        console.log('Creating missing ad-container-interstitial');
+        const resultsOverlay = document.getElementById('ad-overlay-results');
+        if (resultsOverlay) {
+            // Find the ad-container div
+            let adContainer = resultsOverlay.querySelector('.ad-container');
+            if (!adContainer) {
+                adContainer = document.createElement('div');
+                adContainer.className = 'ad-container';
+                adContainer.style.cssText = 'margin: 0 auto; background-color: #f8f9fa; border-radius: 10px; padding: 20px; max-width: 350px;';
+                resultsOverlay.appendChild(adContainer);
+            }
+            
+            // Create the interstitial container
+            interstitialContainer = document.createElement('div');
+            interstitialContainer.id = 'ad-container-interstitial';
+            interstitialContainer.style.cssText = 'width: 300px; margin: 0 auto;';
+            adContainer.appendChild(interstitialContainer);
+        }
+    }
+    
+    return {
+        loaderExists: !!document.getElementById('ad-container-loader'),
+        interstitialExists: !!document.getElementById('ad-container-interstitial')
+    };
+}
+
 // Initialize ads when DOM is loaded, but with a delay
 document.addEventListener('DOMContentLoaded', function() {
     // Delay initialization to ensure DOM is fully loaded and processed
     setTimeout(function() {
         console.log('Delayed AdManager initialization after 1000ms');
+        
+        // First ensure the containers exist
+        const containersStatus = ensureAdContainersExist();
+        
+        // Then initialize the ad manager
         window.AdManager.init();
         
         // Force direct overlay styling to ensure visibility
         const loadingOverlay = document.getElementById('ad-overlay-loading');
         const resultsOverlay = document.getElementById('ad-overlay-results');
         
-        if (loadingOverlay) {
-            const loaderContainer = document.getElementById('ad-container-loader');
-            if (loaderContainer) {
-                window.AdManager.createMockAd('ad-container-loader');
-                console.log('Successfully created mock ad in loader container');
-            }
+        if (loadingOverlay && containersStatus.loaderExists) {
+            window.AdManager.createMockAd('ad-container-loader');
+            console.log('Successfully created mock ad in loader container');
         }
         
-        if (resultsOverlay) {
-            const interstitialContainer = document.getElementById('ad-container-interstitial');
-            if (interstitialContainer) {
-                window.AdManager.createMockAd('ad-container-interstitial');
-                console.log('Successfully created mock ad in interstitial container');
-            }
+        if (resultsOverlay && containersStatus.interstitialExists) {
+            window.AdManager.createMockAd('ad-container-interstitial');
+            console.log('Successfully created mock ad in interstitial container');
         }
     }, 1000);
 });
