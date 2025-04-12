@@ -60,20 +60,41 @@ window.AdManager = window.AdManager || {
 
     // Show the loading ad (before scan results are ready)
     showLoadingAd: function(callback) {
-        console.log('Showing loading ad');
+        console.log('AdManager: Showing loading ad');
         
-        // Ensure overlay is visible
-        const adOverlayLoading = document.getElementById('ad-overlay-loading');
-        if (adOverlayLoading) {
-            adOverlayLoading.style.display = 'flex';
-            adOverlayLoading.style.opacity = '1';
-            adOverlayLoading.style.visibility = 'visible';
-            document.body.style.overflow = 'hidden'; // Prevent scrolling
-            document.body.style.position = 'fixed'; // Prevent mobile scroll
-            document.body.style.width = '100%'; // Maintain width
-            console.log('Loading overlay is now visible');
+        // Use the enhanced showOverlay utility function if available
+        if (typeof showOverlay === 'function') {
+            if (showOverlay('ad-overlay-loading')) {
+                console.log('AdManager: Loading overlay shown via enhanced showOverlay utility');
+            } else {
+                console.error('AdManager: Enhanced showOverlay failed, falling back to direct manipulation');
+                // Fallback to direct DOM manipulation
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                if (adOverlayLoading) {
+                    adOverlayLoading.style.display = 'flex';
+                    adOverlayLoading.style.opacity = '1';
+                    adOverlayLoading.style.visibility = 'visible';
+                    adOverlayLoading.style.zIndex = '2147483647';
+                    document.body.style.overflow = 'hidden'; // Prevent scrolling
+                    document.body.style.position = 'fixed'; // Prevent mobile scroll
+                    document.body.style.width = '100%'; // Maintain width
+                    console.log('AdManager: Loading overlay shown via direct manipulation');
+                } else {
+                    console.error('AdManager: Loading overlay element not found!');
+                }
+            }
         } else {
-            console.error('Loading overlay element not found!');
+            // Fallback if showOverlay function is not available
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            if (adOverlayLoading) {
+                adOverlayLoading.style.cssText = 'display:flex !important; opacity:1 !important; visibility:visible !important; z-index:2147483647 !important;';
+                document.body.style.overflow = 'hidden'; // Prevent scrolling
+                document.body.style.position = 'fixed'; // Prevent mobile scroll
+                document.body.style.width = '100%'; // Maintain width
+                console.log('AdManager: Loading overlay shown via cssText manipulation');
+            } else {
+                console.error('AdManager: Loading overlay element not found!');
+            }
         }
         
         this.loadAd('ad-container-loader', callback);
@@ -81,20 +102,41 @@ window.AdManager = window.AdManager || {
 
     // Show the interstitial ad (before showing results)
     showInterstitialAd: function(callback) {
-        console.log('Showing interstitial ad');
+        console.log('AdManager: Showing interstitial ad');
         
-        // Ensure results overlay is visible - use ad-overlay-results as the element ID
-        const adOverlayResults = document.getElementById('ad-overlay-results');
-        if (adOverlayResults) {
-            adOverlayResults.style.display = 'flex';
-            adOverlayResults.style.opacity = '1';
-            adOverlayResults.style.visibility = 'visible';
-            document.body.style.overflow = 'hidden'; // Prevent scrolling
-            document.body.style.position = 'fixed'; // Prevent mobile scroll
-            document.body.style.width = '100%'; // Maintain width
-            console.log('Results overlay is now visible');
+        // Use the enhanced showOverlay utility function if available
+        if (typeof showOverlay === 'function') {
+            if (showOverlay('ad-overlay-results')) {
+                console.log('AdManager: Results overlay shown via enhanced showOverlay utility');
+            } else {
+                console.error('AdManager: Enhanced showOverlay failed, falling back to direct manipulation');
+                // Fallback to direct DOM manipulation
+                const adOverlayResults = document.getElementById('ad-overlay-results');
+                if (adOverlayResults) {
+                    adOverlayResults.style.display = 'flex';
+                    adOverlayResults.style.opacity = '1';
+                    adOverlayResults.style.visibility = 'visible';
+                    adOverlayResults.style.zIndex = '2147483647';
+                    document.body.style.overflow = 'hidden'; // Prevent scrolling
+                    document.body.style.position = 'fixed'; // Prevent mobile scroll
+                    document.body.style.width = '100%'; // Maintain width
+                    console.log('AdManager: Results overlay shown via direct manipulation');
+                } else {
+                    console.error('AdManager: Results overlay element not found!');
+                }
+            }
         } else {
-            console.error('Results overlay element not found!');
+            // Fallback if showOverlay function is not available
+            const adOverlayResults = document.getElementById('ad-overlay-results');
+            if (adOverlayResults) {
+                adOverlayResults.style.cssText = 'display:flex !important; opacity:1 !important; visibility:visible !important; z-index:2147483647 !important;';
+                document.body.style.overflow = 'hidden'; // Prevent scrolling
+                document.body.style.position = 'fixed'; // Prevent mobile scroll
+                document.body.style.width = '100%'; // Maintain width
+                console.log('AdManager: Results overlay shown via cssText manipulation');
+            } else {
+                console.error('AdManager: Results overlay element not found!');
+            }
         }
         
         // Load ad in the container inside the overlay

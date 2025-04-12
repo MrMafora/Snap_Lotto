@@ -69,20 +69,24 @@
         border-radius: 8px;
     }
     
-    /* Advertisement overlays - critical to display properly */
+    /* Advertisement overlays - with CRITICAL display properties - DO NOT CHANGE */
     .ad-overlay {
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
         width: 100% !important;
         height: 100% !important;
-        background-color: rgba(255, 255, 255, 0.98) !important;
-        z-index: 99999 !important; /* Increased z-index to ensure it's above everything */
-        display: none;
+        background-color: rgba(0, 0, 0, 0.95) !important;
+        z-index: 2147483647 !important; /* Maximum possible z-index value */
+        /* display is set inline on the element */
         flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
         padding: 20px !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transition: none !important; /* Prevent transitions from interfering */
         overflow: hidden !important; /* Prevent scrolling while overlay is active */
         opacity: 1 !important;
         visibility: visible !important;
@@ -478,18 +482,72 @@
         console.log("AdManager initialized");
 
     // Direct DOM utility function to immediately show any overlay
+    /**
+     * Enhanced showOverlay function with ultra-aggressive overlay display techniques
+     * Uses multiple approaches to ensure overlay appears immediately
+     * @param {string} id - ID of the overlay element to show
+     * @returns {boolean} - Whether overlay was successfully displayed
+     */
     function showOverlay(id) {
+        // Find the overlay element
         const overlay = document.getElementById(id);
-        if (overlay) {
-            overlay.style.removeProperty('display');
+        if (!overlay) {
+            console.error(`CRITICAL ERROR: Overlay element with ID ${id} not found!`);
+            return false;
+        }
+
+        try {
+            // TECHNIQUE 1: Direct style manipulation with inline styles
             overlay.style.display = 'flex';
             overlay.style.opacity = '1';
             overlay.style.visibility = 'visible';
-            overlay.style.zIndex = '999999';
+            overlay.style.zIndex = '2147483647'; // Maximum possible z-index value
+            
+            // TECHNIQUE 2: Forced reflow by accessing offsetHeight (forces immediate render)
+            void overlay.offsetHeight;
+            
+            // TECHNIQUE 3: Set the overlay as important element for screen readers and focus
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('role', 'dialog');
+            
+            // TECHNIQUE 4: Force body scrolling to be disabled
             document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
+            document.documentElement.style.overflow = 'hidden';
+            
+            // TECHNIQUE 5: Move overlay to the end of the body to ensure it's positioned correctly in DOM
+            document.body.appendChild(overlay);
+            
+            // TECHNIQUE 6: Add a class to ensure CSS styles are applied
+            overlay.classList.add('active-overlay');
+            
+            // TECHNIQUE 7: Set !important styles directly using setProperty
+            overlay.style.setProperty('display', 'flex', 'important');
+            overlay.style.setProperty('visibility', 'visible', 'important');
+            overlay.style.setProperty('opacity', '1', 'important');
+            overlay.style.setProperty('z-index', '2147483647', 'important');
+            
+            // TECHNIQUE 8: Ensure any transforms are reset
+            overlay.style.transform = 'none';
+            
+            // TECHNIQUE 9: Force a browser repaint with transform
+            overlay.style.transform = 'translateZ(0)';
+            
+            console.log(`Overlay ${id} displayed with ultra-aggressive techniques`);
             return true;
+        } catch (e) {
+            console.error('Error in showOverlay:', e);
+            
+            // Emergency fallback - absolute basic approach
+            try {
+                overlay.style.cssText = 'display:flex !important; position:fixed !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; background:rgba(0,0,0,0.95) !important; z-index:2147483647 !important; opacity:1 !important; visibility:visible !important;';
+                return true;
+            } catch (e2) {
+                console.error('Emergency fallback failed:', e2);
+                return false;
+            }
         }
-        return false;
     }
     
     document.addEventListener('DOMContentLoaded', function() {
