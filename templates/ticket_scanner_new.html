@@ -489,51 +489,28 @@
      * @returns {boolean} - Whether overlay was successfully displayed
      */
     function showOverlay(id) {
-        // Find the overlay element
-        const overlay = document.getElementById(id);
-        if (!overlay) {
-            console.error(`CRITICAL ERROR: Overlay element with ID ${id} not found!`);
-            return false;
-        }
-
+        // Ultra-lightweight overlay display function - just the bare minimum
         try {
-            // PRIORITY 1: Display and position - absolute minimum needed for visibility
+            // Find the overlay element
+            const overlay = document.getElementById(id);
+            if (!overlay) {
+                console.error(`Overlay element with ID ${id} not found!`);
+                return false;
+            }
+
+            // ONLY do this one essential operation - everything else might block the UI
             overlay.style.display = 'flex';
-            overlay.style.opacity = '1';
-            overlay.style.visibility = 'visible';
-            overlay.style.zIndex = '2147483647'; // Maximum possible z-index value
             
-            // Only do the most essential operations synchronously
-            document.body.style.overflow = 'hidden';
-            
-            // Non-essential operations should be done asynchronously
+            // Don't even block for overflow hidden, do it in the next event loop
             setTimeout(() => {
-                try {
-                    // These operations can be deferred to avoid UI blocking
-                    overlay.setAttribute('aria-modal', 'true');
-                    overlay.setAttribute('role', 'dialog');
-                    document.body.style.position = 'fixed';
-                    document.body.style.width = '100%';
-                    document.documentElement.style.overflow = 'hidden';
-                    overlay.classList.add('active-overlay');
-                } catch (e) {
-                    console.warn('Non-critical overlay enhancements failed:', e);
-                }
+                document.body.style.overflow = 'hidden';
             }, 0);
             
-            console.log(`Overlay ${id} displayed with lightweight approach`);
+            console.log(`Overlay ${id} displayed with ultra-lightweight approach`);
             return true;
         } catch (e) {
             console.error('Error in showOverlay:', e);
-            
-            // Emergency fallback - simplest possible approach
-            try {
-                overlay.style.cssText = 'display:flex !important; z-index:2147483647 !important; opacity:1 !important;';
-                return true;
-            } catch (e2) {
-                console.error('Emergency fallback failed:', e2);
-                return false;
-            }
+            return false;
         }
     }
     
