@@ -71,22 +71,22 @@
     
     /* Advertisement overlays - critical to display properly */
     .ad-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.98);
-        z-index: 9999;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background-color: rgba(255, 255, 255, 0.98) !important;
+        z-index: 99999 !important; /* Increased z-index to ensure it's above everything */
         display: none;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        overflow: hidden; /* Prevent scrolling while overlay is active */
-        opacity: 1;
-        visibility: visible;
-        transition: opacity 0.3s ease;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 20px !important;
+        overflow: hidden !important; /* Prevent scrolling while overlay is active */
+        opacity: 1 !important;
+        visibility: visible !important;
+        transition: none !important; /* Remove transition for immediate appearance */
     }
     
     /* Make the View Results button more prominent */
@@ -418,13 +418,20 @@
     // Define the AdManager object using object pattern assignment
     // This prevents the "Identifier AdManager has already been declared" error
     window.AdManager = window.AdManager || {
+            // Make sure init exists even if external script fails
+            init: function() {
+                console.log("AdManager initialized from ticket_scanner_new.html");
+            },
+            
             showLoadingAd: function() {
                 // Show loading overlay during ticket processing
                 const adOverlayLoading = document.getElementById('ad-overlay-loading');
                 if (adOverlayLoading) {
+                    // Make sure overlay is fully visible immediately
                     adOverlayLoading.style.display = 'flex';
                     adOverlayLoading.style.opacity = '1';
                     adOverlayLoading.style.visibility = 'visible';
+                    adOverlayLoading.style.zIndex = '9999';
                     document.body.style.overflow = 'hidden';
                     console.log("AdManager: Loading overlay shown");
                 } else {
@@ -444,11 +451,13 @@
             
             showInterstitialAd: function() {
                 // Show interstitial ad after results are ready
-                const adOverlayInterstitial = document.getElementById('ad-overlay-results');
-                if (adOverlayInterstitial) {
-                    adOverlayInterstitial.style.display = 'flex';
-                    adOverlayInterstitial.style.opacity = '1';
-                    adOverlayInterstitial.style.visibility = 'visible';
+                const adOverlayResults = document.getElementById('ad-overlay-results');
+                if (adOverlayResults) {
+                    // Make sure overlay is fully visible immediately
+                    adOverlayResults.style.display = 'flex';
+                    adOverlayResults.style.opacity = '1';
+                    adOverlayResults.style.visibility = 'visible';
+                    adOverlayResults.style.zIndex = '9999';
                     document.body.style.overflow = 'hidden';
                     console.log("AdManager: Interstitial overlay shown");
                 } else {
@@ -458,9 +467,9 @@
             
             hideInterstitialAd: function() {
                 // Hide interstitial ad when user wants to see results
-                const adOverlayInterstitial = document.getElementById('ad-overlay-results');
-                if (adOverlayInterstitial) {
-                    adOverlayInterstitial.style.display = 'none';
+                const adOverlayResults = document.getElementById('ad-overlay-results');
+                if (adOverlayResults) {
+                    adOverlayResults.style.display = 'none';
                     document.body.style.overflow = 'auto';
                     console.log("AdManager: Interstitial overlay hidden");
                 }
@@ -628,14 +637,33 @@
         
         // Function to handle showing ads and processing the ticket
         function processTicketWithAds() {
-            // Show loading indicator
-            loadingIndicator.style.display = 'block';
+            // First action: immediately show the ad overlay before any other processing
+            // This is critical to ensure that the ad appears without delay upon clicking "Scan Ticket"
+            console.log('Immediately showing ad overlay before any processing');
+            
+            try {
+                // Force show the overlay element directly to ensure it appears
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                if (adOverlayLoading) {
+                    adOverlayLoading.style.display = 'flex';
+                    adOverlayLoading.style.opacity = '1';
+                    adOverlayLoading.style.visibility = 'visible';
+                    adOverlayLoading.style.zIndex = '99999';
+                    document.body.style.overflow = 'hidden';
+                }
+                
+                // Backup: also use the AdManager method
+                window.AdManager.showLoadingAd();
+                console.log('Showing processing overlay with AdManager');
+            } catch (e) {
+                console.error('Error showing ad overlay:', e);
+            }
+            
             // Disable the scan button while processing
             scanButton.disabled = true;
             
-            // Show ad loading overlay - use window.AdManager to ensure consistent behavior
-            console.log('Showing processing overlay with AdManager');
-            window.AdManager.showLoadingAd();
+            // Show loading indicator (as secondary visual feedback)
+            loadingIndicator.style.display = 'block';
             
             // Create form data for later use
             const formData = new FormData(ticketForm);
@@ -643,9 +671,12 @@
             // Load ad in the loading overlay then process the ticket
             console.log('Starting processing steps for ticket scan');
             
-            // Simulate a multi-step process for visual interest during ad viewing
-            // Will process the ticket after steps complete
-            simulateProcessingSteps(formData);
+            // Add a small delay before starting the process to ensure ad is visible
+            setTimeout(() => {
+                // Simulate a multi-step process for visual interest during ad viewing
+                // Will process the ticket after steps complete
+                simulateProcessingSteps(formData);
+            }, 100);
         }
         
         // Simulate processing steps to make ad viewing time more engaging
@@ -761,18 +792,37 @@
         
         // Show the results overlay with data
         function showResultsOverlay(data) {
-            // Show results ad overlay using the window.AdManager
-            window.AdManager.showInterstitialAd();
+            console.log('Immediately showing results overlay');
             
-            console.log('Showing results interstitial ad');
+            try {
+                // First, directly manipulate the DOM to ensure the results overlay is shown
+                const adOverlayResults = document.getElementById('ad-overlay-results');
+                if (adOverlayResults) {
+                    // Force show the results overlay element directly
+                    adOverlayResults.style.display = 'flex';
+                    adOverlayResults.style.opacity = '1';
+                    adOverlayResults.style.visibility = 'visible';
+                    adOverlayResults.style.zIndex = '99999';
+                    document.body.style.overflow = 'hidden';
+                    console.log('Results overlay directly shown');
+                }
+                
+                // Also use AdManager as backup
+                window.AdManager.showInterstitialAd();
+                console.log('Showing results interstitial ad via AdManager');
+            } catch (e) {
+                console.error('Error showing results overlay:', e);
+            }
             
             // Setup view results button
             const viewResultsBtn = document.getElementById('view-results-btn');
-            viewResultsBtn.onclick = function() {
-                console.log('View Results button clicked!');
-                window.AdManager.hideInterstitialAd();
-                displayResults(data);
-            };
+            if (viewResultsBtn) {
+                viewResultsBtn.onclick = function() {
+                    console.log('View Results button clicked!');
+                    window.AdManager.hideInterstitialAd();
+                    displayResults(data);
+                };
+            }
             
             // Auto-close the overlay after 2 seconds to ensure users see results
             setTimeout(function() {
@@ -783,7 +833,9 @@
             
             // Hide loading indicator and re-enable scan button
             const loadingIndicator = document.getElementById('scanner-loading');
-            loadingIndicator.style.display = 'none';
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
             scanButton.disabled = false;
             console.log("Scan completed - button enabled");
         }
