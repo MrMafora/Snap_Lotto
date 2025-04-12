@@ -288,7 +288,7 @@
                     </div>
 
                     <div class="text-center mt-4">
-                        <button type="submit" id="scan-button" class="btn btn-success btn-scan" onclick="if(this.form.querySelector('#ticket-image').files.length) { showOverlay('ad-overlay-loading'); console.log('Direct onclick overlay shown'); }">
+                        <button type="submit" id="scan-button" class="btn btn-success btn-scan" onclick="if(this.form.querySelector('#ticket-image').files.length) { requestAnimationFrame(() => showOverlay('ad-overlay-loading')); console.log('Direct onclick overlay shown - async'); }">
                             <i class="fa fa-search me-2"></i> Scan Ticket
                         </button>
                         <div id="scanner-loading" class="mt-3">
@@ -483,8 +483,8 @@
 
     // Direct DOM utility function to immediately show any overlay
     /**
-     * Enhanced showOverlay function with ultra-aggressive overlay display techniques
-     * Uses multiple approaches to ensure overlay appears immediately
+     * Lightweight overlay display function optimized for performance
+     * Displays ad overlay with minimal blocking operations
      * @param {string} id - ID of the overlay element to show
      * @returns {boolean} - Whether overlay was successfully displayed
      */
@@ -497,51 +497,38 @@
         }
 
         try {
-            // TECHNIQUE 1: Direct style manipulation with inline styles
+            // PRIORITY 1: Display and position - absolute minimum needed for visibility
             overlay.style.display = 'flex';
             overlay.style.opacity = '1';
             overlay.style.visibility = 'visible';
             overlay.style.zIndex = '2147483647'; // Maximum possible z-index value
             
-            // TECHNIQUE 2: Forced reflow by accessing offsetHeight (forces immediate render)
-            void overlay.offsetHeight;
-            
-            // TECHNIQUE 3: Set the overlay as important element for screen readers and focus
-            overlay.setAttribute('aria-modal', 'true');
-            overlay.setAttribute('role', 'dialog');
-            
-            // TECHNIQUE 4: Force body scrolling to be disabled
+            // Only do the most essential operations synchronously
             document.body.style.overflow = 'hidden';
-            document.body.style.position = 'fixed';
-            document.body.style.width = '100%';
-            document.documentElement.style.overflow = 'hidden';
             
-            // TECHNIQUE 5: Move overlay to the end of the body to ensure it's positioned correctly in DOM
-            document.body.appendChild(overlay);
+            // Non-essential operations should be done asynchronously
+            setTimeout(() => {
+                try {
+                    // These operations can be deferred to avoid UI blocking
+                    overlay.setAttribute('aria-modal', 'true');
+                    overlay.setAttribute('role', 'dialog');
+                    document.body.style.position = 'fixed';
+                    document.body.style.width = '100%';
+                    document.documentElement.style.overflow = 'hidden';
+                    overlay.classList.add('active-overlay');
+                } catch (e) {
+                    console.warn('Non-critical overlay enhancements failed:', e);
+                }
+            }, 0);
             
-            // TECHNIQUE 6: Add a class to ensure CSS styles are applied
-            overlay.classList.add('active-overlay');
-            
-            // TECHNIQUE 7: Set !important styles directly using setProperty
-            overlay.style.setProperty('display', 'flex', 'important');
-            overlay.style.setProperty('visibility', 'visible', 'important');
-            overlay.style.setProperty('opacity', '1', 'important');
-            overlay.style.setProperty('z-index', '2147483647', 'important');
-            
-            // TECHNIQUE 8: Ensure any transforms are reset
-            overlay.style.transform = 'none';
-            
-            // TECHNIQUE 9: Force a browser repaint with transform
-            overlay.style.transform = 'translateZ(0)';
-            
-            console.log(`Overlay ${id} displayed with ultra-aggressive techniques`);
+            console.log(`Overlay ${id} displayed with lightweight approach`);
             return true;
         } catch (e) {
             console.error('Error in showOverlay:', e);
             
-            // Emergency fallback - absolute basic approach
+            // Emergency fallback - simplest possible approach
             try {
-                overlay.style.cssText = 'display:flex !important; position:fixed !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; background:rgba(0,0,0,0.95) !important; z-index:2147483647 !important; opacity:1 !important; visibility:visible !important;';
+                overlay.style.cssText = 'display:flex !important; z-index:2147483647 !important; opacity:1 !important;';
                 return true;
             } catch (e2) {
                 console.error('Emergency fallback failed:', e2);
@@ -785,60 +772,56 @@
             scanButton.disabled = !fileInput.files.length;
         }
         
-        // Function to handle showing ads and processing the ticket
+        // Function to handle showing ads and processing the ticket - LIGHTWEIGHT VERSION
         function processTicketWithAds() {
-            // First action: immediately show the ad overlay before any other processing
-            // This is critical to ensure that the ad appears without delay upon clicking "Scan Ticket"
-            console.log('Immediately showing ad overlay before any processing');
+            // STEP 1: CRITICAL - Use only the absolute minimal code needed to show the overlay
+            // This should execute almost instantly without blocking the UI
+            console.log('Lightweight overlay display started');
             
-            try {
-                // Use our utility function for guaranteed, immediate display
-                if (showOverlay('ad-overlay-loading')) {
-                    console.log('Ad overlay shown immediately via showOverlay utility');
-                } else {
-                    // Fallback: Force show the overlay element directly to ensure it appears
-                    const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                    if (adOverlayLoading) {
-                        adOverlayLoading.style.display = 'flex';
-                        adOverlayLoading.style.opacity = '1';
-                        adOverlayLoading.style.visibility = 'visible';
-                        adOverlayLoading.style.zIndex = '99999';
-                        document.body.style.overflow = 'hidden';
-                        console.log('Ad overlay shown via fallback method');
-                    }
-                }
-                
-                // Backup: also use the AdManager method
-                window.AdManager.showLoadingAd();
-                console.log('Showing processing overlay with AdManager');
-            } catch (e) {
-                console.error('Error showing ad overlay:', e);
+            // ABSOLUTE MINIMUM REQUIRED: Set display style to make overlay visible
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            if (adOverlayLoading) {
+                // Just change display to flex - this is the fastest possible operation
+                adOverlayLoading.style.display = 'flex';
+                // Prevent scrolling
+                document.body.style.overflow = 'hidden';
             }
             
-            // Disable the scan button while processing
-            scanButton.disabled = true;
-            
-            // Show loading indicator (as secondary visual feedback)
-            loadingIndicator.style.display = 'block';
-            
-            // Create form data for later use
-            const formData = new FormData(ticketForm);
-            
-            // Load ad in the loading overlay then process the ticket
-            console.log('Starting processing steps for ticket scan');
-            
-            // CRITICAL: Use requestAnimationFrame to ensure overlay is rendered immediately in the next paint cycle
-            window.requestAnimationFrame(() => {
-                // Force another check to ensure the overlay is visible
-                if (document.getElementById('ad-overlay-loading').style.display !== 'flex') {
-                    showOverlay('ad-overlay-loading');
-                    console.log('Overlay visibility enforced in requestAnimationFrame');
+            // STEP 2: Defer all other operations using setTimeout with 0ms
+            // This allows the browser to render the overlay before continuing
+            setTimeout(() => {
+                try {
+                    // These operations will run in the next event loop cycle after the display:flex has been rendered
+                    if (adOverlayLoading) {
+                        // Additional styling to ensure visibility
+                        adOverlayLoading.style.opacity = '1';
+                        adOverlayLoading.style.visibility = 'visible';
+                        adOverlayLoading.style.zIndex = '2147483647';
+                        console.log('Secondary overlay properties applied');
+                    }
+                    
+                    // Also use AdManager as a backup approach in the next cycle
+                    window.AdManager.showLoadingAd();
+                    console.log('AdManager.showLoadingAd called in next event loop cycle');
+                    
+                    // Disable scan button and show loading indicator
+                    scanButton.disabled = true;
+                    loadingIndicator.style.display = 'block';
+                    
+                    // Create form data for ticket processing
+                    const formData = new FormData(ticketForm);
+                    console.log('Form data prepared');
+                    
+                    // Start the simulation in the next animation frame
+                    requestAnimationFrame(() => {
+                        // Start processing the ticket
+                        simulateProcessingSteps(formData);
+                        console.log('Processing steps started in animation frame');
+                    });
+                } catch (e) {
+                    console.error('Error in deferred overlay processing:', e);
                 }
-                
-                // Simulate a multi-step process for visual interest during ad viewing
-                // Will process the ticket after steps complete
-                simulateProcessingSteps(formData);
-            });
+            }, 0);
         }
         
         // Simulate processing steps to make ad viewing time more engaging
