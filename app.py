@@ -345,7 +345,7 @@ def create_app():
             pass
             
         form = EmptyForm()
-        return render_template('ticket_scanner_clean.html', form=form)
+        return render_template('ticket_scanner_new.html', form=form)
     
     @app.route('/scan-ticket', methods=['POST'])
     def scan_ticket():
