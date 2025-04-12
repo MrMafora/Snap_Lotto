@@ -388,6 +388,9 @@ def create_app():
                 return jsonify(result), 400
                 
             logger.info(f"Ticket processing result: {json.dumps(result)}")
+            # Add show_ad flag to signal the frontend to show the ad overlay
+            result['show_ad'] = True
+            result['ad_type'] = 'interstitial'
             return jsonify(result)
             
         except Exception as e:

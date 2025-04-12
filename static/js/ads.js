@@ -258,7 +258,31 @@ window.AdManager = window.AdManager || {
     }
 };
 
-// Initialize ads when DOM is loaded
+// Initialize ads when DOM is loaded, but with a delay
 document.addEventListener('DOMContentLoaded', function() {
-    window.AdManager.init();
+    // Delay initialization to ensure DOM is fully loaded and processed
+    setTimeout(function() {
+        console.log('Delayed AdManager initialization after 1000ms');
+        window.AdManager.init();
+        
+        // Force direct overlay styling to ensure visibility
+        const loadingOverlay = document.getElementById('ad-overlay-loading');
+        const resultsOverlay = document.getElementById('ad-overlay-results');
+        
+        if (loadingOverlay) {
+            const loaderContainer = document.getElementById('ad-container-loader');
+            if (loaderContainer) {
+                window.AdManager.createMockAd('ad-container-loader');
+                console.log('Successfully created mock ad in loader container');
+            }
+        }
+        
+        if (resultsOverlay) {
+            const interstitialContainer = document.getElementById('ad-container-interstitial');
+            if (interstitialContainer) {
+                window.AdManager.createMockAd('ad-container-interstitial');
+                console.log('Successfully created mock ad in interstitial container');
+            }
+        }
+    }, 1000);
 });
