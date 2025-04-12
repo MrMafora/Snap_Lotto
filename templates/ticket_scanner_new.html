@@ -522,7 +522,15 @@
         
         lotteryTypeSelect.addEventListener('change', updateScanButton);
         
-        // Add a direct click handler for the scan button
+        // Handle form submission properly (this was missing)
+        ticketForm.addEventListener('submit', function(e) {
+            if (fileInput.files.length) {
+                e.preventDefault();
+                processTicketWithAds();
+            }
+        });
+        
+        // Add a direct click handler for the scan button as a backup
         scanButton.addEventListener('click', function(e) {
             if (fileInput.files.length) {
                 e.preventDefault();
