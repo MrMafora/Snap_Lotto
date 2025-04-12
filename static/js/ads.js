@@ -12,7 +12,7 @@ window.AdManager = window.AdManager || {
         resultsInterstitial: null
     },
 
-    // Initialize ad slots
+    // Note: init() is called at the end of this file
     init: function() {
         // Create ad slots if Google AdSense is available
         if (window.adsbygoogle) {
@@ -83,7 +83,7 @@ window.AdManager = window.AdManager || {
     showInterstitialAd: function(callback) {
         console.log('Showing interstitial ad');
         
-        // Ensure results overlay is visible
+        // Ensure results overlay is visible - use ad-overlay-results as the element ID
         const adOverlayResults = document.getElementById('ad-overlay-results');
         if (adOverlayResults) {
             adOverlayResults.style.display = 'flex';
@@ -97,7 +97,9 @@ window.AdManager = window.AdManager || {
             console.error('Results overlay element not found!');
         }
         
-        this.loadAd('ad-container-interstitial', callback);
+        // Load ad in the container inside the overlay
+        const adContainerId = 'ad-container-interstitial';
+        this.loadAd(adContainerId, callback);
     },
     
     // Hide the loading ad (when results are ready)
@@ -138,13 +140,17 @@ window.AdManager = window.AdManager || {
     // Hide the interstitial ad (when viewing results)
     hideInterstitialAd: function() {
         console.log('Hiding interstitial ad');
-        const container = document.getElementById('ad-container-interstitial');
+        
+        // Clear the ad container content
+        const adContainerId = 'ad-container-interstitial';
+        const container = document.getElementById(adContainerId);
         if (container) {
             container.innerHTML = '';
         }
         
-        // Also hide the entire overlay
-        const adOverlayResults = document.getElementById('ad-overlay-results');
+        // Also hide the entire overlay - using ad-overlay-results as the element ID
+        const overlayId = 'ad-overlay-results';
+        const adOverlayResults = document.getElementById(overlayId);
         if (adOverlayResults) {
             adOverlayResults.style.display = 'none';
             // Force restore scrolling on all elements
@@ -167,6 +173,8 @@ window.AdManager = window.AdManager || {
                 window.scrollTo(0, 0);
                 window.scrollTo(0, 1);
             }, 100);
+        } else {
+            console.error(`${overlayId} element not found`);
         }
     }
 };

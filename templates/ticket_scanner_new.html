@@ -444,7 +444,7 @@
             
             showInterstitialAd: function() {
                 // Show interstitial ad after results are ready
-                const adOverlayInterstitial = document.getElementById('ad-overlay-interstitial');
+                const adOverlayInterstitial = document.getElementById('ad-overlay-results');
                 if (adOverlayInterstitial) {
                     adOverlayInterstitial.style.display = 'flex';
                     adOverlayInterstitial.style.opacity = '1';
@@ -458,7 +458,7 @@
             
             hideInterstitialAd: function() {
                 // Hide interstitial ad when user wants to see results
-                const adOverlayInterstitial = document.getElementById('ad-overlay-interstitial');
+                const adOverlayInterstitial = document.getElementById('ad-overlay-results');
                 if (adOverlayInterstitial) {
                     adOverlayInterstitial.style.display = 'none';
                     document.body.style.overflow = 'auto';
