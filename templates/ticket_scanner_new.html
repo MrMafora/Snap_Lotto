@@ -737,52 +737,63 @@
         
         // Function to handle showing ads and processing the ticket - LIGHTWEIGHT VERSION
         function processTicketWithAds() {
-            // STEP 1: CRITICAL - Use only the absolute minimal code needed to show the overlay
-            // This should execute almost instantly without blocking the UI
-            console.log('Lightweight overlay display started');
+            console.log('Starting new ultra-reliable processTicketWithAds');
             
-            // ABSOLUTE MINIMUM REQUIRED: Set display style to make overlay visible
+            // --- STEP 1: Show Overlay Immediately (highest priority) ---
+            // Use the absolute minimum required code to make overlay visible
             const adOverlayLoading = document.getElementById('ad-overlay-loading');
             if (adOverlayLoading) {
-                // Just change display to flex - this is the fastest possible operation
+                // Just set display to flex - fastest possible operation
                 adOverlayLoading.style.display = 'flex';
-                // Prevent scrolling
-                document.body.style.overflow = 'hidden';
+                console.log('Overlay display:flex set (step 1 - minimal reliable approach)');
+            } else {
+                console.error('CRITICAL ERROR: ad-overlay-loading element not found!');
             }
             
-            // STEP 2: Defer all other operations using setTimeout with 0ms
-            // This allows the browser to render the overlay before continuing
+            // --- STEP 2: Prepare Form Data (do this early) ---
+            let formData;
+            try {
+                formData = new FormData(ticketForm);
+                console.log('Form data prepared successfully');
+            } catch (e) {
+                console.error('Error preparing form data:', e);
+                showError('Error preparing ticket data. Please try again.');
+                return;
+            }
+            
+            // --- STEP 3: Defer UI Updates ---
+            // Use setTimeout to allow the browser to render the overlay first
             setTimeout(() => {
                 try {
-                    // These operations will run in the next event loop cycle after the display:flex has been rendered
+                    // Apply additional styling to ensure overlay is fully visible
                     if (adOverlayLoading) {
-                        // Additional styling to ensure visibility
+                        document.body.style.overflow = 'hidden'; // Prevent scrolling
                         adOverlayLoading.style.opacity = '1';
                         adOverlayLoading.style.visibility = 'visible';
                         adOverlayLoading.style.zIndex = '2147483647';
-                        console.log('Secondary overlay properties applied');
                     }
                     
-                    // Also use AdManager as a backup approach in the next cycle
-                    window.AdManager.showLoadingAd();
-                    console.log('AdManager.showLoadingAd called in next event loop cycle');
+                    // Also use AdManager as a backup approach
+                    try {
+                        window.AdManager.showLoadingAd();
+                        console.log('AdManager.showLoadingAd called successfully');
+                    } catch (adError) {
+                        console.warn('Non-critical error with AdManager:', adError);
+                    }
                     
                     // Disable scan button and show loading indicator
                     scanButton.disabled = true;
                     loadingIndicator.style.display = 'block';
                     
-                    // Create form data for ticket processing
-                    const formData = new FormData(ticketForm);
-                    console.log('Form data prepared');
-                    
-                    // Start the simulation in the next animation frame
+                    // Proceed to simulation in next animation frame
                     requestAnimationFrame(() => {
-                        // Start processing the ticket
+                        // Start the simulated processing
                         simulateProcessingSteps(formData);
-                        console.log('Processing steps started in animation frame');
                     });
                 } catch (e) {
                     console.error('Error in deferred overlay processing:', e);
+                    // If something fails here, still try to process the ticket
+                    simulateProcessingSteps(formData);
                 }
             }, 0);
         }
@@ -1290,11 +1301,29 @@
         }
         
         function showError(message) {
+            console.log('SHOWING ERROR:', message);
+            
+            // First, make sure results overlay is hidden
+            try {
+                window.AdManager.hideInterstitialAd();
+                window.AdManager.hideLoadingAd();
+                
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                const adOverlayResults = document.getElementById('ad-overlay-results');
+                
+                if (adOverlayLoading) adOverlayLoading.style.display = 'none';
+                if (adOverlayResults) adOverlayResults.style.display = 'none';
+            } catch (e) {
+                console.warn('Non-critical error hiding overlays:', e);
+            }
+            
+            // Get DOM elements
             const errorMessage = document.getElementById('error-message');
             const errorText = document.getElementById('error-text');
             const successContent = document.getElementById('success-content');
+            const resultsContainer = document.getElementById('results-container');
             
-            // Force enable scrolling on document body and html
+            // Always reset body scrolling and styles
             document.body.style.overflow = 'auto';
             document.body.style.position = 'static';
             document.body.style.width = '';
@@ -1302,23 +1331,29 @@
             document.documentElement.style.overflow = 'auto';
             document.documentElement.style.position = 'static';
             
-            // Re-enable zooming
+            // Re-enable zooming for accessibility
             const viewportMeta = document.querySelector('meta[name="viewport"]');
             if (viewportMeta) {
                 viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
             }
             
-            // Force update body and viewport
+            // Scroll to top of page
             setTimeout(function() {
                 window.scrollTo(0, 0);
-                window.scrollTo(0, 1);
             }, 100);
             
-            // Show the results container so the error is visible
-            resultsContainer.classList.remove('d-none');
+            // Make sure results container is visible
+            if (resultsContainer) {
+                resultsContainer.classList.remove('d-none');
+            }
             
-            // Parse for specific message patterns
-            let formattedMessage = message;
+            // Hide success content if it exists
+            if (successContent) {
+                successContent.classList.add('d-none');
+            }
+            
+            // Prepare error message - add formatting as needed
+            let formattedMessage = message || "An unknown error occurred. Please try again.";
             
             // Check for future draw message
             if (message.includes("future draw")) {
