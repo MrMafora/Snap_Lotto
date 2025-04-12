@@ -314,7 +314,19 @@
                     </div>
 
                     <div class="text-center mt-4">
-                        <button type="submit" id="scan-button" class="btn btn-success btn-scan" onclick="if(this.form.querySelector('#ticket-image').files.length) { document.getElementById('ad-overlay-loading').style.display = 'flex'; console.log('DIRECT: Overlay shown via inline onclick'); }">
+                        <button type="submit" id="scan-button" class="btn btn-success btn-scan" onclick="if(this.form.querySelector('#ticket-image').files.length) { 
+                            const overlay = document.getElementById('ad-overlay-loading');
+                            overlay.style.cssText = 'display: flex !important; opacity: 1 !important; visibility: visible !important; z-index: 2147483647 !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; background-color: rgba(0, 0, 0, 0.95) !important;';
+                            document.body.style.overflow = 'hidden';
+                            console.log('Super Direct Overlay shown via cssText override'); 
+                            
+                            // Force create the ad right now
+                            const adContainer = document.getElementById('ad-container-loader');
+                            if (adContainer) {
+                                adContainer.innerHTML = '<div style=\"width: 300px; height: 250px; background-color: #f8f9fa; border: 5px solid red; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 0 auto;\"><div style=\"font-size: 24px; margin-bottom: 10px; color: #dc3545;\"><i class=\"fas fa-ad\"></i></div><div style=\"font-weight: bold; font-size: 18px; color: #212529;\">Advertisement</div><div style=\"color: #6c757d; font-size: 14px; text-align: center; padding: 10px;\">This placeholder helps keep the service free</div></div>';
+                                console.log('Created emergency ad placeholder');
+                            }
+                        }">
                             <i class="fa fa-search me-2"></i> Scan Ticket
                         </button>
                         <div id="scanner-loading" class="mt-3">
