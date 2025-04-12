@@ -45,6 +45,12 @@ window.AdManager = window.AdManager || {
             const targetContainer = document.getElementById(containerId);
             if (!targetContainer) return;
             
+            // Check if the container already has content from the template
+            if (targetContainer.children.length > 0) {
+                console.log(`Container ${containerId} already has content, using existing ad`);
+                return;
+            }
+            
             // Create a visible mock ad with bright colors and border
             targetContainer.innerHTML = `
                 <div style="width: 300px; height: 250px; background-color: #f8f9fa; border: 3px solid #0d6efd; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
@@ -134,9 +140,14 @@ window.AdManager = window.AdManager || {
                     return;
                 }
                 
-                // Clear previous content
-                targetContainer.innerHTML = '';
-    
+                // Check if the container already has content from the template
+                if (targetContainer.children.length > 0) {
+                    console.log(`Container ${containerId} already has content, using existing ad`);
+                    // Consider the ad loaded immediately
+                    if (callback) callback(true);
+                    return;
+                }
+                
                 // Create a new ad container
                 const adContainer = document.createElement('div');
                 adContainer.className = 'ad-container py-3';
