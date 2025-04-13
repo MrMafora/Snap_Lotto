@@ -8,8 +8,10 @@ from datetime import datetime
 import traceback
 from pathlib import Path
 import threading
+import shutil
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
+from sqlalchemy import func
 from models import db, Screenshot
 
 logger = logging.getLogger(__name__)

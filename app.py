@@ -708,19 +708,33 @@ def create_app():
     @login_required
     @admin_required
     def export_screenshots():
-        """Export latest screenshots and an empty template Excel file as a zip archive"""
+        """Export latest screenshots (one per URL) and an empty template Excel file as a zip archive"""
         import io
         import zipfile
         import openpyxl
         from datetime import datetime
+        from sqlalchemy import func
         
         # Create an in-memory file
         memory_file = io.BytesIO()
         
         # Create a zipfile in memory
         with zipfile.ZipFile(memory_file, 'w') as zf:
-            # Get the latest screenshots (limit to 20 to avoid huge files)
-            latest_screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).limit(20).all()
+            # Get the latest screenshot for each unique URL
+            # Using a subquery to get the latest screenshot ID for each URL
+            subquery = db.session.query(
+                Screenshot.url,
+                func.max(Screenshot.timestamp).label('max_timestamp')
+            ).group_by(Screenshot.url).subquery()
+            
+            # Join with the main table to get the actual screenshot records
+            latest_screenshots = db.session.query(Screenshot).join(
+                subquery,
+                db.and_(
+                    Screenshot.url == subquery.c.url,
+                    Screenshot.timestamp == subquery.c.max_timestamp
+                )
+            ).all()
             
             # Create a manifest file with details of the screenshots
             manifest_content = "Screenshot Export Manifest\n"
