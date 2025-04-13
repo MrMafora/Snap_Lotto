@@ -137,8 +137,31 @@ def import_snap_lotto_data(excel_file, flask_app=None):
         with ctx:
             logger.info(f"Starting import from {excel_file}...")
             
-            # Read Excel file - it has a very specific structure from examination
-            df = pd.read_excel(excel_file, sheet_name="Sheet1")
+            # Check if this is an empty template file by getting all sheet names
+            xl = pd.ExcelFile(excel_file)
+            sheet_names = xl.sheet_names
+            logger.info(f"Found sheets: {sheet_names}")
+            
+            # Check if this is our template format (has lotto type sheets)
+            expected_sheets = ["Lotto", "Lotto Plus 1", "Lotto Plus 2", "Powerball", "Powerball Plus", "Daily Lotto"]
+            
+            # If this is our template format with no data yet
+            if any(sheet in sheet_names for sheet in expected_sheets):
+                logger.info("This appears to be an empty template file. No data to import.")
+                return True
+                
+            # Try to read the expected sheet for the standard Snap Lotto format
+            try:
+                df = pd.read_excel(excel_file, sheet_name="Sheet1")
+            except ValueError as e:
+                logger.error(f"Worksheet named 'Sheet1' not found. Available sheets: {sheet_names}")
+                # Try to read the first available sheet instead
+                if sheet_names:
+                    logger.info(f"Attempting to read first available sheet: {sheet_names[0]}")
+                    df = pd.read_excel(excel_file, sheet_name=sheet_names[0])
+                else:
+                    logger.error("No sheets found in the Excel file.")
+                    return False
             
             # Skip the header rows - real data starts at row 4
             # Skip already imported data (if any were imported)

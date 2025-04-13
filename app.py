@@ -22,6 +22,7 @@ from models import db, Screenshot, LotteryResult, ScheduleConfig, User
 from data_aggregator import aggregate_data, validate_and_correct_known_draws
 from scheduler import run_lottery_task
 from ticket_scanner import process_ticket_image
+import pandas as pd
 from import_snap_lotto_data import import_snap_lotto_data
 
 # Set up module-specific logger
@@ -681,16 +682,44 @@ def create_app():
                 logger.info(f"Importing file: {filename} as type: {import_type}")
                 
                 try:
-                    if import_type == 'snap_lotto':
+                    # Check the file structure
+                    xl = pd.ExcelFile(file_path)
+                    sheet_names = xl.sheet_names
+                    
+                    # Check if this looks like our template (has specific sheets for lottery types)
+                    expected_sheets = ["Lotto", "Lotto Plus 1", "Lotto Plus 2", "Powerball", "Powerball Plus", "Daily Lotto"]
+                    has_lottery_sheets = any(sheet in sheet_names for sheet in expected_sheets)
+                    
+                    # Auto-detect format based on sheet structure
+                    if has_lottery_sheets and import_type == 'standard':
+                        logger.info("Detected our template format with lottery type sheets")
+                        
+                        # Check if sheets are empty
+                        is_empty = True
+                        for sheet in expected_sheets:
+                            if sheet in sheet_names:
+                                df = pd.read_excel(file_path, sheet_name=sheet)
+                                if not df.empty:
+                                    is_empty = False
+                                    break
+                        
+                        if is_empty:
+                            messages.append(('info', f'The template {filename} is empty. Please add data to it first.'))
+                        else:
+                            # Process the filled template
+                            logger.info("Using standard importer for filled template")
+                            # Standard importer code will follow
+                    
+                    elif import_type == 'snap_lotto' or 'Sheet1' in sheet_names:
                         # Use the specialized importer for Snap Lotto format
                         logger.info("Using Snap Lotto importer")
                         success = import_snap_lotto_data(file_path, flask_app=app)
                         if success:
-                            messages.append(('success', f'Successfully imported Snap Lotto data from {filename}'))
+                            messages.append(('success', f'Successfully processed {filename}'))
                             # Get recently imported results
                             imported_results = LotteryResult.query.order_by(LotteryResult.created_at.desc()).limit(50).all()
                         else:
-                            messages.append(('danger', f'Failed to import Snap Lotto data from {filename}'))
+                            messages.append(('danger', f'Failed to import data from {filename}'))
                     else:
                         # Use the standard importer
                         logger.info("Using standard Excel importer")
