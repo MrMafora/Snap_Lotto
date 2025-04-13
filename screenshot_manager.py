@@ -151,24 +151,35 @@ async def capture_screenshot_async(url):
         traceback.print_exc()
         return None, None
 
-def capture_screenshot_sync(url):
+def capture_screenshot_sync(url, retry_count=0):
     """
-    Synchronous version of screenshot capture using Playwright sync API.
+    Enhanced synchronous version of screenshot capture using Playwright sync API.
+    Includes anti-detection techniques and human-like behavior.
     
     Args:
         url (str): The URL to capture
+        retry_count (int): Current retry attempt, used for recursive retries
         
     Returns:
         tuple: (filepath, screenshot_data, zoom_filepath) or (None, None, None) if failed
     """
     import time
 
+    # If we've exceeded max retries, give up
+    if retry_count >= MAX_RETRIES:
+        logger.error(f"Maximum retry attempts ({MAX_RETRIES}) exceeded for {url}")
+        return None, None, None
+
     try:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"{timestamp}_{url.split('/')[-1]}.png"
         filepath = os.path.join(SCREENSHOT_DIR, filename)
         
-        logger.info(f"Capturing screenshot from {url} using Playwright (sync)")
+        logger.info(f"Capturing screenshot from {url} using Playwright (sync) - Attempt {retry_count + 1}/{MAX_RETRIES}")
+        
+        # Get domain for cookie storage
+        domain = urlparse(url).netloc
+        cookie_file = os.path.join(COOKIES_DIR, f"{domain.replace('.', '_')}.json")
         
         # Try to find chromium in common locations
         chromium_paths = [
@@ -184,23 +195,96 @@ def capture_screenshot_sync(url):
                 logger.info(f"Using Chromium from: {path}")
                 chromium_path = path
                 break
-                
+        
+        # Choose a random user agent
+        user_agent = random.choice(USER_AGENTS)
+        logger.debug(f"Using user agent: {user_agent}")
+        
+        # Random screen size to prevent fingerprinting
+        screen_width = random.choice([1280, 1366, 1440, 1920])
+        screen_height = random.choice([800, 900, 1024, 1080])
+        
         # Use Playwright to capture screenshot with built-in timeouts
         with sync_playwright() as p:
             browser_type = p.chromium
             
             try:
+                # Launch with specific arguments to prevent detection
                 browser = browser_type.launch(
                     headless=True,
-                    executable_path=chromium_path
+                    executable_path=chromium_path,
+                    args=[
+                        "--disable-blink-features=AutomationControlled",
+                        "--disable-features=IsolateOrigins,site-per-process",
+                        "--disable-site-isolation-trials",
+                        f"--window-size={screen_width},{screen_height}",
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox"
+                    ]
                 )
                 
+                # Create a new context with specific settings to appear more human-like
                 context = browser.new_context(
-                    viewport={'width': 1280, 'height': 1600},
-                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    viewport={'width': screen_width, 'height': screen_height},
+                    user_agent=user_agent,
+                    locale=random.choice(['en-US', 'en-GB', 'en-CA', 'en-ZA']),
+                    timezone_id=random.choice(['America/New_York', 'Europe/London', 'Africa/Johannesburg']),
+                    geolocation={"latitude": -26.2041, "longitude": 28.0473},  # Johannesburg coordinates
+                    permissions=['geolocation']
                 )
                 
+                # Load cookies from previous sessions if available
+                if os.path.exists(cookie_file):
+                    try:
+                        with open(cookie_file, 'r') as f:
+                            cookies = json.load(f)
+                            context.add_cookies(cookies)
+                            logger.info(f"Loaded {len(cookies)} cookies for {domain}")
+                    except Exception as e:
+                        logger.warning(f"Error loading cookies: {str(e)}")
+                
+                # Create a new page
                 page = context.new_page()
+                
+                # Execute stealth script to prevent detection
+                # This script modifies navigator properties to appear as a real browser
+                page.evaluate("""() => {
+                    // Overwrite the 'webdriver' property
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => false,
+                        configurable: true
+                    });
+                    
+                    // Overwrite plugins to add some fake ones
+                    Object.defineProperty(navigator, 'plugins', {
+                        get: () => {
+                            return [
+                                {
+                                    name: 'Chrome PDF Plugin',
+                                    description: 'Portable Document Format',
+                                    filename: 'internal-pdf-viewer'
+                                },
+                                {
+                                    name: 'Chrome PDF Viewer',
+                                    description: '',
+                                    filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai'
+                                },
+                                {
+                                    name: 'Native Client',
+                                    description: '',
+                                    filename: 'internal-nacl-plugin'
+                                }
+                            ];
+                        },
+                        configurable: true
+                    });
+                    
+                    // Add language plugins
+                    Object.defineProperty(navigator, 'languages', {
+                        get: () => ['en-US', 'en'],
+                        configurable: true
+                    });
+                }""")
                 
                 # Set extra HTTP headers to appear more like a real browser
                 page.set_extra_http_headers({
@@ -213,8 +297,14 @@ def capture_screenshot_sync(url):
                     "Sec-Fetch-Mode": "navigate",
                     "Sec-Fetch-Site": "none",
                     "Sec-Fetch-User": "?1",
-                    "DNT": "1"
+                    "DNT": "1",
+                    "Cache-Control": "max-age=0",
+                    "Referer": "https://www.google.com/"
                 })
+                
+                # Add randomized delays to appear more human-like
+                # Random initial wait before accessing the site (250-750ms)
+                page.wait_for_timeout(random.randint(250, 750))
                 
                 # Navigate and wait for the page to fully load with a timeout
                 start_time = time.time()
@@ -222,7 +312,12 @@ def capture_screenshot_sync(url):
                 
                 try:
                     # Try to navigate with a 20-second timeout
-                    page.goto(url, wait_until='networkidle', timeout=20000)
+                    page.goto(url, wait_until='domcontentloaded', timeout=20000)
+                    
+                    # Wait a randomized amount of time for additional resources to load
+                    # This makes it appear more human-like, instead of immediately interacting with the page
+                    page.wait_for_timeout(random.randint(1000, 2000))
+                    
                 except Exception as e:
                     # If timeout occurs, log but continue - we might still get a partial page
                     logger.warning(f"Page navigation timeout for {url}: {str(e)}")
@@ -230,14 +325,60 @@ def capture_screenshot_sync(url):
                     # Since we caught the timeout, let's try to continue with whatever page was loaded
                     if time.time() - start_time > max_time:
                         logger.error("Exceeded maximum time, aborting")
+                        
+                        # Close browser to clean up resources
+                        browser.close()
+                        
+                        # If this was a timeout, retry with a different approach
+                        if "timeout" in str(e).lower():
+                            logger.info(f"Retrying with different wait strategy (attempt {retry_count + 1})")
+                            return capture_screenshot_sync(url, retry_count + 1)
+                        
                         raise TimeoutError("Screenshot capture exceeded maximum time")
                 
-                # Scroll down to ensure all content is loaded
+                # Check if we were blocked or got a CAPTCHA
+                if page.query_selector('div:has-text("captcha")') or page.query_selector('div:has-text("CAPTCHA")'):
+                    logger.warning(f"CAPTCHA detected on {url}")
+                    
+                    # Close browser
+                    browser.close()
+                    
+                    # Retry with different user agent and longer wait
+                    logger.info(f"Retrying with different user agent (attempt {retry_count + 1})")
+                    return capture_screenshot_sync(url, retry_count + 1)
+                    
+                # Perform human-like scrolling with random behavior
                 try:
-                    page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-                    page.wait_for_timeout(1000)  # Wait a second for any animations
+                    # Get page height
+                    page_height = page.evaluate('document.body.scrollHeight')
+                    current_position = 0
+                    
+                    # Apply each scroll step with varied timing and distance
+                    for scroll_step in random.sample(SCROLL_BEHAVIOR, len(SCROLL_BEHAVIOR)):
+                        # Calculate scroll distance for this step
+                        target_position = int(page_height * scroll_step['distance'])
+                        
+                        # Scroll to the new position
+                        page.evaluate(f'window.scrollTo(0, {target_position})')
+                        
+                        # Wait for the specified delay
+                        page.wait_for_timeout(int(scroll_step['delay'] * 1000))
+                        
+                        # Update current position
+                        current_position = target_position
+                    
+                    # Randomly scroll back up a bit to simulate looking at something
+                    if random.random() < 0.7:  # 70% chance to scroll back up
+                        scroll_back = random.uniform(0.2, 0.6)  # Scroll back 20-60%
+                        scroll_up_pos = int(current_position * (1 - scroll_back))
+                        page.evaluate(f'window.scrollTo(0, {scroll_up_pos})')
+                        page.wait_for_timeout(random.randint(800, 1500))
+                        
+                        # Then scroll back to bottom
+                        page.evaluate(f'window.scrollTo(0, {current_position})')
+                        page.wait_for_timeout(random.randint(500, 1000))
                 except Exception as e:
-                    logger.warning(f"Error during page scrolling: {str(e)}")
+                    logger.warning(f"Error during human-like scrolling: {str(e)}")
                 
                 # Save the full page screenshot
                 page.screenshot(path=filepath, full_page=True)
@@ -327,8 +468,22 @@ def capture_screenshot_sync(url):
                                 page.screenshot(path=zoom_filepath, clip=clip)
                                 logger.info(f"Zoomed screenshot saved to {zoom_filepath}")
                                 
+                                # Save cookies from this session for future use
+                                try:
+                                    cookies = context.cookies()
+                                    with open(cookie_file, 'w') as f:
+                                        json.dump(cookies, f)
+                                    logger.info(f"Saved {len(cookies)} cookies for {domain}")
+                                except Exception as e:
+                                    logger.warning(f"Error saving cookies: {str(e)}")
+                                
+                                # Read the screenshot data
+                                with open(filepath, 'rb') as f:
+                                    screenshot_bytes = f.read()
+                                
+                                browser.close()
                                 # Return both filepaths so they can be saved to the database
-                                return filepath, screenshot_data, zoom_filepath
+                                return filepath, screenshot_bytes, zoom_filepath
                         else:
                             logger.warning("Could not find a specific content area to zoom in on")
                 
@@ -337,6 +492,15 @@ def capture_screenshot_sync(url):
                     # Continue with the regular screenshot even if zoomed fails
                 
                 logger.info(f"Screenshot process completed for {url}")
+                
+                # Save cookies from this session for future use
+                try:
+                    cookies = context.cookies()
+                    with open(cookie_file, 'w') as f:
+                        json.dump(cookies, f)
+                    logger.info(f"Saved {len(cookies)} cookies for {domain}")
+                except Exception as e:
+                    logger.warning(f"Error saving cookies: {str(e)}")
                 
                 # If we got this far, we didn't capture a zoomed screenshot yet
                 # Read the full screenshot data
