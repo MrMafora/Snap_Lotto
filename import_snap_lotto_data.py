@@ -148,6 +148,10 @@ def import_snap_lotto_data(excel_file, flask_app=None):
             # If this is our template format with no data yet
             if any(sheet in sheet_names for sheet in expected_sheets):
                 logger.info("This appears to be an empty template file. No data to import.")
+                if flask_app:
+                    with flask_app.app_context():
+                        from flask import flash
+                        flash("The uploaded file appears to be an empty template. Please add lottery data to the template sheets and try again.", "info")
                 return True
                 
             # Try to read the expected sheet for the standard Snap Lotto format

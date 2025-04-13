@@ -31,7 +31,7 @@
                     {% endwith %}
 
                     <form method="POST" enctype="multipart/form-data" class="mt-4">
-                        {{ form.csrf_token }}
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-4">
                             <label for="excel_file" class="form-label fw-bold">Select Excel Spreadsheet:</label>
                             <input type="file" class="form-control" id="excel_file" name="excel_file" accept=".xlsx,.xls" required>
