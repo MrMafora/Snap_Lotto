@@ -31,9 +31,10 @@
                     {% endwith %}
 
                     <form method="POST" enctype="multipart/form-data" class="mt-4">
+                        {{ form.csrf_token }}
                         <div class="mb-4">
-                            <label for="file" class="form-label fw-bold">Select Excel Spreadsheet:</label>
-                            <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls" required>
+                            <label for="excel_file" class="form-label fw-bold">Select Excel Spreadsheet:</label>
+                            <input type="file" class="form-control" id="excel_file" name="excel_file" accept=".xlsx,.xls" required>
                             <div class="form-text">Only Excel files (.xlsx, .xls) are supported</div>
                         </div>
                         

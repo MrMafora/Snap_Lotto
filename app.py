@@ -652,6 +652,12 @@ def create_app():
         imported_results = []
         messages = []
         
+        # Create a simple form for CSRF protection
+        class ImportForm(FlaskForm):
+            pass
+            
+        form = ImportForm()
+        
         if request.method == 'POST':
             # Check if a file was uploaded
             if 'excel_file' not in request.files:
@@ -745,7 +751,7 @@ def create_app():
             else:
                 messages.append(('danger', 'Invalid file format. Please upload an Excel file (.xlsx or .xls)'))
                 
-        return render_template('import_data.html', messages=messages, imported_results=imported_results)
+        return render_template('import_data.html', form=form, messages=messages, imported_results=imported_results)
         
     @app.route('/screenshots/<path:filename>')
     def serve_screenshot(filename):
