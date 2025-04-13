@@ -189,3 +189,105 @@ def run_lottery_task(url, lottery_type):
         # Handle "can't start new thread" error gracefully
         logger.error(f"Failed to start thread for {lottery_type}: {str(e)}")
         return False
+
+def retake_all_screenshots():
+    """
+    Retake screenshots for all configured URLs.
+    This function will capture new screenshots for all URLs in the ScheduleConfig table.
+    Old screenshots will be deleted through the normal cleanup process.
+    
+    Returns:
+        dict: A dictionary containing success/failure status for each URL
+    """
+    import threading
+    from models import ScheduleConfig
+    from flask import current_app
+    from main import app
+    
+    # Dictionary to store results
+    results = {}
+    processed_urls = set()
+    
+    def process_url(url, lottery_type):
+        """Process a single URL in a separate thread"""
+        # Acquire semaphore to limit concurrent tasks
+        if not task_semaphore.acquire(blocking=True, timeout=300):
+            results[url] = {
+                'status': 'error',
+                'message': f"Could not acquire task semaphore for {lottery_type} after waiting 5 minutes"
+            }
+            return
+        
+        try:
+            logger.info(f"Retaking screenshot for {lottery_type} from {url}")
+            
+            # Import screenshot manager inside the thread to avoid circular imports
+            from screenshot_manager import capture_screenshot
+            
+            with app.app_context():
+                # Capture new screenshot
+                capture_result = capture_screenshot(url, lottery_type)
+                
+                if not capture_result:
+                    results[url] = {
+                        'status': 'error',
+                        'message': f"Failed to capture screenshot for {lottery_type}"
+                    }
+                    return
+                
+                filepath, _, zoom_filepath = capture_result
+                
+                results[url] = {
+                    'status': 'success',
+                    'lottery_type': lottery_type,
+                    'filepath': filepath,
+                    'zoom_filepath': zoom_filepath
+                }
+                
+                logger.info(f"Successfully retook screenshot for {lottery_type}")
+        except Exception as e:
+            logger.error(f"Error retaking screenshot for {lottery_type}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            
+            results[url] = {
+                'status': 'error',
+                'message': str(e)
+            }
+        finally:
+            # Always release the semaphore
+            task_semaphore.release()
+    
+    try:
+        with app.app_context():
+            # Get all unique URLs from ScheduleConfig
+            configs = ScheduleConfig.query.all()
+            threads = []
+            
+            for config in configs:
+                # Skip duplicate URLs to avoid redundant work
+                if config.url in processed_urls:
+                    continue
+                
+                processed_urls.add(config.url)
+                
+                # Start a new thread for each URL
+                thread = threading.Thread(target=process_url, args=(config.url, config.lottery_type))
+                thread.daemon = True
+                thread.start()
+                threads.append(thread)
+            
+            # Wait for all threads to complete
+            for thread in threads:
+                thread.join(timeout=60)  # Wait up to 60 seconds per thread
+            
+            # Run cleanup to remove old screenshots
+            from screenshot_manager import cleanup_old_screenshots
+            cleanup_old_screenshots()
+            
+            return results
+    except Exception as e:
+        logger.error(f"Error in retake_all_screenshots: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return {'status': 'error', 'message': str(e)}

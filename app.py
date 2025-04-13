@@ -441,6 +441,36 @@ def create_app():
         schedules = ScheduleConfig.query.all()
         return render_template('settings.html', schedules=schedules)
         
+    @app.route('/retake_screenshots', methods=['GET', 'POST'])
+    @login_required
+    @admin_required
+    def retake_screenshots():
+        """Retake screenshots for all configured URLs"""
+        from scheduler import retake_all_screenshots
+        
+        if request.method == 'POST':
+            # Run the screenshot retake process
+            try:
+                results = retake_all_screenshots()
+                
+                # Count successes and failures
+                success_count = sum(1 for result in results.values() if isinstance(result, dict) and result.get('status') == 'success')
+                error_count = len(results) - success_count if isinstance(results, dict) else 0
+                
+                if success_count > 0:
+                    flash(f"Successfully retook {success_count} screenshots. {error_count} screenshots failed.", "success")
+                else:
+                    flash(f"Failed to retake screenshots. Please check the logs for details.", "danger")
+                    
+            except Exception as e:
+                logger.error(f"Error retaking screenshots: {str(e)}")
+                flash(f"Error retaking screenshots: {str(e)}", "danger")
+                
+            return redirect(url_for('settings'))
+        else:
+            # Render confirmation page
+            return render_template('retake_screenshots.html')
+    
     @app.route('/toggle_schedule/<int:id>')
     @login_required
     @admin_required
