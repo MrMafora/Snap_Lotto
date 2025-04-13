@@ -20,15 +20,31 @@
                         <p class="mt-2 mb-0">The system will automatically detect the format and extract all game types, draw numbers, and prize information.</p>
                     </div>
 
-                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    <div id="message-container">
+                        <!-- Flashed messages -->
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'info' %}info-circle{% else %}exclamation-triangle{% endif %} me-2"></i>
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <!-- Custom messages -->
                         {% if messages %}
                             {% for category, message in messages %}
-                                <div class="alert alert-{{ category }}">
+                                <div class="alert alert-{{ category }} alert-dismissible fade show">
+                                    <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'info' %}info-circle{% else %}exclamation-triangle{% endif %} me-2"></i>
                                     {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             {% endfor %}
                         {% endif %}
-                    {% endwith %}
+                    </div>
                     
                     {% if imported_results %}
                     <div class="card mb-4">
@@ -113,10 +129,40 @@
                             <a href="{{ url_for('index') }}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
                             </a>
-                            <button type="submit" class="btn btn-lottery-primary">
+                            <button type="submit" class="btn btn-lottery-primary" id="import-btn">
                                 <i class="fas fa-file-upload me-1"></i> Import Data
                             </button>
                         </div>
+                        
+                        <!-- Processing indicator - hidden by default -->
+                        <div id="processing-indicator" class="alert alert-info mt-3 d-none">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">Processing...</span>
+                                </div>
+                                <div>Processing your import... Please wait.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- JavaScript to show processing indicator -->
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const form = document.querySelector('form');
+                                const importBtn = document.getElementById('import-btn');
+                                const indicator = document.getElementById('processing-indicator');
+                                
+                                form.addEventListener('submit', function() {
+                                    // Check if a file was selected
+                                    const fileInput = document.getElementById('excel_file');
+                                    if (fileInput.files.length > 0) {
+                                        // Show processing indicator
+                                        indicator.classList.remove('d-none');
+                                        importBtn.disabled = true;
+                                        importBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                                    }
+                                });
+                            });
+                        </script>
                     </form>
                 </div>
             </div>

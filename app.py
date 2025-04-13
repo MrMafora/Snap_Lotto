@@ -735,7 +735,23 @@ def create_app():
                         elif results_info:  # Dictionary with import stats
                             # Show success message with import details
                             if results_info.get('imported_count', 0) > 0:
-                                messages.append(('success', f'Successfully imported {results_info.get("imported_count", 0)} lottery results from {filename}'))
+                                new_records = results_info.get('new_records', 0)
+                                updated_records = results_info.get('updated_records', 0)
+                                
+                                success_msg = f'Successfully processed {filename}. '
+                                if new_records > 0:
+                                    success_msg += f'Added {new_records} new lottery records. '
+                                if updated_records > 0:
+                                    success_msg += f'Updated {updated_records} existing records. '
+                                
+                                messages.append(('success', success_msg))
+                                
+                                # Flash additional statistics
+                                if flask_app:
+                                    with flask_app.app_context():
+                                        from flask import flash
+                                        flash(f"Import completed successfully with {results_info.get('imported_count', 0)} total records processed.", "success")
+                                
                                 if results_info.get('errors_count', 0) > 0:
                                     messages.append(('warning', f'Encountered {results_info.get("errors_count", 0)} errors during import'))
                             else:
