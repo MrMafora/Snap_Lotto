@@ -152,7 +152,7 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     with flask_app.app_context():
                         from flask import flash
                         flash("The uploaded file appears to be an empty template. Please add lottery data to the template sheets and try again.", "info")
-                return True
+                return True  # Special case for empty template
                 
             # Try to read the expected sheet for the standard Snap Lotto format
             try:
@@ -322,7 +322,15 @@ def import_snap_lotto_data(excel_file, flask_app=None):
             logger.info(f"Successfully imported/updated {imported_count} records")
             logger.info(f"Encountered {errors_count} errors")
             
-            return True
+            # Return stats dictionary for detailed success message
+            return {
+                "initial_count": initial_count,
+                "final_count": final_count,
+                "imported_count": imported_count,
+                "errors_count": errors_count,
+                "new_records": final_count - initial_count,
+                "updated_records": imported_count - (final_count - initial_count)
+            }
     except Exception as e:
         logger.error(f"Error during import operation: {str(e)}")
         return False

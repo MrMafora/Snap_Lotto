@@ -650,7 +650,10 @@ def create_app():
     def import_data():
         """Page for importing lottery data from spreadsheets (admin only)"""
         imported_results = []
-        messages = []
+        
+        # Get flashed messages to be combined with our own messages
+        flashed_messages = [(category, message) for category, message in get_flashed_messages(with_categories=True)]
+        messages = flashed_messages.copy() if flashed_messages else []
         
         # Create a simple form for CSRF protection
         class ImportForm(FlaskForm):
@@ -723,9 +726,19 @@ def create_app():
                     elif import_type == 'snap_lotto' or 'Sheet1' in sheet_names:
                         # Use the specialized importer for Snap Lotto format
                         logger.info("Using Snap Lotto importer")
-                        success = import_snap_lotto_data(file_path, flask_app=app)
-                        if success:
-                            messages.append(('success', f'Successfully processed {filename}'))
+                        results_info = import_snap_lotto_data(file_path, flask_app=app)
+                        if results_info is True:  # Empty template case
+                            # No need to add message, the import function already added a flash message
+                            pass
+                        elif results_info:  # Dictionary with import stats
+                            # Show success message with import details
+                            if results_info.get('imported_count', 0) > 0:
+                                messages.append(('success', f'Successfully imported {results_info.get("imported_count", 0)} lottery results from {filename}'))
+                                if results_info.get('errors_count', 0) > 0:
+                                    messages.append(('warning', f'Encountered {results_info.get("errors_count", 0)} errors during import'))
+                            else:
+                                messages.append(('info', f'No new data was imported from {filename}'))
+                            
                             # Get recently imported results
                             imported_results = LotteryResult.query.order_by(LotteryResult.created_at.desc()).limit(50).all()
                         else:
