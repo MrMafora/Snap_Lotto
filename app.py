@@ -714,6 +714,14 @@ def create_app():
                 
         return render_template('import.html', messages=messages, imported_results=imported_results)
         
+    @app.route('/screenshots/<path:filename>')
+    def serve_screenshot(filename):
+        """Serve screenshots from the screenshots directory"""
+        from flask import send_from_directory
+        
+        screenshots_dir = app.config.get('SCREENSHOT_DIR', os.path.join(os.getcwd(), 'screenshots'))
+        return send_from_directory(screenshots_dir, filename)
+        
     @app.route('/api/visualization-data')
     def visualization_data():
         """API endpoint to fetch data for visualizations"""
