@@ -4,26 +4,58 @@ Screenshot manager for capturing lottery website screenshots
 import os
 import logging
 import asyncio
+import random
+import time
 from datetime import datetime
 import traceback
 from pathlib import Path
 import threading
 import shutil
+import json
+from urllib.parse import urlparse
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
 from sqlalchemy import func
 from models import db, Screenshot
+from logger import setup_logger
 
-logger = logging.getLogger(__name__)
+# Set up module-specific logger
+logger = setup_logger(__name__, level=logging.INFO)
 
 # Create directory for screenshots if it doesn't exist
 SCREENSHOT_DIR = os.path.join(os.getcwd(), 'screenshots')
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
+# Create directory for cookies if it doesn't exist
+COOKIES_DIR = os.path.join(os.getcwd(), 'cookies')
+os.makedirs(COOKIES_DIR, exist_ok=True)
+
 # Thread semaphore to limit concurrent screenshots
 # This prevents "can't start new thread" errors by limiting resource usage
 MAX_CONCURRENT_THREADS = 3
 screenshot_semaphore = threading.Semaphore(MAX_CONCURRENT_THREADS)
+
+# List of user agents to rotate through randomly
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
+]
+
+# Human-like scroll behavior parameters
+SCROLL_BEHAVIOR = [
+    {'distance': 0.2, 'delay': 0.5},  # Scroll 20% with 0.5s delay
+    {'distance': 0.3, 'delay': 0.7},  # Scroll 30% with 0.7s delay
+    {'distance': 0.5, 'delay': 0.3},  # Scroll 50% with 0.3s delay
+    {'distance': 0.7, 'delay': 0.6},  # Scroll 70% with 0.6s delay
+    {'distance': 1.0, 'delay': 0.8}   # Scroll 100% with 0.8s delay
+]
+
+# Maximum number of retry attempts
+MAX_RETRIES = 3
 
 def ensure_playwright_browsers():
     """
