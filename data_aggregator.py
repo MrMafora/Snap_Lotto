@@ -514,7 +514,26 @@ def get_all_results_by_lottery_type(lottery_type):
     Returns:
         list: List of LotteryResult objects
     """
-    return LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).all()
+    # Get normalized version of the lottery type
+    normalized_type = normalize_lottery_type(lottery_type)
+    
+    # Find all variants of this lottery type in the database
+    lottery_type_variants = db.session.query(LotteryResult.lottery_type).distinct().all()
+    matching_types = []
+    
+    for lt in lottery_type_variants:
+        lt_name = lt[0]
+        if normalize_lottery_type(lt_name) == normalized_type:
+            matching_types.append(lt_name)
+    
+    # If we found matching variants, query using all of them
+    if matching_types:
+        return LotteryResult.query.filter(
+            LotteryResult.lottery_type.in_(matching_types)
+        ).order_by(LotteryResult.draw_date.desc()).all()
+    else:
+        # Fallback to the original search if no variants found
+        return LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).all()
 
 def get_latest_results():
     """
@@ -523,14 +542,31 @@ def get_latest_results():
     Returns:
         dict: Dictionary mapping lottery types to their latest results
     """
+    # Get all distinct lottery types
     lottery_types = db.session.query(LotteryResult.lottery_type).distinct().all()
     latest_results = {}
     
+    # Create a mapping of normalized types
+    normalized_types = {}
     for lt in lottery_types:
         lottery_type = lt[0]
-        result = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+        normalized_type = normalize_lottery_type(lottery_type)
+        
+        if normalized_type not in normalized_types:
+            normalized_types[normalized_type] = []
+        
+        normalized_types[normalized_type].append(lottery_type)
+    
+    # For each normalized type, get the latest result among all its variants
+    for normalized_type, variants in normalized_types.items():
+        # Query across all variants of this lottery type
+        result = LotteryResult.query.filter(
+            LotteryResult.lottery_type.in_(variants)
+        ).order_by(LotteryResult.draw_date.desc()).first()
+        
         if result:
-            latest_results[lottery_type] = result
+            # Store result under the normalized type name
+            latest_results[normalized_type] = result
     
     return latest_results
 
@@ -548,7 +584,24 @@ def export_results_to_json(lottery_type=None, limit=None):
     query = LotteryResult.query
     
     if lottery_type:
-        query = query.filter_by(lottery_type=lottery_type)
+        # Get normalized version of the lottery type
+        normalized_type = normalize_lottery_type(lottery_type)
+        
+        # Find all variants of this lottery type in the database
+        lottery_type_variants = db.session.query(LotteryResult.lottery_type).distinct().all()
+        matching_types = []
+        
+        for lt in lottery_type_variants:
+            lt_name = lt[0]
+            if normalize_lottery_type(lt_name) == normalized_type:
+                matching_types.append(lt_name)
+        
+        # If we found matching variants, query using all of them
+        if matching_types:
+            query = query.filter(LotteryResult.lottery_type.in_(matching_types))
+        else:
+            # Fallback to the original search if no variants found
+            query = query.filter_by(lottery_type=lottery_type)
     
     query = query.order_by(LotteryResult.draw_date.desc())
     
