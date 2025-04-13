@@ -16,16 +16,20 @@ window.AdManager = window.AdManager || {
     init: function() {
         console.log('AdManager initialized from ads.js');
         
-        // Create ad slots if Google AdSense is available
-        if (window.adsbygoogle) {
-            console.log('AdSense detected, initializing ad slots');
-        } else {
-            console.warn('AdSense not detected');
-        }
+        // Check if we're in development mode (no AdSense)
+        const isDevelopment = !document.querySelector('script[src*="adsbygoogle.js"]');
         
-        // Pre-create mock ads for immediate display
-        this.createMockAd('ad-container-loader');
-        this.createMockAd('ad-container-interstitial');
+        if (isDevelopment) {
+            console.log('Development mode detected, using mock ads');
+            // Pre-create mock ads for immediate display
+            this.createMockAd('ad-container-loader');
+            this.createMockAd('ad-container-interstitial');
+        } else if (window.adsbygoogle) {
+            console.log('AdSense detected, initializing ad slots');
+            // Production mode with AdSense
+        } else {
+            console.warn('AdSense script included but not loaded properly');
+        }
     },
     
     // Create a visible mock ad for testing
