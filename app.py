@@ -708,7 +708,11 @@ def create_app():
                         else:
                             # Process the filled template
                             logger.info("Using standard importer for filled template")
-                            # Standard importer code will follow
+                            from import_excel import import_excel_data
+                            import_excel_data(file_path)
+                            messages.append(('success', f'Successfully imported data from {filename}'))
+                            # Get recently imported results
+                            imported_results = LotteryResult.query.order_by(LotteryResult.created_at.desc()).limit(50).all()
                     
                     elif import_type == 'snap_lotto' or 'Sheet1' in sheet_names:
                         # Use the specialized importer for Snap Lotto format
@@ -741,7 +745,7 @@ def create_app():
             else:
                 messages.append(('danger', 'Invalid file format. Please upload an Excel file (.xlsx or .xls)'))
                 
-        return render_template('import.html', messages=messages, imported_results=imported_results)
+        return render_template('import_data.html', messages=messages, imported_results=imported_results)
         
     @app.route('/screenshots/<path:filename>')
     def serve_screenshot(filename):
