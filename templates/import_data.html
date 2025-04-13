@@ -41,15 +41,17 @@
 {% block content %}
 <!-- Full-page loader overlay -->
 <div id="loader-overlay">
-    <div class="loader-spinner"></div>
-    <h3>Processing Import...</h3>
-    <p>Please wait while we process your data</p>
-    <div class="mt-3" style="width: 80%; max-width: 500px; margin-left: auto; margin-right: auto;">
-        <div class="progress" style="height: 24px;">
-            <div id="upload-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
-                 role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+    <div style="width: 100%; text-align: center;">
+        <div class="loader-spinner" style="margin-left: auto; margin-right: auto;"></div>
+        <h3 class="text-center mb-2">Processing Import...</h3>
+        <p class="text-center mb-3">Please wait while we process your data</p>
+        <div class="mt-3" style="width: 80%; max-width: 500px; margin-left: auto; margin-right: auto;">
+            <div class="progress" style="height: 24px;">
+                <div id="upload-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+            <div id="upload-status" class="mt-2 text-center text-white fw-bold">Initializing...</div>
         </div>
-        <div id="upload-status" class="mt-2 text-center text-white fw-bold">Initializing...</div>
     </div>
 </div>
 <div class="container mt-5">
