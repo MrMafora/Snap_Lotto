@@ -50,13 +50,7 @@ def create_app():
         "pool_pre_ping": True
     }
     
-    # Only add SSL requirement if DATABASE_URL is set and contains postgresql (production environment)
-    if os.environ.get("DATABASE_URL") and 'postgresql' in os.environ.get("DATABASE_URL", ""):
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"]["connect_args"] = {"sslmode": "require"}
-    
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    
-    # Set up upload progress tracking
+    # Initialize upload progress tracker
     app.config['UPLOAD_PROGRESS'] = {
         'total_size': 0,
         'uploaded_size': 0,
@@ -64,6 +58,14 @@ def create_app():
         'filename': '',
         'status': 'idle'
     }
+    
+    # Only add SSL requirement if DATABASE_URL is set and contains postgresql (production environment)
+    if os.environ.get("DATABASE_URL") and 'postgresql' in os.environ.get("DATABASE_URL", ""):
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"]["connect_args"] = {"sslmode": "require"}
+    
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    
+    # Upload progress tracking already initialized above
     
     # Initialize the app with the database
     db.init_app(app)
@@ -688,7 +690,6 @@ def create_app():
     def import_data():
         """Page for importing lottery data from spreadsheets (admin only)"""
         from flask import get_flashed_messages
-        nonlocal upload_progress
         
         imported_results = []
         
@@ -721,10 +722,43 @@ def create_app():
                 uploads_dir = os.path.join(os.getcwd(), 'uploads')
                 os.makedirs(uploads_dir, exist_ok=True)
                 
+                # Initialize upload progress tracking
+                file_size = 0
+                try:
+                    # Get content length for progress tracking
+                    content_length = request.content_length
+                    if content_length is not None:
+                        file_size = content_length
+                except Exception as e:
+                    logger.warning(f"Could not determine content length: {str(e)}")
+                
+                # Update progress object
+                app.config['UPLOAD_PROGRESS'] = {
+                    'total_size': file_size,
+                    'uploaded_size': 0,
+                    'percentage': 0,
+                    'filename': file.filename,
+                    'status': 'uploading'
+                }
+
                 # Save the file
                 filename = secure_filename(file.filename)
                 file_path = os.path.join(uploads_dir, filename)
-                file.save(file_path)
+
+                # Save the file with progress tracking
+                try:
+                    # Set the file as completely uploaded since we're using request.files
+                    # which means the file is already fully received by the server
+                    app.config['UPLOAD_PROGRESS']['uploaded_size'] = file_size
+                    app.config['UPLOAD_PROGRESS']['percentage'] = 100
+                    app.config['UPLOAD_PROGRESS']['status'] = 'processing'
+                    
+                    # Save the file to disk
+                    file.save(file_path)
+                except Exception as e:
+                    logger.error(f"Error saving file: {str(e)}")
+                    app.config['UPLOAD_PROGRESS']['status'] = 'error'
+                    raise
                 
                 # Process the uploaded file
                 # Determine import type
