@@ -649,6 +649,8 @@ def create_app():
     @admin_required
     def import_data():
         """Page for importing lottery data from spreadsheets (admin only)"""
+        from flask import get_flashed_messages
+        
         imported_results = []
         
         # Get flashed messages to be combined with our own messages
