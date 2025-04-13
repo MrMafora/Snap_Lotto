@@ -145,17 +145,36 @@ def import_snap_lotto_data(excel_file, flask_app=None):
             # Check if this is our template format (has lotto type sheets)
             expected_sheets = ["Lotto", "Lotto Plus 1", "Lotto Plus 2", "Powerball", "Powerball Plus", "Daily Lotto"]
             
-            # If this is our template format with no data yet
+            # If this is our template format, check if there's data in at least one sheet
             if any(sheet in sheet_names for sheet in expected_sheets):
-                logger.info("This appears to be an empty template file. No data to import.")
-                if flask_app:
-                    with flask_app.app_context():
-                        from flask import flash
-                        flash("❗ EMPTY TEMPLATE DETECTED", "danger")  # Use danger for maximum visibility
-                        flash("The uploaded file appears to be an empty template. Please add lottery data to the template sheets and try again.", "info")
-                        flash("No data was imported. Please fill in the template with lottery data before uploading.", "warning")
-                        flash("How to add data: 1) Open the template, 2) Add lottery information to each sheet, 3) Save the file, 4) Upload again", "info")
-                return True  # Special case for empty template
+                # Check each sheet for data
+                has_data = False
+                for sheet in expected_sheets:
+                    if sheet in sheet_names:
+                        try:
+                            df = pd.read_excel(excel_file, sheet_name=sheet)
+                            # Check if there are rows with actual data
+                            if not df.empty and len(df) > 0:
+                                # Check if some common lottery columns exist
+                                for column in ["Draw Number", "Draw Date", "Game Name", "Winning Numbers"]:
+                                    if any(col for col in df.columns if column.lower() in str(col).lower()):
+                                        has_data = True
+                                        logger.info(f"Found lottery data in sheet: {sheet}")
+                                        break
+                        except Exception as e:
+                            logger.error(f"Error reading sheet {sheet}: {str(e)}")
+                
+                # If no data found in any sheet
+                if not has_data:
+                    logger.info("This appears to be an empty template file. No data to import.")
+                    if flask_app:
+                        with flask_app.app_context():
+                            from flask import flash
+                            flash("❗ EMPTY TEMPLATE DETECTED", "danger")  # Use danger for maximum visibility
+                            flash("The uploaded file appears to be an empty template. Please add lottery data to the template sheets and try again.", "info")
+                            flash("No data was imported. Please fill in the template with lottery data before uploading.", "warning")
+                            flash("How to add data: 1) Open the template, 2) Add lottery information to each sheet, 3) Save the file, 4) Upload again", "info")
+                    return True  # Special case for empty template
                 
             # Try to read the expected sheet for the standard Snap Lotto format
             try:
