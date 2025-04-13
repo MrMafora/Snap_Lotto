@@ -2,6 +2,9 @@ import os
 
 class Config:
     """Application configuration settings"""
+    # Environment settings
+    ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development')  # 'development' or 'production'
+    
     # Flask settings
     SECRET_KEY = os.environ.get('SESSION_SECRET', 'lottery-scraper-default-secret')
     DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
