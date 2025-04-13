@@ -820,10 +820,7 @@ def create_app():
                                 messages.append(('success', success_msg))
                                 
                                 # Flash additional statistics
-                                if flask_app:
-                                    with flask_app.app_context():
-                                        from flask import flash
-                                        flash(f"Import completed successfully with {results_info.get('imported_count', 0)} total records processed.", "success")
+                                flash(f"Import completed successfully with {results_info.get('imported_count', 0)} total records processed.", "success")
                                 
                                 if results_info.get('errors_count', 0) > 0:
                                     messages.append(('warning', f'Encountered {results_info.get("errors_count", 0)} errors during import'))
