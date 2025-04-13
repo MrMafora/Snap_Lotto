@@ -662,14 +662,14 @@ def create_app():
             # Check if a file was uploaded
             if 'excel_file' not in request.files:
                 messages.append(('danger', 'No file part in the request. Please select a file.'))
-                return render_template('import.html', messages=messages)
+                return render_template('import_data.html', form=form, messages=messages)
                 
             file = request.files['excel_file']
             
             # If user doesn't select file, browser submits an empty part without filename
             if file.filename == '':
                 messages.append(('danger', 'No selected file. Please choose an Excel file to upload.'))
-                return render_template('import.html', messages=messages)
+                return render_template('import_data.html', form=form, messages=messages)
                 
             # Check for valid Excel file
             if file and file.filename.endswith(('.xlsx', '.xls')):
