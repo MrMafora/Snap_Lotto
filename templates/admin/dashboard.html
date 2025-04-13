@@ -59,10 +59,9 @@
                     <a href="{{ url_for('settings') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-cog me-2"></i> Manage Data Syncs
                     </a>
-                    <!-- Removed cleanup_screenshots link as the route doesn't exist -->
-                    <!--<a href="#" class="list-group-item list-group-item-action">
-                        <i class="fas fa-broom me-2"></i> Cleanup Screenshots
-                    </a>-->
+                    <a href="{{ url_for('export_screenshots') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-download me-2"></i> Export Screenshots & Template
+                    </a>
                     <a href="{{ url_for('register') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-user-plus me-2"></i> Add Admin User
                     </a>

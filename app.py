@@ -11,7 +11,7 @@ import logging
 import shutil
 import traceback
 from functools import wraps
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, send_file
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -703,5 +703,136 @@ def create_app():
             return redirect(url_for('results'))
         
         return render_template('draw_details.html', result=result)
+    
+    @app.route('/admin/export-screenshots')
+    @login_required
+    @admin_required
+    def export_screenshots():
+        """Export latest screenshots and an empty template Excel file as a zip archive"""
+        import io
+        import zipfile
+        import openpyxl
+        from datetime import datetime
+        
+        # Create an in-memory file
+        memory_file = io.BytesIO()
+        
+        # Create a zipfile in memory
+        with zipfile.ZipFile(memory_file, 'w') as zf:
+            # Get the latest screenshots (limit to 20 to avoid huge files)
+            latest_screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).limit(20).all()
+            
+            # Create a manifest file with details of the screenshots
+            manifest_content = "Screenshot Export Manifest\n"
+            manifest_content += f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            manifest_content += f"Total Screenshots: {len(latest_screenshots)}\n\n"
+            manifest_content += "Screenshot Details:\n"
+            
+            # Add screenshots to the zip file
+            for idx, screenshot in enumerate(latest_screenshots):
+                try:
+                    # Get original screenshot path
+                    screenshot_path = screenshot.path
+                    
+                    # Add to manifest
+                    manifest_content += f"{idx+1}. {screenshot.lottery_type} - {screenshot.timestamp.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                    manifest_content += f"   URL: {screenshot.url}\n"
+                    
+                    # Only add the file if it exists
+                    if os.path.exists(screenshot_path):
+                        # Add to zip with a nicely formatted filename
+                        formatted_name = f"{screenshot.lottery_type.replace(' ', '_')}_{screenshot.timestamp.strftime('%Y%m%d_%H%M%S')}.png"
+                        zf.write(screenshot_path, f"screenshots/{formatted_name}")
+                        
+                        # Also add zoomed screenshot if available
+                        if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                            formatted_zoomed_name = f"{screenshot.lottery_type.replace(' ', '_')}_{screenshot.timestamp.strftime('%Y%m%d_%H%M%S')}_zoomed.png"
+                            zf.write(screenshot.zoomed_path, f"screenshots/{formatted_zoomed_name}")
+                    else:
+                        manifest_content += f"   WARNING: Screenshot file not found: {screenshot_path}\n"
+                except Exception as e:
+                    logger.error(f"Error adding screenshot to zip: {str(e)}")
+                    manifest_content += f"   ERROR: Failed to add screenshot: {str(e)}\n"
+            
+            # Add manifest to zip
+            zf.writestr("manifest.txt", manifest_content)
+            
+            # Create an empty Excel template
+            workbook = openpyxl.Workbook()
+            
+            # Create sheet for each lottery type
+            lottery_types = ["Lotto", "Lotto Plus 1", "Lotto Plus 2", "Powerball", "Powerball Plus", "Daily Lotto"]
+            
+            # Delete default sheet
+            if "Sheet" in workbook.sheetnames:
+                del workbook[workbook.sheetnames[0]]
+            
+            for lottery_type in lottery_types:
+                sheet = workbook.create_sheet(title=lottery_type)
+                
+                # Add headers
+                headers = ["Draw Number", "Draw Date", "Number 1", "Number 2", "Number 3", "Number 4", "Number 5"]
+                
+                # Add bonus ball header for games that have it
+                if lottery_type != "Daily Lotto":
+                    if "Powerball" in lottery_type:
+                        headers.append("Powerball")
+                    else:
+                        headers.append("Bonus Ball")
+                        
+                # Add division headers - typically there are up to 8 divisions
+                for i in range(1, 9):
+                    headers.append(f"Division {i} Winners")
+                    headers.append(f"Division {i} Prize")
+                
+                # Set headers
+                for col, header in enumerate(headers, 1):
+                    sheet.cell(row=1, column=col, value=header)
+                
+                # Format header row
+                for cell in sheet[1]:
+                    cell.font = openpyxl.styles.Font(bold=True)
+            
+            # Create a usage instructions sheet
+            instructions = workbook.create_sheet(title="Instructions")
+            instructions['A1'] = "Lottery Data Import Template"
+            instructions['A1'].font = openpyxl.styles.Font(bold=True, size=14)
+            
+            instructions['A3'] = "Instructions:"
+            instructions['A3'].font = openpyxl.styles.Font(bold=True)
+            
+            instructions_text = [
+                "1. Enter lottery data in the corresponding sheets.",
+                "2. For each draw, provide the draw number, date, and winning numbers.",
+                "3. For division data, enter the number of winners and prize amount.",
+                "4. Date format should be YYYY-MM-DD (e.g., 2025-04-13).",
+                "5. Save this file when complete.",
+                "6. Upload the completed file through the 'Import Data' page."
+            ]
+            
+            for i, text in enumerate(instructions_text, 4):
+                instructions[f'A{i}'] = text
+            
+            # Save Excel to a bytes buffer
+            excel_bytes = io.BytesIO()
+            workbook.save(excel_bytes)
+            excel_bytes.seek(0)
+            
+            # Add Excel template to zip
+            zf.writestr("lottery_data_template.xlsx", excel_bytes.getvalue())
+        
+        # Reset file pointer
+        memory_file.seek(0)
+        
+        # Generate timestamp for filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # Send the in-memory file as a response for the browser to download
+        return send_file(
+            memory_file, 
+            mimetype='application/zip', 
+            as_attachment=True,
+            download_name=f'lottery_screenshots_export_{timestamp}.zip'
+        )
 
     return app
