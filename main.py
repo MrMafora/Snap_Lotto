@@ -57,8 +57,15 @@ scheduler.init_scheduler(app)
 def index():
     """Homepage with latest lottery results"""
     latest_results = data_aggregator.get_latest_results()
+    
+    # Convert dictionary of results to a list for iteration in the template
+    results_list = []
+    for lottery_type, result in latest_results.items():
+        results_list.append(result)
+    
     return render_template('index.html', 
                            latest_results=latest_results,
+                           results=results_list,
                            title="Latest Lottery Results")
 
 @app.route('/admin')
