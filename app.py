@@ -899,12 +899,12 @@ def create_app():
             # Create an empty Excel template
             workbook = openpyxl.Workbook()
             
-            # Create sheet for each lottery type
-            lottery_types = ["Lotto", "Lotto Plus 1", "Lotto Plus 2", "Powerball", "Powerball Plus", "Daily Lotto"]
-            
             # Delete default sheet
             if "Sheet" in workbook.sheetnames:
                 del workbook[workbook.sheetnames[0]]
+            
+            # Create sheet for each lottery type
+            lottery_types = ["Lotto", "Lotto Plus 1", "Lotto Plus 2", "Powerball", "Powerball Plus", "Daily Lotto"]
             
             # Create empty sheets with only lottery type names, no headers
             for lottery_type in lottery_types:
