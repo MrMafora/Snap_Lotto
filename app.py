@@ -35,6 +35,13 @@ def create_app():
     app.secret_key = os.environ.get("SESSION_SECRET", "lottery-scraper-default-secret")
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     
+    # Register custom template filters
+    @app.template_filter('basename')
+    def basename_filter(path):
+        """Extract the filename from a full path"""
+        import os
+        return os.path.basename(path)
+    
     # Configure database
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///lottery.db")
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
@@ -462,10 +469,94 @@ def create_app():
                 logger.error(f"Error retaking screenshots: {str(e)}")
                 flash(f"Error retaking screenshots: {str(e)}", "danger")
                 
-            return redirect(url_for('settings'))
+            return redirect(url_for('manage_screenshots'))
         else:
             # Render confirmation page
             return render_template('retake_screenshots.html')
+            
+    @app.route('/manage_screenshots')
+    @login_required
+    @admin_required
+    def manage_screenshots():
+        """Page for managing screenshots with preview functionality"""
+        from sqlalchemy import func
+        
+        # Get the latest screenshot for each unique URL
+        # Using a subquery to get the latest screenshot ID for each URL
+        subquery = db.session.query(
+            Screenshot.url,
+            func.max(Screenshot.timestamp).label('max_timestamp')
+        ).group_by(Screenshot.url).subquery()
+        
+        # Join with the main table to get the actual screenshot records
+        latest_screenshots = db.session.query(Screenshot).join(
+            subquery,
+            db.and_(
+                Screenshot.url == subquery.c.url,
+                Screenshot.timestamp == subquery.c.max_timestamp
+            )
+        ).all()
+        
+        return render_template('manage_screenshots.html', screenshots=latest_screenshots)
+
+    @app.route('/retake_single_screenshot/<int:id>')
+    @login_required
+    @admin_required
+    def retake_single_screenshot(id):
+        """Retake a specific screenshot by ID"""
+        from scheduler import run_lottery_task
+        
+        screenshot = Screenshot.query.get_or_404(id)
+        
+        try:
+            # Call the lottery task directly for this URL
+            run_lottery_task(screenshot.url, screenshot.lottery_type)
+            flash(f"Retaking screenshot for {screenshot.lottery_type}. This may take a few moments.", "info")
+        except Exception as e:
+            logger.error(f"Error retaking screenshot for {screenshot.lottery_type}: {str(e)}")
+            flash(f"Error: {str(e)}", "danger")
+            
+        return redirect(url_for('manage_screenshots'))
+        
+    @app.route('/edit_screenshot_url/<int:id>', methods=['GET', 'POST'])
+    @login_required
+    @admin_required
+    def edit_screenshot_url(id):
+        """Edit URL for a specific screenshot and schedule config"""
+        screenshot = Screenshot.query.get_or_404(id)
+        
+        if request.method == 'POST':
+            new_url = request.form.get('url')
+            
+            if not new_url:
+                flash("URL cannot be empty", "danger")
+                return redirect(url_for('manage_screenshots'))
+                
+            try:
+                # Update the screenshot URL
+                old_url = screenshot.url
+                screenshot.url = new_url
+                db.session.commit()
+                
+                # Update any related ScheduleConfig
+                config = ScheduleConfig.query.filter_by(url=old_url).first()
+                if config:
+                    config.url = new_url
+                    db.session.commit()
+                    
+                    # Start a task to take a screenshot with the new URL
+                    from scheduler import run_lottery_task
+                    run_lottery_task(new_url, screenshot.lottery_type)
+                    
+                flash(f"URL updated and retaking screenshot for {screenshot.lottery_type}", "success")
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Error updating URL: {str(e)}")
+                flash(f"Error updating URL: {str(e)}", "danger")
+                
+            return redirect(url_for('manage_screenshots'))
+            
+        return render_template('edit_screenshot_url.html', screenshot=screenshot)
     
     @app.route('/toggle_schedule/<int:id>')
     @login_required

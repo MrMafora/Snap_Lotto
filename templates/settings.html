@@ -165,16 +165,19 @@
             </div>
             <div class="card-body">
                 <p>Manage storage and screenshots quality. The system keeps only the most recent screenshot for each URL.</p>
-                <div class="d-flex gap-2">
-                    <a href="{{ url_for('retake_screenshots') }}" class="btn btn-lottery-primary">
-                        <i class="fas fa-sync-alt"></i> Retake All Screenshots
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('manage_screenshots') }}" class="btn btn-lottery-primary">
+                        <i class="fas fa-images"></i> Manage Screenshots
+                    </a>
+                    <a href="{{ url_for('retake_screenshots') }}" class="btn btn-lottery-secondary">
+                        <i class="fas fa-sync-alt"></i> Retake All
                     </a>
                     <a href="{{ url_for('export_screenshots') }}" class="btn btn-lottery-secondary">
-                        <i class="fas fa-download"></i> Export Screenshots
+                        <i class="fas fa-download"></i> Export
                     </a>
                 </div>
-                <div class="mt-2 small text-secondary">
-                    <i class="fas fa-info-circle"></i> Cleanup is automatically run after each successful task, but you can use the retake feature to refresh all screenshots if they have quality issues.
+                <div class="mt-3 small text-secondary">
+                    <i class="fas fa-info-circle"></i> The Manage Screenshots page allows you to preview images, retake individual screenshots, and edit URLs if needed.
                 </div>
             </div>
         </div>
