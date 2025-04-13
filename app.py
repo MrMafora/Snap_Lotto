@@ -531,23 +531,26 @@ def create_app():
     @admin_required
     def import_data():
         """Page for importing lottery data from spreadsheets (admin only)"""
+        imported_results = []
+        messages = []
+        
         if request.method == 'POST':
             # Check if a file was uploaded
-            if 'file' not in request.files:
-                flash('No file part', 'danger')
-                return redirect(request.url)
+            if 'excel_file' not in request.files:
+                messages.append(('danger', 'No file part in the request. Please select a file.'))
+                return render_template('import.html', messages=messages)
                 
-            file = request.files['file']
+            file = request.files['excel_file']
             
             # If user doesn't select file, browser submits an empty part without filename
             if file.filename == '':
-                flash('No selected file', 'danger')
-                return redirect(request.url)
+                messages.append(('danger', 'No selected file. Please choose an Excel file to upload.'))
+                return render_template('import.html', messages=messages)
                 
             # Check for valid Excel file
             if file and file.filename.endswith(('.xlsx', '.xls')):
                 # Create uploads directory if it doesn't exist
-                uploads_dir = os.path.join(app.root_path, 'uploads')
+                uploads_dir = os.path.join(os.getcwd(), 'uploads')
                 os.makedirs(uploads_dir, exist_ok=True)
                 
                 # Save the file
@@ -558,36 +561,41 @@ def create_app():
                 # Process the uploaded file
                 # Determine import type
                 import_type = request.form.get('import_type', 'standard')
+                logger.info(f"Importing file: {filename} as type: {import_type}")
                 
-                if import_type == 'snap_lotto':
-                    # Use the specialized importer for Snap Lotto format
-                    success = import_snap_lotto_data(file_path, flask_app=app)
-                    if success:
-                        flash(f'Successfully imported Snap Lotto data from {filename}', 'success')
+                try:
+                    if import_type == 'snap_lotto':
+                        # Use the specialized importer for Snap Lotto format
+                        logger.info("Using Snap Lotto importer")
+                        success = import_snap_lotto_data(file_path, flask_app=app)
+                        if success:
+                            messages.append(('success', f'Successfully imported Snap Lotto data from {filename}'))
+                            # Get recently imported results
+                            imported_results = LotteryResult.query.order_by(LotteryResult.created_at.desc()).limit(50).all()
+                        else:
+                            messages.append(('danger', f'Failed to import Snap Lotto data from {filename}'))
                     else:
-                        flash(f'Failed to import Snap Lotto data from {filename}', 'danger')
-                else:
-                    # Use the standard importer
-                    try:
+                        # Use the standard importer
+                        logger.info("Using standard Excel importer")
                         from import_excel import import_excel_data
                         import_excel_data(file_path)
-                        flash(f'Successfully imported data from {filename}', 'success')
-                    except Exception as e:
-                        logger.error(f"Error importing data: {str(e)}")
-                        flash(f'Error importing data: {str(e)}', 'danger')
+                        messages.append(('success', f'Successfully imported data from {filename}'))
+                        # Get recently imported results
+                        imported_results = LotteryResult.query.order_by(LotteryResult.created_at.desc()).limit(50).all()
+                except Exception as e:
+                    logger.error(f"Error importing data: {str(e)}", exc_info=True)
+                    messages.append(('danger', f'Error importing data: {str(e)}'))
                 
                 # Clean up the uploaded file
                 try:
                     os.remove(file_path)
+                    logger.info(f"Removed temporary file: {file_path}")
                 except Exception as e:
                     logger.error(f"Error removing temporary file: {str(e)}")
-                
-                return redirect(url_for('results'))
             else:
-                flash('Invalid file format. Please upload an Excel file (.xlsx or .xls)', 'danger')
-                return redirect(request.url)
+                messages.append(('danger', 'Invalid file format. Please upload an Excel file (.xlsx or .xls)'))
                 
-        return render_template('import.html')
+        return render_template('import.html', messages=messages, imported_results=imported_results)
         
     @app.route('/api/visualization-data')
     def visualization_data():
