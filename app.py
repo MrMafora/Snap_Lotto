@@ -24,8 +24,12 @@ from scheduler import run_lottery_task
 from ticket_scanner import process_ticket_image
 from import_snap_lotto_data import import_snap_lotto_data
 
-# Setup logging
-logging.basicConfig(level=logging.DEBUG)
+# Setup enhanced logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 logger = logging.getLogger(__name__)
 
 # Application factory function
