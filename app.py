@@ -56,6 +56,15 @@ def create_app():
     
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     
+    # Set up upload progress tracking
+    app.config['UPLOAD_PROGRESS'] = {
+        'total_size': 0,
+        'uploaded_size': 0,
+        'percentage': 0,
+        'filename': '',
+        'status': 'idle'
+    }
+    
     # Initialize the app with the database
     db.init_app(app)
     
@@ -644,12 +653,42 @@ def create_app():
         """Data visualization dashboard for lottery results"""
         return render_template('visualizations.html')
         
+    # Global variable to track upload progress
+    upload_progress = {
+        'total_size': 0,
+        'uploaded_size': 0,
+        'percentage': 0,
+        'filename': '',
+        'status': 'idle'
+    }
+    
+    @app.route('/api/upload-progress', methods=['GET'])
+    def get_upload_progress():
+        """API endpoint to get current upload progress"""
+        return jsonify(upload_progress)
+    
+    @app.route('/api/upload-progress/reset', methods=['POST'])
+    @login_required
+    @admin_required
+    def reset_upload_progress():
+        """Reset upload progress tracker"""
+        nonlocal upload_progress
+        upload_progress = {
+            'total_size': 0,
+            'uploaded_size': 0,
+            'percentage': 0,
+            'filename': '',
+            'status': 'idle'
+        }
+        return jsonify({'status': 'reset'})
+    
     @app.route('/import-data', methods=['GET', 'POST'])
     @login_required
     @admin_required
     def import_data():
         """Page for importing lottery data from spreadsheets (admin only)"""
         from flask import get_flashed_messages
+        nonlocal upload_progress
         
         imported_results = []
         
@@ -792,6 +831,25 @@ def create_app():
         screenshots_dir = app.config.get('SCREENSHOT_DIR', os.path.join(os.getcwd(), 'screenshots'))
         return send_from_directory(screenshots_dir, filename)
         
+    @app.route('/api/file-upload-progress')
+    def get_file_upload_progress():
+        """API endpoint to get current file upload progress"""
+        return jsonify(app.config['UPLOAD_PROGRESS'])
+    
+    @app.route('/api/file-upload-progress/reset', methods=['POST'])
+    @login_required
+    @admin_required
+    def reset_file_upload_progress():
+        """Reset file upload progress tracker"""
+        app.config['UPLOAD_PROGRESS'] = {
+            'total_size': 0,
+            'uploaded_size': 0,
+            'percentage': 0,
+            'filename': '',
+            'status': 'idle'
+        }
+        return jsonify({'status': 'reset'})
+    
     @app.route('/api/visualization-data')
     def visualization_data():
         """API endpoint to fetch data for visualizations"""
