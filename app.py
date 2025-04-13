@@ -906,31 +906,9 @@ def create_app():
             if "Sheet" in workbook.sheetnames:
                 del workbook[workbook.sheetnames[0]]
             
+            # Create empty sheets with only lottery type names, no headers
             for lottery_type in lottery_types:
-                sheet = workbook.create_sheet(title=lottery_type)
-                
-                # Add headers
-                headers = ["Draw Number", "Draw Date", "Number 1", "Number 2", "Number 3", "Number 4", "Number 5"]
-                
-                # Add bonus ball header for games that have it
-                if lottery_type != "Daily Lotto":
-                    if "Powerball" in lottery_type:
-                        headers.append("Powerball")
-                    else:
-                        headers.append("Bonus Ball")
-                        
-                # Add division headers - typically there are up to 8 divisions
-                for i in range(1, 9):
-                    headers.append(f"Division {i} Winners")
-                    headers.append(f"Division {i} Prize")
-                
-                # Set headers
-                for col, header in enumerate(headers, 1):
-                    sheet.cell(row=1, column=col, value=header)
-                
-                # Format header row
-                for cell in sheet[1]:
-                    cell.font = openpyxl.styles.Font(bold=True)
+                workbook.create_sheet(title=lottery_type)
             
             # Create a usage instructions sheet
             instructions = workbook.create_sheet(title="Instructions")
@@ -941,12 +919,13 @@ def create_app():
             instructions['A3'].font = openpyxl.styles.Font(bold=True)
             
             instructions_text = [
-                "1. Enter lottery data in the corresponding sheets.",
-                "2. For each draw, provide the draw number, date, and winning numbers.",
-                "3. For division data, enter the number of winners and prize amount.",
+                "1. Add appropriate headers in each lottery sheet.",
+                "2. Suggested columns: Draw Number, Draw Date, Number 1-6, Bonus Ball/Powerball.",
+                "3. For division data, include columns for Division Winners and Prize amounts.",
                 "4. Date format should be YYYY-MM-DD (e.g., 2025-04-13).",
-                "5. Save this file when complete.",
-                "6. Upload the completed file through the 'Import Data' page."
+                "5. Fill in your lottery data under the headers you create.",
+                "6. Save this file when complete.",
+                "7. Upload the completed file through the 'Import Data' page."
             ]
             
             for i, text in enumerate(instructions_text, 4):
