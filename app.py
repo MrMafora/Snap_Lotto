@@ -936,14 +936,14 @@ def create_app():
             workbook.save(excel_bytes)
             excel_bytes.seek(0)
             
-            # Add Excel template to zip
-            zf.writestr("lottery_data_template.xlsx", excel_bytes.getvalue())
+            # Generate timestamp for both the Excel file and zip archive
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            
+            # Add Excel template to zip with date and time in the filename
+            zf.writestr(f"lottery_data_template_{timestamp}.xlsx", excel_bytes.getvalue())
         
         # Reset file pointer
         memory_file.seek(0)
-        
-        # Generate timestamp for filename
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
         # Send the in-memory file as a response for the browser to download
         return send_file(
