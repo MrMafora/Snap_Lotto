@@ -4,7 +4,6 @@ Scheduler for automating lottery data scraping
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from flask import current_app
-import logging
 import atexit
 import threading
 import time
@@ -13,8 +12,10 @@ from screenshot_manager import capture_screenshot
 from ocr_processor import process_screenshot
 from data_aggregator import aggregate_data
 from models import db, ScheduleConfig
+from logger import setup_logger
 
-logger = logging.getLogger(__name__)
+# Set up module-specific logger
+logger = setup_logger(__name__)
 
 # Thread semaphore to limit concurrent lottery tasks
 # This prevents "can't start new thread" errors
