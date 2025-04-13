@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Lottery Results Overview</h1>
+    
+    <div class="row">
+        {% for lottery_type in lottery_types %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-lottery">
+                    <h5 class="card-title mb-0">{{ lottery_type }}</h5>
+                </div>
+                <div class="card-body">
+                    {% if latest_results and lottery_type in latest_results %}
+                    {% set result = latest_results[lottery_type] %}
+                    <div class="text-center mb-3">
+                        <p class="fw-bold">Latest Draw #{{ result.draw_number }}</p>
+                        <p class="text-muted">{{ result.draw_date.strftime('%d %b %Y') }}</p>
+                    </div>
+                    
+                    <div class="lottery-balls-container text-center mb-3">
+                        {% for number in result.get_numbers_list() %}
+                        <span class="lottery-ball">{{ number }}</span>
+                        {% endfor %}
+                        
+                        {% if result.get_bonus_numbers_list() %}
+                        <span class="bonus-indicator">+</span>
+                        {% for bonus in result.get_bonus_numbers_list() %}
+                        <span class="lottery-ball bonus">{{ bonus }}</span>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    {% if result.get_divisions() %}
+                    <div class="divisions-summary mt-3">
+                        {% for div_num, div_data in result.get_divisions().items() %}
+                        {% if loop.index <= 3 %} <!-- Show only top 3 divisions -->
+                        <div class="division-row">
+                            <span class="division-name">{{ div_num }}</span>
+                            <span class="division-prize">{{ div_data.prize }}</span>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% else %}
+                    <p class="text-center text-muted my-4">No results available</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <a href="{{ url_for('lottery_results', lottery_type=lottery_type) }}" class="btn btn-lottery-primary btn-sm w-100">
+                        View All {{ lottery_type }} Results
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-info-circle me-2"></i>
+        All official lottery results are collected automatically from the National Lottery website. 
+        This data is provided for informational purposes only.
+    </div>
+</div>
+{% endblock %}

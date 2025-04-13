@@ -1,0 +1,344 @@
+/* Lottery Application Styles */
+
+/* Color Variables */
+:root {
+    --lottery-red: #e03237;
+    --lottery-yellow: #ffe11d;
+    --lottery-green: #19a03a;
+    --lottery-blue: #67c6ed;
+    --lottery-purple: #8e44ad;
+    --lottery-dark: #333;
+    --lottery-light: #f5f5f5;
+}
+
+/* General Styles */
+.bg-lottery {
+    background-color: var(--lottery-dark);
+    color: white;
+}
+
+.btn-lottery-primary {
+    background-color: var(--lottery-red);
+    border-color: var(--lottery-red);
+    color: white;
+}
+
+.btn-lottery-primary:hover {
+    background-color: #c02030;
+    border-color: #c02030;
+    color: white;
+}
+
+.lottery-header {
+    background-color: var(--lottery-dark);
+    color: white;
+    border-bottom: 3px solid var(--lottery-red);
+}
+
+/* Lottery Ball Styles */
+.lottery-ball {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--lottery-red);
+    color: white;
+    font-weight: bold;
+    margin: 0 2px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+}
+
+.lottery-ball-sm {
+    width: 26px;
+    height: 26px;
+    font-size: 0.85rem;
+}
+
+.lottery-ball-red {
+    background-color: var(--lottery-red);
+}
+
+.lottery-ball-yellow {
+    background-color: var(--lottery-yellow);
+    color: var(--lottery-dark);
+}
+
+.lottery-ball-green {
+    background-color: var(--lottery-green);
+}
+
+.lottery-ball-blue {
+    background-color: var(--lottery-blue);
+    color: var(--lottery-dark);
+}
+
+.lottery-ball-bonus {
+    position: relative;
+    background-color: var(--lottery-yellow);
+    color: var(--lottery-dark);
+}
+
+.lottery-ball-bonus::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--lottery-red);
+    border-radius: 50%;
+    border: 1px solid white;
+}
+
+.bonus-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    font-weight: bold;
+    color: var(--lottery-dark);
+}
+
+/* Game Type Badges */
+.game-type-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: white;
+}
+
+.game-type-lotto {
+    background-color: var(--lottery-red);
+}
+
+.game-type-powerball {
+    background-color: var(--lottery-yellow);
+    color: var(--lottery-dark);
+}
+
+.game-type-daily {
+    background-color: var(--lottery-green);
+}
+
+/* Table Styles */
+.table-lottery {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table-lottery thead th {
+    background-color: rgba(0, 0, 0, 0.03);
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-bottom: 2px solid var(--lottery-red);
+}
+
+/* Divisions Display */
+.divisions-summary {
+    font-size: 0.9rem;
+}
+
+.division-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    border-bottom: 1px dotted #eee;
+}
+
+.division-name {
+    font-weight: 600;
+}
+
+.division-prize {
+    color: var(--lottery-red);
+    font-weight: 600;
+}
+
+/* Slogan Banner */
+.slogan-banner {
+    background-color: var(--lottery-yellow);
+    padding: 5px 15px;
+    border-radius: 20px;
+    display: inline-block;
+    transform: rotate(-2deg);
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.slogan-text {
+    color: var(--lottery-dark);
+    font-weight: bold;
+    text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7);
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--lottery-light);
+    border-top: 5px solid var(--lottery-red);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    color: white;
+    margin-top: 20px;
+    text-align: center;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Admin Image Preview */
+.screenshot-thumbnail {
+    max-width: 150px;
+    max-height: 100px;
+    cursor: pointer;
+    border: 1px solid #ddd;
+    padding: 2px;
+    border-radius: 3px;
+}
+
+.image-preview-modal .modal-dialog {
+    max-width: 90%;
+}
+
+/* Data Import Progress */
+.progress-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.progress-container {
+    width: 80%;
+    max-width: 600px;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.progress-title {
+    margin-bottom: 15px;
+    color: var(--lottery-dark);
+}
+
+.progress-bar-container {
+    height: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--lottery-red);
+    border-radius: 10px;
+    width: 0;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 14px;
+    color: var(--lottery-dark);
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.progress-stats {
+    font-size: 12px;
+    color: #777;
+}
+
+/* Heatmap Visualization Styles */
+.heatmap-ball {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin: 4px;
+    border-radius: 50%;
+    font-weight: bold;
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(200, 200, 200, 1);
+    transition: background-color 0.3s, transform 0.2s;
+    cursor: pointer;
+}
+
+.heatmap-ball:hover {
+    transform: scale(1.1);
+}
+
+.heatmap-color {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+}
+
+/* Ad Management */
+.ad-container {
+    width: 100%;
+    margin: 20px 0;
+    min-height: 100px;
+    background-color: #f8f9fa;
+    border: 1px dashed #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ad-placeholder {
+    color: #999;
+    text-align: center;
+    padding: 20px;
+}
+
+.ad-header, .ad-footer {
+    width: 100%;
+    margin: 15px 0;
+    min-height: 90px;
+}
+
+.ad-sidebar {
+    min-height: 250px;
+    margin: 15px 0;
+}
+
+.ad-ticket-steps {
+    width: 100%;
+    min-height: 250px;
+    margin: 20px 0;
+}

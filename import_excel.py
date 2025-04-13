@@ -11,7 +11,7 @@ import json
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from main import app
+from flask import current_app
 from models import db, LotteryResult, Screenshot
 
 # Set up logging
@@ -136,15 +136,19 @@ def standardize_lottery_type(lottery_type):
     # If no match, return original with proper capitalization
     return str(lottery_type).strip()
 
-def import_excel_data(excel_file):
+def import_excel_data(excel_file, flask_app=None):
     """
     Import lottery data from Excel spreadsheet.
     
     Args:
         excel_file (str): Path to Excel file
+        flask_app: Flask app object for context (optional)
     """
     try:
-        with app.app_context():
+        # Use current_app or provided app
+        ctx = flask_app.app_context() if flask_app else current_app.app_context()
+        
+        with ctx:
             logger.info(f"Starting import from {excel_file}...")
             
             # Read Excel file - try multiple sheets if needed
@@ -337,6 +341,79 @@ def import_excel_data(excel_file):
             return True
     except Exception as e:
         logger.error(f"Error during import operation: {str(e)}")
+        return False
+
+def create_empty_template(output_path):
+    """
+    Create an empty Excel template for lottery data import.
+    
+    Args:
+        output_path (str): Path to save the Excel file
+    
+    Returns:
+        bool: Success status
+    """
+    try:
+        # Create a Pandas Excel writer
+        writer = pd.ExcelWriter(output_path, engine='openpyxl')
+        
+        # Create template dataframes for each lottery type
+        lottery_types = [
+            'Lotto', 
+            'Lotto Plus 1', 
+            'Lotto Plus 2', 
+            'Powerball', 
+            'Powerball Plus', 
+            'Daily Lotto'
+        ]
+        
+        # Define columns for the template
+        columns = [
+            'Game Type', 
+            'Draw Number', 
+            'Draw Date', 
+            'Winning Numbers', 
+            'Bonus Number',
+            'Division 1 Prize', 
+            'Division 1 Winners',
+            'Division 2 Prize', 
+            'Division 2 Winners',
+            'Division 3 Prize', 
+            'Division 3 Winners'
+        ]
+        
+        # Create a sheet for each lottery type
+        for lottery_type in lottery_types:
+            # Create empty dataframe with headers
+            df = pd.DataFrame(columns=columns)
+            
+            # Add a sample row with format hints
+            sample_data = {
+                'Game Type': lottery_type,
+                'Draw Number': '1234',
+                'Draw Date': '2025-01-01',
+                'Winning Numbers': '1, 2, 3, 4, 5, 6',
+                'Bonus Number': '7' if lottery_type != 'Daily Lotto' else '',
+                'Division 1 Prize': 'R1,000,000.00',
+                'Division 1 Winners': '1',
+                'Division 2 Prize': 'R100,000.00',
+                'Division 2 Winners': '5',
+                'Division 3 Prize': 'R2,500.00',
+                'Division 3 Winners': '100'
+            }
+            df = pd.concat([df, pd.DataFrame([sample_data])], ignore_index=True)
+            
+            # Write dataframe to Excel sheet
+            df.to_excel(writer, sheet_name=lottery_type, index=False)
+            
+        # Save the Excel file
+        writer.close()
+        
+        logger.info(f"Empty template created at {output_path}")
+        return True
+    
+    except Exception as e:
+        logger.error(f"Error creating empty template: {str(e)}")
         return False
 
 if __name__ == "__main__":
