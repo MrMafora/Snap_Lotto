@@ -86,6 +86,17 @@
         justify-content: center;
         padding: 20px;
     }
+    
+    /* Button pulse animation */
+    @keyframes btn-pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); box-shadow: 0 0 15px rgba(40, 167, 69, 0.7); }
+        100% { transform: scale(1); }
+    }
+    
+    .btn-pulse {
+        animation: btn-pulse 1.5s infinite;
+    }
 </style>
 {% endblock %}
 
@@ -466,14 +477,19 @@
                     displayResults(data);
                 };
                 
-                // Display the advertisement for 30 seconds before automatically proceeding
-                // In production, this would allow sufficient time for ad engagement
-                console.log('Setting 30-second ad display timer...');
+                // FORCEFULLY disable the view results button for 30 seconds
+                console.log('Setting 30-second mandatory ad display timer...');
+                
+                // Disable the View Results button
+                viewResultsBtn.disabled = true;
+                viewResultsBtn.style.opacity = '0.5';
+                viewResultsBtn.style.cursor = 'not-allowed';
+                viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 30s)';
                 
                 // Add a counter display to show remaining seconds
                 const counterElement = document.createElement('div');
                 counterElement.id = 'ad-countdown';
-                counterElement.style.cssText = 'margin-top: 10px; font-size: 14px; color: #666;';
+                counterElement.style.cssText = 'margin-top: 10px; font-size: 14px; color: #666; font-weight: bold;';
                 adOverlayResults.querySelector('.ad-container').appendChild(counterElement);
                 
                 let remainingSeconds = 30;
@@ -483,19 +499,36 @@
                     remainingSeconds--;
                     counterElement.textContent = `Results available in ${remainingSeconds} seconds...`;
                     
+                    // Update button text
+                    viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${remainingSeconds}s)`;
+                    
                     if (remainingSeconds <= 0) {
                         clearInterval(countdownInterval);
+                        // Enable the button after time is up
+                        viewResultsBtn.disabled = false;
+                        viewResultsBtn.style.opacity = '1';
+                        viewResultsBtn.style.cursor = 'pointer';
+                        viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                        // Make the button pulse to draw attention
+                        viewResultsBtn.classList.add('btn-pulse');
                     }
                 }, 1000);
                 
-                // Set the main timeout to proceed after 30 seconds
+                // After 30 seconds, enable the View Results button and update UI
                 setTimeout(() => {
-                    clearInterval(countdownInterval);
+                    if (countdownInterval) {
+                        clearInterval(countdownInterval);
+                    }
+                    
                     console.log('30-second ad display timer completed');
                     
+                    // Make sure the button is enabled
                     if (adOverlayResults.style.display === 'flex') {
-                        console.log('Automatically showing results after ad display');
-                        viewResultsBtn.click();
+                        viewResultsBtn.disabled = false;
+                        viewResultsBtn.style.opacity = '1';
+                        viewResultsBtn.style.cursor = 'pointer';
+                        viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                        viewResultsBtn.classList.add('btn-pulse');
                     }
                 }, 30000);
             })
