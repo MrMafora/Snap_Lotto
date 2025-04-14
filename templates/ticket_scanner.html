@@ -13,6 +13,31 @@
         border-radius: 8px;
         padding: 40px;
         text-align: center;
+    }
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+        }
+        
+        70% {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+        }
+        
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+        }
+    }
+    
+    /* Updated matched ball styling with glow effect */
+    .ball-matched {
+        border: 3px solid #28a745 !important;
+        box-shadow: 0 0 10px #28a745;
+    }
+    
+    .ticket-drop-area {
         background-color: rgba(0,0,0,0.05);
         cursor: pointer;
         transition: all 0.3s;
@@ -30,6 +55,7 @@
     .results-container {
         margin-top: 30px;
     }
+    /* Position and checkmark for matched balls */
     .ball-matched {
         position: relative;
     }
@@ -599,23 +625,58 @@
             if (data.ticket_info && data.ticket_info.raw_selected_numbers) {
                 // Display numbers by rows
                 Object.entries(data.ticket_info.raw_selected_numbers).forEach(([rowName, numbers]) => {
-                    // Create row label
+                    // Check if this row has any matches
+                    const rowMatches = numbers.filter(num => data.winning_numbers.includes(num));
+                    const rowBonusMatches = numbers.filter(num => data.bonus_numbers.includes(num));
+                    const hasMatches = rowMatches.length > 0 || rowBonusMatches.length > 0;
+                    
+                    // Create row label with match indicator if applicable
                     const rowLabel = document.createElement('div');
                     rowLabel.classList.add('mt-2', 'mb-1');
-                    rowLabel.innerHTML = `<strong>Row ${rowName}:</strong>`;
+                    if (hasMatches) {
+                        rowLabel.innerHTML = `<strong>Row ${rowName}:</strong> <span class="badge bg-success ms-2">Matches: ${rowMatches.length + rowBonusMatches.length}</span>`;
+                    } else {
+                        rowLabel.innerHTML = `<strong>Row ${rowName}:</strong>`;
+                    }
                     ticketNumbersContainer.appendChild(rowLabel);
                     
                     // Create row container
                     const rowContainer = document.createElement('div');
                     rowContainer.classList.add('mb-3');
                     
+                    // Track if we should show Powerball/bonus number indicator
+                    let isPowerball = false;
+                    
                     // Add balls for this row
-                    numbers.forEach(num => {
+                    numbers.forEach((num, index) => {
+                        // Special handling for the last number in rows for Powerball games
+                        if (data.lottery_type.toLowerCase().includes('powerball') && 
+                            index === numbers.length - 1 && 
+                            numbers.length > 1) {
+                            
+                            // Add plus sign before the Powerball
+                            const plusSpan = document.createElement('span');
+                            plusSpan.classList.add('mx-2');
+                            plusSpan.textContent = '+';
+                            rowContainer.appendChild(plusSpan);
+                            isPowerball = true;
+                        }
+                        
                         const ball = document.createElement('span');
                         ball.classList.add('lottery-ball');
                         
-                        // Add color classes in sequence
-                        if (rowContainer.children.length % 4 === 0) {
+                        // Check if this number is a match
+                        const isMatch = data.winning_numbers.includes(num);
+                        const isBonusMatch = data.bonus_numbers.includes(num);
+                        
+                        if (isMatch || isBonusMatch) {
+                            ball.classList.add('ball-matched');
+                        }
+                        
+                        // Add color classes in sequence or special color for Powerball
+                        if (isPowerball) {
+                            ball.classList.add('lottery-ball-blue', 'lottery-ball-bonus');
+                        } else if (rowContainer.children.length % 4 === 0) {
                             ball.classList.add('lottery-ball-red');
                         } else if (rowContainer.children.length % 4 === 1) {
                             ball.classList.add('lottery-ball-yellow');
@@ -678,14 +739,20 @@
             
             // Add bonus balls if available
             if (data.bonus_numbers && data.bonus_numbers.length > 0) {
+                // Make the plus sign more visible and attractive
                 const plusSpan = document.createElement('span');
-                plusSpan.classList.add('mx-2');
+                plusSpan.classList.add('mx-2', 'fs-4', 'fw-bold', 'text-primary');
                 plusSpan.textContent = '+';
+                plusSpan.style.display = 'inline-block';
+                plusSpan.style.verticalAlign = 'middle';
                 winningNumbersContainer.appendChild(plusSpan);
                 
                 data.bonus_numbers.forEach(num => {
                     const ball = document.createElement('span');
+                    // Make bonus balls visually distinct
                     ball.classList.add('lottery-ball', 'lottery-ball-blue', 'lottery-ball-bonus');
+                    // Add a pulsing effect to bonus balls
+                    ball.style.animation = 'pulse 2s infinite';
                     ball.textContent = num;
                     winningNumbersContainer.appendChild(ball);
                 });
