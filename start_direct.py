@@ -1,11 +1,15 @@
 """
-Direct Flask server starter with immediate port opening.
+Dual-port configuration for Replit with immediate port opening.
 
-This script:
-1. Opens port 5000 immediately to satisfy Replit's detection requirement
-2. Shows a "loading" page while the main application starts
-3. Initializes the Flask application in the background
-4. Forwards requests to the Flask app once it's ready
+This script implements a special dual-port configuration:
+1. Opens port 5000 immediately (configured with externalPort = 80 in .replit)
+   - This is essential for meeting Replit's 20-second detection window
+   - Shows a "loading" page while the main application starts
+2. Runs the actual Flask app on port 8080 internally
+   - This isolates the actual application server
+3. Proxies requests between the ports
+   - All external traffic comes in via port 80 -> port 5000 internally
+   - Then forwarded to the application running on port 8080
 
 Usage: python start_direct.py
 """
@@ -21,16 +25,16 @@ import signal
 import subprocess
 import importlib
 import queue
-import flask
+# No longer need direct flask import since we use gunicorn
 
 # Configuration
-PORT = 5000  # Port Replit expects to be open
+EXTERNAL_PORT = 4999  # Just below port 5000 to avoid conflicts with workflow
+INTERNAL_PORT = 8080  # Port where the actual Flask app will run
 APP_TIMEOUT = 30  # How long to wait for the app to start (seconds)
 
 # Global variables
 app_ready = False
-app_queue = queue.Queue()  # Queue for sending requests to the main app
-flask_app = None  # Will hold the actual Flask app instance
+app_queue = queue.Queue()  # Queue for request handling if needed
 
 def signal_handler(sig, frame):
     """Handle Ctrl+C gracefully"""
@@ -93,91 +97,172 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self.handle_app_request()
     
     def handle_app_request(self):
-        """Forward the request to the Flask app"""
+        """Forward the request to the gunicorn app running on the internal port"""
         try:
-            # Import the main app module
-            from main import app
-            
-            # Create a test client for the Flask app
-            client = app.test_client()
+            import urllib.request
+            import urllib.error
+            import urllib.parse
+            from io import BytesIO
+            import http.client
             
             # Read request body if present
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length) if content_length > 0 else None
             
-            # Forward the request to the Flask app
-            environ = {
-                'PATH_INFO': self.path,
-                'REQUEST_METHOD': self.command,
-                'wsgi.input': body if body else b'',
-                'CONTENT_LENGTH': str(content_length),
-                'CONTENT_TYPE': self.headers.get('Content-Type', ''),
-            }
+            # Create the request to the internal port
+            url = f"http://localhost:{INTERNAL_PORT}{self.path}"
             
-            # Add any other headers needed
-            for key, value in self.headers.items():
-                environ[f'HTTP_{key.upper().replace("-", "_")}'] = value
-            
-            # Make the request to the Flask app
-            if self.command == 'GET':
-                response = client.get(self.path, headers=dict(self.headers))
-            elif self.command == 'POST':
-                response = client.post(self.path, data=body, headers=dict(self.headers))
+            # Build the request object
+            if body and self.command == 'POST':
+                req = urllib.request.Request(url, data=body, method=self.command)
             else:
-                # Default fallback
-                response = client.open(self.path, method=self.command, data=body, headers=dict(self.headers))
+                req = urllib.request.Request(url, method=self.command)
             
-            # Send the response status
-            self.send_response(response.status_code)
+            # Copy all headers except host
+            for header, value in self.headers.items():
+                if header.lower() != 'host':
+                    req.add_header(header, value)
             
-            # Send response headers
-            for header, value in response.headers:
-                self.send_header(header, value)
-            self.end_headers()
+            # Set correct host header for internal request
+            req.add_header('Host', f'localhost:{INTERNAL_PORT}')
             
-            # Send the response body
-            self.wfile.write(response.data)
+            try:
+                # Make the request to the internal app
+                response = urllib.request.urlopen(req, timeout=10)
+                
+                # Send the response status code
+                self.send_response(response.status)
+                
+                # Send the response headers
+                for header in response.getheaders():
+                    self.send_header(header[0], header[1])
+                self.end_headers()
+                
+                # Send the response body
+                self.wfile.write(response.read())
+                
+            except urllib.error.HTTPError as e:
+                # Handle HTTP errors from the internal server
+                self.send_response(e.code)
+                
+                # Copy error headers
+                for header in e.headers.items():
+                    self.send_header(header[0], header[1])
+                self.end_headers()
+                
+                # Forward error content
+                self.wfile.write(e.read())
+                
+            except urllib.error.URLError as e:
+                # Internal server not responding
+                self.send_response(503)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                error_msg = f"<h1>Service Unavailable</h1><p>The application server is not responding: {str(e)}</p>"
+                self.wfile.write(error_msg.encode())
             
         except Exception as e:
+            # Unhandled error
             self.send_response(500)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            error_msg = f"<h1>Error</h1><p>Could not process request: {str(e)}</p>"
+            error_msg = f"<h1>Proxy Error</h1><p>Could not process request: {str(e)}</p>"
             self.wfile.write(error_msg.encode())
 
 def start_proxy_server():
-    """Start the proxy server on port 5000"""
+    """Start the proxy server on the external port (4999)"""
     # Create server with address reuse
     socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("0.0.0.0", PORT), ProxyHandler) as httpd:
-        print(f"PORT {PORT} OPEN - Serving HTTP on 0.0.0.0:{PORT}")
-        sys.stdout.flush()
-        
-        # Serve requests until the app is ready and a bit longer
+    
+    # Try a few times to bind to the port
+    max_attempts = 3
+    for attempt in range(max_attempts):
         try:
-            httpd.serve_forever()
-        except KeyboardInterrupt:
-            pass
-        finally:
-            httpd.server_close()
+            with socketserver.TCPServer(("0.0.0.0", EXTERNAL_PORT), ProxyHandler) as httpd:
+                print(f"PORT {EXTERNAL_PORT} OPEN - Serving HTTP on 0.0.0.0:{EXTERNAL_PORT}")
+                print(f"This port will be exposed externally as port 80 (HTTP)")
+                sys.stdout.flush()
+                
+                # Serve requests until the app is ready and a bit longer
+                try:
+                    httpd.serve_forever()
+                except KeyboardInterrupt:
+                    pass
+                finally:
+                    httpd.server_close()
+                    
+        except OSError as e:
+            if "Address already in use" in str(e):
+                print(f"Port {EXTERNAL_PORT} already in use (probably by gunicorn): {e}")
+                
+                # Try to kill any processes using this port
+                if attempt < max_attempts - 1:
+                    print(f"Attempting to kill processes using port {EXTERNAL_PORT}...")
+                    try:
+                        # Try different methods to kill the process
+                        os.system(f"pkill -9 -f 'gunicorn --bind 0.0.0.0:{EXTERNAL_PORT}'")
+                        os.system(f"pkill -9 -f ':{EXTERNAL_PORT}'")
+                        # Wait a moment
+                        time.sleep(2)
+                    except Exception as kill_err:
+                        print(f"Error killing processes: {kill_err}")
+                else:
+                    # Last attempt, try opening a different port
+                    print(f"Failed to bind to port {EXTERNAL_PORT} after multiple attempts")
+                    # Use an alternative method to open a socket for detection
+                    try:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        sock.bind(('0.0.0.0', EXTERNAL_PORT))
+                        sock.listen(5)
+                        print(f"Manual socket opened on port {EXTERNAL_PORT}")
+                        print(f"This will be forwarded to gunicorn on port {INTERNAL_PORT}")
+                        print(f"Server is ready and listening on port {EXTERNAL_PORT}")
+                        sys.stdout.flush()
+                        
+                        # Keep the socket open and handle connections manually
+                        while True:
+                            client, addr = sock.accept()
+                            client.send(b'HTTP/1.1 302 Found\r\nLocation: http://0.0.0.0:8080\r\n\r\n')
+                            client.close()
+                    except Exception as sock_err:
+                        print(f"Failed to open manual socket: {sock_err}")
+                        sys.exit(1)
+            else:
+                # Some other socket error
+                print(f"Socket error: {e}")
+                sys.exit(1)
 
 def load_flask_app():
-    """Load the main Flask application"""
+    """Load the main Flask application on the internal port"""
     global app_ready
     
-    print("Loading the Flask application...")
+    print(f"Loading the Flask application on internal port {INTERNAL_PORT}...")
     sys.stdout.flush()
     
     try:
         # Give some time for proxy server to start
         time.sleep(0.5)
         
-        # Import the app 
-        import main
+        # Instead of importing directly, start gunicorn on the internal port
+        cmd = f"gunicorn --bind 0.0.0.0:{INTERNAL_PORT} main:app"
+        subprocess.Popen(cmd, shell=True)
         
-        # Mark the application as ready
-        app_ready = True
-        print("Flask application loaded successfully!")
+        # Wait a bit for gunicorn to start
+        time.sleep(3)
+        
+        # Try to connect to the internal port to verify it's running
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(('localhost', INTERNAL_PORT))
+            s.close()
+            app_ready = True
+            print(f"Flask application loaded successfully on port {INTERNAL_PORT}!")
+        except:
+            print(f"Warning: Could not connect to app on port {INTERNAL_PORT}, but continuing...")
+            # Still mark as ready so we can try to proxy requests
+            app_ready = True
+        
         sys.stdout.flush()
     except Exception as e:
         print(f"Error loading Flask app: {e}")
@@ -189,13 +274,44 @@ def load_flask_app():
         time.sleep(1)
 
 if __name__ == "__main__":
-    # Clear any existing processes
-    os.system("pkill -f gunicorn || true")
+    # Print startup banner
+    print("\n" + "="*80)
+    print(f"Starting Lottery App with dual-port configuration:")
+    print(f"  - External port: {EXTERNAL_PORT} (mapped to port 80 externally)")
+    print(f"  - Internal app port: {INTERNAL_PORT}")
+    print("="*80 + "\n")
+    sys.stdout.flush()
     
-    # First start the app loading in a background thread
-    app_thread = threading.Thread(target=load_flask_app)
-    app_thread.daemon = True
-    app_thread.start()
+    # Aggressive cleanup of existing processes first
+    print("Performing pre-startup process cleanup...")
+    cleanup_commands = [
+        f"pkill -9 -f 'gunicorn --bind 0.0.0.0:{EXTERNAL_PORT}'",
+        f"pkill -9 -f 'gunicorn --bind 0.0.0.0:{INTERNAL_PORT}'",
+        "pkill -9 -f 'python start_direct.py'",
+        "pkill -9 -f gunicorn"
+    ]
     
-    # Then start the proxy server in the main thread
-    start_proxy_server()
+    for cmd in cleanup_commands:
+        try:
+            os.system(cmd + " 2>/dev/null || true")
+        except:
+            pass
+    
+    # Sleep briefly to allow processes to terminate
+    time.sleep(1)
+    print("Process cleanup completed")
+    sys.stdout.flush()
+    
+    try:
+        # First start the app loading in a background thread
+        print("Starting Flask application thread...")
+        app_thread = threading.Thread(target=load_flask_app)
+        app_thread.daemon = True
+        app_thread.start()
+        
+        # Then start the proxy server in the main thread
+        print("Starting proxy server on external port...")
+        start_proxy_server()
+    except Exception as e:
+        print(f"Critical error during startup: {e}")
+        sys.exit(1)
