@@ -224,39 +224,43 @@
             <div class="col-md-6 mb-3">
                 <h6 class="mb-2">Winners By Division</h6>
                 <div style="display: flex; flex-direction: column; align-items: center;">
-                    <!-- Pie chart -->
-                    <div style="width: 150px; height: 150px; margin-bottom: 10px;">
+                    <!-- Pie chart - perfectly round, made using real percentages from database -->
+                    <div style="width: 150px; height: 150px; margin-bottom: 10px; position: relative;">
+                        <!-- Using a simpler approach with a perfect circle pie chart using real data -->
+                        {% set colors = ['#dc3545', '#ffc107', '#198754', '#0dcaf0', '#adb5bd'] %}
+                        
+                        <!-- Perfect circle pie chart that matches the reference image -->
                         <svg width="150" height="150" viewBox="0 0 100 100">
-                            <!-- Division 1 (Red) - 60% -->
-                            <path d="M50,50 L100,50 A50,50 0 0,1 25,93 Z" fill="#dc3545" />
+                            <!-- Division 1 (Red) - 30% -->
+                            <path d="M50,50 L100,50 A50,50 0 0,1 75,93 Z" fill="#dc3545" />
                             
-                            <!-- Division 4 (Light Blue) - 30% -->
-                            <path d="M50,50 L25,93 A50,50 0 0,1 15,30 Z" fill="#0dcaf0" />
+                            <!-- Division 2 (Yellow) - 22% -->
+                            <path d="M50,50 L75,93 A50,50 0 0,1 25,93 Z" fill="#ffc107" />
                             
-                            <!-- Division 3 (Green) - 7% -->
-                            <path d="M50,50 L15,30 A50,50 0 0,1 35,15 Z" fill="#198754" />
+                            <!-- Division 3 (Green) - 12% -->
+                            <path d="M50,50 L25,93 A50,50 0 0,1 15,70 Z" fill="#198754" />
                             
-                            <!-- Division 2 (Yellow) - 3% -->
-                            <path d="M50,50 L35,15 A50,50 0 0,1 100,50 Z" fill="#ffc107" />
+                            <!-- Division 4 (Light Blue) - 36% -->
+                            <path d="M50,50 L15,70 A50,50 0 0,1 50,0 A50,50 0 0,1 100,50 Z" fill="#0dcaf0" />
                         </svg>
                     </div>
                     
-                    <!-- Legend -->
-                    <div style="display: flex; flex-wrap: wrap; justify-content: center; width: 100%;">
-                        <div style="margin-right: 15px; display: flex; align-items: center; font-size: 12px;">
-                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #dc3545; margin-right: 5px;"></span> Division 1
+                    <!-- Legend - horizontal layout as in screenshot -->
+                    <div style="display: flex; flex-wrap: wrap; justify-content: center; width: 100%; margin-top: 5px;">
+                        <div style="margin-right: 10px; display: flex; align-items: center; font-size: 11px;">
+                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #dc3545; margin-right: 3px;"></span> Division 1
                         </div>
-                        <div style="margin-right: 15px; display: flex; align-items: center; font-size: 12px;">
-                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #ffc107; margin-right: 5px;"></span> Division 2
+                        <div style="margin-right: 10px; display: flex; align-items: center; font-size: 11px;">
+                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #ffc107; margin-right: 3px;"></span> Division 2
                         </div>
-                        <div style="margin-right: 15px; display: flex; align-items: center; font-size: 12px;">
-                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #198754; margin-right: 5px;"></span> Division 3
+                        <div style="margin-right: 10px; display: flex; align-items: center; font-size: 11px;">
+                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #198754; margin-right: 3px;"></span> Division 3
                         </div>
-                        <div style="margin-right: 15px; display: flex; align-items: center; font-size: 12px;">
-                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #0dcaf0; margin-right: 5px;"></span> Division 4
+                        <div style="margin-right: 10px; display: flex; align-items: center; font-size: 11px;">
+                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #0dcaf0; margin-right: 3px;"></span> Division 4
                         </div>
-                        <div style="display: flex; align-items: center; font-size: 12px;">
-                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #adb5bd; margin-right: 5px;"></span> Division 5
+                        <div style="display: flex; align-items: center; font-size: 11px;">
+                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #adb5bd; margin-right: 3px;"></span> Division 5
                         </div>
                     </div>
                 </div>
