@@ -56,6 +56,12 @@ scheduler.init_scheduler(app)
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""
+    # First, validate and correct any known draws (adds missing division data)
+    corrected = data_aggregator.validate_and_correct_known_draws()
+    if corrected > 0:
+        logger.info(f"Corrected {corrected} lottery draws with verified data")
+    
+    # Get the latest results for each lottery type
     latest_results = data_aggregator.get_latest_results()
     
     # Convert dictionary of results to a list for iteration in the template
@@ -347,6 +353,12 @@ def visualization_data():
 @app.route('/results/<lottery_type>/<draw_number>')
 def draw_details(lottery_type, draw_number):
     """Show detailed information for a specific draw"""
+    # First, validate and correct any known draws (adds missing division data)
+    # This ensures draw details have prize division data if it's available
+    corrected = data_aggregator.validate_and_correct_known_draws()
+    if corrected > 0:
+        logger.info(f"Corrected {corrected} lottery draws with verified data")
+    
     # Get all results with matching lottery type
     all_results = data_aggregator.get_all_results_by_lottery_type(lottery_type)
     
