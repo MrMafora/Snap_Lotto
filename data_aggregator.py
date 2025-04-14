@@ -217,7 +217,7 @@ def normalize_draw_number(draw_number):
 
 def normalize_lottery_type(lottery_type):
     """
-    Normalize lottery type names by removing "Results" suffix.
+    Normalize lottery type names by removing "Results" suffix and standardizing format.
     This allows merging data from both history and results pages.
     
     Args:
@@ -228,10 +228,36 @@ def normalize_lottery_type(lottery_type):
     """
     if not lottery_type:
         return lottery_type
-        
+    
     # Remove "Results" suffix if present
     if lottery_type.endswith(" Results"):
-        return lottery_type[:-8]  # Remove " Results" suffix
+        lottery_type = lottery_type[:-8]  # Remove " Results" suffix
+    
+    # Handle common variations
+    normalized_map = {
+        "lotto plus 1": "Lotto Plus 1",
+        "lotto plus one": "Lotto Plus 1",
+        "lotto plus1": "Lotto Plus 1", 
+        "lottoplus1": "Lotto Plus 1",
+        "lotto plus 2": "Lotto Plus 2",
+        "lotto plus two": "Lotto Plus 2",
+        "lotto plus2": "Lotto Plus 2",
+        "lottoplus2": "Lotto Plus 2",
+        "powerball plus": "Powerball Plus",
+        "power ball plus": "Powerball Plus",
+        "powerball+": "Powerball Plus",
+        "powerballplus": "Powerball Plus",
+        "daily lotto": "Daily Lotto",
+        "dailylotto": "Daily Lotto",
+        "daily-lotto": "Daily Lotto",
+        "lotto": "Lotto",
+        "powerball": "Powerball"
+    }
+    
+    # Look for known variations and standardize
+    lookup_key = lottery_type.lower().strip()
+    if lookup_key in normalized_map:
+        return normalized_map[lookup_key]
     
     return lottery_type
 
@@ -401,7 +427,7 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                                 logger.warning(f"Invalid OCR timestamp format: {extracted_data.get('ocr_timestamp')}")
                         
                         lottery_result = LotteryResult(
-                            lottery_type=lottery_type,
+                            lottery_type=normalized_lottery_type,  # Use normalized type to ensure consistency
                             draw_number=draw_number,
                             draw_date=draw_date,
                             numbers=numbers_json,
