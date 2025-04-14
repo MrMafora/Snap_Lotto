@@ -44,20 +44,14 @@
                         <td>
                             {% if result.source_url %}
                                 <a href="{{ result.source_url }}" target="_blank" class="text-decoration-none">
-                                    {{ result.source_url.split('/')[2] }}
+                                    nationallottery.co.za
                                     <i class="fa fa-external-link-alt small ms-1"></i>
                                 </a>
                             {% else %}
-                                Not specified
+                                manual-import (excel-spreadsheet)
                             {% endif %}
                         </td>
                     </tr>
-                    {% if result.ocr_provider %}
-                    <tr>
-                        <th>OCR Provider:</th>
-                        <td>{{ result.ocr_provider }} {% if result.ocr_model %}({{ result.ocr_model }}){% endif %}</td>
-                    </tr>
-                    {% endif %}
                 </table>
             </div>
             <div class="col-md-6">
