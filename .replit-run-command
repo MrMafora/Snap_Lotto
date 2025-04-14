@@ -1,0 +1,41 @@
+cd "$REPL_HOME" && exec python -c "
+import http.server
+import socketserver
+import threading
+import subprocess
+import time
+import sys
+
+# Start the port 8080 server
+class RedirectHandler(http.server.BaseHTTPRequestHandler):
+    def redirect_request(self):
+        self.send_response(302)
+        host = self.headers.get('Host', '')
+        redirect_host = host.replace(':8080', ':5000') if ':8080' in host else host
+        self.send_header('Location', f'https://{redirect_host}{self.path}')
+        self.end_headers()
+    
+    do_GET = do_POST = do_PUT = do_DELETE = do_HEAD = do_OPTIONS = redirect_request
+    
+    def log_message(self, format, *args):
+        pass
+
+print('Starting port 8080 server...')
+try:
+    server = socketserver.TCPServer(('0.0.0.0', 8080), RedirectHandler)
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.daemon = True
+    server_thread.start()
+    print('Port 8080 server started successfully')
+except Exception as e:
+    print(f'Error starting port 8080 server: {e}')
+    sys.exit(1)
+
+# Start the main application
+print('Starting main application...')
+try:
+    subprocess.run(['gunicorn', '--bind', '0.0.0.0:5000', '--reuse-port', '--reload', 'main:app'])
+except Exception as e:
+    print(f'Error starting main application: {e}')
+    sys.exit(1)
+"

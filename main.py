@@ -2,6 +2,9 @@
 Main application entry point with Flask application defined for deployment.
 
 This file is imported by gunicorn using the 'main:app' notation.
+
+It also includes functionality to automatically bind to port 8080 
+when running directly, to support Replit's external access requirements.
 """
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
@@ -778,14 +781,8 @@ if __name__ == "__main__":
     import argparse
     logging.getLogger('werkzeug').setLevel(logging.INFO)
     
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Run the Lottery Data Intelligence Platform')
-    parser.add_argument('--port', type=int, default=5000, help='Port to run the server on')
-    args, unknown = parser.parse_known_args()
+    # Always force port 8080 for Replit compatibility
+    port = 8080
     
-    # Use environment variable as a fallback for port
-    port = int(os.environ.get('PORT', args.port))
-    
-    # Start the application
-    print(f"Starting Flask application on 0.0.0.0:{port}...")
+    print(f"Starting Flask application directly on 0.0.0.0:{port}...")
     app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)

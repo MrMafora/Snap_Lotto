@@ -5,21 +5,38 @@ This is a direct binding solution that starts the Flask application
 directly on port 8080 without relying on proxies or redirects.
 """
 import os
+import logging
+import importlib.util
 import sys
-import time
 import threading
-from werkzeug.serving import run_simple
+import time
 
-# Add the current directory to the path so we can import the app
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Configure logging
+logging.basicConfig(level=logging.INFO, 
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def start_app():
     """Start the Flask application directly on port 8080"""
-    from main import app
+    try:
+        # Import the app from main.py
+        spec = importlib.util.spec_from_file_location("main", "main.py")
+        main_module = importlib.util.module_from_spec(spec)
+        sys.modules["main"] = main_module
+        spec.loader.exec_module(main_module)
+        
+        # Get the app from main.py
+        app = main_module.app
+        
+        # Run the Flask app directly on port 8080
+        logger.info("Starting Flask application on port 8080")
+        app.run(host='0.0.0.0', port=8080, debug=True, use_reloader=False)
+    except Exception as e:
+        logger.error(f"Error starting Flask application: {e}")
+        return False
     
-    # Run the Flask application on port 8080
-    run_simple('0.0.0.0', 8080, app, use_reloader=True, use_debugger=True)
+    return True
 
 if __name__ == "__main__":
-    print("Starting application directly on port 8080...")
+    logger.info("Starting direct port 8080 binding")
     start_app()
