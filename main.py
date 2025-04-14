@@ -33,6 +33,30 @@ app = Flask(__name__)
 app.config.from_object(Config)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+# Explicitly set database URI from environment variable
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    # Ensure proper PostgreSQL connection string format
+    # Heroku-style connection strings start with postgres:// but SQLAlchemy requires postgresql://
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    logger.info(f"Using database from DATABASE_URL environment variable")
+else:
+    logger.warning("DATABASE_URL not found, using fallback database configuration")
+
+# Initialize SQLAlchemy with additional connection settings
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True
+}
+
+# Add SSL requirement for PostgreSQL connections
+if app.config['SQLALCHEMY_DATABASE_URI'] and app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql'):
+    app.config['SQLALCHEMY_ENGINE_OPTIONS']["connect_args"] = {"sslmode": "require"}
+    logger.info("PostgreSQL SSL mode enabled")
+
 # Initialize SQLAlchemy
 db.init_app(app)
 
