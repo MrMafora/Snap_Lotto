@@ -12,7 +12,7 @@ echo "Starting Gunicorn server with minimal configuration..."
 # Use --preload to load the application before forking workers
 # This helps with faster startup and port detection
 gunicorn \
-  --bind 0.0.0.0:5000 \
+  --bind 0.0.0.0:8080 \
   --reuse-port \
   --workers 1 \
   --worker-class sync \

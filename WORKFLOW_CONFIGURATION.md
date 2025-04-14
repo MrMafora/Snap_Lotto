@@ -1,54 +1,39 @@
-# Workflow Configuration Instructions
+# Replit Workflow Configuration
 
-This document provides instructions for manually updating the Replit workflow configuration to use our optimized port handling system.
+## Current Configuration
 
-## Current Issue
+The application is configured to work with Replit's expected port configuration:
 
-The default Replit workflow tries to run gunicorn directly with:
-```bash
-gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
-```
+1. **gunicorn on port 5000**:
+   - Replit expects the application to run on port 5000
+   - We use gunicorn to bind to this port: `gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app`
 
-This can cause port conflicts and fails to handle the Replit 20-second timeout requirement properly.
+2. **Essential files**:
+   - `main.py`: The main Flask application
+   - `workflow_wrapper.sh`: The script that Replit runs when starting the workflow
+   - `force_kill_port_5000.sh`: Script to forcefully terminate any processes on port 5000
+   - `clear_ports.sh`: Script to clear any processes on required ports
 
-## Solution
+## Workflow Explanation
 
-We've created a workflow wrapper system that:
-1. Opens port 5000 immediately (to satisfy Replit's detection)
-2. Handles process cleanup to avoid port conflicts
-3. Runs the actual application on a different port (8080)
-4. Proxies requests between ports
+When Replit starts the application:
 
-## How to Update Your Workflow
+1. The workflow runs `./workflow_wrapper.sh`
+2. This runs `force_kill_port_5000.sh` to ensure the port is free
+3. Then it launches gunicorn directly on port 5000, binding to `main:app`
+4. Gunicorn handles the application, with automatic reloading for development
 
-Since you can't directly edit the .replit file using our tools, you'll need to manually update the workflow task in the Replit UI:
+## Deployment Configuration
 
-1. Click on the "Tools" button in the sidebar
-2. Select "Workflow" 
-3. Find the "Start application" workflow
-4. Edit the "shell.exec" task command
-5. Replace:
-   ```
-   gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
-   ```
-   With:
-   ```
-   ./workflow_wrapper.sh
-   ```
-6. Save the changes
+For deployment:
 
-## Verifying It Works
+1. Replit uses the command in the "run" field of the deployment configuration
+2. We use the same approach: gunicorn binding to port 5000
 
-After making these changes:
-1. Restart the workflow using the restart button
-2. Check that port 5000 is opened immediately
-3. Verify the application is running on port 8080
-4. Confirm the proxy is handling requests between the ports
+## Important Notes
 
-## Troubleshooting
+1. **Don't change ports**: Keep using port 5000 as this is what Replit expects
+2. **Don't modify `.replit`**: The workflow configuration in the Replit UI should match our approach
+3. **Keep it simple**: Avoid complex port forwarding or dual-port approaches
 
-If you encounter issues:
-1. Run `./clear_ports.sh` to kill any existing processes
-2. Check logs for any specific errors
-3. Verify file permissions (`chmod +x` on all the .sh files)
-4. Ensure all required scripts are in the correct location
+This configuration ensures compatibility with Replit's workflow system and avoids port conflicts.

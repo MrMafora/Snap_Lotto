@@ -1,16 +1,12 @@
 #!/bin/bash
-# This script is designed to be called by Replit's workflow system
-# instead of gunicorn directly.
+# This script is called by Replit's workflow system
+# instead of calling gunicorn directly
 
-# Kill any existing processes on ports 5000 and 8080
-echo "Preparing ports for use..."
-pkill -9 -f "gunicorn" || true
-pkill -9 -f "start_direct.py" || true
-pkill -9 -f "python" || true
-sleep 1
+# Force kill any processes on these ports first
+echo "Forcefully terminating any processes on port 5000..."
+./force_kill_port_5000.sh
+./clear_ports.sh
 
-# Run our special workflow starter that will:
-# 1. Open port 5000 immediately (for Replit detection)
-# 2. Start our dual-port solution behind the scenes
-echo "Executing workflow starter..."
-exec python workflow_starter.py
+# Run the required gunicorn process on port 5000 to satisfy Replit's requirements
+echo "Starting gunicorn on port 5000 as Replit expects..."
+gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app

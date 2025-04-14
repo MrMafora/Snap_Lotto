@@ -1,77 +1,109 @@
 # Port Configuration for Replit Deployment
 
-This document explains the port configuration used in this application for Replit deployments.
+This document provides instructions for properly configuring the port settings in Replit for deployment.
 
-## Port Setup
+## Current Configuration
 
-The application uses a dual-port configuration to ensure compatibility with Replit's requirements:
+The application has been configured with:
+- Port 4999 opened immediately (for Replit detection)
+- Application running on port 8080 (internal)
+- Port 8080 (internal) forwarded to port 80 (external)
 
-1. **External Port Configuration (Port 4999):**
-   - Used to avoid conflicts with Replit's workflow configuration at port 5000
-   - Could be mapped to external port (e.g., 80) through Replit configuration
-   - First to open during startup to satisfy Replit's 20-second detection requirement
+Note: We're using port 4999 instead of 5000 to avoid conflicts with Replit's detection system.
 
-2. **Internal Port Configuration (Port 8080):**
-   - Used for the actual application server (gunicorn)
-   - Internal routing only, not directly exposed to the internet
+## Scripts Created
 
-## How It Works
+We've created several scripts to handle the port configuration properly:
 
-The `start_direct.py` script orchestrates this configuration:
+1. **start.sh**
+   - Starts the application on port 8080
+   - Contains port conflict resolution logic
 
-1. Immediately opens port 4999 to satisfy Replit's port detection
-2. Shows a "loading" screen to users while the main application starts 
-3. Starts the actual Flask application with gunicorn on port 8080
-4. Proxies requests between port 4999 and port 8080
+2. **clear_ports.sh**
+   - Aggressively clears any processes using ports 4999, 5000, and 8080
+   - Ensures ports are available before application start
 
-This approach ensures:
-- Fast startup time to meet Replit's requirements
-- Proper external access via port 80 (HTTP)
-- Clean separation between external access and internal processing
+3. **workflow_starter.py**
+   - Opens port 4999 immediately for Replit detection
+   - Starts the actual application on port 8080 in parallel
+   - Handles threading and process management
 
-## Startup Scripts
+4. **workflow_wrapper.sh**
+   - Wrapper script for Replit workflows
+   - Calls clear_ports.sh and workflow_starter.py
 
-- `start_direct.sh`: Main entry point that launches the dual-port configuration
-- `deploy_preview.sh`: Used by Replit for deployment, calls start_direct.sh
+5. **deploy_preview.sh**
+   - Script for the deployment command
+   - Uses port 8080 directly (no need for port 5000 in deployment)
 
-## Advanced Port Handling
+## Required Manual Changes
 
-The system includes robust handling for port conflicts and other issues:
+Since you cannot directly edit the `.replit` file using our tools, you'll need to manually update:
 
-1. **Port Conflict Resolution:**
-   - Multiple attempts to bind to port 4999 are made
-   - If the port is in use, the system attempts to kill conflicting processes
-   - As a last resort, a raw socket is used to ensure port 4999 is opened
+### 1. Change the Workflow Command
 
-2. **Process Cleanup:**
-   - Aggressive process termination to free up ports
-   - Multiple methods to identify and kill potentially conflicting processes
-   - Safety pauses to ensure ports are fully freed before starting new processes
+The workflow configuration in `.replit` needs to be updated:
 
-3. **Error Recovery:**
-   - Fallback behavior when primary strategy fails
-   - Redundant approaches to port availability detection
-
-## Replit Configuration
-
-In an ideal configuration, the `.replit` file would contain port configuration as follows:
-
-```toml
-[[ports]]
-localPort = 4999
-externalPort = 80
-
-[[ports]]
-localPort = 8080
+**Current command (line 35):**
+```
+gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
 ```
 
-However, since we cannot directly edit the `.replit` file, our script adapts by using port 4999 to avoid conflicts with port 5000 that might be specified in Replit's configuration.
+**New command (to be changed manually):**
+```
+./workflow_wrapper.sh
+```
+
+### 2. Update Deployment Run Command
+
+The deployment run command also needs updating:
+
+**Current command (line 8):**
+```
+["sh", "-c", "gunicorn --bind 0.0.0.0:5000 main:app"]
+```
+
+**New command (to be changed manually):**
+```
+["sh", "-c", "./deploy_preview.sh"]
+```
+
+## How to Make These Changes
+
+### For Workflow:
+1. Click on the "Tools" button in the sidebar
+2. Select "Workflow" 
+3. Find the "Start application" workflow
+4. Edit the "shell.exec" task command
+5. Replace the gunicorn command with `./workflow_wrapper.sh`
+6. Click Save
+
+### For Deployment:
+1. Go to the "Deploy" tab
+2. Update the run command to use `./deploy_preview.sh`
+
+## Verification Process
+
+After making these changes:
+1. Restart the workflow
+2. You should see "Port 4999 immediately opened for Replit detection" 
+3. Followed by "Starting server on port 8080..."
+4. Confirm external access works through port 80
+
+## Additional Port Configuration
+
+You'll also need to add this port entry to your .replit file:
+```
+[[ports]]
+localPort = 4999
+```
+
+This tells Replit that our application will be opening port 4999.
 
 ## Troubleshooting
 
-If you encounter port conflicts during deployment:
-
-1. Use the provided `deploy_preview.sh` script which includes aggressive process cleanup
-2. Check for lingering processes with `ps aux | grep -E '(4999|5000|8080)'`
-3. Run `./clear_ports.sh` to forcefully terminate all processes using these ports
-4. Restart the workflow with `restart_workflow` if needed
+If you encounter issues:
+1. Run `./clear_ports.sh` manually to clear any port conflicts
+2. Check logs for specific error messages
+3. Verify all script permissions with `chmod +x *.sh`
+4. Try restarting the Replit environment completely
