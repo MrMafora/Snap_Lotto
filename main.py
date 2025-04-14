@@ -45,6 +45,9 @@ login_manager.login_view = 'login'
 csrf = CSRFProtect()
 csrf.init_app(app)
 
+# Exempt the scan-ticket endpoint from CSRF protection
+csrf.exempt('/scan-ticket')
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -167,8 +170,11 @@ def scan_ticket():
         # Read the file data
         image_data = file.read()
         
+        # Import the ticket scanner module
+        import ticket_scanner as ts
+        
         # Process the ticket image using existing function
-        result = ticket_scanner.process_ticket_image(
+        result = ts.process_ticket_image(
             image_data=image_data,
             lottery_type=lottery_type,
             draw_number=draw_number,
