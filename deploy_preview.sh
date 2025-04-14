@@ -1,11 +1,3 @@
 #!/bin/bash
-
-# Kill any existing processes
-pkill -f gunicorn || true
-pkill -f "python" || true
-
-# Wait for ports to be released
-sleep 1
-
-# Run our preview script
-python preview_redirect.py
+# Script used by Replit deployment to start the application
+exec ./start_direct.sh

@@ -1,12 +1,9 @@
 #!/bin/bash
 
-# Kill any existing processes
-pkill -f gunicorn || true
-pkill -f python || true
-pkill -f flask || true
+# First run the pre-start script to open port 5000 quickly
+echo "Running pre-start..."
+python pre_start.py
 
-# Wait for ports to be released
-sleep 1
-
-# Start our optimized preview solution
-python replit_preview.py
+# Then start gunicorn (this will become the foreground process)
+echo "Starting gunicorn..."
+exec gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app

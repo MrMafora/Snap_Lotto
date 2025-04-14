@@ -1,49 +1,40 @@
 """
-Pre-start script to ensure Replit detects port 5000 is open.
-This prints the exact message that Replit looks for before
-gunicorn even starts, which helps with preview detection.
+Pre-start script for Replit port detection.
+Run this file immediately before starting gunicorn to ensure port 5000 is detected.
+
+Usage: python pre_start.py
 """
-import socket
-import time
-import threading
-import subprocess
-import os
 import sys
+import subprocess
+import threading
+import time
 
-def bind_temp_socket():
-    """Bind a temporary socket to port 5000 just for detection"""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    
+def start_port_opener():
+    """Start the immediate port opener in a separate process"""
     try:
-        # Bind to port 5000
-        s.bind(('0.0.0.0', 5000))
-        s.listen(1)
-        
-        # Print the magic message for Replit port detection
-        print("Server is ready and listening on port 5000")
-        
-        # Start the real server in the background
-        threading.Thread(target=start_real_server, daemon=True).start()
-        
-        # Keep socket open briefly
-        time.sleep(0.5)
+        subprocess.Popen(["python", "immediate_port.py"])
+        print("Started immediate port opener for Replit detection")
     except Exception as e:
-        print(f"Error binding to port: {e}")
-    finally:
-        s.close()
-
-def start_real_server():
-    """Start the actual gunicorn server"""
-    time.sleep(0.5)  # Brief delay to ensure our socket is closed
-    subprocess.Popen([
-        "gunicorn",
-        "--bind", "0.0.0.0:5000",
-        "--config", "gunicorn.conf.py",
-        "main:app"
-    ])
-
+        print(f"Failed to start port opener: {e}")
+        
+def check_gunicorn():
+    """Check if gunicorn is already running and kill it if needed"""
+    try:
+        subprocess.run(["pkill", "-f", "gunicorn"], stderr=subprocess.DEVNULL)
+        print("Killed any existing gunicorn processes")
+    except:
+        print("No existing gunicorn processes found")
+    
 if __name__ == "__main__":
-    bind_temp_socket()
-    # This script should exit once the temp socket is closed
-    # allowing the real server to bind to the port
+    # Kill any existing gunicorn processes
+    check_gunicorn()
+    
+    # Start the port opener (don't wait for it to finish)
+    start_port_opener()
+    
+    # Wait a moment for the port opener to start
+    print("Waiting for port opener to initialize...")
+    time.sleep(1)
+    
+    print("Pre-start completed, ready for gunicorn")
+    sys.exit(0)  # Exit with success code
