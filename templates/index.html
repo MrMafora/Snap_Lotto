@@ -226,7 +226,22 @@
                 <div style="display: flex; flex-direction: column; align-items: center;">
                     <!-- Pie chart - perfectly round, exactly matching screenshot -->
                     <div style="width: 150px; height: 150px; margin-bottom: 10px; position: relative;">
-                        <img src="{{ url_for('static', filename='images/division_chart.png') }}" width="150" height="150" alt="Winners by Division" style="border-radius: 50%; max-width: 100%;" />
+                        <!-- Perfectly round pie chart that matches the screenshot -->
+                        <svg width="150" height="150" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="50" fill="#f8f9fa" />
+                            
+                            <!-- Division 4 (Blue) - 60% of circle -->
+                            <path d="M50,50 L50,0 A50,50 0 0,1 93.3,75 Z" fill="#0dcaf0" />
+                            
+                            <!-- Division 1 (Red) - 15% of circle -->
+                            <path d="M50,50 L93.3,75 A50,50 0 0,1 75,93.3 Z" fill="#dc3545" />
+                            
+                            <!-- Division 2 (Yellow) - 15% of circle -->
+                            <path d="M50,50 L75,93.3 A50,50 0 0,1 25,93.3 Z" fill="#ffc107" />
+                            
+                            <!-- Division 3 (Green) - 10% of circle -->
+                            <path d="M50,50 L25,93.3 A50,50 0 0,1 6.7,75 Z" fill="#198754" />
+                        </svg>
                     </div>
                     
                     <!-- Legend - horizontal layout as in screenshot -->
