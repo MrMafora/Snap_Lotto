@@ -2,6 +2,7 @@
 # Gunicorn configuration file
 import multiprocessing
 import os
+import sys
 
 # Determine if we're in production or development
 is_production = os.environ.get('ENVIRONMENT') == 'production'
