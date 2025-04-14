@@ -17,6 +17,10 @@ from logger import setup_logger
 # Set up module-specific logger
 logger = setup_logger(__name__)
 
+# Flag to indicate if we're in Replit environment
+# Used to optimize startup for Replit workflows
+IS_REPLIT_ENV = True
+
 # Thread semaphore to limit concurrent lottery tasks
 # This prevents "can't start new thread" errors
 MAX_CONCURRENT_TASKS = 2
@@ -32,9 +36,25 @@ def init_scheduler(app):
     Returns:
         BackgroundScheduler: Initialized scheduler
     """
+    # Initialize scheduler but don't start it yet
     scheduler = BackgroundScheduler()
-    scheduler.start()
-    logger.info("Scheduler initialized")
+    
+    # In Replit environment, delay scheduler startup to allow port detection
+    if IS_REPLIT_ENV:
+        # Start scheduler in a separate thread after a delay
+        # to ensure app is ready on port 5000 first
+        def delayed_start():
+            logger.info("Delaying scheduler startup for faster application initialization")
+            time.sleep(2)  # Wait for app to fully initialize
+            scheduler.start()
+            logger.info("Scheduler started after delay")
+            
+        # Start the delayed initialization in a background thread
+        threading.Thread(target=delayed_start, daemon=True).start()
+    else:
+        # In non-Replit environments, start immediately
+        scheduler.start()
+        logger.info("Scheduler initialized")
     
     # Register shutdown function
     def shutdown_scheduler(exception=None):

@@ -11,10 +11,10 @@ is_production = os.environ.get('ENVIRONMENT') == 'production'
 bind = "0.0.0.0:5000"
 backlog = 2048
 
-# Worker processes
-workers = multiprocessing.cpu_count() * 2 if is_production else 2
-worker_class = "gthread"  # Using threads for better I/O performance
-threads = 4  # Number of threads per worker
+# Worker processes - keep minimum for faster startup in Replit
+workers = 1  # Use only 1 worker for faster startup
+worker_class = "sync"  # Simplest worker type for faster startup
+threads = 1  # Minimum threads for faster startup
 worker_connections = 1000
 timeout = 60 if is_production else 30  # Longer timeout in production
 keepalive = 5 if is_production else 2
@@ -47,6 +47,8 @@ def pre_exec(server):
     server.log.info("Forked child, re-executing.")
 
 def when_ready(server):
+    # Print a message that Replit can detect to know the server is ready
+    print("Server is ready and listening on port 5000")
     server.log.info("Server is ready. Spawning workers")
 
 def worker_int(worker):

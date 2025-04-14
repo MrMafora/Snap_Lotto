@@ -709,4 +709,11 @@ def api_results(lottery_type):
 
 # When running directly, not through gunicorn
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # Extra logging to help diagnose startup issues
+    import logging
+    logging.getLogger('werkzeug').setLevel(logging.INFO)
+    print("Starting Flask application on 0.0.0.0:5000...")
+    
+    # Start the app with the simplest possible configuration
+    # to ensure it initializes quickly for Replit
+    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
