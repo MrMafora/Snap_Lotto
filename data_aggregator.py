@@ -53,41 +53,95 @@ def has_better_formatted_prizes(new_divisions, existing_divisions):
 # Known correct lottery draw results for verification
 KNOWN_CORRECT_DRAWS = {
     "Lotto": {
+        "2532": {  # April 12, 2025 draw
+            "numbers": [3, 9, 16, 17, 31, 48],
+            "bonus_numbers": [36],
+            "divisions": {
+                "Division 1": {
+                    "winners": "0",
+                    "prize": "R0.00",
+                    "match": "SIX CORRECT NUMBERS"
+                },
+                "Division 2": {
+                    "winners": "1",
+                    "prize": "R153,276.30",
+                    "match": "FIVE CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 3": {
+                    "winners": "41",
+                    "prize": "R4,847.00",
+                    "match": "FIVE CORRECT NUMBERS"
+                },
+                "Division 4": {
+                    "winners": "103",
+                    "prize": "R2,018.40",
+                    "match": "FOUR CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 5": {
+                    "winners": "2562",
+                    "prize": "R142.80",
+                    "match": "FOUR CORRECT NUMBERS"
+                },
+                "Division 6": {
+                    "winners": "3142",
+                    "prize": "R97.50",
+                    "match": "THREE CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 7": {
+                    "winners": "47453",
+                    "prize": "R50.00",
+                    "match": "THREE CORRECT NUMBERS"
+                },
+                "Division 8": {
+                    "winners": "32184",
+                    "prize": "R20.00",
+                    "match": "TWO CORRECT NUMBERS + BONUS BALL"
+                }
+            }
+        },
         "2530": {  # April 5, 2025 draw
             "numbers": [39, 42, 11, 7, 37, 34],
             "bonus_numbers": [44],
             "divisions": {
                 "Division 1": {
                     "winners": "0",
-                    "prize": "R0.00"
+                    "prize": "R0.00",
+                    "match": "SIX CORRECT NUMBERS"
                 },
                 "Division 2": {
                     "winners": "1",
-                    "prize": "R99,273.10"
+                    "prize": "R99,273.10",
+                    "match": "FIVE CORRECT NUMBERS + BONUS BALL"
                 },
                 "Division 3": {
                     "winners": "38",
-                    "prize": "R4,543.40"
+                    "prize": "R4,543.40",
+                    "match": "FIVE CORRECT NUMBERS"
                 },
                 "Division 4": {
                     "winners": "96",
-                    "prize": "R2,248.00"
+                    "prize": "R2,248.00",
+                    "match": "FOUR CORRECT NUMBERS + BONUS BALL"
                 },
                 "Division 5": {
                     "winners": "2498",
-                    "prize": "R145.10"
+                    "prize": "R145.10",
+                    "match": "FOUR CORRECT NUMBERS"
                 },
                 "Division 6": {
                     "winners": "3042",
-                    "prize": "R103.60"
+                    "prize": "R103.60",
+                    "match": "THREE CORRECT NUMBERS + BONUS BALL"
                 },
                 "Division 7": {
                     "winners": "46289",
-                    "prize": "R50.00"
+                    "prize": "R50.00",
+                    "match": "THREE CORRECT NUMBERS"
                 },
                 "Division 8": {
                     "winners": "33113",
-                    "prize": "R20.00"
+                    "prize": "R20.00",
+                    "match": "TWO CORRECT NUMBERS + BONUS BALL"
                 }
             }
         }
@@ -727,8 +781,103 @@ def validate_and_correct_known_draws():
     Returns:
         int: Number of corrected draws
     """
+    corrections_made = 0
+    
+    # Special override for Lotto draw 2532 (April 12, 2025) to fix incorrect numbers and add divisions
+    try:
+        lotto_2532 = LotteryResult.query.filter_by(
+            lottery_type="Lotto",
+            draw_number="2532"
+        ).first()
+        
+        if lotto_2532:
+            correct_numbers = [3, 9, 16, 17, 31, 48]
+            correct_bonus = [36]
+            
+            # Convert to string formats used in the database
+            numbers_json = json.dumps(correct_numbers)
+            bonus_json = json.dumps(correct_bonus)
+            
+            # Check if the numbers are already correct
+            existing_numbers = json.loads(lotto_2532.numbers)
+            existing_bonus = json.loads(lotto_2532.bonus_numbers or '[]')
+            
+            existing_set = set(existing_numbers)
+            correct_set = set(correct_numbers)
+            
+            # Always update divisions data since we now have the correct values
+            divisions_data = {
+                "Division 1": {
+                    "winners": "0",
+                    "prize": "R0.00",
+                    "match": "SIX CORRECT NUMBERS"
+                },
+                "Division 2": {
+                    "winners": "1",
+                    "prize": "R153,276.30",
+                    "match": "FIVE CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 3": {
+                    "winners": "41",
+                    "prize": "R4,847.00",
+                    "match": "FIVE CORRECT NUMBERS"
+                },
+                "Division 4": {
+                    "winners": "103",
+                    "prize": "R2,018.40",
+                    "match": "FOUR CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 5": {
+                    "winners": "2562",
+                    "prize": "R142.80",
+                    "match": "FOUR CORRECT NUMBERS"
+                },
+                "Division 6": {
+                    "winners": "3142",
+                    "prize": "R97.50",
+                    "match": "THREE CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 7": {
+                    "winners": "47453",
+                    "prize": "R50.00",
+                    "match": "THREE CORRECT NUMBERS"
+                },
+                "Division 8": {
+                    "winners": "32184",
+                    "prize": "R20.00",
+                    "match": "TWO CORRECT NUMBERS + BONUS BALL"
+                }
+            }
+            
+            update_needed = False
+            # Check if numbers need to be updated
+            if len(existing_set.intersection(correct_set)) < len(correct_set) * 0.8:
+                logger.info(f"Correcting Lotto draw 2532: {existing_numbers} -> {correct_numbers}")
+                lotto_2532.numbers = numbers_json
+                lotto_2532.bonus_numbers = bonus_json
+                update_needed = True
+            
+            # Check if divisions need to be updated
+            existing_divisions = {}
+            if lotto_2532.divisions:
+                try:
+                    existing_divisions = json.loads(lotto_2532.divisions)
+                except (json.JSONDecodeError, TypeError):
+                    existing_divisions = {}
+            
+            # Update divisions if missing or incomplete
+            if not existing_divisions or len(existing_divisions) < len(divisions_data):
+                logger.info(f"Updating divisions data for Lotto draw 2532")
+                lotto_2532.divisions = json.dumps(divisions_data)
+                update_needed = True
+            
+            if update_needed:
+                db.session.commit()
+                corrections_made += 1
+    except Exception as e:
+        logger.error(f"Error trying to correct Lotto draw 2532: {str(e)}")
+    
     # Special override for Lotto draw 2530 (April 5, 2025) to fix incorrect numbers
-    # This corrects any existing entries in the database to match the official numbers
     try:
         lotto_2530 = LotteryResult.query.filter_by(
             lottery_type="Lotto",
@@ -754,35 +903,43 @@ def validate_and_correct_known_draws():
             divisions_data = {
                 "Division 1": {
                     "winners": "0",
-                    "prize": "R0.00"
+                    "prize": "R0.00",
+                    "match": "SIX CORRECT NUMBERS"
                 },
                 "Division 2": {
                     "winners": "1",
-                    "prize": "R99,273.10"
+                    "prize": "R99,273.10",
+                    "match": "FIVE CORRECT NUMBERS + BONUS BALL"
                 },
                 "Division 3": {
                     "winners": "38",
-                    "prize": "R4,543.40"
+                    "prize": "R4,543.40",
+                    "match": "FIVE CORRECT NUMBERS"
                 },
                 "Division 4": {
                     "winners": "96",
-                    "prize": "R2,248.00"
+                    "prize": "R2,248.00",
+                    "match": "FOUR CORRECT NUMBERS + BONUS BALL"
                 },
                 "Division 5": {
                     "winners": "2498",
-                    "prize": "R145.10"
+                    "prize": "R145.10",
+                    "match": "FOUR CORRECT NUMBERS"
                 },
                 "Division 6": {
                     "winners": "3042",
-                    "prize": "R103.60"
+                    "prize": "R103.60",
+                    "match": "THREE CORRECT NUMBERS + BONUS BALL"
                 },
                 "Division 7": {
                     "winners": "46289",
-                    "prize": "R50.00"
+                    "prize": "R50.00",
+                    "match": "THREE CORRECT NUMBERS"
                 },
                 "Division 8": {
                     "winners": "33113",
-                    "prize": "R20.00"
+                    "prize": "R20.00",
+                    "match": "TWO CORRECT NUMBERS + BONUS BALL"
                 }
             }
             
@@ -810,7 +967,7 @@ def validate_and_correct_known_draws():
             
             if update_needed:
                 db.session.commit()
-                return 1
+                corrections_made += 1
     except Exception as e:
         logger.error(f"Error trying to correct Lotto draw 2530: {str(e)}")
     
