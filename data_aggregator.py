@@ -1486,7 +1486,7 @@ def get_most_frequent_numbers(lottery_type=None, limit=10):
         limit (int, optional): Number of frequent numbers to return
         
     Returns:
-        list: List of most frequent numbers
+        list: List of tuples containing (number, frequency) pairs
     """
     from collections import Counter
     
@@ -1524,8 +1524,8 @@ def get_most_frequent_numbers(lottery_type=None, limit=10):
         for num in numbers:
             number_counter[num] += 1
     
-    # Get the most common numbers
-    most_common = [num for num, _ in number_counter.most_common(limit)]
+    # Get the most common numbers with their frequencies
+    most_common = number_counter.most_common(limit)
     
     return most_common
 

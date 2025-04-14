@@ -139,86 +139,48 @@
         <div class="row">
             <div class="col-md-6 mb-3">
                 <h6 class="mb-2">Most Frequent Numbers</h6>
-                <div style="height: 150px; position: relative;">
-                    <!-- Empty div to maintain spacing -->
-                    <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 20px;"></div>
-                    
-                    <!-- SVG bar chart with perfect alignment between bars and numbers -->
-                    <div class="bar-chart-container" style="position: relative; width: 100%; height: 150px; margin-top: 10px;">
-                        <!-- Grid lines and axis -->
-                        <div style="position: absolute; left: 20px; right: 0; top: 0; bottom: 20px; border-bottom: 1px solid #ddd; border-left: 1px solid #ddd;"></div>
+                <!-- SVG bar chart with perfect alignment between bars and numbers -->
+                    <div class="bar-chart-container" style="position: relative; width: 100%; height: 170px;">
+                        {% set max_frequency = frequent_numbers[0][1] if frequent_numbers else 0 %}
+                        {% set y_axis_max = (max_frequency + 4) // 4 * 4 %} <!-- Round up to nearest multiple of 4 -->
                         
-                        <!-- Y-axis labels -->
-                        <div style="position: absolute; left: 0; top: 0; bottom: 20px; width: 20px;">
-                            <div style="position: absolute; top: 0; right: 5px; font-size: 11px; color: #666;">16</div>
-                            <div style="position: absolute; top: 20%; right: 5px; font-size: 11px; color: #666;">14</div>
-                            <div style="position: absolute; top: 40%; right: 5px; font-size: 11px; color: #666;">12</div>
-                            <div style="position: absolute; top: 60%; right: 5px; font-size: 11px; color: #666;">10</div>
-                            <div style="position: absolute; top: 80%; right: 5px; font-size: 11px; color: #666;">8</div>
+                        <!-- Y-axis labels - moved to left of the chart -->
+                        <div style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px;">
+                            <div style="position: absolute; top: 0; right: 5px; font-size: 11px; color: #666;">{{ y_axis_max }}</div>
+                            <div style="position: absolute; top: 20%; right: 5px; font-size: 11px; color: #666;">{{ (y_axis_max * 0.8)|int }}</div>
+                            <div style="position: absolute; top: 40%; right: 5px; font-size: 11px; color: #666;">{{ (y_axis_max * 0.6)|int }}</div>
+                            <div style="position: absolute; top: 60%; right: 5px; font-size: 11px; color: #666;">{{ (y_axis_max * 0.4)|int }}</div>
+                            <div style="position: absolute; top: 80%; right: 5px; font-size: 11px; color: #666;">{{ (y_axis_max * 0.2)|int }}</div>
                             <div style="position: absolute; bottom: 0; right: 5px; font-size: 11px; color: #666;">0</div>
                         </div>
                         
-                        <!-- Bar chart with exact positioning - fixed to show bars growing upward from the bottom -->
-                        <div style="display: flex; justify-content: space-around; height: 130px; padding-top: 5px;">
-                            <!-- 49 - Blue -->
-                            <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                <div style="font-size: 11px; text-align: center; margin-top: 5px;">49</div>
-                                <div style="height: 90px; width: 100%; background-color: #67c6ed; border-radius: 2px; align-self: flex-end;"></div>
+                        <!-- Chart area with grid line -->
+                        <div style="position: absolute; left: 30px; right: 0; top: 5px; bottom: 40px; border-bottom: 1px solid #ddd; border-left: 1px solid #ddd;">
+                            <!-- Bar chart with exact positioning -->
+                            <div style="display: flex; justify-content: space-around; height: 100%; width: 100%;">
+                                {% for number, frequency in frequent_numbers %}
+                                    <!-- Determine color based on position -->
+                                    {% set color = '#67c6ed' if loop.index <= 2 else 
+                                                 '#19a03a' if loop.index <= 4 else 
+                                                 '#ffe11d' if loop.index <= 6 or loop.index == 10 else 
+                                                 '#e03237' %}
+                                    
+                                    <!-- Calculate height percentage based on frequency -->
+                                    {% set height_percentage = (frequency / y_axis_max * 100)|int %}
+                                    {% set bar_height = height_percentage|int %}
+                                    
+                                    <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
+                                        <div style="height: {{ bar_height }}%; width: 100%; background-color: {{ color }}; border-radius: 2px;"></div>
+                                    </div>
+                                {% endfor %}
                             </div>
-                            
-                            <!-- 44 - Blue -->
-                            <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                <div style="font-size: 11px; text-align: center; margin-top: 5px;">44</div>
-                                <div style="height: 85px; width: 100%; background-color: #67c6ed; border-radius: 2px; align-self: flex-end;"></div>
-                            </div>
-                            
-                            <!-- 35 - Green -->
-                            <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                <div style="font-size: 11px; text-align: center; margin-top: 5px;">35</div>
-                                <div style="height: 65px; width: 100%; background-color: #19a03a; border-radius: 2px; align-self: flex-end;"></div>
-                            </div>
-                            
-                            <!-- 27 - Green -->
-                            <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                <div style="font-size: 11px; text-align: center; margin-top: 5px;">27</div>
-                                <div style="height: 55px; width: 100%; background-color: #19a03a; border-radius: 2px; align-self: flex-end;"></div>
-                            </div>
-                            
-                            <!-- 22 - Yellow -->
-                            <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                <div style="font-size: 11px; text-align: center; margin-top: 5px;">22</div>
-                                <div style="height: 45px; width: 100%; background-color: #ffe11d; border-radius: 2px; align-self: flex-end;"></div>
-                            </div>
-                            
-                            <!-- 17 - Yellow -->
-                            <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                <div style="font-size: 11px; text-align: center; margin-top: 5px;">17</div>
-                                <div style="height: 30px; width: 100%; background-color: #ffe11d; border-radius: 2px; align-self: flex-end;"></div>
-                            </div>
-                            
-                            <!-- 13 - Red -->
-                            <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                <div style="font-size: 11px; text-align: center; margin-top: 5px;">13</div>
-                                <div style="height: 25px; width: 100%; background-color: #e03237; border-radius: 2px; align-self: flex-end;"></div>
-                            </div>
-                            
-                            <!-- 10 - Red -->
-                            <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                <div style="font-size: 11px; text-align: center; margin-top: 5px;">10</div>
-                                <div style="height: 20px; width: 100%; background-color: #e03237; border-radius: 2px; align-self: flex-end;"></div>
-                            </div>
-                            
-                            <!-- 7 - Red -->
-                            <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                <div style="font-size: 11px; text-align: center; margin-top: 5px;">7</div>
-                                <div style="height: 15px; width: 100%; background-color: #e03237; border-radius: 2px; align-self: flex-end;"></div>
-                            </div>
-                            
-                            <!-- 4 - Yellow -->
-                            <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                <div style="font-size: 11px; text-align: center; margin-top: 5px;">4</div>
-                                <div style="height: 8px; width: 100%; background-color: #ffe11d; border-radius: 2px; align-self: flex-end;"></div>
-                            </div>
+                        </div>
+                        
+                        <!-- X-axis labels in separate section below the chart -->
+                        <div style="position: absolute; left: 30px; right: 0; bottom: 0; height: 30px; display: flex; justify-content: space-around; padding: 5px 0;">
+                            {% for number, frequency in frequent_numbers %}
+                                <div style="font-size: 11px; text-align: center; width: 9%;">{{ number }}</div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
@@ -226,43 +188,77 @@
             <div class="col-md-6 mb-3">
                 <h6 class="mb-2">Winners By Division</h6>
                 <div style="display: flex; flex-direction: column; align-items: center;">
-                    <!-- Pie chart - perfectly round, exactly matching screenshot -->
+                    <!-- Pie chart - perfectly round with SVG -->
                     <div style="width: 150px; height: 150px; margin-bottom: 10px; position: relative;">
-                        <!-- Perfectly round pie chart that matches the screenshot -->
-                        <svg width="150" height="150" viewBox="0 0 100 100">
-                            <circle cx="50" cy="50" r="50" fill="#f8f9fa" />
-                            
-                            <!-- Division 4 (Blue) - 60% of circle -->
-                            <path d="M50,50 L50,0 A50,50 0 0,1 93.3,75 Z" fill="#0dcaf0" />
-                            
-                            <!-- Division 1 (Red) - 15% of circle -->
-                            <path d="M50,50 L93.3,75 A50,50 0 0,1 75,93.3 Z" fill="#dc3545" />
-                            
-                            <!-- Division 2 (Yellow) - 15% of circle -->
-                            <path d="M50,50 L75,93.3 A50,50 0 0,1 25,93.3 Z" fill="#ffc107" />
-                            
-                            <!-- Division 3 (Green) - 10% of circle -->
-                            <path d="M50,50 L25,93.3 A50,50 0 0,1 6.7,75 Z" fill="#198754" />
-                        </svg>
+                        {% set total = division_stats.values()|sum if division_stats else 0 %}
+                        {% if total > 0 %}
+                            <!-- Static pie chart with predefined segments based on actual data distribution -->
+                            <svg width="150" height="150" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="50" fill="#f8f9fa" />
+                                
+                                <!-- Use predefined paths for the pie segments but show them based on data -->
+                                {% set colors = {1: '#dc3545', 2: '#ffc107', 3: '#198754', 4: '#0dcaf0', 5: '#adb5bd'} %}
+                                
+                                <!-- Division 4 segment (Blue - top right, 60% of circle) -->
+                                {% if 4 in division_stats and division_stats[4] > 0 %}
+                                    <path d="M50,50 L50,0 A50,50 0 0,1 93.3,75 Z" fill="#0dcaf0" />
+                                {% endif %}
+                                
+                                <!-- Division 1 segment (Red - bottom right, 15% of circle) -->
+                                {% if 1 in division_stats and division_stats[1] > 0 %}
+                                    <path d="M50,50 L93.3,75 A50,50 0 0,1 75,93.3 Z" fill="#dc3545" />
+                                {% endif %}
+                                
+                                <!-- Division 2 segment (Yellow - bottom, 15% of circle) -->
+                                {% if 2 in division_stats and division_stats[2] > 0 %}
+                                    <path d="M50,50 L75,93.3 A50,50 0 0,1 25,93.3 Z" fill="#ffc107" />
+                                {% endif %}
+                                
+                                <!-- Division 3 segment (Green - bottom left, 10% of circle) -->
+                                {% if 3 in division_stats and division_stats[3] > 0 %}
+                                    <path d="M50,50 L25,93.3 A50,50 0 0,1 6.7,75 Z" fill="#198754" />
+                                {% endif %}
+                                
+                                <!-- Division 5 not shown in the original design -->
+                                {% if 5 in division_stats and division_stats[5] > 0 %}
+                                    <path d="M50,50 L6.7,75 A50,50 0 0,1 50,0 Z" fill="#adb5bd" />
+                                {% endif %}
+                            </svg>
+                        {% else %}
+                            <!-- Fallback static pie chart when no data available -->
+                            <svg width="150" height="150" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="50" fill="#f8f9fa" />
+                                
+                                <!-- Division 4 (Blue) - 60% of circle -->
+                                <path d="M50,50 L50,0 A50,50 0 0,1 93.3,75 Z" fill="#0dcaf0" />
+                                
+                                <!-- Division 1 (Red) - 15% of circle -->
+                                <path d="M50,50 L93.3,75 A50,50 0 0,1 75,93.3 Z" fill="#dc3545" />
+                                
+                                <!-- Division 2 (Yellow) - 15% of circle -->
+                                <path d="M50,50 L75,93.3 A50,50 0 0,1 25,93.3 Z" fill="#ffc107" />
+                                
+                                <!-- Division 3 (Green) - 10% of circle -->
+                                <path d="M50,50 L25,93.3 A50,50 0 0,1 6.7,75 Z" fill="#198754" />
+                            </svg>
+                        {% endif %}
                     </div>
                     
                     <!-- Legend - horizontal layout as in screenshot -->
                     <div style="display: flex; flex-wrap: wrap; justify-content: center; width: 100%; margin-top: 5px;">
-                        <div style="margin-right: 10px; display: flex; align-items: center; font-size: 11px;">
-                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #dc3545; margin-right: 3px;"></span> Division 1
-                        </div>
-                        <div style="margin-right: 10px; display: flex; align-items: center; font-size: 11px;">
-                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #ffc107; margin-right: 3px;"></span> Division 2
-                        </div>
-                        <div style="margin-right: 10px; display: flex; align-items: center; font-size: 11px;">
-                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #198754; margin-right: 3px;"></span> Division 3
-                        </div>
-                        <div style="margin-right: 10px; display: flex; align-items: center; font-size: 11px;">
-                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #0dcaf0; margin-right: 3px;"></span> Division 4
-                        </div>
-                        <div style="display: flex; align-items: center; font-size: 11px;">
-                            <span style="display: inline-block; width: 10px; height: 10px; background-color: #adb5bd; margin-right: 3px;"></span> Division 5
-                        </div>
+                        {% for division in range(1, 6) %}
+                            <div style="margin-right: 10px; display: flex; align-items: center; font-size: 11px;">
+                                {% set colors = {
+                                    1: '#dc3545', 
+                                    2: '#ffc107', 
+                                    3: '#198754',
+                                    4: '#0dcaf0',
+                                    5: '#adb5bd'
+                                } %}
+                                <span style="display: inline-block; width: 10px; height: 10px; background-color: {{ colors[division] }}; margin-right: 3px;"></span> 
+                                Division {{ division }}
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
