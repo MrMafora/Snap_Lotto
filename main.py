@@ -78,9 +78,15 @@ def index():
     # Sort results by date (newest first)
     results_list.sort(key=lambda x: x.draw_date, reverse=True)
     
+    # Get analytics data for the dashboard
+    frequent_numbers = data_aggregator.get_most_frequent_numbers(limit=10)
+    division_stats = data_aggregator.get_division_statistics()
+    
     return render_template('index.html', 
                            latest_results=latest_results,
                            results=results_list,
+                           frequent_numbers=frequent_numbers,
+                           division_stats=division_stats,
                            title="Latest Lottery Results")
 
 @app.route('/admin')

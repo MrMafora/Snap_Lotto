@@ -1475,3 +1475,127 @@ def validate_and_correct_known_draws():
                     logger.info(f"Corrected similar entry for {lottery_type} {draw_number}")
     
     return corrected_count
+
+
+def get_most_frequent_numbers(lottery_type=None, limit=10):
+    """
+    Get the most frequently drawn numbers for a specific lottery type.
+    
+    Args:
+        lottery_type (str, optional): Type of lottery to filter by
+        limit (int, optional): Number of frequent numbers to return
+        
+    Returns:
+        list: List of most frequent numbers
+    """
+    from collections import Counter
+    
+    # Create a counter for all numbers
+    number_counter = Counter()
+    
+    # Query the database for lottery results
+    query = LotteryResult.query
+    
+    if lottery_type and lottery_type.lower() != 'all':
+        # Get normalized version of the lottery type
+        normalized_type = normalize_lottery_type(lottery_type)
+        
+        # Find all variants of this lottery type in the database
+        lottery_type_variants = db.session.query(LotteryResult.lottery_type).distinct().all()
+        matching_types = []
+        
+        for lt in lottery_type_variants:
+            lt_name = lt[0]
+            if normalize_lottery_type(lt_name) == normalized_type:
+                matching_types.append(lt_name)
+        
+        # If we found matching variants, query using all of them
+        if matching_types:
+            query = query.filter(LotteryResult.lottery_type.in_(matching_types))
+        else:
+            # Fallback to the original search if no variants found
+            query = query.filter_by(lottery_type=lottery_type)
+    
+    results = query.all()
+    
+    # Process each result
+    for result in results:
+        numbers = result.get_numbers_list()
+        for num in numbers:
+            number_counter[num] += 1
+    
+    # Get the most common numbers
+    most_common = [num for num, _ in number_counter.most_common(limit)]
+    
+    return most_common
+
+def get_division_statistics(lottery_type=None):
+    """
+    Get statistics about winners by division.
+    
+    Args:
+        lottery_type (str, optional): Type of lottery to filter by
+        
+    Returns:
+        dict: Dictionary with division statistics
+    """
+    from collections import defaultdict
+    
+    # Initialize counters for divisions
+    division_stats = defaultdict(int)
+    
+    # Query the database for lottery results
+    query = LotteryResult.query
+    
+    if lottery_type and lottery_type.lower() != 'all':
+        # Get normalized version of the lottery type
+        normalized_type = normalize_lottery_type(lottery_type)
+        
+        # Find all variants of this lottery type in the database
+        lottery_type_variants = db.session.query(LotteryResult.lottery_type).distinct().all()
+        matching_types = []
+        
+        for lt in lottery_type_variants:
+            lt_name = lt[0]
+            if normalize_lottery_type(lt_name) == normalized_type:
+                matching_types.append(lt_name)
+        
+        # If we found matching variants, query using all of them
+        if matching_types:
+            query = query.filter(LotteryResult.lottery_type.in_(matching_types))
+        else:
+            # Fallback to the original search if no variants found
+            query = query.filter_by(lottery_type=lottery_type)
+    
+    results = query.all()
+    
+    # Process each result
+    for result in results:
+        divisions = result.get_divisions()
+        
+        if not divisions:
+            continue
+            
+        for div_num, div_data in divisions.items():
+            # Convert division number to int for sorting
+            try:
+                div_num_int = int(div_num)
+                winners = div_data.get('winners', 0)
+                
+                # Try to convert winners to integer
+                try:
+                    if isinstance(winners, str):
+                        winners = winners.replace(',', '')
+                    winners_count = int(float(winners))
+                except (ValueError, TypeError):
+                    winners_count = 0
+                
+                division_stats[div_num_int] += winners_count
+            except (ValueError, TypeError):
+                # Skip if division number can't be converted to int
+                continue
+    
+    # Sort by division number
+    sorted_stats = {div: division_stats[div] for div in sorted(division_stats.keys())}
+    
+    return sorted_stats
