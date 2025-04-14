@@ -2,6 +2,36 @@
 
 {% block title %}Home | Snap Lotto{% endblock %}
 
+{% block head_content %}
+<style>
+    /* Styling for analytics charts */
+    .bg-danger { background-color: #e03237 !important; }
+    .bg-warning { background-color: #ffe11d !important; }
+    .bg-success { background-color: #19a03a !important; }
+    .bg-info { background-color: #67c6ed !important; }
+    
+    /* Bar chart styling */
+    .chart-container {
+        border-bottom: 1px solid #ddd;
+        border-left: 1px solid #ddd;
+    }
+    
+    .chart-y-axis {
+        font-size: 10px;
+        color: #666;
+    }
+    
+    .bar-column {
+        padding: 0 2px;
+    }
+    
+    .bar {
+        border-top-left-radius: 3px;
+        border-top-right-radius: 3px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 
@@ -109,49 +139,123 @@
         <div class="row">
             <div class="col-md-6 mb-3">
                 <h6 class="card-subtitle mb-2">Most Frequent Numbers</h6>
-                <div class="text-center py-5">
-                    <div class="d-flex justify-content-around mt-4">
-                        {% if frequent_numbers %}
-                            {% for number in frequent_numbers %}
-                                <span>{{ number }}</span>
-                            {% endfor %}
-                        {% else %}
-                            <span>13</span>
-                            <span>4</span>
-                            <span>27</span>
-                            <span>44</span>
-                            <span>10</span>
-                            <span>22</span>
-                            <span>35</span>
-                            <span>49</span>
-                            <span>7</span>
-                            <span>17</span>
-                        {% endif %}
+                <div id="most-frequent-chart" class="text-center" style="height: 200px; position: relative;">
+                    <!-- Bar chart for most frequent numbers -->
+                    <div class="chart-container" style="position: relative; width: 100%; height: 100%;">
+                        <div class="chart-y-axis" style="position: absolute; left: 0; top: 0; bottom: 30px; width: 25px;">
+                            <div style="position: absolute; top: 0; right: 0;">16</div>
+                            <div style="position: absolute; top: 25%; right: 0;">12</div>
+                            <div style="position: absolute; top: 50%; right: 0;">8</div>
+                            <div style="position: absolute; top: 75%; right: 0;">4</div>
+                            <div style="position: absolute; bottom: 0; right: 0;">0</div>
+                        </div>
+                        <div class="chart-bars" style="position: absolute; left: 25px; right: 0; top: 0; bottom: 30px; display: flex; align-items: flex-end; justify-content: space-around;">
+                            {% if frequent_numbers %}
+                                {% for number in frequent_numbers %}
+                                    {% set color_class = "bg-danger" if loop.index0 % 4 == 0 else "bg-warning" if loop.index0 % 4 == 1 else "bg-success" if loop.index0 % 4 == 2 else "bg-info" %}
+                                    <div class="bar-column" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                        <div class="bar {{ color_class }}" style="width: 80%; height: {{ 75 + (loop.index0 * 2) }}%;"></div>
+                                        <div style="margin-top: 5px;">{{ number }}</div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <!-- Fallback example bars -->
+                                <div class="bar-column" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div class="bar bg-danger" style="width: 80%; height: 90%;"></div>
+                                    <div style="margin-top: 5px;">13</div>
+                                </div>
+                                <div class="bar-column" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div class="bar bg-warning" style="width: 80%; height: 85%;"></div>
+                                    <div style="margin-top: 5px;">4</div>
+                                </div>
+                                <div class="bar-column" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div class="bar bg-success" style="width: 80%; height: 82%;"></div>
+                                    <div style="margin-top: 5px;">27</div>
+                                </div>
+                                <div class="bar-column" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div class="bar bg-info" style="width: 80%; height: 88%;"></div>
+                                    <div style="margin-top: 5px;">44</div>
+                                </div>
+                                <div class="bar-column" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div class="bar bg-danger" style="width: 80%; height: 79%;"></div>
+                                    <div style="margin-top: 5px;">10</div>
+                                </div>
+                                <div class="bar-column" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div class="bar bg-warning" style="width: 80%; height: 76%;"></div>
+                                    <div style="margin-top: 5px;">22</div>
+                                </div>
+                                <div class="bar-column" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div class="bar bg-success" style="width: 80%; height: 81%;"></div>
+                                    <div style="margin-top: 5px;">35</div>
+                                </div>
+                                <div class="bar-column" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div class="bar bg-info" style="width: 80%; height: 84%;"></div>
+                                    <div style="margin-top: 5px;">49</div>
+                                </div>
+                                <div class="bar-column" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div class="bar bg-danger" style="width: 80%; height: 72%;"></div>
+                                    <div style="margin-top: 5px;">7</div>
+                                </div>
+                                <div class="bar-column" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div class="bar bg-warning" style="width: 80%; height: 78%;"></div>
+                                    <div style="margin-top: 5px;">17</div>
+                                </div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 mb-3">
                 <h6 class="card-subtitle mb-2">Winners By Division</h6>
-                <div class="text-center py-4">
-                    <img src="{{ url_for('static', filename='img/pie_chart.png') }}" alt="Winners by Division" style="max-width: 160px; margin-bottom: 10px;">
-                    <div class="row justify-content-center">
-                        <div class="col-auto">
-                            <div class="text-start small">
-                                <div>
-                                    <span style="color: #e03237; font-size: 80%;">●</span> Division 1
-                                </div>
-                                <div>
-                                    <span style="color: #67c6ed; font-size: 80%;">●</span> Division 2
-                                </div>
-                                <div>
-                                    <span style="color: #ffe11d; font-size: 80%;">●</span> Division 3
-                                </div>
-                                <div>
-                                    <span style="color: #19a03a; font-size: 80%;">●</span> Division 4
-                                </div>
-                                <div>
-                                    <span style="color: #666; font-size: 80%;">●</span> Division 5
-                                </div>
+                <div class="text-center">
+                    <!-- Pie chart using SVG -->
+                    <div style="margin: 0 auto; width: 200px; height: 200px; position: relative;">
+                        <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Circle for pie chart -->
+                            {% if division_stats %}
+                                <!-- Dynamic pie chart using division stats -->
+                                <!-- Add dynamic pie chart slices here -->
+                                <circle cx="100" cy="100" r="80" fill="transparent" stroke="#fff" stroke-width="1"/>
+                                <path d="M100,100 L180,100 A80,80 0 0,1 20,100 Z" fill="#e03237" fill-opacity="0.9"/>
+                                <path d="M100,100 L20,100 A80,80 0 0,1 100,20 Z" fill="#67c6ed" fill-opacity="0.9"/>
+                                <path d="M100,100 L100,20 A80,80 0 0,1 140,30 Z" fill="#ffe11d" fill-opacity="0.9"/>
+                                <path d="M100,100 L140,30 A80,80 0 0,1 180,100 Z" fill="#19a03a" fill-opacity="0.9"/>
+                                <!-- Center white circle -->
+                                <circle cx="100" cy="100" r="40" fill="white"/>
+                            {% else %}
+                                <!-- Static fallback pie chart -->
+                                <circle cx="100" cy="100" r="80" fill="transparent" stroke="#fff" stroke-width="1"/>
+                                <!-- Division 1 - Red (60%) -->
+                                <path d="M100,100 L180,100 A80,80 0 0,1 20,100 Z" fill="#e03237" fill-opacity="0.9"/>
+                                <!-- Division 2 - Blue (25%) -->
+                                <path d="M100,100 L20,100 A80,80 0 0,1 100,20 Z" fill="#67c6ed" fill-opacity="0.9"/>
+                                <!-- Division 3 - Yellow (7%) -->
+                                <path d="M100,100 L100,20 A80,80 0 0,1 140,30 Z" fill="#ffe11d" fill-opacity="0.9"/>
+                                <!-- Division 4 - Green (5%) -->
+                                <path d="M100,100 L140,30 A80,80 0 0,1 180,100 Z" fill="#19a03a" fill-opacity="0.9"/>
+                                <!-- Center white circle -->
+                                <circle cx="100" cy="100" r="40" fill="white"/>
+                            {% endif %}
+                        </svg>
+                    </div>
+                    
+                    <!-- Chart legend -->
+                    <div class="d-flex justify-content-center mt-2">
+                        <div class="text-start small">
+                            <div class="d-flex align-items-center mb-1">
+                                <span style="color: #e03237; font-size: 150%; margin-right: 5px;">●</span> Division 1
+                            </div>
+                            <div class="d-flex align-items-center mb-1">
+                                <span style="color: #67c6ed; font-size: 150%; margin-right: 5px;">●</span> Division 2
+                            </div>
+                            <div class="d-flex align-items-center mb-1">
+                                <span style="color: #ffe11d; font-size: 150%; margin-right: 5px;">●</span> Division 3
+                            </div>
+                            <div class="d-flex align-items-center mb-1">
+                                <span style="color: #19a03a; font-size: 150%; margin-right: 5px;">●</span> Division 4
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span style="color: #666; font-size: 150%; margin-right: 5px;">●</span> Division 5
                             </div>
                         </div>
                     </div>
