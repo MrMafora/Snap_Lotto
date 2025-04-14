@@ -1161,6 +1161,151 @@ def validate_and_correct_known_draws():
     except Exception as e:
         logger.error(f"Error trying to correct Powerball draw 1605: {str(e)}")
     
+    # Special override for Lotto draw 2531 (April 9, 2025) - add missing draw
+    try:
+        # First check if this draw already exists
+        lotto_2531 = LotteryResult.query.filter_by(
+            lottery_type="Lotto",
+            draw_number="2531"
+        ).first()
+        
+        # If it doesn't exist, create it
+        if not lotto_2531:
+            correct_numbers = [10, 15, 24, 28, 35, 49]
+            correct_bonus = [6]
+            
+            # Convert to string formats used in the database
+            numbers_json = json.dumps(correct_numbers)
+            bonus_json = json.dumps(correct_bonus)
+            
+            # Add divisions data
+            divisions_data = {
+                "Division 1": {
+                    "winners": "1",
+                    "prize": "R1,267,434.50",
+                    "match": "SIX CORRECT NUMBERS"
+                },
+                "Division 2": {
+                    "winners": "0",
+                    "prize": "R0.00",
+                    "match": "FIVE CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 3": {
+                    "winners": "45",
+                    "prize": "R5,124.80",
+                    "match": "FIVE CORRECT NUMBERS"
+                },
+                "Division 4": {
+                    "winners": "88",
+                    "prize": "R2,321.30",
+                    "match": "FOUR CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 5": {
+                    "winners": "2352",
+                    "prize": "R151.40",
+                    "match": "FOUR CORRECT NUMBERS"
+                },
+                "Division 6": {
+                    "winners": "2987",
+                    "prize": "R103.30",
+                    "match": "THREE CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 7": {
+                    "winners": "46125",
+                    "prize": "R50.00",
+                    "match": "THREE CORRECT NUMBERS"
+                },
+                "Division 8": {
+                    "winners": "31452",
+                    "prize": "R20.00",
+                    "match": "TWO CORRECT NUMBERS + BONUS BALL"
+                }
+            }
+            
+            # Create a new draw date for April 9, 2025
+            draw_date = datetime(2025, 4, 9, 20, 0, 0)
+            
+            # Create a new LotteryResult for the missing draw
+            new_result = LotteryResult(
+                lottery_type="Lotto",
+                draw_number="2531",
+                draw_date=draw_date,
+                numbers=numbers_json,
+                bonus_numbers=bonus_json,
+                divisions=json.dumps(divisions_data),
+                source_url="https://www.nationallottery.co.za/lotto-results",
+                ocr_provider="manual",
+                ocr_model="manual",
+                ocr_timestamp=datetime.utcnow()
+            )
+            
+            # Add to database
+            db.session.add(new_result)
+            db.session.commit()
+            corrections_made += 1
+            logger.info(f"Added missing Lotto draw 2531")
+        else:
+            # If it exists but might need division data updates
+            divisions_data = {
+                "Division 1": {
+                    "winners": "1",
+                    "prize": "R1,267,434.50",
+                    "match": "SIX CORRECT NUMBERS"
+                },
+                "Division 2": {
+                    "winners": "0",
+                    "prize": "R0.00",
+                    "match": "FIVE CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 3": {
+                    "winners": "45",
+                    "prize": "R5,124.80",
+                    "match": "FIVE CORRECT NUMBERS"
+                },
+                "Division 4": {
+                    "winners": "88",
+                    "prize": "R2,321.30",
+                    "match": "FOUR CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 5": {
+                    "winners": "2352",
+                    "prize": "R151.40",
+                    "match": "FOUR CORRECT NUMBERS"
+                },
+                "Division 6": {
+                    "winners": "2987",
+                    "prize": "R103.30",
+                    "match": "THREE CORRECT NUMBERS + BONUS BALL"
+                },
+                "Division 7": {
+                    "winners": "46125",
+                    "prize": "R50.00",
+                    "match": "THREE CORRECT NUMBERS"
+                },
+                "Division 8": {
+                    "winners": "31452",
+                    "prize": "R20.00",
+                    "match": "TWO CORRECT NUMBERS + BONUS BALL"
+                }
+            }
+            
+            # Check if divisions need to be updated
+            existing_divisions = {}
+            if lotto_2531.divisions:
+                try:
+                    existing_divisions = json.loads(lotto_2531.divisions)
+                except (json.JSONDecodeError, TypeError):
+                    existing_divisions = {}
+            
+            # Update divisions if missing or incomplete
+            if not existing_divisions or len(existing_divisions) < len(divisions_data):
+                logger.info(f"Updating divisions data for Lotto draw 2531")
+                lotto_2531.divisions = json.dumps(divisions_data)
+                db.session.commit()
+                corrections_made += 1
+    except Exception as e:
+        logger.error(f"Error trying to add or update Lotto draw 2531: {str(e)}")
+    
     # Special override for Lotto draw 2530 (April 5, 2025) to fix incorrect numbers
     try:
         lotto_2530 = LotteryResult.query.filter_by(
