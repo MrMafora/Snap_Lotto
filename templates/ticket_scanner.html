@@ -595,24 +595,63 @@
             const ticketNumbersContainer = document.getElementById('ticket-numbers');
             ticketNumbersContainer.innerHTML = '';
             
-            data.ticket_numbers.forEach(num => {
-                const ball = document.createElement('span');
-                ball.classList.add('lottery-ball');
-                
-                // Add color classes in sequence
-                if (ticketNumbersContainer.children.length % 4 === 0) {
-                    ball.classList.add('lottery-ball-red');
-                } else if (ticketNumbersContainer.children.length % 4 === 1) {
-                    ball.classList.add('lottery-ball-yellow');
-                } else if (ticketNumbersContainer.children.length % 4 === 2) {
-                    ball.classList.add('lottery-ball-green');
-                } else {
-                    ball.classList.add('lottery-ball-blue');
-                }
-                
-                ball.textContent = num;
-                ticketNumbersContainer.appendChild(ball);
-            });
+            // Check if we have raw selected numbers for a better display
+            if (data.ticket_info && data.ticket_info.raw_selected_numbers) {
+                // Display numbers by rows
+                Object.entries(data.ticket_info.raw_selected_numbers).forEach(([rowName, numbers]) => {
+                    // Create row label
+                    const rowLabel = document.createElement('div');
+                    rowLabel.classList.add('mt-2', 'mb-1');
+                    rowLabel.innerHTML = `<strong>Row ${rowName}:</strong>`;
+                    ticketNumbersContainer.appendChild(rowLabel);
+                    
+                    // Create row container
+                    const rowContainer = document.createElement('div');
+                    rowContainer.classList.add('mb-3');
+                    
+                    // Add balls for this row
+                    numbers.forEach(num => {
+                        const ball = document.createElement('span');
+                        ball.classList.add('lottery-ball');
+                        
+                        // Add color classes in sequence
+                        if (rowContainer.children.length % 4 === 0) {
+                            ball.classList.add('lottery-ball-red');
+                        } else if (rowContainer.children.length % 4 === 1) {
+                            ball.classList.add('lottery-ball-yellow');
+                        } else if (rowContainer.children.length % 4 === 2) {
+                            ball.classList.add('lottery-ball-green');
+                        } else {
+                            ball.classList.add('lottery-ball-blue');
+                        }
+                        
+                        ball.textContent = num;
+                        rowContainer.appendChild(ball);
+                    });
+                    
+                    ticketNumbersContainer.appendChild(rowContainer);
+                });
+            } else {
+                // Fallback to flat display if raw data not available
+                data.ticket_numbers.forEach(num => {
+                    const ball = document.createElement('span');
+                    ball.classList.add('lottery-ball');
+                    
+                    // Add color classes in sequence
+                    if (ticketNumbersContainer.children.length % 4 === 0) {
+                        ball.classList.add('lottery-ball-red');
+                    } else if (ticketNumbersContainer.children.length % 4 === 1) {
+                        ball.classList.add('lottery-ball-yellow');
+                    } else if (ticketNumbersContainer.children.length % 4 === 2) {
+                        ball.classList.add('lottery-ball-green');
+                    } else {
+                        ball.classList.add('lottery-ball-blue');
+                    }
+                    
+                    ball.textContent = num;
+                    ticketNumbersContainer.appendChild(ball);
+                });
+            }
             
             // Display winning numbers
             const winningNumbersContainer = document.getElementById('winning-numbers');
