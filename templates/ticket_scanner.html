@@ -109,15 +109,18 @@
 
 <!-- Ad overlay - Results screen -->
 <div id="ad-overlay-results" class="interstitial-view">
-    <h4 class="mb-4">Results ready!</h4>
-    <div id="ad-container-interstitial" class="ad-container">
+    <h3 class="mb-3 text-success">Results Ready! <i class="fas fa-check-circle"></i></h3>
+    <div class="alert alert-info mb-3" style="max-width: 400px;">
+        Please view this advertisement while we prepare your results
+    </div>
+    <div id="ad-container-interstitial" class="ad-container" style="padding: 15px; background-color: #f8f9fa; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.1);">
         <div class="ad-placeholder">
-            <p><i class="fas fa-ad mb-2"></i></p>
-            <p class="mb-1">Advertisement</p>
-            <small class="text-muted">Your results are ready to view</small>
+            <p><i class="fas fa-ad mb-2 fa-2x text-primary"></i></p>
+            <p class="mb-1 fw-bold">Advertisement</p>
+            <small class="text-muted">Your results are ready to view below</small>
         </div>
     </div>
-    <button class="btn btn-primary ad-close-btn" id="view-results-btn">
+    <button class="btn btn-success btn-lg ad-close-btn mt-3" id="view-results-btn" style="min-width: 200px;">
         <i class="fas fa-check-circle me-2"></i> View Results
     </button>
 </div>
@@ -465,8 +468,33 @@
                 
                 // Display the advertisement for 30 seconds before automatically proceeding
                 // In production, this would allow sufficient time for ad engagement
+                console.log('Setting 30-second ad display timer...');
+                
+                // Add a counter display to show remaining seconds
+                const counterElement = document.createElement('div');
+                counterElement.id = 'ad-countdown';
+                counterElement.style.cssText = 'margin-top: 10px; font-size: 14px; color: #666;';
+                adOverlayResults.querySelector('.ad-container').appendChild(counterElement);
+                
+                let remainingSeconds = 30;
+                
+                // Update the counter every second
+                const countdownInterval = setInterval(() => {
+                    remainingSeconds--;
+                    counterElement.textContent = `Results available in ${remainingSeconds} seconds...`;
+                    
+                    if (remainingSeconds <= 0) {
+                        clearInterval(countdownInterval);
+                    }
+                }, 1000);
+                
+                // Set the main timeout to proceed after 30 seconds
                 setTimeout(() => {
+                    clearInterval(countdownInterval);
+                    console.log('30-second ad display timer completed');
+                    
                     if (adOverlayResults.style.display === 'flex') {
+                        console.log('Automatically showing results after ad display');
                         viewResultsBtn.click();
                     }
                 }, 30000);
