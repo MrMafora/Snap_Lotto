@@ -1,14 +1,13 @@
-# Gunicorn configuration file
-# https://docs.gunicorn.org/en/stable/configure.html
 
+# Gunicorn configuration file
 import multiprocessing
 import os
 
 # Determine if we're in production or development
 is_production = os.environ.get('ENVIRONMENT') == 'production'
 
-# Server socket - bind to port 8080 for Replit compatibility
-bind = "0.0.0.0:8080"
+# Server socket - bind to port 5000 for Replit compatibility
+bind = "0.0.0.0:5000"
 backlog = 2048
 
 # Worker processes - keep minimum for faster startup in Replit
@@ -47,9 +46,7 @@ def pre_exec(server):
     server.log.info("Forked child, re-executing.")
 
 def when_ready(server):
-    # Print a message that Replit can detect to know the server is ready
-    import sys
-    print("Server is ready and listening on port 8080")
+    print("Server is ready and listening on port 5000")
     sys.stdout.flush()
     server.log.info("Server is ready. Spawning workers")
 
