@@ -90,6 +90,7 @@
                                 <th>LOTTERY TYPE</th>
                                 <th>TIMESTAMP</th>
                                 <th>PROCESSED</th>
+                                <th>ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -98,14 +99,63 @@
                                 <td>{{ screenshot.lottery_type }}</td>
                                 <td>{{ screenshot.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
                                 <td>{{ "Yes" if screenshot.processed else "No" }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" class="btn btn-primary" title="View Screenshot" target="_blank">
+                                            <i class="fas fa-image"></i>
+                                        </a>
+                                        {% if screenshot.zoomed_path %}
+                                        <a href="{{ url_for('view_zoomed_screenshot', screenshot_id=screenshot.id) }}" class="btn btn-info" title="View Zoomed Screenshot" target="_blank">
+                                            <i class="fas fa-search-plus"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="3" class="text-center">No screenshots available</td>
+                                <td colspan="4" class="text-center">No screenshots available</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+                
+                <!-- Screenshot Gallery -->
+                <div class="mt-4">
+                    <h5 class="mb-3">Screenshot Gallery</h5>
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                        {% for screenshot in screenshots %}
+                        <div class="col">
+                            <div class="card h-100 shadow-sm">
+                                <div class="position-relative">
+                                    <img src="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" class="card-img-top" alt="{{ screenshot.lottery_type }} screenshot" style="max-height: 150px; object-fit: cover;">
+                                    <div class="position-absolute top-0 end-0 bg-dark bg-opacity-75 text-white p-1 rounded-bottom-start">
+                                        {{ screenshot.timestamp.strftime('%m/%d/%Y') }}
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ screenshot.lottery_type }}</h6>
+                                    <p class="card-text text-muted small">
+                                        {{ screenshot.path.split('/')[-1] }}
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-white border-top-0">
+                                    <div class="d-flex justify-content-between">
+                                        <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" class="btn btn-sm btn-primary" target="_blank">
+                                            <i class="fas fa-image me-1"></i> View
+                                        </a>
+                                        {% if screenshot.zoomed_path %}
+                                        <a href="{{ url_for('view_zoomed_screenshot', screenshot_id=screenshot.id) }}" class="btn btn-sm btn-info" target="_blank">
+                                            <i class="fas fa-search-plus me-1"></i> Zoomed
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>

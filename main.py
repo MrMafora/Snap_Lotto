@@ -462,6 +462,46 @@ def draw_details(lottery_type, draw_number):
                           lottery_type=lottery_type,
                           title=f"{lottery_type} Draw {draw_number} Details")
 
+@app.route('/screenshot/<int:screenshot_id>')
+def view_screenshot(screenshot_id):
+    """View a screenshot image"""
+    screenshot = Screenshot.query.get_or_404(screenshot_id)
+    
+    # Normalize path and check if file exists
+    screenshot_path = os.path.normpath(screenshot.path)
+    
+    if not os.path.isfile(screenshot_path):
+        flash('Screenshot file not found', 'danger')
+        return redirect(url_for('admin'))
+    
+    # Extract directory and filename from path
+    directory = os.path.dirname(screenshot_path)
+    filename = os.path.basename(screenshot_path)
+    
+    return send_from_directory(directory, filename)
+
+@app.route('/screenshot-zoomed/<int:screenshot_id>')
+def view_zoomed_screenshot(screenshot_id):
+    """View a zoomed screenshot image"""
+    screenshot = Screenshot.query.get_or_404(screenshot_id)
+    
+    if not screenshot.zoomed_path:
+        flash('No zoomed screenshot available', 'warning')
+        return redirect(url_for('admin'))
+    
+    # Normalize path and check if file exists
+    zoomed_path = os.path.normpath(screenshot.zoomed_path)
+    
+    if not os.path.isfile(zoomed_path):
+        flash('Zoomed screenshot file not found', 'danger')
+        return redirect(url_for('admin'))
+    
+    # Extract directory and filename from path
+    directory = os.path.dirname(zoomed_path)
+    filename = os.path.basename(zoomed_path)
+    
+    return send_from_directory(directory, filename)
+
 @app.route('/api/results/<lottery_type>')
 def api_results(lottery_type):
     """API endpoint for lottery results"""
