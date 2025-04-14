@@ -1,40 +1,50 @@
 #!/bin/bash
-# Final cleanup script to keep only essential deployment files
+# Final cleanup script to remove redundant files and tidy up the project
 
 echo "======================================================"
-echo "PERFORMING FINAL CLEANUP OF DUPLICATE DEPLOYMENT FILES"
+echo "PERFORMING FINAL CLEANUP OF UNNECESSARY FILES"
 echo "======================================================"
 
 # Create backup directory if it doesn't exist
 mkdir -p ./backup_deployments
 
-# Back up all alternative port configuration files
-echo "Moving all alternative port configuration files to backup..."
-mv main_8080.py replit_8080_starter.py start_direct.py ./backup_deployments/ 2>/dev/null || true
-mv start_on_port_8080.sh ./backup_deployments/ 2>/dev/null || true
+# List of redundant files to move to backup
+REDUNDANT_FILES=(
+  "quick_bind.py"        # Redundant with absolute_minimal.py
+  "check_html.py"        # Testing utility not needed in production
+  "inspect_html.py"      # Testing utility not needed in production
+  "screenshot_manager.py.new"  # Duplicate file
+  "PORT_CONFIGURATION.md"      # Consolidated into FINAL_PORT_SOLUTION.md
+  "WORKFLOW_CONFIGURATION.md"  # Consolidated into FINAL_PORT_SOLUTION.md
+  "instant_port.py"      # We now use absolute_minimal.py
+  "start.py"             # Not needed with gunicorn.conf.py
+)
 
-# Keep only the essential files and shell scripts
-echo "Keeping only essential deployment files..."
-for file in *.sh; do
-  if [[ "$file" != "workflow_wrapper.sh" && "$file" != "force_kill_port_5000.sh" && "$file" != "clear_ports.sh" && "$file" != "final_cleanup.sh" ]]; then
-    if [ -f "$file" ]; then
-      echo "  Backing up: $file"
-      mv "$file" ./backup_deployments/ 2>/dev/null || true
-    fi
+# Move the redundant files to backup
+echo "Moving redundant files to backup..."
+for file in "${REDUNDANT_FILES[@]}"; do
+  if [ -f "$file" ]; then
+    echo "  Moving: $file"
+    mv "$file" ./backup_deployments/ 2>/dev/null || true
+  else
+    echo "  Not found: $file"
   fi
 done
 
-# Verify our essential files exist and are executable
-echo "Making sure essential files are executable..."
-chmod +x workflow_wrapper.sh force_kill_port_5000.sh clear_ports.sh 2>/dev/null || true
+# Make sure essential scripts are executable
+echo ""
+echo "Making essential scripts executable..."
+chmod +x workflow_wrapper.sh start_manually.sh 2>/dev/null || true
 
 echo ""
 echo "Essential files we're keeping:"
 echo "-----------------------------"
-echo "1. workflow_wrapper.sh - Main entry point for Replit workflows (uses port 5000)"
-echo "2. force_kill_port_5000.sh - Port conflict resolver"
-echo "3. clear_ports.sh - General port cleaner"
-echo "4. main.py - Main Flask application"
+echo "1. absolute_minimal.py - Dual-port binding solution for Replit"
+echo "2. gunicorn.conf.py - Optimized gunicorn configuration for port 8080"
+echo "3. workflow_wrapper.sh - Enhanced wrapper for workflow startup"
+echo "4. start_manually.sh - Reliable manual startup script"
+echo "5. FINAL_PORT_SOLUTION.md - Comprehensive documentation"
+echo "6. main.py - Main Flask application with enhanced lazy loading"
 
 echo ""
 echo "CLEANUP COMPLETE!"
