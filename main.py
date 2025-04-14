@@ -314,6 +314,30 @@ def retake_screenshots():
     
     return redirect(url_for('admin'))
 
+@app.route('/purge-database')
+@login_required
+def purge_database():
+    """Admin route to purge all data from the database"""
+    if not current_user.is_admin:
+        flash('You must be an admin to purge the database.', 'danger')
+        return redirect(url_for('index'))
+        
+    try:
+        # Import the purge_data module
+        import purge_data
+        
+        # Execute the purge operation
+        result = purge_data.purge_data()
+        
+        if result:
+            flash('Database purged successfully. All lottery results and screenshots have been deleted.', 'success')
+        else:
+            flash('An error occurred during the purge operation.', 'danger')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin'))
+
 @app.route('/visualizations')
 def visualizations():
     """Advanced data visualization and analytics"""
