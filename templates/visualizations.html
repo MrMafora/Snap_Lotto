@@ -214,7 +214,46 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- We're including multiple sources for Chart.js to ensure it loads properly -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<!-- Fallback CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<!-- Make sure Chart is defined on the window -->
+<script>
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js failed to load! Creating stub Chart object...');
+        window.Chart = class Chart {
+            constructor(element, config) {
+                console.warn('Using stub Chart class - charts will not render');
+                this.element = element;
+                this.config = config;
+                this.data = config.data || {};
+                this.options = config.options || {};
+                
+                // Show error message in the canvas
+                if (element) {
+                    const ctx = element.getContext('2d');
+                    if (ctx) {
+                        ctx.font = '14px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillStyle = '#e74c3c';
+                        ctx.fillText('Chart.js not loaded', element.width / 2, element.height / 2);
+                    }
+                    
+                    // Add error message below the canvas
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'alert alert-danger mt-2';
+                    errorMsg.textContent = 'Unable to load Chart.js library. Please try refreshing the page.';
+                    element.parentNode.appendChild(errorMsg);
+                }
+            }
+            
+            update() { 
+                console.warn('Chart update called but Chart.js not loaded');
+            }
+        };
+    }
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize charts
