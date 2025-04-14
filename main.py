@@ -480,25 +480,63 @@ def visualization_data():
             return jsonify(response_data)
         
         elif data_type == 'winners_by_division':
-            # Get division statistics from database
-            division_stats = data_aggregator.get_division_statistics(lottery_type=lottery_type)
+            # Get all results for this lottery type to process division data
+            query = LotteryResult.query
             
-            logging.info(f"Division stats retrieved: {division_stats}")
-            
-            # Extract division numbers and winner counts
-            divisions = []
-            winner_counts = []
-            
-            for div_num, count in division_stats.items():
-                divisions.append(f'Division {div_num}')
-                winner_counts.append(count)
-            
-            # If we have no data, provide a small sample
-            if not divisions:
-                logging.info(f"No division data found for {lottery_type}")
-                divisions = [f'Division {i}' for i in range(1, 6)]
-                winner_counts = [0, 0, 0, 0, 0]
+            if lottery_type and lottery_type.lower() != 'all':
+                # Try with exact match first
+                results_by_type = query.filter_by(lottery_type=lottery_type).all()
                 
+                # If no results, try with normalized type
+                if not results_by_type:
+                    # Find any results with lottery type that might be a variant
+                    lottery_type_variants = db.session.query(LotteryResult.lottery_type).distinct().all()
+                    normalized_type = data_aggregator.normalize_lottery_type(lottery_type)
+                    matching_types = []
+                    
+                    for lt in lottery_type_variants:
+                        lt_name = lt[0]
+                        if data_aggregator.normalize_lottery_type(lt_name) == normalized_type:
+                            matching_types.append(lt_name)
+                    
+                    if matching_types:
+                        results_by_type = query.filter(LotteryResult.lottery_type.in_(matching_types)).all()
+            else:
+                results_by_type = query.all()
+            
+            # Initialize division counters
+            division_data = {}
+            
+            # Process division data from all matching results
+            for result in results_by_type:
+                divisions = result.get_divisions()
+                if divisions:
+                    for div_name, div_info in divisions.items():
+                        # Extract the division number from the name (e.g., "Division 1" -> 1)
+                        try:
+                            div_num = int(div_name.split()[-1])
+                            winners = div_info.get('winners', '0')
+                            
+                            # Convert winners to integer
+                            if isinstance(winners, str):
+                                winners = winners.replace(',', '')
+                            winner_count = int(float(winners))
+                            
+                            if div_num not in division_data:
+                                division_data[div_num] = 0
+                            division_data[div_num] += winner_count
+                        except (ValueError, IndexError):
+                            continue
+            
+            # Sort divisions by number
+            sorted_divisions = sorted(division_data.items())
+            
+            # Prepare data for chart
+            divisions = [f'Division {div_num}' for div_num, _ in sorted_divisions]
+            winner_counts = [count for _, count in sorted_divisions]
+            
+            logging.info(f"Processed {len(results_by_type)} results, found {len(divisions)} divisions with data")
+            
             response_data = {
                 'labels': divisions,
                 'datasets': [{
@@ -506,7 +544,6 @@ def visualization_data():
                 }]
             }
             
-            logging.info(f"Returning division data with {len(divisions)} divisions")
             return jsonify(response_data)
         
         return jsonify({'error': 'Invalid data type'}), 400
