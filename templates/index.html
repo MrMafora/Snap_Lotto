@@ -130,32 +130,33 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Create static frequency chart with numbers exactly matching the screenshot
-    const frequencyCtx = document.getElementById('frequency-chart').getContext('2d');
-    const frequencyLabels = ['13', '4', '27', '44', '10', '22', '35', '49', '7', '17'];
-    const frequencyData = [15, 14, 13, 12, 11, 10, 9, 8, 7, 6];
+    var frequencyCtx = document.getElementById('frequency-chart').getContext('2d');
+    var frequencyLabels = ['13', '4', '27', '44', '10', '22', '35', '49', '7', '17'];
+    var frequencyData = [15, 14, 13, 12, 11, 10, 9, 8, 7, 6];
     
     // Static colors exactly matching the screenshot
-    const redColor = 'rgba(224, 50, 55, 0.7)'; 
-    const yellowColor = 'rgba(255, 225, 29, 0.7)';
-    const greenColor = 'rgba(25, 160, 58, 0.7)';
-    const blueColor = 'rgba(103, 198, 237, 0.7)';
+    var redColor = 'rgba(224, 50, 55, 0.7)'; 
+    var yellowColor = 'rgba(255, 225, 29, 0.7)';
+    var greenColor = 'rgba(25, 160, 58, 0.7)';
+    var blueColor = 'rgba(103, 198, 237, 0.7)';
     
-    const backgroundColors = [
+    var backgroundColors = [
         redColor, yellowColor, greenColor, blueColor, 
         redColor, yellowColor, greenColor, blueColor, 
         redColor, yellowColor
     ];
     
-    const borderColors = [
+    var borderColors = [
         'rgba(224, 50, 55, 1)', 'rgba(255, 225, 29, 1)', 'rgba(25, 160, 58, 1)', 'rgba(103, 198, 237, 1)',
         'rgba(224, 50, 55, 1)', 'rgba(255, 225, 29, 1)', 'rgba(25, 160, 58, 1)', 'rgba(103, 198, 237, 1)',
         'rgba(224, 50, 55, 1)', 'rgba(255, 225, 29, 1)'
     ];
     
-    new Chart(frequencyCtx, {
+    var frequencyChart = new Chart(frequencyCtx, {
         type: 'bar',
         data: {
             labels: frequencyLabels,
@@ -170,30 +171,28 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
+            legend: {
+                display: false
             },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 16,
+                yAxes: [{
                     ticks: {
+                        beginAtZero: true,
+                        max: 16,
                         stepSize: 2
                     }
-                }
+                }]
             }
         }
     });
 
     // Create static winners chart exactly matching the screenshot
-    const winnersCtx = document.getElementById('winners-chart').getContext('2d');
-    const winnersLabels = ['Division 1', 'Division 2', 'Division 3', 'Division 4', 'Division 5'];
-    const winnersData = [5, 27, 142, 689, 1245];
+    var winnersCtx = document.getElementById('winners-chart').getContext('2d');
+    var winnersLabels = ['Division 1', 'Division 2', 'Division 3', 'Division 4', 'Division 5'];
+    var winnersData = [5, 27, 142, 689, 1245];
     
     // Static colors for pie chart
-    const pieColors = [
+    var pieColors = [
         'rgba(224, 50, 55, 0.8)',   // Red - Division 1
         'rgba(255, 225, 29, 0.8)',  // Yellow - Division 2
         'rgba(25, 160, 58, 0.8)',   // Green - Division 3
@@ -201,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'rgba(153, 102, 255, 0.8)'  // Purple - Division 5
     ];
     
-    new Chart(winnersCtx, {
+    var winnersChart = new Chart(winnersCtx, {
         type: 'pie',
         data: {
             labels: winnersLabels,
@@ -214,15 +213,11 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: {
-                        boxWidth: 10,
-                        font: {
-                            size: 10
-                        }
-                    }
+            legend: {
+                position: 'right',
+                labels: {
+                    boxWidth: 10,
+                    fontSize: 10
                 }
             }
         }
