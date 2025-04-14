@@ -134,7 +134,60 @@ def results():
 @app.route('/results/<lottery_type>')
 def lottery_results(lottery_type):
     """Show all results for a specific lottery type"""
-    results = data_aggregator.get_all_results_by_lottery_type(lottery_type)
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # Number of results per page
+    
+    # Get all results for this lottery type
+    all_results = data_aggregator.get_all_results_by_lottery_type(lottery_type)
+    
+    # Create a paginated result from the raw list
+    # This mimics SQLAlchemy's pagination object with the properties the template expects
+    class PaginatedResults:
+        def __init__(self, items, page, per_page, total):
+            self.items = items
+            self.page = page
+            self.per_page = per_page
+            self.total = total
+            
+        @property
+        def pages(self):
+            return (self.total + self.per_page - 1) // self.per_page
+            
+        @property
+        def has_prev(self):
+            return self.page > 1
+            
+        @property
+        def has_next(self):
+            return self.page < self.pages
+            
+        @property
+        def prev_num(self):
+            return self.page - 1 if self.has_prev else None
+            
+        @property
+        def next_num(self):
+            return self.page + 1 if self.has_next else None
+            
+        def iter_pages(self, left_edge=2, left_current=2, right_current=5, right_edge=2):
+            last = 0
+            for num in range(1, self.pages + 1):
+                if num <= left_edge or \
+                   (num > self.page - left_current - 1 and num < self.page + right_current) or \
+                   num > self.pages - right_edge:
+                    if last + 1 != num:
+                        yield None
+                    yield num
+                    last = num
+    
+    # Calculate the sliced items for the current page
+    start = (page - 1) * per_page
+    end = min(start + per_page, len(all_results))
+    items = all_results[start:end]
+    
+    # Create the pagination object
+    results = PaginatedResults(items, page, per_page, len(all_results))
+    
     return render_template('results.html', 
                            results=results, 
                            lottery_type=lottery_type,
@@ -290,6 +343,36 @@ def visualization_data():
         })
     
     return jsonify({'error': 'Invalid data type'}), 400
+
+@app.route('/results/<lottery_type>/<draw_number>')
+def draw_details(lottery_type, draw_number):
+    """Show detailed information for a specific draw"""
+    # Get all results with matching lottery type
+    all_results = data_aggregator.get_all_results_by_lottery_type(lottery_type)
+    
+    # Find the specific draw
+    result = None
+    draw_number = draw_number.strip()
+    
+    for r in all_results:
+        r_draw_number = r.draw_number
+        # Clean up the draw number for comparison
+        r_draw_number = r_draw_number.replace('Draw', '').replace('DRAW', '').replace(
+            'Lotto', '').replace('Plus 1', '').replace('Plus 2', '').replace(
+            'Powerball', '').replace('Daily', '').strip()
+        
+        if r_draw_number == draw_number or r.draw_number == draw_number:
+            result = r
+            break
+    
+    if not result:
+        flash(f"Draw {draw_number} not found for {lottery_type}", "warning")
+        return redirect(url_for('lottery_results', lottery_type=lottery_type))
+    
+    return render_template('draw_details.html',
+                          result=result,
+                          lottery_type=lottery_type,
+                          title=f"{lottery_type} Draw {draw_number} Details")
 
 @app.route('/api/results/<lottery_type>')
 def api_results(lottery_type):
