@@ -139,6 +139,48 @@ def ticket_scanner():
     """Ticket scanner page"""
     return render_template('ticket_scanner.html', title="Ticket Scanner")
 
+@app.route('/scan-ticket', methods=['POST'])
+def scan_ticket():
+    """Process uploaded ticket image and return results"""
+    # Check if file is included in the request
+    if 'ticket_image' not in request.files:
+        return jsonify({"error": "No ticket image provided"}), 400
+        
+    file = request.files['ticket_image']
+    
+    # If user does not select file, browser also submits an empty part without filename
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    # Get the lottery type if specified (optional)
+    lottery_type = request.form.get('lottery_type', '')
+    
+    # Get draw number if specified (optional)
+    draw_number = request.form.get('draw_number', None)
+    
+    # Get file extension
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    if not file_extension:
+        file_extension = '.jpeg'  # Default to JPEG if no extension
+    
+    try:
+        # Read the file data
+        image_data = file.read()
+        
+        # Process the ticket image using existing function
+        result = ticket_scanner.process_ticket_image(
+            image_data=image_data,
+            lottery_type=lottery_type,
+            draw_number=draw_number,
+            file_extension=file_extension
+        )
+        
+        # Return JSON response with results
+        return jsonify(result)
+    except Exception as e:
+        logger.exception(f"Error processing ticket: {str(e)}")
+        return jsonify({"error": f"Error processing ticket: {str(e)}"}), 500
+
 @app.route('/results')
 def results():
     """Show overview of all lottery types with links to specific results"""
