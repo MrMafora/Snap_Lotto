@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pie chart for Winners by Division -->
+  <circle cx="80" cy="80" r="75" fill="transparent" stroke="#fff" stroke-width="1"/>
+  
+  <!-- Division 1 - Red (60%) -->
+  <path d="M80,80 L155,80 A75,75 0 1,0 80,5 z" fill="#e03237" fill-opacity="0.8" />
+  
+  <!-- Division 2 - Blue (25%) -->
+  <path d="M80,80 L80,5 A75,75 0 0,0 23.5,117.5 z" fill="#67c6ed" fill-opacity="0.8" />
+  
+  <!-- Division 3 - Yellow (7%) -->
+  <path d="M80,80 L23.5,117.5 A75,75 0 0,0 42.5,148 z" fill="#ffe11d" fill-opacity="0.8" />
+  
+  <!-- Division 4 - Green (5%) -->
+  <path d="M80,80 L42.5,148 A75,75 0 0,0 60,154 z" fill="#19a03a" fill-opacity="0.8" />
+  
+  <!-- Division 5 - Gray (3%) -->
+  <path d="M80,80 L60,154 A75,75 0 0,0 80,155 L80,80 z" fill="#888" fill-opacity="0.8" />
+  
+  <!-- Center white circle for better appearance -->
+  <circle cx="80" cy="80" r="30" fill="white"/>
+</svg>

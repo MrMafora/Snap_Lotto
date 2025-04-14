@@ -109,90 +109,43 @@
         <div class="row">
             <div class="col-md-6 mb-3">
                 <h6 class="card-subtitle mb-2">Most Frequent Numbers</h6>
-                <div style="height: 180px; overflow: hidden;">
-                    <!-- Static bar chart HTML -->
-                    <div class="d-flex justify-content-between align-items-end" style="height: 150px;">
-                        <!-- Each bar is a div -->
-                        <div class="d-flex flex-column align-items-center mx-1">
-                            <div style="height: 100%; width: 20px; background-color: rgba(224, 50, 55, 0.7);"></div>
-                            <small class="mt-1">13</small>
-                        </div>
-                        <div class="d-flex flex-column align-items-center mx-1">
-                            <div style="height: 93%; width: 20px; background-color: rgba(255, 225, 29, 0.7);"></div>
-                            <small class="mt-1">4</small>
-                        </div>
-                        <div class="d-flex flex-column align-items-center mx-1">
-                            <div style="height: 86%; width: 20px; background-color: rgba(25, 160, 58, 0.7);"></div>
-                            <small class="mt-1">27</small>
-                        </div>
-                        <div class="d-flex flex-column align-items-center mx-1">
-                            <div style="height: 80%; width: 20px; background-color: rgba(103, 198, 237, 0.7);"></div>
-                            <small class="mt-1">44</small>
-                        </div>
-                        <div class="d-flex flex-column align-items-center mx-1">
-                            <div style="height: 73%; width: 20px; background-color: rgba(224, 50, 55, 0.7);"></div>
-                            <small class="mt-1">10</small>
-                        </div>
-                        <div class="d-flex flex-column align-items-center mx-1">
-                            <div style="height: 66%; width: 20px; background-color: rgba(255, 225, 29, 0.7);"></div>
-                            <small class="mt-1">22</small>
-                        </div>
-                        <div class="d-flex flex-column align-items-center mx-1">
-                            <div style="height: 60%; width: 20px; background-color: rgba(25, 160, 58, 0.7);"></div>
-                            <small class="mt-1">35</small>
-                        </div>
-                        <div class="d-flex flex-column align-items-center mx-1">
-                            <div style="height: 53%; width: 20px; background-color: rgba(103, 198, 237, 0.7);"></div>
-                            <small class="mt-1">49</small>
-                        </div>
-                        <div class="d-flex flex-column align-items-center mx-1">
-                            <div style="height: 46%; width: 20px; background-color: rgba(224, 50, 55, 0.7);"></div>
-                            <small class="mt-1">7</small>
-                        </div>
-                        <div class="d-flex flex-column align-items-center mx-1">
-                            <div style="height: 40%; width: 20px; background-color: rgba(255, 225, 29, 0.7);"></div>
-                            <small class="mt-1">17</small>
-                        </div>
+                <div class="text-center py-5">
+                    <div class="d-flex justify-content-around mt-4">
+                        <span>13</span>
+                        <span>4</span>
+                        <span>27</span>
+                        <span>44</span>
+                        <span>10</span>
+                        <span>22</span>
+                        <span>35</span>
+                        <span>49</span>
+                        <span>7</span>
+                        <span>17</span>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 mb-3">
                 <h6 class="card-subtitle mb-2">Winners By Division</h6>
-                <div style="height: 180px;">
-                    <!-- Static pie chart HTML alternative (using simple color blocks) -->
-                    <div class="d-flex">
-                        <!-- Pie chart section (left side) -->
-                        <div style="width: 60%; position: relative;">
-                            <div style="position: relative; width: 150px; height: 150px; border-radius: 50%; margin: 0 auto; background: conic-gradient(
-                                rgba(224, 50, 55, 0.8) 0% 60%,
-                                rgba(103, 198, 237, 0.8) 60% 85%,
-                                rgba(255, 225, 29, 0.8) 85% 92%,
-                                rgba(25, 160, 58, 0.8) 92% 97%,
-                                rgba(153, 102, 255, 0.8) 97% 100%
-                            );"></div>
-                        </div>
-                        
-                        <!-- Legend (right side) -->
-                        <div style="width: 40%;">
-                            <div class="mb-1">
-                                <span class="badge bg-danger d-inline-block" style="width: 12px; height: 12px;"></span>
-                                <small>Division 1</small>
-                            </div>
-                            <div class="mb-1">
-                                <span class="badge bg-primary d-inline-block" style="width: 12px; height: 12px;"></span>
-                                <small>Division 2</small>
-                            </div>
-                            <div class="mb-1">
-                                <span class="badge bg-warning d-inline-block" style="width: 12px; height: 12px;"></span>
-                                <small>Division 3</small>
-                            </div>
-                            <div class="mb-1">
-                                <span class="badge bg-success d-inline-block" style="width: 12px; height: 12px;"></span>
-                                <small>Division 4</small>
-                            </div>
-                            <div class="mb-1">
-                                <span class="badge bg-secondary d-inline-block" style="width: 12px; height: 12px;"></span>
-                                <small>Division 5</small>
+                <div class="text-center py-4">
+                    <img src="{{ url_for('static', filename='img/pie_chart.svg') }}" alt="Winners by Division" style="max-width: 160px; margin-bottom: 10px;">
+                    <div class="row justify-content-center">
+                        <div class="col-auto">
+                            <div class="text-start small">
+                                <div>
+                                    <span style="color: #e03237; font-size: 80%;">●</span> Division 1
+                                </div>
+                                <div>
+                                    <span style="color: #67c6ed; font-size: 80%;">●</span> Division 2
+                                </div>
+                                <div>
+                                    <span style="color: #ffe11d; font-size: 80%;">●</span> Division 3
+                                </div>
+                                <div>
+                                    <span style="color: #19a03a; font-size: 80%;">●</span> Division 4
+                                </div>
+                                <div>
+                                    <span style="color: #666; font-size: 80%;">●</span> Division 5
+                                </div>
                             </div>
                         </div>
                     </div>
