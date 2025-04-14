@@ -5,6 +5,7 @@ This file is imported by gunicorn using the 'main:app' notation.
 """
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -39,6 +40,10 @@ db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+# Initialize CSRF Protection
+csrf = CSRFProtect()
+csrf.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):

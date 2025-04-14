@@ -27,3 +27,4 @@ flask-dance
 flask-login
 oauthlib
 pyjwt
+flask-wtf
