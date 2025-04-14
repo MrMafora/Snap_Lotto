@@ -69,6 +69,9 @@ def index():
     for lottery_type, result in latest_results.items():
         results_list.append(result)
     
+    # Sort results by date (newest first)
+    results_list.sort(key=lambda x: x.draw_date, reverse=True)
+    
     return render_template('index.html', 
                            latest_results=latest_results,
                            results=results_list,
