@@ -121,7 +121,7 @@
             </div>
         </div>
         <div class="text-center mt-2">
-            <a href="{{ url_for('visualizations') }}" class="btn btn-lottery-primary btn-sm">
+            <a href="{{ url_for('visualizations') }}" class="btn btn-danger btn-sm">
                 <i class="fas fa-chart-bar me-1"></i> View Full Analytics Dashboard
             </a>
         </div>
@@ -132,25 +132,28 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Create static frequency chart
+    // Create static frequency chart with numbers exactly matching the screenshot
     const frequencyCtx = document.getElementById('frequency-chart').getContext('2d');
     const frequencyLabels = ['13', '4', '27', '44', '10', '22', '35', '49', '7', '17'];
     const frequencyData = [15, 14, 13, 12, 11, 10, 9, 8, 7, 6];
     
-    // Color mapping by index
-    const backgroundColors = frequencyLabels.map((_, index) => {
-        if (index % 4 === 0) return 'rgba(224, 50, 55, 0.7)'; // Red
-        if (index % 4 === 1) return 'rgba(255, 225, 29, 0.7)'; // Yellow
-        if (index % 4 === 2) return 'rgba(25, 160, 58, 0.7)'; // Green
-        return 'rgba(103, 198, 237, 0.7)'; // Blue
-    });
+    // Static colors exactly matching the screenshot
+    const redColor = 'rgba(224, 50, 55, 0.7)'; 
+    const yellowColor = 'rgba(255, 225, 29, 0.7)';
+    const greenColor = 'rgba(25, 160, 58, 0.7)';
+    const blueColor = 'rgba(103, 198, 237, 0.7)';
     
-    const borderColors = frequencyLabels.map((_, index) => {
-        if (index % 4 === 0) return 'rgba(224, 50, 55, 1)'; // Red
-        if (index % 4 === 1) return 'rgba(255, 225, 29, 1)'; // Yellow
-        if (index % 4 === 2) return 'rgba(25, 160, 58, 1)'; // Green
-        return 'rgba(103, 198, 237, 1)'; // Blue
-    });
+    const backgroundColors = [
+        redColor, yellowColor, greenColor, blueColor, 
+        redColor, yellowColor, greenColor, blueColor, 
+        redColor, yellowColor
+    ];
+    
+    const borderColors = [
+        'rgba(224, 50, 55, 1)', 'rgba(255, 225, 29, 1)', 'rgba(25, 160, 58, 1)', 'rgba(103, 198, 237, 1)',
+        'rgba(224, 50, 55, 1)', 'rgba(255, 225, 29, 1)', 'rgba(25, 160, 58, 1)', 'rgba(103, 198, 237, 1)',
+        'rgba(224, 50, 55, 1)', 'rgba(255, 225, 29, 1)'
+    ];
     
     new Chart(frequencyCtx, {
         type: 'bar',
@@ -184,18 +187,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Create static winners chart
+    // Create static winners chart exactly matching the screenshot
     const winnersCtx = document.getElementById('winners-chart').getContext('2d');
     const winnersLabels = ['Division 1', 'Division 2', 'Division 3', 'Division 4', 'Division 5'];
     const winnersData = [5, 27, 142, 689, 1245];
     
     // Static colors for pie chart
     const pieColors = [
-        'rgba(224, 50, 55, 0.7)',   // Red
-        'rgba(255, 225, 29, 0.7)',  // Yellow
-        'rgba(25, 160, 58, 0.7)',   // Green
-        'rgba(103, 198, 237, 0.7)', // Blue
-        'rgba(153, 102, 255, 0.7)'  // Purple
+        'rgba(224, 50, 55, 0.8)',   // Red - Division 1
+        'rgba(255, 225, 29, 0.8)',  // Yellow - Division 2
+        'rgba(25, 160, 58, 0.8)',   // Green - Division 3
+        'rgba(103, 198, 237, 0.8)', // Blue - Division 4
+        'rgba(153, 102, 255, 0.8)'  // Purple - Division 5
     ];
     
     new Chart(winnersCtx, {
