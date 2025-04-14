@@ -340,6 +340,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Initialize prize trend chart with sample data
+    function updatePrizesChart(lotteryType = 'Lotto') {
+        // Update chart with lottery-specific data
+        fetch(`/api/visualization-data?data_type=winners_by_division&lottery_type=${lotteryType}`)
+            .then(response => response.json())
+            .then(data => {
+                if (prizesChart) {
+                    prizesChart.options.plugins.title.text = `Prize Trend Analysis - ${lotteryType}`;
+                    prizesChart.update();
+                } else {
+                    initPrizesChart(lotteryType);
+                }
+            })
+            .catch(error => console.error('Error fetching prizes data:', error));
+    }
+    
+    function updateHeatmapChart(lotteryType = 'Lotto') {
+        // Update heatmap with lottery-specific data
+        fetch(`/api/visualization-data?data_type=numbers_frequency&lottery_type=${lotteryType}`)
+            .then(response => response.json())
+            .then(data => {
+                // Update heatmap
+                updateHeatmap(data.labels, data.datasets[0].data);
+            })
+            .catch(error => console.error('Error fetching heatmap data:', error));
+    }
+    
     function initPrizesChart(lotteryType = 'Lotto') {
         // Sample data (would be replaced with real API data)
         const labels = ['2024-01', '2024-02', '2024-03', '2024-04'];
@@ -400,7 +426,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize all charts
     updateFrequencyChart();
     updateWinnersChart();
-    initPrizesChart();
+    updatePrizesChart();
+    updateHeatmapChart();
     
     // Set up event listeners for filters
     document.getElementById('lottery-type-frequency').addEventListener('change', function() {
@@ -412,14 +439,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     document.getElementById('lottery-type-prizes').addEventListener('change', function() {
-        prizesChart.options.plugins.title.text = `Prize Trend Analysis - ${this.value}`;
-        prizesChart.update();
+        updatePrizesChart(this.value);
     });
     
     document.getElementById('lottery-type-heatmap').addEventListener('change', function() {
-        // Would update heatmap based on the selected lottery type
-        // For now, we'll use the same data as frequency chart
-        updateFrequencyChart(this.value);
+        // Update heatmap based on the selected lottery type
+        updateHeatmapChart(this.value);
     });
 });
 </script>
