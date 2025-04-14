@@ -81,6 +81,16 @@
                     </div>
                     <div class="chart-container" style="position: relative; height:400px;">
                         <canvas id="frequency-chart"></canvas>
+                        <!-- Fallback content if Chart.js doesn't load -->
+                        <div id="frequency-fallback" class="d-none">
+                            <div class="alert alert-warning mb-2">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Chart visualization couldn't be loaded. Showing text-based results instead.
+                            </div>
+                            <div class="frequency-text-results">
+                                <!-- Will be populated by JavaScript if Chart.js fails -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -143,6 +153,16 @@
                     </div>
                     <div class="chart-container" style="position: relative; height:400px;">
                         <canvas id="winners-chart"></canvas>
+                        <!-- Fallback content if Chart.js doesn't load -->
+                        <div id="winners-fallback" class="d-none">
+                            <div class="alert alert-warning mb-2">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Chart visualization couldn't be loaded. Showing text-based results instead.
+                            </div>
+                            <div class="winners-text-results">
+                                <!-- Will be populated by JavaScript if Chart.js fails -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -214,44 +234,228 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- We're including multiple sources for Chart.js to ensure it loads properly -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-<!-- Fallback CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-<!-- Make sure Chart is defined on the window -->
+<!-- Include local Chart.js library -->
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<!-- Fallback for Chart.js if it fails to load -->
 <script>
-    if (typeof Chart === 'undefined') {
-        console.error('Chart.js failed to load! Creating stub Chart object...');
-        window.Chart = class Chart {
-            constructor(element, config) {
-                console.warn('Using stub Chart class - charts will not render');
-                this.element = element;
-                this.config = config;
-                this.data = config.data || {};
-                this.options = config.options || {};
-                
-                // Show error message in the canvas
-                if (element) {
-                    const ctx = element.getContext('2d');
-                    if (ctx) {
-                        ctx.font = '14px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.fillStyle = '#e74c3c';
-                        ctx.fillText('Chart.js not loaded', element.width / 2, element.height / 2);
-                    }
-                    
-                    // Add error message below the canvas
-                    const errorMsg = document.createElement('div');
-                    errorMsg.className = 'alert alert-danger mt-2';
-                    errorMsg.textContent = 'Unable to load Chart.js library. Please try refreshing the page.';
-                    element.parentNode.appendChild(errorMsg);
-                }
-            }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if Chart.js loaded successfully
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js failed to load! Creating fallback HTML visualizations...');
             
-            update() { 
-                console.warn('Chart update called but Chart.js not loaded');
-            }
-        };
+            // Remove canvas elements and show text-based alternatives
+            document.querySelectorAll('.chart-container canvas').forEach(canvas => {
+                // Hide the canvas
+                canvas.style.display = 'none';
+                
+                // Create fallback message
+                const fallbackDiv = document.createElement('div');
+                fallbackDiv.className = 'alert alert-warning mb-3';
+                fallbackDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> ' +
+                    'Interactive charts could not be loaded. Showing text-based results instead.';
+                canvas.parentNode.insertBefore(fallbackDiv, canvas);
+            });
+            
+            // Create text-based number frequency visualization
+            createTextBasedFrequencyChart();
+            
+            // Create text-based winners chart
+            createTextBasedWinnersChart();
+            
+            // Also update heatmap directly without relying on Chart.js
+            createDirectHeatmap();
+        }
+    });
+    
+    function createTextBasedFrequencyChart() {
+        fetch('/api/visualization-data?data_type=numbers_frequency&lottery_type=all')
+            .then(response => response.json())
+            .then(data => {
+                if (!data || !data.datasets || !data.datasets[0] || !data.datasets[0].data || !data.labels) {
+                    console.error('Invalid frequency data format', data);
+                    return;
+                }
+                
+                const container = document.getElementById('frequency-chart').parentNode;
+                const resultsDiv = document.createElement('div');
+                resultsDiv.className = 'frequency-results mt-3';
+                
+                // Sort by frequency
+                const pairs = data.labels.map((label, i) => ({
+                    number: label,
+                    freq: data.datasets[0].data[i]
+                })).sort((a, b) => b.freq - a.freq).slice(0, 15);
+                
+                // Create a table for better formatting
+                const table = document.createElement('table');
+                table.className = 'table table-striped table-sm';
+                
+                const thead = document.createElement('thead');
+                thead.innerHTML = '<tr><th>Number</th><th>Frequency</th><th>Visual</th></tr>';
+                table.appendChild(thead);
+                
+                const tbody = document.createElement('tbody');
+                
+                // Get the max frequency for relative bar scaling
+                const maxFreq = Math.max(...pairs.map(p => p.freq));
+                
+                pairs.forEach(pair => {
+                    const row = document.createElement('tr');
+                    
+                    // Number column with lottery ball styling
+                    const numCell = document.createElement('td');
+                    const ball = document.createElement('span');
+                    ball.className = 'heatmap-ball';
+                    ball.textContent = pair.number;
+                    numCell.appendChild(ball);
+                    row.appendChild(numCell);
+                    
+                    // Frequency column
+                    const freqCell = document.createElement('td');
+                    freqCell.textContent = pair.freq;
+                    row.appendChild(freqCell);
+                    
+                    // Visual bar column
+                    const barCell = document.createElement('td');
+                    const barContainer = document.createElement('div');
+                    barContainer.className = 'progress';
+                    barContainer.style.height = '20px';
+                    
+                    const bar = document.createElement('div');
+                    bar.className = 'progress-bar';
+                    bar.style.width = `${(pair.freq / maxFreq) * 100}%`;
+                    bar.textContent = pair.freq;
+                    
+                    barContainer.appendChild(bar);
+                    barCell.appendChild(barContainer);
+                    row.appendChild(barCell);
+                    
+                    tbody.appendChild(row);
+                });
+                
+                table.appendChild(tbody);
+                resultsDiv.appendChild(table);
+                container.appendChild(resultsDiv);
+            })
+            .catch(error => {
+                console.error('Error fetching frequency data:', error);
+                const container = document.getElementById('frequency-chart').parentNode;
+                container.innerHTML += '<div class="alert alert-danger">Failed to load lottery frequency data.</div>';
+            });
+    }
+    
+    function createTextBasedWinnersChart() {
+        fetch('/api/visualization-data?data_type=winners_by_division&lottery_type=Lotto')
+            .then(response => response.json())
+            .then(data => {
+                // Handle empty data
+                if (!data || !data.labels || !data.datasets || !data.datasets[0] || !data.datasets[0].data) {
+                    console.log('No division winners data available', data);
+                    
+                    const container = document.getElementById('winners-chart').parentNode;
+                    container.innerHTML += '<div class="alert alert-info">No division winners data available yet. As more draws are processed, division statistics will appear here.</div>';
+                    return;
+                }
+                
+                const container = document.getElementById('winners-chart').parentNode;
+                const resultsDiv = document.createElement('div');
+                resultsDiv.className = 'winners-results mt-3';
+                
+                // Create a simple table to show the data
+                const table = document.createElement('table');
+                table.className = 'table table-striped table-sm';
+                
+                const thead = document.createElement('thead');
+                thead.innerHTML = '<tr><th>Division</th><th>Winners</th><th>Distribution</th></tr>';
+                table.appendChild(thead);
+                
+                const tbody = document.createElement('tbody');
+                
+                // Calculate total for percentage
+                const total = data.datasets[0].data.reduce((sum, val) => sum + val, 0);
+                
+                data.labels.forEach((label, i) => {
+                    const winners = data.datasets[0].data[i];
+                    const percentage = total > 0 ? (winners / total * 100).toFixed(1) : 0;
+                    
+                    const row = document.createElement('tr');
+                    
+                    // Division name
+                    const divCell = document.createElement('td');
+                    divCell.textContent = label;
+                    row.appendChild(divCell);
+                    
+                    // Winners count
+                    const winnersCell = document.createElement('td');
+                    winnersCell.textContent = winners.toLocaleString();
+                    row.appendChild(winnersCell);
+                    
+                    // Percentage bar
+                    const barCell = document.createElement('td');
+                    const barContainer = document.createElement('div');
+                    barContainer.className = 'progress';
+                    barContainer.style.height = '20px';
+                    
+                    const bar = document.createElement('div');
+                    bar.className = 'progress-bar';
+                    bar.style.width = `${percentage}%`;
+                    bar.textContent = `${percentage}%`;
+                    
+                    barContainer.appendChild(bar);
+                    barCell.appendChild(barContainer);
+                    row.appendChild(barCell);
+                    
+                    tbody.appendChild(row);
+                });
+                
+                table.appendChild(tbody);
+                resultsDiv.appendChild(table);
+                container.appendChild(resultsDiv);
+            })
+            .catch(error => {
+                console.error('Error fetching winners data:', error);
+                const container = document.getElementById('winners-chart').parentNode;
+                container.innerHTML += '<div class="alert alert-danger">Failed to load division winners data.</div>';
+            });
+    }
+    
+    function createDirectHeatmap() {
+        fetch('/api/visualization-data?data_type=numbers_frequency&lottery_type=all')
+            .then(response => response.json())
+            .then(data => {
+                if (!data || !data.datasets || !data.datasets[0] || !data.datasets[0].data || !data.labels) {
+                    console.error('Invalid heatmap data format', data);
+                    return;
+                }
+                
+                const numbers = data.labels;
+                const frequencies = data.datasets[0].data;
+                
+                const max = Math.max(...frequencies);
+                const min = Math.min(...frequencies);
+                const range = max - min;
+                
+                // Update each ball's color based on frequency
+                numbers.forEach((number, index) => {
+                    const freq = frequencies[index];
+                    const heatRatio = range > 0 ? (freq - min) / range : 0.5;
+                    
+                    // Calculate color (white to yellow to red)
+                    let r = 255;
+                    let g = Math.floor(255 * (1 - heatRatio));
+                    let b = Math.floor(255 * (1 - heatRatio));
+                    
+                    const ball = document.querySelector(`.heatmap-ball[data-number="${number}"]`);
+                    if (ball) {
+                        ball.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.8)`;
+                        ball.style.borderColor = `rgba(${r * 0.8}, ${g * 0.8}, ${b * 0.8}, 1)`;
+                        ball.title = `Number ${number}: ${freq} occurrences`;
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching heatmap data:', error);
+            });
     }
 </script>
 <script>
