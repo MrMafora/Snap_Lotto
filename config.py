@@ -26,6 +26,7 @@ class Config:
     
     # Screenshot directory
     SCREENSHOT_DIR = os.path.join(os.getcwd(), 'screenshots')
+    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
     
     # Default lottery URLS for history pages
     DEFAULT_LOTTERY_URLS = [
@@ -56,6 +57,9 @@ class Config:
         """Initialize application with configuration"""
         # Create screenshot directory if it doesn't exist
         os.makedirs(Config.SCREENSHOT_DIR, exist_ok=True)
+        
+        # Create uploads directory if it doesn't exist
+        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
         
         # Validate required environment variables
         if not Config.ANTHROPIC_API_KEY:
