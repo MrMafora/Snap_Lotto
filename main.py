@@ -432,69 +432,87 @@ def visualization_data():
     """API endpoint for visualization data"""
     import data_aggregator
     from collections import Counter
+    import logging
     
     data_type = request.args.get('data_type', 'numbers_frequency')
     lottery_type = request.args.get('lottery_type', 'all')
     
-    # Get data specific to lottery type
-    if data_type == 'numbers_frequency':
-        # Get frequency count for all 49 numbers
-        all_numbers = {str(i): 0 for i in range(1, 50)}
-        
-        # Count frequency of all numbers
-        query = LotteryResult.query
-        if lottery_type and lottery_type.lower() != 'all':
-            query = query.filter_by(lottery_type=lottery_type)
-            
-        results = query.all()
-        number_counter = Counter()
-        
-        for result in results:
-            numbers = result.get_numbers_list()
-            for num in numbers:
-                if 1 <= num <= 49:
-                    number_counter[str(num)] += 1
-        
-        # Update all_numbers with actual frequencies
-        for num, count in number_counter.items():
-            if num in all_numbers:
-                all_numbers[num] = count
-        
-        # Convert to lists for JSON response
-        data = [all_numbers[str(i)] for i in range(1, 50)]
-        
-        return jsonify({
-            'labels': [str(i) for i in range(1, 50)],
-            'datasets': [{
-                'data': data
-            }]
-        })
+    logging.info(f"Visualization data request: type={data_type}, lottery={lottery_type}")
     
-    elif data_type == 'winners_by_division':
-        # Get division statistics from database
-        division_stats = data_aggregator.get_division_statistics(lottery_type=lottery_type)
-        
-        # Extract division numbers and winner counts
-        divisions = []
-        winner_counts = []
-        
-        for div_num, count in division_stats.items():
-            divisions.append(f'Division {div_num}')
-            winner_counts.append(count)
-        
-        # If we have no data, provide a small sample
-        if not divisions:
-            divisions = [f'Division {i}' for i in range(1, 6)]
-            winner_counts = [0, 0, 0, 0, 0]
+    try:
+        # Get data specific to lottery type
+        if data_type == 'numbers_frequency':
+            # Get frequency count for all 49 numbers
+            all_numbers = {str(i): 0 for i in range(1, 50)}
             
-        return jsonify({
-            'labels': divisions,
-            'datasets': [{
-                'data': winner_counts
-            }]
-        })
-    
-    return jsonify({'error': 'Invalid data type'}), 400
+            # Count frequency of all numbers
+            query = LotteryResult.query
+            if lottery_type and lottery_type.lower() != 'all':
+                query = query.filter_by(lottery_type=lottery_type)
+                
+            results = query.all()
+            number_counter = Counter()
+            
+            logging.info(f"Found {len(results)} results for frequency analysis")
+            
+            for result in results:
+                numbers = result.get_numbers_list()
+                for num in numbers:
+                    if 1 <= num <= 49:
+                        number_counter[str(num)] += 1
+            
+            # Update all_numbers with actual frequencies
+            for num, count in number_counter.items():
+                if num in all_numbers:
+                    all_numbers[num] = count
+            
+            # Convert to lists for JSON response
+            data = [all_numbers[str(i)] for i in range(1, 50)]
+            
+            response_data = {
+                'labels': [str(i) for i in range(1, 50)],
+                'datasets': [{
+                    'data': data
+                }]
+            }
+            
+            logging.info(f"Returning frequency data with {sum(data)} total occurrences")
+            return jsonify(response_data)
+        
+        elif data_type == 'winners_by_division':
+            # Get division statistics from database
+            division_stats = data_aggregator.get_division_statistics(lottery_type=lottery_type)
+            
+            logging.info(f"Division stats retrieved: {division_stats}")
+            
+            # Extract division numbers and winner counts
+            divisions = []
+            winner_counts = []
+            
+            for div_num, count in division_stats.items():
+                divisions.append(f'Division {div_num}')
+                winner_counts.append(count)
+            
+            # If we have no data, provide a small sample
+            if not divisions:
+                logging.info(f"No division data found for {lottery_type}")
+                divisions = [f'Division {i}' for i in range(1, 6)]
+                winner_counts = [0, 0, 0, 0, 0]
+                
+            response_data = {
+                'labels': divisions,
+                'datasets': [{
+                    'data': winner_counts
+                }]
+            }
+            
+            logging.info(f"Returning division data with {len(divisions)} divisions")
+            return jsonify(response_data)
+        
+        return jsonify({'error': 'Invalid data type'}), 400
+    except Exception as e:
+        logging.error(f"Error in visualization_data: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/results/<lottery_type>/<draw_number>')
 def draw_details(lottery_type, draw_number):
