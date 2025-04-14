@@ -489,7 +489,8 @@ def get_lottery_result(lottery_type, draw_number=None):
     Returns:
         LotteryResult: The lottery result object or None if not found
     """
-    from app import db
+    # Import models here to avoid circular imports
+    from models import LotteryResult, db
     
     query = LotteryResult.query.filter_by(lottery_type=lottery_type)
     
