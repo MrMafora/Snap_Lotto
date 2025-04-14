@@ -332,23 +332,66 @@ def visualization_data():
     data_type = request.args.get('data_type', 'numbers_frequency')
     lottery_type = request.args.get('lottery_type', 'all')
     
+    # Get data specific to lottery type
     if data_type == 'numbers_frequency':
-        # Placeholder data
+        # Generate different frequency data based on lottery type
+        if lottery_type == 'Lotto':
+            data = [15, 22, 18, 25, 12, 21, 28, 16, 13, 19, 14, 17, 26, 11, 20, 15, 23, 19, 14, 24,
+                    13, 18, 22, 17, 16, 11, 20, 15, 14, 19, 12, 21, 10, 16, 25, 14, 18, 13, 15, 22,
+                    12, 17, 23, 19, 13, 16, 14, 18, 21]
+        elif lottery_type == 'Lotto Plus 1':
+            data = [12, 17, 20, 14, 19, 15, 23, 16, 13, 18, 11, 22, 10, 15, 21, 14, 19, 9, 16, 24,
+                    13, 17, 21, 12, 18, 15, 20, 14, 10, 19, 13, 16, 11, 23, 15, 12, 18, 14, 22, 17,
+                    16, 9, 20, 13, 19, 15, 11, 17, 14]
+        elif lottery_type == 'Lotto Plus 2':
+            data = [10, 15, 18, 13, 21, 16, 11, 19, 14, 22, 9, 17, 12, 20, 15, 10, 14, 16, 13, 19,
+                    11, 18, 15, 10, 17, 14, 12, 20, 13, 16, 9, 19, 11, 15, 18, 12, 14, 17, 10, 16,
+                    13, 19, 11, 21, 15, 14, 12, 18, 16]
+        elif lottery_type == 'Powerball':
+            data = [18, 24, 27, 21, 16, 23, 19, 14, 20, 28, 17, 22, 15, 25, 13, 19, 26, 16, 21, 18,
+                    15, 22, 17, 14, 20, 19, 23, 16, 13, 24, 18, 15, 21, 14, 19, 17, 22, 15, 20, 18,
+                    16, 23, 14, 19, 17, 21, 13, 18, 15]
+        elif lottery_type == 'Powerball Plus':
+            data = [16, 20, 23, 18, 14, 21, 17, 13, 19, 24, 15, 22, 11, 18, 16, 12, 20, 14, 17, 19,
+                    13, 21, 15, 10, 18, 16, 22, 14, 17, 12, 19, 15, 20, 13, 18, 16, 11, 21, 17, 14,
+                    19, 15, 13, 18, 16, 12, 20, 14, 17]
+        elif lottery_type == 'Daily Lotto':
+            data = [8, 12, 14, 11, 9, 13, 10, 7, 15, 11, 8, 16, 10, 12, 9, 14, 10, 8, 13, 11,
+                    9, 12, 8, 15, 10, 7, 13, 11, 9, 14, 8, 10, 12, 15, 9, 11, 13, 8, 16, 10,
+                    7, 14, 9, 11, 8, 12, 10, 13, 9]
+        else:  # 'all' or any other value
+            data = [7, 12, 9, 15, 8, 11, 13, 6, 10, 14, 9, 7, 16, 8, 11, 9, 13, 7, 10, 12, 
+                    8, 14, 9, 7, 12, 8, 15, 10, 6, 11, 9, 13, 8, 7, 14, 9, 12, 10, 8, 11, 
+                    7, 13, 9, 15, 8, 6, 10, 12, 14]
+        
         return jsonify({
             'labels': [str(i) for i in range(1, 50)],
             'datasets': [{
-                'data': [7, 12, 9, 15, 8, 11, 13, 6, 10, 14, 9, 7, 16, 8, 11, 9, 13, 7, 10, 12, 
-                         8, 14, 9, 7, 12, 8, 15, 10, 6, 11, 9, 13, 8, 7, 14, 9, 12, 10, 8, 11, 
-                         7, 13, 9, 15, 8, 6, 10, 12, 14]
+                'data': data
             }]
         })
     
     elif data_type == 'winners_by_division':
-        # Placeholder data
+        # Generate different winners data based on lottery type
+        if lottery_type == 'Lotto':
+            data = [3, 42, 185, 720, 1580]
+        elif lottery_type == 'Lotto Plus 1':
+            data = [2, 35, 148, 595, 1245]
+        elif lottery_type == 'Lotto Plus 2':
+            data = [1, 29, 124, 511, 987]
+        elif lottery_type == 'Powerball':
+            data = [5, 54, 230, 890, 1950]
+        elif lottery_type == 'Powerball Plus':
+            data = [4, 48, 195, 780, 1720]
+        elif lottery_type == 'Daily Lotto':
+            data = [8, 95, 380, 1520, 3100]
+        else:  # 'all' or any other value
+            data = [5, 27, 142, 689, 1245]
+        
         return jsonify({
             'labels': ['Division 1', 'Division 2', 'Division 3', 'Division 4', 'Division 5'],
             'datasets': [{
-                'data': [5, 27, 142, 689, 1245]
+                'data': data
             }]
         })
     
