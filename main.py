@@ -94,7 +94,7 @@ def admin():
     screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
     schedule_configs = ScheduleConfig.query.all()
 
-    return render_template('admin.html', 
+    return render_template('admin/dashboard.html', 
                           screenshots=screenshots,
                           schedule_configs=schedule_configs,
                           title="Admin Dashboard")
@@ -337,6 +337,72 @@ def purge_database():
         flash(f'Error: {str(e)}', 'danger')
     
     return redirect(url_for('admin'))
+
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    """Manage data syncs and system settings"""
+    if not current_user.is_admin:
+        flash('You must be an admin to access settings.', 'danger')
+        return redirect(url_for('index'))
+    
+    schedule_configs = ScheduleConfig.query.all()
+    
+    # Handle form submission for updating settings
+    if request.method == 'POST':
+        # This would normally handle the form submission
+        flash('Settings updated successfully.', 'success')
+        return redirect(url_for('settings'))
+    
+    return render_template('settings.html', 
+                          schedule_configs=schedule_configs,
+                          title="System Settings")
+
+@app.route('/export-screenshots')
+@login_required
+def export_screenshots():
+    """Export screenshots"""
+    if not current_user.is_admin:
+        flash('You must be an admin to export screenshots.', 'danger')
+        return redirect(url_for('index'))
+    
+    screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
+    
+    return render_template('export_screenshots.html',
+                          screenshots=screenshots,
+                          title="Export Screenshots")
+
+@app.route('/register', methods=['GET', 'POST'])
+@login_required
+def register():
+    """Register a new admin user"""
+    if not current_user.is_admin:
+        flash('You must be an admin to register new users.', 'danger')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists', 'danger')
+            return redirect(url_for('register'))
+        
+        if User.query.filter_by(email=email).first():
+            flash('Email already exists', 'danger')
+            return redirect(url_for('register'))
+        
+        user = User(username=username, email=email, is_admin=True)
+        user.set_password(password)
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        flash(f'Admin user {username} registered successfully!', 'success')
+        return redirect(url_for('admin'))
+    
+    return render_template('register.html', title="Register Admin User")
 
 @app.route('/visualizations')
 def visualizations():

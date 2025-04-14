@@ -1,55 +1,104 @@
 {% extends "base.html" %}
 
-{% block title %}Create Admin Account | Snap Lotto{% endblock %}
+{% block title %}Register Admin User | Snap Lotto{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-5 col-md-7 col-sm-10">
-        <div class="card shadow-sm">
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
             <div class="card-header lottery-header">
-                <h5 class="mb-0">CREATE ADMIN ACCOUNT</h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">REGISTER ADMIN USER</h4>
+                    <a href="{{ url_for('admin') }}" class="btn btn-sm btn-outline-dark">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                </div>
             </div>
-            <div class="card-body p-4">
-                <form method="POST" action="{{ url_for('register') }}" autocomplete="off">
-                    {{ form.hidden_tag() }}
-                    
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Creating an admin user gives complete access to the system
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">CREATE NEW ADMIN</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('register') }}">
+                    {{ csrf_token() }}
                     <div class="mb-3">
-                        <label for="username" class="form-label fw-bold">Username</label>
-                        {{ form.username(class="form-control", id="username", placeholder="Enter username", autocomplete="username") }}
-                        {% for error in form.username.errors %}
-                            <div class="text-danger small mt-1">{{ error }}</div>
-                        {% endfor %}
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
                     </div>
-                    
                     <div class="mb-3">
-                        <label for="email" class="form-label fw-bold">Email</label>
-                        {{ form.email(class="form-control", id="email", placeholder="Enter email", autocomplete="email") }}
-                        {% for error in form.email.errors %}
-                            <div class="text-danger small mt-1">{{ error }}</div>
-                        {% endfor %}
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
                     </div>
-                    
                     <div class="mb-3">
-                        <label for="password" class="form-label fw-bold">Password</label>
-                        {{ form.password(class="form-control", id="password", placeholder="Enter password", autocomplete="new-password") }}
-                        {% for error in form.password.errors %}
-                            <div class="text-danger small mt-1">{{ error }}</div>
-                        {% endfor %}
-                        <div class="form-text small">Password must be at least 8 characters</div>
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <div class="form-text">Password should be at least 8 characters with a mix of letters, numbers, and symbols</div>
                     </div>
-                    
-                    <div class="mb-4">
-                        <label for="confirm_password" class="form-label fw-bold">Confirm Password</label>
-                        {{ form.confirm_password(class="form-control", id="confirm_password", placeholder="Confirm password", autocomplete="new-password") }}
-                        {% for error in form.confirm_password.errors %}
-                            <div class="text-danger small mt-1">{{ error }}</div>
-                        {% endfor %}
+                    <div class="mb-3">
+                        <label for="password_confirm" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="password_confirm" name="password_confirm" required>
                     </div>
-                    
-                    <div class="d-grid gap-2">
-                        {{ form.submit(class="btn btn-lottery-primary py-2") }}
-                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-user-plus me-2"></i> Register User
+                    </button>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">EXISTING ADMIN USERS</h5>
+            </div>
+            <div class="card-body">
+                {% set users = User.query.filter_by(is_admin=True).all() %}
+                
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.username }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-secondary" title="Reset Password">
+                                            <i class="fas fa-key"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center">No admin users found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
