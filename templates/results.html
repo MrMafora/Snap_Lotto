@@ -14,12 +14,12 @@
                 <ul class="dropdown-menu" aria-labelledby="filterDropdown">
                     <li><a class="dropdown-item" href="{{ url_for('results') }}">All Types</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Lotto') }}">Lotto</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Lotto Plus 1') }}">Lotto Plus 1</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Lotto Plus 2') }}">Lotto Plus 2</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Powerball') }}">Powerball</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Powerball Plus') }}">Powerball Plus</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Daily Lotto') }}">Daily Lotto</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lotto') }}">Lotto</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lotto Plus 1') }}">Lotto Plus 1</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lotto Plus 2') }}">Lotto Plus 2</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Powerball') }}">Powerball</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Powerball Plus') }}">Powerball Plus</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Daily Lotto') }}">Daily Lotto</a></li>
                 </ul>
             </div>
         </div>
@@ -95,7 +95,7 @@
                 <ul class="pagination justify-content-center">
                     {% if results.has_prev %}
                         <li class="page-item">
-                            <a class="page-link" href="{{ url_for('results', lottery_type=lottery_type, page=results.prev_num) }}">Previous</a>
+                            <a class="page-link" href="{{ url_for('lottery_results', lottery_type=lottery_type, page=results.prev_num) }}">Previous</a>
                         </li>
                     {% else %}
                         <li class="page-item disabled">
@@ -111,7 +111,7 @@
                                 </li>
                             {% else %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('results', lottery_type=lottery_type, page=page_num) }}">{{ page_num }}</a>
+                                    <a class="page-link" href="{{ url_for('lottery_results', lottery_type=lottery_type, page=page_num) }}">{{ page_num }}</a>
                                 </li>
                             {% endif %}
                         {% else %}
@@ -123,7 +123,7 @@
                     
                     {% if results.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="{{ url_for('results', lottery_type=lottery_type, page=results.next_num) }}">Next</a>
+                            <a class="page-link" href="{{ url_for('lottery_results', lottery_type=lottery_type, page=results.next_num) }}">Next</a>
                         </li>
                     {% else %}
                         <li class="page-item disabled">
