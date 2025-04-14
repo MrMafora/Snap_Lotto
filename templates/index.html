@@ -224,52 +224,45 @@
                 </div>
             </div>
             <div class="col-md-6 mb-3">
-                <h6 class="mb-2">Winners By Division</h6>
-                <!-- Right-aligned content using flex-end alignment -->
-                <div style="display: flex; justify-content: flex-end; width: 100%;">
-                    <div style="width: 90%; max-width: 300px;">
-                        <div style="text-align: center; width: 100%;">
-                            <!-- Pie chart centered within its container -->
-                            <div style="width: 150px; height: 150px; margin: 0 auto 10px auto;">
-                                <!-- Static pie chart matching screenshot -->
-                                <svg width="150" height="150" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="50" fill="#f8f9fa" />
-                                    <!-- Division 4 segment (Blue - top right, 60% of circle) -->
-                                    <path d="M50,50 L50,0 A50,50 0 0,1 93.3,75 Z" fill="#0dcaf0" />
-                                    <!-- Division 1 segment (Red - bottom right, 15% of circle) -->
-                                    <path d="M50,50 L93.3,75 A50,50 0 0,1 75,93.3 Z" fill="#dc3545" />
-                                    <!-- Division 2 segment (Yellow - bottom, 15% of circle) -->
-                                    <path d="M50,50 L75,93.3 A50,50 0 0,1 25,93.3 Z" fill="#ffc107" />
-                                    <!-- Division 3 segment (Green - bottom left, 10% of circle) -->
-                                    <path d="M50,50 L25,93.3 A50,50 0 0,1 6.7,75 Z" fill="#198754" />
-                                </svg>
+                <div style="width: 100%; text-align: right;">
+                    <h6 class="mb-2">Winners By Division</h6>
+                    <div style="float: right; width: 250px;">
+                        <!-- Pie chart container -->
+                        <div style="width: 150px; height: 150px; margin: 0 0 10px auto;">
+                            <!-- Static pie chart -->
+                            <svg width="150" height="150" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="50" fill="#f8f9fa" />
+                                <!-- Division 4 segment (Blue - top right) -->
+                                <path d="M50,50 L50,0 A50,50 0 0,1 93.3,75 Z" fill="#0dcaf0" />
+                                <!-- Division 1 segment (Red - bottom right) -->
+                                <path d="M50,50 L93.3,75 A50,50 0 0,1 75,93.3 Z" fill="#dc3545" />
+                                <!-- Division 2 segment (Yellow - bottom) -->
+                                <path d="M50,50 L75,93.3 A50,50 0 0,1 25,93.3 Z" fill="#ffc107" />
+                                <!-- Division 3 segment (Green - bottom left) -->
+                                <path d="M50,50 L25,93.3 A50,50 0 0,1 6.7,75 Z" fill="#198754" />
+                            </svg>
+                        </div>
+                        
+                        <!-- Legend -->
+                        <div style="margin-top: 10px; text-align: left; width: 100%; display: flex; flex-wrap: wrap;">
+                            <div style="margin-right: 8px; display: flex; align-items: center; font-size: 11px;">
+                                <span style="display: inline-block; width: 10px; height: 10px; background-color: #dc3545; margin-right: 3px;"></span> Division 1
                             </div>
-                            
-                            <!-- Legend with horizontal layout -->
-                            <div style="display: flex; flex-wrap: wrap; justify-content: center; width: 100%; margin-top: 15px;">
-                                <div style="margin-right: 15px; display: flex; align-items: center; font-size: 11px;">
-                                    <span style="display: inline-block; width: 10px; height: 10px; background-color: #dc3545; margin-right: 3px;"></span> 
-                                    Division 1
-                                </div>
-                                <div style="margin-right: 15px; display: flex; align-items: center; font-size: 11px;">
-                                    <span style="display: inline-block; width: 10px; height: 10px; background-color: #ffc107; margin-right: 3px;"></span> 
-                                    Division 2
-                                </div>
-                                <div style="margin-right: 15px; display: flex; align-items: center; font-size: 11px;">
-                                    <span style="display: inline-block; width: 10px; height: 10px; background-color: #198754; margin-right: 3px;"></span> 
-                                    Division 3
-                                </div>
-                                <div style="margin-right: 15px; display: flex; align-items: center; font-size: 11px;">
-                                    <span style="display: inline-block; width: 10px; height: 10px; background-color: #0dcaf0; margin-right: 3px;"></span> 
-                                    Division 4
-                                </div>
-                                <div style="margin-right: 15px; display: flex; align-items: center; font-size: 11px;">
-                                    <span style="display: inline-block; width: 10px; height: 10px; background-color: #adb5bd; margin-right: 3px;"></span> 
-                                    Division 5
-                                </div>
+                            <div style="margin-right: 8px; display: flex; align-items: center; font-size: 11px;">
+                                <span style="display: inline-block; width: 10px; height: 10px; background-color: #ffc107; margin-right: 3px;"></span> Division 2
+                            </div>
+                            <div style="margin-right: 8px; display: flex; align-items: center; font-size: 11px;">
+                                <span style="display: inline-block; width: 10px; height: 10px; background-color: #198754; margin-right: 3px;"></span> Division 3
+                            </div>
+                            <div style="margin-right: 8px; display: flex; align-items: center; font-size: 11px;">
+                                <span style="display: inline-block; width: 10px; height: 10px; background-color: #0dcaf0; margin-right: 3px;"></span> Division 4
+                            </div>
+                            <div style="margin-right: 8px; display: flex; align-items: center; font-size: 11px;">
+                                <span style="display: inline-block; width: 10px; height: 10px; background-color: #adb5bd; margin-right: 3px;"></span> Division 5
                             </div>
                         </div>
                     </div>
+                    <div style="clear: both;"></div>
                 </div>
             </div>
         </div>
