@@ -711,9 +711,17 @@ def api_results(lottery_type):
 if __name__ == "__main__":
     # Extra logging to help diagnose startup issues
     import logging
+    import argparse
     logging.getLogger('werkzeug').setLevel(logging.INFO)
-    print("Starting Flask application on 0.0.0.0:5000...")
     
-    # Start the app with the simplest possible configuration
-    # to ensure it initializes quickly for Replit
-    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Run the Lottery Data Intelligence Platform')
+    parser.add_argument('--port', type=int, default=5000, help='Port to run the server on')
+    args, unknown = parser.parse_known_args()
+    
+    # Use environment variable as a fallback for port
+    port = int(os.environ.get('PORT', args.port))
+    
+    # Start the application
+    print(f"Starting Flask application on 0.0.0.0:{port}...")
+    app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)

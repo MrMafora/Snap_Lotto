@@ -8,5 +8,5 @@ pkill -f flask || true
 # Wait for ports to be released
 sleep 1
 
-# Start our ultra-minimal instant port opener
-python instant_port.py
+# Start the simplified server
+python simple_replit_server.py

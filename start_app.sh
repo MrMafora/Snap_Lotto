@@ -1,10 +1,13 @@
 #!/bin/bash
 
-# Kill any existing gunicorn processes
-pgrep gunicorn | xargs kill -9 2>/dev/null || true
+# Kill any existing processes
+pkill -f gunicorn || true
+pkill -f python || true
+pkill -f flask || true
 
-# Print message for port detection
-echo "Starting Flask application on port 5000..."
+# Wait for ports to be released
+sleep 1
 
-# Start the Flask application
-python simple_app.py
+# Use the direct Python approach as recommended by Replit support
+echo "Starting app with direct Flask approach..."
+python3 start_flask.py

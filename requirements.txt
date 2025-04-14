@@ -28,3 +28,4 @@ flask-login
 oauthlib
 pyjwt
 flask-wtf
+requests

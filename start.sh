@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# Kill any existing server processes
+# Kill any existing processes
 pkill -f gunicorn || true
 pkill -f python || true
+pkill -f flask || true
 
-# Wait a moment to ensure ports are free
+# Wait for ports to be released
 sleep 1
 
-# Run our pre-start script to ensure port detection
-python pre_start.py
+# Start our optimized preview solution
+python replit_preview.py

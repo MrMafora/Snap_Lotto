@@ -9,5 +9,5 @@ pkill -f gunicorn || true
 sleep 1
 
 # Run the Replit preview solution
-echo "Starting Replit fix_preview.py solution..."
-exec python3 fix_preview.py
+echo "Starting Replit preview solution..."
+exec python3 replit_preview.py
