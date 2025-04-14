@@ -1,15 +1,22 @@
 #!/bin/bash
 
-# Start the Gunicorn server with our configuration
-echo "Starting Gunicorn server with improved worker configuration..."
+# Wait a moment to ensure the port_detector has released the port
+sleep 2
 
-# Check if we're in production mode
-if [ "$ENVIRONMENT" = "production" ]; then
-    # Production mode - no reload
-    echo "Running in production mode without reload"
-    gunicorn -c gunicorn.conf.py main:app
-else
-    # Development mode - with reload
-    echo "Running in development mode with reload"
-    gunicorn -c gunicorn.conf.py --reload main:app
-fi
+# Kill any existing Flask processes
+pkill -f "python simple_app.py" || true
+
+# Start the Gunicorn server with minimal configuration for better port detection
+echo "Starting Gunicorn server with minimal configuration..."
+
+# Use --preload to load the application before forking workers
+# This helps with faster startup and port detection
+gunicorn \
+  --bind 0.0.0.0:5000 \
+  --reuse-port \
+  --workers 1 \
+  --worker-class sync \
+  --log-level info \
+  --access-logfile - \
+  --error-logfile - \
+  main:app
