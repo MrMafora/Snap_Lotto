@@ -41,12 +41,10 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Initialize CSRF Protection
+# Initialize CSRF Protection but don't apply it app-wide
+# This will allow us to selectively apply it to forms via WTF_CSRF_ENABLED config
 csrf = CSRFProtect()
-csrf.init_app(app)
-
-# Exempt the scan-ticket endpoint from CSRF protection
-csrf.exempt('/scan-ticket')
+app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for API endpoints
 
 @login_manager.user_loader
 def load_user(user_id):
