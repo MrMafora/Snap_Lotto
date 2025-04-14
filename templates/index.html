@@ -150,61 +150,41 @@
                         <div style="position: absolute; top: 95%; right: 5px; font-size: 11px; color: #666;">0</div>
                     </div>
                     
-                    <!-- Horizontal grid lines -->
-                    <div style="position: absolute; left: 25px; right: 0; top: 0; bottom: 20px; border-bottom: 1px solid #ddd; border-left: 1px solid #ddd;"></div>
+                    <!-- Grid container with border -->
+                    <div style="position: absolute; left: 20px; right: 0; top: 0; bottom: 20px; border-bottom: 1px solid #ddd; border-left: 1px solid #ddd;"></div>
                     
-                    <!-- Bars container -->
-                    <div style="position: absolute; left: 25px; right: 0; top: 0; bottom: 20px; display: flex; align-items: flex-end; padding-right: 10px;">
+                    <!-- Simpler approach using an actual image to ensure perfect representation -->
+                    <svg width="100%" height="130" style="position: absolute; left: 20px; right: 0; top: 0; bottom: 20px;">
                         <!-- Bar 1 - 13 -->
-                        <div style="flex: 1; padding: 0 2px; display: flex; flex-direction: column; align-items: center;">
-                            <div style="background-color: #dc3545; width: 60%; height: 44%; border-top-left-radius: 3px; border-top-right-radius: 3px;"></div>
-                        </div>
+                        <rect x="4%" y="75" width="5%" height="25" fill="#e03237" rx="2" ry="2"></rect>
                         
                         <!-- Bar 2 - 4 -->
-                        <div style="flex: 1; padding: 0 2px; display: flex; flex-direction: column; align-items: center;">
-                            <div style="background-color: #ffc107; width: 60%; height: 18%; border-top-left-radius: 3px; border-top-right-radius: 3px;"></div>
-                        </div>
+                        <rect x="14%" y="92" width="5%" height="8" fill="#ffe11d" rx="2" ry="2"></rect>
                         
                         <!-- Bar 3 - 27 -->
-                        <div style="flex: 1; padding: 0 2px; display: flex; flex-direction: column; align-items: center;">
-                            <div style="background-color: #198754; width: 60%; height: 65%; border-top-left-radius: 3px; border-top-right-radius: 3px;"></div>
-                        </div>
+                        <rect x="24%" y="45" width="5%" height="55" fill="#19a03a" rx="2" ry="2"></rect>
                         
                         <!-- Bar 4 - 44 -->
-                        <div style="flex: 1; padding: 0 2px; display: flex; flex-direction: column; align-items: center;">
-                            <div style="background-color: #0dcaf0; width: 60%; height: 83%; border-top-left-radius: 3px; border-top-right-radius: 3px;"></div>
-                        </div>
+                        <rect x="34%" y="15" width="5%" height="85" fill="#67c6ed" rx="2" ry="2"></rect>
                         
                         <!-- Bar 5 - 10 -->
-                        <div style="flex: 1; padding: 0 2px; display: flex; flex-direction: column; align-items: center;">
-                            <div style="background-color: #dc3545; width: 60%; height: 35%; border-top-left-radius: 3px; border-top-right-radius: 3px;"></div>
-                        </div>
+                        <rect x="44%" y="80" width="5%" height="20" fill="#e03237" rx="2" ry="2"></rect>
                         
                         <!-- Bar 6 - 22 -->
-                        <div style="flex: 1; padding: 0 2px; display: flex; flex-direction: column; align-items: center;">
-                            <div style="background-color: #ffc107; width: 60%; height: 55%; border-top-left-radius: 3px; border-top-right-radius: 3px;"></div>
-                        </div>
+                        <rect x="54%" y="55" width="5%" height="45" fill="#ffe11d" rx="2" ry="2"></rect>
                         
                         <!-- Bar 7 - 35 -->
-                        <div style="flex: 1; padding: 0 2px; display: flex; flex-direction: column; align-items: center;">
-                            <div style="background-color: #198754; width: 60%; height: 75%; border-top-left-radius: 3px; border-top-right-radius: 3px;"></div>
-                        </div>
+                        <rect x="64%" y="35" width="5%" height="65" fill="#19a03a" rx="2" ry="2"></rect>
                         
                         <!-- Bar 8 - 49 -->
-                        <div style="flex: 1; padding: 0 2px; display: flex; flex-direction: column; align-items: center;">
-                            <div style="background-color: #0dcaf0; width: 60%; height: 90%; border-top-left-radius: 3px; border-top-right-radius: 3px;"></div>
-                        </div>
+                        <rect x="74%" y="10" width="5%" height="90" fill="#67c6ed" rx="2" ry="2"></rect>
                         
                         <!-- Bar 9 - 7 -->
-                        <div style="flex: 1; padding: 0 2px; display: flex; flex-direction: column; align-items: center;">
-                            <div style="background-color: #dc3545; width: 60%; height: 28%; border-top-left-radius: 3px; border-top-right-radius: 3px;"></div>
-                        </div>
+                        <rect x="84%" y="85" width="5%" height="15" fill="#e03237" rx="2" ry="2"></rect>
                         
                         <!-- Bar 10 - 17 -->
-                        <div style="flex: 1; padding: 0 2px; display: flex; flex-direction: column; align-items: center;">
-                            <div style="background-color: #ffc107; width: 60%; height: 48%; border-top-left-radius: 3px; border-top-right-radius: 3px;"></div>
-                        </div>
-                    </div>
+                        <rect x="94%" y="70" width="5%" height="30" fill="#ffe11d" rx="2" ry="2"></rect>
+                    </svg>
                     
                     <!-- Bottom labels -->
                     <div style="position: absolute; left: 25px; right: 0; bottom: 0; height: 20px; display: flex; justify-content: space-between; padding-right: 10px;">
