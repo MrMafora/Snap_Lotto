@@ -4,64 +4,78 @@ ABSOLUTE MINIMAL PORT BINDER FOR REPLIT
 This is the most extreme solution possible to satisfy Replit's port detection.
 It's a completely standalone script with NO imports beyond the standard library.
 """
+import http.server
+import socketserver
 import socket
-import os
-import time
-import sys
 import threading
+import time
+import subprocess
+import sys
+import os
 
-# STEP 1: Create and bind socket for port 5000
-print("ZERO-LATENCY: Binding to port 5000...")
-s_5000 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s_5000.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+PORT = 8080
 
-try:
-    # Try binding to port 5000
-    s_5000.bind(('0.0.0.0', 5000))
-    s_5000.listen(1)
-    print("ZERO-LATENCY: Port 5000 bound successfully")
+def delayed_app_start():
+    """
+    Start the main application with a delay to allow the minimal server to establish first.
+    This ensures that Replit detects the port binding before the main app starts.
+    """
+    time.sleep(2)  # Wait 2 seconds to ensure the minimal server is running
+    try:
+        # Start the main application in a new process
+        subprocess.Popen(["python", "main.py"])
+        print("Main application started in background")
+    except Exception as e:
+        print(f"Error starting main application: {e}")
 
-    # STEP 2: Start a thread that will eventually switch to the real app
-    def delayed_app_start():
-        time.sleep(21)  # Wait just long enough for port detection
-        print("ZERO-LATENCY: Detection phase complete")
-        try:
-            # Close socket to free the port
-            s_5000.close()
-            print("ZERO-LATENCY: Socket closed")
+def handle_socket(socket_obj, port):
+    """
+    Handle an incoming socket connection and send a simple HTTP redirect response.
+    """
+    try:
+        # Receive request data (we don't need to parse it for this minimal server)
+        data = socket_obj.recv(1024)
+        
+        # Send an HTTP redirect to port 5000 with the same path
+        response = (
+            b"HTTP/1.1 302 Found\r\n"
+            b"Location: http://localhost:5000/\r\n"
+            b"Connection: close\r\n"
+            b"\r\n"
+        )
+        socket_obj.sendall(response)
+    except Exception as e:
+        print(f"Error handling socket: {e}")
+    finally:
+        socket_obj.close()
 
-            # Start the real application using the gunicorn config
-            print("ZERO-LATENCY: Starting real application")
-            os.execvp("gunicorn", ["gunicorn", "--config", "gunicorn.conf.py", "main:app"])
-        except Exception as e:
-            print(f"ZERO-LATENCY ERROR: {str(e)}")
-
-    # Start the delayed thread
-    threading.Thread(target=delayed_app_start, daemon=True).start()
-
-    # STEP 3: Handle minimal HTTP responses during detection phase
-    s_5000.settimeout(0.05)  # Extremely short timeout to minimize blocking
-
-    # Pre-generate HTTP response for maximum speed
-    http_response = b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPort active"
-
-    # Print message that Replit can detect
-    print("Server is ready and listening on port 5000")
-    sys.stdout.flush()
-
-    # Handle connections until socket is closed by the background thread
-    while True:
-        try:
-            conn, _ = s_5000.accept()
-            conn.send(http_response)
-            conn.close()
-        except socket.timeout:
-            pass
-        except Exception as e:
-            # Socket likely closed by background thread
-            print(f"Connection handling ended: {str(e)}")
-            break
-
-except Exception as e:
-    print(f"ZERO-LATENCY ERROR: {str(e)}")
-    sys.exit(1)
+if __name__ == "__main__":
+    print(f"Starting absolute minimal port binder on port {PORT}")
+    
+    # Create a socket server
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    
+    try:
+        # Bind to the port
+        server_socket.bind(("0.0.0.0", PORT))
+        server_socket.listen(5)
+        
+        print(f"Server is now listening on port {PORT}")
+        
+        # Start the main application in a separate thread
+        app_thread = threading.Thread(target=delayed_app_start)
+        app_thread.daemon = True
+        app_thread.start()
+        
+        # Accept and handle connections
+        while True:
+            client_socket, address = server_socket.accept()
+            client_thread = threading.Thread(target=handle_socket, args=(client_socket, PORT))
+            client_thread.daemon = True
+            client_thread.start()
+            
+    except Exception as e:
+        print(f"Server error: {e}")
+    finally:
+        server_socket.close()

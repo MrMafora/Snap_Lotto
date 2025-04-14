@@ -7,8 +7,8 @@ import sys
 # Determine if we're in production or development
 is_production = os.environ.get('ENVIRONMENT') == 'production'
 
-# Server socket - bind to port 5000 for Replit compatibility
-bind = "0.0.0.0:5000"
+# Server socket - bind to both ports 5000 and 8080 for Replit compatibility
+bind = ["0.0.0.0:5000", "0.0.0.0:8080"]
 backlog = 2048
 
 # Worker processes - keep minimum for faster startup in Replit
@@ -47,7 +47,7 @@ def pre_exec(server):
     server.log.info("Forked child, re-executing.")
 
 def when_ready(server):
-    print("Server is ready and listening on port 5000")
+    print("Server is ready and listening on ports 5000 and 8080")
     sys.stdout.flush()
     server.log.info("Server is ready. Spawning workers")
 
