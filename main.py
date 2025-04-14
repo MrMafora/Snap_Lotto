@@ -12,17 +12,13 @@ from werkzeug.utils import secure_filename
 
 import logging
 import os
+import threading
 from datetime import datetime, timedelta
 from functools import wraps
 
-import data_aggregator
-import import_excel
-import import_snap_lotto_data
-import ocr_processor
-import scheduler
-import screenshot_manager
-from config import Config
+# Import models only (lightweight)
 from models import LotteryResult, ScheduleConfig, Screenshot, User, db
+from config import Config
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -74,12 +70,53 @@ app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for API endpoints
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Create all database tables if they don't exist
-with app.app_context():
-    db.create_all()
+# Defer database schema creation to background thread
+def init_database():
+    """Initialize database tables in background thread"""
+    with app.app_context():
+        db.create_all()
+        logger.info("Database tables created/verified")
+        
+# Start database initialization in background to avoid blocking startup
+threading.Thread(target=init_database, daemon=True).start()
 
-# Initialize the scheduler
-scheduler.init_scheduler(app)
+# Lazy load these modules - will be imported when needed
+# This helps reduce initial load time
+data_aggregator = None
+import_excel = None
+import_snap_lotto_data = None
+ocr_processor = None
+screenshot_manager = None
+scheduler = None
+
+def init_lazy_modules():
+    """Initialize modules in a background thread to speed up startup"""
+    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, scheduler
+    
+    # Import heavy modules only when needed
+    import data_aggregator as da
+    import import_excel as ie
+    import import_snap_lotto_data as isld
+    import ocr_processor as op
+    import screenshot_manager as sm
+    import scheduler as sch
+    
+    # Store module references
+    data_aggregator = da
+    import_excel = ie
+    import_snap_lotto_data = isld
+    ocr_processor = op
+    screenshot_manager = sm
+    scheduler = sch
+    
+    # Initialize scheduler in background after imports are complete
+    with app.app_context():
+        scheduler.init_scheduler(app)
+    
+    logger.info("All modules lazy-loaded successfully")
+
+# Start lazy loading in background thread
+threading.Thread(target=init_lazy_modules, daemon=True).start()
 
 # Additional routes and functionality would be defined here...
 # For the sake of brevity, only core routes are included
@@ -87,6 +124,15 @@ scheduler.init_scheduler(app)
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""
+    # Ensure data_aggregator is loaded before using it
+    global data_aggregator
+    
+    # Import if not already loaded
+    if data_aggregator is None:
+        import data_aggregator as da
+        data_aggregator = da
+        logger.info("Loaded data_aggregator module on demand")
+    
     # First, validate and correct any known draws (adds missing division data)
     corrected = data_aggregator.validate_and_correct_known_draws()
     if corrected > 0:
@@ -215,6 +261,15 @@ def results():
     lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 
                      'Powerball', 'Powerball Plus', 'Daily Lotto']
     
+    # Ensure data_aggregator is loaded before using it
+    global data_aggregator
+    
+    # Import if not already loaded
+    if data_aggregator is None:
+        import data_aggregator as da
+        data_aggregator = da
+        logger.info("Loaded data_aggregator module on demand")
+    
     latest_results = data_aggregator.get_latest_results()
     
     return render_template('results_overview.html',
@@ -227,6 +282,15 @@ def lottery_results(lottery_type):
     """Show all results for a specific lottery type"""
     page = request.args.get('page', 1, type=int)
     per_page = 10  # Number of results per page
+    
+    # Ensure data_aggregator is loaded before using it
+    global data_aggregator
+    
+    # Import if not already loaded
+    if data_aggregator is None:
+        import data_aggregator as da
+        data_aggregator = da
+        logger.info("Loaded data_aggregator module on demand")
     
     # Get all results for this lottery type
     all_results = data_aggregator.get_all_results_by_lottery_type(lottery_type)

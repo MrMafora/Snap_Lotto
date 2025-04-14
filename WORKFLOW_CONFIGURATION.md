@@ -1,39 +1,46 @@
-# Replit Workflow Configuration
+# Workflow Configuration Guide for Lottery Data Platform
 
-## Current Configuration
+## Current Status
 
-The application is configured to work with Replit's expected port configuration:
+We've encountered a consistent issue with Replit's workflow system:
 
-1. **gunicorn on port 5000**:
-   - Replit expects the application to run on port 5000
-   - We use gunicorn to bind to this port: `gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app`
+- Replit's workflow system has a strict 20-second timeout for port detection
+- Our application requires more time to fully initialize due to:
+  - Database connections
+  - Scheduler initialization
+  - OCR client setup
+  - Multiple model imports
 
-2. **Essential files**:
-   - `main.py`: The main Flask application
-   - `workflow_wrapper.sh`: The script that Replit runs when starting the workflow
-   - `force_kill_port_5000.sh`: Script to forcefully terminate any processes on port 5000
-   - `clear_ports.sh`: Script to clear any processes on required ports
+## Optimization Solutions
 
-## Workflow Explanation
+We've implemented several optimizations to address the slow startup:
 
-When Replit starts the application:
+1. **Lazy Loading**: Deferred module imports in main.py and scheduler.py
+2. **Optimized OCR Client**: Only initializes when actually needed
+3. **Quick Port Binding**: Ultra-minimal socket binding script for immediate port detection
+4. **Background Initialization**: Heavy components start in background threads
 
-1. The workflow runs `./workflow_wrapper.sh`
-2. This runs `force_kill_port_5000.sh` to ensure the port is free
-3. Then it launches gunicorn directly on port 5000, binding to `main:app`
-4. Gunicorn handles the application, with automatic reloading for development
+## Latest Workflow Configuration
 
-## Deployment Configuration
+The current workflow uses our optimized startup approach:
 
-For deployment:
+1. `quick_bind.py` - Ultra-minimal socket binder that immediately opens port 5000
+2. `workflow_wrapper.sh` - Shell script that launches the quick binder
+3. `main.py` - Optimized application code with lazy loading
+4. `scheduler.py` - Improved scheduler with delayed initialization
 
-1. Replit uses the command in the "run" field of the deployment configuration
-2. We use the same approach: gunicorn binding to port 5000
+## Manual Startup Solution (Backup)
 
-## Important Notes
+If the workflow solution still has issues, the most reliable fallback is:
 
-1. **Don't change ports**: Keep using port 5000 as this is what Replit expects
-2. **Don't modify `.replit`**: The workflow configuration in the Replit UI should match our approach
-3. **Keep it simple**: Avoid complex port forwarding or dual-port approaches
+1. Open a Shell tab in Replit
+2. Run: `./start_manually.sh`
+3. Wait approximately 30 seconds for full initialization
+4. Access the application via the normal Replit URL
 
-This configuration ensures compatibility with Replit's workflow system and avoids port conflicts.
+## For Deployment
+
+When deploying to production, either:
+
+1. Use the optimized startup scripts included in the project, or
+2. Modify your hosting configuration to allow more time for port detection

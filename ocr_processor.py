@@ -9,18 +9,27 @@ import importlib.util
 
 logger = logging.getLogger(__name__)
 
-# Initialize API key from environment variable
-ANTHROPIC_API_KEY = os.environ.get("Lotto_scape_ANTHROPIC_KEY")
-
-# Log if key is missing
-if not ANTHROPIC_API_KEY:
-    logger.warning("Lotto_scape_ANTHROPIC_KEY environment variable not set.")
-
-# Initialize AI client
+# Initialize variables - actual client will be created on first use
+ANTHROPIC_API_KEY = None
 anthropic_client = None
 
-# Initialize Anthropic client if ANTHROPIC_API_KEY is available
-if ANTHROPIC_API_KEY:
+def get_anthropic_client():
+    """Lazy load the Anthropic client when actually needed"""
+    global ANTHROPIC_API_KEY, anthropic_client
+    
+    # Return existing client if already initialized
+    if anthropic_client is not None:
+        return anthropic_client
+    
+    # Initialize API key from environment variable
+    ANTHROPIC_API_KEY = os.environ.get("Lotto_scape_ANTHROPIC_KEY")
+    
+    # Log if key is missing
+    if not ANTHROPIC_API_KEY:
+        logger.warning("Lotto_scape_ANTHROPIC_KEY environment variable not set.")
+        return None
+    
+    # Initialize Anthropic client if ANTHROPIC_API_KEY is available
     try:
         import anthropic
         from anthropic import Anthropic
@@ -28,10 +37,13 @@ if ANTHROPIC_API_KEY:
         # Initialize client
         anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
         logger.info("Anthropic client initialized successfully")
+        return anthropic_client
     except ImportError:
         logger.error("Failed to import anthropic module. Please check if it's properly installed.")
+        return None
     except Exception as e:
         logger.error(f"Error initializing Anthropic client: {str(e)}")
+        return None
 
 def process_screenshot(screenshot_path, lottery_type):
     """
@@ -86,7 +98,9 @@ def process_screenshot(screenshot_path, lottery_type):
     system_prompt = create_system_prompt(lottery_type)
     
     # Use Anthropic Claude for OCR processing
-    if anthropic_client:
+    # Lazy load the client only when needed
+    client = get_anthropic_client()
+    if client:
         try:
             logger.info(f"Processing with Anthropic Claude for {lottery_type}")
             
@@ -110,7 +124,7 @@ def process_screenshot(screenshot_path, lottery_type):
             logger.error(f"Error in Anthropic processing: {str(e)}")
     
     # If no AI client is available or processing failed
-    if not ANTHROPIC_API_KEY:
+    if not get_anthropic_client():
         logger.error("No AI client available. Cannot process without API key.")
     
     # Return default structure with empty data if processing failed
@@ -145,13 +159,19 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
         dict: The processed result
     """
     try:
+        # Get the lazily loaded client
+        client = get_anthropic_client()
+        if not client:
+            logger.error("Cannot process with Anthropic: No client available")
+            return None
+            
         # Set media type based on image format
         media_type = f"image/{image_format.lower()}"
         logger.info(f"Using media type: {media_type} for image processing")
         
         # Process as image using Anthropic Claude
         logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
-        response = anthropic_client.messages.create(
+        response = client.messages.create(
             model="claude-3-5-sonnet-20241022", # Latest Claude model
             max_tokens=3000,  # Increased token limit to handle multiple draw results
             system=system_prompt,

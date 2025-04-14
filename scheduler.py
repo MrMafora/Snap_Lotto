@@ -1,17 +1,10 @@
 """
 Scheduler for automating lottery data scraping
 """
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
-from flask import current_app
 import atexit
 import threading
 import time
-
-from screenshot_manager import capture_screenshot
-from ocr_processor import process_screenshot
-from data_aggregator import aggregate_data
-from models import db, ScheduleConfig
+import logging
 from logger import setup_logger
 
 # Set up module-specific logger
@@ -26,6 +19,9 @@ IS_REPLIT_ENV = True
 MAX_CONCURRENT_TASKS = 2
 task_semaphore = threading.Semaphore(MAX_CONCURRENT_TASKS)
 
+# Scheduler instance (initialized later)
+scheduler = None
+
 def init_scheduler(app):
     """
     Initialize the APScheduler for scheduled tasks.
@@ -36,6 +32,11 @@ def init_scheduler(app):
     Returns:
         BackgroundScheduler: Initialized scheduler
     """
+    global scheduler
+    
+    # Import heavy modules only when needed
+    from apscheduler.schedulers.background import BackgroundScheduler
+    
     # Initialize scheduler but don't start it yet
     scheduler = BackgroundScheduler()
     
@@ -45,7 +46,7 @@ def init_scheduler(app):
         # to ensure app is ready on port 5000 first
         def delayed_start():
             logger.info("Delaying scheduler startup for faster application initialization")
-            time.sleep(2)  # Wait for app to fully initialize
+            time.sleep(5)  # Longer wait to ensure port 5000 is detected first
             scheduler.start()
             logger.info("Scheduler started after delay")
             
@@ -76,6 +77,9 @@ def schedule_task(scheduler, config):
         config: ScheduleConfig instance with scheduling details
     """
     if config.frequency == 'daily':
+        # Import here to avoid early loading
+        from apscheduler.triggers.cron import CronTrigger
+        
         trigger = CronTrigger(hour=config.hour, minute=config.minute)
         scheduler.add_job(
             func=run_lottery_task,
@@ -174,6 +178,9 @@ def run_lottery_task(url, lottery_type):
                     logger.warning(f"No new lottery results saved for {lottery_type}")
                 
                 # Update last run time
+                # Import models here to avoid circular imports
+                from models import ScheduleConfig, db
+                
                 config = ScheduleConfig.query.filter_by(url=url).first()
                 if config:
                     config.last_run = datetime.now()
