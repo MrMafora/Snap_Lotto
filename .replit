@@ -5,7 +5,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "gce"
-run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 main:app"]
+run = ["sh", "-c", "gunicorn --bind 0.0.0.0:8080 main:app"]
 build = ["sh", "-c", "pip install -r requirements.txt"]
 
 [workflows]
@@ -34,6 +34,15 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Production"
+author = 40744859
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn --bind 0.0.0.0:8080 main:app"
 
 [[ports]]
 localPort = 5000

@@ -1,11 +1,8 @@
-# Configuration file for Replit Deployments
+
 run = "gunicorn --bind 0.0.0.0:8080 main:app"
 deploymentTarget = "gce"
-
-# Health check endpoint
 healthCheckPath = "/"
 
-# Environment configuration
 [env]
 ENVIRONMENT = "production"
 DEBUG = "false"
