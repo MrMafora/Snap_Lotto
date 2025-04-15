@@ -6,7 +6,7 @@ This file is imported by gunicorn using the 'main:app' notation.
 It also includes functionality to automatically bind to port 8080 
 when running directly, to support Replit's external access requirements.
 """
-from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory
+from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory, send_file
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -514,6 +514,65 @@ def export_screenshots():
     return render_template('export_screenshots.html',
                           screenshots=screenshots,
                           title="Export Screenshots")
+
+@app.route('/export-screenshots-zip')
+@login_required
+def export_screenshots_zip():
+    """Export all screenshots as a ZIP file"""
+    if not current_user.is_admin:
+        flash('You must be an admin to export screenshots.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        import io
+        import zipfile
+        from datetime import datetime
+        
+        # Get all screenshots
+        screenshots = Screenshot.query.order_by(Screenshot.lottery_type).all()
+        
+        if not screenshots:
+            flash('No screenshots available to export.', 'warning')
+            return redirect(url_for('export_screenshots'))
+        
+        # Create a ZIP file in memory
+        memory_file = io.BytesIO()
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for screenshot in screenshots:
+                if os.path.exists(screenshot.path):
+                    # Get the file extension
+                    _, ext = os.path.splitext(screenshot.path)
+                    # Create a unique filename for each screenshot
+                    lottery_type = screenshot.lottery_type.replace(' ', '_')
+                    timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
+                    filename = f"{lottery_type}_{timestamp}{ext}"
+                    
+                    # Add the screenshot to the ZIP file
+                    zf.write(screenshot.path, filename)
+                    
+                    # Add zoomed version if it exists
+                    if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                        _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
+                        zoomed_filename = f"{lottery_type}_{timestamp}_zoomed{zoomed_ext}"
+                        zf.write(screenshot.zoomed_path, zoomed_filename)
+        
+        # Reset the file pointer to the beginning of the file
+        memory_file.seek(0)
+        
+        # Create a timestamp for the filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # Send the ZIP file as a response
+        return send_file(
+            memory_file,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=f'lottery_screenshots_{timestamp}.zip'
+        )
+    except Exception as e:
+        app.logger.error(f"Error creating ZIP file: {str(e)}")
+        flash(f'Error creating ZIP file: {str(e)}', 'danger')
+        return redirect(url_for('export_screenshots'))
 
 @app.route('/register', methods=['GET', 'POST'])
 @login_required

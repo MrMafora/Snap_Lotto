@@ -137,9 +137,12 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-md-6 mb-3">
-                <h6 class="mb-2">Most Frequent Numbers</h6>
-                <!-- SVG bar chart with perfect alignment between bars and numbers -->
+            <!-- Flex container for both charts on the same line -->
+            <div class="d-flex align-items-start justify-content-between" style="width: 100%;">
+                <!-- Left chart: Most Frequent Numbers -->
+                <div style="width: 55%;">
+                    <h6 class="mb-2">Most Frequent Numbers</h6>
+                    <!-- SVG bar chart with perfect alignment between bars and numbers -->
                     <div class="bar-chart-container" style="position: relative; width: 100%; height: 170px;">
                         <!-- Y-axis labels - moved to left of the chart -->
                         <div style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px;">
@@ -222,17 +225,14 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-6 mb-3">
-                <!-- Using position relative on parent to contain the chart -->
-                <div style="position: relative; width: 100%; height: 220px;">
-                    <!-- Title at the top left -->
+                
+                <!-- Right chart: Winners By Division -->
+                <div style="width: 40%;">
                     <h6 class="mb-2" style="text-align: left;">Winners By Division</h6>
-                    
-                    <!-- Chart container positioned to center-right of parent div -->
-                    <div style="display: flex; justify-content: flex-end; margin-top: 30px;">
+                    <!-- Chart container with pie chart and legend side by side -->
+                    <div style="display: flex; align-items: center; margin-top: 10px;">
                         <!-- Pie chart with fixed width -->
-                        <div style="width: 150px; height: 150px; margin-right: 20px;">
+                        <div style="width: 150px; height: 150px;">
                             <svg width="150" height="150" viewBox="0 0 100 100">
                                 <!-- Simple pie chart using more reliable circle segments -->
                                 <!-- Base circle -->
@@ -255,8 +255,8 @@
                             </svg>
                         </div>
                         
-                        <!-- Legend with horizontal layout -->
-                        <div style="display: flex; flex-wrap: wrap; width: 130px; margin-top: 15px;">
+                        <!-- Legend with vertical layout -->
+                        <div style="display: flex; flex-direction: column; margin-left: 10px; margin-top: 15px;">
                             <div style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
                                 <span style="display: inline-block; width: 10px; height: 10px; background-color: #e03237; margin-right: 3px;"></span> Division 1
                             </div>
