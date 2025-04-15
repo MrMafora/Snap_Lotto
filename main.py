@@ -1425,9 +1425,15 @@ def health_dashboard():
     """Health monitoring dashboard for system administrators"""
     import health_monitor
     from datetime import datetime, timedelta
+    import json
     
     # Get the overall system status
     system_status = health_monitor.get_system_status(app, db)
+    
+    # Get port usage data
+    port_history = health_monitor.get_health_history('port_usage', 1)
+    # Add active ports to components
+    active_ports = system_status.get('active_ports', [])
     
     # Get recent alerts
     alerts = health_monitor.get_recent_alerts(10)
@@ -1452,7 +1458,6 @@ def health_dashboard():
             
             details = check['details']
             if isinstance(details, str):
-                import json
                 details = json.loads(details)
             
             cpu_history.append(details.get('cpu_usage', 0))
@@ -1477,6 +1482,23 @@ def health_dashboard():
     memory_history.reverse()
     disk_history.reverse()
     
+    # Add additional port monitoring information
+    service_port_map = {}
+    
+    # If port usage information is available in the health history,
+    # populate the service-to-port mapping
+    if port_history and len(port_history) > 0:
+        try:
+            port_details = port_history[0]['details']
+            if isinstance(port_details, str):
+                port_details = json.loads(port_details)
+            
+            # Extract service usage mapping from details if available
+            if isinstance(port_details, dict) and 'service_usage' in port_details:
+                service_port_map = port_details['service_usage']
+        except Exception as e:
+            app.logger.error(f"Error extracting port history data: {str(e)}")
+    
     return render_template(
         'admin/health_dashboard.html',
         overall_status=system_status['overall_status'],
@@ -1487,7 +1509,9 @@ def health_dashboard():
         resource_timestamps=resource_timestamps,
         cpu_history=cpu_history,
         memory_history=memory_history,
-        disk_history=disk_history
+        disk_history=disk_history,
+        active_ports=active_ports,
+        service_port_map=service_port_map
     )
 
 @app.route('/admin/health-alerts')

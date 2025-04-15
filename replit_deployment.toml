@@ -1,5 +1,5 @@
 # Configuration file for Replit Deployments
-run = "./direct_start.sh"
+run = "gunicorn --bind 0.0.0.0:8080 main:app"
 deploymentTarget = "cloudrun"
 
 # Health check endpoint

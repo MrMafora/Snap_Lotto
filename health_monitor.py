@@ -191,30 +191,46 @@ def get_health_history(check_type=None, limit=100):
 
 # Health check functions
 def check_server_status():
-    """Check if the server is responding on port 8080"""
-    # We now only check port 8080 as we're binding directly to it for deployment
-    port_8080_status = False
+    """Check if the server is responding on the appropriate port"""
+    # Check port 5000 for development and port 8080 for production
+    import os
+    
+    # In development, we check port 5000; in production, we check port 8080
+    environment = os.environ.get('ENVIRONMENT', 'development')
+    
+    if environment.lower() == 'production':
+        # Production environment - check port 8080
+        port_to_check = 8080
+    else:
+        # Development environment - check port 5000
+        port_to_check = 5000
+    
+    port_status = False
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(2)
-            s.connect(('127.0.0.1', 8080))
-            port_8080_status = True
+            s.connect(('127.0.0.1', port_to_check))
+            port_status = True
     except Exception as e:
-        logger.warning(f"Port 8080 check failed: {str(e)}")
+        logger.warning(f"Port {port_to_check} check failed: {str(e)}")
     
     # Log the results
-    status = "OK" if port_8080_status else "CRITICAL"
+    status = "OK" if port_status else "CRITICAL"
     details = {
-        "port_8080": port_8080_status
+        f"port_{port_to_check}": port_status
     }
     
     log_health_check("server_status", status, details)
     
     # Create or resolve alerts as needed
-    if not port_8080_status:
-        create_alert("port_8080_down", "Application port (8080) is not responding")
+    if not port_status:
+        create_alert(f"port_{port_to_check}_down", f"Application port ({port_to_check}) is not responding")
     else:
-        resolve_alert("port_8080_down")
+        resolve_alert(f"port_{port_to_check}_down")
+        
+        # Always resolve the other port alert to prevent false alerts
+        other_port = 8080 if port_to_check == 5000 else 5000
+        resolve_alert(f"port_{other_port}_down")
     
     return status, details
 
@@ -262,6 +278,78 @@ def check_database_connection(db):
         resolve_alert("database_down")
     
     return status, details
+
+def check_port_usage():
+    """Check which services are using which ports"""
+    port_details = {}
+    service_usage = {}
+    
+    # Define common ports to monitor (can be expanded as needed)
+    monitored_ports = [5000, 8080, 80, 443, 3000, 3306, 5432, 27017, 6379, 9090, 9000]
+    
+    try:
+        # Get all network connections
+        connections = psutil.net_connections()
+        
+        # Filter for listening TCP connections (servers)
+        for conn in connections:
+            port = None
+            # Handle different psutil connection address formats
+            if hasattr(conn.laddr, '_asdict') and hasattr(conn.laddr, 'port'):  # Named tuple format
+                port = conn.laddr.port
+            elif isinstance(conn.laddr, tuple) and len(conn.laddr) > 1:  # Tuple format
+                port = conn.laddr[1]
+            else:
+                continue
+                
+            if conn.status == 'LISTEN' and port is not None:
+                # Add port even if not in monitored_ports to ensure we catch all active server ports
+                if port not in port_details:
+                    port_details[port] = {
+                        "pid": conn.pid,
+                        "status": conn.status,
+                        "is_monitored": port in monitored_ports
+                    }
+                    
+                    # Get process information for this port
+                    if conn.pid:
+                        try:
+                            process = psutil.Process(conn.pid)
+                            port_details[port].update({
+                                "process_name": process.name(),
+                                "process_cmdline": " ".join(process.cmdline()),
+                                "process_create_time": datetime.datetime.fromtimestamp(process.create_time()).strftime('%Y-%m-%d %H:%M:%S'),
+                                "process_username": process.username(),
+                                "process_memory_percent": round(process.memory_percent(), 2)
+                            })
+                            
+                            # Organize by service/process name for easier viewing
+                            proc_name = process.name()
+                            if proc_name not in service_usage:
+                                service_usage[proc_name] = []
+                            service_usage[proc_name].append(port)
+                        except psutil.NoSuchProcess:
+                            port_details[port]["process_info"] = "Process no longer exists"
+        
+        # Add service usage summary to the port details
+        details = {
+            "port_details": port_details,
+            "service_usage": service_usage,
+            "monitored_ports": monitored_ports,
+            "total_listening_ports": len(port_details)
+        }
+        
+        # Log the results
+        status = "OK"
+        log_health_check("port_usage", status, details)
+        
+        return status, details
+    except Exception as e:
+        logger.warning(f"Port usage check failed: {str(e)}")
+        details = {"error": str(e)}
+        status = "WARNING"
+        log_health_check("port_usage", status, details)
+        return status, details
 
 def check_system_resources():
     """Check system resource usage"""
@@ -372,6 +460,7 @@ def run_health_checks(app, db):
         check_database_connection(db)
         check_system_resources()
         check_advertisement_system(db)
+        check_port_usage()
 
 def start_health_check_scheduler(app, db, interval=300):
     """Start the health check scheduler"""
@@ -392,6 +481,61 @@ def start_health_check_scheduler(app, db, interval=300):
     return thread
 
 # API for health check data
+def get_active_ports():
+    """Get a list of all active ports and the services using them"""
+    active_ports = []
+    
+    try:
+        # Get all network connections
+        connections = psutil.net_connections(kind='inet')
+        
+        # Process each connection to get port and associated process info
+        port_process_map = {}
+        for conn in connections:
+            # Handle different psutil connection address formats
+            if hasattr(conn.laddr, '_asdict'):  # Named tuple format
+                if hasattr(conn.laddr, 'port'):
+                    port = conn.laddr.port
+                    pid = conn.pid
+                else:
+                    continue
+            elif isinstance(conn.laddr, tuple) and len(conn.laddr) > 1:  # Tuple format
+                port = conn.laddr[1]
+                pid = conn.pid
+            else:
+                continue
+            
+            if pid and port and port not in port_process_map:
+                try:
+                    process = psutil.Process(pid)
+                    port_process_map[port] = {
+                        "pid": pid,
+                        "name": process.name(),
+                        "cmdline": " ".join(process.cmdline()),
+                        "status": process.status(),
+                        "created": datetime.datetime.fromtimestamp(process.create_time()).isoformat(),
+                    }
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    port_process_map[port] = {
+                        "pid": pid,
+                        "name": "Unknown",
+                        "cmdline": "Access denied or process no longer exists",
+                        "status": "unknown",
+                        "created": "unknown"
+                    }
+        
+        # Convert the map to a sorted list
+        for port, process_info in sorted(port_process_map.items()):
+            active_ports.append({
+                "port": port,
+                "process": process_info
+            })
+        
+    except Exception as e:
+        logger.error(f"Error getting active ports: {str(e)}")
+    
+    return active_ports
+
 def get_system_status(app, db):
     """Get the current system status"""
     with app.app_context():
@@ -407,12 +551,18 @@ def get_system_status(app, db):
         # Check advertisement system
         ad_status, ad_details = check_advertisement_system(db)
         
+        # Check port usage
+        port_status, port_details = check_port_usage()
+        
+        # Get active ports information (legacy method, keeping for backward compatibility)
+        active_ports = get_active_ports()
+        
         # Determine overall status
-        if 'CRITICAL' in [server_status, db_status, resources_status, ad_status]:
+        if 'CRITICAL' in [server_status, db_status, resources_status, ad_status, port_status]:
             overall_status = 'CRITICAL'
-        elif 'WARNING' in [server_status, db_status, resources_status, ad_status]:
+        elif 'WARNING' in [server_status, db_status, resources_status, ad_status, port_status]:
             overall_status = 'WARNING'
-        elif 'ERROR' in [server_status, db_status, resources_status, ad_status]:
+        elif 'ERROR' in [server_status, db_status, resources_status, ad_status, port_status]:
             overall_status = 'ERROR'
         else:
             overall_status = 'OK'
@@ -427,8 +577,10 @@ def get_system_status(app, db):
                 'server': {'status': server_status, 'details': server_details},
                 'database': {'status': db_status, 'details': db_details},
                 'resources': {'status': resources_status, 'details': resources_details},
-                'advertisement': {'status': ad_status, 'details': ad_details}
+                'advertisement': {'status': ad_status, 'details': ad_details},
+                'port_usage': {'status': port_status, 'details': port_details}
             },
+            'active_ports': active_ports,
             'recent_alerts': alerts
         }
 

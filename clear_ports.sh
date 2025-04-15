@@ -1,10 +1,6 @@
 #!/bin/bash
-# Script to start the application with the correct port binding based on environment
-
-# Default to development environment if not specified
-ENVIRONMENT=${ENVIRONMENT:-development}
-
-echo "Starting application in $ENVIRONMENT environment"
+# Script to clean up processes using crucial ports (5000 and 8080)
+# Run this script manually if you encounter port conflicts
 
 # Function to kill processes on a specific port
 kill_process_on_port() {
@@ -60,16 +56,12 @@ kill_process_on_port() {
   fi
 }
 
-# Always kill both ports (5000 and 8080) to ensure clean startup
+echo "======== PORT CLEANUP UTILITY ========"
+echo "This script will terminate any processes using ports 5000 and 8080"
+
+# Kill processes on both development and production ports
 kill_process_on_port 5000
 kill_process_on_port 8080
 
-if [ "$ENVIRONMENT" = "production" ]; then
-  # Production environment - use port 8080 for Replit deployment
-  echo "Binding to port 8080 for production deployment"
-  exec gunicorn --bind 0.0.0.0:8080 main:app
-else
-  # Development environment - use port 5000
-  echo "Binding to port 5000 for development"
-  exec gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
-fi
+echo "Port cleanup completed"
+echo "=================================="

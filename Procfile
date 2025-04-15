@@ -1,1 +1,1 @@
-web: python run_with_proxy.py
+web: gunicorn --bind 0.0.0.0:8080 main:app

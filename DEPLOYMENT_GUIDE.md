@@ -6,17 +6,31 @@ This document outlines the deployment process for the Lottery Application on Rep
 
 The application is configured to run on port **8080** for deployment, which is a requirement for Replit Cloud Run deployments.
 
-### Key Files
+### Key Configuration Files
 
-1. **gunicorn.conf.py**: This is the main configuration file for Gunicorn that ensures the application binds to port 8080.
-
-2. **direct_start.sh**: A simple bash script that launches Gunicorn with the configuration file.
-
-3. **replit_deployment.toml**: The deployment configuration for Replit that specifies:
-   - Which script to run (`direct_start.sh`)
+1. **replit_deployment.toml**: The deployment configuration for Replit that specifies:
+   - The Gunicorn command with direct port 8080 binding
    - The deployment target (`cloudrun`)
    - Health check path (`/`)
-   - Environment variables
+   - Environment variables (`ENVIRONMENT=production`, `DEBUG=false`)
+
+2. **Procfile**: Contains the web process configuration for deployment:
+   - Uses direct Gunicorn binding to port 8080 with the command:
+     ```
+     web: gunicorn --bind 0.0.0.0:8080 main:app
+     ```
+
+3. **.replit-ports**: Contains port mapping configuration:
+   - Maps local port 8080 to external port 80, which allows the deployed application to be accessible on the standard HTTP port
+
+### Environment-Aware Components
+
+The application includes environment-aware components that adjust their behavior based on whether they're running in development or production:
+
+1. **Health Monitoring System**: 
+   - Automatically checks port 5000 in development environment
+   - Automatically checks port 8080 in production environment
+   - Uses the `ENVIRONMENT` environment variable to determine which port to check
 
 ## Deployment Steps
 
@@ -34,13 +48,32 @@ The application is configured to run on port **8080** for deployment, which is a
    - Verify that all features function correctly
    - Confirm that scheduled tasks are running
 
-## Port Binding Solution
+## Deployment Architecture
 
-This deployment uses a direct port 8080 binding solution through Gunicorn's configuration file. This approach:
+### Port Binding Solution
 
-- Ensures consistent binding across environments
-- Simplifies the deployment process
-- Works reliably with Replit's Cloud Run service
+This deployment uses a direct port 8080 binding approach specifically required by Replit Cloud Run:
+
+- **Direct Gunicorn Binding**: We configure Gunicorn to bind directly to port 8080 in the deployment command
+- **No Shell Scripts**: We avoid using shell scripts which can cause issues with Replit deployments
+- **Consistent Configuration**: The same port binding approach is used in both Procfile and replit_deployment.toml
+- **Port Mapping**: External traffic on port 80 is mapped to the application's port 8080
+
+### Deployment vs. Development
+
+The project supports different port configurations for development and production:
+
+| Environment | Port | Purpose | Configuration |
+|-------------|------|---------|---------------|
+| Development | 5000 | Local development with debugging enabled | Used by Replit workspace |
+| Production  | 8080 | Required by Replit Cloud Run for deployment | Used by deployment configuration |
+
+### Health Monitoring
+
+The health monitoring system is designed to be environment-aware:
+- Automatically adapts to the appropriate port based on the `ENVIRONMENT` variable
+- Eliminates false alerts by checking for the proper port in each environment
+- Provides consistent health reporting across environments
 
 ## Troubleshooting
 

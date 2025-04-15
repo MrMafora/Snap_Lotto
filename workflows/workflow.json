@@ -1,0 +1,23 @@
+{
+  "workflows": [
+    {
+      "name": "Start application",
+      "tasks": [
+        {
+          "task": "shell.exec",
+          "args": "./clear_ports.sh",
+          "description": "Clear any processes using ports 5000 and 8080"
+        },
+        {
+          "task": "shell.exec",
+          "args": "./start_app.sh",
+          "waitForPort": 5000,
+          "description": "Start the application based on environment"
+        }
+      ],
+      "metadata": {
+        "agentRequireRestartOnSave": false
+      }
+    }
+  ]
+}

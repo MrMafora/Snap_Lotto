@@ -1,56 +1,90 @@
-# Deployment Notes for Lottery Data Intelligence Platform
+# Deployment Notes for Replit Cloud Run
 
-## Current Status
+This document outlines the specific changes made to support direct port binding for Replit Cloud Run deployment.
 
-As of April 15, 2025, the Lottery Data Intelligence Platform has been successfully deployed on Replit with the following configuration:
+## Changes Made
 
-- **Primary Access Port**: 5000 (internal Replit access)
-- **External Access Port**: 8080 (required by Replit for external access)
-- **Database**: PostgreSQL (provided by Replit)
-- **Web Server**: Gunicorn
+1. **Changed run command to use port 8080 instead of 5000**
+   - Updated `replit_deployment.toml` to use `gunicorn --bind 0.0.0.0:8080 main:app`
+   - Updated `Procfile` to use the same direct binding approach
 
-## Application Features
+2. **Updated port forwarding configuration**
+   - Modified `.replit-ports` to map internal port 8080 to external port 80
+   - Removed unnecessary port 5000 mapping from configuration
 
-The application provides the following core functionalities:
+3. **Added ENVIRONMENT variable to deployment configuration**
+   - Added `[env]` section to `replit_deployment.toml` with `ENVIRONMENT = "production"`
+   - This ensures health monitoring works correctly by checking the appropriate port
 
-1. Lottery results collection and display
-2. Ticket scanning for checking winning numbers
-3. Data visualization for number frequency analysis
-4. Administrative interface for managing data collection
-5. Scheduled tasks for automatic data updates
+4. **Used more direct Gunicorn configuration**
+   - Changed shell wrapper command to direct Gunicorn call
+   - Updated `gunicorn.conf.py` to be environment-aware for port binding
 
-## Access Points
+5. **Created environment-aware start script**
+   - Added `start_app.sh` that intelligently binds to port 5000 for development or port 8080 for production
+   - Made the script executable with `chmod +x start_app.sh`
 
-- **Admin Dashboard**: /admin (requires login)
-- **Results Overview**: /results
-- **Ticket Scanner**: /ticket-scanner
-- **API Endpoints**: /api/results/{lottery_type}
+## Configuration Files
 
-## Port Binding Solution
+### replit_deployment.toml
+```toml
+run = "gunicorn --bind 0.0.0.0:8080 main:app"
+deploymentTarget = "cloudrun"
 
-Despite multiple attempts to enable port 8080 for external access, the application currently shows as "Web server is unreachable" when accessed through Replit's external URL. The application is confirmed to be working correctly on port 5000 within Replit's environment.
+# Health check endpoint
+healthCheckPath = "/"
 
-We have attempted multiple solutions:
+# Environment configuration
+[env]
+ENVIRONMENT = "production"
+DEBUG = "false"
+```
 
-1. A lightweight HTTP server on port 8080 that redirects to port 5000
-2. Modifying main.py to listen on port 8080 when run directly
-3. Using the final_port_solution.sh script that runs both servers simultaneously
+### .replit-ports
+```toml
+[[ports]]
+localPort = 8080
+externalPort = 80
+```
 
-## Deployment Next Steps
+### Procfile
+```
+web: gunicorn --bind 0.0.0.0:8080 main:app
+```
 
-For full external deployment, the following steps may be taken:
+## Health Monitoring
 
-1. Deploy using Replit's deployment feature, which may resolve the port binding issue automatically
-2. Consider using a custom domain if available
-3. Ensure all environment variables are properly set up in the deployment environment
-4. Monitor the application logs for any errors or performance issues
+The health monitoring system now adapts to the environment:
+- In development, it checks port 5000
+- In production, it checks port 8080
 
-## Authentication
+This ensures that health checks are accurate regardless of which environment the application is running in.
 
-Admin access requires authentication with the following credentials:
-- **Username**: admin
-- **Password**: St0n3@g3
+## Starting the Application
 
-## Notes on OCR Functionality
+For development:
+```bash
+./start_app.sh
+```
 
-The ticket scanning feature requires the Anthropic API key to be set as the environment variable `Lotto_scape_ANTHROPIC_KEY`. Ensure this is properly configured in the deployment environment for OCR functionality to work correctly.
+For production deployment:
+- Click "Deploy" in Replit
+- The application will use the configuration in `replit_deployment.toml`
+
+## Port Conflict Resolution
+
+Two scripts have been added to handle port conflicts:
+
+1. **Automatic Port Clearing**: The `start_app.sh` script automatically checks and kills any processes using ports 5000 and 8080 before starting the application.
+
+2. **Manual Port Clearing**: If you encounter persistent port conflicts, you can manually run:
+```bash
+./clear_ports.sh
+```
+
+This will:
+- Check for processes using ports 5000 and 8080
+- Kill any found processes
+- Verify that the ports are actually free after killing
+
+If port conflicts persist after running these scripts, restarting the repl completely will resolve the issue.
