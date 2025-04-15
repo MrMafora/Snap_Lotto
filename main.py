@@ -371,6 +371,41 @@ def export_template():
         as_attachment=True
     )
 
+# File upload progress tracker
+# This dictionary stores the progress of file uploads for each user
+# Structure: {user_id: {'percentage': 0-100, 'status': 'uploading|processing|complete|error', 'filename': 'example.xlsx'}}
+file_upload_progress = {}
+
+@app.route('/api/file-upload-progress')
+@login_required
+def get_file_upload_progress():
+    """API endpoint to get current file upload progress for the current user"""
+    user_id = current_user.id
+    
+    # If no progress exists for this user, return default values
+    if user_id not in file_upload_progress:
+        file_upload_progress[user_id] = {
+            'percentage': 0,
+            'status': 'initializing',
+            'filename': ''
+        }
+    
+    return jsonify(file_upload_progress[user_id])
+
+@app.route('/api/file-upload-progress/reset', methods=['POST'])
+@login_required
+def reset_file_upload_progress():
+    """Reset the file upload progress for the current user"""
+    user_id = current_user.id
+    
+    file_upload_progress[user_id] = {
+        'percentage': 0,
+        'status': 'initializing',
+        'filename': ''
+    }
+    
+    return jsonify({'success': True})
+
 @app.route('/import-data', methods=['GET', 'POST'])
 @login_required
 def import_data():
@@ -380,6 +415,14 @@ def import_data():
         return redirect(url_for('index'))
         
     import_stats = None
+    user_id = current_user.id
+    
+    # Initialize or reset progress tracking
+    file_upload_progress[user_id] = {
+        'percentage': 0,
+        'status': 'initializing',
+        'filename': ''
+    }
 
     if request.method == 'POST':
         # Check if the post request has the file part
@@ -399,9 +442,23 @@ def import_data():
             filename = secure_filename(file.filename)
             excel_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             
+            # Update progress
+            file_upload_progress[user_id] = {
+                'percentage': 25,
+                'status': 'uploading',
+                'filename': filename
+            }
+            
             # Save the file
             os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
             file.save(excel_path)
+            
+            # Update progress
+            file_upload_progress[user_id] = {
+                'percentage': 50,
+                'status': 'processing',
+                'filename': filename
+            }
             
             # First, try standard format
             try:
@@ -410,13 +467,48 @@ def import_data():
                 if not import_stats or import_stats.get('total', 0) == 0:
                     # If standard import fails, try Snap Lotto format
                     try:
+                        # Update progress
+                        file_upload_progress[user_id] = {
+                            'percentage': 75,
+                            'status': 'processing',
+                            'filename': filename
+                        }
+                        
                         import_stats = import_snap_lotto_data.import_snap_lotto_data(excel_path, flask_app=app)
+                        
+                        # Update progress to complete
+                        file_upload_progress[user_id] = {
+                            'percentage': 100,
+                            'status': 'complete',
+                            'filename': filename
+                        }
                     except Exception as e:
                         logger.error(f"Snap Lotto import error: {str(e)}")
                         flash(f"Error in Snap Lotto import: {str(e)}", 'danger')
+                        
+                        # Update progress to error
+                        file_upload_progress[user_id] = {
+                            'percentage': 100,
+                            'status': 'error',
+                            'filename': filename
+                        }
+                else:
+                    # Update progress to complete
+                    file_upload_progress[user_id] = {
+                        'percentage': 100,
+                        'status': 'complete',
+                        'filename': filename
+                    }
             except Exception as e:
                 logger.error(f"Excel import error: {str(e)}")
                 flash(f"Error in import: {str(e)}", 'danger')
+                
+                # Update progress to error
+                file_upload_progress[user_id] = {
+                    'percentage': 100,
+                    'status': 'error',
+                    'filename': filename
+                }
                 
     # Get some example results for each lottery type to display
     example_results = {}

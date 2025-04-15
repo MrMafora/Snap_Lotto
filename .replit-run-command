@@ -1,6 +1,12 @@
 #!/bin/bash
-# This file contains the preferred command to run when the "Run" button is pressed
-# Since we can't directly modify .replit file in this environment
+# Custom run command for Replit
+# This script was created to provide port 8080 binding when the Run button is clicked
 
-# Run our dual port solution
-./start_replit_server.sh
+# Ensure this script always runs from the project root directory
+cd "$(dirname "$0")"
+
+echo "Starting application on port 8080 for Replit..."
+
+# Start the application using Python's direct execution
+# This leverages main.py's port 8080 binding for direct execution
+python main.py

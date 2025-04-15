@@ -1,64 +1,55 @@
 #!/bin/bash
-# Script to start both the main application and the port 8080 proxy
+# Script to start both the main application on port 5000 and the port 8080 bridge
 
-# Define log file
-LOG_FILE="replit_server.log"
+# Log file
+LOG_FILE="replit_startup.log"
 
-# Function to log messages
-log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a $LOG_FILE
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Replit server..." | tee -a $LOG_FILE
+
+# Function to handle SIGINT/SIGTERM
+cleanup() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Shutting down..." | tee -a $LOG_FILE
+    kill $PORT_8080_PID 2>/dev/null
+    kill $GUNICORN_PID 2>/dev/null
+    exit 0
 }
 
-# Check if Python is available
-if ! command -v python &> /dev/null; then
-    log "Error: Python is required but not found."
-    exit 1
-fi
+# Set trap for cleanup
+trap cleanup SIGINT SIGTERM
 
-# Kill any existing processes running on ports 5000 or 8080
-log "Checking for existing processes on ports 5000 and 8080..."
-kill_processes() {
-    local PORT=$1
-    local PIDS=$(lsof -t -i:$PORT 2>/dev/null)
-    
-    if [ ! -z "$PIDS" ]; then
-        log "Killing processes on port $PORT (PIDs: $PIDS)"
-        kill -9 $PIDS 2>/dev/null
-    fi
-}
-
-kill_processes 5000
-kill_processes 8080
-
-# Start the main application in the background
-log "Starting main application on port 5000..."
+# Start main application on port 5000 (usual workflow)
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting main application on port 5000..." | tee -a $LOG_FILE
 gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app &
-MAIN_PID=$!
+GUNICORN_PID=$!
 
-# Give the main app time to start
-log "Waiting for main app to start..."
+# Wait for main application to fully start
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for main application to initialize..." | tee -a $LOG_FILE
 sleep 3
 
-# Check if main app is running
-if ! ps -p $MAIN_PID > /dev/null; then
-    log "ERROR: Main application failed to start. Exiting."
+# Check if main application is running
+if ! ps -p $GUNICORN_PID > /dev/null; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: Main application failed to start!" | tee -a $LOG_FILE
     exit 1
 fi
 
-# Start the port 8080 proxy server in the background
-log "Starting port 8080 proxy server..."
-nohup python bridge.py > bridge.log 2>&1 &
-BRIDGE_PID=$!
+# Start port 8080 bridge in background
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting port 8080 bridge..." | tee -a $LOG_FILE
+python simple_port_8080.py &
+PORT_8080_PID=$!
 
-# Check if bridge started correctly
+# Wait for port 8080 bridge to fully start
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for port 8080 bridge to initialize..." | tee -a $LOG_FILE
 sleep 2
-if ! ps -p $BRIDGE_PID > /dev/null; then
-    log "WARNING: Bridge may not have started correctly. Check bridge.log for details."
-    # Try alternative method
-    log "Trying alternative proxy method..."
-    nohup python simple_port_8080.py > simple_proxy.log 2>&1 &
+
+# Check if port 8080 bridge is running
+if ! ps -p $PORT_8080_PID > /dev/null; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: Port 8080 bridge failed to start!" | tee -a $LOG_FILE
+    # Try to kill gunicorn
+    kill $GUNICORN_PID 2>/dev/null
+    exit 1
 fi
 
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server is ready and listening on ports 5000 and 8080" | tee -a $LOG_FILE
+
 # Keep the script running to maintain both processes
-log "Both services started. Press Ctrl+C to stop."
-tail -f bridge.log
+wait $GUNICORN_PID
