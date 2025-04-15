@@ -222,7 +222,7 @@ window.AdManager = window.AdManager || {
                     adOverlayLoading.style.visibility = 'visible';
                     adOverlayLoading.style.zIndex = '2147483647';
                     document.body.style.overflow = 'hidden'; // Prevent scrolling
-                    // FIXED: Removed position:fixed that was causing mobile freeze
+                    // Removed fixed position which causes mobile freezing
                     document.body.style.width = '100%'; // Maintain width
                     console.log('AdManager: Loading overlay shown via direct manipulation');
                 } else {
@@ -235,7 +235,7 @@ window.AdManager = window.AdManager || {
             if (adOverlayLoading) {
                 adOverlayLoading.style.cssText = 'display:flex !important; opacity:1 !important; visibility:visible !important; z-index:2147483647 !important;';
                 document.body.style.overflow = 'hidden'; // Prevent scrolling
-                // FIXED: Removed position:fixed that was causing mobile freeze
+                document.body.style.position = 'fixed'; // Prevent mobile scroll
                 document.body.style.width = '100%'; // Maintain width
                 console.log('AdManager: Loading overlay shown via cssText manipulation');
             } else {
@@ -264,7 +264,7 @@ window.AdManager = window.AdManager || {
                     adOverlayResults.style.visibility = 'visible';
                     adOverlayResults.style.zIndex = '2147483647';
                     document.body.style.overflow = 'hidden'; // Prevent scrolling
-                    // FIXED: Removed position:fixed that was causing mobile freeze
+                    document.body.style.position = 'fixed'; // Prevent mobile scroll
                     document.body.style.width = '100%'; // Maintain width
                     console.log('AdManager: Results overlay shown via direct manipulation');
                 } else {
@@ -277,7 +277,7 @@ window.AdManager = window.AdManager || {
             if (adOverlayResults) {
                 adOverlayResults.style.cssText = 'display:flex !important; opacity:1 !important; visibility:visible !important; z-index:2147483647 !important;';
                 document.body.style.overflow = 'hidden'; // Prevent scrolling
-                // FIXED: Removed position:fixed that was causing mobile freeze
+                document.body.style.position = 'fixed'; // Prevent mobile scroll
                 document.body.style.width = '100%'; // Maintain width
                 console.log('AdManager: Results overlay shown via cssText manipulation');
             } else {
@@ -301,7 +301,7 @@ window.AdManager = window.AdManager || {
         
         // Force restore scrolling on all elements
         document.body.style.overflow = 'auto';
-        document.body.style.position = 'static'; // Reset to static instead of fixed
+        document.body.style.position = 'static';
         document.body.style.width = '';
         document.body.style.height = '';
         document.documentElement.style.overflow = 'auto';
@@ -332,7 +332,7 @@ window.AdManager = window.AdManager || {
         
         // Force restore scrolling on all elements
         document.body.style.overflow = 'auto';
-        document.body.style.position = 'static'; // Reset to static instead of fixed
+        document.body.style.position = 'static';
         document.body.style.width = '';
         document.body.style.height = '';
         document.documentElement.style.overflow = 'auto';
@@ -375,6 +375,21 @@ window.AdManager = window.AdManager || {
             // For development, just create mock ads
             this.createMockVideoAd(placement);
         }, 500);
+        
+        // Real implementation would use fetch API:
+        /*
+        fetch(`/api/ads?placement=${placement}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.ad) {
+                    this.ads[placement] = data.ad;
+                    console.log(`Loaded ad for ${placement}:`, data.ad.name);
+                }
+            })
+            .catch(error => {
+                console.error(`Error fetching ads for ${placement}:`, error);
+            });
+        */
     },
     
     // Create a mock video ad
@@ -391,7 +406,141 @@ window.AdManager = window.AdManager || {
         
         console.log(`Created mock video ad for ${placement}:`, this.ads[placement].name);
     },
-
+    
+    // Display a video ad in the specified container
+    displayVideoAd: function(containerId, placement, callback) {
+        const ad = this.ads[placement];
+        if (!ad) {
+            console.log(`No ad available for placement: ${placement}`);
+            if (callback) callback(false);
+            return;
+        }
+        
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.error(`Container ${containerId} not found`);
+            if (callback) callback(false);
+            return;
+        }
+        
+        try {
+            // Create video element
+            const videoContainer = document.createElement('div');
+            videoContainer.className = 'video-ad-container';
+            
+            // Video element
+            const video = document.createElement('video');
+            video.className = 'ad-video';
+            video.width = 640;
+            video.height = 360;
+            video.style.maxWidth = '100%';
+            video.controls = false;
+            video.autoplay = true;
+            video.muted = false;
+            video.playsInline = true;
+            
+            // Add source
+            const source = document.createElement('source');
+            source.src = ad.file_url;
+            source.type = 'video/mp4';
+            video.appendChild(source);
+            
+            // Create countdown timer
+            const countdown = document.createElement('div');
+            countdown.className = 'ad-countdown mt-2';
+            countdown.innerHTML = `<span class="badge bg-secondary">Ad: <span id="countdown-timer">${ad.duration}</span>s</span>`;
+            
+            // Controls
+            const controls = document.createElement('div');
+            controls.className = 'ad-controls mt-2';
+            controls.innerHTML = `
+                <button class="btn btn-sm btn-outline-primary me-2" id="ad-mute-button">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" id="ad-skip-button" disabled>
+                    Skip Ad in <span id="skip-countdown">30</span>s
+                </button>
+            `;
+            
+            // Append elements
+            videoContainer.appendChild(video);
+            videoContainer.appendChild(countdown);
+            videoContainer.appendChild(controls);
+            
+            // Clear container and add new content
+            container.innerHTML = '';
+            container.appendChild(videoContainer);
+            
+            // Record impression
+            this.recordAdImpression(ad.id);
+            
+            // Set up countdown timer
+            let secondsLeft = ad.duration;
+            const countdownTimer = setInterval(() => {
+                secondsLeft--;
+                
+                // Update countdown displays
+                const timerElement = document.getElementById('countdown-timer');
+                const skipElement = document.getElementById('skip-countdown');
+                
+                if (timerElement) timerElement.textContent = secondsLeft;
+                if (skipElement) skipElement.textContent = secondsLeft;
+                
+                // Enable skip button after 5 seconds
+                if (secondsLeft <= 25) {
+                    const skipButton = document.getElementById('ad-skip-button');
+                    if (skipButton) {
+                        skipButton.disabled = false;
+                        skipButton.innerHTML = '<i class="fas fa-forward"></i> Skip Ad';
+                        skipButton.classList.remove('btn-outline-secondary');
+                        skipButton.classList.add('btn-outline-primary');
+                    }
+                }
+                
+                // When time is up
+                if (secondsLeft <= 0) {
+                    clearInterval(countdownTimer);
+                    if (callback) callback(true);
+                }
+            }, 1000);
+            
+            // Handle video ending
+            video.addEventListener('ended', () => {
+                clearInterval(countdownTimer);
+                if (callback) callback(true);
+            });
+            
+            // Setup mute button
+            const muteButton = document.getElementById('ad-mute-button');
+            if (muteButton) {
+                muteButton.addEventListener('click', () => {
+                    video.muted = !video.muted;
+                    muteButton.innerHTML = video.muted ? 
+                        '<i class="fas fa-volume-mute"></i>' : 
+                        '<i class="fas fa-volume-up"></i>';
+                });
+            }
+            
+            // Setup skip button
+            const skipButton = document.getElementById('ad-skip-button');
+            if (skipButton) {
+                skipButton.addEventListener('click', () => {
+                    if (!skipButton.disabled) {
+                        clearInterval(countdownTimer);
+                        if (callback) callback(true);
+                    }
+                });
+            }
+            
+            console.log(`Displaying video ad: ${ad.name} (${ad.duration}s)`);
+            return true;
+        } catch (e) {
+            console.error('Error displaying video ad:', e);
+            if (callback) callback(false);
+            return false;
+        }
+    },
+    
     // Record ad impression
     recordAdImpression: function(adId) {
         // Create a new impression
@@ -414,6 +563,35 @@ window.AdManager = window.AdManager || {
         
         // In production, send this to the server
         console.log('Ad impression recorded:', this.currentImpression);
+        
+        // Real implementation would use fetch API:
+        /*
+        fetch('/api/record-impression', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ad_id: adId,
+                duration: 0 // Initial duration
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                this.currentImpression = {
+                    id: data.impression_id,
+                    ad_id: adId,
+                    timestamp: new Date(),
+                    duration_viewed: 0
+                };
+                console.log('Impression recorded successfully:', this.currentImpression);
+            }
+        })
+        .catch(error => {
+            console.error('Error recording impression:', error);
+        });
+        */
     },
     
     // Record ad click
@@ -423,14 +601,179 @@ window.AdManager = window.AdManager || {
         
         // In production, send to server
         console.log('Ad click recorded:', impression);
+        
+        // Real implementation would use fetch API:
+        /*
+        fetch('/api/record-click', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                impression_id: impression.id,
+                duration: impression.duration_viewed
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Click recorded successfully');
+            }
+        })
+        .catch(error => {
+            console.error('Error recording click:', error);
+        });
+        */
     }
 };
 
-// Initialize after a short delay to ensure DOM is fully loaded
-setTimeout(function() {
-    if (window.AdManager) {
-        window.AdManager.init();
+// Create fallback ad containers if they don't exist
+function ensureAdContainersExist() {
+    let loaderCreated = false;
+    let interstitialCreated = false;
+    
+    try {
+        // Check and create loader container if needed
+        let loaderContainer = document.getElementById('ad-container-loader');
+        if (!loaderContainer) {
+            console.log('Creating missing ad-container-loader');
+            const loadingOverlay = document.getElementById('ad-overlay-loading');
+            if (loadingOverlay) {
+                // Find the ad-container div
+                let adContainer = loadingOverlay.querySelector('.ad-container');
+                if (!adContainer) {
+                    adContainer = document.createElement('div');
+                    adContainer.className = 'ad-container';
+                    adContainer.style.cssText = 'margin: 0 auto; background-color: #f8f9fa; border-radius: 10px; padding: 20px; max-width: 350px;';
+                    loadingOverlay.appendChild(adContainer);
+                }
+                
+                // Create the loader container
+                loaderContainer = document.createElement('div');
+                loaderContainer.id = 'ad-container-loader';
+                loaderContainer.style.cssText = 'width: 300px; margin: 0 auto;';
+                adContainer.appendChild(loaderContainer);
+                loaderCreated = true;
+            }
+        } else {
+            loaderCreated = true;
+        }
+    } catch (e) {
+        console.warn('Error creating loader container:', e);
+        // If there's an error, try a simpler approach with minimal DOM operations
+        try {
+            if (!document.getElementById('ad-container-loader')) {
+                const loadingOverlay = document.getElementById('ad-overlay-loading');
+                if (loadingOverlay) {
+                    // Create a simple container directly
+                    const container = document.createElement('div');
+                    container.id = 'ad-container-loader';
+                    container.style.cssText = 'width: 300px; margin: 0 auto;';
+                    loadingOverlay.appendChild(container);
+                    loaderCreated = true;
+                }
+            } else {
+                loaderCreated = true;
+            }
+        } catch (err) {
+            console.error('Failed to create loader container with fallback method:', err);
+        }
     }
-}, 1000);
+    
+    try {
+        // Check and create interstitial container if needed
+        let interstitialContainer = document.getElementById('ad-container-interstitial');
+        if (!interstitialContainer) {
+            console.log('Creating missing ad-container-interstitial');
+            const resultsOverlay = document.getElementById('ad-overlay-results');
+            if (resultsOverlay) {
+                // Find the ad-container div
+                let adContainer = resultsOverlay.querySelector('.ad-container');
+                if (!adContainer) {
+                    adContainer = document.createElement('div');
+                    adContainer.className = 'ad-container';
+                    adContainer.style.cssText = 'margin: 0 auto; background-color: #f8f9fa; border-radius: 10px; padding: 20px; max-width: 350px;';
+                    resultsOverlay.appendChild(adContainer);
+                }
+                
+                // Create the interstitial container
+                interstitialContainer = document.createElement('div');
+                interstitialContainer.id = 'ad-container-interstitial';
+                interstitialContainer.style.cssText = 'width: 300px; margin: 0 auto;';
+                adContainer.appendChild(interstitialContainer);
+                interstitialCreated = true;
+            }
+        } else {
+            interstitialCreated = true;
+        }
+    } catch (e) {
+        console.warn('Error creating interstitial container:', e);
+        // If there's an error, try a simpler approach with minimal DOM operations
+        try {
+            if (!document.getElementById('ad-container-interstitial')) {
+                const resultsOverlay = document.getElementById('ad-overlay-results');
+                if (resultsOverlay) {
+                    // Create a simple container directly
+                    const container = document.createElement('div');
+                    container.id = 'ad-container-interstitial';
+                    container.style.cssText = 'width: 300px; margin: 0 auto;';
+                    resultsOverlay.appendChild(container);
+                    interstitialCreated = true;
+                }
+            } else {
+                interstitialCreated = true;
+            }
+        } catch (err) {
+            console.error('Failed to create interstitial container with fallback method:', err);
+        }
+    }
+    
+    return {
+        loaderExists: loaderCreated,
+        interstitialExists: interstitialCreated
+    };
+}
 
-console.log('Delayed AdManager initialization after 1000ms');
+// Initialize ads when DOM is loaded, but with a delay
+document.addEventListener('DOMContentLoaded', function() {
+    // Delay initialization to ensure DOM is fully loaded and processed
+    setTimeout(function() {
+        try {
+            console.log('Delayed AdManager initialization after 1000ms');
+            
+            // First ensure the containers exist
+            const containersStatus = ensureAdContainersExist();
+            
+            // Then initialize the ad manager
+            if (typeof window.AdManager === 'object' && typeof window.AdManager.init === 'function') {
+                window.AdManager.init();
+                
+                // Force direct overlay styling to ensure visibility
+                const loadingOverlay = document.getElementById('ad-overlay-loading');
+                const resultsOverlay = document.getElementById('ad-overlay-results');
+                
+                if (loadingOverlay && containersStatus.loaderExists) {
+                    try {
+                        window.AdManager.createMockAd('ad-container-loader');
+                        console.log('Successfully created mock ad in loader container');
+                    } catch (err) {
+                        console.warn('Failed to create mock loader ad:', err);
+                    }
+                }
+                
+                if (resultsOverlay && containersStatus.interstitialExists) {
+                    try {
+                        window.AdManager.createMockAd('ad-container-interstitial');
+                        console.log('Successfully created mock ad in interstitial container');
+                    } catch (err) {
+                        console.warn('Failed to create mock interstitial ad:', err);
+                    }
+                }
+            } else {
+                console.warn('AdManager not available or init method missing');
+            }
+        } catch (e) {
+            console.error('Error during AdManager initialization:', e);
+        }
+    }, 1000);
+});
