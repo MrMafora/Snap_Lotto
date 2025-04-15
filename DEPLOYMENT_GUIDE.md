@@ -2,22 +2,28 @@
 
 This guide documents the steps needed to properly deploy the Lottery Data Intelligence Platform on Replit.
 
-## Port Configuration
+## Deployment Configuration
 
-The application must be configured to bind to port 8080 for proper deployment on Replit. Follow these steps to ensure correct port binding:
+The application must be properly configured for deployment on Replit. Follow these steps to ensure correct configuration:
 
-1. **Run Command**: Update the run command in `.replit` to bind to port 8080 instead of 5000.
+1. **Deployment Target**: Change the deployment target from "gce" to "cloudrun" for better compatibility.
+   ```
+   deploymentTarget = "cloudrun"
+   ```
+   This has been configured in `.replit-deployment`.
+
+2. **Run Command**: Update the run command to bind to port 8080 instead of 5000.
    ```
    run = ["sh", "-c", "gunicorn --bind 0.0.0.0:8080 main:app"]
    ```
    This has been configured in `.replit-run-command`.
 
-2. **Build Command**: Keep the build command as is, it's already correct.
+3. **Build Command**: Keep the build command as is, it's already correct.
    ```
    build = ["sh", "-c", "pip install -r requirements.txt"]
    ```
 
-3. **Port Mapping**: Remove the port 5000 configuration and only keep the 8080:80 mapping.
+4. **Port Mapping**: Remove the port 5000 configuration and only keep the 8080:80 mapping.
    ```
    [[ports]]
    localPort = 8080
@@ -25,9 +31,9 @@ The application must be configured to bind to port 8080 for proper deployment on
    ```
    This has been configured in `.replit-ports`.
 
-4. **Redundant Port Scripts**: Removed all redundant port configuration scripts from the backup_deployments directory to avoid conflicts.
+5. **Redundant Port Scripts**: Removed all redundant port configuration scripts from the backup_deployments directory to avoid conflicts.
 
-5. **Health Monitoring**: Updated the health monitoring system to only check port 8080 instead of both port 5000 and 8080.
+6. **Health Monitoring**: Updated the health monitoring system to only check port 8080 instead of both port 5000 and 8080.
 
 ## Additional Configuration
 
