@@ -1,5 +1,5 @@
 # Configuration file for Replit Deployments
-run = "python dual_bind_server.py"
+run = "python run_with_proxy.py"
 deploymentTarget = "cloudrun"
 
 # Health check endpoint

@@ -1,1 +1,1 @@
-web: python dual_bind_server.py
+web: python run_with_proxy.py
