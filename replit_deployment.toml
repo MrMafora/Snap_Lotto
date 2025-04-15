@@ -1,5 +1,5 @@
 # Configuration file for Replit Deployments
-run = "./run_port_8080.sh"
+run = "./direct_start.sh"
 deploymentTarget = "cloudrun"
 
 # Health check endpoint

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Direct port binding solution for Replit
-# This script starts the Flask application directly on port 8080
+# Direct startup script for Replit deployment
+# This script uses gunicorn.conf.py with port 8080 binding
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting application on port 8080 directly..."
-exec gunicorn --bind 0.0.0.0:8080 --workers 1 --timeout 600 --reload main:app
+echo "Starting application directly using gunicorn.conf.py (port 8080)..."
+exec gunicorn -c gunicorn.conf.py main:app

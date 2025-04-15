@@ -1,19 +1,30 @@
-# gunicorn.conf.py
+"""
+Gunicorn configuration for both development and deployment
+This ensures consistent binding across environments
+"""
 
-# Bind to 0.0.0.0:8080 for deployment
+# Binding
 bind = "0.0.0.0:8080"
 
-# Recommended number of workers
+# Worker settings
 workers = 4
+worker_class = "sync"
+threads = 2
+timeout = 120
 
-# Timeout value
-timeout = 60
+# Server mechanics
+graceful_timeout = 30
+keepalive = 5
+max_requests = 1000
+max_requests_jitter = 50
 
-# Log level
+# Logging
+accesslog = "-"
+errorlog = "-"
 loglevel = "info"
 
-# Set access log format
-accesslog = "-"  # Log to stdout
+# Auto-reload on code changes
+reload = True
 
-# Set error log
-errorlog = "-"  # Log to stderr
+# Additional settings for production
+worker_tmp_dir = "/dev/shm"
