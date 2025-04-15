@@ -338,7 +338,15 @@ def import_excel_data(excel_file, flask_app=None):
             logger.info(f"Successfully imported/updated {imported_count} records")
             logger.info(f"Encountered {errors_count} errors")
             
-            return True
+            # Return detailed import results
+            return {
+                'success': True,
+                'total': imported_count,
+                'initial_count': initial_count,
+                'final_count': final_count,
+                'added': final_count - initial_count,
+                'errors': errors_count
+            }
     except Exception as e:
         logger.error(f"Error during import operation: {str(e)}")
         return False

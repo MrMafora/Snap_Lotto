@@ -1,0 +1,20 @@
+lockdown-install.js:1 Removing unpermitted intrinsics
+ads.js:448 Delayed AdManager initialization after 1000ms
+ads.js:17 AdManager initialized from ads.js
+ads.js:23 Development mode detected, using mock ads
+ads.js:78 Mock ad created in ad-container-loader
+ads.js:78 Mock ad created in ad-container-interstitial
+
+                
+          
+          
+          
+         Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.Understand this warning
+js?id=G-M4NREF90ZD:220 Refused to connect to 'https://www.google-analytics.com/g/collect?v=2&tid=G-M4NREF90ZD&gtm=45je54b0v9210043635za200&_p=1744682225863&gcs=G100&gcd=13l3l3l3l5G6&npa=1&dma_cps=-&dma=0&tag_exp=101509157~102509683~102803279~102813109~102887800~102926062~103021830~103027016~103051953~103055465~103077950&cid=1953933746.1744682226&ul=en-gb&sr=1707x1067&uaa=x86&uab=64&uafvl=Google%2520Chrome%3B135.0.7049.84%7CNot-A.Brand%3B8.0.0.0%7CChromium%3B135.0.7049.84&uamb=0&uam=&uap=Windows&uapv=15.0.0&uaw=0&are=1&frm=0&pscdl=denied&_eu=AEA&_s=2&sid=1744682225&sct=1&seg=0&dl=https%3A%2F%2F45399ea3-630c-4463-8e3d-edea73bb30a7-00-12l5s06oprbcf.janeway.replit.dev%2Fimport-data&dr=https%3A%2F%2F45399ea3-630c-4463-8e3d-edea73bb30a7-00-12l5s06oprbcf.janeway.replit.dev%3A5000%2Fimport-data&dt=Import%20Lottery%20Data&en=scroll&epn.percent_scrolled=90&_et=4&tfd=6379' because it violates the following Content Security Policy directive: "default-src 'self'". Note that 'connect-src' was not explicitly set, so 'default-src' is used as a fallback.
+
+Gc @ js?id=G-M4NREF90ZD:220
+Gl @ js?id=G-M4NREF90ZD:388
+cM @ js?id=G-M4NREF90ZD:793
+h.flush @ js?id=G-M4NREF90ZD:801
+(anonymous) @ js?id=G-M4NREF90ZD:798Understand this error
+js?id=G-M4NREF90ZD:220 Fetch API cannot load https://www.google-analytics.com/g/collect?v=2&tid=G-M4NREF90ZD&gtm=45je54b0v9210043635za200&_p=1744682225863&gcs=G100&gcd=13l3l3l3l5G6&npa=1&dma_cps=-&dma=0&tag_exp=101509157~102509683~102803279~102813109~102887800~102926062~103021830~103027016~103051953~103055465~103077950&cid=1953933746.1744682226&ul=en-gb&sr=1707x1067&uaa=x86&uab=64&uafvl=Google%2520Chrome%3B135.0.7049.84%7CNot-A.Brand%3B8.0.0.0%7CChromium%3B135.0.7049.84&uamb=0&uam=&uap=Windows&uapv=15.0.0&uaw=0&are=1&frm=0&pscdl=denied&_eu=AEA&_s=2&sid=1744682225&sct=1&seg=0&dl=https%3A%2F%2F45399ea3-630c-4463-8e3d-edea73bb30a7-00-12l5s06oprbcf.janeway.replit.dev%2Fimport-data&dr=https%3A%2F%2F45399ea3-630c-4463-8e3d-edea73bb30a7-00-12l5s06oprbcf.janeway.replit.dev%3A5000%2Fimport-data&dt=Import%20Lottery%20Data&en=scroll&epn.percent_scrolled=90&_et=4&tfd=6379. Refused to connect because it violates the document's Content Security Policy.

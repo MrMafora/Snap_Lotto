@@ -464,7 +464,8 @@ def import_data():
             try:
                 import_stats = import_excel.import_excel_data(excel_path)
                 
-                if not import_stats or import_stats.get('total', 0) == 0:
+                # Check if import was unsuccessful (False) or if no records were imported
+                if import_stats is False or (isinstance(import_stats, dict) and import_stats.get('total', 0) == 0):
                     # If standard import fails, try Snap Lotto format
                     try:
                         # Update progress
@@ -476,11 +477,25 @@ def import_data():
                         
                         import_stats = import_snap_lotto_data.import_snap_lotto_data(excel_path, flask_app=app)
                         
+                        # Display results if available and successful
+                        if isinstance(import_stats, dict) and import_stats.get('success'):
+                            added = import_stats.get('added', 0)
+                            total = import_stats.get('total', 0)
+                            errors = import_stats.get('errors', 0)
+                            
+                            if added > 0:
+                                flash(f'Snap Lotto import completed successfully. Added {added} new records, processed {total} total records with {errors} errors.', 'success')
+                            else:
+                                flash(f'Snap Lotto import completed. No new records were added. Processed {total} records with {errors} errors.', 'info')
+                        else:
+                            flash('Snap Lotto import completed', 'info')
+                        
                         # Update progress to complete
                         file_upload_progress[user_id] = {
                             'percentage': 100,
                             'status': 'complete',
-                            'filename': filename
+                            'filename': filename,
+                            'summary': import_stats if isinstance(import_stats, dict) else None
                         }
                     except Exception as e:
                         logger.error(f"Snap Lotto import error: {str(e)}")
@@ -493,11 +508,25 @@ def import_data():
                             'filename': filename
                         }
                 else:
+                    # Display results for standard import
+                    if isinstance(import_stats, dict) and import_stats.get('success'):
+                        added = import_stats.get('added', 0)
+                        total = import_stats.get('total', 0)
+                        errors = import_stats.get('errors', 0)
+                        
+                        if added > 0:
+                            flash(f'Import completed successfully. Added {added} new records, processed {total} total records with {errors} errors.', 'success')
+                        else:
+                            flash(f'Import completed. No new records were added. Processed {total} records with {errors} errors.', 'info')
+                    else:
+                        flash('Import completed', 'info')
+                    
                     # Update progress to complete
                     file_upload_progress[user_id] = {
                         'percentage': 100,
                         'status': 'complete',
-                        'filename': filename
+                        'filename': filename,
+                        'summary': import_stats if isinstance(import_stats, dict) else None
                     }
             except Exception as e:
                 logger.error(f"Excel import error: {str(e)}")

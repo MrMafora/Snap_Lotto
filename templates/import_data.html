@@ -257,8 +257,55 @@
                                             }
                                             
                                             // If we're at 100%, we can stop polling (processing is done on the server)
-                                            if (percentage === 100 && status === 'processing') {
-                                                uploadStatus.textContent = 'Processing file (this may take a while)...';
+                                            if (percentage === 100) {
+                                                if (status === 'complete') {
+                                                    uploadStatus.textContent = 'Import complete!';
+                                                    
+                                                    // Show import results summary if available
+                                                    if (data.summary) {
+                                                        const added = data.summary.added || 0;
+                                                        const total = data.summary.total || 0;
+                                                        const errors = data.summary.errors || 0;
+                                                        
+                                                        // Create a success message with import details
+                                                        const messageContainer = document.getElementById('message-container');
+                                                        const resultMsg = document.createElement('div');
+                                                        resultMsg.className = 'alert alert-success alert-dismissible fade show mt-3';
+                                                        
+                                                        let msgContent = '<i class="fas fa-check-circle me-2"></i><strong>Import Complete:</strong> ';
+                                                        
+                                                        if (added > 0) {
+                                                            msgContent += `Added ${added} new records, processed ${total} total records`;
+                                                        } else {
+                                                            msgContent += `No new records were added. Processed ${total} records`;
+                                                        }
+                                                        
+                                                        if (errors > 0) {
+                                                            msgContent += ` with ${errors} errors.`;
+                                                        } else {
+                                                            msgContent += ` with no errors.`;
+                                                        }
+                                                        
+                                                        resultMsg.innerHTML = msgContent + 
+                                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                                                        
+                                                        // Add message to container
+                                                        if (messageContainer) {
+                                                            messageContainer.appendChild(resultMsg);
+                                                        }
+                                                    }
+                                                    
+                                                    // Hide the overlay after 1 second to show success
+                                                    setTimeout(() => {
+                                                        loaderOverlay.style.display = 'none';
+                                                        // Reset the button
+                                                        importBtn.disabled = false;
+                                                        importBtn.innerHTML = '<i class="fas fa-file-upload me-1"></i> Import Data';
+                                                    }, 1000);
+                                                } else if (status === 'processing') {
+                                                    uploadStatus.textContent = 'Processing file (this may take a while)...';
+                                                }
+                                                
                                                 clearInterval(progressPollId);
                                             }
                                         })
@@ -278,7 +325,7 @@
                                 
                                 form.addEventListener('submit', function() {
                                     // Check if a file was selected
-                                    const fileInput = document.getElementById('excel_file');
+                                    const fileInput = document.getElementById('file');
                                     if (fileInput.files.length > 0) {
                                         // Reset progress display
                                         updateProgressBar(0, 'Preparing upload...');
