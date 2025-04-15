@@ -87,12 +87,9 @@
                                             </td>
                                             <td>
                                                 {% if not alert.resolved %}
-                                                    <form method="post" action="{{ url_for('resolve_health_alert', alert_id=alert.id) }}" style="display: inline;">
-                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                        <button type="submit" class="btn btn-sm btn-success">
-                                                            <i class="fas fa-check me-1"></i> Resolve
-                                                        </button>
-                                                    </form>
+                                                    <button type="button" class="btn btn-sm btn-success resolve-alert" data-alert-id="{{ alert.id }}">
+                                                        <i class="fas fa-check me-1"></i> Resolve
+                                                    </button>
                                                 {% endif %}
                                             </td>
                                         </tr>
@@ -283,6 +280,70 @@
         // Manual refresh button
         document.getElementById('refresh-alerts').addEventListener('click', function() {
             window.location.reload();
+        });
+        
+        // Resolve alert buttons
+        document.querySelectorAll('.resolve-alert').forEach(button => {
+            button.addEventListener('click', function() {
+                const alertId = this.getAttribute('data-alert-id');
+                const alertRow = this.closest('tr');
+                
+                // Show loading state
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resolving...';
+                this.disabled = true;
+                
+                // Send request to resolve the alert
+                fetch(`/admin/resolve-health-alert/${alertId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Mark as resolved visually
+                        alertRow.classList.add('resolved');
+                        alertRow.querySelector('td:nth-child(3) span').className = 'badge bg-success';
+                        alertRow.querySelector('td:nth-child(3) span').textContent = 'Resolved';
+                        // Remove the button
+                        this.remove();
+                        // Show success message
+                        const toast = document.createElement('div');
+                        toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed bottom-0 end-0 m-3';
+                        toast.setAttribute('role', 'alert');
+                        toast.setAttribute('aria-live', 'assertive');
+                        toast.setAttribute('aria-atomic', 'true');
+                        toast.innerHTML = `
+                            <div class="d-flex">
+                                <div class="toast-body">
+                                    <i class="fas fa-check-circle me-2"></i> Alert resolved successfully
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                        `;
+                        document.body.appendChild(toast);
+                        const bsToast = new bootstrap.Toast(toast);
+                        bsToast.show();
+                        
+                        // Reload after 2 seconds to update the page with fresh data
+                        setTimeout(() => window.location.reload(), 2000);
+                    } else {
+                        // Show error
+                        this.innerHTML = '<i class="fas fa-times me-1"></i> Failed';
+                        this.classList.remove('btn-success');
+                        this.classList.add('btn-danger');
+                        setTimeout(() => this.disabled = false, 2000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error resolving alert:', error);
+                    this.innerHTML = '<i class="fas fa-times me-1"></i> Error';
+                    this.classList.remove('btn-success');
+                    this.classList.add('btn-danger');
+                    setTimeout(() => this.disabled = false, 2000);
+                });
+            });
         });
     });
 </script>

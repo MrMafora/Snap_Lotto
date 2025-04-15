@@ -66,8 +66,11 @@ login_manager.login_view = 'login'
 
 # Initialize CSRF Protection
 csrf = CSRFProtect(app)
-# The ticket scanner endpoint doesn't need CSRF protection
+# Exempt endpoints that don't need CSRF protection
 csrf.exempt('scan_ticket')
+csrf.exempt('check_js')
+csrf.exempt('resolve_health_alert')
+csrf.exempt('api_system_metrics')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -1411,6 +1414,7 @@ def system_status():
 
 @app.route('/admin/check-js', methods=['POST'])
 @login_required
+@csrf.exempt
 def check_js():
     """API endpoint to check if JavaScript is operational"""
     return jsonify({'success': True})
@@ -1569,6 +1573,7 @@ def health_alerts():
 
 @app.route('/admin/resolve-health-alert/<int:alert_id>', methods=['POST'])
 @login_required
+@csrf.exempt
 def resolve_health_alert(alert_id):
     """Manually resolve a health alert"""
     import health_monitor
@@ -1778,6 +1783,7 @@ def run_health_checks():
     return redirect(url_for('health_dashboard'))
 
 @app.route('/api/system-metrics', methods=['GET'])
+@csrf.exempt
 def system_metrics():
     """API endpoint to get current system metrics for dashboard"""
     try:

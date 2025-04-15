@@ -495,7 +495,11 @@
         
         // Add AJAX updating for real-time monitoring
         function fetchSystemStatus() {
-            fetch('/api/system-metrics')
+            fetch('/api/system-metrics', {
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
