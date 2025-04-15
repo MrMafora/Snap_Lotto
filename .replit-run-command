@@ -1,12 +1,1 @@
-#!/bin/bash
-# Custom run command for Replit
-# This script was created to provide port 8080 binding when the Run button is clicked
-
-# Ensure this script always runs from the project root directory
-cd "$(dirname "$0")"
-
-echo "Starting application on port 8080 for Replit..."
-
-# Start the application using Python's direct execution
-# This leverages main.py's port 8080 binding for direct execution
-python main.py
+run = ["sh", "-c", "gunicorn --bind 0.0.0.0:8080 main:app"]
