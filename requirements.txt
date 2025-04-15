@@ -53,3 +53,4 @@ flask-dance
 oauthlib
 pyjwt
 requests
+requests

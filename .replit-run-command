@@ -1,24 +1,6 @@
-# Updated Replit Run Command for Dual Port Binding
+#!/bin/bash
+# This file contains the preferred command to run when the "Run" button is pressed
+# Since we can't directly modify .replit file in this environment
 
-# Please update the following section in your .replit file:
-
-# Change this:
-# [[workflows.workflow.tasks]]
-# task = "shell.exec"
-# args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
-# waitForPort = 5000
-
-# To this:
-# [[workflows.workflow.tasks]]
-# task = "shell.exec"
-# args = "python dual_port_binding.py"
-# waitForPort = 5000
-
-# This change will use the dual_port_binding.py script to start both
-# the port 8080 server and the main application on port 5000.
-
-# Alternatively, if you prefer using the bash script:
-# [[workflows.workflow.tasks]]
-# task = "shell.exec"
-# args = "bash start_app.sh"
-# waitForPort = 5000
+# Run our dual port solution
+./start_replit_server.sh

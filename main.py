@@ -823,6 +823,18 @@ def view_zoomed_screenshot(screenshot_id):
     
     return send_from_directory(directory, filename)
 
+@app.route('/port_check')
+def port_check():
+    """Special endpoint to check which port the application is responding on"""
+    host = request.host
+    return jsonify({
+        "success": True,
+        "host": host,
+        "server_port": request.host.split(':')[1] if ':' in request.host else "default",
+        "request_url": request.url,
+        "timestamp": datetime.now().isoformat()
+    })
+
 @app.route('/api/results/<lottery_type>')
 def api_results(lottery_type):
     """API endpoint for lottery results"""
