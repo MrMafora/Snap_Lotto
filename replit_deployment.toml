@@ -1,13 +1,12 @@
 # Configuration file for Replit Deployments
-run = "python production_server.py"
-deploymentTarget = "cloudrun"
+run = "gunicorn --bind 0.0.0.0:8080 main:app"
+deploymentTarget = "gce"
 
 # Health check endpoint
-healthCheckPath = "/health_check"
+healthCheckPath = "/"
 
 # Environment configuration
 [env]
-# These values are used during deployment
 ENVIRONMENT = "production"
 DEBUG = "false"
 
