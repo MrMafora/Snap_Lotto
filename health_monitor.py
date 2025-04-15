@@ -191,18 +191,8 @@ def get_health_history(check_type=None, limit=100):
 
 # Health check functions
 def check_server_status():
-    """Check if the server is responding on both ports"""
-    # Check port 5000
-    port_5000_status = False
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(2)
-            s.connect(('127.0.0.1', 5000))
-            port_5000_status = True
-    except Exception as e:
-        logger.warning(f"Port 5000 check failed: {str(e)}")
-    
-    # Check port 8080
+    """Check if the server is responding on port 8080"""
+    # We now only check port 8080 as we're binding directly to it for deployment
     port_8080_status = False
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -213,22 +203,16 @@ def check_server_status():
         logger.warning(f"Port 8080 check failed: {str(e)}")
     
     # Log the results
-    status = "OK" if port_5000_status and port_8080_status else "WARNING" if port_5000_status else "CRITICAL"
+    status = "OK" if port_8080_status else "CRITICAL"
     details = {
-        "port_5000": port_5000_status,
         "port_8080": port_8080_status
     }
     
     log_health_check("server_status", status, details)
     
     # Create or resolve alerts as needed
-    if not port_5000_status:
-        create_alert("port_5000_down", "Main application port (5000) is not responding")
-    else:
-        resolve_alert("port_5000_down")
-        
     if not port_8080_status:
-        create_alert("port_8080_down", "Deployment port (8080) is not responding")
+        create_alert("port_8080_down", "Application port (8080) is not responding")
     else:
         resolve_alert("port_8080_down")
     

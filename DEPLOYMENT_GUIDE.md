@@ -1,58 +1,59 @@
-# Lottery Scraper Deployment Guide
+# Deployment Guide for Lottery Data Intelligence Platform
 
-This document outlines the deployment process for the Lottery Scraper application on Replit.
+This guide documents the steps needed to properly deploy the Lottery Data Intelligence Platform on Replit.
 
-## Deployment Configuration
+## Port Configuration
 
-The application is configured to run directly on port 8080 for Replit's deployment service using the following files:
+The application must be configured to bind to port 8080 for proper deployment on Replit. Follow these steps to ensure correct port binding:
 
-1. `deployment.py` - Main deployment script that binds directly to port 8080
-2. `Procfile` - Specifies the command to run for web deployments
-3. `replit_deployment.toml` - Replit-specific deployment configuration
+1. **Run Command**: Update the run command in `.replit` to bind to port 8080 instead of 5000.
+   ```
+   run = ["sh", "-c", "gunicorn --bind 0.0.0.0:8080 main:app"]
+   ```
+   This has been configured in `.replit-run-command`.
 
-## How to Deploy
+2. **Build Command**: Keep the build command as is, it's already correct.
+   ```
+   build = ["sh", "-c", "pip install -r requirements.txt"]
+   ```
 
-1. Make sure all changes are committed to the repository
-2. Click the "Deploy" button in the Replit interface
-3. Select "Web Service" as the deployment type
-4. Wait for the deployment process to complete
+3. **Port Mapping**: Remove the port 5000 configuration and only keep the 8080:80 mapping.
+   ```
+   [[ports]]
+   localPort = 8080
+   externalPort = 80
+   ```
+   This has been configured in `.replit-ports`.
+
+4. **Redundant Port Scripts**: Removed all redundant port configuration scripts from the backup_deployments directory to avoid conflicts.
+
+5. **Health Monitoring**: Updated the health monitoring system to only check port 8080 instead of both port 5000 and 8080.
+
+## Additional Configuration
+
+1. **Gunicorn Configuration**: The `gunicorn.conf.py` file is already correctly configured to bind to port 8080:
+   ```python
+   # Bind to 0.0.0.0:8080 for deployment
+   bind = "0.0.0.0:8080"
+   
+   # Recommended number of workers
+   workers = 4
+   
+   # Timeout value
+   timeout = 60
+   ```
+
+2. **Database Configuration**: The application uses the `DATABASE_URL` environment variable for PostgreSQL connection. This is already properly configured.
+
+## Deployment Process
+
+1. Ensure all configuration files are properly set up as described above.
+2. Click the "Deploy" button in the Replit interface.
+3. The application will be deployed with the correct port configurations.
+4. After deployment, the application will be accessible at the Replit deployment URL.
 
 ## Troubleshooting
 
-If deployment fails, check the following:
-
-### Port Binding Issues
-- Ensure the application is binding to port 8080 (this is configured in `deployment.py`)
-- Make sure no other process is using port 8080
-
-### Database Connection
-- Verify the `DATABASE_URL` environment variable is set correctly in Replit Secrets
-- Check that the database is accessible from the deployment environment
-
-### Application Errors
-- Review the deployment logs for any application-specific errors
-- Ensure all dependencies are properly installed
-
-## Production Considerations
-
-When running in production:
-
-1. Debug mode is disabled for security
-2. Threaded mode is enabled for better performance
-3. The application uses environment variables for configuration
-4. Proper signal handling is implemented for graceful shutdowns
-
-## Environment Variables
-
-The following environment variables should be set in Replit Secrets for deployment:
-
-- `DATABASE_URL`: PostgreSQL database connection string
-- `SESSION_SECRET`: Secret key for session management
-- `ENVIRONMENT`: Set to "production" for production deployments
-- `DEBUG`: Set to "false" for production deployments
-- `Lotto_scape_ANTHROPIC_KEY`: API key for Anthropic (if OCR functionality is needed)
-
-## Additional Files
-
-- `final_direct_port_solution.py`: Alternative direct port binding solution
-- `PORT_BINDING_SOLUTION.md`: Documentation on different port binding approaches
+- If the application fails to start, check the logs for port binding issues.
+- Verify that only port 8080 is being used for external connections.
+- Check the health monitoring dashboard to ensure all services are running correctly.

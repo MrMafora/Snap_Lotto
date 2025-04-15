@@ -1,0 +1,7 @@
+[[tasks]]
+task = "packager.installForAll"
+
+[[tasks]]
+task = "shell.exec"
+args = "gunicorn --bind 0.0.0.0:8080 --reuse-port --reload main:app"
+waitForPort = 8080
