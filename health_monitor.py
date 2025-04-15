@@ -195,20 +195,23 @@ def check_server_status():
     import os
     import requests
     
-    # Always check both ports 5000 and 8080
-    monitored_ports = [5000, 8080]
-    
     # Get environment setting
     environment = os.environ.get('ENVIRONMENT', 'development')
     
-    # Determine which port is critical based on environment
-    critical_port = 8080 if environment.lower() == 'production' else 5000
+    # In development mode, only check port 5000
+    # In production mode, only check port 8080
+    if environment.lower() == 'production':
+        monitored_ports = [8080]
+        critical_port = 8080
+    else:
+        monitored_ports = [5000]
+        critical_port = 5000
     
     # Track status for each port
     port_status = {}
     overall_ok = True
     
-    # Check both ports using HTTP requests
+    # Check only the appropriate port using HTTP requests
     for port in monitored_ports:
         try:
             # First try HTTP request
@@ -217,9 +220,7 @@ def check_server_status():
             
             if response.status_code != 200:
                 logger.warning(f"Port {port} responded with status code {response.status_code}")
-                # If this is the critical port, mark overall as not OK
-                if port == critical_port:
-                    overall_ok = False
+                overall_ok = False
         except requests.RequestException:
             # If HTTP request fails, try socket connection as backup
             try:
@@ -233,9 +234,7 @@ def check_server_status():
                 # Both HTTP and socket failed
                 port_status[f"port_{port}"] = False
                 logger.warning(f"Port {port} check failed: {str(e)}")
-                # If this is the critical port, mark overall as not OK
-                if port == critical_port:
-                    overall_ok = False
+                overall_ok = False
     
     # Add environment information to details
     port_status['environment'] = environment
@@ -314,8 +313,14 @@ def check_port_usage():
     port_details = {}
     service_usage = {}
     
-    # Define critical ports for our application
-    critical_ports = [5000, 8080]
+    # Get environment setting
+    environment = os.environ.get('ENVIRONMENT', 'development')
+    
+    # Define critical ports based on environment
+    if environment.lower() == 'production':
+        critical_ports = [8080]
+    else:
+        critical_ports = [5000]
     
     # Define common ports to monitor (can be expanded as needed)
     monitored_ports = critical_ports + [80, 443, 3000, 3306, 5432, 27017, 6379, 9090, 9000]
@@ -653,7 +658,11 @@ def get_active_ports():
                 
         # If psutil connection detection fails or gives incomplete results,
         # try a more basic approach using socket testing for important ports
-        important_ports = [5000, 8080, 80, 443]
+        environment = os.environ.get('ENVIRONMENT', 'development')
+        if environment.lower() == 'production':
+            important_ports = [8080, 80, 443]
+        else:
+            important_ports = [5000, 80, 443]
         for port in important_ports:
             if port not in port_process_map:
                 # Check if port is open using a socket connection
@@ -682,9 +691,14 @@ def get_active_ports():
                 "process": process_info
             })
             
-        # Special case for our application - always include port 5000 and 8080 status
-        # This ensures our health dashboard always shows these critical ports
-        monitored_ports = [5000, 8080]
+        # Special case for our application - always include relevant port status
+        # This ensures our health dashboard always shows critical ports
+        # Get environment setting to determine which port to monitor
+        environment = os.environ.get('ENVIRONMENT', 'development')
+        if environment.lower() == 'production':
+            monitored_ports = [8080]
+        else:
+            monitored_ports = [5000]
         for port in monitored_ports:
             if not any(p['port'] == port for p in active_ports):
                 # Add port with inactive status

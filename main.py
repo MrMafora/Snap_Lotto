@@ -1851,37 +1851,13 @@ def system_metrics():
 if __name__ == "__main__":
     # Extra logging to help diagnose startup issues
     import logging
-    import argparse
-    import threading
-    import subprocess
-    import sys
-    import time
     import os
     
     logging.getLogger('werkzeug').setLevel(logging.INFO)
     
-    # Parse arguments
-    parser = argparse.ArgumentParser(description='Run the Flask application with options')
-    parser.add_argument('--port', type=int, default=5000, help='Port to run the Flask app on')
-    parser.add_argument('--no-bridge', action='store_true', help='Do not start the port 8080 bridge')
-    args = parser.parse_args()
+    # Get port from environment or use default
+    port = int(os.environ.get('PORT', 5000))
     
-    # Function to start the bridge in a separate thread
-    def start_bridge():
-        try:
-            print("Starting port 8080 bridge...")
-            # Import and run the bridge script
-            import bridge
-            bridge.run_bridge()
-        except Exception as e:
-            print(f"Error starting bridge: {str(e)}")
-    
-    # Start the bridge unless disabled
-    if not args.no_bridge:
-        bridge_thread = threading.Thread(target=start_bridge, daemon=True)
-        bridge_thread.start()
-        print("Port 8080 bridge started in background thread")
-    
-    # Start Flask app (on port 5000 by default)
-    print(f"Starting Flask application on 0.0.0.0:{args.port}...")
-    app.run(host="0.0.0.0", port=args.port, debug=True, use_reloader=False)
+    # Start Flask app
+    print(f"Starting Flask application on 0.0.0.0:{port}...")
+    app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)

@@ -4,15 +4,13 @@
       "name": "Start application",
       "tasks": [
         {
-          "task": "shell.exec",
-          "args": "./clear_ports.sh",
-          "description": "Clear any processes using ports 5000 and 8080"
+          "task": "packager.installForAll"
         },
         {
           "task": "shell.exec",
-          "args": "./start_app.sh",
+          "args": "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app",
           "waitForPort": 5000,
-          "description": "Start the application based on environment"
+          "description": "Start the application server"
         }
       ],
       "metadata": {
