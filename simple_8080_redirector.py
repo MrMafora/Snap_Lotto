@@ -1,81 +1,189 @@
 #!/usr/bin/env python3
 """
-Simple HTTP server that listens on port 8080 and redirects all requests to port 5000.
-This version is specifically optimized for Replit's environment.
+Simple port 8080 redirector for Replit deployment.
+This script provides a minimal HTTP server that listens on port 8080 
+and forwards all requests to the main application on port 5000.
 """
 import http.server
 import socketserver
-import logging
+import urllib.request
+import urllib.error
 import os
 import sys
+import time
+import threading
+import signal
+import logging
 
-# Configure logging to both console and file
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('simple_8080.log')
-    ]
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger('port_bridge')
+logger = logging.getLogger('port8080_redirector')
 
-class RedirectHandler(http.server.BaseHTTPRequestHandler):
-    """Handler to redirect requests from port 8080 to port 5000"""
+# Constants
+PORT_8080 = 8080
+PORT_5000 = 5000
+HOST = "0.0.0.0"
+LOCAL_HOST = "127.0.0.1"
+
+class RedirectorHandler(http.server.BaseHTTPRequestHandler):
+    """HTTP handler that redirects all requests to port 5000"""
     
-    def redirect_request(self):
-        """Redirect all requests to port 5000"""
+    def do_GET(self):
+        self.redirect_request("GET")
+    
+    def do_POST(self):
+        self.redirect_request("POST")
+    
+    def do_PUT(self):
+        self.redirect_request("PUT")
+    
+    def do_DELETE(self):
+        self.redirect_request("DELETE")
+    
+    def do_HEAD(self):
+        self.redirect_request("HEAD")
+    
+    def do_OPTIONS(self):
+        self.redirect_request("OPTIONS")
+    
+    def do_PATCH(self):
+        self.redirect_request("PATCH")
+    
+    def redirect_request(self, method):
+        """Forward all requests to port 5000"""
+        target_url = f"http://{LOCAL_HOST}:{PORT_5000}{self.path}"
+        
         try:
-            # Send 302 redirect
-            self.send_response(302)
+            # Get request body (if any)
+            content_length = int(self.headers.get('Content-Length', 0))
+            body_data = None
+            if content_length > 0:
+                body_data = self.rfile.read(content_length)
             
-            # Get current host and replace port if needed
-            host = self.headers.get('Host', '')
-            if ':8080' in host:
-                redirect_host = host.replace(':8080', ':5000')
-            else:
-                # If no port in host, make sure we redirect to port 5000
-                redirect_host = host
+            # Create request to forward
+            req = urllib.request.Request(
+                url=target_url,
+                data=body_data,
+                method=method
+            )
+            
+            # Copy request headers
+            for header, value in self.headers.items():
+                if header.lower() not in ('content-length', 'host'):
+                    req.add_header(header, value)
+            
+            # Send the request
+            with urllib.request.urlopen(req, timeout=10) as response:
+                # Copy response status
+                self.send_response(response.status)
                 
-            # Construct full redirect URL
-            redirect_url = f'https://{redirect_host}{self.path}'
+                # Copy response headers
+                for header, value in response.getheaders():
+                    self.send_header(header, value)
+                self.end_headers()
+                
+                # Copy response body
+                self.wfile.write(response.read())
+                
+        except urllib.error.HTTPError as e:
+            # Forward HTTP errors
+            self.send_response(e.code)
             
-            # Set redirect location header
-            self.send_header('Location', redirect_url)
+            # Copy error headers
+            for header, value in e.headers.items():
+                self.send_header(header, value)
             self.end_headers()
             
-            logger.info(f"Redirected: {host}{self.path} -> {redirect_host}{self.path}")
+            # Copy error body
+            if e.fp:
+                self.wfile.write(e.fp.read())
+                
         except Exception as e:
-            logger.error(f"Error during redirect: {str(e)}")
-
-    # Handle all HTTP methods
-    do_GET = do_POST = do_PUT = do_DELETE = do_HEAD = do_OPTIONS = redirect_request
+            # Handle other errors
+            logger.error(f"Error forwarding request: {str(e)}")
+            self.send_error(502, f"Error forwarding request: {str(e)}")
     
     def log_message(self, format, *args):
-        """Custom logging for requests"""
-        logger.info(f"8080 Server: {format % args}")
+        """Override to use our logger"""
+        logger.info(f"{self.client_address[0]} - {format % args}")
 
-def main():
-    """Start the redirect server on port 8080"""
+class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    """Use threading to handle requests in separate threads"""
+    daemon_threads = True
+
+def check_target_app():
+    """Check if the target application is running"""
+    logger.info(f"Checking if target application is running on port {PORT_5000}...")
+    
     try:
-        # Create server instance, enabling reuse of the address
-        server_address = ('0.0.0.0', 8080)
-        httpd = socketserver.TCPServer(server_address, RedirectHandler)
-        httpd.allow_reuse_address = True
-        
-        logger.info(f'Starting port redirector on {server_address[0]}:{server_address[1]}')
-        logger.info('Redirecting all traffic to port 5000')
-        
-        # Start server
-        httpd.serve_forever()
+        with urllib.request.urlopen(f"http://{LOCAL_HOST}:{PORT_5000}/health_check", timeout=2) as response:
+            if response.status == 200:
+                logger.info(f"Target application is running on port {PORT_5000}")
+                return True
     except Exception as e:
-        logger.error(f'Error in port 8080 redirector: {str(e)}')
-        sys.exit(1)
+        logger.warning(f"Target application check failed: {str(e)}")
+    
+    return False
+
+def wait_for_target_app(max_attempts=30, delay=2):
+    """Wait for target application to become available"""
+    logger.info(f"Waiting for target application on port {PORT_5000}...")
+    
+    for attempt in range(max_attempts):
+        if check_target_app():
+            return True
+        
+        if attempt < max_attempts - 1:
+            logger.info(f"Attempt {attempt+1}/{max_attempts}: Target application not ready. Waiting {delay} seconds...")
+            time.sleep(delay)
+    
+    logger.error(f"Target application did not become available after {max_attempts} attempts")
+    return False
+
+def run_redirector():
+    """Start the redirector on port 8080"""
+    # Check if port 8080 is already in use
+    try:
+        test_socket = socketserver.TCPServer((HOST, PORT_8080), http.server.BaseHTTPRequestHandler)
+        test_socket.server_close()
+    except OSError as e:
+        logger.error(f"Port {PORT_8080} is already in use: {str(e)}")
+        logger.error("Please free up port 8080 before running this script")
+        return False
+    
+    # Start the server
+    try:
+        server = ThreadingHTTPServer((HOST, PORT_8080), RedirectorHandler)
+        
+        def signal_handler(sig, frame):
+            logger.info(f"Received signal {sig}, shutting down...")
+            server.shutdown()
+            sys.exit(0)
+        
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        
+        logger.info(f"Starting HTTP redirector on {HOST}:{PORT_8080} -> {LOCAL_HOST}:{PORT_5000}")
+        server.serve_forever()
+    except Exception as e:
+        logger.error(f"Failed to start redirector: {str(e)}")
+        return False
+    
+    return True
 
 if __name__ == "__main__":
-    # Handle KeyboardInterrupt gracefully
-    try:
-        main()
-    except KeyboardInterrupt:
-        logger.info("Shutting down port 8080 redirector")
-        sys.exit(0)
+    logger.info("=== Simple Port 8080 Redirector ===")
+    
+    # First check if target application is available
+    if not check_target_app():
+        # Wait for target application to start
+        if not wait_for_target_app():
+            logger.error("Target application is not available. Exiting.")
+            sys.exit(1)
+    
+    # Run the redirector
+    success = run_redirector()
+    sys.exit(0 if success else 1)

@@ -1,12 +1,17 @@
 # Configuration file for Replit Deployments
-run = "gunicorn --bind 0.0.0.0:8080 main:app"
+run = "gunicorn --bind 0.0.0.0:8080 --workers 4 --timeout 120 --access-logfile - main:app"
 deploymentTarget = "cloudrun"
 
 # Health check endpoint
-healthCheckPath = "/"
+healthCheckPath = "/health_check"
 
 # Environment configuration
 [env]
-# These will be overridden by Replit Secrets during deployment
+# These values are used during deployment
 ENVIRONMENT = "production"
 DEBUG = "false"
+
+# Specify the port mapping for Replit
+[[ports]]
+localPort = 8080
+externalPort = 80

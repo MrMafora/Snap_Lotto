@@ -1,75 +1,94 @@
 #!/bin/bash
-# Script to start the application with the correct port binding based on environment
+# Start the lottery application on both port 5000 and 8080
+# This script provides dual-port support for the application
 
-# Default to development environment if not specified
-ENVIRONMENT=${ENVIRONMENT:-development}
+# Print banner
+echo "====================================================="
+echo "  LOTTERY APPLICATION DUAL-PORT STARTUP"
+echo "====================================================="
+echo "Starting application on ports 5000 and 8080..."
 
-echo "Starting application in $ENVIRONMENT environment"
-
-# Function to kill processes on a specific port
-kill_process_on_port() {
-  local port=$1
-  echo "Checking for existing processes on port $port..."
-  
-  # Get all PIDs using the port (there might be multiple)
-  local pids=$(lsof -t -i:$port 2>/dev/null)
-  
-  if [ -n "$pids" ]; then
-    echo "Found process(es) on port $port: $pids"
-    
-    # Kill each process individually
-    for pid in $pids; do
-      echo "Killing process with PID $pid..."
-      kill -9 $pid 2>/dev/null || true
-    done
-    
-    # Give processes time to fully terminate
-    sleep 2
-    
-    # Verify the port is actually free now
-    local check_pids=$(lsof -t -i:$port 2>/dev/null)
-    if [ -n "$check_pids" ]; then
-      echo "WARNING: Port $port is still in use by PID(s): $check_pids"
-      echo "Attempting forceful termination..."
-      
-      # Try one more time with stronger force
-      for pid in $check_pids; do
-        echo "Force killing PID $pid..."
-        kill -9 $pid 2>/dev/null || true
-      done
-      
-      sleep 1
-      
-      # Final check
-      local final_check=$(lsof -t -i:$port 2>/dev/null)
-      if [ -n "$final_check" ]; then
-        echo "ERROR: Failed to clear port $port. You may need to restart the repl."
-      else
-        echo "Port $port finally cleared successfully"
-      fi
+# Clear ports if they're in use
+echo "Checking port availability..."
+for PORT in 5000 8080; do
+    if lsof -i ":$PORT" > /dev/null 2>&1; then
+        echo "Port $PORT is in use. Clearing..."
+        if command -v fuser > /dev/null; then
+            fuser -k "$PORT/tcp"
+        else
+            for pid in $(lsof -t -i:"$PORT"); do
+                echo "Killing process $pid"
+                kill -9 "$pid"
+            done
+        fi
+        sleep 1
     else
-      echo "Port $port cleared successfully"
+        echo "Port $PORT is available."
     fi
-  else
-    echo "No process found using port $port"
-  fi
-  
-  # Additional check to make sure socket is fully released
-  if ! netstat -tuln | grep ":$port " > /dev/null; then
-    echo "Confirmed port $port is free"
-  fi
+done
+
+# Create a very simple port forwarder using netcat
+create_port_forwarder() {
+    # Parameters
+    local source_port=$1
+    local target_port=$2
+    
+    # Create a port forwarder using netcat in the background
+    echo "Creating port forwarder from $source_port to $target_port..."
+    
+    # Create a bash script for the port forwarding
+    cat > forward_$source_port.sh << EOF
+#!/bin/bash
+while true; do
+    echo "Starting port forwarding $source_port -> $target_port..."
+    nc -l -p $source_port -c "nc localhost $target_port" || true
+    echo "Port forwarding $source_port -> $target_port interrupted, restarting..."
+    sleep 1
+done
+EOF
+    
+    # Make it executable
+    chmod +x forward_$source_port.sh
+    
+    # Run it in the background
+    nohup ./forward_$source_port.sh > forward_$source_port.log 2>&1 &
+    echo "Port forwarder started with PID: $!"
 }
 
-# Always kill both ports (5000 and 8080) to ensure clean startup
-kill_process_on_port 5000
-kill_process_on_port 8080
-
-if [ "$ENVIRONMENT" = "production" ]; then
-  # Production environment - use port 8080 for Replit deployment
-  echo "Binding to port 8080 for production deployment"
-  exec gunicorn --bind 0.0.0.0:8080 main:app
+# Environment detection
+if [ "$ENVIRONMENT" == "production" ]; then
+    # Production mode - run directly on port 8080
+    echo "Running in production mode on port 8080..."
+    exec gunicorn --bind 0.0.0.0:8080 --workers 4 --reuse-port main:app
 else
-  # Development environment - use port 5000
-  echo "Binding to port 5000 for development"
-  exec gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
+    # Development mode - run on port 5000 and create a forwarder on port 8080
+    echo "Running in development mode (dual port)..."
+    
+    # Start the main application on port 5000
+    echo "Starting main application on port 5000..."
+    nohup gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app > gunicorn_5000.log 2>&1 &
+    MAIN_PID=$!
+    echo "Main application started with PID: $MAIN_PID"
+    
+    # Wait for main application to become available
+    echo "Waiting for main application to start..."
+    MAX_ATTEMPTS=10
+    for ((i=1; i<=$MAX_ATTEMPTS; i++)); do
+        if curl -s http://127.0.0.1:5000/health_check > /dev/null; then
+            echo "Main application is ready!"
+            break
+        else
+            if [ $i -eq $MAX_ATTEMPTS ]; then
+                echo "Failed to start main application after $MAX_ATTEMPTS attempts"
+                kill -9 $MAIN_PID 2>/dev/null
+                exit 1
+            fi
+            echo "Waiting for main application... (attempt $i/$MAX_ATTEMPTS)"
+            sleep 2
+        fi
+    done
+    
+    # Start the second application instance directly on port 8080
+    echo "Starting second application instance on port 8080..."
+    exec gunicorn --bind 0.0.0.0:8080 --reuse-port main:app
 fi

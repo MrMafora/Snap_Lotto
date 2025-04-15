@@ -1,106 +1,58 @@
 #!/bin/bash
-# Combined solution for port binding
-# Starts both a gunicorn server on port 5000 and our main application on port 8080
+# Combined startup script for both ports 5000 and 8080
 
-# Ensure this script always runs from the project root directory
-cd "$(dirname "$0")"
+# Kill any existing processes on ports 5000 and 8080
+echo "Checking for existing processes on ports 5000 and 8080..."
+PORT_5000_PID=$(lsof -ti:5000)
+PORT_8080_PID=$(lsof -ti:8080)
 
-# Kill any existing processes on port 8080
-if netstat -tuln | grep -q ":8080 "; then
-    echo "Port 8080 is in use, attempting to free it..."
-    lsof -i :8080 | tail -n +2 | awk '{print $2}' | xargs -r kill
+if [ ! -z "$PORT_5000_PID" ]; then
+    echo "Killing process on port 5000 (PID: $PORT_5000_PID)..."
+    kill -9 $PORT_5000_PID
 fi
 
-# Start the main gunicorn server on port 5000
-echo "Starting main application on port 5000 with gunicorn..."
-gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app &
-GUNICORN_PID=$!
+if [ ! -z "$PORT_8080_PID" ]; then
+    echo "Killing process on port 8080 (PID: $PORT_8080_PID)..."
+    kill -9 $PORT_8080_PID
+fi
 
-# Wait for a moment to ensure gunicorn is started
-sleep 2
+# Wait a moment to ensure ports are released
+sleep 1
 
-# Start a simple port 8080 server that delegates to port 5000
-echo "Starting port 8080 proxy..."
-{
-cat << 'EOF' > /tmp/port8080_proxy.py
-#!/usr/bin/env python3
-import http.server
-import socketserver
-import urllib.request
-import threading
-import time
+# Start the main application using gunicorn on port 5000
+echo "Starting main application on port 5000..."
+MAIN_APP_LOG="server_5000.log"
+ENVIRONMENT=development gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app > $MAIN_APP_LOG 2>&1 &
+MAIN_PID=$!
+echo "Main application started with PID: $MAIN_PID"
 
-# Define handler
-class ProxyHandler(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.proxy_request('GET')
-    
-    def do_POST(self):
-        self.proxy_request('POST')
-    
-    def do_PUT(self):
-        self.proxy_request('PUT')
-    
-    def do_DELETE(self):
-        self.proxy_request('DELETE')
-    
-    def proxy_request(self, method):
-        try:
-            url = f'http://localhost:5000{self.path}'
-            
-            # Parse headers from the original request
-            headers = {}
-            for header in self.headers:
-                headers[header] = self.headers[header]
-            
-            # Read request body for POST/PUT requests
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length) if content_length > 0 else None
-            
-            # Create and send the request
-            req = urllib.request.Request(
-                url, 
-                data=body,
-                headers=headers, 
-                method=method
-            )
-            
-            # Get the response
-            with urllib.request.urlopen(req) as response:
-                # Set response code
-                self.send_response(response.status)
-                
-                # Set response headers
-                for header in response.headers:
-                    if header.lower() != 'transfer-encoding':  # Skip chunked encoding
-                        self.send_header(header, response.headers[header])
-                self.end_headers()
-                
-                # Send response body
-                self.wfile.write(response.read())
-        
-        except Exception as e:
-            # Send error response
-            self.send_response(500)
-            self.send_header('Content-type', 'text/plain')
-            self.end_headers()
-            self.wfile.write(f"Proxy error: {str(e)}".encode('utf-8'))
-    
-# Run server
-httpd = socketserver.ThreadingTCPServer(('0.0.0.0', 8080), ProxyHandler)
-print("Server is ready and listening on ports 5000 and 8080")
-httpd.serve_forever()
-EOF
+# Allow time for the main application to start
+sleep 3
 
-python /tmp/port8080_proxy.py &
-PROXY_PID=$!
+# Start the port 8080 bridge
+echo "Starting port 8080 bridge..."
+BRIDGE_LOG="bridge.log"
+python bridge.py > $BRIDGE_LOG 2>&1 &
+BRIDGE_PID=$!
+echo "Bridge started with PID: $BRIDGE_PID"
 
-# Monitor both processes
-echo "Server is ready and listening on ports 5000 and 8080"
+# Save PIDs for later management
+echo $MAIN_PID > main.pid
+echo $BRIDGE_PID > bridge.pid
 
-# Trap Ctrl+C to kill both servers
-trap "kill $GUNICORN_PID $PROXY_PID 2>/dev/null; exit" INT TERM
+# Provide status
+echo "============================================"
+echo "Application started:"
+echo "  - Main app (port 5000): PID $MAIN_PID (log: $MAIN_APP_LOG)"
+echo "  - Bridge (port 8080): PID $BRIDGE_PID (log: $BRIDGE_LOG)"
+echo "============================================"
+echo "Use the following commands for management:"
+echo "  - To stop all: kill -9 \$(cat main.pid bridge.pid)"
+echo "  - To stop bridge only: kill -9 \$(cat bridge.pid)"
+echo "  - To check logs: tail -f $MAIN_APP_LOG $BRIDGE_LOG"
+echo "============================================"
 
-# Keep the script running
-wait $GUNICORN_PID
-}
+# Keep the script running to make it easier to stop with Ctrl+C
+echo "Press Ctrl+C to stop all servers"
+trap "kill -9 $MAIN_PID $BRIDGE_PID; echo 'All servers stopped'; exit 0" INT
+wait

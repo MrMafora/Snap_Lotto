@@ -192,47 +192,77 @@ def get_health_history(check_type=None, limit=100):
 # Health check functions
 def check_server_status():
     """Check if the server is responding on the appropriate port"""
-    # Check port 5000 for development and port 8080 for production
     import os
+    import requests
     
-    # In development, we check port 5000; in production, we check port 8080
+    # Always check both ports 5000 and 8080
+    monitored_ports = [5000, 8080]
+    
+    # Get environment setting
     environment = os.environ.get('ENVIRONMENT', 'development')
     
-    if environment.lower() == 'production':
-        # Production environment - check port 8080
-        port_to_check = 8080
+    # Determine which port is critical based on environment
+    critical_port = 8080 if environment.lower() == 'production' else 5000
+    
+    # Track status for each port
+    port_status = {}
+    overall_ok = True
+    
+    # Check both ports using HTTP requests
+    for port in monitored_ports:
+        try:
+            # First try HTTP request
+            response = requests.get(f"http://localhost:{port}/health_port_check", timeout=2)
+            port_status[f"port_{port}"] = response.status_code == 200
+            
+            if response.status_code != 200:
+                logger.warning(f"Port {port} responded with status code {response.status_code}")
+                # If this is the critical port, mark overall as not OK
+                if port == critical_port:
+                    overall_ok = False
+        except requests.RequestException:
+            # If HTTP request fails, try socket connection as backup
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.settimeout(2)
+                    s.connect(('127.0.0.1', port))
+                    # Port is open but maybe not responding to HTTP
+                    port_status[f"port_{port}"] = True
+                    logger.info(f"Port {port} is open but not responding to HTTP")
+            except Exception as e:
+                # Both HTTP and socket failed
+                port_status[f"port_{port}"] = False
+                logger.warning(f"Port {port} check failed: {str(e)}")
+                # If this is the critical port, mark overall as not OK
+                if port == critical_port:
+                    overall_ok = False
+    
+    # Add environment information to details
+    port_status['environment'] = environment
+    port_status['critical_port'] = critical_port
+    
+    # Set status based on critical port availability
+    if critical_port == 5000 and not port_status.get('port_5000', False):
+        status = "CRITICAL"  # Critical in development if port 5000 is down
+    elif critical_port == 8080 and not port_status.get('port_8080', False):
+        status = "CRITICAL"  # Critical in production if port 8080 is down
+    elif not overall_ok:
+        status = "WARNING"  # Non-critical port is down
     else:
-        # Development environment - check port 5000
-        port_to_check = 5000
+        status = "OK"
     
-    port_status = False
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(2)
-            s.connect(('127.0.0.1', port_to_check))
-            port_status = True
-    except Exception as e:
-        logger.warning(f"Port {port_to_check} check failed: {str(e)}")
-    
-    # Log the results
-    status = "OK" if port_status else "CRITICAL"
-    details = {
-        f"port_{port_to_check}": port_status
-    }
-    
-    log_health_check("server_status", status, details)
+    # Log the check
+    log_health_check("server_status", status, port_status)
     
     # Create or resolve alerts as needed
-    if not port_status:
-        create_alert(f"port_{port_to_check}_down", f"Application port ({port_to_check}) is not responding")
-    else:
-        resolve_alert(f"port_{port_to_check}_down")
-        
-        # Always resolve the other port alert to prevent false alerts
-        other_port = 8080 if port_to_check == 5000 else 5000
-        resolve_alert(f"port_{other_port}_down")
+    for port in monitored_ports:
+        if not port_status.get(f"port_{port}", False):
+            severity = "CRITICAL" if port == critical_port else "WARNING"
+            create_alert(f"port_{port}_down", f"Application port {port} is not responding ({severity})")
+        else:
+            resolve_alert(f"port_{port}_down")
     
-    return status, details
+    return status, port_status
 
 def check_database_connection(db):
     """Check if the database connection is working"""
@@ -284,40 +314,53 @@ def check_port_usage():
     port_details = {}
     service_usage = {}
     
+    # Define critical ports for our application
+    critical_ports = [5000, 8080]
+    
     # Define common ports to monitor (can be expanded as needed)
-    monitored_ports = [5000, 8080, 80, 443, 3000, 3306, 5432, 27017, 6379, 9090, 9000]
+    monitored_ports = critical_ports + [80, 443, 3000, 3306, 5432, 27017, 6379, 9090, 9000]
     
     try:
-        # Get all network connections
-        connections = psutil.net_connections()
+        # First try to use the psutil.net_connections approach
+        connections = []
+        try:
+            connections = psutil.net_connections(kind='inet')
+        except Exception as e:
+            logger.warning(f"Error getting psutil connections: {str(e)}")
         
-        # Filter for listening TCP connections (servers)
+        # Process each connection to get port and associated process info
         for conn in connections:
             port = None
-            # Handle different psutil connection address formats
-            if hasattr(conn.laddr, '_asdict') and hasattr(conn.laddr, 'port'):  # Named tuple format
-                port = conn.laddr.port
-            elif isinstance(conn.laddr, tuple) and len(conn.laddr) > 1:  # Tuple format
-                port = conn.laddr[1]
-            else:
-                continue
+            pid = None
+            
+            # Extract port from different psutil formats safely
+            try:
+                if hasattr(conn, 'laddr'):
+                    if hasattr(conn.laddr, 'port'):  # Named tuple
+                        port = conn.laddr.port
+                    elif isinstance(conn.laddr, tuple) and len(conn.laddr) > 1:  # Tuple
+                        port = conn.laddr[1]
                 
-            if conn.status == 'LISTEN' and port is not None:
-                # Add port even if not in monitored_ports to ensure we catch all active server ports
-                if port not in port_details:
+                if hasattr(conn, 'pid'):
+                    pid = conn.pid
+                    
+                # Only process LISTEN connections (servers) with port
+                if conn.status == 'LISTEN' and port is not None and port not in port_details:
                     port_details[port] = {
-                        "pid": conn.pid,
+                        "pid": pid,
                         "status": conn.status,
-                        "is_monitored": port in monitored_ports
+                        "is_monitored": port in monitored_ports,
+                        "is_critical": port in critical_ports
                     }
                     
-                    # Get process information for this port
-                    if conn.pid:
+                    # Get process information for this port if we have a pid
+                    if pid:
                         try:
-                            process = psutil.Process(conn.pid)
+                            process = psutil.Process(pid)
+                            cmd_line = " ".join(process.cmdline() if process.cmdline() else [])
                             port_details[port].update({
                                 "process_name": process.name(),
-                                "process_cmdline": " ".join(process.cmdline()),
+                                "process_cmdline": cmd_line,
                                 "process_create_time": datetime.datetime.fromtimestamp(process.create_time()).strftime('%Y-%m-%d %H:%M:%S'),
                                 "process_username": process.username(),
                                 "process_memory_percent": round(process.memory_percent(), 2)
@@ -328,25 +371,100 @@ def check_port_usage():
                             if proc_name not in service_usage:
                                 service_usage[proc_name] = []
                             service_usage[proc_name].append(port)
-                        except psutil.NoSuchProcess:
-                            port_details[port]["process_info"] = "Process no longer exists"
+                        except Exception as process_err:
+                            logger.debug(f"Error getting process info for PID {pid}: {str(process_err)}")
+                            port_details[port]["process_info"] = "Process information unavailable"
+            except Exception as conn_err:
+                logger.debug(f"Error processing connection: {str(conn_err)}")
+                continue
+        
+        # For critical ports that weren't detected, check directly with socket
+        for port in critical_ports:
+            if port not in port_details:
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.settimeout(0.5)
+                        result = s.connect_ex(('127.0.0.1', port))
+                        if result == 0:  # Port is open
+                            # Try to find the process using this port with another method
+                            port_details[port] = {
+                                "pid": None,
+                                "status": "LISTEN",
+                                "is_monitored": True,
+                                "is_critical": True,
+                                "process_name": "Unknown",
+                                "process_cmdline": "Detected via socket test",
+                                "process_create_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                "detection_method": "socket_test"
+                            }
+                            
+                            # Add to an "unknown" service group
+                            if "Unknown Services" not in service_usage:
+                                service_usage["Unknown Services"] = []
+                            service_usage["Unknown Services"].append(port)
+                except Exception as sock_err:
+                    logger.debug(f"Error checking port {port} with socket: {str(sock_err)}")
+        
+        # For each critical port, check if we're missing it
+        for port in critical_ports:
+            if port not in port_details:
+                # Add port with inactive status
+                port_details[port] = {
+                    "pid": None,
+                    "status": "CLOSED",
+                    "is_monitored": True,
+                    "is_critical": True,
+                    "process_name": "Not Active",
+                    "process_cmdline": "Port is not in use",
+                    "process_create_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    "active": False
+                }
         
         # Add service usage summary to the port details
         details = {
             "port_details": port_details,
             "service_usage": service_usage,
             "monitored_ports": monitored_ports,
-            "total_listening_ports": len(port_details)
+            "critical_ports": critical_ports,
+            "total_listening_ports": len([p for p in port_details.values() if p.get("status") == "LISTEN"]),
+            "environment": os.environ.get('ENVIRONMENT', 'development')
         }
         
-        # Log the results
+        # Determine status based on critical ports
         status = "OK"
+        
+        # Check if all critical ports are available
+        missing_critical_ports = []
+        for port in critical_ports:
+            if port not in port_details or port_details[port].get("status") != "LISTEN":
+                missing_critical_ports.append(port)
+        
+        # Update status based on environment expectations
+        environment = os.environ.get('ENVIRONMENT', 'development')
+        if environment == 'production' and 8080 in missing_critical_ports:
+            status = "CRITICAL"
+            create_alert("port_8080_missing", "Critical port 8080 is missing in production environment")
+        elif environment == 'development' and 5000 in missing_critical_ports:
+            status = "WARNING"
+            create_alert("port_5000_missing", "Expected port 5000 is missing in development environment")
+        else:
+            resolve_alert("port_8080_missing")
+            resolve_alert("port_5000_missing")
+            
+        # Add missing ports to details
+        details["missing_critical_ports"] = missing_critical_ports
+        
+        # Log the results
         log_health_check("port_usage", status, details)
         
         return status, details
     except Exception as e:
         logger.warning(f"Port usage check failed: {str(e)}")
-        details = {"error": str(e)}
+        details = {
+            "error": str(e),
+            "critical_ports": critical_ports,
+            "monitored_ports": monitored_ports
+        }
         status = "WARNING"
         log_health_check("port_usage", status, details)
         return status, details
@@ -486,43 +604,76 @@ def get_active_ports():
     active_ports = []
     
     try:
-        # Get all network connections
-        connections = psutil.net_connections(kind='inet')
+        # First try to use the psutil.net_connections approach
+        connections = []
+        try:
+            connections = psutil.net_connections(kind='inet')
+        except Exception as e:
+            logger.warning(f"Error getting psutil connections: {str(e)}")
         
         # Process each connection to get port and associated process info
         port_process_map = {}
         for conn in connections:
-            # Handle different psutil connection address formats
-            if hasattr(conn.laddr, '_asdict'):  # Named tuple format
-                if hasattr(conn.laddr, 'port'):
-                    port = conn.laddr.port
-                    pid = conn.pid
-                else:
-                    continue
-            elif isinstance(conn.laddr, tuple) and len(conn.laddr) > 1:  # Tuple format
-                port = conn.laddr[1]
-                pid = conn.pid
-            else:
-                continue
+            port = None
+            pid = None
             
-            if pid and port and port not in port_process_map:
+            # Extract port from different psutil formats safely
+            try:
+                if hasattr(conn, 'laddr'):
+                    if hasattr(conn.laddr, 'port'):  # Named tuple
+                        port = conn.laddr.port
+                    elif isinstance(conn.laddr, tuple) and len(conn.laddr) > 1:  # Tuple
+                        port = conn.laddr[1]
+                
+                if hasattr(conn, 'pid'):
+                    pid = conn.pid
+                    
+                # Only process LISTEN connections (servers) with both pid and port
+                if conn.status == 'LISTEN' and pid is not None and port is not None and port not in port_process_map:
+                    try:
+                        process = psutil.Process(pid)
+                        port_process_map[port] = {
+                            "pid": pid,
+                            "name": process.name(),
+                            "cmdline": " ".join(process.cmdline() if process.cmdline() else []),
+                            "status": process.status(),
+                            "created": datetime.datetime.fromtimestamp(process.create_time()).isoformat(),
+                        }
+                    except Exception:
+                        port_process_map[port] = {
+                            "pid": pid,
+                            "name": "Unknown",
+                            "cmdline": "Process information unavailable",
+                            "status": "unknown",
+                            "created": "unknown"
+                        }
+            except Exception:
+                # Skip problematic connections
+                continue
+                
+        # If psutil connection detection fails or gives incomplete results,
+        # try a more basic approach using socket testing for important ports
+        important_ports = [5000, 8080, 80, 443]
+        for port in important_ports:
+            if port not in port_process_map:
+                # Check if port is open using a socket connection
                 try:
-                    process = psutil.Process(pid)
-                    port_process_map[port] = {
-                        "pid": pid,
-                        "name": process.name(),
-                        "cmdline": " ".join(process.cmdline()),
-                        "status": process.status(),
-                        "created": datetime.datetime.fromtimestamp(process.create_time()).isoformat(),
-                    }
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                    port_process_map[port] = {
-                        "pid": pid,
-                        "name": "Unknown",
-                        "cmdline": "Access denied or process no longer exists",
-                        "status": "unknown",
-                        "created": "unknown"
-                    }
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.settimeout(0.5)
+                        result = s.connect_ex(('127.0.0.1', port))
+                        if result == 0:  # Port is open
+                            # Try to get process using this port with another method
+                            # Here we're adding it with limited information
+                            port_process_map[port] = {
+                                "pid": None,
+                                "name": "Unknown",
+                                "cmdline": "Detected via socket test",
+                                "status": "LISTEN",
+                                "created": datetime.datetime.now().isoformat(),
+                            }
+                except Exception:
+                    # Skip socket errors
+                    pass
         
         # Convert the map to a sorted list
         for port, process_info in sorted(port_process_map.items()):
@@ -530,6 +681,24 @@ def get_active_ports():
                 "port": port,
                 "process": process_info
             })
+            
+        # Special case for our application - always include port 5000 and 8080 status
+        # This ensures our health dashboard always shows these critical ports
+        monitored_ports = [5000, 8080]
+        for port in monitored_ports:
+            if not any(p['port'] == port for p in active_ports):
+                # Add port with inactive status
+                active_ports.append({
+                    "port": port,
+                    "process": {
+                        "pid": None,
+                        "name": "Not Active",
+                        "cmdline": "Port is not in use",
+                        "status": "CLOSED",
+                        "created": datetime.datetime.now().isoformat(),
+                    },
+                    "active": False
+                })
         
     except Exception as e:
         logger.error(f"Error getting active ports: {str(e)}")
