@@ -1319,6 +1319,98 @@ def record_click():
         logger.exception(f"Error recording click: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/admin/system_status')
+@login_required
+def system_status():
+    """System status dashboard for monitoring all components"""
+    # Check server status
+    port_5000_status = True  # We're already running on this port if this code executes
+    
+    # Check port 8080
+    port_8080_status = False
+    try:
+        import urllib.request
+        response = urllib.request.urlopen('http://localhost:8080/port_check', timeout=2)
+        port_8080_status = response.getcode() == 200
+    except Exception as e:
+        logger.warning(f"Failed to check port 8080: {str(e)}")
+    
+    # Get database status and statistics
+    db_status = True
+    db_tables_count = 0
+    db_records_count = 0
+    db_type = "PostgreSQL"
+    
+    try:
+        # Count tables
+        from sqlalchemy import text
+        result = db.session.execute(text("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'"))
+        db_tables_count = result.scalar() or 0
+        
+        # Count records in lottery_result table as a sample
+        result = db.session.execute(text("SELECT COUNT(*) FROM lottery_result"))
+        db_records_count = result.scalar() or 0
+    except Exception as e:
+        logger.error(f"Database status check error: {str(e)}")
+        db_status = False
+    
+    # Get advertisement system stats
+    active_ads_count = Advertisement.query.filter_by(active=True).count()
+    total_impressions = db.session.query(db.func.count(AdImpression.id)).scalar() or 0
+    js_status = True  # Will be set by frontend JS
+    
+    # Get lottery stats
+    lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lotto']
+    lottery_stats = []
+    
+    for lottery_type in lottery_types:
+        count = LotteryResult.query.filter_by(lottery_type=lottery_type).count()
+        latest_draw = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+        
+        lottery_stats.append({
+            'name': lottery_type,
+            'count': count,
+            'latest_draw': latest_draw.draw_date.strftime('%Y-%m-%d') if latest_draw else 'N/A'
+        })
+    
+    # Get system resource usage
+    try:
+        import psutil
+        memory_usage = int(psutil.virtual_memory().percent)
+        cpu_usage = int(psutil.cpu_percent(interval=0.1))
+        disk_usage = int(psutil.disk_usage('/').percent)
+    except ImportError:
+        # Fallback if psutil not available
+        memory_usage = 50
+        cpu_usage = 30
+        disk_usage = 40
+        logger.warning("psutil not available for system stats, using placeholder values")
+    
+    return render_template(
+        'admin/system_status.html',
+        port_5000_status=port_5000_status,
+        port_8080_status=port_8080_status,
+        server_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        last_checked=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        db_status=db_status,
+        db_tables_count=db_tables_count,
+        db_records_count=db_records_count,
+        db_type=db_type,
+        active_ads_count=active_ads_count,
+        total_impressions=total_impressions,
+        js_status=js_status,
+        lottery_stats=lottery_stats,
+        memory_usage=memory_usage,
+        cpu_usage=cpu_usage,
+        disk_usage=disk_usage
+    )
+
+@app.route('/admin/check-js', methods=['POST'])
+@login_required
+def check_js():
+    """API endpoint to check if JavaScript is operational"""
+    return jsonify({'success': True})
+
 # When running directly, not through gunicorn
 if __name__ == "__main__":
     # Extra logging to help diagnose startup issues

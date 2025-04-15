@@ -54,3 +54,4 @@ oauthlib
 pyjwt
 requests
 requests
+psutil

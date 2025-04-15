@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}System Status | Snap Lotto{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1 class="mb-4">
+        <i class="fas fa-heartbeat me-2"></i> System Status Dashboard
+    </h1>
+    
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Server Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>Main Server (Port 5000)</div>
+                        <div>
+                            {% if port_5000_status %}
+                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Online</span>
+                            {% else %}
+                                <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i> Offline</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>Deployment Server (Port 8080)</div>
+                        <div>
+                            {% if port_8080_status %}
+                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Online</span>
+                            {% else %}
+                                <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i> Offline</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>Server Time</div>
+                        <div>{{ server_time }}</div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">Last checked: {{ last_checked }}</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Database Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>Connection Status</div>
+                        <div>
+                            {% if db_status %}
+                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Connected</span>
+                            {% else %}
+                                <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i> Disconnected</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>Tables Count</div>
+                        <div>{{ db_tables_count }}</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>Records Count</div>
+                        <div>{{ db_records_count }}</div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">Database Type: {{ db_type }}</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Advertisement System</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>Active Advertisements</div>
+                        <div>{{ active_ads_count }}</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>Total Impressions</div>
+                        <div>{{ total_impressions }}</div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>JavaScript Status</div>
+                        <div>
+                            {% if js_status %}
+                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Operational</span>
+                            {% else %}
+                                <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i> Issue Detected</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">Ad System Version: 1.0</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Data Analytics Status</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Lottery Type</th>
+                                <th>Records Count</th>
+                                <th>Latest Draw</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lottery in lottery_stats %}
+                            <tr>
+                                <td>{{ lottery.name }}</td>
+                                <td>{{ lottery.count }}</td>
+                                <td>{{ lottery.latest_draw }}</td>
+                                <td>
+                                    {% if lottery.count > 0 %}
+                                        <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Data Available</span>
+                                    {% else %}
+                                        <span class="badge bg-warning"><i class="fas fa-exclamation-triangle me-1"></i> No Data</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">System Resources</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label mb-1">Memory Usage</label>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar bg-{{ 'danger' if memory_usage > 80 else 'warning' if memory_usage > 60 else 'success' }}" 
+                                 role="progressbar" 
+                                 style="width: {{ memory_usage }}%;" 
+                                 aria-valuenow="{{ memory_usage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                {{ memory_usage }}%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label mb-1">CPU Usage</label>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar bg-{{ 'danger' if cpu_usage > 80 else 'warning' if cpu_usage > 60 else 'success' }}" 
+                                 role="progressbar" 
+                                 style="width: {{ cpu_usage }}%;" 
+                                 aria-valuenow="{{ cpu_usage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                {{ cpu_usage }}%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-0">
+                        <label class="form-label mb-1">Disk Usage</label>
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-{{ 'danger' if disk_usage > 80 else 'warning' if disk_usage > 60 else 'success' }}" 
+                                 role="progressbar" 
+                                 style="width: {{ disk_usage }}%;" 
+                                 aria-valuenow="{{ disk_usage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                {{ disk_usage }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">System Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="d-grid">
+                                <a href="{{ url_for('system_status') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-sync-alt me-2"></i> Refresh Status
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-grid">
+                                <a href="{{ url_for('retake_screenshots') }}" class="btn btn-outline-success">
+                                    <i class="fas fa-camera me-2"></i> Retake Screenshots
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-grid">
+                                <a href="{{ url_for('settings') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-cog me-2"></i> System Settings
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-refresh the page every 30 seconds
+    setTimeout(function() {
+        window.location.reload();
+    }, 30000);
+    
+    // Check JavaScript functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Send a signal to the server that JavaScript is working
+        fetch('/admin/check-js', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: 'operational' })
+        });
+    });
+</script>
+{% endblock %}
