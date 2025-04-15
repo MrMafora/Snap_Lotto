@@ -1,5 +1,5 @@
 # Configuration file for Replit Deployments
-run = "gunicorn --bind 0.0.0.0:8080 --workers 4 --timeout 120 --access-logfile - main:app"
+run = "python production_server.py"
 deploymentTarget = "cloudrun"
 
 # Health check endpoint
