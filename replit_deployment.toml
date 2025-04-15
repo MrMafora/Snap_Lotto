@@ -9,8 +9,3 @@ healthCheckPath = "/"
 [env]
 ENVIRONMENT = "production"
 DEBUG = "false"
-
-# Specify the port mapping for Replit
-[[ports]]
-localPort = 8080
-externalPort = 80

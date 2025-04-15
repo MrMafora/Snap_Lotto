@@ -7,17 +7,19 @@ This document outlines the final solution for deploying the Lottery Application 
 ✅ Application successfully runs on port 5000 in development mode
 ✅ Application can bind to port 8080 when needed for production
 ✅ Health monitoring system properly detects port status
-✅ Deployment configuration is set up for Replit Cloud Run
+✅ Deployment configuration is set up using Replit's recommended "gce" target
+✅ Environment configuration properly set for production
 
 ## Deployment Configuration
 
-The deployment is configured to use `production_server.py` which:
+The deployment is now configured to use direct Gunicorn binding:
 
-1. Automatically clears any processes using port 8080
-2. Starts Gunicorn with 4 worker processes
-3. Binds directly to port 8080 as required by Replit
-4. Sets the environment to production mode
-5. Handles clean shutdowns with proper signal trapping
+1. Directly runs `gunicorn --bind 0.0.0.0:8080 main:app` for deployment
+2. Uses the more reliable "gce" deployment target as recommended by Replit
+3. Simplified health check path to root endpoint "/"
+4. Removed duplicate port configuration
+5. Uses environment variables from .env file for production settings
+6. Handles clean shutdowns with proper signal trapping
 
 ## Expected Behavior
 
@@ -41,16 +43,44 @@ To deploy the application to Replit:
 3. Replit will use the configuration in `replit_deployment.toml`
 4. The application will be deployed to your Replit subdomain
 
+## Deployment File Structure
+
+The deployment setup uses the following critical files:
+
+1. **replit_deployment.toml** - Main deployment configuration
+   ```toml
+   run = "gunicorn --bind 0.0.0.0:8080 main:app"
+   deploymentTarget = "gce"
+   healthCheckPath = "/"
+   [env]
+   ENVIRONMENT = "production"
+   DEBUG = "false"
+   ```
+
+2. **.env** - Environment variables for production
+   ```
+   ENVIRONMENT=production
+   DEBUG=false
+   ```
+
+3. **.replit** - Development environment configuration (port mapping already set)
+   ```
+   [[ports]]
+   localPort = 8080
+   externalPort = 80
+   ```
+
 ## Verification
 
 After deployment, you can verify the application is working by:
 
 1. Visiting your Replit deployment URL
-2. Checking the `/health_check` endpoint
+2. Checking the root endpoint `/` for health check
 3. Confirming port 8080 is responding through the health monitoring dashboard
 
 ## Important Notes
 
 * The port 8080 alerts in the development environment are **expected behavior** and not an indication of a problem
-* The port 8080 binding solution has been thoroughly tested and confirmed to work in the Replit production environment
-* The `production_server.py` script includes comprehensive error handling and recovery mechanisms
+* Direct port binding to 8080 is now used instead of the previous bridge or proxy solutions
+* Environment is properly set to production mode in all relevant configuration files
+* Port configuration has been consolidated to avoid conflicts between .replit and replit_deployment.toml
