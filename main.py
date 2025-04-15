@@ -64,10 +64,10 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Initialize CSRF Protection but don't apply it app-wide
-# This will allow us to selectively apply it to forms via WTF_CSRF_ENABLED config
-csrf = CSRFProtect()
-app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for API endpoints
+# Initialize CSRF Protection
+csrf = CSRFProtect(app)
+# The ticket scanner endpoint doesn't need CSRF protection
+csrf.exempt('scan_ticket')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -91,10 +91,11 @@ import_snap_lotto_data = None
 ocr_processor = None
 screenshot_manager = None
 scheduler = None
+health_monitor = None
 
 def init_lazy_modules():
     """Initialize modules in a background thread to speed up startup"""
-    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, scheduler
+    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, scheduler, health_monitor
     
     # Import heavy modules only when needed
     import data_aggregator as da
@@ -103,6 +104,7 @@ def init_lazy_modules():
     import ocr_processor as op
     import screenshot_manager as sm
     import scheduler as sch
+    import health_monitor as hm
     
     # Store module references
     data_aggregator = da
@@ -111,10 +113,12 @@ def init_lazy_modules():
     ocr_processor = op
     screenshot_manager = sm
     scheduler = sch
+    health_monitor = hm
     
-    # Initialize scheduler in background after imports are complete
+    # Initialize scheduler and health monitoring in background after imports are complete
     with app.app_context():
         scheduler.init_scheduler(app)
+        health_monitor.init_health_monitor(app, db)
     
     logger.info("All modules lazy-loaded successfully")
 
@@ -1410,6 +1414,396 @@ def system_status():
 def check_js():
     """API endpoint to check if JavaScript is operational"""
     return jsonify({'success': True})
+
+@app.route('/admin/health-dashboard')
+@login_required
+def health_dashboard():
+    """Health monitoring dashboard for system administrators"""
+    import health_monitor
+    from datetime import datetime, timedelta
+    
+    # Get the overall system status
+    system_status = health_monitor.get_system_status(app, db)
+    
+    # Get recent alerts
+    alerts = health_monitor.get_recent_alerts(10)
+    
+    # Get health check history
+    health_history = health_monitor.get_health_history(limit=10)
+    
+    # Get resource usage history for charts
+    resource_history = health_monitor.get_health_history('system_resources', 24)
+    
+    # Prepare chart data
+    resource_timestamps = []
+    cpu_history = []
+    memory_history = []
+    disk_history = []
+    
+    for check in resource_history:
+        # Try to parse timestamps and details
+        try:
+            timestamp = datetime.fromisoformat(check['timestamp'].replace('Z', '+00:00'))
+            resource_timestamps.append(timestamp.strftime('%H:%M'))
+            
+            details = check['details']
+            if isinstance(details, str):
+                import json
+                details = json.loads(details)
+            
+            cpu_history.append(details.get('cpu_usage', 0))
+            memory_history.append(details.get('memory_usage', 0))
+            disk_history.append(details.get('disk_usage', 0))
+        except Exception as e:
+            app.logger.error(f"Error parsing health check data: {str(e)}")
+    
+    # If we don't have enough data points, add some placeholders
+    if len(resource_timestamps) < 5:
+        now = datetime.now()
+        for i in range(5 - len(resource_timestamps)):
+            time_point = now - timedelta(hours=i)
+            resource_timestamps.insert(0, time_point.strftime('%H:%M'))
+            cpu_history.insert(0, 0)
+            memory_history.insert(0, 0)
+            disk_history.insert(0, 0)
+    
+    # Reverse lists to show chronological order
+    resource_timestamps.reverse()
+    cpu_history.reverse()
+    memory_history.reverse()
+    disk_history.reverse()
+    
+    return render_template(
+        'admin/health_dashboard.html',
+        overall_status=system_status['overall_status'],
+        components=system_status['components'],
+        last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        alerts=alerts,
+        health_history=health_history,
+        resource_timestamps=resource_timestamps,
+        cpu_history=cpu_history,
+        memory_history=memory_history,
+        disk_history=disk_history
+    )
+
+@app.route('/admin/health-alerts')
+@login_required
+def health_alerts():
+    """View and manage health alerts"""
+    import health_monitor
+    from datetime import datetime
+    
+    # Get all alerts
+    alerts = health_monitor.get_recent_alerts(100)
+    
+    # Generate chart data for alert types
+    alert_types = {}
+    for alert in alerts:
+        alert_type = alert['alert_type']
+        if alert_type in alert_types:
+            alert_types[alert_type] += 1
+        else:
+            alert_types[alert_type] = 1
+    
+    # Prepare chart data
+    alert_types_list = list(alert_types.keys())
+    alert_counts = [alert_types[t] for t in alert_types_list]
+    
+    # Generate time-based data
+    # Group alerts by day for the last 30 days
+    time_data = [0] * 30
+    time_labels = []
+    
+    now = datetime.now()
+    for i in range(30):
+        day = now - timedelta(days=i)
+        time_labels.insert(0, day.strftime('%m/%d'))
+        
+    for alert in alerts:
+        try:
+            created_at = datetime.fromisoformat(alert['created_at'].replace('Z', '+00:00'))
+            days_ago = (now - created_at).days
+            if 0 <= days_ago < 30:
+                time_data[29 - days_ago] += 1
+        except:
+            pass
+    
+    # Add utility functions for templates
+    def format_duration(start_time, end_time):
+        """Format a duration between two timestamps"""
+        try:
+            if isinstance(start_time, str):
+                start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+            if isinstance(end_time, str):
+                end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+            
+            duration = end_time - start_time
+            seconds = duration.total_seconds()
+            
+            if seconds < 60:
+                return f"{int(seconds)} seconds"
+            elif seconds < 3600:
+                return f"{int(seconds / 60)} minutes"
+            elif seconds < 86400:
+                hours = int(seconds / 3600)
+                minutes = int((seconds % 3600) / 60)
+                return f"{hours} hours, {minutes} minutes"
+            else:
+                days = int(seconds / 86400)
+                hours = int((seconds % 86400) / 3600)
+                return f"{days} days, {hours} hours"
+        except Exception as e:
+            app.logger.error(f"Error formatting duration: {str(e)}")
+            return "Unknown"
+    
+    return render_template(
+        'admin/health_alerts.html',
+        alerts=alerts,
+        alert_types=alert_types_list,
+        alert_counts=alert_counts,
+        time_labels=time_labels,
+        time_data=time_data,
+        format_duration=format_duration,
+        now=datetime.now()
+    )
+
+@app.route('/admin/resolve-health-alert/<int:alert_id>', methods=['POST'])
+@login_required
+def resolve_health_alert(alert_id):
+    """Manually resolve a health alert"""
+    import health_monitor
+    import sqlite3
+    
+    try:
+        conn = sqlite3.connect(health_monitor.health_db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get the alert
+        cursor.execute("SELECT * FROM alerts WHERE id = ?", (alert_id,))
+        alert = cursor.fetchone()
+        
+        if alert:
+            # Update the alert
+            cursor.execute(
+                "UPDATE alerts SET resolved = 1, resolved_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (alert_id,)
+            )
+            conn.commit()
+            
+            # Also resolve any other alerts of the same type
+            alert_type = alert['alert_type']
+            health_monitor.resolve_alert(alert_type)
+            
+            flash(f"Alert #{alert_id} ({alert_type}) has been resolved.", "success")
+        else:
+            flash(f"Alert #{alert_id} not found.", "danger")
+            
+        conn.close()
+    except Exception as e:
+        flash(f"Error resolving alert: {str(e)}", "danger")
+    
+    return redirect(url_for('health_alerts'))
+
+@app.route('/admin/health-history')
+@login_required
+def health_history():
+    """View detailed health check history"""
+    import health_monitor
+    import json
+    from datetime import datetime
+    from sqlalchemy import func
+    
+    # Set up pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    # Get filter parameters
+    selected_type = request.args.get('check_type', '')
+    selected_status = request.args.get('status', '')
+    
+    # Get health check history
+    try:
+        import sqlite3
+        conn = sqlite3.connect(health_monitor.health_db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Build the query
+        query = "SELECT * FROM health_checks"
+        params = []
+        
+        if selected_type or selected_status:
+            query += " WHERE"
+            
+            if selected_type:
+                query += " check_type = ?"
+                params.append(selected_type)
+                
+            if selected_type and selected_status:
+                query += " AND"
+                
+            if selected_status:
+                query += " status = ?"
+                params.append(selected_status)
+        
+        # Get total count for pagination
+        count_query = f"SELECT COUNT(*) FROM ({query})"
+        cursor.execute(count_query, params)
+        total = cursor.fetchone()[0]
+        
+        # Add sorting and pagination
+        query += " ORDER BY timestamp DESC LIMIT ? OFFSET ?"
+        params.extend([per_page, (page - 1) * per_page])
+        
+        # Execute query
+        cursor.execute(query, params)
+        history = [dict(row) for row in cursor.fetchall()]
+        
+        # Get all unique check types for the filter dropdown
+        cursor.execute("SELECT DISTINCT check_type FROM health_checks ORDER BY check_type")
+        check_types = [row[0] for row in cursor.fetchall()]
+        
+        # Get status counts for chart
+        cursor.execute("SELECT status, COUNT(*) FROM health_checks GROUP BY status")
+        status_counts_raw = cursor.fetchall()
+        
+        # Prepare status counts for chart
+        status_counts = [0, 0, 0, 0]  # OK, WARNING, CRITICAL, ERROR
+        for status, count in status_counts_raw:
+            if status == 'OK':
+                status_counts[0] = count
+            elif status == 'WARNING':
+                status_counts[1] = count
+            elif status == 'CRITICAL':
+                status_counts[2] = count
+            elif status == 'ERROR':
+                status_counts[3] = count
+        
+        # Get check type counts for chart
+        cursor.execute("SELECT check_type, COUNT(*) FROM health_checks GROUP BY check_type")
+        type_counts_raw = cursor.fetchall()
+        
+        # Prepare check type counts for chart
+        type_counts = [row[1] for row in type_counts_raw]
+        
+        conn.close()
+        
+        # Create pagination object
+        class Pagination:
+            def __init__(self, page, per_page, total):
+                self.page = page
+                self.per_page = per_page
+                self.total = total
+                self.pages = (total + per_page - 1) // per_page
+                
+            @property
+            def has_prev(self):
+                return self.page > 1
+                
+            @property
+            def has_next(self):
+                return self.page < self.pages
+                
+            @property
+            def prev_num(self):
+                return self.page - 1 if self.has_prev else None
+                
+            @property
+            def next_num(self):
+                return self.page + 1 if self.has_next else None
+                
+            def iter_pages(self, left_edge=2, left_current=2, right_current=3, right_edge=2):
+                last = 0
+                for num in range(1, self.pages + 1):
+                    if (num <= left_edge or
+                            (self.page - left_current <= num <= self.page + right_current) or
+                            (self.pages - right_edge < num)):
+                        if last + 1 != num:
+                            yield None
+                        yield num
+                        last = num
+        
+        pagination = Pagination(page, per_page, total)
+        
+        # Format JSON for display
+        def format_json(json_str):
+            try:
+                if isinstance(json_str, str):
+                    data = json.loads(json_str)
+                else:
+                    data = json_str
+                return json.dumps(data, indent=2)
+            except:
+                return json_str
+        
+    except Exception as e:
+        app.logger.error(f"Error getting health history: {str(e)}")
+        history = []
+        check_types = []
+        status_counts = [0, 0, 0, 0]
+        type_counts = []
+        pagination = None
+        format_json = lambda x: x
+    
+    return render_template(
+        'admin/health_history.html',
+        history=history,
+        check_types=check_types,
+        selected_type=selected_type,
+        selected_status=selected_status,
+        status_counts=status_counts,
+        type_counts=type_counts,
+        pagination=pagination,
+        format_json=format_json
+    )
+
+@app.route('/health_port_check')
+def health_port_check():
+    """Simple endpoint to check if the server is running on a specific port"""
+    return "OK"
+
+@app.route('/admin/run-health-checks', methods=['POST'])
+@login_required
+def run_health_checks():
+    """Manually trigger health checks"""
+    import health_monitor
+    
+    try:
+        health_monitor.run_health_checks(app, db)
+        flash("Health checks completed successfully.", "success")
+    except Exception as e:
+        flash(f"Error running health checks: {str(e)}", "danger")
+    
+    return redirect(url_for('health_dashboard'))
+
+@app.route('/api/system-metrics', methods=['GET'])
+def system_metrics():
+    """API endpoint to get current system metrics for dashboard"""
+    try:
+        import psutil
+        
+        # Get system stats
+        memory = psutil.virtual_memory()
+        memory_usage = int(memory.percent)
+        
+        disk = psutil.disk_usage('/')
+        disk_usage = int(disk.percent)
+        
+        cpu_usage = int(psutil.cpu_percent(interval=0.5))
+        
+        return jsonify({
+            'success': True,
+            'cpu_usage': f"{cpu_usage}%",
+            'memory_usage': f"{memory_usage}%",
+            'disk_usage': f"{disk_usage}%",
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 # When running directly, not through gunicorn
 if __name__ == "__main__":

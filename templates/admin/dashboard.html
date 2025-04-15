@@ -27,6 +27,8 @@
     </div>
 </div>
 
+
+
 <div class="row">
     <div class="col-md-4 mb-4">
         <div class="card h-100">
@@ -83,6 +85,112 @@
                     <a href="{{ url_for('ticket_scanner') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-ticket-alt me-2"></i> Ticket Scanner
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Health Monitoring Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header lottery-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">SYSTEM HEALTH MONITORING</h5>
+                    <a href="{{ url_for('health_dashboard') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-heartbeat me-1"></i> Health Dashboard
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> Monitor system performance, track health metrics, and receive alerts for critical issues.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="card-title mb-0">SYSTEM STATUS</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('health_dashboard') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-tachometer-alt me-2"></i> Health Dashboard
+                                    </a>
+                                    <a href="{{ url_for('system_status') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-server me-2"></i> System Status
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-warning text-white">
+                                <h6 class="card-title mb-0">ALERTS</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('health_alerts') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-bell me-2"></i> View Alerts
+                                    </a>
+                                    <form action="{{ url_for('run_health_checks') }}" method="post" class="mt-2">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-outline-primary w-100">
+                                            <i class="fas fa-sync-alt me-1"></i> Run Health Checks
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="card-title mb-0">HISTORY</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('health_history') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-history me-2"></i> Check History
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100 bg-light">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="card-title mb-0">SYSTEM INFO</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled">
+                                    <li class="mb-2">
+                                        <i class="fas fa-microchip me-2"></i> CPU Usage: 
+                                        <span id="cpu-usage">Loading...</span>
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-memory me-2"></i> Memory Usage: 
+                                        <span id="memory-usage">Loading...</span>
+                                    </li>
+                                    <li>
+                                        <i class="fas fa-hdd me-2"></i> Disk Usage: 
+                                        <span id="disk-usage">Loading...</span>
+                                    </li>
+                                </ul>
+                                <div class="text-center mt-3">
+                                    <button id="refresh-stats" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-sync-alt"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
