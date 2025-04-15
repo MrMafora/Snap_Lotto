@@ -1,1 +1,1 @@
-run = ["sh", "-c", "gunicorn --bind 0.0.0.0:8080 main:app"]
+run = ["sh", "-c", "./run_on_port_8080.sh"]

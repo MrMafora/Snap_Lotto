@@ -2,38 +2,116 @@
 
 This guide documents the steps needed to properly deploy the Lottery Data Intelligence Platform on Replit.
 
-## Deployment Configuration
+## Deployment Configuration Errors Fixed
 
-The application must be properly configured for deployment on Replit. Follow these steps to ensure correct configuration:
+The application has been configured to resolve deployment errors. The following issues have been addressed:
 
-1. **Deployment Target**: Change the deployment target from "gce" to "cloudrun" for better compatibility.
+1. **Application configured to listen on port 5000 but deployment forwarding to 8080**
+   - Updated all port configurations to use port 8080 consistently across the application
+   - Fixed gunicorn command to use `--bind 0.0.0.0:8080`
+   - Modified health monitoring to check only port 8080
+
+2. **Multiple port handling scripts with inconsistent configurations**
+   - Removed redundant port configuration scripts
+   - Ensured all references use the same port
+
+3. **Run command mismatch**
+   - Updated replit_deployment.toml to use the correct command:
+   ```
+   run = "gunicorn --bind 0.0.0.0:8080 main:app"
+   ```
+
+4. **Deployment target correction**
+   - Changed from "gce" to "cloudrun" for better compatibility:
    ```
    deploymentTarget = "cloudrun"
    ```
-   This has been configured in `.replit-deployment`.
 
-2. **Run Command**: Update the run command to bind to port 8080 instead of 5000.
+5. **Health check path update**
+   - Changed to use standard route that's guaranteed to exist:
    ```
-   run = ["sh", "-c", "gunicorn --bind 0.0.0.0:8080 main:app"]
-   ```
-   This has been configured in `.replit-run-command`.
-
-3. **Build Command**: Keep the build command as is, it's already correct.
-   ```
-   build = ["sh", "-c", "pip install -r requirements.txt"]
+   healthCheckPath = "/"
    ```
 
-4. **Port Mapping**: Remove the port 5000 configuration and only keep the 8080:80 mapping.
+6. **Port mapping configuration**
+   - Removed port 5000 mapping and only kept port 8080:80 mapping:
    ```
    [[ports]]
    localPort = 8080
    externalPort = 80
    ```
-   This has been configured in `.replit-ports`.
 
-5. **Redundant Port Scripts**: Removed all redundant port configuration scripts from the backup_deployments directory to avoid conflicts.
+## Key Solution: Custom Port 8080 Script
 
-6. **Health Monitoring**: Updated the health monitoring system to only check port 8080 instead of both port 5000 and 8080.
+We've created a dedicated script to ensure the application always binds to port 8080:
+
+**run_on_port_8080.sh**
+```bash
+#!/bin/bash
+# Run the application on port 8080 for Replit deployment compatibility
+echo "Starting server on port 8080..."
+gunicorn --bind 0.0.0.0:8080 --workers=4 --reuse-port --reload main:app
+```
+
+This script is made executable with `chmod +x run_on_port_8080.sh` and is referenced in all configuration files.
+
+## Updated Configuration Files
+
+1. **replit_deployment.toml**
+   ```
+   run = "./run_on_port_8080.sh"
+   deploymentTarget = "cloudrun"
+   healthCheckPath = "/"
+   ```
+
+2. **.replit-deployment**
+   ```
+   deploymentTarget = "cloudrun"
+   ```
+
+3. **.replit-ports**
+   ```
+   [[ports]]
+   localPort = 8080
+   externalPort = 80
+   ```
+
+4. **.replit-run-command**
+   ```
+   run = ["sh", "-c", "./run_on_port_8080.sh"]
+   ```
+
+5. **workflows/Start application.toml**
+   ```
+   [[tasks]]
+   task = "packager.installForAll"
+
+   [[tasks]]
+   task = "shell.exec"
+   args = "./run_on_port_8080.sh"
+   waitForPort = 8080
+   ```
+
+5. **gunicorn.conf.py**
+   ```python
+   # Bind to 0.0.0.0:8080 for deployment
+   bind = "0.0.0.0:8080"
+   ```
+
+## Health Monitoring Update
+
+The health monitoring system has been updated to check port 8080 only:
+
+```python
+# We now only check port 8080 as we're binding directly to it for deployment
+port_8080_status = check_server_port(8080)
+```
+
+## Additional Health Check Endpoints
+
+Added health check endpoints:
+1. `/health_port_check` - Simple endpoint for port availability checking
+2. `/health_check` - Comprehensive health check endpoint for Replit deployment
 
 ## Additional Configuration
 

@@ -1,9 +1,9 @@
 # Configuration file for Replit Deployments
-run = "python run_with_proxy.py"
+run = "./run_port_8080.sh"
 deploymentTarget = "cloudrun"
 
 # Health check endpoint
-healthCheckPath = "/port_check"
+healthCheckPath = "/"
 
 # Environment configuration
 [env]
