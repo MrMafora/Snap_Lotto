@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 
 # Import models only (lightweight)
-from models import LotteryResult, ScheduleConfig, Screenshot, User, db
+from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, db
 from config import Config
 
 # Set up logging
@@ -965,6 +965,359 @@ def api_results(lottery_type):
         return jsonify(results)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+# Advertisement Management Routes
+@app.route('/admin/manage-ads')
+@app.route('/admin/manage-ads/<placement>')
+@login_required
+def manage_ads(placement=None):
+    """Admin page to manage advertisements"""
+    if not current_user.is_admin:
+        flash('You must be an admin to access this page.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Get all ads or filter by placement
+    if placement:
+        ads = Advertisement.query.filter_by(placement=placement).order_by(Advertisement.priority.desc()).all()
+    else:
+        ads = Advertisement.query.order_by(Advertisement.priority.desc()).all()
+    
+    return render_template('admin/manage_ads.html', 
+                          ads=ads,
+                          placement=placement,
+                          title="Manage Advertisements")
+
+@app.route('/admin/upload-ad', methods=['GET', 'POST'])
+@login_required
+def upload_ad():
+    """Admin page to upload a new advertisement"""
+    if not current_user.is_admin:
+        flash('You must be an admin to access this page.', 'danger')
+        return redirect(url_for('index'))
+    
+    form = request.form
+    
+    if request.method == 'POST':
+        try:
+            # Get form data
+            name = request.form.get('name')
+            description = request.form.get('description')
+            duration = int(request.form.get('duration'))
+            placement = request.form.get('placement')
+            priority = int(request.form.get('priority', 5))
+            target_impressions = int(request.form.get('target_impressions'))
+            active = 'active' in request.form
+            
+            # Handle optional dates
+            start_date = request.form.get('start_date')
+            if start_date:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d')
+            else:
+                start_date = None
+                
+            end_date = request.form.get('end_date')
+            if end_date:
+                end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            else:
+                end_date = None
+            
+            # Check if video file is included
+            if 'video_file' not in request.files:
+                flash('No video file provided', 'danger')
+                return redirect(request.url)
+            
+            video_file = request.files['video_file']
+            if video_file.filename == '':
+                flash('No selected file', 'danger')
+                return redirect(request.url)
+            
+            # Determine file type
+            file_type = video_file.content_type or 'video/mp4'
+            
+            # Create ads directory if it doesn't exist
+            ads_dir = os.path.join('static', 'ads')
+            os.makedirs(ads_dir, exist_ok=True)
+            
+            # Save the file with a unique name
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"{secure_filename(name)}_{timestamp}.{file_type.split('/')[-1]}"
+            file_path = os.path.join(ads_dir, filename)
+            video_file.save(file_path)
+            
+            # Create new advertisement record
+            new_ad = Advertisement(
+                name=name,
+                description=description,
+                file_path=file_path,
+                file_type=file_type,
+                duration=duration,
+                placement=placement,
+                priority=priority,
+                target_impressions=target_impressions,
+                active=active,
+                start_date=start_date,
+                end_date=end_date,
+                created_by_id=current_user.id
+            )
+            
+            db.session.add(new_ad)
+            db.session.commit()
+            
+            flash(f'Advertisement "{name}" uploaded successfully!', 'success')
+            return redirect(url_for('manage_ads'))
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.exception(f"Error uploading advertisement: {str(e)}")
+            flash(f'Error uploading advertisement: {str(e)}', 'danger')
+    
+    return render_template('admin/upload_ad.html', 
+                          form=form,
+                          title="Upload Advertisement")
+
+@app.route('/admin/edit-ad/<int:ad_id>', methods=['GET', 'POST'])
+@login_required
+def edit_ad(ad_id):
+    """Admin page to edit an existing advertisement"""
+    if not current_user.is_admin:
+        flash('You must be an admin to access this page.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Get the advertisement
+    ad = Advertisement.query.get_or_404(ad_id)
+    form = request.form
+    
+    if request.method == 'POST':
+        try:
+            # Update advertisement details
+            ad.name = request.form.get('name')
+            ad.description = request.form.get('description')
+            ad.duration = int(request.form.get('duration'))
+            ad.placement = request.form.get('placement')
+            ad.priority = int(request.form.get('priority', 5))
+            ad.target_impressions = int(request.form.get('target_impressions'))
+            ad.active = 'active' in request.form
+            
+            # Handle optional dates
+            start_date = request.form.get('start_date')
+            if start_date:
+                ad.start_date = datetime.strptime(start_date, '%Y-%m-%d')
+            else:
+                ad.start_date = None
+                
+            end_date = request.form.get('end_date')
+            if end_date:
+                ad.end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            else:
+                ad.end_date = None
+            
+            # Check if a new video file was uploaded
+            if 'video_file' in request.files and request.files['video_file'].filename:
+                video_file = request.files['video_file']
+                
+                # Determine file type
+                file_type = video_file.content_type or 'video/mp4'
+                
+                # Delete old file if it exists and is in the ads directory
+                if ad.file_path and os.path.exists(ad.file_path) and 'static/ads' in ad.file_path:
+                    try:
+                        os.remove(ad.file_path)
+                    except Exception as e:
+                        logger.warning(f"Could not delete old advertisement file: {str(e)}")
+                
+                # Save the new file
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"{secure_filename(ad.name)}_{timestamp}.{file_type.split('/')[-1]}"
+                file_path = os.path.join('static', 'ads', filename)
+                video_file.save(file_path)
+                
+                # Update file path and type
+                ad.file_path = file_path
+                ad.file_type = file_type
+            
+            # Save changes
+            db.session.commit()
+            
+            flash(f'Advertisement "{ad.name}" updated successfully!', 'success')
+            return redirect(url_for('manage_ads'))
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.exception(f"Error updating advertisement: {str(e)}")
+            flash(f'Error updating advertisement: {str(e)}', 'danger')
+    
+    # Prepare form data for template
+    form = {
+        'name': ad.name,
+        'description': ad.description,
+        'duration': ad.duration,
+        'placement': ad.placement,
+        'priority': ad.priority,
+        'target_impressions': ad.target_impressions,
+        'active': ad.active,
+        'start_date': ad.start_date,
+        'end_date': ad.end_date
+    }
+    
+    return render_template('admin/upload_ad.html', 
+                          form=form,
+                          ad=ad,
+                          title="Edit Advertisement")
+
+@app.route('/admin/preview-ad/<int:ad_id>')
+@login_required
+def preview_ad(ad_id):
+    """Admin page to preview an advertisement"""
+    if not current_user.is_admin:
+        flash('You must be an admin to access this page.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Get the advertisement
+    ad = Advertisement.query.get_or_404(ad_id)
+    
+    return render_template('admin/preview_ad.html', 
+                          ad=ad,
+                          title=f"Preview: {ad.name}")
+
+@app.route('/admin/delete-ad', methods=['POST'])
+@login_required
+def delete_ad():
+    """Delete an advertisement"""
+    if not current_user.is_admin:
+        flash('You must be an admin to delete advertisements.', 'danger')
+        return redirect(url_for('index'))
+    
+    ad_id = request.form.get('ad_id')
+    if not ad_id:
+        flash('No advertisement specified', 'danger')
+        return redirect(url_for('manage_ads'))
+    
+    try:
+        ad = Advertisement.query.get_or_404(ad_id)
+        
+        # Delete the file if it exists and is in the ads directory
+        if ad.file_path and os.path.exists(ad.file_path) and 'static/ads' in ad.file_path:
+            try:
+                os.remove(ad.file_path)
+            except Exception as e:
+                logger.warning(f"Could not delete advertisement file: {str(e)}")
+        
+        # Delete the advertisement from the database
+        db.session.delete(ad)
+        db.session.commit()
+        
+        flash(f'Advertisement "{ad.name}" deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(f"Error deleting advertisement: {str(e)}")
+        flash(f'Error deleting advertisement: {str(e)}', 'danger')
+    
+    return redirect(url_for('manage_ads'))
+
+@app.route('/admin/ad-impressions')
+@login_required
+def ad_impressions():
+    """Admin page to view ad impressions"""
+    if not current_user.is_admin:
+        flash('You must be an admin to access this page.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Get all impressions grouped by advertisement
+    ads = Advertisement.query.all()
+    impressions = AdImpression.query.order_by(AdImpression.timestamp.desc()).limit(100).all()
+    
+    return render_template('admin/ad_impressions.html',
+                          ads=ads,
+                          impressions=impressions,
+                          title="Advertisement Impressions")
+
+@app.route('/admin/ad-performance')
+@login_required
+def ad_performance():
+    """Admin page to view ad performance analytics"""
+    if not current_user.is_admin:
+        flash('You must be an admin to access this page.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Get ad performance statistics
+    ads = Advertisement.query.all()
+    
+    # Calculate performance metrics
+    ad_stats = []
+    for ad in ads:
+        total_impressions = ad.total_impressions
+        total_clicks = ad.total_clicks
+        click_through_rate = (total_clicks / total_impressions * 100) if total_impressions > 0 else 0
+        progress_percent = (total_impressions / ad.target_impressions * 100) if ad.target_impressions > 0 else 0
+        
+        ad_stats.append({
+            'ad': ad,
+            'impressions': total_impressions,
+            'clicks': total_clicks,
+            'ctr': click_through_rate,
+            'progress': min(progress_percent, 100)  # Cap at 100%
+        })
+    
+    return render_template('admin/ad_performance.html',
+                          ad_stats=ad_stats,
+                          title="Advertisement Performance")
+
+@app.route('/api/record-impression', methods=['POST'])
+def record_impression():
+    """API endpoint to record an ad impression"""
+    try:
+        ad_id = request.json.get('ad_id')
+        if not ad_id:
+            return jsonify({"error": "No ad_id provided"}), 400
+        
+        # Get the advertisement
+        ad = Advertisement.query.get_or_404(ad_id)
+        
+        # Create new impression record
+        impression = AdImpression(
+            ad_id=ad_id,
+            user_id=current_user.id if current_user.is_authenticated else None,
+            session_id=request.cookies.get('session', 'unknown'),
+            ip_address=request.remote_addr,
+            user_agent=request.user_agent.string,
+            page=request.referrer,
+            duration_viewed=request.json.get('duration')
+        )
+        
+        # Update ad impression count
+        ad.total_impressions += 1
+        
+        db.session.add(impression)
+        db.session.commit()
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(f"Error recording impression: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/record-click', methods=['POST'])
+def record_click():
+    """API endpoint to record an ad click"""
+    try:
+        impression_id = request.json.get('impression_id')
+        if not impression_id:
+            return jsonify({"error": "No impression_id provided"}), 400
+        
+        # Get the impression
+        impression = AdImpression.query.get_or_404(impression_id)
+        
+        # Update impression and ad click counts
+        impression.was_clicked = True
+        impression.advertisement.total_clicks += 1
+        
+        db.session.commit()
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(f"Error recording click: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 # When running directly, not through gunicorn
 if __name__ == "__main__":

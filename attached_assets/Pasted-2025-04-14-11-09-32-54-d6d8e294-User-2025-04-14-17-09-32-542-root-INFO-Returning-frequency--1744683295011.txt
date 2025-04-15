@@ -1,0 +1,144 @@
+2025-04-14 11:09:32.54
+d6d8e294
+User
+2025-04-14 17:09:32,542 - root - INFO - Returning frequency data with 68 total occurrences
+2025-04-14 11:09:32.60
+d6d8e294
+User
+2025-04-14 17:09:32,605 - root - INFO - Visualization data request: type=winners_by_division, lottery=Lotto
+2025-04-14 11:09:32.79
+d6d8e294
+User
+2025-04-14 17:09:32,789 - root - INFO - Processed 12 results, found 8 divisions with data
+2025-04-14 11:58:27.24
+d6d8e294
+User
+2025-04-14 17:58:27,243 - root - INFO - Visualization data request: type=numbers_frequency, lottery=all
+2025-04-14 11:58:27.49
+d6d8e294
+User
+2025-04-14 17:58:27,499 - root - INFO - Found 76 results for frequency analysis
+2025-04-14 11:58:27.50
+d6d8e294
+User
+2025-04-14 17:58:27,500 - root - INFO - Returning frequency data with 403 total occurrences
+2025-04-14 11:58:27.56
+d6d8e294
+User
+2025-04-14 17:58:27,564 - root - INFO - Visualization data request: type=numbers_frequency, lottery=Lotto
+2025-04-14 11:58:27.75
+d6d8e294
+User
+2025-04-14 17:58:27,749 - root - INFO - Found 12 results for frequency analysis
+2025-04-14 11:58:27.75
+d6d8e294
+User
+2025-04-14 17:58:27,750 - root - INFO - Returning frequency data with 68 total occurrences
+2025-04-14 11:58:27.81
+d6d8e294
+User
+2025-04-14 17:58:27,814 - root - INFO - Visualization data request: type=winners_by_division, lottery=Lotto
+2025-04-14 11:58:28.00
+d6d8e294
+User
+2025-04-14 17:58:28,001 - root - INFO - Processed 12 results, found 8 divisions with data
+2025-04-14 11:58:28.16
+d6d8e294
+User
+2025-04-14 17:58:28,162 - root - INFO - Visualization data request: type=winners_by_division, lottery=Lotto
+2025-04-14 11:58:28.34
+d6d8e294
+User
+2025-04-14 17:58:28,349 - root - INFO - Processed 12 results, found 8 divisions with data
+2025-04-14 14:10:51.28
+d6d8e294
+User
+2025-04-14 20:10:51,287 - root - INFO - Visualization data request: type=winners_by_division, lottery=Lotto
+2025-04-14 14:10:51.48
+d6d8e294
+User
+2025-04-14 20:10:51,482 - root - INFO - Processed 12 results, found 8 divisions with data
+2025-04-14 14:10:51.54
+d6d8e294
+User
+2025-04-14 20:10:51,546 - root - INFO - Visualization data request: type=numbers_frequency, lottery=all
+2025-04-14 14:10:51.80
+d6d8e294
+User
+2025-04-14 20:10:51,804 - root - INFO - Found 76 results for frequency analysis
+2025-04-14 14:10:51.80
+d6d8e294
+User
+2025-04-14 20:10:51,805 - root - INFO - Returning frequency data with 403 total occurrences
+2025-04-14 14:10:51.88
+d6d8e294
+User
+2025-04-14 20:10:51,881 - root - INFO - Visualization data request: type=winners_by_division, lottery=Lotto
+2025-04-14 14:10:52.07
+d6d8e294
+User
+2025-04-14 20:10:52,077 - root - INFO - Processed 12 results, found 8 divisions with data
+2025-04-14 14:10:52.14
+d6d8e294
+User
+2025-04-14 20:10:52,144 - root - INFO - Visualization data request: type=numbers_frequency, lottery=Lotto
+2025-04-14 14:10:52.33
+d6d8e294
+User
+2025-04-14 20:10:52,336 - root - INFO - Found 12 results for frequency analysis
+2025-04-14 14:10:52.33
+d6d8e294
+User
+2025-04-14 20:10:52,336 - root - INFO - Returning frequency data with 68 total occurrences
+2025-04-14 15:36:03.97
+d6d8e294
+User
+2025-04-14 21:36:03,971 - root - INFO - Visualization data request: type=numbers_frequency, lottery=all
+2025-04-14 15:36:05.16
+d6d8e294
+User
+2025-04-14 21:36:05,168 - root - INFO - Found 76 results for frequency analysis
+2025-04-14 15:36:05.16
+d6d8e294
+User
+2025-04-14 21:36:05,169 - root - INFO - Returning frequency data with 403 total occurrences
+2025-04-14 20:06:07.40
+d6d8e294
+User
+2025-04-15 02:06:07,409 - root - INFO - Visualization data request: type=numbers_frequency, lottery=all
+2025-04-14 20:06:07.64
+d6d8e294
+User
+2025-04-15 02:06:07,649 - root - INFO - Found 76 results for frequency analysis
+2025-04-14 20:06:07.65
+d6d8e294
+User
+2025-04-15 02:06:07,650 - root - INFO - Returning frequency data with 403 total occurrences
+2025-04-14 20:06:08.04
+d6d8e294
+User
+2025-04-15 02:06:08,043 - root - INFO - Visualization data request: type=winners_by_division, lottery=Lotto
+2025-04-14 20:06:08.22
+d6d8e294
+User
+2025-04-15 02:06:08,227 - root - INFO - Processed 12 results, found 8 divisions with data
+2025-04-14 20:06:08.59
+d6d8e294
+User
+2025-04-15 02:06:08,594 - root - INFO - Visualization data request: type=numbers_frequency, lottery=Lotto
+2025-04-14 20:06:08.77
+d6d8e294
+User
+2025-04-15 02:06:08,779 - root - INFO - Found 12 results for frequency analysis
+2025-04-14 20:06:08.78
+d6d8e294
+User
+2025-04-15 02:06:08,779 - root - INFO - Returning frequency data with 68 total occurrences
+2025-04-14 20:06:09.16
+d6d8e294
+User
+2025-04-15 02:06:09,168 - root - INFO - Visualization data request: type=winners_by_division, lottery=Lotto
+2025-04-14 20:06:09.35
+d6d8e294
+User
+2025-04-15 02:06:09,350 - root - INFO - Processed 12 results, found 8 divisions with data

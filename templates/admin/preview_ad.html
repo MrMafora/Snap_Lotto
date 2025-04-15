@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Preview Advertisement | Snap Lotto{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-eye me-2"></i> Ad Preview
+        </h1>
+        <div>
+            <a href="{{ url_for('manage_ads') }}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left me-2"></i> Back to Ads
+            </a>
+            <a href="{{ url_for('edit_ad', ad_id=ad.id) }}" class="btn btn-primary">
+                <i class="fas fa-edit me-2"></i> Edit Ad
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ ad.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="video-preview-container mb-4">
+                        <video id="preview-video" controls class="w-100" style="max-height: 450px; background-color: #000;">
+                            <source src="{{ url_for('static', filename='uploads/ads/' + ad.file_path.split('/')[-1]) }}" type="{{ ad.file_type }}">
+                            Your browser does not support the video tag.
+                        </video>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <div>
+                                <span class="badge bg-secondary">{{ ad.duration }}s Duration</span>
+                                <span class="badge {% if ad.active %}bg-success{% else %}bg-secondary{% endif %} ms-2">
+                                    {% if ad.active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </div>
+                            <div>
+                                <button id="restart-btn" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-redo me-1"></i> Restart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if ad.description %}
+                    <div class="mb-4">
+                        <h6>Description</h6>
+                        <p class="text-muted">{{ ad.description }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Ad Details</h6>
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 35%">Placement</th>
+                                        <td>
+                                            {% if ad.placement == 'scanner' %}
+                                                <span class="badge bg-primary">Scanner</span>
+                                            {% elif ad.placement == 'results' %}
+                                                <span class="badge bg-success">Results</span>
+                                            {% elif ad.placement == 'homepage' %}
+                                                <span class="badge bg-warning">Homepage</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ ad.placement }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>File Format</th>
+                                        <td>{{ ad.file_type }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Duration</th>
+                                        <td>{{ ad.duration }} seconds</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Priority</th>
+                                        <td>{{ ad.priority }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Schedule</h6>
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 35%">Start Date</th>
+                                        <td>{% if ad.start_date %}{{ ad.start_date.strftime('%b %d, %Y') }}{% else %}Immediate{% endif %}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>End Date</th>
+                                        <td>{% if ad.end_date %}{{ ad.end_date.strftime('%b %d, %Y') }}{% else %}No end date{% endif %}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Target Impressions</th>
+                                        <td>{% if ad.target_impressions %}{{ ad.target_impressions }}{% else %}Unlimited{% endif %}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Current Impressions</th>
+                                        <td>{{ ad.total_impressions }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Ad Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <h2 class="mb-0 text-primary">{{ ad.total_impressions }}</h2>
+                            <small class="text-muted">Impressions</small>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h2 class="mb-0 text-success">{{ ad.total_clicks }}</h2>
+                            <small class="text-muted">Clicks</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6>Click-Through Rate</h6>
+                        {% set ctr = (ad.total_clicks / ad.total_impressions * 100) if ad.total_impressions > 0 else 0 %}
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {{ ctr }}%;" 
+                                 aria-valuenow="{{ ctr }}" aria-valuemin="0" aria-valuemax="100">
+                                {{ "%.2f"|format(ctr) }}%
+                            </div>
+                        </div>
+                        <div class="text-muted small mt-1">
+                            {{ ad.total_clicks }} clicks out of {{ ad.total_impressions }} impressions
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">How It Will Appear</h5>
+                </div>
+                <div class="card-body">
+                    <div class="ad-preview-example p-3 border rounded">
+                        <div class="text-center mb-3">
+                            <div class="bg-light rounded p-3 d-inline-block">
+                                {% if ad.placement == 'scanner' %}
+                                    <i class="fas fa-camera fa-2x text-primary"></i>
+                                {% elif ad.placement == 'results' %}
+                                    <i class="fas fa-list-ol fa-2x text-success"></i>
+                                {% elif ad.placement == 'homepage' %}
+                                    <i class="fas fa-home fa-2x text-warning"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <h6 class="text-center mb-3">
+                            {% if ad.placement == 'scanner' %}
+                                Ticket Scanning Process
+                            {% elif ad.placement == 'results' %}
+                                Results Page
+                            {% elif ad.placement == 'homepage' %}
+                                Homepage
+                            {% endif %}
+                        </h6>
+                        
+                        <p class="text-muted small text-center">
+                            {% if ad.placement == 'scanner' %}
+                                This ad will appear during the ticket scanning process, while users wait for their results.
+                            {% elif ad.placement == 'results' %}
+                                This ad will appear when users browse lottery results.
+                            {% elif ad.placement == 'homepage' %}
+                                This ad will appear on the homepage for maximum visibility.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle restart button
+        const restartBtn = document.getElementById('restart-btn');
+        const previewVideo = document.getElementById('preview-video');
+        
+        if (restartBtn && previewVideo) {
+            restartBtn.addEventListener('click', function() {
+                previewVideo.currentTime = 0;
+                previewVideo.play();
+            });
+        }
+    });
+</script>
+{% endblock %}

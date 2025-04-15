@@ -1,35 +1,55 @@
 /**
- * Google AdSense integration for Snap Lotto
- * Handles displaying ads at strategic points during the ticket scanning process
+ * Advertisement Management for Snap Lotto
+ * Handles displaying video ads at strategic points during the ticket scanning process
+ * 
+ * Features:
+ * - Loads custom video advertisements from the database
+ * - Tracks impressions and clicks
+ * - Supports multiple ad placements (scanner, results, homepage)
+ * - Supports timed display with countdown
  */
 
 // Global ad manager object 
 // Using window.AdManager instead of const AdManager to avoid duplicate declarations
 window.AdManager = window.AdManager || {
-    // Ad slots
-    adSlots: {
-        scannerPreloader: null,
-        resultsInterstitial: null
+    // Current ads loaded from server
+    ads: {
+        scanner: null,
+        results: null,
+        homepage: null
     },
-
+    
+    // Current active impression
+    currentImpression: null,
+    
+    // Queue for ads to show
+    adQueue: [],
+    
     // Note: init() is called at the end of this file
     init: function() {
         console.log('AdManager initialized from ads.js');
         
-        // Check if we're in development mode (no AdSense)
-        const isDevelopment = !document.querySelector('script[src*="adsbygoogle.js"]');
+        // Check if we're in development mode
+        const isDevelopment = !document.querySelector('meta[name="ad-server"]');
         
         if (isDevelopment) {
             console.log('Development mode detected, using mock ads');
             // Pre-create mock ads for immediate display
             this.createMockAd('ad-container-loader');
             this.createMockAd('ad-container-interstitial');
-        } else if (window.adsbygoogle) {
-            console.log('AdSense detected, initializing ad slots');
-            // Production mode with AdSense
         } else {
-            console.warn('AdSense script included but not loaded properly');
+            console.log('Production mode detected, fetching available ads');
+            // Production mode - fetch ads from API
+            this.fetchAvailableAds();
         }
+        
+        // Listen for ad click events
+        document.addEventListener('click', function(e) {
+            const adElement = e.target.closest('.ad-container');
+            if (adElement && AdManager.currentImpression) {
+                AdManager.recordAdClick(AdManager.currentImpression);
+            }
+        });
     },
     
     // Create a visible mock ad for testing
@@ -330,6 +350,280 @@ window.AdManager = window.AdManager || {
             window.scrollTo(0, 0);
             window.scrollTo(0, 1);
         }, 100);
+    },
+    
+    // Fetch available ads from the server API
+    fetchAvailableAds: function() {
+        try {
+            // Fetch ads for each placement type
+            this.fetchAdsByPlacement('scanner');
+            this.fetchAdsByPlacement('results');
+            this.fetchAdsByPlacement('homepage');
+        } catch (e) {
+            console.error('Error fetching available ads:', e);
+        }
+    },
+    
+    // Fetch ads by placement type
+    fetchAdsByPlacement: function(placement) {
+        // In a production environment, this would be an API call
+        // For now, we'll simulate this with a setTimeout
+        console.log(`Fetching ads for placement: ${placement}`);
+        
+        // Simulate API delay
+        setTimeout(() => {
+            // For development, just create mock ads
+            this.createMockVideoAd(placement);
+        }, 500);
+        
+        // Real implementation would use fetch API:
+        /*
+        fetch(`/api/ads?placement=${placement}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.ad) {
+                    this.ads[placement] = data.ad;
+                    console.log(`Loaded ad for ${placement}:`, data.ad.name);
+                }
+            })
+            .catch(error => {
+                console.error(`Error fetching ads for ${placement}:`, error);
+            });
+        */
+    },
+    
+    // Create a mock video ad
+    createMockVideoAd: function(placement) {
+        // Create a mock ad object
+        this.ads[placement] = {
+            id: Math.floor(Math.random() * 1000),
+            name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Ad Example`,
+            file_url: '/static/ads/sample_video.mp4', // This should be a real sample video in production
+            duration: 30,
+            placement: placement,
+            active: true
+        };
+        
+        console.log(`Created mock video ad for ${placement}:`, this.ads[placement].name);
+    },
+    
+    // Display a video ad in the specified container
+    displayVideoAd: function(containerId, placement, callback) {
+        const ad = this.ads[placement];
+        if (!ad) {
+            console.log(`No ad available for placement: ${placement}`);
+            if (callback) callback(false);
+            return;
+        }
+        
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.error(`Container ${containerId} not found`);
+            if (callback) callback(false);
+            return;
+        }
+        
+        try {
+            // Create video element
+            const videoContainer = document.createElement('div');
+            videoContainer.className = 'video-ad-container';
+            
+            // Video element
+            const video = document.createElement('video');
+            video.className = 'ad-video';
+            video.width = 640;
+            video.height = 360;
+            video.style.maxWidth = '100%';
+            video.controls = false;
+            video.autoplay = true;
+            video.muted = false;
+            video.playsInline = true;
+            
+            // Add source
+            const source = document.createElement('source');
+            source.src = ad.file_url;
+            source.type = 'video/mp4';
+            video.appendChild(source);
+            
+            // Create countdown timer
+            const countdown = document.createElement('div');
+            countdown.className = 'ad-countdown mt-2';
+            countdown.innerHTML = `<span class="badge bg-secondary">Ad: <span id="countdown-timer">${ad.duration}</span>s</span>`;
+            
+            // Controls
+            const controls = document.createElement('div');
+            controls.className = 'ad-controls mt-2';
+            controls.innerHTML = `
+                <button class="btn btn-sm btn-outline-primary me-2" id="ad-mute-button">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" id="ad-skip-button" disabled>
+                    Skip Ad in <span id="skip-countdown">30</span>s
+                </button>
+            `;
+            
+            // Append elements
+            videoContainer.appendChild(video);
+            videoContainer.appendChild(countdown);
+            videoContainer.appendChild(controls);
+            
+            // Clear container and add new content
+            container.innerHTML = '';
+            container.appendChild(videoContainer);
+            
+            // Record impression
+            this.recordAdImpression(ad.id);
+            
+            // Set up countdown timer
+            let secondsLeft = ad.duration;
+            const countdownTimer = setInterval(() => {
+                secondsLeft--;
+                
+                // Update countdown displays
+                const timerElement = document.getElementById('countdown-timer');
+                const skipElement = document.getElementById('skip-countdown');
+                
+                if (timerElement) timerElement.textContent = secondsLeft;
+                if (skipElement) skipElement.textContent = secondsLeft;
+                
+                // Enable skip button after 5 seconds
+                if (secondsLeft <= 25) {
+                    const skipButton = document.getElementById('ad-skip-button');
+                    if (skipButton) {
+                        skipButton.disabled = false;
+                        skipButton.innerHTML = '<i class="fas fa-forward"></i> Skip Ad';
+                        skipButton.classList.remove('btn-outline-secondary');
+                        skipButton.classList.add('btn-outline-primary');
+                    }
+                }
+                
+                // When time is up
+                if (secondsLeft <= 0) {
+                    clearInterval(countdownTimer);
+                    if (callback) callback(true);
+                }
+            }, 1000);
+            
+            // Handle video ending
+            video.addEventListener('ended', () => {
+                clearInterval(countdownTimer);
+                if (callback) callback(true);
+            });
+            
+            // Setup mute button
+            const muteButton = document.getElementById('ad-mute-button');
+            if (muteButton) {
+                muteButton.addEventListener('click', () => {
+                    video.muted = !video.muted;
+                    muteButton.innerHTML = video.muted ? 
+                        '<i class="fas fa-volume-mute"></i>' : 
+                        '<i class="fas fa-volume-up"></i>';
+                });
+            }
+            
+            // Setup skip button
+            const skipButton = document.getElementById('ad-skip-button');
+            if (skipButton) {
+                skipButton.addEventListener('click', () => {
+                    if (!skipButton.disabled) {
+                        clearInterval(countdownTimer);
+                        if (callback) callback(true);
+                    }
+                });
+            }
+            
+            console.log(`Displaying video ad: ${ad.name} (${ad.duration}s)`);
+            return true;
+        } catch (e) {
+            console.error('Error displaying video ad:', e);
+            if (callback) callback(false);
+            return false;
+        }
+    },
+    
+    // Record ad impression
+    recordAdImpression: function(adId) {
+        // Create a new impression
+        this.currentImpression = {
+            id: 'imp-' + Math.floor(Math.random() * 1000000),
+            ad_id: adId,
+            timestamp: new Date(),
+            duration_viewed: 0,
+            was_clicked: false
+        };
+        
+        // Start tracking duration
+        const durationInterval = setInterval(() => {
+            if (this.currentImpression) {
+                this.currentImpression.duration_viewed++;
+            } else {
+                clearInterval(durationInterval);
+            }
+        }, 1000);
+        
+        // In production, send this to the server
+        console.log('Ad impression recorded:', this.currentImpression);
+        
+        // Real implementation would use fetch API:
+        /*
+        fetch('/api/record-impression', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ad_id: adId,
+                duration: 0 // Initial duration
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                this.currentImpression = {
+                    id: data.impression_id,
+                    ad_id: adId,
+                    timestamp: new Date(),
+                    duration_viewed: 0
+                };
+                console.log('Impression recorded successfully:', this.currentImpression);
+            }
+        })
+        .catch(error => {
+            console.error('Error recording impression:', error);
+        });
+        */
+    },
+    
+    // Record ad click
+    recordAdClick: function(impression) {
+        // Mark impression as clicked
+        impression.was_clicked = true;
+        
+        // In production, send to server
+        console.log('Ad click recorded:', impression);
+        
+        // Real implementation would use fetch API:
+        /*
+        fetch('/api/record-click', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                impression_id: impression.id,
+                duration: impression.duration_viewed
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Click recorded successfully');
+            }
+        })
+        .catch(error => {
+            console.error('Error recording click:', error);
+        });
+        */
     }
 };
 

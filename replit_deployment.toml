@@ -1,0 +1,12 @@
+# Configuration file for Replit Deployments
+run = "python deployment.py"
+deploymentTarget = "cloudrun"
+
+# Health check endpoint
+healthCheckPath = "/port_check"
+
+# Environment configuration
+[env]
+# These will be overridden by Replit Secrets during deployment
+ENVIRONMENT = "production"
+DEBUG = "false"

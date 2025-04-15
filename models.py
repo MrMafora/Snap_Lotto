@@ -3,6 +3,7 @@ Database models for the application
 """
 from datetime import datetime
 import json
+import os
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from flask_login import UserMixin
@@ -120,3 +121,111 @@ class ScheduleConfig(db.Model):
     
     def __repr__(self):
         return f"<ScheduleConfig {self.lottery_type}: {self.frequency} at {self.hour}:{self.minute}>"
+
+class Advertisement(db.Model):
+    """Model for managing video advertisements"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    file_path = db.Column(db.String(255), nullable=False)
+    file_type = db.Column(db.String(20), nullable=False, default='video/mp4')
+    duration = db.Column(db.Integer, nullable=False, comment="Duration in seconds")
+    
+    # Ad placement and targeting
+    placement = db.Column(db.String(50), nullable=False, default='scanner', 
+                         comment="Where the ad appears: scanner, results, homepage")
+    target_impressions = db.Column(db.Integer, nullable=False, default=1000,
+                                 comment="Target number of impressions")
+    
+    # Status
+    active = db.Column(db.Boolean, default=True)
+    priority = db.Column(db.Integer, default=5, comment="1-10, higher number = higher priority")
+    
+    # Statistics
+    total_impressions = db.Column(db.Integer, default=0)
+    total_clicks = db.Column(db.Integer, default=0)
+    
+    # Constraints 
+    start_date = db.Column(db.DateTime, nullable=True, comment="When to start showing this ad")
+    end_date = db.Column(db.DateTime, nullable=True, comment="When to stop showing this ad")
+    
+    # Metadata
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    created_by = db.relationship('User', backref='advertisements')
+    impressions = db.relationship('AdImpression', backref='advertisement', 
+                               cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f"<Advertisement {self.name}>"
+    
+    def get_file_url(self):
+        """Return the URL to the advertisement file"""
+        if os.path.exists(self.file_path):
+            # Convert absolute file path to relative URL
+            relative_path = os.path.relpath(self.file_path, start=os.getcwd())
+            if relative_path.startswith('static/'):
+                return '/' + relative_path
+            return '/static/ads/' + os.path.basename(self.file_path)
+        return None
+    
+    def to_dict(self):
+        """Convert model to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'file_url': self.get_file_url(),
+            'duration': self.duration,
+            'placement': self.placement,
+            'active': self.active,
+            'priority': self.priority,
+            'target_impressions': self.target_impressions,
+            'total_impressions': self.total_impressions,
+            'total_clicks': self.total_clicks,
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'end_date': self.end_date.isoformat() if self.end_date else None,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
+        }
+    
+    def is_eligible_for_display(self):
+        """Check if this ad is eligible to be displayed"""
+        now = datetime.utcnow()
+        
+        # Check if ad is active
+        if not self.active:
+            return False
+        
+        # Check start/end dates if set
+        if self.start_date and now < self.start_date:
+            return False
+        if self.end_date and now > self.end_date:
+            return False
+            
+        # Check if we've reached target impressions
+        if self.target_impressions and self.total_impressions >= self.target_impressions:
+            return False
+            
+        return True
+
+class AdImpression(db.Model):
+    """Model for tracking advertisement impressions"""
+    id = db.Column(db.Integer, primary_key=True)
+    ad_id = db.Column(db.Integer, db.ForeignKey('advertisement.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    session_id = db.Column(db.String(64), nullable=False, comment="Browser session ID")
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(255), nullable=True)
+    
+    # Impression details
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    page = db.Column(db.String(100), nullable=True, comment="Page where impression occurred")
+    duration_viewed = db.Column(db.Integer, nullable=True, comment="Seconds the ad was viewed")
+    was_clicked = db.Column(db.Boolean, default=False)
+    
+    def __repr__(self):
+        return f"<AdImpression {self.id}: Ad {self.ad_id}>"

@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Advertisement | Snap Lotto{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1 class="mb-4">
+        <i class="fas fa-edit me-2"></i> Edit Advertisement
+    </h1>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.csrf_token }}
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Advertisement Name*</label>
+                            {{ form.name(class="form-control", placeholder="Enter a descriptive name") }}
+                            {% if form.name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.name.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            {{ form.description(class="form-control", rows=3, placeholder="Enter a brief description of this advertisement") }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Current Video</label>
+                            <div class="current-video-container mb-2 p-2 border rounded">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-3">
+                                        <i class="fas fa-film fa-2x text-secondary"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div>{{ ad.file_path.split('/')[-1] }}</div>
+                                        <small class="text-muted">{{ ad.file_type }}, {{ ad.duration }}s duration</small>
+                                    </div>
+                                    <div class="flex-shrink-0">
+                                        <a href="{{ url_for('preview_ad', ad_id=ad.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i> Preview
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <label for="ad_file" class="form-label mt-3">Replace Video (Optional)</label>
+                            <div class="input-group">
+                                {{ form.ad_file(class="form-control", accept="video/mp4,video/webm") }}
+                            </div>
+                            <div class="form-text">Upload MP4 or WebM video files only. Maximum size: 50MB. Leave empty to keep the current video.</div>
+                            {% if form.ad_file.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.ad_file.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="placement" class="form-label">Placement*</label>
+                                    {{ form.placement(class="form-select") }}
+                                    {% if form.placement.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.placement.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="duration" class="form-label">Duration (seconds)*</label>
+                                    {{ form.duration(class="form-control", type="number", min=5, max=60) }}
+                                    <div class="form-text">How long the ad should display (5-60 seconds)</div>
+                                    {% if form.duration.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.duration.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="start_date" class="form-label">Start Date</label>
+                                    {{ form.start_date(class="form-control", type="date") }}
+                                    {% if form.start_date.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.start_date.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">End Date</label>
+                                    {{ form.end_date(class="form-control", type="date") }}
+                                    {% if form.end_date.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.end_date.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="target_impressions" class="form-label">Target Impressions</label>
+                                    {{ form.target_impressions(class="form-control", type="number", min=0) }}
+                                    <div class="form-text">Maximum number of times to show this ad (0 = unlimited)</div>
+                                    {% if form.target_impressions.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.target_impressions.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="priority" class="form-label">Priority</label>
+                                    {{ form.priority(class="form-control", type="number", min=1, max=10) }}
+                                    <div class="form-text">Higher priority ads are shown more frequently (1-10)</div>
+                                    {% if form.priority.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.priority.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-check">
+                                {{ form.active(class="form-check-input") }}
+                                <label class="form-check-label" for="active">
+                                    Active (immediately start showing this advertisement)
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex">
+                            <a href="{{ url_for('manage_ads') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Advertisement Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <h3 class="mb-0 text-primary">{{ ad.total_impressions }}</h3>
+                            <small class="text-muted">Impressions</small>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h3 class="mb-0 text-success">{{ ad.total_clicks }}</h3>
+                            <small class="text-muted">Clicks</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-2">
+                        <small class="text-muted">Created</small>
+                        <div>{{ ad.created_at.strftime('%B %d, %Y') }}</div>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <small class="text-muted">Last Updated</small>
+                        <div>{{ ad.updated_at.strftime('%B %d, %Y') }}</div>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <small class="text-muted">Created By</small>
+                        <div>{{ created_by_username }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Ad Placement Guide</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6><span class="badge bg-primary">Scanner</span></h6>
+                        <p class="text-muted small">Displayed during ticket scanning process. These have the highest visibility and engagement.</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6><span class="badge bg-success">Results</span></h6>
+                        <p class="text-muted small">Shown when users view lottery results. Good for informational ads.</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6><span class="badge bg-warning">Homepage</span></h6>
+                        <p class="text-muted small">Displayed on the main page. Best for broad reach.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

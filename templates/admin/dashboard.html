@@ -88,4 +88,84 @@
         </div>
     </div>
 </div>
+
+<!-- Advertisement Management Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header lottery-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">ADVERTISEMENT MANAGEMENT</h5>
+                    <a href="{{ url_for('manage_ads') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i> Add New Ad
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> Manage video advertisements that appear during the ticket scanning process and throughout the application.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="card-title mb-0">AD SETTINGS</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('manage_ads') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-video me-2"></i> Manage Video Ads
+                                    </a>
+                                    <a href="{{ url_for('upload_ad') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-upload me-2"></i> Upload New Ad
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="card-title mb-0">PLACEMENT OPTIONS</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('manage_ads', placement='scanner') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-camera me-2"></i> Scanner Ads
+                                    </a>
+                                    <a href="{{ url_for('manage_ads', placement='results') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-list-ol me-2"></i> Results Ads
+                                    </a>
+                                    <a href="{{ url_for('manage_ads', placement='homepage') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-home me-2"></i> Homepage Ads
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="card-title mb-0">ANALYTICS</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('ad_impressions') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-eye me-2"></i> View Impressions
+                                    </a>
+                                    <a href="{{ url_for('ad_performance') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-chart-line me-2"></i> Performance Analytics
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
