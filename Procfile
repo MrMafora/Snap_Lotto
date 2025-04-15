@@ -1,1 +1,1 @@
-web: python deployment.py
+web: python dual_bind_server.py

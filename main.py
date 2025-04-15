@@ -1782,6 +1782,16 @@ def run_health_checks():
     
     return redirect(url_for('health_dashboard'))
 
+@app.route('/health_check', methods=['GET'])
+@csrf.exempt
+def health_check():
+    """Simple endpoint for health checks in Replit deployment"""
+    return jsonify({
+        'status': 'ok',
+        'message': 'Health check successful',
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
+
 @app.route('/api/system-metrics', methods=['GET'])
 @csrf.exempt
 def system_metrics():
