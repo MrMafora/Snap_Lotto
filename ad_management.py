@@ -130,7 +130,7 @@ def ad_performance():
     ads_with_metrics = db.session.query(
         Advertisement,
         func.count(AdImpression.id).label('impressions'),
-        func.sum(AdImpression.was_clicked).label('clicks')
+        func.sum(func.cast(AdImpression.was_clicked, db.Integer)).label('clicks')
     ).join(
         AdImpression, Advertisement.id == AdImpression.ad_id
     ).filter(
@@ -162,7 +162,7 @@ def ad_performance():
     placement_stats = db.session.query(
         Advertisement.placement,
         func.count(AdImpression.id).label('impressions'),
-        func.sum(AdImpression.was_clicked).label('clicks')
+        func.sum(func.cast(AdImpression.was_clicked, db.Integer)).label('clicks')
     ).join(
         AdImpression, Advertisement.id == AdImpression.ad_id
     ).filter(
@@ -208,7 +208,7 @@ def manage_campaigns():
         # Get impression and click data
         impression_data = db.session.query(
             func.count(AdImpression.id).label('impressions'),
-            func.sum(AdImpression.was_clicked).label('clicks')
+            func.sum(func.cast(AdImpression.was_clicked, db.Integer)).label('clicks')
         ).join(
             Advertisement, AdImpression.ad_id == Advertisement.id
         ).filter(
@@ -300,7 +300,7 @@ def campaign_details(campaign_id):
     impression_data = db.session.query(
         func.date(AdImpression.timestamp).label('date'),
         func.count(AdImpression.id).label('impressions'),
-        func.sum(AdImpression.was_clicked).label('clicks')
+        func.sum(func.cast(AdImpression.was_clicked, db.Integer)).label('clicks')
     ).filter(
         AdImpression.campaign_id == campaign_id
     ).group_by(
@@ -499,7 +499,7 @@ def edit_ad(ad_id):
     # Get impression and click data
     impression_data = db.session.query(
         func.count(AdImpression.id).label('impressions'),
-        func.sum(AdImpression.was_clicked).label('clicks')
+        func.sum(func.cast(AdImpression.was_clicked, db.Integer)).label('clicks')
     ).filter(
         AdImpression.ad_id == ad_id
     ).first()

@@ -486,7 +486,9 @@
         const csvContent = 'data:text/csv;charset=utf-8,' 
             + 'Date,Impressions\n' 
             + {{ impression_dates|tojson }}.map((date, i) => {
-                return `${date},${{{ impression_counts|tojson }}[i]}`;
+                // Pre-process the impressions array outside the template literal
+                const count = {{ impression_counts|tojson }}[i];
+                return `${date},${count}`;
             }).join('\n');
             
         const encodedUri = encodeURI(csvContent);

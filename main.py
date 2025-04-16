@@ -37,8 +37,12 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Add custom Jinja2 filters for math functions needed by charts
 import math
+import locale
+locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')  # Set locale for number formatting
+
 app.jinja_env.filters['cos'] = lambda x: math.cos(float(x))
 app.jinja_env.filters['sin'] = lambda x: math.sin(float(x))
+app.jinja_env.filters['format_number'] = lambda x: f"{int(x):,}" if isinstance(x, (int, float)) else x
 
 # Explicitly set database URI from environment variable
 database_url = os.environ.get('DATABASE_URL')
