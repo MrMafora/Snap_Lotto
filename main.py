@@ -146,38 +146,64 @@ def index():
     # Ensure data_aggregator is loaded before using it
     global data_aggregator
     
-    # Import if not already loaded
-    if data_aggregator is None:
-        import data_aggregator as da
-        data_aggregator = da
-        logger.info("Loaded data_aggregator module on demand")
-    
-    # First, validate and correct any known draws (adds missing division data)
-    corrected = data_aggregator.validate_and_correct_known_draws()
-    if corrected > 0:
-        logger.info(f"Corrected {corrected} lottery draws with verified data")
-    
-    # Get the latest results for each lottery type
-    latest_results = data_aggregator.get_latest_results()
-    
-    # Convert dictionary of results to a list for iteration in the template
-    results_list = []
-    for lottery_type, result in latest_results.items():
-        results_list.append(result)
-    
-    # Sort results by date (newest first)
-    results_list.sort(key=lambda x: x.draw_date, reverse=True)
-    
-    # Get analytics data for the dashboard
-    frequent_numbers = data_aggregator.get_most_frequent_numbers(limit=10)
-    division_stats = data_aggregator.get_division_statistics()
-    
-    return render_template('index.html', 
-                           latest_results=latest_results,
-                           results=results_list,
-                           frequent_numbers=frequent_numbers,
-                           division_stats=division_stats,
-                           title="Latest Lottery Results")
+    try:
+        # Import if not already loaded
+        if data_aggregator is None:
+            import data_aggregator as da
+            data_aggregator = da
+            logger.info("Loaded data_aggregator module on demand")
+        
+        # First, validate and correct any known draws (adds missing division data)
+        try:
+            corrected = data_aggregator.validate_and_correct_known_draws()
+            if corrected > 0:
+                logger.info(f"Corrected {corrected} lottery draws with verified data")
+        except Exception as e:
+            logger.error(f"Error in validate_and_correct_known_draws: {e}")
+        
+        # Get the latest results for each lottery type
+        try:
+            latest_results = data_aggregator.get_latest_results()
+            
+            # Convert dictionary of results to a list for iteration in the template
+            results_list = []
+            for lottery_type, result in latest_results.items():
+                results_list.append(result)
+            
+            # Sort results by date (newest first)
+            results_list.sort(key=lambda x: x.draw_date, reverse=True)
+        except Exception as e:
+            logger.error(f"Error getting latest lottery results: {e}")
+            latest_results = {}
+            results_list = []
+        
+        # Get analytics data for the dashboard
+        try:
+            frequent_numbers = data_aggregator.get_most_frequent_numbers(limit=10)
+        except Exception as e:
+            logger.error(f"Error getting frequent numbers: {e}")
+            frequent_numbers = []
+            
+        try:
+            division_stats = data_aggregator.get_division_statistics()
+        except Exception as e:
+            logger.error(f"Error getting division statistics: {e}")
+            division_stats = {}
+        
+        return render_template('index.html', 
+                            latest_results=latest_results,
+                            results=results_list,
+                            frequent_numbers=frequent_numbers,
+                            division_stats=division_stats,
+                            title="Latest Lottery Results")
+    except Exception as e:
+        logger.error(f"Critical error in index route: {e}")
+        return render_template('index.html', 
+                            latest_results={},
+                            results=[],
+                            frequent_numbers=[],
+                            division_stats={},
+                            title="Latest Lottery Results")
 
 @app.route('/admin')
 @login_required
