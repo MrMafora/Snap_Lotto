@@ -66,11 +66,20 @@ login_manager.login_view = 'login'
 
 # Initialize CSRF Protection
 csrf = CSRFProtect(app)
+# Set cookie parameters to work in both development and production
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour token timeout
+app.config['WTF_CSRF_SSL_STRICT'] = False  # Don't require HTTPS for CSRF
+
 # Exempt endpoints that don't need CSRF protection
 csrf.exempt('scan_ticket')
 csrf.exempt('check_js')
 csrf.exempt('resolve_health_alert')
 csrf.exempt('api_system_metrics')
+csrf.exempt('record_impression')
+csrf.exempt('record_click')
+csrf.exempt('get_file_upload_progress')
+csrf.exempt('health_check')
+csrf.exempt('health_port_check')
 
 @login_manager.user_loader
 def load_user(user_id):
