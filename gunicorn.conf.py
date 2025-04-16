@@ -11,23 +11,20 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('gunicorn.conf')
 
-# Determine binding based on environment
-environment = os.environ.get('ENVIRONMENT', 'development')
+# Default to production for deployments
+environment = os.environ.get('ENVIRONMENT', 'production')
 
-# Primary binding
+# Bind to port 8080 in production, 5000 in development
 if environment.lower() == 'production':
-    # Production environment uses port 8080 for Replit deployment
     bind = "0.0.0.0:8080"
 else:
-    # Development environment uses port 5000
     bind = "0.0.0.0:5000"
 
 # Worker configuration
-workers = 4
-worker_class = "sync"
+workers = 2
 threads = 2
-timeout = 120
-keepalive = 5
+worker_class = "gthread"
+timeout = 60
 
 # Logging
 accesslog = "-"
