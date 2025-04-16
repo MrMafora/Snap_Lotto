@@ -208,6 +208,12 @@ window.AdManager = window.AdManager || {
     showLoadingAd: function(callback) {
         console.log('AdManager: Showing loading ad');
         
+        // Get the ad for scanner placement to access its loading_duration
+        const ad = this.ads['scanner'] || { loading_duration: 10 }; // Default to 10 seconds if no ad found
+        const loadingDuration = ad.loading_duration * 1000; // Convert to milliseconds
+        
+        console.log(`AdManager: Using loading duration of ${ad.loading_duration} seconds`);
+        
         // Use the enhanced showOverlay utility function if available
         if (typeof showOverlay === 'function') {
             if (showOverlay('ad-overlay-loading')) {
@@ -243,7 +249,27 @@ window.AdManager = window.AdManager || {
             }
         }
         
+        // Find and update the loading message with the configured duration if available
+        const loadingMessage = document.querySelector('#ad-overlay-loading .loading-message');
+        if (loadingMessage && ad.custom_message) {
+            loadingMessage.textContent = ad.custom_message;
+        }
+        
+        // Load the ad in the container
         this.loadAd('ad-container-loader', callback);
+        
+        // Automatically hide the loading overlay after the configured duration
+        // This ensures the loading overlay is shown for exactly the configured time
+        setTimeout(() => {
+            // Only auto-hide if it hasn't been closed by the ticket scanning process
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            if (adOverlayLoading && adOverlayLoading.style.display !== 'none') {
+                console.log(`AdManager: Auto-hiding loading overlay after ${ad.loading_duration} seconds`);
+                this.hideLoadingAd();
+                // If there was a callback, call it again to ensure the ticket processing continues
+                if (callback) callback(true);
+            }
+        }, loadingDuration);
     },
 
     // Show the interstitial ad (before showing results)
@@ -385,6 +411,9 @@ window.AdManager = window.AdManager || {
             name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Ad Example`,
             file_url: '/static/ads/sample_video.mp4', // This should be a real sample video in production
             duration: 30,
+            loading_duration: 10, // Default loading overlay duration in seconds
+            custom_message: 'Processing your lottery ticket...', // Default custom message
+            custom_image_path: null, // No custom image in mock data
             placement: placement,
             active: true
         };

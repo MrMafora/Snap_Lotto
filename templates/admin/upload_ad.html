@@ -54,6 +54,76 @@
                             {% endif %}
                         </div>
                         
+                        <div class="card mb-4 border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-spinner fa-spin me-2"></i> Loading Overlay Customization</h5>
+                                <small>These settings allow customizing the first popup that appears during ticket scanning</small>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="custom_message" class="form-label">Custom Loading Message</label>
+                                    {{ form.custom_message(class="form-control", rows=2, placeholder="Enter a custom message to display during ticket scanning") }}
+                                    <div class="form-text">This message will appear in the first popup while scanning tickets.</div>
+                                    {% if form.custom_message.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.custom_message.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="loading_duration" class="form-label">Loading Overlay Duration (seconds)</label>
+                                    {{ form.loading_duration(class="form-control", type="number", min=3, max=30, value=10) }}
+                                    <div class="form-text">How long the loading overlay should be displayed (3-30 seconds, default 10)</div>
+                                    {% if form.loading_duration.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.loading_duration.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="custom_image" class="form-label">Custom Loading Image</label>
+                                    <div class="input-group">
+                                        {{ form.custom_image(class="form-control", accept="image/jpeg,image/png,image/gif") }}
+                                    </div>
+                                    <div class="form-text">Upload a custom image to display in the loading overlay. (JPG, PNG, or GIF)</div>
+                                    {% if form.custom_image.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.custom_image.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    {{ form.is_rich_content(class="form-check-input") }}
+                                    <label class="form-check-label" for="is_rich_content">
+                                        Use rich HTML content
+                                    </label>
+                                    <div class="form-text">Enable to use custom HTML instead of simple text and image.</div>
+                                </div>
+                                
+                                <div class="mb-3" id="html_content_container" style="display: none;">
+                                    <label for="html_content" class="form-label">Custom HTML Content</label>
+                                    {{ form.html_content(class="form-control", rows=5, placeholder="<div class='my-custom-content'>Your HTML content here</div>") }}
+                                    <div class="form-text">Enter custom HTML to display in the loading overlay. Be careful with formatting.</div>
+                                    {% if form.html_content.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.html_content.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -203,4 +273,28 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle HTML content field based on rich content checkbox
+        const richContentCheckbox = document.getElementById('is_rich_content');
+        const htmlContentContainer = document.getElementById('html_content_container');
+        
+        function toggleHtmlContent() {
+            if (richContentCheckbox.checked) {
+                htmlContentContainer.style.display = 'block';
+            } else {
+                htmlContentContainer.style.display = 'none';
+            }
+        }
+        
+        // Set initial state
+        toggleHtmlContent();
+        
+        // Add event listener
+        richContentCheckbox.addEventListener('change', toggleHtmlContent);
+    });
+</script>
 {% endblock %}

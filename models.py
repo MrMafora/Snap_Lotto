@@ -145,6 +145,13 @@ class Advertisement(db.Model):
     total_impressions = db.Column(db.Integer, default=0)
     total_clicks = db.Column(db.Integer, default=0)
     
+    # Custom loading overlay content
+    custom_message = db.Column(db.Text, nullable=True, comment="Custom message to display in the loading overlay")
+    custom_image_path = db.Column(db.String(255), nullable=True, comment="Path to custom image for loading overlay")
+    loading_duration = db.Column(db.Integer, default=10, comment="Duration in seconds for the loading overlay (default 10s)")
+    is_rich_content = db.Column(db.Boolean, default=False, comment="Whether this ad uses rich HTML content")
+    html_content = db.Column(db.Text, nullable=True, comment="Custom HTML content for the ad")
+    
     # Constraints 
     start_date = db.Column(db.DateTime, nullable=True, comment="When to start showing this ad")
     end_date = db.Column(db.DateTime, nullable=True, comment="When to stop showing this ad")

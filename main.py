@@ -1024,6 +1024,12 @@ def upload_ad():
             target_impressions = int(request.form.get('target_impressions'))
             active = 'active' in request.form
             
+            # Get custom message and rich content settings
+            custom_message = request.form.get('custom_message')
+            loading_duration = int(request.form.get('loading_duration', 10))
+            is_rich_content = 'is_rich_content' in request.form
+            html_content = request.form.get('html_content') if is_rich_content else None
+            
             # Handle optional dates
             start_date = request.form.get('start_date')
             if start_date:
@@ -1060,6 +1066,25 @@ def upload_ad():
             file_path = os.path.join(ads_dir, filename)
             video_file.save(file_path)
             
+            # Handle custom image if provided
+            custom_image_path = None
+            if 'custom_image' in request.files and request.files['custom_image'].filename:
+                custom_image = request.files['custom_image']
+                
+                # Determine file type
+                image_type = custom_image.content_type or 'image/jpeg'
+                
+                # Save the image
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                image_filename = f"custom_image_{secure_filename(name)}_{timestamp}.{image_type.split('/')[-1]}"
+                custom_image_path = os.path.join('static', 'ads', 'images', image_filename)
+                
+                # Create directory if it doesn't exist
+                os.makedirs(os.path.dirname(custom_image_path), exist_ok=True)
+                
+                # Save the image
+                custom_image.save(custom_image_path)
+            
             # Create new advertisement record
             new_ad = Advertisement(
                 name=name,
@@ -1073,7 +1098,12 @@ def upload_ad():
                 active=active,
                 start_date=start_date,
                 end_date=end_date,
-                created_by_id=current_user.id
+                created_by_id=current_user.id,
+                custom_message=custom_message,
+                custom_image_path=custom_image_path,
+                loading_duration=loading_duration,
+                is_rich_content=is_rich_content,
+                html_content=html_content
             )
             
             db.session.add(new_ad)
@@ -1113,6 +1143,12 @@ def edit_ad(ad_id):
             ad.priority = int(request.form.get('priority', 5))
             ad.target_impressions = int(request.form.get('target_impressions'))
             ad.active = 'active' in request.form
+            
+            # Update custom message and content settings
+            ad.custom_message = request.form.get('custom_message')
+            ad.loading_duration = int(request.form.get('loading_duration', 10))
+            ad.is_rich_content = 'is_rich_content' in request.form
+            ad.html_content = request.form.get('html_content') if ad.is_rich_content else None
             
             # Handle optional dates
             start_date = request.form.get('start_date')
@@ -1172,7 +1208,11 @@ def edit_ad(ad_id):
         'target_impressions': ad.target_impressions,
         'active': ad.active,
         'start_date': ad.start_date,
-        'end_date': ad.end_date
+        'end_date': ad.end_date,
+        'custom_message': ad.custom_message,
+        'loading_duration': ad.loading_duration,
+        'is_rich_content': ad.is_rich_content,
+        'html_content': ad.html_content
     }
     
     return render_template('admin/upload_ad.html', 
