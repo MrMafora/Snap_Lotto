@@ -2235,6 +2235,91 @@ def system_metrics():
 # Register advertisement management routes
 ad_management.register_ad_routes(app)
 
+# API Request Tracking routes
+@app.route('/admin/api-tracking')
+@login_required
+def api_tracking_dashboard():
+    """Dashboard for tracking API requests to external services"""
+    from datetime import datetime, timedelta
+    from models import APIRequestLog
+    from sqlalchemy import func, desc
+    
+    if not current_user.is_admin:
+        flash('You must be an admin to access this page.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Get time periods for filtering
+    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    yesterday = today - timedelta(days=1)
+    this_week = today - timedelta(days=today.weekday())
+    this_month = today.replace(day=1)
+    
+    # Get overall statistics
+    overall_stats = APIRequestLog.get_stats_by_date_range()
+    
+    # Get daily statistics for the last 30 days
+    daily_stats = db.session.query(
+        func.date(APIRequestLog.created_at).label('date'),
+        func.count(APIRequestLog.id).label('count'),
+        func.sum(APIRequestLog.total_tokens).label('tokens')
+    ).group_by(func.date(APIRequestLog.created_at)
+    ).order_by(desc('date')).limit(30).all()
+    
+    # Get service breakdown
+    service_breakdown = db.session.query(
+        APIRequestLog.service,
+        func.count(APIRequestLog.id).label('count'),
+        func.sum(APIRequestLog.total_tokens).label('tokens')
+    ).group_by(APIRequestLog.service).all()
+    
+    # Get model breakdown for Anthropic
+    model_breakdown = db.session.query(
+        APIRequestLog.model,
+        func.count(APIRequestLog.id).label('count'),
+        func.sum(APIRequestLog.total_tokens).label('tokens')
+    ).filter(APIRequestLog.service == 'anthropic'
+    ).group_by(APIRequestLog.model).all()
+    
+    # Get recent requests with status, limited to 100
+    recent_requests = APIRequestLog.query.order_by(
+        APIRequestLog.created_at.desc()
+    ).limit(100).all()
+    
+    # Calculate statistics for specific time periods
+    today_stats = APIRequestLog.get_stats_by_date_range(start_date=today)
+    yesterday_stats = APIRequestLog.get_stats_by_date_range(start_date=yesterday, end_date=today)
+    this_week_stats = APIRequestLog.get_stats_by_date_range(start_date=this_week)
+    this_month_stats = APIRequestLog.get_stats_by_date_range(start_date=this_month)
+    
+    # Format data for charts
+    daily_labels = [str(item.date) for item in daily_stats]
+    daily_requests = [item.count for item in daily_stats]
+    daily_tokens = [int(item.tokens) if item.tokens else 0 for item in daily_stats]
+    
+    # Prepare service breakdown data for charts
+    service_labels = [item.service for item in service_breakdown]
+    service_counts = [item.count for item in service_breakdown]
+    service_tokens = [int(item.tokens) if item.tokens else 0 for item in service_breakdown]
+    
+    return render_template(
+        'admin/api_tracking.html',
+        title="API Request Tracking",
+        overall_stats=overall_stats,
+        today_stats=today_stats,
+        yesterday_stats=yesterday_stats,
+        this_week_stats=this_week_stats,
+        this_month_stats=this_month_stats,
+        service_breakdown=service_breakdown,
+        model_breakdown=model_breakdown,
+        recent_requests=recent_requests,
+        daily_labels=daily_labels,
+        daily_requests=daily_requests,
+        daily_tokens=daily_tokens,
+        service_labels=service_labels,
+        service_counts=service_counts,
+        service_tokens=service_tokens
+    )
+
 # When running directly, not through gunicorn
 if __name__ == "__main__":
     # Extra logging to help diagnose startup issues

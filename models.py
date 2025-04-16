@@ -474,3 +474,78 @@ class ImportedRecord(db.Model):
     def get_records_for_import(cls, import_id):
         """Get all records for a specific import"""
         return cls.query.filter_by(import_id=import_id).all()
+        
+        
+class APIRequestLog(db.Model):
+    """Model for tracking API requests to external services like Anthropic"""
+    __tablename__ = 'api_request_log'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    service = db.Column(db.String(50), nullable=False, comment="Name of the external service (e.g., 'anthropic')")
+    endpoint = db.Column(db.String(255), nullable=False, comment="The specific API endpoint or method called")
+    model = db.Column(db.String(100), nullable=True, comment="Model name used for the request (e.g., 'claude-3-5-sonnet')")
+    prompt_tokens = db.Column(db.Integer, nullable=True, comment="Number of tokens in the prompt")
+    completion_tokens = db.Column(db.Integer, nullable=True, comment="Number of tokens in the completion/response")
+    total_tokens = db.Column(db.Integer, nullable=True, comment="Total tokens used for the request")
+    status = db.Column(db.String(20), default='success', comment="Status of the request: success, error")
+    duration_ms = db.Column(db.Integer, nullable=True, comment="Duration of the request in milliseconds")
+    error_message = db.Column(db.Text, nullable=True, comment="Error message if the request failed")
+    request_id = db.Column(db.String(100), nullable=True, comment="Provider's request ID for tracking")
+    screenshot_id = db.Column(db.Integer, db.ForeignKey('screenshot.id'), nullable=True)
+    lottery_type = db.Column(db.String(50), nullable=True, comment="Related lottery type if applicable")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    screenshot = db.relationship('Screenshot', backref='api_requests')
+    
+    @classmethod
+    def log_request(cls, service, endpoint, model=None, prompt_tokens=None, completion_tokens=None, 
+                   status='success', duration_ms=None, error_message=None, request_id=None, 
+                   screenshot_id=None, lottery_type=None):
+        """Create a log entry for an API request"""
+        log_entry = cls(
+            service=service,
+            endpoint=endpoint,
+            model=model,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=((prompt_tokens or 0) + (completion_tokens or 0)) if prompt_tokens or completion_tokens else None,
+            status=status,
+            duration_ms=duration_ms,
+            error_message=error_message,
+            request_id=request_id,
+            screenshot_id=screenshot_id,
+            lottery_type=lottery_type
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        return log_entry
+    
+    @classmethod
+    def get_stats_by_date_range(cls, service=None, start_date=None, end_date=None):
+        """Get statistics for API requests in a given date range"""
+        from sqlalchemy import func
+        
+        query = db.session.query(
+            func.count(cls.id).label('total_requests'),
+            func.sum(cls.total_tokens).label('total_tokens'),
+            func.avg(cls.duration_ms).label('avg_duration')
+        )
+        
+        if service:
+            query = query.filter(cls.service == service)
+        
+        if start_date:
+            query = query.filter(cls.created_at >= start_date)
+            
+        if end_date:
+            query = query.filter(cls.created_at <= end_date)
+            
+        stats = query.first()
+        
+        # Format the results into a dictionary
+        return {
+            'total_requests': stats.total_requests if stats else 0,
+            'total_tokens': int(stats.total_tokens) if stats and stats.total_tokens else 0,
+            'avg_duration': round(float(stats.avg_duration), 2) if stats and stats.avg_duration else 0
+        }

@@ -63,7 +63,7 @@ def manage_ads(placement=None):
     
     if status_filter:
         is_active = status_filter == 'active'
-        query = query.filter(Advertisement.is_active == is_active)
+        query = query.filter(Advertisement.active == is_active)
     
     # Get ads with total impressions and clicks
     ads = query.all()
@@ -71,8 +71,8 @@ def manage_ads(placement=None):
     # Get counts for filter badges
     counts = {
         'total': Advertisement.query.count(),
-        'active': Advertisement.query.filter_by(is_active=True).count(),
-        'inactive': Advertisement.query.filter_by(is_active=False).count(),
+        'active': Advertisement.query.filter_by(active=True).count(),
+        'inactive': Advertisement.query.filter_by(active=False).count(),
         'scanner': Advertisement.query.filter_by(placement='scanner').count(),
         'results': Advertisement.query.filter_by(placement='results').count(),
         'header': Advertisement.query.filter_by(placement='header').count()
@@ -130,7 +130,7 @@ def ad_performance():
     ads_with_metrics = db.session.query(
         Advertisement,
         func.count(AdImpression.id).label('impressions'),
-        func.sum(AdImpression.clicked).label('clicks')
+        func.sum(AdImpression.was_clicked).label('clicks')
     ).join(
         AdImpression, Advertisement.id == AdImpression.ad_id
     ).filter(
@@ -162,7 +162,7 @@ def ad_performance():
     placement_stats = db.session.query(
         Advertisement.placement,
         func.count(AdImpression.id).label('impressions'),
-        func.sum(AdImpression.clicked).label('clicks')
+        func.sum(AdImpression.was_clicked).label('clicks')
     ).join(
         AdImpression, Advertisement.id == AdImpression.ad_id
     ).filter(
@@ -208,7 +208,7 @@ def manage_campaigns():
         # Get impression and click data
         impression_data = db.session.query(
             func.count(AdImpression.id).label('impressions'),
-            func.sum(AdImpression.clicked).label('clicks')
+            func.sum(AdImpression.was_clicked).label('clicks')
         ).join(
             Advertisement, AdImpression.ad_id == Advertisement.id
         ).filter(
@@ -356,7 +356,7 @@ def edit_campaign(campaign_id):
         budget = request.form.get('budget')
         campaign.budget = float(budget) if budget else None
         
-        campaign.active = 'active' in request.form
+        campaign.status = 'active' if 'active' in request.form else 'draft'
         
         target_impressions = request.form.get('target_impressions')
         campaign.target_impressions = int(target_impressions) if target_impressions else None
