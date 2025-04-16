@@ -299,80 +299,55 @@
         const layoutIcon = document.getElementById('layout-icon');
         const analyticsContainer = document.querySelector('.data-analytics-preview');
         
-        // Layout modes
-        const LAYOUT_SIDE_BY_SIDE = 'side-by-side';
-        const LAYOUT_STACKED = 'stacked';
+        // Initialize from saved preference (default is false - standard layout)
+        let isStacked = localStorage.getItem('chart-stacked-preference') === 'true';
         
-        // Initialize from saved preference or default (responsive)
-        let currentLayout = localStorage.getItem('chart-layout-preference') || 'responsive';
-        
-        // Apply initial layout if stored
-        if (currentLayout !== 'responsive') {
-            applyLayout(currentLayout);
-        }
+        // Apply initial layout if stored preference exists
+        applyLayout(isStacked);
         
         // Update UI to match current layout
-        updateLayoutUI(currentLayout);
+        updateLayoutUI(isStacked);
         
         // Add click event listener for toggle button
         toggleButton.addEventListener('click', function() {
-            let newLayout;
-            
-            // Cycle through layout options: responsive → side-by-side → stacked → responsive
-            switch (currentLayout) {
-                case 'responsive':
-                    newLayout = LAYOUT_SIDE_BY_SIDE;
-                    break;
-                case LAYOUT_SIDE_BY_SIDE:
-                    newLayout = LAYOUT_STACKED;
-                    break;
-                case LAYOUT_STACKED:
-                default:
-                    newLayout = 'responsive';
-                    break;
-            }
+            // Toggle the layout state
+            isStacked = !isStacked;
             
             // Apply the new layout
-            applyLayout(newLayout);
+            applyLayout(isStacked);
             
             // Update UI
-            updateLayoutUI(newLayout);
+            updateLayoutUI(isStacked);
             
             // Store preference for future visits
-            localStorage.setItem('chart-layout-preference', newLayout);
-            
-            // Update current layout
-            currentLayout = newLayout;
+            localStorage.setItem('chart-stacked-preference', isStacked);
         });
         
-        // Apply layout 
-        function applyLayout(layout) {
+        // Apply layout based on stacked preference
+        function applyLayout(stacked) {
             // Remove any existing layout classes
             analyticsContainer.classList.remove('force-side-by-side', 'force-stacked');
             
-            // Apply new layout class if not responsive
-            if (layout === LAYOUT_SIDE_BY_SIDE) {
-                analyticsContainer.classList.add('force-side-by-side');
-            } else if (layout === LAYOUT_STACKED) {
+            // Apply layout class based on preference
+            if (stacked) {
                 analyticsContainer.classList.add('force-stacked');
+            } else {
+                analyticsContainer.classList.add('force-side-by-side');
             }
         }
         
         // Update the layout button UI based on current mode
-        function updateLayoutUI(layout) {
+        function updateLayoutUI(stacked) {
             toggleButton.classList.remove('side-by-side-active', 'stacked-active');
             
-            if (layout === LAYOUT_SIDE_BY_SIDE) {
+            if (stacked) {
+                toggleButton.classList.add('stacked-active');
+                toggleButton.title = 'Switch to side-by-side view';
+                layoutIcon.className = 'fas fa-bars';
+            } else {
                 toggleButton.classList.add('side-by-side-active');
                 toggleButton.title = 'Switch to stacked view';
                 layoutIcon.className = 'fas fa-columns';
-            } else if (layout === LAYOUT_STACKED) {
-                toggleButton.classList.add('stacked-active');
-                toggleButton.title = 'Switch to responsive view';
-                layoutIcon.className = 'fas fa-bars';
-            } else {
-                toggleButton.title = 'Switch to side-by-side view';
-                layoutIcon.className = 'fas fa-mobile-alt';
             }
         }
     });
