@@ -182,6 +182,7 @@
                         </div>
 
                         <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-3">
                                 <label for="lottery-type" class="form-label">Select Lottery Type (Optional - will be detected by AI)</label>
                                 <select class="form-select" id="lottery-type" name="lottery_type">
@@ -457,26 +458,40 @@
             // Never disable the scan button
             scanButton.disabled = false;
             
-            // Show ad loading overlay
-            const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            adOverlayLoading.style.display = 'flex';
-            
             // Create form data for later use
             const formData = new FormData(ticketForm);
             
-            // Load ad in the loading overlay then process the ticket
-            console.log('Attempting to show loading ad');
-            
-            // Now send the ticket for processing (skip ad loading for now)
-            console.log('Processing ticket');
-            processTicket(formData);
+            // Check if AdManager is available and use it to show ad, otherwise just process
+            if (window.AdManager && typeof window.AdManager.showLoadingAd === 'function') {
+                console.log('Using AdManager to show loading ad');
+                window.AdManager.showLoadingAd(function(adShown) {
+                    // After ad is loaded (or if it failed), process the ticket
+                    console.log('Ad loading callback returned:', adShown);
+                    processTicket(formData);
+                });
+            } else {
+                // Fallback - Show ad loading overlay manually
+                console.log('AdManager not available, showing overlay manually');
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                adOverlayLoading.style.display = 'flex';
+                
+                // Process the ticket immediately
+                console.log('Processing ticket without AdManager');
+                processTicket(formData);
+            }
         }
         
         // Function to process the ticket after ad is shown
         function processTicket(formData) {
+            // Add CSRF token to headers
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+            
             // Send request
             fetch('/scan-ticket', {
                 method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
                 body: formData
             })
             .then(response => response.json())
@@ -487,13 +502,23 @@
                 const adOverlayLoading = document.getElementById('ad-overlay-loading');
                 adOverlayLoading.style.display = 'none';
                 
-                // Show results ad overlay
+                // Try to use the AdManager to show the interstitial ad, or fallback to manual
                 const adOverlayResults = document.getElementById('ad-overlay-results');
-                adOverlayResults.style.display = 'flex';
+                
+                if (window.AdManager && typeof window.AdManager.showInterstitialAd === 'function') {
+                    console.log('Using AdManager to show interstitial ad');
+                    window.AdManager.showInterstitialAd(function(adShown) {
+                        console.log('Interstitial ad shown:', adShown);
+                    });
+                } else {
+                    // Fallback - Show ad results overlay manually
+                    console.log('AdManager not available, showing results overlay manually');
+                    adOverlayResults.style.display = 'flex';
+                }
                 
                 console.log('Showing results interstitial ad');
                 
-                // Simulate ad loading (would be handled by AdSense in production)
+                // Get the ad container
                 const adContainer = document.getElementById('ad-container-interstitial');
                 
                 // Auto-show the results after a short delay (simulate ad viewing)
