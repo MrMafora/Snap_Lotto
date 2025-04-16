@@ -27,11 +27,11 @@
                 <div class="card-body">
                     <div class="row text-center">
                         <div class="col-4">
-                            <div class="h4 mb-0">{{ impressions|default(0)|format_number }}</div>
+                            <div class="h4 mb-0">{{ impressions|default(0) }}</div>
                             <div class="small text-muted">Impressions</div>
                         </div>
                         <div class="col-4">
-                            <div class="h4 mb-0">{{ clicks|default(0)|format_number }}</div>
+                            <div class="h4 mb-0">{{ clicks|default(0) }}</div>
                             <div class="small text-muted">Clicks</div>
                         </div>
                         <div class="col-4">
@@ -119,8 +119,8 @@
                                 </div>
                                 
                                 <div class="mb-3 form-check">
-                                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if ad.is_active %}checked{% endif %}>
-                                    <label class="form-check-label" for="is_active">Active</label>
+                                    <input type="checkbox" class="form-check-input" id="active" name="active" {% if ad.active %}checked{% endif %}>
+                                    <label class="form-check-label" for="active">Active</label>
                                     <div class="form-text">Uncheck to temporarily disable this advertisement</div>
                                 </div>
                             </div>

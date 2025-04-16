@@ -271,11 +271,8 @@ def create_campaign():
             start_date=start_date,
             end_date=end_date,
             budget=float(budget) if budget else None,
-            active=active,
-            target_impressions=int(target_impressions) if target_impressions else None,
-            target_ctr=float(target_ctr) if target_ctr else None,
-            priority=int(priority) if priority else 5,
-            tags=tags
+            status='active' if active else 'draft',
+            created_by_id=current_user.id
         )
         
         db.session.add(campaign)
@@ -292,18 +289,20 @@ def campaign_details(campaign_id):
     """View campaign details and performance"""
     campaign = Campaign.query.get_or_404(campaign_id)
     
-    # Get associated ads
-    ads = Advertisement.query.filter_by(campaign_id=campaign_id).all()
+    # Since campaign_id field is commented out in Advertisement model, 
+    # we can't use this filter yet
+    # ads = Advertisement.query.filter_by(campaign_id=campaign_id).all()
+    ads = []
     
     # Get impression and click data
+    # Since campaign_id field is commented out in Advertisement model, 
+    # we need to use the AdImpression's campaign_id instead
     impression_data = db.session.query(
         func.date(AdImpression.timestamp).label('date'),
         func.count(AdImpression.id).label('impressions'),
-        func.sum(AdImpression.clicked).label('clicks')
-    ).join(
-        Advertisement, AdImpression.ad_id == Advertisement.id
+        func.sum(AdImpression.was_clicked).label('clicks')
     ).filter(
-        Advertisement.campaign_id == campaign_id
+        AdImpression.campaign_id == campaign_id
     ).group_by(
         func.date(AdImpression.timestamp)
     ).order_by(
@@ -384,10 +383,11 @@ def delete_campaign():
     campaign_id = request.form.get('campaign_id')
     campaign = Campaign.query.get_or_404(campaign_id)
     
-    # Remove campaign association from ads
-    ads = Advertisement.query.filter_by(campaign_id=campaign_id).all()
-    for ad in ads:
-        ad.campaign_id = None
+    # Since campaign_id field is commented out in Advertisement model,
+    # we can't use this filter yet
+    # ads = Advertisement.query.filter_by(campaign_id=campaign_id).all()
+    # for ad in ads:
+    #     ad.campaign_id = None
     
     # Delete campaign
     db.session.delete(campaign)
@@ -400,7 +400,7 @@ def delete_campaign():
 @login_required
 def upload_ad():
     """Display and process ad upload form"""
-    campaigns = Campaign.query.filter_by(active=True).order_by(Campaign.name).all()
+    campaigns = Campaign.query.filter_by(status='active').order_by(Campaign.name).all()
     
     if request.method == 'POST':
         name = request.form.get('name')
@@ -436,9 +436,10 @@ def upload_ad():
             placement=placement,
             file_path=file_path,
             duration=int(duration) if duration else 15,
-            campaign_id=int(campaign_id) if campaign_id else None,
-            is_active=True,
-            created_by=current_user.id,
+            # campaign_id is commented out in the Advertisement model
+            # campaign_id=int(campaign_id) if campaign_id else None,
+            active=True,
+            created_by_id=current_user.id,
             created_at=datetime.now()
         )
         
@@ -455,15 +456,16 @@ def upload_ad():
 def edit_ad(ad_id):
     """Edit an existing advertisement"""
     ad = Advertisement.query.get_or_404(ad_id)
-    campaigns = Campaign.query.filter_by(active=True).order_by(Campaign.name).all()
+    campaigns = Campaign.query.filter_by(status='active').order_by(Campaign.name).all()
     
     if request.method == 'POST':
         ad.name = request.form.get('name')
         ad.description = request.form.get('description')
         ad.placement = request.form.get('placement')
         ad.duration = int(request.form.get('duration')) if request.form.get('duration') else 15
-        ad.campaign_id = int(request.form.get('campaign_id')) if request.form.get('campaign_id') else None
-        ad.is_active = 'is_active' in request.form
+        # campaign_id is commented out in the Advertisement model
+        # ad.campaign_id = int(request.form.get('campaign_id')) if request.form.get('campaign_id') else None
+        ad.active = 'active' in request.form
         
         # Handle file upload if new file provided
         file = request.files.get('ad_file')
@@ -497,7 +499,7 @@ def edit_ad(ad_id):
     # Get impression and click data
     impression_data = db.session.query(
         func.count(AdImpression.id).label('impressions'),
-        func.sum(AdImpression.clicked).label('clicks')
+        func.sum(AdImpression.was_clicked).label('clicks')
     ).filter(
         AdImpression.ad_id == ad_id
     ).first()

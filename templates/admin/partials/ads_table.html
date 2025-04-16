@@ -56,8 +56,8 @@
                             <span class="text-muted">—</span>
                         {% endif %}
                     </td>
-                    <td>{{ ad.total_impressions|default(0)|format_number }}</td>
-                    <td>{{ ad.total_clicks|default(0)|format_number }}</td>
+                    <td>{{ ad.total_impressions|default(0) }}</td>
+                    <td>{{ ad.total_clicks|default(0) }}</td>
                     <td>
                         {% if ad.total_impressions and ad.total_impressions > 0 %}
                             {{ (ad.total_clicks / ad.total_impressions * 100)|round(2) }}%
@@ -66,7 +66,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if ad.is_active %}
+                        {% if ad.active %}
                             <span class="badge bg-success">Active</span>
                         {% else %}
                             <span class="badge bg-secondary">Inactive</span>

@@ -80,11 +80,11 @@
                             <!-- Performance Metrics -->
                             <div class="row text-center mt-3 mb-2">
                                 <div class="col-4">
-                                    <div class="h5 mb-0">{{ campaign.impressions|default(0)|format_number }}</div>
+                                    <div class="h5 mb-0">{{ campaign.impressions|default(0) }}</div>
                                     <div class="small text-muted">Impressions</div>
                                 </div>
                                 <div class="col-4">
-                                    <div class="h5 mb-0">{{ campaign.clicks|default(0)|format_number }}</div>
+                                    <div class="h5 mb-0">{{ campaign.clicks|default(0) }}</div>
                                     <div class="small text-muted">Clicks</div>
                                 </div>
                                 <div class="col-4">

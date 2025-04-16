@@ -137,16 +137,19 @@ class Campaign(db.Model):
     
     # Relationships
     created_by = db.relationship('User', backref='campaigns')
-    advertisements = db.relationship('Advertisement', backref='campaign')
     
     def __repr__(self):
         return f"<Campaign {self.name}>"
     
     def get_spent_budget(self):
         """Calculate spent budget based on impressions and clicks"""
-        impressions_cost = sum([ad.total_impressions * (ad.cpm or 0) / 1000 for ad in self.advertisements])
-        clicks_cost = sum([ad.total_clicks * (ad.cpc or 0) for ad in self.advertisements])
-        return impressions_cost + clicks_cost
+        # Get all impressions for this campaign
+        total_cost = 0
+        if self.impressions:
+            for impression in self.impressions:
+                if impression.cost:
+                    total_cost += float(impression.cost)
+        return total_cost
     
     def get_remaining_budget(self):
         """Calculate remaining budget"""
@@ -162,6 +165,21 @@ class Campaign(db.Model):
     
     def to_dict(self):
         """Convert model to dictionary for API responses"""
+        # Get ad count from database query
+        from sqlalchemy import func
+        from flask import current_app
+        
+        try:
+            # This is a safer approach than relying on non-existent relationships
+            ad_count = 0
+            with current_app.app_context():
+                from sqlalchemy.orm import Session
+                session = Session(db.engine)
+                ad_count_query = session.query(func.count(Advertisement.id)).filter_by(campaign_id=self.id).scalar()
+                ad_count = ad_count_query or 0
+        except:
+            ad_count = 0
+        
         return {
             'id': self.id,
             'name': self.name,
@@ -172,7 +190,7 @@ class Campaign(db.Model):
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None,
             'status': self.status,
-            'ad_count': len(self.advertisements),
+            'ad_count': ad_count,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }
@@ -262,27 +280,6 @@ class Advertisement(db.Model):
     is_rich_content = db.Column(db.Boolean, default=False, comment="Whether this ad uses rich HTML content")
     html_content = db.Column(db.Text, nullable=True, comment="Custom HTML content for the ad")
     
-    # Advanced targeting
-    geo_targeting = db.Column(db.String(255), nullable=True, comment="Comma-separated list of regions/countries")
-    user_segments = db.Column(db.String(255), nullable=True, comment="Comma-separated user segments: new, returning, premium")
-    frequency_cap = db.Column(db.Integer, nullable=True, comment="Maximum times to show ad to same user")
-    frequency_period = db.Column(db.String(20), nullable=True, default='day', comment="Period for frequency cap: hour, day, week, month, campaign")
-    
-    # Scheduling
-    schedule_days = db.Column(db.String(50), nullable=True, comment="Days of week: mon,tue,wed,thu,fri,sat,sun")
-    schedule_time_start = db.Column(db.Time, nullable=True, comment="Start time of day to show ad")
-    schedule_time_end = db.Column(db.Time, nullable=True, comment="End time of day to show ad")
-    
-    # Monetization
-    cpm = db.Column(db.Numeric(10, 2), nullable=True, comment="Cost per thousand impressions")
-    cpc = db.Column(db.Numeric(10, 2), nullable=True, comment="Cost per click")
-    estimated_revenue = db.Column(db.Numeric(10, 2), default=0, comment="Estimated revenue from this ad")
-    
-    # A/B testing
-    is_ab_test = db.Column(db.Boolean, default=False, comment="Whether this ad is part of an A/B test")
-    ab_test_name = db.Column(db.String(100), nullable=True, comment="Name of the A/B test")
-    ab_test_end_date = db.Column(db.DateTime, nullable=True, comment="When the A/B test ends")
-    
     # Constraints 
     start_date = db.Column(db.DateTime, nullable=True, comment="When to start showing this ad")
     end_date = db.Column(db.DateTime, nullable=True, comment="When to stop showing this ad")
@@ -292,9 +289,9 @@ class Advertisement(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Campaign association
-    campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=True)
-    template_name = db.Column(db.String(100), nullable=True, comment="Template used to create this ad")
+    # Campaign association - Create this column in the database if needed for campaign functionality
+    # Commented out until database migration is performed
+    # campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=True)
     
     # Relationships
     created_by = db.relationship('User', backref='advertisements')
@@ -321,6 +318,8 @@ class Advertisement(db.Model):
             'name': self.name,
             'description': self.description,
             'file_url': self.get_file_url(),
+            'file_path': self.file_path,
+            'file_type': self.file_type,
             'duration': self.duration,
             'placement': self.placement,
             'active': self.active,
@@ -328,6 +327,11 @@ class Advertisement(db.Model):
             'target_impressions': self.target_impressions,
             'total_impressions': self.total_impressions,
             'total_clicks': self.total_clicks,
+            'custom_message': self.custom_message,
+            'custom_image_path': self.custom_image_path,
+            'loading_duration': self.loading_duration,
+            'is_rich_content': self.is_rich_content,
+            'html_content': self.html_content,
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None,
             'created_at': self.created_at.isoformat(),
