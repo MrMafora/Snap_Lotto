@@ -1558,15 +1558,16 @@ def get_most_frequent_numbers(lottery_type=None, limit=10):
         ]
         return sample_data[:limit]
 
-def get_division_statistics(lottery_type=None):
+def get_division_statistics(lottery_type=None, max_divisions=5):
     """
-    Get statistics about winners by division.
+    Get statistics about winners by division, limited to the top divisions.
     
     Args:
         lottery_type (str, optional): Type of lottery to filter by
+        max_divisions (int, optional): Maximum number of divisions to return
         
     Returns:
-        dict: Dictionary with division statistics
+        dict: Dictionary with division statistics, limited to specified max divisions
     """
     from collections import defaultdict
     import logging
@@ -1628,18 +1629,25 @@ def get_division_statistics(lottery_type=None):
                     # Skip if division number can't be converted to int
                     continue
         
-        # Sort by division number
-        sorted_stats = {div: division_stats[div] for div in sorted(division_stats.keys())}
+        # Keep only divisions 1-5 (the main divisions)
+        limited_stats = {}
+        for div_num in range(1, max_divisions + 1):
+            if div_num in division_stats:
+                limited_stats[div_num] = division_stats[div_num]
+            else:
+                # If we're missing a division, add it with zero winners
+                # This ensures pie chart segments are properly created
+                limited_stats[div_num] = 0
         
         # Make sure we have at least some data for visualization
-        if len(sorted_stats) < 3:
-            logger.warning(f"Insufficient division data found: {len(sorted_stats)} divisions")
+        if sum(limited_stats.values()) < 10:
+            logger.warning(f"Insufficient division data found: total winners = {sum(limited_stats.values())}")
             
-            # If there's at least some data, return it
-            if sorted_stats:
-                return sorted_stats
+            # If there's at least some data and some winners, use it
+            if limited_stats and sum(limited_stats.values()) > 0:
+                return limited_stats
                 
-            # Otherwise return sample division statistics
+            # Otherwise return sample division statistics with 5 divisions
             return {
                 1: 5,      # Division 1 (jackpot) - few winners
                 2: 27,     # Division 2 - more winners
@@ -1648,7 +1656,7 @@ def get_division_statistics(lottery_type=None):
                 5: 2476    # Division 5 - most winners
             }
         
-        return sorted_stats
+        return limited_stats
         
     except Exception as e:
         logger.error(f"Error in get_division_statistics: {str(e)}")

@@ -190,14 +190,10 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     return False
             
             # Skip the header rows - real data starts at row 4
-            # Skip already imported data (if any were imported)
-            existing_count = LotteryResult.query.count()
-            if existing_count > 0:
-                logger.info(f"Found {existing_count} existing records. Will skip importing the first {existing_count} rows.")
-                # Skip the header rows (4) plus the number of already imported rows
-                df = df.iloc[4 + existing_count:].reset_index(drop=True)
-            else:
-                df = df.iloc[4:].reset_index(drop=True)
+            # Skip only the header rows (rows 0-3), never skip potential lottery data
+            # This ensures we always process ALL lottery records in the file
+            logger.info(f"Skipping header rows (first 4 rows) and processing all lottery data.")
+            df = df.iloc[4:].reset_index(drop=True)
             
             # Assign proper column names based on row 3
             column_names = {

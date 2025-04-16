@@ -272,14 +272,15 @@
                                     <!-- Base circle -->
                                     <circle cx="50" cy="50" r="40" fill="#f8f9fa" />
                                     
-                                    <!-- Division segments with data attributes -->
+                                    <!-- Division segments with data attributes - exactly 5 segments -->
                                     {% set colors_map = {'1': '#e03237', '2': '#ffe11d', '3': '#19a03a', '4': '#67c6ed', '5': '#6c757d'} %}
+                                    <!-- Each segment has an exact position in the pie chart, creating 5 equal divisions -->
                                     {% set positions = [
-                                        {'div': '4', 'path': 'M50,50 L90,50 A40,40 0 0,0 50,10 Z'},
                                         {'div': '1', 'path': 'M50,50 L90,50 A40,40 0 0,1 72,85 Z'}, 
                                         {'div': '2', 'path': 'M50,50 L72,85 A40,40 0 0,1 28,85 Z'}, 
-                                        {'div': '3', 'path': 'M50,50 L28,85 A40,40 0 0,1 10,50 L50,50 Z'}, 
-                                        {'div': '5', 'path': 'M50,50 L10,50 A40,40 0 0,1 50,10 Z'}
+                                        {'div': '3', 'path': 'M50,50 L28,85 A40,40 0 0,1 10,50 Z'}, 
+                                        {'div': '4', 'path': 'M50,50 L10,50 A40,40 0 0,1 50,10 Z'},
+                                        {'div': '5', 'path': 'M50,50 L50,10 A40,40 0 0,1 90,50 Z'}
                                     ] %}
                                     
                                     {% for pos in positions %}
