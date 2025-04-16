@@ -15,141 +15,193 @@
         </div>
     </div>
     
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <form action="{{ url_for('ad_management.upload_ad') }}" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                
-                <div class="row">
-                    <div class="col-md-8">
-                        <!-- Basic Information -->
-                        <h5 class="mb-3">Advertisement Details</h5>
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form action="{{ url_for('ad_management.upload_ad') }}" method="post" enctype="multipart/form-data" id="adUploadForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Advertisement Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="name" name="name" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                            <div class="form-text">A brief description of the advertisement</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="placement" class="form-label">Placement <span class="text-danger">*</span></label>
-                            <select class="form-select" id="placement" name="placement" required>
-                                <option value="scanner">Scanner (During Ticket Scanning)</option>
-                                <option value="results">Results (On Results Page)</option>
-                                <option value="header">Header (Top of Site)</option>
-                            </select>
-                            <div class="form-text">Where the advertisement will appear</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="duration" class="form-label">Duration (seconds) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="duration" name="duration" min="5" max="60" value="15" required>
-                            <div class="form-text">How long the advertisement will play (5-60 seconds)</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="campaign_id" class="form-label">Campaign</label>
-                            <select class="form-select" id="campaign_id" name="campaign_id">
-                                <option value="">No Campaign (Standalone Ad)</option>
-                                {% for campaign in campaigns %}
-                                    <option value="{{ campaign.id }}">{{ campaign.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <div class="form-text">Optionally assign to a campaign for grouped analytics</div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-4">
-                        <!-- File Upload -->
-                        <h5 class="mb-3">Advertisement Media</h5>
-                        
-                        <div class="mb-4">
-                            <label for="ad_file" class="form-label">Upload File <span class="text-danger">*</span></label>
-                            <input type="file" class="form-control" id="ad_file" name="ad_file" accept="video/mp4,video/webm,image/png,image/jpeg,image/gif" required>
-                            <div class="form-text">
-                                Accepted formats: MP4, WebM, PNG, JPEG, GIF<br>
-                                Maximum file size: 20MB
+                        <div class="row">
+                            <div class="col-md-6">
+                                <!-- Basic Information -->
+                                <h5 class="mb-3">Advertisement Details</h5>
+                                
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Advertisement Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                                    <div class="form-text">A brief description of the advertisement</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="placement" class="form-label">Placement <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="placement" name="placement" required>
+                                        <option value="">Select Placement</option>
+                                        <option value="scanner">Scanner (During Ticket Scanning)</option>
+                                        <option value="results">Results (On Results Page)</option>
+                                        <option value="header">Header (Top of Site)</option>
+                                    </select>
+                                    <div class="form-text">Where the advertisement will appear</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="duration" class="form-label">Duration (seconds) <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="duration" name="duration" min="5" max="60" value="15" required>
+                                    <div class="form-text">How long the advertisement will play (5-60 seconds)</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="campaign_id" class="form-label">Campaign</label>
+                                    <select class="form-select" id="campaign_id" name="campaign_id">
+                                        <option value="">No Campaign (Standalone Ad)</option>
+                                        {% for campaign in campaigns %}
+                                            <option value="{{ campaign.id }}" {% if request.args.get('campaign')|int == campaign.id %}selected{% endif %}>{{ campaign.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">Optionally assign to a campaign for grouped analytics</div>
+                                </div>
+                                
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                                    <label class="form-check-label" for="is_active">Active</label>
+                                    <div class="form-text">Uncheck to temporarily disable this advertisement</div>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="card bg-light mb-4">
-                            <div class="card-body">
-                                <h6 class="card-title"><i class="fas fa-info-circle me-2 text-primary"></i> File Recommendations</h6>
-                                <ul class="small mb-0">
-                                    <li>Video: MP4 format, 16:9 aspect ratio</li>
-                                    <li>Image: High-resolution PNG or JPEG</li>
-                                    <li>Animation: GIF with high frame rate</li>
-                                    <li>Keep file sizes under 10MB for optimal loading</li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        <div class="card bg-light">
-                            <div class="card-body">
-                                <h6 class="card-title"><i class="fas fa-exclamation-triangle me-2 text-warning"></i> Important Notice</h6>
-                                <p class="small mb-0">Ensure you have the rights to use any content uploaded. Advertisements must comply with our content guidelines and relevant advertising regulations.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Advanced Options (collapsible) -->
-                <div class="mb-4 mt-3">
-                    <a class="btn btn-outline-secondary mb-3" data-bs-toggle="collapse" href="#advancedOptions" role="button" aria-expanded="false" aria-controls="advancedOptions">
-                        <i class="fas fa-cog me-2"></i> Advanced Options
-                    </a>
-                    
-                    <div class="collapse" id="advancedOptions">
-                        <div class="card card-body bg-light">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6 class="mb-3">Scheduling</h6>
-                                    
-                                    <div class="mb-3">
-                                        <label for="start_date" class="form-label">Start Date</label>
-                                        <input type="date" class="form-control" id="start_date" name="start_date">
-                                        <div class="form-text">When to start showing this advertisement</div>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="end_date" class="form-label">End Date</label>
-                                        <input type="date" class="form-control" id="end_date" name="end_date">
-                                        <div class="form-text">When to stop showing this advertisement</div>
+                            
+                            <div class="col-md-6">
+                                <!-- File Upload -->
+                                <h5 class="mb-3">Upload Media</h5>
+                                
+                                <div class="mb-4">
+                                    <label for="ad_file" class="form-label">Advertisement File <span class="text-danger">*</span></label>
+                                    <input type="file" class="form-control" id="ad_file" name="ad_file" accept="video/mp4,video/webm,image/png,image/jpeg,image/gif" required>
+                                    <div class="form-text">
+                                        Accepted formats: MP4, WebM, PNG, JPEG, GIF<br>
+                                        Maximum file size: 20MB
                                     </div>
                                 </div>
                                 
-                                <div class="col-md-6">
-                                    <h6 class="mb-3">Loading Overlay</h6>
-                                    
-                                    <div class="mb-3">
-                                        <label for="custom_message" class="form-label">Custom Message</label>
-                                        <input type="text" class="form-control" id="custom_message" name="custom_message">
-                                        <div class="form-text">Custom message to display during loading</div>
+                                <div class="mb-4" id="previewContainer" style="display: none;">
+                                    <label class="form-label">Preview</label>
+                                    <div id="filePreview" class="border rounded p-2 text-center">
+                                        <!-- Preview will be inserted here -->
                                     </div>
-                                    
-                                    <div class="mb-3">
-                                        <label for="loading_duration" class="form-label">Loading Duration (seconds)</label>
-                                        <input type="number" class="form-control" id="loading_duration" name="loading_duration" min="3" max="15" value="10">
-                                        <div class="form-text">How long to show the loading overlay (3-15 seconds)</div>
-                                    </div>
+                                </div>
+                                
+                                <!-- Advanced Options -->
+                                <h5 class="mb-3 mt-4">Advanced Options</h5>
+                                
+                                <div class="mb-3">
+                                    <label for="start_date" class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date">
+                                    <div class="form-text">When to start showing this advertisement</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">End Date</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date">
+                                    <div class="form-text">When to stop showing this advertisement</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="custom_message" class="form-label">Custom Message</label>
+                                    <input type="text" class="form-control" id="custom_message" name="custom_message">
+                                    <div class="form-text">Custom message to display during loading</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="loading_duration" class="form-label">Loading Duration (seconds)</label>
+                                    <input type="number" class="form-control" id="loading_duration" name="loading_duration" min="3" max="15" value="10">
+                                    <div class="form-text">How long to show the loading overlay (3-15 seconds)</div>
                                 </div>
                             </div>
                         </div>
+                        
+                        <div class="text-end mt-4">
+                            <button type="button" class="btn btn-outline-secondary me-2" onclick="window.location.href='{{ url_for('ad_management.manage_ads') }}'">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-2"></i> Upload Advertisement
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">Upload Guidelines</h6>
+                </div>
+                <div class="card-body">
+                    <h6 class="mb-2">Advertisement Types</h6>
+                    <p class="small">We support two types of advertisements:</p>
+                    <ul class="small">
+                        <li><strong>Image Ads:</strong> Static images in PNG, JPEG, or GIF format</li>
+                        <li><strong>Video Ads:</strong> Video content in MP4 or WebM format</li>
+                    </ul>
+                    
+                    <hr>
+                    
+                    <h6 class="mb-2">Placement Guidelines</h6>
+                    <p class="small">Different ad placements have different requirements:</p>
+                    
+                    <div class="mb-3">
+                        <div class="fw-bold small">Scanner</div>
+                        <p class="small text-muted mb-1">
+                            Ads shown during ticket scanning process
+                        </p>
+                        <div class="small">
+                            <i class="fas fa-check-circle text-success me-1"></i> Recommended: Video (MP4) or animated GIF
+                        </div>
+                        <div class="small">
+                            <i class="fas fa-ruler text-secondary me-1"></i> Optimal dimensions: 640×360px (16:9)
+                        </div>
                     </div>
+                    
+                    <div class="mb-3">
+                        <div class="fw-bold small">Results</div>
+                        <p class="small text-muted mb-1">
+                            Ads shown on results pages
+                        </p>
+                        <div class="small">
+                            <i class="fas fa-check-circle text-success me-1"></i> Recommended: Image (PNG/JPEG) or short video
+                        </div>
+                        <div class="small">
+                            <i class="fas fa-ruler text-secondary me-1"></i> Optimal dimensions: 800×400px (2:1)
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="fw-bold small">Header</div>
+                        <p class="small text-muted mb-1">
+                            Ads shown at the top of pages
+                        </p>
+                        <div class="small">
+                            <i class="fas fa-check-circle text-success me-1"></i> Recommended: Image (PNG/JPEG)
+                        </div>
+                        <div class="small">
+                            <i class="fas fa-ruler text-secondary me-1"></i> Optimal dimensions: 970×90px (leaderboard)
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6 class="mb-2">Best Practices</h6>
+                    <ul class="small">
+                        <li>Keep file sizes under 5MB for optimal loading</li>
+                        <li>For videos, keep duration between 15-30 seconds</li>
+                        <li>Use high-contrast colors for better visibility</li>
+                        <li>Ensure text is legible on all screen sizes</li>
+                        <li>Set a start and end date for time-sensitive campaigns</li>
+                    </ul>
                 </div>
-                
-                <div class="text-end">
-                    <button type="button" class="btn btn-outline-secondary me-2" onclick="window.location.href='{{ url_for('ad_management.manage_ads') }}'">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i> Upload Advertisement
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
@@ -158,14 +210,71 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    // Preview file upload
+    // File upload validation and preview
     document.getElementById('ad_file').addEventListener('change', function() {
         const file = this.files[0];
+        const previewContainer = document.getElementById('previewContainer');
+        const filePreview = document.getElementById('filePreview');
+        
+        // Clear previous preview
+        filePreview.innerHTML = '';
+        
         if (file) {
+            // Validate file size
             if (file.size > 20 * 1024 * 1024) {
                 alert('File is too large. Maximum file size is 20MB.');
                 this.value = '';
+                previewContainer.style.display = 'none';
+                return;
             }
+            
+            // Show preview based on file type
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '200px';
+                img.className = 'img-fluid';
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                
+                filePreview.appendChild(img);
+                previewContainer.style.display = 'block';
+            } else if (file.type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.controls = true;
+                video.style.maxWidth = '100%';
+                video.style.maxHeight = '200px';
+                video.className = 'img-fluid';
+                
+                const source = document.createElement('source');
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    source.src = e.target.result;
+                    video.appendChild(source);
+                };
+                reader.readAsDataURL(file);
+                
+                filePreview.appendChild(video);
+                previewContainer.style.display = 'block';
+            } else {
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-file fa-4x text-secondary';
+                filePreview.appendChild(icon);
+                
+                const name = document.createElement('div');
+                name.textContent = file.name;
+                name.className = 'mt-2';
+                filePreview.appendChild(name);
+                
+                previewContainer.style.display = 'block';
+            }
+        } else {
+            previewContainer.style.display = 'none';
         }
     });
     
@@ -174,12 +283,14 @@
     const endDateInput = document.getElementById('end_date');
     
     endDateInput.addEventListener('change', function() {
-        const startDate = new Date(startDateInput.value);
-        const endDate = new Date(endDateInput.value);
-        
-        if (startDate > endDate) {
-            alert('End date cannot be earlier than start date');
-            endDateInput.value = '';
+        if (startDateInput.value) {
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+            
+            if (startDate > endDate) {
+                alert('End date cannot be earlier than start date');
+                endDateInput.value = '';
+            }
         }
     });
     
@@ -192,6 +303,50 @@
                 alert('End date cannot be earlier than start date');
                 endDateInput.value = '';
             }
+        }
+    });
+    
+    // Auto-select campaign if passed in URL
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const campaignId = urlParams.get('campaign');
+        
+        if (campaignId) {
+            const campaignSelect = document.getElementById('campaign_id');
+            
+            for (let i = 0; i < campaignSelect.options.length; i++) {
+                if (campaignSelect.options[i].value === campaignId) {
+                    campaignSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+    });
+    
+    // Form validation
+    document.getElementById('adUploadForm').addEventListener('submit', function(event) {
+        const nameInput = document.getElementById('name');
+        const placementInput = document.getElementById('placement');
+        const fileInput = document.getElementById('ad_file');
+        
+        let valid = true;
+        
+        if (!nameInput.value.trim()) {
+            alert('Please enter an advertisement name');
+            nameInput.focus();
+            valid = false;
+        } else if (!placementInput.value) {
+            alert('Please select a placement');
+            placementInput.focus();
+            valid = false;
+        } else if (!fileInput.files || fileInput.files.length === 0) {
+            alert('Please select a file to upload');
+            fileInput.focus();
+            valid = false;
+        }
+        
+        if (!valid) {
+            event.preventDefault();
         }
     });
 </script>

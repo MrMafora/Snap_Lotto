@@ -10,130 +10,175 @@
         </h1>
         <div>
             <a href="{{ url_for('ad_management.upload_ad') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i> New Advertisement
-            </a>
-            <a href="{{ url_for('ad_management.manage_campaigns') }}" class="btn btn-outline-success ms-2">
-                <i class="fas fa-folder me-2"></i> Campaigns
-            </a>
-            <a href="{{ url_for('ad_management.ad_performance') }}" class="btn btn-outline-info ms-2">
-                <i class="fas fa-chart-line me-2"></i> Performance
+                <i class="fas fa-plus me-2"></i> Upload New Ad
             </a>
         </div>
     </div>
     
-    <!-- Filter Controls -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6 mb-3 mb-md-0">
-                    <div class="d-flex">
-                        <a href="{{ url_for('ad_management.manage_ads') }}" class="btn btn-outline-secondary me-2{% if not status_filter and not placement_filter %} active{% endif %}">
-                            All <span class="badge bg-secondary ms-1">{{ counts.total }}</span>
-                        </a>
-                        <a href="{{ url_for('ad_management.manage_ads', status='active') }}" class="btn btn-outline-success me-2{% if status_filter == 'active' %} active{% endif %}">
-                            Active <span class="badge bg-success ms-1">{{ counts.active }}</span>
-                        </a>
-                        <a href="{{ url_for('ad_management.manage_ads', status='inactive') }}" class="btn btn-outline-secondary me-2{% if status_filter == 'inactive' %} active{% endif %}">
-                            Inactive <span class="badge bg-secondary ms-1">{{ counts.inactive }}</span>
-                        </a>
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4 mb-md-0">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold">Quick Analytics</h6>
+                    <a href="{{ url_for('ad_management.ad_performance') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-chart-line me-2"></i> Detailed Analytics
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 col-6 mb-4 mb-md-0">
+                            <div class="border rounded p-3">
+                                <div class="h5 mb-0">{{ total_impressions|default(0)|format_number }}</div>
+                                <div class="small text-muted">Total Impressions</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-4 mb-md-0">
+                            <div class="border rounded p-3">
+                                <div class="h5 mb-0">{{ total_clicks|default(0)|format_number }}</div>
+                                <div class="small text-muted">Total Clicks</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="border rounded p-3">
+                                <div class="h5 mb-0">{{ avg_ctr|default(0)|round(2) }}%</div>
+                                <div class="small text-muted">Average CTR</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="border rounded p-3">
+                                <div class="h5 mb-0">{{ active_ads|default(0) }}</div>
+                                <div class="small text-muted">Active Ads</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="d-flex justify-content-md-end">
-                        <a href="{{ url_for('ad_management.manage_ads', placement='scanner') }}" class="btn btn-outline-primary me-2{% if placement_filter == 'scanner' %} active{% endif %}">
-                            Scanner <span class="badge bg-primary ms-1">{{ counts.scanner }}</span>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('ad_management.manage_campaigns') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-bullhorn me-2"></i> Manage Campaigns
                         </a>
-                        <a href="{{ url_for('ad_management.manage_ads', placement='results') }}" class="btn btn-outline-success me-2{% if placement_filter == 'results' %} active{% endif %}">
-                            Results <span class="badge bg-success ms-1">{{ counts.results }}</span>
+                        <a href="{{ url_for('ad_management.upload_ad') }}" class="btn btn-outline-success">
+                            <i class="fas fa-upload me-2"></i> Upload New Ad
                         </a>
-                        <a href="{{ url_for('ad_management.manage_ads', placement='header') }}" class="btn btn-outline-info{% if placement_filter == 'header' %} active{% endif %}">
-                            Header <span class="badge bg-info ms-1">{{ counts.header }}</span>
-                        </a>
+                        <button class="btn btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
+                            <i class="fas fa-filter me-2"></i> Show Filters
+                        </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="collapse mb-4" id="filtersCollapse">
+        <div class="card shadow-sm">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold">Filter Advertisements</h6>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{{ url_for('ad_management.manage_ads') }}" id="filterForm">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="placement" class="form-label">Placement</label>
+                            <select class="form-select" id="placement" name="placement">
+                                <option value="">All Placements</option>
+                                <option value="scanner" {% if request.args.get('placement') == 'scanner' %}selected{% endif %}>Scanner</option>
+                                <option value="results" {% if request.args.get('placement') == 'results' %}selected{% endif %}>Results</option>
+                                <option value="header" {% if request.args.get('placement') == 'header' %}selected{% endif %}>Header</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label for="campaign_id" class="form-label">Campaign</label>
+                            <select class="form-select" id="campaign_id" name="campaign_id">
+                                <option value="">All Campaigns</option>
+                                <option value="none" {% if request.args.get('campaign_id') == 'none' %}selected{% endif %}>No Campaign</option>
+                                {% for campaign in campaigns %}
+                                    <option value="{{ campaign.id }}" {% if request.args.get('campaign_id')|int == campaign.id %}selected{% endif %}>{{ campaign.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="">All Status</option>
+                                <option value="active" {% if request.args.get('status') == 'active' %}selected{% endif %}>Active</option>
+                                <option value="inactive" {% if request.args.get('status') == 'inactive' %}selected{% endif %}>Inactive</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label for="sort" class="form-label">Sort By</label>
+                            <select class="form-select" id="sort" name="sort">
+                                <option value="id_desc" {% if not request.args.get('sort') or request.args.get('sort') == 'id_desc' %}selected{% endif %}>Newest First</option>
+                                <option value="id_asc" {% if request.args.get('sort') == 'id_asc' %}selected{% endif %}>Oldest First</option>
+                                <option value="impressions_desc" {% if request.args.get('sort') == 'impressions_desc' %}selected{% endif %}>Most Impressions</option>
+                                <option value="clicks_desc" {% if request.args.get('sort') == 'clicks_desc' %}selected{% endif %}>Most Clicks</option>
+                                <option value="ctr_desc" {% if request.args.get('sort') == 'ctr_desc' %}selected{% endif %}>Highest CTR</option>
+                                <option value="name_asc" {% if request.args.get('sort') == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
+                                <option value="name_desc" {% if request.args.get('sort') == 'name_desc' %}selected{% endif %}>Name (Z-A)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="search" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="search" name="search" value="{{ request.args.get('search', '') }}" placeholder="Search by name or description">
+                        </div>
+                        
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end w-100">
+                                <a href="{{ url_for('ad_management.manage_ads') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-undo me-2"></i> Reset
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-2"></i> Apply Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
     
     <!-- Advertisements Table -->
     <div class="card shadow-sm">
-        <div class="card-header py-3">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
             <h6 class="m-0 font-weight-bold">
-                {% if placement_filter %}
-                    {{ placement_filter|title }} Advertisements
-                {% elif status_filter %}
-                    {{ status_filter|title }} Advertisements
+                {% if filtered %}
+                    Filtered Advertisements 
+                    <span class="badge bg-primary">{{ ads|length }}</span>
                 {% else %}
-                    All Advertisements
+                    All Advertisements 
+                    <span class="badge bg-primary">{{ ads|length }}</span>
                 {% endif %}
             </h6>
-        </div>
-        <div class="card-body">
-            {% include 'admin/partials/ads_table.html' %}
-        </div>
-    </div>
-    
-    <!-- Ad Management Tips -->
-    <div class="card shadow-sm mt-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold">Advertisement Management Tips</h6>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-lg-4 mb-4">
-                    <div class="card h-100 border-left-primary pl-2">
-                        <div class="card-body">
-                            <h5 class="card-title text-primary">
-                                <i class="fas fa-video me-2"></i> Optimal Video Ads
-                            </h5>
-                            <p class="card-text">Keep video ads between 15-30 seconds for best user engagement. Use high-quality, engaging content with clear call-to-actions.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-4 mb-4">
-                    <div class="card h-100 border-left-success pl-2">
-                        <div class="card-body">
-                            <h5 class="card-title text-success">
-                                <i class="fas fa-bullseye me-2"></i> Strategic Placements
-                            </h5>
-                            <p class="card-text">Different placements serve different purposes. Scanner ads reach users checking tickets, while results ads target users viewing lottery outcomes.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-4 mb-4">
-                    <div class="card h-100 border-left-info pl-2">
-                        <div class="card-body">
-                            <h5 class="card-title text-info">
-                                <i class="fas fa-chart-pie me-2"></i> Performance Tracking
-                            </h5>
-                            <p class="card-text">Regularly review ad performance metrics. Test different ad variations and monitor CTR to optimize your advertising strategy.</p>
-                        </div>
-                    </div>
+            <div>
+                {% if filtered %}
+                    <a href="{{ url_for('ad_management.manage_ads') }}" class="btn btn-sm btn-outline-secondary me-2">
+                        <i class="fas fa-undo me-2"></i> Clear Filters
+                    </a>
+                {% endif %}
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary active" id="viewAll">All</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="viewActive">Active</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="viewInactive">Inactive</button>
                 </div>
             </div>
         </div>
-    </div>
-</div>
-
-<!-- Delete Ad Modal -->
-<div class="modal fade" id="deleteAdModal" tabindex="-1" aria-labelledby="deleteAdModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteAdModalLabel">Confirm Delete</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to delete this advertisement? This action cannot be undone.
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form action="{{ url_for('ad_management.delete_ad') }}" method="post">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="ad_id" id="deleteAdId">
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
-            </div>
+        <div class="card-body p-0">
+            {% include "admin/partials/ads_table.html" %}
         </div>
     </div>
 </div>
@@ -142,21 +187,83 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    // Handle delete ad modal
-    const deleteAdModal = document.getElementById('deleteAdModal');
-    deleteAdModal.addEventListener('show.bs.modal', function (event) {
-        const button = event.relatedTarget;
-        const adId = button.getAttribute('data-ad-id');
-        const adName = button.getAttribute('data-ad-name');
-        
-        // Update modal content
-        const modalTitle = this.querySelector('.modal-title');
-        const modalBody = this.querySelector('.modal-body');
-        const deleteAdIdInput = document.getElementById('deleteAdId');
-        
-        modalTitle.textContent = `Delete Advertisement`;
-        modalBody.innerHTML = `Are you sure you want to delete the advertisement <strong>${adName}</strong>?<br>This action cannot be undone.`;
-        deleteAdIdInput.value = adId;
+    // Apply filter on select change (for quick filtering)
+    document.getElementById('placement').addEventListener('change', function() {
+        if (this.value) {
+            document.getElementById('filterForm').submit();
+        }
     });
+    
+    document.getElementById('campaign_id').addEventListener('change', function() {
+        if (this.value) {
+            document.getElementById('filterForm').submit();
+        }
+    });
+    
+    document.getElementById('status').addEventListener('change', function() {
+        if (this.value) {
+            document.getElementById('filterForm').submit();
+        }
+    });
+    
+    document.getElementById('sort').addEventListener('change', function() {
+        document.getElementById('filterForm').submit();
+    });
+    
+    // Client-side quick filtering (show/hide rows)
+    document.getElementById('viewAll').addEventListener('click', function() {
+        toggleAdVisibility('all');
+        setActiveButton(this);
+    });
+    
+    document.getElementById('viewActive').addEventListener('click', function() {
+        toggleAdVisibility('active');
+        setActiveButton(this);
+    });
+    
+    document.getElementById('viewInactive').addEventListener('click', function() {
+        toggleAdVisibility('inactive');
+        setActiveButton(this);
+    });
+    
+    function toggleAdVisibility(filter) {
+        const rows = document.querySelectorAll('table tbody tr');
+        
+        rows.forEach(row => {
+            if (filter === 'all') {
+                row.style.display = '';
+            } else if (filter === 'active') {
+                const statusCell = row.querySelector('td:nth-child(9)');
+                if (statusCell && statusCell.textContent.trim().includes('Active')) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            } else if (filter === 'inactive') {
+                const statusCell = row.querySelector('td:nth-child(9)');
+                if (statusCell && statusCell.textContent.trim().includes('Inactive')) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+    }
+    
+    function setActiveButton(activeBtn) {
+        const buttons = document.querySelectorAll('#viewAll, #viewActive, #viewInactive');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        activeBtn.classList.add('active');
+    }
+    
+    // Show filters if any filter is applied
+    {% if filtered %}
+    document.addEventListener('DOMContentLoaded', function() {
+        const filtersCollapse = document.getElementById('filtersCollapse');
+        const bsCollapse = new bootstrap.Collapse(filtersCollapse, {
+            toggle: true
+        });
+    });
+    {% endif %}
 </script>
 {% endblock %}
