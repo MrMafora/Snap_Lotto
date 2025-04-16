@@ -456,17 +456,22 @@ def import_history():
         flash('You must be an admin to view import history.', 'danger')
         return redirect(url_for('index'))
     
-    # Get recent imports with pagination
-    page = request.args.get('page', 1, type=int)
-    per_page = 10
-    
-    # Get all import history records, newest first
-    imports = ImportHistory.query.order_by(ImportHistory.import_date.desc()).paginate(
-        page=page, per_page=per_page, error_out=False)
-    
-    return render_template('import_history.html',
-                          imports=imports,
-                          title="Import History")
+    try:
+        # Get recent imports with pagination
+        page = request.args.get('page', 1, type=int)
+        per_page = 10
+        
+        # Get all import history records, newest first
+        imports = ImportHistory.query.order_by(ImportHistory.import_date.desc()).paginate(
+            page=page, per_page=per_page, error_out=False)
+        
+        return render_template('import_history.html',
+                            imports=imports,
+                            title="Import History")
+    except Exception as e:
+        app.logger.error(f"Error retrieving import history: {str(e)}")
+        flash(f"Error loading import history: {str(e)}", 'danger')
+        return redirect(url_for('admin'))
 
 @app.route('/import-history/<int:import_id>')
 @login_required
@@ -476,24 +481,29 @@ def import_details(import_id):
         flash('You must be an admin to view import details.', 'danger')
         return redirect(url_for('index'))
     
-    # Get the import record
-    import_record = ImportHistory.query.get_or_404(import_id)
-    
-    # Get all records that were imported in this batch
-    imported_records = ImportedRecord.query.filter_by(import_id=import_id).all()
-    
-    # Group records by lottery type for easier display
-    records_by_type = {}
-    for record in imported_records:
-        lottery_type = record.lottery_type
-        if lottery_type not in records_by_type:
-            records_by_type[lottery_type] = []
-        records_by_type[lottery_type].append(record)
-    
-    return render_template('import_details.html',
-                          import_record=import_record,
-                          records_by_type=records_by_type,
-                          title=f"Import Details - {import_record.import_date.strftime('%Y-%m-%d %H:%M')}")
+    try:
+        # Get the import record
+        import_record = ImportHistory.query.get_or_404(import_id)
+        
+        # Get all records that were imported in this batch
+        imported_records = ImportedRecord.query.filter_by(import_id=import_id).all()
+        
+        # Group records by lottery type for easier display
+        records_by_type = {}
+        for record in imported_records:
+            lottery_type = record.lottery_type
+            if lottery_type not in records_by_type:
+                records_by_type[lottery_type] = []
+            records_by_type[lottery_type].append(record)
+        
+        return render_template('import_details.html',
+                              import_record=import_record,
+                              records_by_type=records_by_type,
+                              title=f"Import Details - {import_record.import_date.strftime('%Y-%m-%d %H:%M')}")
+    except Exception as e:
+        app.logger.error(f"Error retrieving import details: {str(e)}")
+        flash(f"Error loading import details: {str(e)}", 'danger')
+        return redirect(url_for('import_history'))
 
 @app.route('/import-data', methods=['GET', 'POST'])
 @login_required
@@ -690,12 +700,21 @@ def import_data():
     example_results = {}
     lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 
                      'Powerball', 'Powerball Plus', 'Daily Lotto']
-                     
-    for lottery_type in lottery_types:
-        results = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(
-            LotteryResult.draw_date.desc()).limit(5).all()
-        if results:
-            example_results[lottery_type] = results
+    
+    try:                 
+        for lottery_type in lottery_types:
+            try:
+                results = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(
+                    LotteryResult.draw_date.desc()).limit(5).all()
+                if results:
+                    example_results[lottery_type] = results
+            except Exception as e:
+                app.logger.error(f"Error retrieving example results for {lottery_type}: {str(e)}")
+                # Continue with other lottery types even if one fails
+                continue
+    except Exception as e:
+        app.logger.error(f"Database error in import_data: {str(e)}")
+        # If we can't get any example results, proceed without them
     
     return render_template('import_data.html', 
                            import_stats=import_stats,
