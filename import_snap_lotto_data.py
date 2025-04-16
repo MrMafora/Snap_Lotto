@@ -249,7 +249,15 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     
                     # Daily Lotto has no bonus balls - handle it differently
                     bonus_ball = []
-                    if lottery_type != "Daily Lotto":
+                    # Ensure Daily Lotto has exactly 5 numbers
+                    if lottery_type == "Daily Lotto":
+                        # Limit Daily Lotto to exactly 5 numbers
+                        if len(winning_numbers) > 5:
+                            logger.warning(f"Daily Lotto draw {draw_number} has {len(winning_numbers)} numbers, limiting to first 5")
+                            winning_numbers = winning_numbers[:5]
+                        elif len(winning_numbers) < 5:
+                            logger.warning(f"Daily Lotto draw {draw_number} has only {len(winning_numbers)} numbers, expected 5")
+                    else:
                         bonus_ball = parse_numbers(row['bonus_ball']) if 'bonus_ball' in row and not pd.isna(row['bonus_ball']) else []
                     
                     # Skip rows with missing winning numbers

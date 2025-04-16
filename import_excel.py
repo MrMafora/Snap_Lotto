@@ -248,6 +248,14 @@ def import_excel_data(excel_file, flask_app=None):
                         logger.warning(f"Skipping row {idx+2} due to invalid numbers: {numbers_str}")
                         continue
                     
+                    # Ensure Daily Lotto has exactly 5 numbers
+                    if lottery_type == "Daily Lotto":
+                        if len(numbers) > 5:
+                            logger.warning(f"Daily Lotto draw {draw_number} has {len(numbers)} numbers, limiting to first 5")
+                            numbers = numbers[:5]
+                        elif len(numbers) < 5:
+                            logger.warning(f"Daily Lotto draw {draw_number} has only {len(numbers)} numbers, expected 5")
+                    
                     # Parse bonus numbers
                     bonus_numbers = parse_numbers(bonus_numbers_str) if bonus_numbers_str else []
                     
@@ -420,7 +428,7 @@ def create_empty_template(output_path):
                 'Game Type': lottery_type,
                 'Draw Number': '1234',
                 'Draw Date': '2025-01-01',
-                'Winning Numbers': '1, 2, 3, 4, 5, 6',
+                'Winning Numbers': '1, 2, 3, 4, 5, 6' if lottery_type != 'Daily Lotto' else '1, 2, 3, 4, 5',
                 'Bonus Number': '7' if lottery_type != 'Daily Lotto' else '',
                 'Division 1 Prize': 'R1,000,000.00',
                 'Division 1 Winners': '1',
