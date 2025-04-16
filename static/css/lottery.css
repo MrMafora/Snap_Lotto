@@ -342,3 +342,60 @@
     min-height: 250px;
     margin: 20px 0;
 }
+
+/* Data Analytics Preview - Mobile Responsive Fixes */
+@media (max-width: 576px) {
+    /* Fix for pie chart and data analytics container on mobile */
+    .data-analytics-preview {
+        overflow-x: hidden;
+        width: 100%;
+    }
+    
+    /* Make charts container full width */
+    .data-analytics-preview .row {
+        display: block;
+        width: 100%;
+    }
+    
+    /* Adjust layout for frequency chart */
+    .data-analytics-preview .frequency-chart-container {
+        width: 100%;
+        margin-bottom: 30px;
+    }
+    
+    /* Fix pie chart layout */
+    .data-analytics-preview .winners-chart-container {
+        width: 100% !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    /* Make chart and legend container responsive */
+    .data-analytics-preview .chart-legend-container {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    /* Center SVG pie chart */
+    .data-analytics-preview svg {
+        max-width: 120px;
+        height: auto;
+        margin: 0 auto;
+    }
+    
+    /* Make legend horizontal on very small screens */
+    @media (max-width: 320px) {
+        .data-analytics-preview .legend-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .data-analytics-preview .legend-item {
+            margin: 2px 5px;
+        }
+    }
+}

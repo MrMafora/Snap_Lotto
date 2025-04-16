@@ -131,16 +131,16 @@
     </div>
 </div>
 
-<div class="card mb-4">
+<div class="card mb-4 data-analytics-preview">
     <div class="card-header lottery-header">
         <h5 class="card-title mb-0">DATA ANALYTICS PREVIEW</h5>
     </div>
     <div class="card-body">
         <div class="row">
-            <!-- Flex container for both charts on the same line -->
-            <div class="d-flex align-items-start justify-content-between" style="width: 100%;">
+            <!-- Flex container for both charts on the same line, column on mobile -->
+            <div class="d-flex align-items-start justify-content-between flex-wrap" style="width: 100%;">
                 <!-- Left chart: Most Frequent Numbers -->
-                <div style="width: 55%;">
+                <div class="frequency-chart-container" style="width: 55%;">
                     <h6 class="mb-2">Most Frequent Numbers</h6>
                     <!-- SVG bar chart with perfect alignment between bars and numbers -->
                     <div class="bar-chart-container" style="position: relative; width: 100%; height: 170px;">
@@ -227,13 +227,13 @@
                 </div>
                 
                 <!-- Right chart: Winners By Division -->
-                <div style="width: 40%;">
+                <div class="winners-chart-container" style="width: 40%;">
                     <h6 class="mb-2" style="text-align: left;">Winners By Division</h6>
                     <!-- Chart container with pie chart and legend side by side -->
-                    <div style="display: flex; align-items: center; margin-top: 10px;">
-                        <!-- Pie chart with fixed width -->
-                        <div style="width: 150px; height: 150px;">
-                            <svg width="150" height="150" viewBox="0 0 100 100">
+                    <div class="chart-legend-container" style="display: flex; align-items: center; margin-top: 10px; flex-wrap: wrap;">
+                        <!-- Pie chart with responsive width -->
+                        <div class="pie-chart-container" style="width: 140px; height: 140px; max-width: 100%;">
+                            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
                                 <!-- Simple pie chart using more reliable circle segments -->
                                 <!-- Base circle -->
                                 <circle cx="50" cy="50" r="40" fill="#f8f9fa" />
@@ -255,21 +255,21 @@
                             </svg>
                         </div>
                         
-                        <!-- Legend with vertical layout -->
-                        <div style="display: flex; flex-direction: column; margin-left: 10px; margin-top: 15px;">
-                            <div style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
+                        <!-- Legend with vertical layout that becomes more compact on mobile -->
+                        <div class="legend-container" style="display: flex; flex-direction: column; margin-left: 10px; margin-top: 15px;">
+                            <div class="legend-item" style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
                                 <span style="display: inline-block; width: 10px; height: 10px; background-color: #e03237; margin-right: 3px;"></span> Division 1
                             </div>
-                            <div style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
+                            <div class="legend-item" style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
                                 <span style="display: inline-block; width: 10px; height: 10px; background-color: #ffe11d; margin-right: 3px;"></span> Division 2
                             </div>
-                            <div style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
+                            <div class="legend-item" style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
                                 <span style="display: inline-block; width: 10px; height: 10px; background-color: #19a03a; margin-right: 3px;"></span> Division 3
                             </div>
-                            <div style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
+                            <div class="legend-item" style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
                                 <span style="display: inline-block; width: 10px; height: 10px; background-color: #67c6ed; margin-right: 3px;"></span> Division 4
                             </div>
-                            <div style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
+                            <div class="legend-item" style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
                                 <span style="display: inline-block; width: 10px; height: 10px; background-color: #adb5bd; margin-right: 3px;"></span> Division 5
                             </div>
                         </div>
