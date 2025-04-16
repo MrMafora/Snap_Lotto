@@ -515,3 +515,45 @@
         margin: 3px 6px;
     }
 }
+
+/* Screenshot Gallery Card Improvements */
+.gallery-card {
+    transition: box-shadow 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.125);
+}
+
+.gallery-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.gallery-image-container {
+    height: 200px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+}
+
+.gallery-image-container img {
+    object-fit: contain;
+    max-height: 100%;
+    width: 100%;
+}
+
+.gallery-card .card-body {
+    padding: 1rem;
+    height: 100%;
+}
+
+.gallery-card .card-title {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gallery-card .btn {
+    transition: all 0.2s ease;
+}
