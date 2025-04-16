@@ -32,6 +32,11 @@ app = Flask(__name__)
 app.config.from_object(Config)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+# Add custom Jinja2 filters for math functions needed by charts
+import math
+app.jinja_env.filters['cos'] = lambda x: math.cos(float(x))
+app.jinja_env.filters['sin'] = lambda x: math.sin(float(x))
+
 # Explicitly set database URI from environment variable
 database_url = os.environ.get('DATABASE_URL')
 if database_url:

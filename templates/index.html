@@ -157,72 +157,40 @@
                         
                         <!-- Chart area with grid line -->
                         <div style="position: absolute; left: 30px; right: 0; top: 5px; bottom: 40px; border-bottom: 1px solid #ddd; border-left: 1px solid #ddd;">
-                            <!-- Bar chart with exact positioning -->
+                            <!-- Bar chart with exact positioning using dynamic data -->
                             <div style="display: flex; justify-content: space-around; height: 100%; width: 100%;">
-                                <!-- 16 - Blue -->
-                                <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                    <div style="height: 90px; width: 100%; background-color: #67c6ed; border-radius: 2px;"></div>
-                                </div>
-                                
-                                <!-- 24 - Blue -->
-                                <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                    <div style="height: 85px; width: 100%; background-color: #67c6ed; border-radius: 2px;"></div>
-                                </div>
-                                
-                                <!-- 2 - Green -->
-                                <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                    <div style="height: 65px; width: 100%; background-color: #19a03a; border-radius: 2px;"></div>
-                                </div>
-                                
-                                <!-- 23 - Green -->
-                                <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                    <div style="height: 55px; width: 100%; background-color: #19a03a; border-radius: 2px;"></div>
-                                </div>
-                                
-                                <!-- 38 - Yellow -->
-                                <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                    <div style="height: 45px; width: 100%; background-color: #ffe11d; border-radius: 2px;"></div>
-                                </div>
-                                
-                                <!-- 7 - Yellow -->
-                                <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                    <div style="height: 30px; width: 100%; background-color: #ffe11d; border-radius: 2px;"></div>
-                                </div>
-                                
-                                <!-- 32 - Red -->
-                                <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                    <div style="height: 25px; width: 100%; background-color: #e03237; border-radius: 2px;"></div>
-                                </div>
-                                
-                                <!-- 1 - Red -->
-                                <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                    <div style="height: 20px; width: 100%; background-color: #e03237; border-radius: 2px;"></div>
-                                </div>
-                                
-                                <!-- 17 - Red -->
-                                <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                    <div style="height: 15px; width: 100%; background-color: #e03237; border-radius: 2px;"></div>
-                                </div>
-                                
-                                <!-- 28 - Yellow -->
-                                <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                    <div style="height: 8px; width: 100%; background-color: #ffe11d; border-radius: 2px;"></div>
-                                </div>
+                                {% if frequent_numbers %}
+                                    {% set max_height = 90 %}
+                                    {% set max_frequency = frequent_numbers[0][1] if frequent_numbers|length > 0 else 1 %}
+                                    {% for number, frequency in frequent_numbers %}
+                                        <!-- Calculate height based on frequency relative to max -->
+                                        {% set bar_height = (frequency / max_frequency * max_height)|int %}
+                                        {% if bar_height < 5 %}{% set bar_height = 5 %}{% endif %}
+                                        
+                                        <!-- Assign color based on position -->
+                                        {% set colors = ['#e03237', '#ffe11d', '#19a03a', '#67c6ed'] %}
+                                        {% set color_index = loop.index0 % 4 %}
+                                        
+                                        <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
+                                            <div style="height: {{ bar_height }}px; width: 100%; background-color: {{ colors[color_index] }}; border-radius: 2px;"></div>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <!-- Fallback if no data available -->
+                                    <div class="text-center" style="width: 100%;">
+                                        <p>No frequency data available</p>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                         
                         <!-- X-axis labels in separate section below the chart -->
                         <div style="position: absolute; left: 30px; right: 0; bottom: 0; height: 30px; display: flex; justify-content: space-around; padding: 5px 0;">
-                            <div style="font-size: 11px; text-align: center; width: 9%;">16</div>
-                            <div style="font-size: 11px; text-align: center; width: 9%;">24</div>
-                            <div style="font-size: 11px; text-align: center; width: 9%;">2</div>
-                            <div style="font-size: 11px; text-align: center; width: 9%;">23</div>
-                            <div style="font-size: 11px; text-align: center; width: 9%;">38</div>
-                            <div style="font-size: 11px; text-align: center; width: 9%;">7</div>
-                            <div style="font-size: 11px; text-align: center; width: 9%;">32</div>
-                            <div style="font-size: 11px; text-align: center; width: 9%;">1</div>
-                            <div style="font-size: 11px; text-align: center; width: 9%;">17</div>
-                            <div style="font-size: 11px; text-align: center; width: 9%;">28</div>
+                            {% if frequent_numbers %}
+                                {% for number, frequency in frequent_numbers %}
+                                    <div style="font-size: 11px; text-align: center; width: 9%;">{{ number }}</div>
+                                {% endfor %}
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -232,47 +200,45 @@
                     <h6 class="mb-2" style="text-align: left;">Winners By Division</h6>
                     <!-- Chart container with pie chart and legend side by side -->
                     <div class="chart-legend-container">
-                        <!-- Pie chart with responsive width -->
+                        <!-- Pie chart with responsive width using dynamic data -->
                         <div class="pie-chart-container">
-                            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                                <!-- Simple pie chart using more reliable circle segments -->
-                                <!-- Base circle -->
-                                <circle cx="50" cy="50" r="40" fill="#f8f9fa" />
-                                
-                                <!-- Division 4 (Blue - 45%) - Top right -->
-                                <path d="M50,50 L90,50 A40,40 0 0,0 50,10 Z" fill="#67c6ed" />
-                                
-                                <!-- Division 1 (Red - 15%) - Bottom right -->
-                                <path d="M50,50 L90,50 A40,40 0 0,1 72,85 Z" fill="#e03237" />
-                                
-                                <!-- Division 2 (Yellow - 20%) - Bottom -->
-                                <path d="M50,50 L72,85 A40,40 0 0,1 28,85 Z" fill="#ffe11d" />
-                                
-                                <!-- Division 3 (Green - 20%) - Bottom left to left -->
-                                <path d="M50,50 L28,85 A40,40 0 0,1 10,50 L50,50 Z" fill="#19a03a" />
-                                
-                                <!-- Division 5 (Gray - hidden in this view) -->
-                                <path d="M50,50 L10,50 A40,40 0 0,1 50,10 Z" fill="#f8f9fa" />
-                            </svg>
+                            {% if division_stats %}
+                                <!-- Simple static pie chart with division data shown in legend -->
+                                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                                    <!-- Base circle -->
+                                    <circle cx="50" cy="50" r="40" fill="#f8f9fa" />
+                                    
+                                    <!-- Division segments - simplified representation -->
+                                    <path d="M50,50 L90,50 A40,40 0 0,0 50,10 Z" fill="#67c6ed" />
+                                    <path d="M50,50 L90,50 A40,40 0 0,1 72,85 Z" fill="#e03237" />
+                                    <path d="M50,50 L72,85 A40,40 0 0,1 28,85 Z" fill="#ffe11d" />
+                                    <path d="M50,50 L28,85 A40,40 0 0,1 10,50 L50,50 Z" fill="#19a03a" />
+                                    <path d="M50,50 L10,50 A40,40 0 0,1 50,10 Z" fill="#6c757d" />
+                                </svg>
+                            {% else %}
+                                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                                    <circle cx="50" cy="50" r="40" fill="#f8f9fa" />
+                                    <text x="50" y="50" text-anchor="middle" dominant-baseline="middle" fill="#6c757d" font-size="6">No data</text>
+                                </svg>
+                            {% endif %}
                         </div>
                         
                         <!-- Legend with vertical layout that becomes more compact on mobile -->
                         <div class="legend-container">
-                            <div class="legend-item">
-                                <span class="legend-color legend-color-d1"></span> Division 1
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color legend-color-d2"></span> Division 2
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color legend-color-d3"></span> Division 3
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color legend-color-d4"></span> Division 4
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color legend-color-d5"></span> Division 5
-                            </div>
+                            {% set colors = {'1': 'legend-color-d1', '2': 'legend-color-d2', '3': 'legend-color-d3', '4': 'legend-color-d4', '5': 'legend-color-d5'} %}
+                            
+                            {% if division_stats %}
+                                {% for div_num, winners in division_stats.items()|sort %}
+                                    {% set class_name = colors.get(div_num|string, 'legend-color-default') %}
+                                    <div class="legend-item">
+                                        <span class="legend-color {{ class_name }}"></span> Division {{ div_num }} 
+                                        <small>({{ winners }} winners)</small>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <!-- Fallback if no division data -->
+                                <div class="legend-item">No division data available</div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
