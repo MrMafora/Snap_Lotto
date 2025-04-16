@@ -695,12 +695,14 @@ def retake_screenshot_by_id(screenshot_id, app=None):
         traceback.print_exc()
         return False
         
-def retake_all_screenshots(app=None):
+def retake_all_screenshots(app=None, use_threading=False):
     """
     Retake all screenshots for each configured URL.
     
     Args:
         app: Flask app context (optional)
+        use_threading: Whether to use threading for processing screenshots.
+                      Set to False for sync operations from UI, True for scheduled tasks.
     
     Returns:
         int: Number of screenshots captured
@@ -715,10 +717,23 @@ def retake_all_screenshots(app=None):
             
         logger.info(f"Retaking screenshots for {len(configs)} configurations")
         count = 0
+        results = []
         
-        for config in configs:
-            if take_screenshot_threaded(config.url, config.lottery_type):
-                count += 1
+        # When called from the UI, we want to wait for screenshots to complete
+        if not use_threading:
+            for config in configs:
+                # Call the worker function directly, not through a thread
+                success = _take_screenshot_worker(config.url, config.lottery_type)
+                if success:
+                    count += 1
+                    logger.info(f"Successfully captured screenshot for {config.lottery_type}")
+                else:
+                    logger.warning(f"Failed to capture screenshot for {config.lottery_type}")
+        else:
+            # For scheduled tasks, use threads for parallel processing
+            for config in configs:
+                if take_screenshot_threaded(config.url, config.lottery_type):
+                    count += 1
                 
         logger.info(f"Successfully retook {count} screenshots")
         return count

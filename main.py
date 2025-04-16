@@ -1007,8 +1007,8 @@ def sync_all_screenshots():
         return redirect(url_for('index'))
     
     try:
-        # Use the screenshot_manager to retake all screenshots
-        count = screenshot_manager.retake_all_screenshots(app)
+        # Use the screenshot_manager to retake all screenshots synchronously (don't use threading for UI operations)
+        count = screenshot_manager.retake_all_screenshots(app, use_threading=False)
         
         # Store status in session for display on next page load
         if count > 0:

@@ -69,6 +69,9 @@
                             </div>
                             <div class="card-body">
                                 <p>Refresh all screenshots from source URLs</p>
+                                <div class="alert alert-info small">
+                                    <i class="fas fa-info-circle me-1"></i> This process may take a minute or two to complete. Please be patient as all screenshots are synchronized.
+                                </div>
                                 <form action="{{ url_for('sync_all_screenshots') }}" method="POST">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-warning">
@@ -115,7 +118,6 @@
                             <div class="gallery-image-container">
                                 <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" target="_blank">
                                     <img src="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
-                                         class="card-img-top img-fluid" 
                                          alt="{{ screenshot.lottery_type }} screenshot">
                                 </a>
                             </div>
