@@ -4,165 +4,159 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <h1 class="mb-4">
-        <i class="fas fa-ad me-2"></i> Advertisement Management
-    </h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-ad me-2"></i> Advertisement Management
+        </h1>
+        <div>
+            <a href="{{ url_for('ad_management.upload_ad') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i> New Advertisement
+            </a>
+            <a href="{{ url_for('ad_management.manage_campaigns') }}" class="btn btn-outline-success ms-2">
+                <i class="fas fa-folder me-2"></i> Campaigns
+            </a>
+            <a href="{{ url_for('ad_management.ad_performance') }}" class="btn btn-outline-info ms-2">
+                <i class="fas fa-chart-line me-2"></i> Performance
+            </a>
+        </div>
+    </div>
     
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">Total Performance</h5>
-                    <div class="row text-center">
-                        <div class="col-sm-4 mb-3">
-                            <h2 class="text-primary mb-0">{{ total_ads }}</h2>
-                            <small class="text-muted">Total Ads</small>
+    <!-- Filter Controls -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <div class="d-flex">
+                        <a href="{{ url_for('ad_management.manage_ads') }}" class="btn btn-outline-secondary me-2{% if not status_filter and not placement_filter %} active{% endif %}">
+                            All <span class="badge bg-secondary ms-1">{{ counts.total }}</span>
+                        </a>
+                        <a href="{{ url_for('ad_management.manage_ads', status='active') }}" class="btn btn-outline-success me-2{% if status_filter == 'active' %} active{% endif %}">
+                            Active <span class="badge bg-success ms-1">{{ counts.active }}</span>
+                        </a>
+                        <a href="{{ url_for('ad_management.manage_ads', status='inactive') }}" class="btn btn-outline-secondary me-2{% if status_filter == 'inactive' %} active{% endif %}">
+                            Inactive <span class="badge bg-secondary ms-1">{{ counts.inactive }}</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-md-end">
+                        <a href="{{ url_for('ad_management.manage_ads', placement='scanner') }}" class="btn btn-outline-primary me-2{% if placement_filter == 'scanner' %} active{% endif %}">
+                            Scanner <span class="badge bg-primary ms-1">{{ counts.scanner }}</span>
+                        </a>
+                        <a href="{{ url_for('ad_management.manage_ads', placement='results') }}" class="btn btn-outline-success me-2{% if placement_filter == 'results' %} active{% endif %}">
+                            Results <span class="badge bg-success ms-1">{{ counts.results }}</span>
+                        </a>
+                        <a href="{{ url_for('ad_management.manage_ads', placement='header') }}" class="btn btn-outline-info{% if placement_filter == 'header' %} active{% endif %}">
+                            Header <span class="badge bg-info ms-1">{{ counts.header }}</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Advertisements Table -->
+    <div class="card shadow-sm">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">
+                {% if placement_filter %}
+                    {{ placement_filter|title }} Advertisements
+                {% elif status_filter %}
+                    {{ status_filter|title }} Advertisements
+                {% else %}
+                    All Advertisements
+                {% endif %}
+            </h6>
+        </div>
+        <div class="card-body">
+            {% include 'admin/partials/ads_table.html' %}
+        </div>
+    </div>
+    
+    <!-- Ad Management Tips -->
+    <div class="card shadow-sm mt-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Advertisement Management Tips</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <div class="card h-100 border-left-primary pl-2">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">
+                                <i class="fas fa-video me-2"></i> Optimal Video Ads
+                            </h5>
+                            <p class="card-text">Keep video ads between 15-30 seconds for best user engagement. Use high-quality, engaging content with clear call-to-actions.</p>
                         </div>
-                        <div class="col-sm-4 mb-3">
-                            <h2 class="text-success mb-0">{{ total_impressions }}</h2>
-                            <small class="text-muted">Impressions</small>
+                    </div>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <div class="card h-100 border-left-success pl-2">
+                        <div class="card-body">
+                            <h5 class="card-title text-success">
+                                <i class="fas fa-bullseye me-2"></i> Strategic Placements
+                            </h5>
+                            <p class="card-text">Different placements serve different purposes. Scanner ads reach users checking tickets, while results ads target users viewing lottery outcomes.</p>
                         </div>
-                        <div class="col-sm-4 mb-3">
-                            <h2 class="text-info mb-0">{{ total_clicks }}</h2>
-                            <small class="text-muted">Clicks</small>
+                    </div>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <div class="card h-100 border-left-info pl-2">
+                        <div class="card-body">
+                            <h5 class="card-title text-info">
+                                <i class="fas fa-chart-pie me-2"></i> Performance Tracking
+                            </h5>
+                            <p class="card-text">Regularly review ad performance metrics. Test different ad variations and monitor CTR to optimize your advertising strategy.</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">Actions</h5>
-                    <a href="{{ url_for('upload_ad') }}" class="btn btn-primary me-2 mb-2">
-                        <i class="fas fa-plus me-2"></i> Upload New Ad
-                    </a>
-                    <a href="{{ url_for('ad_impressions') }}" class="btn btn-secondary me-2 mb-2">
-                        <i class="fas fa-eye me-2"></i> View Impressions
-                    </a>
-                    <a href="{{ url_for('ad_performance') }}" class="btn btn-info mb-2">
-                        <i class="fas fa-chart-line me-2"></i> Analytics
-                    </a>
-                </div>
-            </div>
-        </div>
     </div>
-    
-    <div class="card shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Advertisement Inventory</h5>
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    Filter by Placement
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="filterDropdown">
-                    <li><a class="dropdown-item" href="{{ url_for('manage_ads') }}">All Placements</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('manage_ads', placement='scanner') }}">Scanner</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('manage_ads', placement='results') }}">Results</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('manage_ads', placement='homepage') }}">Homepage</a></li>
-                </ul>
+</div>
+
+<!-- Delete Ad Modal -->
+<div class="modal fade" id="deleteAdModal" tabindex="-1" aria-labelledby="deleteAdModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteAdModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </div>
-        
-        <div class="card-body">
-            {% if ads %}
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Placement</th>
-                                <th>Duration</th>
-                                <th>Status</th>
-                                <th>Impressions</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for ad in ads %}
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="ad-thumbnail me-2" style="width: 60px; height: 40px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
-                                            <i class="fas fa-film text-secondary"></i>
-                                        </div>
-                                        <div>
-                                            <strong>{{ ad.name }}</strong>
-                                            <div class="small text-muted">{{ ad.created_at.strftime('%b %d, %Y') }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    {% if ad.placement == 'scanner' %}
-                                        <span class="badge bg-primary">Scanner</span>
-                                    {% elif ad.placement == 'results' %}
-                                        <span class="badge bg-success">Results</span>
-                                    {% elif ad.placement == 'homepage' %}
-                                        <span class="badge bg-warning">Homepage</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">{{ ad.placement }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ ad.duration }}s</td>
-                                <td>
-                                    {% if ad.active %}
-                                        <span class="badge bg-success">Active</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ ad.total_impressions }}</td>
-                                <td>
-                                    <div class="btn-group">
-                                        <a href="{{ url_for('preview_ad', ad_id=ad.id) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{{ url_for('edit_ad', ad_id=ad.id) }}" class="btn btn-sm btn-outline-secondary">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal-{{ ad.id }}">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            
-                            <!-- Delete Modal for each ad -->
-                            <div class="modal fade" id="deleteModal-{{ ad.id }}" tabindex="-1" aria-labelledby="deleteModalLabel-{{ ad.id }}" aria-hidden="true">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title" id="deleteModalLabel-{{ ad.id }}">Confirm Deletion</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            Are you sure you want to delete the advertisement "<strong>{{ ad.name }}</strong>"? This action cannot be undone.
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <form action="{{ url_for('delete_ad') }}" method="post">
-                                                <input type="hidden" name="ad_id" value="{{ ad.id }}">
-                                                <button type="submit" class="btn btn-danger">Delete</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <div class="text-center py-5">
-                    <i class="fas fa-ad fa-4x mb-3 text-secondary"></i>
-                    <h5 class="text-muted">No advertisements found</h5>
-                    <p class="text-muted">Upload your first advertisement to get started</p>
-                    <a href="{{ url_for('upload_ad') }}" class="btn btn-primary mt-2">
-                        <i class="fas fa-plus me-2"></i> Upload New Ad
-                    </a>
-                </div>
-            {% endif %}
+            <div class="modal-body">
+                Are you sure you want to delete this advertisement? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('ad_management.delete_ad') }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="ad_id" id="deleteAdId">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Handle delete ad modal
+    const deleteAdModal = document.getElementById('deleteAdModal');
+    deleteAdModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const adId = button.getAttribute('data-ad-id');
+        const adName = button.getAttribute('data-ad-name');
+        
+        // Update modal content
+        const modalTitle = this.querySelector('.modal-title');
+        const modalBody = this.querySelector('.modal-body');
+        const deleteAdIdInput = document.getElementById('deleteAdId');
+        
+        modalTitle.textContent = `Delete Advertisement`;
+        modalBody.innerHTML = `Are you sure you want to delete the advertisement <strong>${adName}</strong>?<br>This action cannot be undone.`;
+        deleteAdIdInput.value = adId;
+    });
+</script>
 {% endblock %}

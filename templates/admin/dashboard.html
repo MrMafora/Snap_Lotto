@@ -207,9 +207,14 @@
             <div class="card-header lottery-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">ADVERTISEMENT MANAGEMENT</h5>
-                    <a href="{{ url_for('manage_ads') }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-plus me-1"></i> Add New Ad
-                    </a>
+                    <div>
+                        <a href="{{ url_for('manage_campaigns') }}" class="btn btn-success btn-sm me-2">
+                            <i class="fas fa-bullhorn me-1"></i> Campaigns
+                        </a>
+                        <a href="{{ url_for('upload_ad') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i> Add New Ad
+                        </a>
+                    </div>
                 </div>
             </div>
             <div class="card-body">
@@ -218,10 +223,10 @@
                 </div>
                 
                 <div class="row">
-                    <div class="col-md-4 mb-4">
+                    <div class="col-md-3 mb-4">
                         <div class="card h-100">
                             <div class="card-header bg-primary text-white">
-                                <h6 class="card-title mb-0">AD SETTINGS</h6>
+                                <h6 class="card-title mb-0">AD MANAGEMENT</h6>
                             </div>
                             <div class="card-body">
                                 <div class="list-group">
@@ -231,45 +236,106 @@
                                     <a href="{{ url_for('upload_ad') }}" class="list-group-item list-group-item-action">
                                         <i class="fas fa-upload me-2"></i> Upload New Ad
                                     </a>
+                                    <a href="{{ url_for('ad_templates') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-copy me-2"></i> Ad Templates
+                                    </a>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="col-md-4 mb-4">
+                    <div class="col-md-3 mb-4">
                         <div class="card h-100">
                             <div class="card-header bg-success text-white">
-                                <h6 class="card-title mb-0">PLACEMENT OPTIONS</h6>
+                                <h6 class="card-title mb-0">CAMPAIGNS & TARGETING</h6>
                             </div>
                             <div class="card-body">
                                 <div class="list-group">
-                                    <a href="{{ url_for('manage_ads', placement='scanner') }}" class="list-group-item list-group-item-action">
-                                        <i class="fas fa-camera me-2"></i> Scanner Ads
+                                    <a href="{{ url_for('manage_campaigns') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-bullhorn me-2"></i> Campaigns
                                     </a>
-                                    <a href="{{ url_for('manage_ads', placement='results') }}" class="list-group-item list-group-item-action">
-                                        <i class="fas fa-list-ol me-2"></i> Results Ads
+                                    <a href="{{ url_for('manage_ab_tests') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-flask me-2"></i> A/B Testing
                                     </a>
-                                    <a href="{{ url_for('manage_ads', placement='homepage') }}" class="list-group-item list-group-item-action">
-                                        <i class="fas fa-home me-2"></i> Homepage Ads
+                                    <a href="{{ url_for('audience_targeting') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-users me-2"></i> Audience Targeting
+                                    </a>
+                                    <a href="{{ url_for('ad_schedule') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-calendar-alt me-2"></i> Ad Scheduling
                                     </a>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="col-md-4 mb-4">
+                    <div class="col-md-3 mb-4">
                         <div class="card h-100">
                             <div class="card-header bg-info text-white">
-                                <h6 class="card-title mb-0">ANALYTICS</h6>
+                                <h6 class="card-title mb-0">ANALYTICS & PERFORMANCE</h6>
                             </div>
                             <div class="card-body">
                                 <div class="list-group">
+                                    <a href="{{ url_for('ad_performance') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-chart-line me-2"></i> Performance Dashboard
+                                    </a>
                                     <a href="{{ url_for('ad_impressions') }}" class="list-group-item list-group-item-action">
                                         <i class="fas fa-eye me-2"></i> View Impressions
                                     </a>
-                                    <a href="{{ url_for('ad_performance') }}" class="list-group-item list-group-item-action">
-                                        <i class="fas fa-chart-line me-2"></i> Performance Analytics
+                                    <a href="{{ url_for('ad_revenue') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-money-bill-wave me-2"></i> Revenue Analytics
                                     </a>
+                                    <a href="{{ url_for('audience_insights') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-user-tag me-2"></i> Audience Insights
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-warning text-white">
+                                <h6 class="card-title mb-0">INTEGRATIONS & ALERTS</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('ad_network_integrations') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-link me-2"></i> Ad Network Connections
+                                    </a>
+                                    <a href="{{ url_for('ad_alerts') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-bell me-2"></i> Performance Alerts
+                                    </a>
+                                    <a href="{{ url_for('ad_settings') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-cog me-2"></i> Ad System Settings
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Stats Overview -->
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="card bg-light">
+                            <div class="card-body py-3">
+                                <div class="row text-center">
+                                    <div class="col-md-3">
+                                        <h4 class="mb-0 text-primary">{{ active_ads if active_ads is defined else '0' }}</h4>
+                                        <small class="text-muted">Active Ads</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h4 class="mb-0 text-success">{{ active_campaigns if active_campaigns is defined else '0' }}</h4>
+                                        <small class="text-muted">Active Campaigns</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h4 class="mb-0 text-info">{{ total_impressions_today if total_impressions_today is defined else '0' }}</h4>
+                                        <small class="text-muted">Today's Impressions</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h4 class="mb-0 text-warning">{{ avg_ctr|round(2) if avg_ctr is defined else '0.00' }}%</h4>
+                                        <small class="text-muted">Average CTR</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -20,8 +20,11 @@ from datetime import datetime, timedelta
 from functools import wraps
 
 # Import models only (lightweight)
-from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, ImportHistory, ImportedRecord, db
+from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, db
 from config import Config
+
+# Import ad management module
+import ad_management
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -2228,6 +2231,9 @@ def system_metrics():
             'success': False,
             'error': str(e)
         }), 500
+
+# Register advertisement management routes
+ad_management.register_ad_routes(app)
 
 # When running directly, not through gunicorn
 if __name__ == "__main__":

@@ -1,0 +1,112 @@
+{% set display_ads = filtered_ads if filtered_ads is defined else ads %}
+
+{% if display_ads %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th scope="col" width="50">#</th>
+                <th scope="col" width="100">Preview</th>
+                <th scope="col">Name</th>
+                <th scope="col">Placement</th>
+                <th scope="col">Campaign</th>
+                <th scope="col">Impressions</th>
+                <th scope="col">Clicks</th>
+                <th scope="col">CTR</th>
+                <th scope="col">Status</th>
+                <th scope="col" width="150">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ad in display_ads %}
+            <tr>
+                <td>{{ ad.id }}</td>
+                <td>
+                    {% if ad.file_path %}
+                        {% if ad.file_path.endswith('.mp4') or ad.file_path.endswith('.webm') %}
+                            <div class="rounded border overflow-hidden" style="width: 80px; height: 45px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-film fa-lg text-secondary"></i>
+                            </div>
+                        {% else %}
+                            <img src="{{ url_for('static', filename=ad.file_path) }}" class="img-thumbnail" width="80" alt="{{ ad.name }}">
+                        {% endif %}
+                    {% else %}
+                        <div class="rounded border overflow-hidden" style="width: 80px; height: 45px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-image fa-lg text-secondary"></i>
+                        </div>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="fw-bold">{{ ad.name }}</div>
+                    <small class="text-muted">{{ ad.duration }}s</small>
+                </td>
+                <td>
+                    <span class="badge {% if ad.placement == 'scanner' %}bg-primary{% elif ad.placement == 'results' %}bg-success{% else %}bg-info{% endif %}">
+                        {{ ad.placement|title }}
+                    </span>
+                </td>
+                <td>
+                    {% if ad.campaign %}
+                        <a href="{{ url_for('ad_management.campaign_details', campaign_id=ad.campaign.id) }}">
+                            {{ ad.campaign.name }}
+                        </a>
+                    {% else %}
+                        <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {{ ad.impressions|default(0) }}
+                    {% if ad.target_impressions %}
+                        <div class="progress mt-1" style="height: 4px;">
+                            {% set progress = (ad.impressions / ad.target_impressions * 100)|round %}
+                            <div class="progress-bar {% if progress >= 100 %}bg-success{% elif progress >= 75 %}bg-info{% elif progress >= 25 %}bg-primary{% else %}bg-warning{% endif %}" 
+                                role="progressbar" style="width: {{ progress }}%;" 
+                                aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <small class="text-muted">{{ progress }}%</small>
+                    {% endif %}
+                </td>
+                <td>{{ ad.clicks|default(0) }}</td>
+                <td>
+                    {% if ad.impressions and ad.impressions > 0 %}
+                        {{ (ad.clicks / ad.impressions * 100)|round(2) }}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </td>
+                <td>
+                    {% if ad.is_active %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="btn-group">
+                        <a href="{{ url_for('ad_management.preview_ad', ad_id=ad.id) }}" class="btn btn-sm btn-outline-info" target="_blank" title="Preview">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{{ url_for('ad_management.edit_ad', ad_id=ad.id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                data-bs-toggle="modal" data-bs-target="#deleteAdModal"
+                                data-ad-id="{{ ad.id }}" data-ad-name="{{ ad.name }}" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-ad fa-3x text-gray-300 mb-3"></i>
+    <p class="mb-3">No advertisements found.</p>
+    <a href="{{ url_for('ad_management.upload_ad') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i> Upload Advertisement
+    </a>
+</div>
+{% endif %}

@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+
+{% block title %}A/B Testing | Snap Lotto{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .variation-card {
+        transition: all 0.2s ease-in-out;
+    }
+    .variation-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    .variation-card.control {
+        border-left: 4px solid var(--bs-success);
+    }
+    .variation-card.variant {
+        border-left: 4px solid var(--bs-primary);
+    }
+    .test-label {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 80%;
+        margin-bottom: 8px;
+    }
+    .significance-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 6px;
+    }
+    .significance-high {
+        background-color: #28a745;
+    }
+    .significance-medium {
+        background-color: #ffc107;
+    }
+    .significance-low {
+        background-color: #6c757d;
+    }
+    .test-status-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    .progress-thin {
+        height: 4px;
+    }
+    .result-arrow-up {
+        color: #28a745;
+    }
+    .result-arrow-down {
+        color: #dc3545;
+    }
+    .confidence-meter {
+        width: 100%;
+        height: 8px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        margin-bottom: 5px;
+    }
+    .confidence-value {
+        height: 100%;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-flask me-2"></i> A/B Testing
+        </h1>
+        <div>
+            <a href="{{ url_for('manage_ads') }}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left me-2"></i> Back to Ads
+            </a>
+            <a href="{{ url_for('create_ab_test') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i> Create New Test
+            </a>
+        </div>
+    </div>
+    
+    <!-- Active A/B Tests Overview -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Active Tests</h5>
+        </div>
+        <div class="card-body">
+            {% if active_tests %}
+                <div class="row">
+                    {% for test in active_tests %}
+                    <div class="col-lg-6 col-md-12 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="test-label bg-primary bg-opacity-10 text-primary">
+                                            <i class="fas fa-flask me-1"></i> {{ test.type }}
+                                        </span>
+                                        <h5 class="card-title mb-0">{{ test.name }}</h5>
+                                    </div>
+                                    <span class="badge bg-success test-status-badge">Active</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <small class="text-muted">Test Progress</small>
+                                        <small class="text-muted">{{ test.days_remaining }} days remaining</small>
+                                    </div>
+                                    <div class="progress progress-thin">
+                                        <div class="progress-bar" role="progressbar" style="width: {{ test.progress }}%" aria-valuenow="{{ test.progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="variation-card control card h-100">
+                                            <div class="card-body">
+                                                <div class="mb-2">
+                                                    <span class="badge bg-success">Control</span>
+                                                </div>
+                                                <h6 class="mb-2">{{ test.control.name }}</h6>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <small class="text-muted">Impressions:</small>
+                                                    <span>{{ test.control.impressions }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <small class="text-muted">Clicks:</small>
+                                                    <span>{{ test.control.clicks }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between">
+                                                    <small class="text-muted">CTR:</small>
+                                                    <span class="fw-bold">{{ test.control.ctr }}%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="variation-card variant card h-100">
+                                            <div class="card-body">
+                                                <div class="mb-2">
+                                                    <span class="badge bg-primary">Variation</span>
+                                                </div>
+                                                <h6 class="mb-2">{{ test.variant.name }}</h6>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <small class="text-muted">Impressions:</small>
+                                                    <span>{{ test.variant.impressions }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <small class="text-muted">Clicks:</small>
+                                                    <span>{{ test.variant.clicks }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between">
+                                                    <small class="text-muted">CTR:</small>
+                                                    <span class="fw-bold">{{ test.variant.ctr }}%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="card bg-light">
+                                        <div class="card-body py-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <small>Statistical confidence:</small>
+                                                    <div class="confidence-meter">
+                                                        <div class="confidence-value bg-{{ test.confidence_color }}" style="width: {{ test.confidence }}%;"></div>
+                                                    </div>
+                                                    <small class="text-muted">{{ test.confidence }}% confidence in results</small>
+                                                </div>
+                                                <div class="text-{{ test.result_color }}">
+                                                    <i class="fas fa-arrow-{{ test.direction }} me-1"></i> {{ test.difference|abs }}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ url_for('ab_test_details', test_id=test.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-chart-line me-1"></i> Details
+                                    </a>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#endTestModal-{{ test.id }}">
+                                            <i class="fas fa-flag-checkered me-1"></i> End Test
+                                        </button>
+                                        <a href="{{ url_for('edit_ab_test', test_id=test.id) }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-edit me-1"></i> Edit
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="fas fa-flask fa-4x text-secondary"></i>
+                    </div>
+                    <h5 class="text-muted">No active A/B tests</h5>
+                    <p class="text-muted">Create a new test to optimize your ad performance</p>
+                    <a href="{{ url_for('create_ab_test') }}" class="btn btn-primary mt-2">
+                        <i class="fas fa-plus me-2"></i> Create New Test
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Completed Tests Results -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Completed Tests</h5>
+        </div>
+        <div class="card-body">
+            {% if completed_tests %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Test Name</th>
+                                <th>Type</th>
+                                <th>Period</th>
+                                <th>Winner</th>
+                                <th>Improvement</th>
+                                <th>Confidence</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for test in completed_tests %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <strong>{{ test.name }}</strong>
+                                            <div class="small text-muted">{{ test.ad.name }}</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary">{{ test.type }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            {{ test.start_date.strftime('%b %d') }} - {{ test.end_date.strftime('%b %d, %Y') }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if test.winner == 'control' %}
+                                            <span class="badge bg-success">Control</span>
+                                        {% elif test.winner == 'variant' %}
+                                            <span class="badge bg-primary">Variation</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No winner</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-arrow-{{ test.direction }} me-1 result-arrow-{{ test.direction }}"></i>
+                                            <span>{{ test.difference|abs }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="significance-indicator significance-{{ test.significance }}"></span>
+                                            <span>{{ test.confidence }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">Completed</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{{ url_for('ab_test_details', test_id=test.id) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-chart-line"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-success">
+                                                <i class="fas fa-trophy"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="#">Export Results</a></li>
+                                                <li><a class="dropdown-item" href="#">Clone Test</a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item text-danger" href="#">Delete</a></li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">No completed tests found</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Testing Knowledge Base -->
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">A/B Testing Guide</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-rocket me-2 text-primary"></i> Getting Started
+                            </h6>
+                            <p class="card-text small">Learn the basics of A/B testing and how to set up your first test for optimal results.</p>
+                            <a href="#" class="btn btn-sm btn-outline-primary">Read Guide</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-chart-pie me-2 text-success"></i> Statistical Significance
+                            </h6>
+                            <p class="card-text small">Understand how to interpret test results and when you can trust the outcomes.</p>
+                            <a href="#" class="btn btn-sm btn-outline-primary">Read Guide</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-chess me-2 text-info"></i> Advanced Strategies
+                            </h6>
+                            <p class="card-text small">Learn sophisticated testing strategies to maximize your ad performance.</p>
+                            <a href="#" class="btn btn-sm btn-outline-primary">Read Guide</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- End Test Modal Template (would be duplicated for each test in real implementation) -->
+    <div class="modal fade" id="endTestModal-template" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">End A/B Test</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to end this test?</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i> Ending a test early may affect the statistical significance of your results.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">How should we handle the traffic after the test?</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="testResult" id="useWinner" checked>
+                            <label class="form-check-label" for="useWinner">
+                                Use the winner (Variation B - 6.27% CTR)
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="testResult" id="useControl">
+                            <label class="form-check-label" for="useControl">
+                                Keep using the control (Variation A - 4.96% CTR)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="testResult" id="keepTesting">
+                            <label class="form-check-label" for="keepTesting">
+                                Continue testing but mark as complete
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary">End Test</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

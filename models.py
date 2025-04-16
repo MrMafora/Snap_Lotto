@@ -122,6 +122,116 @@ class ScheduleConfig(db.Model):
     def __repr__(self):
         return f"<ScheduleConfig {self.lottery_type}: {self.frequency} at {self.hour}:{self.minute}>"
 
+class Campaign(db.Model):
+    """Model for grouping advertisements into campaigns"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    budget = db.Column(db.Numeric(10, 2), nullable=True)
+    start_date = db.Column(db.DateTime, nullable=False)
+    end_date = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(20), default='draft') # draft, active, paused, completed
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    created_by = db.relationship('User', backref='campaigns')
+    advertisements = db.relationship('Advertisement', backref='campaign')
+    
+    def __repr__(self):
+        return f"<Campaign {self.name}>"
+    
+    def get_spent_budget(self):
+        """Calculate spent budget based on impressions and clicks"""
+        impressions_cost = sum([ad.total_impressions * (ad.cpm or 0) / 1000 for ad in self.advertisements])
+        clicks_cost = sum([ad.total_clicks * (ad.cpc or 0) for ad in self.advertisements])
+        return impressions_cost + clicks_cost
+    
+    def get_remaining_budget(self):
+        """Calculate remaining budget"""
+        if not self.budget:
+            return None
+        return float(self.budget) - self.get_spent_budget()
+    
+    def get_budget_usage_percent(self):
+        """Calculate budget usage as percentage"""
+        if not self.budget or float(self.budget) == 0:
+            return 0
+        return min(100, round((self.get_spent_budget() / float(self.budget)) * 100, 2))
+    
+    def to_dict(self):
+        """Convert model to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'budget': float(self.budget) if self.budget else None,
+            'spent_budget': self.get_spent_budget(),
+            'budget_usage': self.get_budget_usage_percent(),
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'end_date': self.end_date.isoformat() if self.end_date else None,
+            'status': self.status,
+            'ad_count': len(self.advertisements),
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
+        }
+
+class AdVariation(db.Model):
+    """Model for A/B testing ad variations"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    parent_ad_id = db.Column(db.Integer, db.ForeignKey('advertisement.id'), nullable=False)
+    variation_type = db.Column(db.String(20), default='content', comment="Type of variation: content, message, image, duration")
+    file_path = db.Column(db.String(255), nullable=True)
+    file_type = db.Column(db.String(20), nullable=True)
+    html_content = db.Column(db.Text, nullable=True)
+    custom_message = db.Column(db.Text, nullable=True)
+    custom_image_path = db.Column(db.String(255), nullable=True)
+    duration = db.Column(db.Integer, nullable=True)
+    
+    # Test parameters
+    traffic_percentage = db.Column(db.Integer, default=50, comment="Percentage of traffic to show this variation")
+    is_control = db.Column(db.Boolean, default=False, comment="Whether this is the control variation")
+    
+    # Statistics
+    total_impressions = db.Column(db.Integer, default=0)
+    total_clicks = db.Column(db.Integer, default=0)
+    
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    parent_ad = db.relationship('Advertisement', backref='variations')
+    impressions = db.relationship('AdImpression', backref='variation', 
+                                foreign_keys='AdImpression.variation_id',
+                                cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f"<AdVariation {self.name} for Ad {self.parent_ad_id}>"
+    
+    def get_ctr(self):
+        """Calculate Click-Through Rate"""
+        if not self.total_impressions:
+            return 0
+        return round((self.total_clicks / self.total_impressions) * 100, 2)
+    
+    def to_dict(self):
+        """Convert model to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'parent_ad_id': self.parent_ad_id,
+            'variation_type': self.variation_type,
+            'traffic_percentage': self.traffic_percentage,
+            'is_control': self.is_control,
+            'total_impressions': self.total_impressions,
+            'total_clicks': self.total_clicks,
+            'ctr': self.get_ctr(),
+            'created_at': self.created_at.isoformat()
+        }
+
 class Advertisement(db.Model):
     """Model for managing video advertisements"""
     id = db.Column(db.Integer, primary_key=True)
@@ -152,6 +262,27 @@ class Advertisement(db.Model):
     is_rich_content = db.Column(db.Boolean, default=False, comment="Whether this ad uses rich HTML content")
     html_content = db.Column(db.Text, nullable=True, comment="Custom HTML content for the ad")
     
+    # Advanced targeting
+    geo_targeting = db.Column(db.String(255), nullable=True, comment="Comma-separated list of regions/countries")
+    user_segments = db.Column(db.String(255), nullable=True, comment="Comma-separated user segments: new, returning, premium")
+    frequency_cap = db.Column(db.Integer, nullable=True, comment="Maximum times to show ad to same user")
+    frequency_period = db.Column(db.String(20), nullable=True, default='day', comment="Period for frequency cap: hour, day, week, month, campaign")
+    
+    # Scheduling
+    schedule_days = db.Column(db.String(50), nullable=True, comment="Days of week: mon,tue,wed,thu,fri,sat,sun")
+    schedule_time_start = db.Column(db.Time, nullable=True, comment="Start time of day to show ad")
+    schedule_time_end = db.Column(db.Time, nullable=True, comment="End time of day to show ad")
+    
+    # Monetization
+    cpm = db.Column(db.Numeric(10, 2), nullable=True, comment="Cost per thousand impressions")
+    cpc = db.Column(db.Numeric(10, 2), nullable=True, comment="Cost per click")
+    estimated_revenue = db.Column(db.Numeric(10, 2), default=0, comment="Estimated revenue from this ad")
+    
+    # A/B testing
+    is_ab_test = db.Column(db.Boolean, default=False, comment="Whether this ad is part of an A/B test")
+    ab_test_name = db.Column(db.String(100), nullable=True, comment="Name of the A/B test")
+    ab_test_end_date = db.Column(db.DateTime, nullable=True, comment="When the A/B test ends")
+    
     # Constraints 
     start_date = db.Column(db.DateTime, nullable=True, comment="When to start showing this ad")
     end_date = db.Column(db.DateTime, nullable=True, comment="When to stop showing this ad")
@@ -160,6 +291,10 @@ class Advertisement(db.Model):
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Campaign association
+    campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=True)
+    template_name = db.Column(db.String(100), nullable=True, comment="Template used to create this ad")
     
     # Relationships
     created_by = db.relationship('User', backref='advertisements')
@@ -228,14 +363,49 @@ class AdImpression(db.Model):
     ip_address = db.Column(db.String(45), nullable=True)
     user_agent = db.Column(db.String(255), nullable=True)
     
+    # Variation tracking for A/B testing
+    variation_id = db.Column(db.Integer, db.ForeignKey('ad_variation.id'), nullable=True)
+    is_ab_test = db.Column(db.Boolean, default=False)
+    
+    # Demographic information
+    country = db.Column(db.String(2), nullable=True)
+    region = db.Column(db.String(50), nullable=True)
+    city = db.Column(db.String(100), nullable=True)
+    device_type = db.Column(db.String(20), nullable=True, comment="desktop, mobile, tablet")
+    
     # Impression details
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     page = db.Column(db.String(100), nullable=True, comment="Page where impression occurred")
     duration_viewed = db.Column(db.Integer, nullable=True, comment="Seconds the ad was viewed")
     was_clicked = db.Column(db.Boolean, default=False)
     
+    # Revenue tracking
+    cost = db.Column(db.Numeric(10, 4), nullable=True, comment="Cost of this impression")
+    revenue = db.Column(db.Numeric(10, 4), nullable=True, comment="Revenue from this impression")
+    
+    # Campaign tracking
+    campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=True)
+    
+    # Relationships
+    campaign = db.relationship('Campaign', backref='impressions', foreign_keys=[campaign_id])
+    
     def __repr__(self):
         return f"<AdImpression {self.id}: Ad {self.ad_id}>"
+        
+    def to_dict(self):
+        """Convert model to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'ad_id': self.ad_id,
+            'timestamp': self.timestamp.isoformat(),
+            'page': self.page,
+            'duration_viewed': self.duration_viewed,
+            'was_clicked': self.was_clicked,
+            'variation_id': self.variation_id,
+            'is_ab_test': self.is_ab_test,
+            'device_type': self.device_type,
+            'region': self.region
+        }
         
 class ImportHistory(db.Model):
     """Model for tracking data import history"""
