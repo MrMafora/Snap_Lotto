@@ -344,54 +344,6 @@
 }
 
 /* Data Analytics Preview - Mobile Responsive Fixes */
-/* Button Styles */
-.layout-toggle-container {
-    display: flex;
-    align-items: center;
-}
-
-#toggle-layout {
-    padding: 2px 8px;
-    font-size: 0.8rem;
-    transition: all 0.2s ease;
-}
-
-#toggle-layout:hover {
-    background-color: #e9ecef;
-}
-
-#toggle-layout.stacked-active {
-    background-color: #6c757d;
-    color: white;
-}
-
-#toggle-layout.side-by-side-active {
-    background-color: #28a745;
-    color: white;
-}
-
-/* Mode classes for the container */
-.data-analytics-preview.force-side-by-side .flex-container {
-    flex-direction: row !important;
-}
-
-.data-analytics-preview.force-side-by-side .frequency-chart-container {
-    width: 55% !important;
-}
-
-.data-analytics-preview.force-side-by-side .winners-chart-container {
-    width: 40% !important;
-}
-
-.data-analytics-preview.force-stacked .flex-container {
-    flex-direction: column !important;
-}
-
-.data-analytics-preview.force-stacked .frequency-chart-container,
-.data-analytics-preview.force-stacked .winners-chart-container {
-    width: 100% !important;
-    margin-bottom: 20px;
-}
 
 /* Desktop styles first (default) */
 .data-analytics-preview {

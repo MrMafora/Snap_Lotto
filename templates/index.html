@@ -132,13 +132,8 @@
 </div>
 
 <div class="card mb-4 data-analytics-preview">
-    <div class="card-header lottery-header d-flex justify-content-between align-items-center">
+    <div class="card-header lottery-header">
         <h5 class="card-title mb-0">DATA ANALYTICS PREVIEW</h5>
-        <div class="layout-toggle-container">
-            <button id="toggle-layout" class="btn btn-sm btn-outline-secondary" title="Toggle chart layout">
-                <i class="fas fa-columns" id="layout-icon"></i>
-            </button>
-        </div>
     </div>
     <div class="card-body">
         <div class="row">
@@ -149,13 +144,14 @@
                     <h6 class="mb-2">Most Frequent Numbers</h6>
                     <!-- SVG bar chart with perfect alignment between bars and numbers -->
                     <div class="bar-chart-container" style="position: relative; width: 100%; height: 170px;">
-                        <!-- Y-axis labels - moved to left of the chart -->
+                        <!-- Y-axis labels - moved to left of the chart with equal spacing -->
                         <div style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px;">
-                            <div style="position: absolute; top: 0; right: 5px; font-size: 11px; color: #666;">16</div>
-                            <div style="position: absolute; top: 20%; right: 5px; font-size: 11px; color: #666;">14</div>
-                            <div style="position: absolute; top: 40%; right: 5px; font-size: 11px; color: #666;">12</div>
-                            <div style="position: absolute; top: 60%; right: 5px; font-size: 11px; color: #666;">10</div>
-                            <div style="position: absolute; top: 80%; right: 5px; font-size: 11px; color: #666;">8</div>
+                            <div style="position: absolute; top: 0%; right: 5px; font-size: 11px; color: #666;">16</div>
+                            <div style="position: absolute; top: 16%; right: 5px; font-size: 11px; color: #666;">14</div>
+                            <div style="position: absolute; top: 32%; right: 5px; font-size: 11px; color: #666;">12</div>
+                            <div style="position: absolute; top: 48%; right: 5px; font-size: 11px; color: #666;">10</div>
+                            <div style="position: absolute; top: 64%; right: 5px; font-size: 11px; color: #666;">8</div>
+                            <div style="position: absolute; top: 80%; right: 5px; font-size: 11px; color: #666;">6</div>
                             <div style="position: absolute; bottom: 0; right: 5px; font-size: 11px; color: #666;">0</div>
                         </div>
                         
@@ -292,64 +288,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get DOM elements
-        const toggleButton = document.getElementById('toggle-layout');
-        const layoutIcon = document.getElementById('layout-icon');
-        const analyticsContainer = document.querySelector('.data-analytics-preview');
-        
-        // Initialize from saved preference (default is false - standard layout)
-        let isStacked = localStorage.getItem('chart-stacked-preference') === 'true';
-        
-        // Apply initial layout if stored preference exists
-        applyLayout(isStacked);
-        
-        // Update UI to match current layout
-        updateLayoutUI(isStacked);
-        
-        // Add click event listener for toggle button
-        toggleButton.addEventListener('click', function() {
-            // Toggle the layout state
-            isStacked = !isStacked;
-            
-            // Apply the new layout
-            applyLayout(isStacked);
-            
-            // Update UI
-            updateLayoutUI(isStacked);
-            
-            // Store preference for future visits
-            localStorage.setItem('chart-stacked-preference', isStacked);
-        });
-        
-        // Apply layout based on stacked preference
-        function applyLayout(stacked) {
-            // Remove any existing layout classes
-            analyticsContainer.classList.remove('force-side-by-side', 'force-stacked');
-            
-            // Apply layout class based on preference
-            if (stacked) {
-                analyticsContainer.classList.add('force-stacked');
-            } else {
-                analyticsContainer.classList.add('force-side-by-side');
-            }
-        }
-        
-        // Update the layout button UI based on current mode
-        function updateLayoutUI(stacked) {
-            toggleButton.classList.remove('side-by-side-active', 'stacked-active');
-            
-            if (stacked) {
-                toggleButton.classList.add('stacked-active');
-                toggleButton.title = 'Switch to side-by-side view';
-                layoutIcon.className = 'fas fa-bars';
-            } else {
-                toggleButton.classList.add('side-by-side-active');
-                toggleButton.title = 'Switch to stacked view';
-                layoutIcon.className = 'fas fa-columns';
-            }
-        }
-    });
-</script>
+<!-- Layout toggle functionality removed as requested -->
 {% endblock %}
