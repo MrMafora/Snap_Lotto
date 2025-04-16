@@ -11,12 +11,19 @@
 - [x] 2025-04-16: Production workflow set to port 8080
 
 ## Future Considerations
-1. Avoid modifying existing port configurations in:
-   - gunicorn.conf.py
-   - replit_deployment.toml
-   - .replit
+1. Maintain consolidated port configurations:
+   - Development: Port 5000 (gunicorn --bind 0.0.0.0:5000)
+   - Production: Port 8080 (gunicorn --bind 0.0.0.0:8080)
+   - Health checks: Root path "/"
    
-2. For any new port-related changes:
-   - Development should use port 5000
-   - Production should use port 8080
-   - Update this tracking file before implementing changes
+2. Deployment configuration standards:
+   - Use GCE deployment target
+   - Maintain environment-specific settings
+   - Keep port forwarding rules consistent
+   - Update this tracking file for all changes
+
+## Latest Consolidation (2024-04-16)
+- [x] Unified port configuration across all files
+- [x] Standardized health check path
+- [x] Environment-aware gunicorn configuration
+- [x] Proper port forwarding setup
