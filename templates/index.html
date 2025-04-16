@@ -23,11 +23,65 @@
     
     .bar-column {
         padding: 0 2px;
+        cursor: pointer;
     }
     
     .bar {
         border-top-left-radius: 3px;
         border-top-right-radius: 3px;
+    }
+    
+    /* Interactive elements */
+    .interactive-bar {
+        transition: all 0.2s ease;
+        border-top-left-radius: 3px;
+        border-top-right-radius: 3px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .interactive-bar:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* Pie chart interactive elements */
+    .pie-segment {
+        transition: opacity 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .legend-item {
+        transition: all 0.2s ease;
+        cursor: pointer;
+        padding: 2px 0;
+    }
+    
+    .legend-item:hover {
+        transform: translateX(2px);
+    }
+    
+    /* Tooltip styling */
+    .chart-tooltip {
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        animation: fadeIn 0.2s ease;
+        pointer-events: none;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Make charts responsive on mobile */
+    @media (max-width: 768px) {
+        .flex-container {
+            flex-direction: column;
+        }
+        
+        .frequency-chart-container,
+        .winners-chart-container {
+            width: 100%;
+            margin-bottom: 20px;
+        }
     }
 </style>
 {% endblock %}
@@ -171,8 +225,12 @@
                                         {% set colors = ['#e03237', '#ffe11d', '#19a03a', '#67c6ed'] %}
                                         {% set color_index = loop.index0 % 4 %}
                                         
-                                        <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;">
-                                            <div style="height: {{ bar_height }}px; width: 100%; background-color: {{ colors[color_index] }}; border-radius: 2px;"></div>
+                                        <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;" 
+                                            class="bar-column" title="Number {{ number }} appeared {{ frequency }} times">
+                                            <div style="height: {{ bar_height }}px; width: 100%; background-color: {{ colors[color_index] }}; border-radius: 2px;" 
+                                                class="interactive-bar" 
+                                                data-number="{{ number }}" 
+                                                data-frequency="{{ frequency }}"></div>
                                         </div>
                                     {% endfor %}
                                 {% else %}
@@ -203,17 +261,50 @@
                         <!-- Pie chart with responsive width using dynamic data -->
                         <div class="pie-chart-container">
                             {% if division_stats %}
-                                <!-- Simple static pie chart with division data shown in legend -->
-                                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                                <!-- Calculate total for percentage -->
+                                {% set total_winners = 0 %}
+                                {% for div_num, winners in division_stats.items() %}
+                                    {% set total_winners = total_winners + winners %}
+                                {% endfor %}
+                                
+                                <!-- Simple interactive pie chart with division data -->
+                                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" class="interactive-pie">
                                     <!-- Base circle -->
                                     <circle cx="50" cy="50" r="40" fill="#f8f9fa" />
                                     
-                                    <!-- Division segments - simplified representation -->
-                                    <path d="M50,50 L90,50 A40,40 0 0,0 50,10 Z" fill="#67c6ed" />
-                                    <path d="M50,50 L90,50 A40,40 0 0,1 72,85 Z" fill="#e03237" />
-                                    <path d="M50,50 L72,85 A40,40 0 0,1 28,85 Z" fill="#ffe11d" />
-                                    <path d="M50,50 L28,85 A40,40 0 0,1 10,50 L50,50 Z" fill="#19a03a" />
-                                    <path d="M50,50 L10,50 A40,40 0 0,1 50,10 Z" fill="#6c757d" />
+                                    <!-- Division segments with data attributes -->
+                                    {% set colors_map = {'1': '#e03237', '2': '#ffe11d', '3': '#19a03a', '4': '#67c6ed', '5': '#6c757d'} %}
+                                    {% set positions = [
+                                        {'div': '4', 'path': 'M50,50 L90,50 A40,40 0 0,0 50,10 Z'},
+                                        {'div': '1', 'path': 'M50,50 L90,50 A40,40 0 0,1 72,85 Z'}, 
+                                        {'div': '2', 'path': 'M50,50 L72,85 A40,40 0 0,1 28,85 Z'}, 
+                                        {'div': '3', 'path': 'M50,50 L28,85 A40,40 0 0,1 10,50 L50,50 Z'}, 
+                                        {'div': '5', 'path': 'M50,50 L10,50 A40,40 0 0,1 50,10 Z'}
+                                    ] %}
+                                    
+                                    {% for pos in positions %}
+                                        {% set div_num = pos.div %}
+                                        {% set winners = division_stats.get(div_num|int, 0) %}
+                                        {% set percentage = (winners / total_winners * 100)|round(1) if total_winners > 0 else 0 %}
+                                        {% set color = colors_map.get(div_num, '#6c757d') %}
+                                        
+                                        <path 
+                                            d="{{ pos.path }}" 
+                                            fill="{{ color }}" 
+                                            class="pie-segment" 
+                                            data-division="{{ div_num }}" 
+                                            data-winners="{{ winners }}"
+                                            data-percentage="{{ percentage }}"
+                                            title="Division {{ div_num }}: {{ winners }} winners ({{ percentage }}%)"
+                                            onmouseover="this.style.opacity='0.8';" 
+                                            onmouseout="this.style.opacity='1';"
+                                        ></path>
+                                    {% endfor %}
+                                    
+                                    <!-- Center text showing total -->
+                                    <text x="50" y="50" text-anchor="middle" dominant-baseline="middle" fill="#333" font-size="8">
+                                        Total: {{ total_winners }}
+                                    </text>
                                 </svg>
                             {% else %}
                                 <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
@@ -225,14 +316,29 @@
                         
                         <!-- Legend with vertical layout that becomes more compact on mobile -->
                         <div class="legend-container">
-                            {% set colors = {'1': 'legend-color-d1', '2': 'legend-color-d2', '3': 'legend-color-d3', '4': 'legend-color-d4', '5': 'legend-color-d5'} %}
-                            
                             {% if division_stats %}
+                                {% set total_winners = 0 %}
+                                {% for div_num, winners in division_stats.items() %}
+                                    {% set total_winners = total_winners + winners %}
+                                {% endfor %}
+                                
+                                {% set colors = {'1': 'legend-color-red', '2': 'legend-color-yellow', '3': 'legend-color-green', '4': 'legend-color-blue', '5': 'legend-color-default'} %}
+                                
                                 {% for div_num, winners in division_stats.items()|sort %}
                                     {% set class_name = colors.get(div_num|string, 'legend-color-default') %}
-                                    <div class="legend-item">
-                                        <span class="legend-color {{ class_name }}"></span> Division {{ div_num }} 
-                                        <small>({{ winners }} winners)</small>
+                                    {% set percentage = (winners / total_winners * 100)|round(1) if total_winners > 0 else 0 %}
+                                    
+                                    <div class="legend-item" 
+                                         data-division="{{ div_num }}" 
+                                         data-winners="{{ winners }}"
+                                         data-percentage="{{ percentage }}"
+                                         title="Division {{ div_num }}: {{ winners }} winners ({{ percentage }}% of total)"
+                                         onmouseover="this.style.backgroundColor='rgba(0,0,0,0.05)'; highlightPieSegment('{{ div_num }}');" 
+                                         onmouseout="this.style.backgroundColor='transparent'; resetPieSegments();">
+                                        
+                                        <span class="legend-color {{ class_name }}"></span> 
+                                        <strong>Division {{ div_num }}</strong> 
+                                        <small>{{ winners }} winners ({{ percentage }}%)</small>
                                     </div>
                                 {% endfor %}
                             {% else %}
@@ -254,5 +360,141 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Layout toggle functionality removed as requested -->
+<!-- Add interactive chart functionality -->
+<script>
+// Function to highlight a pie segment by division number
+function highlightPieSegment(division) {
+    const pieSegments = document.querySelectorAll('.pie-segment');
+    
+    // Dim all segments first
+    pieSegments.forEach(segment => {
+        segment.style.opacity = '0.5';
+    });
+    
+    // Highlight the matching segment
+    pieSegments.forEach(segment => {
+        if (segment.getAttribute('data-division') === division) {
+            segment.style.opacity = '1';
+            segment.style.transform = 'scale(1.03)';
+            segment.style.transformOrigin = 'center';
+            segment.style.transition = 'all 0.2s ease';
+            
+            // Create tooltip with data
+            const winners = segment.getAttribute('data-winners');
+            const percentage = segment.getAttribute('data-percentage');
+            
+            const tooltip = document.createElement('div');
+            tooltip.className = 'chart-tooltip pie-tooltip';
+            tooltip.innerHTML = `Division ${division}<br>${winners} winners<br>${percentage}% of total`;
+            tooltip.style.position = 'absolute';
+            tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '5px 10px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '12px';
+            tooltip.style.zIndex = '1000';
+            
+            // Position tooltip near the center of the pie chart
+            const pieChart = document.querySelector('.interactive-pie');
+            const rect = pieChart.getBoundingClientRect();
+            tooltip.style.left = (rect.left + rect.width/2 - 60) + 'px';
+            tooltip.style.top = (rect.top + rect.height/2 - 40) + 'px';
+            
+            document.body.appendChild(tooltip);
+        }
+    });
+}
+
+// Function to reset all pie segments to normal
+function resetPieSegments() {
+    const pieSegments = document.querySelectorAll('.pie-segment');
+    pieSegments.forEach(segment => {
+        segment.style.opacity = '1';
+        segment.style.transform = 'scale(1)';
+    });
+    
+    // Remove any tooltips
+    const tooltips = document.querySelectorAll('.pie-tooltip');
+    tooltips.forEach(tooltip => tooltip.remove());
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effects for bar chart
+    const bars = document.querySelectorAll('.interactive-bar');
+    bars.forEach(bar => {
+        bar.addEventListener('mouseover', function() {
+            // Scale up the bar slightly on hover
+            this.style.transform = 'scaleY(1.05)';
+            this.style.transition = 'transform 0.2s';
+            
+            // Create a tooltip
+            const number = this.getAttribute('data-number');
+            const frequency = this.getAttribute('data-frequency');
+            
+            // Display info in a floating tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'chart-tooltip';
+            tooltip.innerHTML = `Number ${number}<br>Appeared ${frequency} times`;
+            tooltip.style.position = 'absolute';
+            tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '5px 10px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '12px';
+            tooltip.style.zIndex = '1000';
+            
+            // Position tooltip above the bar
+            const rect = this.getBoundingClientRect();
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = (rect.top - 40) + 'px';
+            
+            document.body.appendChild(tooltip);
+            this.setAttribute('data-tooltip-id', Date.now());
+        });
+        
+        bar.addEventListener('mouseout', function() {
+            // Return to normal size
+            this.style.transform = 'scaleY(1)';
+            
+            // Remove any tooltips
+            const tooltipId = this.getAttribute('data-tooltip-id');
+            if (tooltipId) {
+                const tooltips = document.querySelectorAll('.chart-tooltip');
+                tooltips.forEach(tooltip => tooltip.remove());
+            }
+        });
+    });
+    
+    // Make pie chart segments highlight on hover
+    const pieSegments = document.querySelectorAll('.pie-segment');
+    pieSegments.forEach(segment => {
+        segment.addEventListener('mouseover', function() {
+            // Highlight the segment by calling our function
+            const division = this.getAttribute('data-division');
+            highlightPieSegment(division);
+            
+            // Also highlight the legend item
+            const legendItems = document.querySelectorAll('.legend-item');
+            legendItems.forEach(item => {
+                if (item.getAttribute('data-division') === division) {
+                    item.style.fontWeight = 'bold';
+                    item.style.backgroundColor = 'rgba(0,0,0,0.05)';
+                }
+            });
+        });
+        
+        segment.addEventListener('mouseout', function() {
+            // Reset segments and remove highlights
+            resetPieSegments();
+            
+            // Reset legend items
+            const legendItems = document.querySelectorAll('.legend-item');
+            legendItems.forEach(item => {
+                item.style.fontWeight = 'normal';
+                item.style.backgroundColor = 'transparent';
+            });
+        });
+    });
+});
+</script>
 {% endblock %}

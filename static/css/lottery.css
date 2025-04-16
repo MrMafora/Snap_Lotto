@@ -426,6 +426,27 @@
     background-color: #adb5bd;
 }
 
+/* Color names for legend items (matching template) */
+.data-analytics-preview .legend-color-red {
+    background-color: #e03237;
+}
+
+.data-analytics-preview .legend-color-yellow {
+    background-color: #ffe11d;
+}
+
+.data-analytics-preview .legend-color-green {
+    background-color: #19a03a;
+}
+
+.data-analytics-preview .legend-color-blue {
+    background-color: #67c6ed;
+}
+
+.data-analytics-preview .legend-color-default {
+    background-color: #adb5bd;
+}
+
 /* Mobile styles for small screens only */
 @media (max-width: 576px) {
     .data-analytics-preview .flex-container {
