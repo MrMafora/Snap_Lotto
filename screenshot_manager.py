@@ -729,6 +729,14 @@ def retake_all_screenshots(app=None, use_threading=False):
                     logger.info(f"Successfully captured screenshot for {config.lottery_type}")
                 else:
                     logger.warning(f"Failed to capture screenshot for {config.lottery_type}")
+            
+            # Run cleanup after all screenshots are processed (for UI operations)
+            logger.info("Running screenshot cleanup after sync operation")
+            if app:
+                with app.app_context():
+                    cleanup_old_screenshots()
+            else:
+                cleanup_old_screenshots()
         else:
             # For scheduled tasks, use threads for parallel processing
             for config in configs:

@@ -131,6 +131,9 @@
                     {% endif %}
 
                     <form method="POST" enctype="multipart/form-data" class="mt-4">
+                        <!-- CSRF Token -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
                         <div class="mb-4">
                             <label for="file" class="form-label fw-bold">Select Excel Spreadsheet:</label>
                             <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls" required>
@@ -319,8 +322,10 @@
                                 fetch('/api/file-upload-progress/reset', {
                                     method: 'POST',
                                     headers: {
-                                        'Content-Type': 'application/json'
-                                    }
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': '{{ csrf_token() }}'
+                                    },
+                                    credentials: 'same-origin'
                                 }).catch(err => console.error('Error resetting progress:', err));
                                 
                                 form.addEventListener('submit', function() {

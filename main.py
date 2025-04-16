@@ -1065,6 +1065,34 @@ def sync_single_screenshot(screenshot_id):
     
     return redirect(url_for('export_screenshots'))
 
+@app.route('/cleanup-screenshots', methods=['POST'])
+@login_required
+def cleanup_screenshots():
+    """Route to cleanup old screenshots"""
+    if not current_user.is_admin:
+        flash('You must be an admin to clean up screenshots.', 'danger')
+        return redirect(url_for('index'))
+        
+    try:
+        # Run the cleanup function
+        screenshot_manager.cleanup_old_screenshots()
+        
+        # Store success message in session
+        session['sync_status'] = {
+            'status': 'success',
+            'message': 'Successfully cleaned up old screenshots. Only the latest screenshot for each URL is kept.'
+        }
+    except Exception as e:
+        app.logger.error(f"Error cleaning up screenshots: {str(e)}")
+        traceback.print_exc()
+        
+        session['sync_status'] = {
+            'status': 'danger',
+            'message': f'Error cleaning up screenshots: {str(e)}'
+        }
+    
+    return redirect(url_for('export_screenshots'))
+
 @app.route('/export-combined-zip')
 @login_required
 def export_combined_zip():
