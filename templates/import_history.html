@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Import History</h1>
+        <a href="{{ url_for('import_data') }}" class="btn btn-primary">
+            <i class="fas fa-upload me-2"></i>Import New Data
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Recent Imports</h5>
+                </div>
+                <div class="card-body">
+                    {% if imports.items %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>File</th>
+                                        <th>Added</th>
+                                        <th>Updated</th>
+                                        <th>Total</th>
+                                        <th>Errors</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for import in imports.items %}
+                                    <tr>
+                                        <td>{{ import.import_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            {% if import.import_type == 'excel' %}
+                                                <span class="badge bg-success">Excel</span>
+                                            {% elif import.import_type == 'snap_lotto' %}
+                                                <span class="badge bg-info">Snap Lotto</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ import.import_type }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ import.file_name }}</td>
+                                        <td>
+                                            {% if import.records_added > 0 %}
+                                                <span class="badge bg-success">{{ import.records_added }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">0</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if import.records_updated > 0 %}
+                                                <span class="badge bg-warning">{{ import.records_updated }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">0</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ import.total_processed }}</td>
+                                        <td>
+                                            {% if import.errors > 0 %}
+                                                <span class="badge bg-danger">{{ import.errors }}</span>
+                                            {% else %}
+                                                <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('import_details', import_id=import.id) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if imports.pages > 1 %}
+                        <nav aria-label="Import history pagination">
+                            <ul class="pagination justify-content-center mt-4">
+                                {% if imports.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('import_history', page=imports.prev_num) }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link" aria-hidden="true">&laquo;</span>
+                                </li>
+                                {% endif %}
+                                
+                                {% for page_num in imports.iter_pages() %}
+                                    {% if page_num %}
+                                        {% if page_num == imports.page %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                        {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('import_history', page=page_num) }}">{{ page_num }}</a>
+                                        </li>
+                                        {% endif %}
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if imports.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('import_history', page=imports.next_num) }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link" aria-hidden="true">&raquo;</span>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> No import history found. Start by <a href="{{ url_for('import_data') }}">importing some data</a>.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">About Import Tracking</h5>
+                </div>
+                <div class="card-body">
+                    <p>This page shows the history of all data imports, including:</p>
+                    <ul>
+                        <li><strong>Excel imports</strong> - Standard format lottery data</li>
+                        <li><strong>Snap Lotto imports</strong> - Specialized format for Snap Lotto data</li>
+                    </ul>
+                    <p>Click on "Details" to see which lottery records were added or updated in each import operation.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

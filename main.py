@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 
 # Import models only (lightweight)
-from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, db
+from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, ImportHistory, ImportedRecord, db
 from config import Config
 
 # Set up logging
@@ -448,6 +448,53 @@ def reset_file_upload_progress():
     
     return jsonify({'success': True})
 
+@app.route('/import-history')
+@login_required
+def import_history():
+    """View import history and details"""
+    if not current_user.is_admin:
+        flash('You must be an admin to view import history.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Get recent imports with pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    
+    # Get all import history records, newest first
+    imports = ImportHistory.query.order_by(ImportHistory.import_date.desc()).paginate(
+        page=page, per_page=per_page, error_out=False)
+    
+    return render_template('import_history.html',
+                          imports=imports,
+                          title="Import History")
+
+@app.route('/import-history/<int:import_id>')
+@login_required
+def import_details(import_id):
+    """View details of a specific import"""
+    if not current_user.is_admin:
+        flash('You must be an admin to view import details.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Get the import record
+    import_record = ImportHistory.query.get_or_404(import_id)
+    
+    # Get all records that were imported in this batch
+    imported_records = ImportedRecord.query.filter_by(import_id=import_id).all()
+    
+    # Group records by lottery type for easier display
+    records_by_type = {}
+    for record in imported_records:
+        lottery_type = record.lottery_type
+        if lottery_type not in records_by_type:
+            records_by_type[lottery_type] = []
+        records_by_type[lottery_type].append(record)
+    
+    return render_template('import_details.html',
+                          import_record=import_record,
+                          records_by_type=records_by_type,
+                          title=f"Import Details - {import_record.import_date.strftime('%Y-%m-%d %H:%M')}")
+
 @app.route('/import-data', methods=['GET', 'POST'])
 @login_required
 def import_data():
@@ -506,6 +553,35 @@ def import_data():
             try:
                 import_stats = import_excel.import_excel_data(excel_path)
                 
+                # If import was successful, track it in the import history
+                if isinstance(import_stats, dict) and import_stats.get('success'):
+                    # Create import history record
+                    import_history = ImportHistory(
+                        import_type='excel',
+                        file_name=filename,
+                        records_added=import_stats.get('added', 0),
+                        records_updated=import_stats.get('total', 0) - import_stats.get('added', 0),
+                        total_processed=import_stats.get('total', 0),
+                        errors=import_stats.get('errors', 0),
+                        user_id=current_user.id
+                    )
+                    db.session.add(import_history)
+                    db.session.commit()
+                    
+                    # Save individual imported records if available
+                    if 'imported_records' in import_stats and import_stats['imported_records']:
+                        for record_data in import_stats['imported_records']:
+                            imported_record = ImportedRecord(
+                                import_id=import_history.id,
+                                lottery_type=record_data['lottery_type'],
+                                draw_number=record_data['draw_number'],
+                                draw_date=record_data['draw_date'],
+                                is_new=record_data['is_new'],
+                                lottery_result_id=record_data['lottery_result_id']
+                            )
+                            db.session.add(imported_record)
+                        db.session.commit()
+                
                 # Check if import was unsuccessful (False) or if no records were imported
                 if import_stats is False or (isinstance(import_stats, dict) and import_stats.get('total', 0) == 0):
                     # If standard import fails, try Snap Lotto format
@@ -518,6 +594,35 @@ def import_data():
                         }
                         
                         import_stats = import_snap_lotto_data.import_snap_lotto_data(excel_path, flask_app=app)
+                        
+                        # If import was successful, track it in the import history
+                        if isinstance(import_stats, dict) and import_stats.get('success'):
+                            # Create import history record
+                            import_history = ImportHistory(
+                                import_type='snap_lotto',
+                                file_name=filename,
+                                records_added=import_stats.get('added', 0),
+                                records_updated=import_stats.get('total', 0) - import_stats.get('added', 0),
+                                total_processed=import_stats.get('total', 0),
+                                errors=import_stats.get('errors', 0),
+                                user_id=current_user.id
+                            )
+                            db.session.add(import_history)
+                            db.session.commit()
+                            
+                            # Save individual imported records if available
+                            if 'imported_records' in import_stats and import_stats['imported_records']:
+                                for record_data in import_stats['imported_records']:
+                                    imported_record = ImportedRecord(
+                                        import_id=import_history.id,
+                                        lottery_type=record_data['lottery_type'],
+                                        draw_number=record_data['draw_number'],
+                                        draw_date=record_data['draw_date'],
+                                        is_new=record_data['is_new'],
+                                        lottery_result_id=record_data['lottery_result_id']
+                                    )
+                                    db.session.add(imported_record)
+                                db.session.commit()
                         
                         # Display results if available and successful
                         if isinstance(import_stats, dict) and import_stats.get('success'):

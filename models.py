@@ -236,3 +236,67 @@ class AdImpression(db.Model):
     
     def __repr__(self):
         return f"<AdImpression {self.id}: Ad {self.ad_id}>"
+        
+class ImportHistory(db.Model):
+    """Model for tracking data import history"""
+    __tablename__ = 'import_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    import_date = db.Column(db.DateTime, default=datetime.utcnow)
+    import_type = db.Column(db.String(50), nullable=False, comment="Type of import (excel, snap_lotto, etc.)")
+    file_name = db.Column(db.String(255), nullable=True)
+    records_added = db.Column(db.Integer, default=0)
+    records_updated = db.Column(db.Integer, default=0)
+    total_processed = db.Column(db.Integer, default=0)
+    errors = db.Column(db.Integer, default=0)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    
+    # Relationships
+    user = db.relationship('User', backref='import_history')
+    imported_records = db.relationship('ImportedRecord', backref='import_history',
+                                     cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f"<ImportHistory {self.id}: {self.import_date}>"
+    
+    def to_dict(self):
+        """Convert model to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'import_date': self.import_date.isoformat(),
+            'import_type': self.import_type,
+            'file_name': self.file_name,
+            'records_added': self.records_added,
+            'records_updated': self.records_updated,
+            'total_processed': self.total_processed,
+            'errors': self.errors,
+            'user': self.user.username if self.user else None
+        }
+    
+    @classmethod
+    def get_recent_imports(cls, limit=10):
+        """Get the most recent imports"""
+        return cls.query.order_by(cls.import_date.desc()).limit(limit).all()
+
+class ImportedRecord(db.Model):
+    """Model for tracking individual records that were added during an import"""
+    __tablename__ = 'imported_record'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    import_id = db.Column(db.Integer, db.ForeignKey('import_history.id'), nullable=False)
+    lottery_type = db.Column(db.String(50), nullable=False)
+    draw_number = db.Column(db.String(20), nullable=True)
+    draw_date = db.Column(db.DateTime, nullable=True)
+    is_new = db.Column(db.Boolean, default=True, comment="Whether this was a new record or an update")
+    lottery_result_id = db.Column(db.Integer, db.ForeignKey('lottery_result.id'), nullable=False)
+    
+    # Relationship to the actual lottery result
+    lottery_result = db.relationship('LotteryResult', backref='import_entries')
+    
+    def __repr__(self):
+        return f"<ImportedRecord {self.id}: {self.lottery_type} {self.draw_number}>"
+        
+    @classmethod
+    def get_records_for_import(cls, import_id):
+        """Get all records for a specific import"""
+        return cls.query.filter_by(import_id=import_id).all()

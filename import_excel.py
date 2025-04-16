@@ -210,6 +210,7 @@ def import_excel_data(excel_file, flask_app=None):
             # Track results
             imported_count = 0
             errors_count = 0
+            imported_records = []  # Track individual records for import history
             
             # Process each row
             for idx, row in df.iterrows():
@@ -291,7 +292,11 @@ def import_excel_data(excel_file, flask_app=None):
                         draw_number=draw_number
                     ).first()
                     
+                    is_new_record = False
+                    lottery_result = None
+
                     if existing:
+                        # Update existing record
                         logger.info(f"Updating existing result for {lottery_type} draw {draw_number}")
                         existing.draw_date = draw_date
                         existing.numbers = json.dumps(numbers)
@@ -301,8 +306,10 @@ def import_excel_data(excel_file, flask_app=None):
                         existing.ocr_provider = "manual-import"
                         existing.ocr_model = "excel-spreadsheet"
                         existing.ocr_timestamp = datetime.utcnow().isoformat()
+                        lottery_result = existing
                     else:
                         # Create new result
+                        is_new_record = True
                         new_result = LotteryResult(
                             lottery_type=lottery_type,
                             draw_number=draw_number,
@@ -316,9 +323,21 @@ def import_excel_data(excel_file, flask_app=None):
                             ocr_timestamp=datetime.utcnow().isoformat()
                         )
                         db.session.add(new_result)
+                        lottery_result = new_result
                     
                     # Commit each result individually to avoid losing all data if one fails
                     db.session.commit()
+                    
+                    # Store this record in import_tracking for later reference
+                    # Import history will be created in main.py after this function returns
+                    imported_records.append({
+                        'lottery_type': lottery_type,
+                        'draw_number': draw_number,
+                        'draw_date': draw_date,
+                        'is_new': is_new_record,
+                        'lottery_result_id': lottery_result.id
+                    })
+                    
                     imported_count += 1
                     
                     if imported_count % 10 == 0:
@@ -345,7 +364,8 @@ def import_excel_data(excel_file, flask_app=None):
                 'initial_count': initial_count,
                 'final_count': final_count,
                 'added': final_count - initial_count,
-                'errors': errors_count
+                'errors': errors_count,
+                'imported_records': imported_records  # Include records for import history
             }
     except Exception as e:
         logger.error(f"Error during import operation: {str(e)}")

@@ -230,6 +230,7 @@ def import_snap_lotto_data(excel_file, flask_app=None):
             # Track results
             imported_count = 0
             errors_count = 0
+            imported_records = []  # Track individual records for import history
             
             # Process each row
             for idx, row in df.iterrows():
@@ -325,6 +326,23 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     
                     # Commit each result individually to avoid losing all data if one fails
                     db.session.commit()
+                    
+                    # Store this record in import_tracking for later reference
+                    # Record if this was a new record or an update
+                    is_new_record = existing is None
+                    lottery_result = existing if existing else db.session.query(LotteryResult).filter_by(
+                        lottery_type=lottery_type,
+                        draw_number=draw_number
+                    ).first()
+                    
+                    imported_records.append({
+                        'lottery_type': lottery_type,
+                        'draw_number': draw_number,
+                        'draw_date': draw_date,
+                        'is_new': is_new_record,
+                        'lottery_result_id': lottery_result.id
+                    })
+                    
                     imported_count += 1
                     
                     if imported_count % 10 == 0:
@@ -352,7 +370,8 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                 "total": imported_count,
                 "errors": errors_count,
                 "added": final_count - initial_count,
-                "updated": imported_count - (final_count - initial_count)
+                "updated": imported_count - (final_count - initial_count),
+                "imported_records": imported_records  # Include records for import history
             }
     except Exception as e:
         logger.error(f"Error during import operation: {str(e)}")
