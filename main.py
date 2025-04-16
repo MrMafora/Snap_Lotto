@@ -23,8 +23,9 @@ from functools import wraps
 from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, db
 from config import Config
 
-# Import ad management module
+# Import modules
 import ad_management
+import lottery_analysis
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -2238,6 +2239,9 @@ def system_metrics():
 
 # Register advertisement management routes
 ad_management.register_ad_routes(app)
+
+# Register lottery analysis routes
+lottery_analysis.register_analysis_routes(app, db)
 
 # API Request Tracking routes
 @app.route('/admin/api-tracking')
