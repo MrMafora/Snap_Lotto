@@ -132,15 +132,20 @@
 </div>
 
 <div class="card mb-4 data-analytics-preview">
-    <div class="card-header lottery-header">
+    <div class="card-header lottery-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">DATA ANALYTICS PREVIEW</h5>
+        <div class="layout-toggle-container">
+            <button id="toggle-layout" class="btn btn-sm btn-outline-secondary" title="Toggle chart layout">
+                <i class="fas fa-columns" id="layout-icon"></i>
+            </button>
+        </div>
     </div>
     <div class="card-body">
         <div class="row">
-            <!-- Flex container for both charts on the same line, column on mobile -->
-            <div class="d-flex align-items-start justify-content-between flex-wrap" style="width: 100%;">
+            <!-- Flex container that adjusts to mobile -->
+            <div class="flex-container">
                 <!-- Left chart: Most Frequent Numbers -->
-                <div class="frequency-chart-container" style="width: 55%;">
+                <div class="frequency-chart-container">
                     <h6 class="mb-2">Most Frequent Numbers</h6>
                     <!-- SVG bar chart with perfect alignment between bars and numbers -->
                     <div class="bar-chart-container" style="position: relative; width: 100%; height: 170px;">
@@ -227,12 +232,12 @@
                 </div>
                 
                 <!-- Right chart: Winners By Division -->
-                <div class="winners-chart-container" style="width: 40%;">
+                <div class="winners-chart-container">
                     <h6 class="mb-2" style="text-align: left;">Winners By Division</h6>
                     <!-- Chart container with pie chart and legend side by side -->
-                    <div class="chart-legend-container" style="display: flex; align-items: center; margin-top: 10px; flex-wrap: wrap;">
+                    <div class="chart-legend-container">
                         <!-- Pie chart with responsive width -->
-                        <div class="pie-chart-container" style="width: 140px; height: 140px; max-width: 100%;">
+                        <div class="pie-chart-container">
                             <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
                                 <!-- Simple pie chart using more reliable circle segments -->
                                 <!-- Base circle -->
@@ -256,21 +261,21 @@
                         </div>
                         
                         <!-- Legend with vertical layout that becomes more compact on mobile -->
-                        <div class="legend-container" style="display: flex; flex-direction: column; margin-left: 10px; margin-top: 15px;">
-                            <div class="legend-item" style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
-                                <span style="display: inline-block; width: 10px; height: 10px; background-color: #e03237; margin-right: 3px;"></span> Division 1
+                        <div class="legend-container">
+                            <div class="legend-item">
+                                <span class="legend-color legend-color-d1"></span> Division 1
                             </div>
-                            <div class="legend-item" style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
-                                <span style="display: inline-block; width: 10px; height: 10px; background-color: #ffe11d; margin-right: 3px;"></span> Division 2
+                            <div class="legend-item">
+                                <span class="legend-color legend-color-d2"></span> Division 2
                             </div>
-                            <div class="legend-item" style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
-                                <span style="display: inline-block; width: 10px; height: 10px; background-color: #19a03a; margin-right: 3px;"></span> Division 3
+                            <div class="legend-item">
+                                <span class="legend-color legend-color-d3"></span> Division 3
                             </div>
-                            <div class="legend-item" style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
-                                <span style="display: inline-block; width: 10px; height: 10px; background-color: #67c6ed; margin-right: 3px;"></span> Division 4
+                            <div class="legend-item">
+                                <span class="legend-color legend-color-d4"></span> Division 4
                             </div>
-                            <div class="legend-item" style="margin-right: 8px; margin-bottom: 5px; display: flex; align-items: center; font-size: 11px;">
-                                <span style="display: inline-block; width: 10px; height: 10px; background-color: #adb5bd; margin-right: 3px;"></span> Division 5
+                            <div class="legend-item">
+                                <span class="legend-color legend-color-d5"></span> Division 5
                             </div>
                         </div>
                     </div>
@@ -287,5 +292,89 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- No JavaScript needed - using pure HTML/CSS for charts -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get DOM elements
+        const toggleButton = document.getElementById('toggle-layout');
+        const layoutIcon = document.getElementById('layout-icon');
+        const analyticsContainer = document.querySelector('.data-analytics-preview');
+        
+        // Layout modes
+        const LAYOUT_SIDE_BY_SIDE = 'side-by-side';
+        const LAYOUT_STACKED = 'stacked';
+        
+        // Initialize from saved preference or default (responsive)
+        let currentLayout = localStorage.getItem('chart-layout-preference') || 'responsive';
+        
+        // Apply initial layout if stored
+        if (currentLayout !== 'responsive') {
+            applyLayout(currentLayout);
+        }
+        
+        // Update UI to match current layout
+        updateLayoutUI(currentLayout);
+        
+        // Add click event listener for toggle button
+        toggleButton.addEventListener('click', function() {
+            let newLayout;
+            
+            // Cycle through layout options: responsive → side-by-side → stacked → responsive
+            switch (currentLayout) {
+                case 'responsive':
+                    newLayout = LAYOUT_SIDE_BY_SIDE;
+                    break;
+                case LAYOUT_SIDE_BY_SIDE:
+                    newLayout = LAYOUT_STACKED;
+                    break;
+                case LAYOUT_STACKED:
+                default:
+                    newLayout = 'responsive';
+                    break;
+            }
+            
+            // Apply the new layout
+            applyLayout(newLayout);
+            
+            // Update UI
+            updateLayoutUI(newLayout);
+            
+            // Store preference for future visits
+            localStorage.setItem('chart-layout-preference', newLayout);
+            
+            // Update current layout
+            currentLayout = newLayout;
+        });
+        
+        // Apply layout 
+        function applyLayout(layout) {
+            // Remove any existing layout classes
+            analyticsContainer.classList.remove('force-side-by-side', 'force-stacked');
+            
+            // Apply new layout class if not responsive
+            if (layout === LAYOUT_SIDE_BY_SIDE) {
+                analyticsContainer.classList.add('force-side-by-side');
+            } else if (layout === LAYOUT_STACKED) {
+                analyticsContainer.classList.add('force-stacked');
+            }
+        }
+        
+        // Update the layout button UI based on current mode
+        function updateLayoutUI(layout) {
+            toggleButton.classList.remove('side-by-side-active', 'stacked-active');
+            
+            if (layout === LAYOUT_SIDE_BY_SIDE) {
+                toggleButton.classList.add('side-by-side-active');
+                toggleButton.title = 'Switch to stacked view';
+                layoutIcon.className = 'fas fa-columns';
+            } else if (layout === LAYOUT_STACKED) {
+                toggleButton.classList.add('stacked-active');
+                toggleButton.title = 'Switch to responsive view';
+                layoutIcon.className = 'fas fa-bars';
+            } else {
+                toggleButton.title = 'Switch to side-by-side view';
+                layoutIcon.className = 'fas fa-mobile-alt';
+            }
+        }
+    });
+</script>
 {% endblock %}

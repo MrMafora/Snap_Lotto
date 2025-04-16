@@ -344,26 +344,147 @@
 }
 
 /* Data Analytics Preview - Mobile Responsive Fixes */
+/* Button Styles */
+.layout-toggle-container {
+    display: flex;
+    align-items: center;
+}
+
+#toggle-layout {
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+#toggle-layout:hover {
+    background-color: #e9ecef;
+}
+
+#toggle-layout.stacked-active {
+    background-color: #6c757d;
+    color: white;
+}
+
+#toggle-layout.side-by-side-active {
+    background-color: #28a745;
+    color: white;
+}
+
+/* Mode classes for the container */
+.data-analytics-preview.force-side-by-side .flex-container {
+    flex-direction: row !important;
+}
+
+.data-analytics-preview.force-side-by-side .frequency-chart-container {
+    width: 55% !important;
+}
+
+.data-analytics-preview.force-side-by-side .winners-chart-container {
+    width: 40% !important;
+}
+
+.data-analytics-preview.force-stacked .flex-container {
+    flex-direction: column !important;
+}
+
+.data-analytics-preview.force-stacked .frequency-chart-container,
+.data-analytics-preview.force-stacked .winners-chart-container {
+    width: 100% !important;
+    margin-bottom: 20px;
+}
+
+/* Desktop styles first (default) */
+.data-analytics-preview {
+    overflow-x: hidden;
+}
+
+.data-analytics-preview .flex-container {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.data-analytics-preview .frequency-chart-container {
+    width: 55%;
+}
+
+.data-analytics-preview .winners-chart-container {
+    width: 40%;
+}
+
+.data-analytics-preview .chart-legend-container {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.data-analytics-preview .pie-chart-container {
+    width: 140px;
+    height: 140px;
+}
+
+.data-analytics-preview svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Legend container styles */
+.data-analytics-preview .legend-container {
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+    margin-top: 15px;
+}
+
+.data-analytics-preview .legend-item {
+    margin-right: 8px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+}
+
+.data-analytics-preview .legend-color {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 3px;
+}
+
+/* Division color classes */
+.data-analytics-preview .legend-color-d1 {
+    background-color: #e03237;
+}
+
+.data-analytics-preview .legend-color-d2 {
+    background-color: #ffe11d;
+}
+
+.data-analytics-preview .legend-color-d3 {
+    background-color: #19a03a;
+}
+
+.data-analytics-preview .legend-color-d4 {
+    background-color: #67c6ed;
+}
+
+.data-analytics-preview .legend-color-d5 {
+    background-color: #adb5bd;
+}
+
+/* Mobile styles for small screens only */
 @media (max-width: 576px) {
-    /* Fix for pie chart and data analytics container on mobile */
-    .data-analytics-preview {
-        overflow-x: hidden;
-        width: 100%;
+    .data-analytics-preview .flex-container {
+        flex-direction: column;
     }
     
-    /* Make charts container full width */
-    .data-analytics-preview .row {
-        display: block;
-        width: 100%;
-    }
-    
-    /* Adjust layout for frequency chart */
     .data-analytics-preview .frequency-chart-container {
         width: 100%;
         margin-bottom: 30px;
     }
     
-    /* Fix pie chart layout */
     .data-analytics-preview .winners-chart-container {
         width: 100% !important;
         display: flex;
@@ -371,31 +492,26 @@
         align-items: center;
     }
     
-    /* Make chart and legend container responsive */
     .data-analytics-preview .chart-legend-container {
         width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
     }
     
-    /* Center SVG pie chart */
-    .data-analytics-preview svg {
+    .data-analytics-preview .pie-chart-container {
         max-width: 120px;
-        height: auto;
         margin: 0 auto;
     }
     
-    /* Make legend horizontal on very small screens */
-    @media (max-width: 320px) {
-        .data-analytics-preview .legend-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .data-analytics-preview .legend-item {
-            margin: 2px 5px;
-        }
+    /* Make legend side-by-side on mobile screens */
+    .data-analytics-preview .legend-container {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 15px;
+    }
+    
+    .data-analytics-preview .legend-item {
+        margin: 3px 6px;
     }
 }
