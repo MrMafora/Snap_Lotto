@@ -561,7 +561,7 @@ def capture_screenshot(url, lottery_type=None):
                 from flask import current_app, has_app_context
                 if not has_app_context():
                     # Import app here to avoid circular imports
-                    from app import app
+                    from main import app
                     with app.app_context():
                         # Save screenshot metadata to database within app context
                         screenshot = Screenshot(
