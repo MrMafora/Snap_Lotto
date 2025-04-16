@@ -39,7 +39,7 @@
                 <h2 class="display-4">{{ today_stats.total_requests }}</h2>
                 <p class="card-text">Requests</p>
                 <p class="card-text">
-                    <i class="fas fa-key me-1"></i> {{ today_stats.total_tokens|default(0)|numberformat }} tokens
+                    <i class="fas fa-key me-1"></i> {{ today_stats.total_tokens|default(0)|int }} tokens
                 </p>
             </div>
         </div>
@@ -51,7 +51,7 @@
                 <h2 class="display-4">{{ yesterday_stats.total_requests }}</h2>
                 <p class="card-text">Requests</p>
                 <p class="card-text">
-                    <i class="fas fa-key me-1"></i> {{ yesterday_stats.total_tokens|default(0)|numberformat }} tokens
+                    <i class="fas fa-key me-1"></i> {{ yesterday_stats.total_tokens|default(0)|int }} tokens
                 </p>
             </div>
         </div>
@@ -63,7 +63,7 @@
                 <h2 class="display-4">{{ this_week_stats.total_requests }}</h2>
                 <p class="card-text">Requests</p>
                 <p class="card-text">
-                    <i class="fas fa-key me-1"></i> {{ this_week_stats.total_tokens|default(0)|numberformat }} tokens
+                    <i class="fas fa-key me-1"></i> {{ this_week_stats.total_tokens|default(0)|int }} tokens
                 </p>
             </div>
         </div>
@@ -75,7 +75,7 @@
                 <h2 class="display-4">{{ this_month_stats.total_requests }}</h2>
                 <p class="card-text">Requests</p>
                 <p class="card-text">
-                    <i class="fas fa-key me-1"></i> {{ this_month_stats.total_tokens|default(0)|numberformat }} tokens
+                    <i class="fas fa-key me-1"></i> {{ this_month_stats.total_tokens|default(0)|int }} tokens
                 </p>
             </div>
         </div>
@@ -127,7 +127,7 @@
                         <tr>
                             <td>{{ model.model }}</td>
                             <td class="text-end">{{ model.count }}</td>
-                            <td class="text-end">{{ model.tokens|default(0)|numberformat }}</td>
+                            <td class="text-end">{{ model.tokens|default(0)|int }}</td>
                         </tr>
                         {% else %}
                         <tr>
@@ -158,7 +158,7 @@
                         <div class="card mb-3 bg-light">
                             <div class="card-body">
                                 <h5 class="card-title">Total Tokens</h5>
-                                <h3 class="display-6">{{ overall_stats.total_tokens|default(0)|numberformat }}</h3>
+                                <h3 class="display-6">{{ overall_stats.total_tokens|default(0)|int }}</h3>
                             </div>
                         </div>
                     </div>
