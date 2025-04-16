@@ -59,7 +59,12 @@
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header lottery-header">
-                    <h4 class="card-title mb-0">IMPORT LOTTERY DATA FROM SPREADSHEET</h4>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0">IMPORT LOTTERY DATA FROM SPREADSHEET</h4>
+                        <a href="{{ url_for('import_history') }}" class="btn btn-light">
+                            <i class="fas fa-history me-1"></i> View Import History
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info">
