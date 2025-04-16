@@ -6,7 +6,7 @@ This file is imported by gunicorn using the 'main:app' notation.
 It also includes functionality to automatically bind to port 8080 
 when running directly, to support Replit's external access requirements.
 """
-from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory, send_file
+from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory, send_file, session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -674,9 +674,21 @@ def export_screenshots():
     
     screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
     
+    # Check for sync status in session
+    sync_status = None
+    if 'sync_status' in session:
+        sync_status = session.pop('sync_status')
+    
+    # Get the timestamp of the most recent screenshot for status display
+    last_updated = None
+    if screenshots:
+        last_updated = screenshots[0].timestamp
+    
     return render_template('export_screenshots.html',
                           screenshots=screenshots,
-                          title="Export Screenshots")
+                          title="Export Screenshots",
+                          sync_status=sync_status,
+                          last_updated=last_updated)
 
 @app.route('/export-screenshots-zip')
 @login_required
@@ -985,6 +997,144 @@ def view_zoomed_screenshot(screenshot_id):
     filename = os.path.basename(zoomed_path)
     
     return send_from_directory(directory, filename)
+
+@app.route('/sync-all-screenshots', methods=['POST'])
+@login_required
+def sync_all_screenshots():
+    """Sync all screenshots from their source URLs"""
+    if not current_user.is_admin:
+        flash('You must be an admin to sync screenshots.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        # Use the screenshot_manager to retake all screenshots
+        count = screenshot_manager.retake_all_screenshots(app)
+        
+        # Store status in session for display on next page load
+        if count > 0:
+            session['sync_status'] = {
+                'status': 'success',
+                'message': f'Successfully synced {count} screenshots.'
+            }
+        else:
+            session['sync_status'] = {
+                'status': 'warning',
+                'message': 'No screenshots were synced. Check configured URLs.'
+            }
+    except Exception as e:
+        app.logger.error(f"Error syncing screenshots: {str(e)}")
+        session['sync_status'] = {
+            'status': 'danger',
+            'message': f'Error syncing screenshots: {str(e)}'
+        }
+    
+    return redirect(url_for('export_screenshots'))
+
+@app.route('/sync-screenshot/<int:screenshot_id>', methods=['POST'])
+@login_required
+def sync_single_screenshot(screenshot_id):
+    """Sync a single screenshot by its ID"""
+    if not current_user.is_admin:
+        flash('You must be an admin to sync screenshots.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        # Get the screenshot
+        screenshot = Screenshot.query.get_or_404(screenshot_id)
+        
+        # Use the screenshot_manager to retake this screenshot
+        success = screenshot_manager.retake_screenshot_by_id(screenshot_id, app)
+        
+        # Store status in session for display on next page load
+        if success:
+            session['sync_status'] = {
+                'status': 'success',
+                'message': f'Successfully synced screenshot for {screenshot.lottery_type}.'
+            }
+        else:
+            session['sync_status'] = {
+                'status': 'warning',
+                'message': f'Failed to sync screenshot for {screenshot.lottery_type}.'
+            }
+    except Exception as e:
+        app.logger.error(f"Error syncing screenshot: {str(e)}")
+        session['sync_status'] = {
+            'status': 'danger',
+            'message': f'Error syncing screenshot: {str(e)}'
+        }
+    
+    return redirect(url_for('export_screenshots'))
+
+@app.route('/export-combined-zip')
+@login_required
+def export_combined_zip():
+    """Export template and screenshots in a single ZIP file"""
+    if not current_user.is_admin:
+        flash('You must be an admin to export data.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        import io
+        import zipfile
+        import tempfile
+        from datetime import datetime
+        
+        # Create a timestamp for filenames
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # Get all screenshots
+        screenshots = Screenshot.query.order_by(Screenshot.lottery_type).all()
+        
+        if not screenshots:
+            flash('No screenshots available to export.', 'warning')
+            return redirect(url_for('export_screenshots'))
+        
+        # Create a temporary directory for the template
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create the template file
+            template_filename = f"lottery_data_template_{timestamp}.xlsx"
+            template_path = os.path.join(temp_dir, template_filename)
+            import_excel.create_empty_template(template_path)
+            
+            # Create a ZIP file in memory
+            memory_file = io.BytesIO()
+            with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+                # Add the template to the ZIP file
+                zf.write(template_path, f"template/{template_filename}")
+                
+                # Add screenshots to the ZIP file
+                for screenshot in screenshots:
+                    if os.path.exists(screenshot.path):
+                        # Get the file extension
+                        _, ext = os.path.splitext(screenshot.path)
+                        # Create a unique filename for each screenshot
+                        lottery_type = screenshot.lottery_type.replace(' ', '_')
+                        ss_timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
+                        filename = f"{lottery_type}_{ss_timestamp}{ext}"
+                        
+                        # Add the screenshot to the ZIP file in a screenshots folder
+                        zf.write(screenshot.path, f"screenshots/{filename}")
+                        
+                        # Add zoomed version if it exists
+                        if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                            _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
+                            zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
+                            zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
+            
+            # Reset the file pointer to the beginning of the file
+            memory_file.seek(0)
+            
+            # Send the ZIP file as a response
+            return send_file(
+                memory_file,
+                mimetype='application/zip',
+                as_attachment=True,
+                download_name=f'lottery_data_combined_{timestamp}.zip'
+            )
+    except Exception as e:
+        app.logger.error(f"Error creating combined ZIP file: {str(e)}")
+        flash(f'Error creating combined ZIP file: {str(e)}', 'danger')
+        return redirect(url_for('export_screenshots'))
 
 @app.route('/port_check')
 def port_check():

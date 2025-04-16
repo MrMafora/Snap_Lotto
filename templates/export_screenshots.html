@@ -20,7 +20,7 @@
                 </div>
                 
                 <div class="row mb-4">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="card">
                             <div class="card-header lottery-header">
                                 <h5 class="card-title mb-0">EXPORT EMPTY TEMPLATE</h5>
@@ -33,7 +33,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="card">
                             <div class="card-header lottery-header">
                                 <h5 class="card-title mb-0">BULK EXPORT</h5>
@@ -43,6 +43,53 @@
                                 <a href="{{ url_for('export_screenshots_zip') }}" class="btn btn-primary">
                                     <i class="fas fa-file-archive me-2"></i> Export All Screenshots
                                 </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header lottery-header">
+                                <h5 class="card-title mb-0">COMBINED EXPORT</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Export template and screenshots in one download</p>
+                                <a href="{{ url_for('export_combined_zip') }}" class="btn btn-primary">
+                                    <i class="fas fa-file-archive me-2"></i> Combined Download
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header lottery-header">
+                                <h5 class="card-title mb-0">SYNC ALL SCREENSHOTS</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Refresh all screenshots from source URLs</p>
+                                <form action="{{ url_for('sync_all_screenshots') }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-warning">
+                                        <i class="fas fa-sync me-2"></i> Sync All Screenshots
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-header lottery-header">
+                                <h5 class="card-title mb-0">STATUS</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Last updated: {% if last_updated %}{{ last_updated.strftime('%Y-%m-%d %H:%M:%S') }}{% else %}Never{% endif %}</p>
+                                {% if sync_status %}
+                                <div class="alert alert-{{ sync_status.status }}">
+                                    <i class="fas fa-info-circle me-2"></i> {{ sync_status.message }}
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -77,7 +124,7 @@
                                         {{ screenshot.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
                                     </small>
                                 </p>
-                                <div class="d-flex justify-content-between">
+                                <div class="d-flex justify-content-between flex-wrap gap-1">
                                     <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
                                        class="btn btn-sm btn-primary" 
                                        download>
@@ -90,6 +137,12 @@
                                         <i class="fas fa-search-plus me-1"></i> Zoomed
                                     </a>
                                     {% endif %}
+                                    <form action="{{ url_for('sync_single_screenshot', screenshot_id=screenshot.id) }}" method="POST" class="mt-2 w-100">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-warning w-100">
+                                            <i class="fas fa-sync me-1"></i> Resync
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                         </div>

@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
 from sqlalchemy import func
-from models import db, Screenshot
+from models import db, Screenshot, ScheduleConfig
 from logger import setup_logger
 
 # Set up module-specific logger
@@ -654,6 +654,180 @@ def mark_screenshot_as_processed(screenshot_id):
     if screenshot:
         screenshot.processed = True
         db.session.commit()
+        
+def retake_screenshot_by_id(screenshot_id, app=None):
+    """
+    Retake a specific screenshot by its ID.
+    
+    Args:
+        screenshot_id (int): ID of the screenshot to retake
+        app: Flask app context (optional)
+    
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        # Add context manager if app is provided
+        if app:
+            with app.app_context():
+                screenshot = Screenshot.query.get(screenshot_id)
+        else:
+            screenshot = Screenshot.query.get(screenshot_id)
+        
+        if not screenshot:
+            logger.error(f"Screenshot with ID {screenshot_id} not found")
+            return False
+        
+        logger.info(f"Retaking screenshot for {screenshot.url} ({screenshot.lottery_type})")
+        
+        # Take the screenshot
+        success = take_screenshot_threaded(screenshot.url, screenshot.lottery_type)
+        
+        if success:
+            logger.info(f"Successfully retook screenshot for {screenshot.url}")
+            return True
+        else:
+            logger.error(f"Failed to retake screenshot for {screenshot.url}")
+            return False
+    
+    except Exception as e:
+        logger.error(f"Error retaking screenshot by ID {screenshot_id}: {str(e)}")
+        traceback.print_exc()
+        return False
+        
+def retake_all_screenshots(app=None):
+    """
+    Retake all screenshots for each configured URL.
+    
+    Args:
+        app: Flask app context (optional)
+    
+    Returns:
+        int: Number of screenshots captured
+    """
+    try:
+        # Add context manager if app is provided
+        if app:
+            with app.app_context():
+                configs = ScheduleConfig.query.filter_by(active=True).all()
+        else:
+            configs = ScheduleConfig.query.filter_by(active=True).all()
+            
+        logger.info(f"Retaking screenshots for {len(configs)} configurations")
+        count = 0
+        
+        for config in configs:
+            if take_screenshot_threaded(config.url, config.lottery_type):
+                count += 1
+                
+        logger.info(f"Successfully retook {count} screenshots")
+        return count
+    except Exception as e:
+        logger.error(f"Error retaking all screenshots: {str(e)}")
+        traceback.print_exc()
+        return 0
+
+def take_screenshot_threaded(url, lottery_type, use_thread=True):
+    """
+    Take a screenshot of the specified URL in a separate thread.
+    
+    Args:
+        url (str): The URL to capture
+        lottery_type (str): Type of lottery (used for DB storage)
+        use_thread (bool): Whether to use a thread or run synchronously
+        
+    Returns:
+        bool: True if the screenshot was successfully scheduled/taken
+    """
+    if not url:
+        logger.error("Empty URL provided for screenshot")
+        return False
+        
+    try:
+        if use_thread:
+            # Use a thread to avoid blocking the main thread
+            threading.Thread(
+                target=_take_screenshot_worker,
+                args=(url, lottery_type),
+                daemon=True
+            ).start()
+            return True
+        else:
+            # Run synchronously
+            return _take_screenshot_worker(url, lottery_type)
+    except Exception as e:
+        logger.error(f"Error scheduling screenshot for {url}: {str(e)}")
+        traceback.print_exc()
+        return False
+
+def _take_screenshot_worker(url, lottery_type):
+    """
+    Worker function to take a screenshot of the specified URL.
+    Intended to be run in a separate thread.
+    
+    Args:
+        url (str): The URL to capture
+        lottery_type (str): Type of lottery
+        
+    Returns:
+        bool: True if successful
+    """
+    try:
+        # Acquire the semaphore to limit concurrent screenshot operations
+        with screenshot_semaphore:
+            logger.info(f"Taking screenshot of {url} ({lottery_type})")
+            
+            # Take the screenshot
+            filepath, screenshot_data, zoom_filepath = capture_screenshot(url, lottery_type)
+            
+            if not filepath or not screenshot_data:
+                logger.error(f"Failed to capture screenshot for {url}")
+                return False
+                
+            # Save to database
+            try:
+                # Check if existing screenshot exists for this URL
+                existing = Screenshot.query.filter_by(url=url).first()
+                
+                if existing:
+                    # Update existing record
+                    existing.path = filepath
+                    existing.zoomed_path = zoom_filepath
+                    existing.timestamp = datetime.now()
+                    existing.processed = False
+                    db.session.commit()
+                    
+                    logger.info(f"Updated existing screenshot record for {url}")
+                    screenshot_id = existing.id
+                else:
+                    # Create new record
+                    screenshot = Screenshot(
+                        url=url,
+                        lottery_type=lottery_type,
+                        path=filepath,
+                        zoomed_path=zoom_filepath,
+                        timestamp=datetime.now(),
+                        processed=False
+                    )
+                    
+                    db.session.add(screenshot)
+                    db.session.commit()
+                    
+                    logger.info(f"Created new screenshot record for {url}")
+                    screenshot_id = screenshot.id
+                
+                logger.info(f"Screenshot saved successfully (ID: {screenshot_id})")
+                return True
+                
+            except Exception as e:
+                logger.error(f"Error saving screenshot to database: {str(e)}")
+                traceback.print_exc()
+                return False
+            
+    except Exception as e:
+        logger.error(f"Error in screenshot worker thread: {str(e)}")
+        traceback.print_exc()
+        return False
 
 def cleanup_old_screenshots():
     """
