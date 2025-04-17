@@ -533,12 +533,9 @@
             // Add CSRF token to headers
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
             
-            // Send request
+            // Send request - Flask-WTF uses CSRF token from formData, no need to add header
             fetch('/scan-ticket', {
                 method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken
-                },
                 body: formData
             })
             .then(response => response.json())

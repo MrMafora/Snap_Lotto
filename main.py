@@ -8,10 +8,11 @@ when running directly, to support Replit's external access requirements.
 """
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory, send_file, session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
-from flask_wtf.csrf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+# Import EnhancedCSRFProtect instead of CSRFProtect
+from csrf_fix import EnhancedCSRFProtect
 
 import logging
 import os
@@ -78,10 +79,8 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 # Initialize CSRF Protection
-csrf = CSRFProtect(app)
-# Set cookie parameters to work in both development and production
-app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour token timeout
-app.config['WTF_CSRF_SSL_STRICT'] = False  # Don't require HTTPS for CSRF
+csrf = EnhancedCSRFProtect(app)
+# EnhancedCSRFProtect class handles all the configuration, so we don't need to set these manually
 
 # Exempt endpoints that don't need CSRF protection
 csrf.exempt('scan_ticket')
