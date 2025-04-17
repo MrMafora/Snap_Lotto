@@ -160,26 +160,63 @@ def update_excel_data(excel_file, flask_app=None):
     
     with app.app_context():
         try:
-            # Load Excel file
-            df = pd.read_excel(excel_file)
-            logger.info(f"Loaded {len(df)} rows from Excel file")
+            # Load all sheets from the Excel file
+            xls = pd.ExcelFile(excel_file)
+            sheet_names = xls.sheet_names
+            logger.info(f"Found {len(sheet_names)} sheets in Excel file: {sheet_names}")
             
-            # Map expected column names to actual ones in the spreadsheet
-            column_mapping = {
-                'lottery_type': 'Game Name',
-                'draw_number': 'Draw Number',
-                'draw_date': 'Draw Date',
-                'numbers': 'Winning Numbers (Numerical)',
-                'bonus_number': 'Bonus Ball'
+            # Combined dataframe to store all records
+            all_records = []
+            total_rows = 0
+            
+            # Process each sheet
+            for sheet_name in sheet_names:
+                df = pd.read_excel(excel_file, sheet_name=sheet_name)
+                total_rows += len(df)
+                # Skip empty sheets or sheets with no rows
+                if len(df) == 0:
+                    logger.info(f"Sheet {sheet_name} is empty, skipping")
+                    continue
+                    
+                # Set lottery type based on sheet name if not present in data
+                if 'Game Name' not in df.columns:
+                    # Create Game Name column with the sheet name
+                    df['Game Name'] = sheet_name
+                    logger.info(f"Added lottery type '{sheet_name}' to all rows in sheet")
+                
+                all_records.append(df)
+            
+            # Concatenate all dataframes
+            df = pd.concat(all_records, ignore_index=True)
+            logger.info(f"Loaded {total_rows} rows from all sheets")
+            
+            # Define possible column name mappings for different sheets
+            possible_name_mappings = {
+                'lottery_type': ['Game Name', 'Game Type'],
+                'draw_number': ['Draw Number'],
+                'draw_date': ['Draw Date'],
+                'numbers': ['Winning Numbers (Numerical)', 'Winning Numbers'],
+                'bonus_number': ['Bonus Ball', 'Bonus Number']
             }
             
-            # Check required columns
-            for expected_col, actual_col in column_mapping.items():
-                if actual_col not in df.columns:
-                    logger.error(f"Required column '{actual_col}' not found in Excel file")
-                    print(f"Error: Required column '{actual_col}' not found in Excel file. Available columns: {list(df.columns)}")
-                    return
+            # Find actual column names based on possible mappings
+            column_mapping = {}
+            for target_col, possible_cols in possible_name_mappings.items():
+                found = False
+                for col in possible_cols:
+                    if col in df.columns:
+                        column_mapping[target_col] = col
+                        found = True
+                        break
                 
+                if not found and target_col in ['lottery_type', 'draw_number', 'draw_date', 'numbers']:
+                    logger.error(f"Required column mapping not found for '{target_col}'")
+                    print(f"Error: Could not find a column for '{target_col}'. Available columns: {list(df.columns)}")
+                    return
+            
+            # Log the column mapping being used
+            logger.info(f"Using column mapping: {column_mapping}")
+            
             # Rename columns to match our expected names
             df.rename(columns={v: k for k, v in column_mapping.items()}, inplace=True)
             
@@ -219,26 +256,38 @@ def update_excel_data(excel_file, flask_app=None):
                     
                     # Build divisions data from the spreadsheet's division columns
                     divisions = {}
-                    # Check for division columns in the original dataframe
+                    
+                    # Define patterns for division columns across different sheet formats
+                    division_column_patterns = [
+                        # Lotto format: "Div X Winners" / "Div X Winnings"
+                        {'winners_pattern': 'Div {0} Winners', 'prize_pattern': 'Div {0} Winnings'},
+                        # PowerBall format: "Division X Winners" / "Division X Prize"
+                        {'winners_pattern': 'Division {0} Winners', 'prize_pattern': 'Division {0} Prize'}
+                    ]
+                    
+                    # Try all patterns to find division data
                     for div in range(1, 9):  # Support up to 8 divisions
-                        winners_col = f'Div {div} Winners'
-                        prize_col = f'Div {div} Winnings'
-                        
-                        if winners_col in df.columns and prize_col in df.columns:
-                            winners = row.get(winners_col)
-                            prize = row.get(prize_col)
+                        for pattern in division_column_patterns:
+                            winners_col = pattern['winners_pattern'].format(div)
+                            prize_col = pattern['prize_pattern'].format(div)
                             
-                            if not pd.isna(winners) and not pd.isna(prize):
-                                # Format prize with R if needed
-                                if isinstance(prize, str) and not prize.startswith('R'):
-                                    prize = 'R' + prize
-                                elif isinstance(prize, (int, float)):
-                                    prize = f'R{prize:,.2f}'
+                            # Check if columns exist in the dataframe or the row (row.get is safer)
+                            if winners_col in df.columns and prize_col in df.columns:
+                                winners = row.get(winners_col)
+                                prize = row.get(prize_col)
                                 
-                                divisions[f'Division {div}'] = {
-                                    'winners': str(int(winners) if isinstance(winners, (int, float)) else winners),
-                                    'prize': prize
-                                }
+                                if not pd.isna(winners) and not pd.isna(prize):
+                                    # Format prize with R if needed
+                                    if isinstance(prize, str) and not prize.startswith('R'):
+                                        prize = 'R' + prize
+                                    elif isinstance(prize, (int, float)):
+                                        prize = f'R{prize:,.2f}'
+                                    
+                                    divisions[f'Division {div}'] = {
+                                        'winners': str(int(winners) if isinstance(winners, (int, float)) else winners),
+                                        'prize': prize
+                                    }
+                                    break  # Found this division, move to next
                     
                     # Check if this draw already exists
                     existing = LotteryResult.query.filter_by(
