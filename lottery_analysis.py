@@ -1179,6 +1179,7 @@ def register_analysis_routes(app, db):
     """
     from flask import render_template, request, jsonify, send_from_directory
     from flask_login import login_required, current_user
+    from main import csrf
     
     # Create analyzer instance
     analyzer = LotteryAnalyzer(db)
@@ -1259,6 +1260,7 @@ def register_analysis_routes(app, db):
     
     @app.route('/api/lottery-analysis/patterns')
     @login_required
+    @csrf.exempt
     def api_pattern_analysis():
         """API endpoint for pattern analysis data"""
         if not current_user.is_admin:
@@ -1272,6 +1274,7 @@ def register_analysis_routes(app, db):
     
     @app.route('/api/lottery-analysis/time-series')
     @login_required
+    @csrf.exempt
     def api_time_series_analysis():
         """API endpoint for time series analysis data"""
         if not current_user.is_admin:
@@ -1285,6 +1288,7 @@ def register_analysis_routes(app, db):
     
     @app.route('/api/lottery-analysis/correlations')
     @login_required
+    @csrf.exempt
     def api_correlation_analysis():
         """API endpoint for correlation analysis data"""
         if not current_user.is_admin:
@@ -1297,6 +1301,7 @@ def register_analysis_routes(app, db):
     
     @app.route('/api/lottery-analysis/winners')
     @login_required
+    @csrf.exempt
     def api_winner_analysis():
         """API endpoint for winner analysis data"""
         if not current_user.is_admin:
@@ -1310,6 +1315,7 @@ def register_analysis_routes(app, db):
     
     @app.route('/api/lottery-analysis/predict')
     @login_required
+    @csrf.exempt
     def api_lottery_prediction():
         """API endpoint for lottery prediction"""
         if not current_user.is_admin:
@@ -1322,6 +1328,7 @@ def register_analysis_routes(app, db):
     
     @app.route('/api/lottery-analysis/full')
     @login_required
+    @csrf.exempt
     def api_full_analysis():
         """API endpoint for full analysis data"""
         if not current_user.is_admin:
