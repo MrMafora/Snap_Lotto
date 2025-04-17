@@ -63,20 +63,35 @@
         </div>
     </div>
 
-    <!-- Analysis Tabs -->
-    <div class="mb-3">
-        <button id="frequency-tab-btn" class="btn btn-primary active mr-2">Number Frequency</button>
-        <button id="patterns-tab-btn" class="btn btn-outline-primary mr-2">Pattern Analysis</button>
-        <button id="timeseries-tab-btn" class="btn btn-outline-primary mr-2">Time Series</button>
-        <button id="winners-tab-btn" class="btn btn-outline-primary mr-2">Winner Analysis</button>
+    <!-- Analysis Tabs - Bootstrap 5 style -->
+    <ul class="nav nav-tabs" id="analysisTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="frequency-tab" data-bs-toggle="tab" data-bs-target="#frequency" type="button" role="tab" 
+               aria-controls="frequency" aria-selected="true">Number Frequency</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="patterns-tab" data-bs-toggle="tab" data-bs-target="#patterns" type="button" role="tab" 
+               aria-controls="patterns" aria-selected="false">Pattern Analysis</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="timeseries-tab" data-bs-toggle="tab" data-bs-target="#timeseries" type="button" role="tab" 
+               aria-controls="timeseries" aria-selected="false">Time Series</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="winners-tab" data-bs-toggle="tab" data-bs-target="#winners" type="button" role="tab" 
+               aria-controls="winners" aria-selected="false">Winner Analysis</button>
+        </li>
         {% if not selected_type %}
-        <button id="correlations-tab-btn" class="btn btn-outline-primary">Lottery Correlations</button>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="correlations-tab" data-bs-toggle="tab" data-bs-target="#correlations" type="button" role="tab" 
+               aria-controls="correlations" aria-selected="false">Lottery Correlations</button>
+        </li>
         {% endif %}
-    </div>
+    </ul>
 
-    <div class="tab-content">
+    <div class="tab-content" id="analysisTabContent">
         <!-- Frequency Analysis Tab -->
-        <div id="frequency-tab-content" class="tab-panel active">
+        <div class="tab-pane fade show active" id="frequency" role="tabpanel" aria-labelledby="frequency-tab">
             <div class="row">
                 <div class="col-12">
                     <div class="card shadow mb-4">
@@ -165,7 +180,7 @@
         </div>
 
         <!-- Pattern Analysis Tab -->
-        <div id="patterns-tab-content" class="tab-panel" style="display: none;">
+        <div class="tab-pane fade" id="patterns" role="tabpanel" aria-labelledby="patterns-tab">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Pattern Analysis</h6>
@@ -177,13 +192,13 @@
                         </div>
                         <p class="mt-2">Loading pattern analysis data...</p>
                     </div>
-                    <div id="patterns-content" class="row" style="display: none;"></div>
+                    <div id="patterns-content" class="row mt-3" style="display: none;"></div>
                 </div>
             </div>
         </div>
 
         <!-- Time Series Tab -->
-        <div id="timeseries-tab-content" class="tab-panel" style="display: none;">
+        <div class="tab-pane fade" id="timeseries" role="tabpanel" aria-labelledby="timeseries-tab">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Time Series Analysis</h6>
@@ -201,7 +216,7 @@
         </div>
 
         <!-- Winner Analysis Tab -->
-        <div id="winners-tab-content" class="tab-panel" style="display: none;">
+        <div class="tab-pane fade" id="winners" role="tabpanel" aria-labelledby="winners-tab">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Winner Analysis</h6>
@@ -220,7 +235,7 @@
 
         <!-- Correlations Tab -->
         {% if not selected_type %}
-        <div id="correlations-tab-content" class="tab-panel" style="display: none;">
+        <div class="tab-pane fade" id="correlations" role="tabpanel" aria-labelledby="correlations-tab">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Lottery Type Correlations</h6>
@@ -243,94 +258,46 @@
 
 {% block script %}
 <script>
-    // Simplified tab system with direct DOM manipulation
+    // Bootstrap 5 Tab Functionality
     document.addEventListener('DOMContentLoaded', function() {
-        // Tab buttons
-        const frequencyBtn = document.getElementById('frequency-tab-btn');
-        const patternsBtn = document.getElementById('patterns-tab-btn');
-        const timeseriesBtn = document.getElementById('timeseries-tab-btn');
-        const winnersBtn = document.getElementById('winners-tab-btn');
-        const correlationsBtn = document.getElementById('correlations-tab-btn');
+        // Setup event listeners for Bootstrap 5 tabs
+        const tabs = [
+            { id: 'patterns-tab', loadFunction: loadPatternData },
+            { id: 'timeseries-tab', loadFunction: loadTimeSeriesData },
+            { id: 'winners-tab', loadFunction: loadWinnersData },
+            { id: 'correlations-tab', loadFunction: loadCorrelationsData }
+        ];
         
-        // Tab contents
-        const frequencyContent = document.getElementById('frequency-tab-content');
-        const patternsContent = document.getElementById('patterns-tab-content');
-        const timeseriesContent = document.getElementById('timeseries-tab-content');
-        const winnersContent = document.getElementById('winners-tab-content');
-        const correlationsContent = document.getElementById('correlations-tab-content');
-        
-        // Function to show a tab
-        function showTab(tabButton, tabContent) {
-            // Hide all tab contents
-            [frequencyContent, patternsContent, timeseriesContent, winnersContent, correlationsContent].forEach(content => {
-                if (content) content.style.display = 'none';
-            });
-            
-            // Deactivate all buttons
-            [frequencyBtn, patternsBtn, timeseriesBtn, winnersBtn, correlationsBtn].forEach(btn => {
-                if (btn) {
-                    btn.classList.remove('btn-primary', 'active');
-                    btn.classList.add('btn-outline-primary');
-                }
-            });
-            
-            // Activate selected button and show content
-            if (tabButton) {
-                tabButton.classList.remove('btn-outline-primary');
-                tabButton.classList.add('btn-primary', 'active');
+        // Add event listeners to load data when a tab is shown
+        tabs.forEach(tab => {
+            const tabElement = document.getElementById(tab.id);
+            if (tabElement) {
+                // Use Bootstrap 5's tab shown event
+                tabElement.addEventListener('shown.bs.tab', function() {
+                    if (tab.loadFunction) {
+                        tab.loadFunction();
+                    }
+                });
             }
+        });
+        
+        // Initialize Bootstrap tabs
+        const triggerTabList = Array.from(document.querySelectorAll('#analysisTab button'));
+        triggerTabList.forEach(triggerEl => {
+            const tabTrigger = new bootstrap.Tab(triggerEl);
             
-            if (tabContent) {
-                tabContent.style.display = 'block';
-            }
-            
-            // Load data if needed
-            if (tabButton === patternsBtn) {
-                loadPatternData();
-            } else if (tabButton === timeseriesBtn) {
-                loadTimeSeriesData();
-            } else if (tabButton === winnersBtn) {
-                loadWinnersData();
-            } else if (tabButton === correlationsBtn) {
-                loadCorrelationsData();
-            }
-        }
-        
-        // Add click handlers to buttons
-        if (frequencyBtn) {
-            frequencyBtn.addEventListener('click', function() {
-                showTab(frequencyBtn, frequencyContent);
+            triggerEl.addEventListener('click', event => {
+                event.preventDefault();
+                tabTrigger.show();
             });
-        }
-        
-        if (patternsBtn) {
-            patternsBtn.addEventListener('click', function() {
-                showTab(patternsBtn, patternsContent);
-            });
-        }
-        
-        if (timeseriesBtn) {
-            timeseriesBtn.addEventListener('click', function() {
-                showTab(timeseriesBtn, timeseriesContent);
-            });
-        }
-        
-        if (winnersBtn) {
-            winnersBtn.addEventListener('click', function() {
-                showTab(winnersBtn, winnersContent);
-            });
-        }
-        
-        if (correlationsBtn) {
-            correlationsBtn.addEventListener('click', function() {
-                showTab(correlationsBtn, correlationsContent);
-            });
-        }
+        });
         
         // Function to load pattern data
         function loadPatternData() {
-            const loading = document.getElementById('patterns-loading');
-            const content = document.getElementById('patterns-content');
+            // Use querySelector to find elements within the patterns tab content
+            const patternsTab = document.getElementById('patterns');
+            const loading = patternsTab.querySelector('#patterns-loading');
+            const content = patternsTab.querySelector('#patterns-content');
             
             if (!content.hasChildNodes()) {
                 loading.style.display = 'block';
@@ -447,8 +414,10 @@
         
         // Function to load time series data
         function loadTimeSeriesData() {
-            const loading = document.getElementById('timeseries-loading');
-            const content = document.getElementById('timeseries-content');
+            // Use querySelector to find elements within the timeseries tab content
+            const timeseriesTab = document.getElementById('timeseries');
+            const loading = timeseriesTab.querySelector('#timeseries-loading');
+            const content = timeseriesTab.querySelector('#timeseries-content');
             
             if (!content.hasChildNodes()) {
                 loading.style.display = 'block';
@@ -476,8 +445,10 @@
         
         // Function to load winner data
         function loadWinnersData() {
-            const loading = document.getElementById('winners-loading');
-            const content = document.getElementById('winners-content');
+            // Use querySelector to find elements within the winners tab content
+            const winnersTab = document.getElementById('winners');
+            const loading = winnersTab.querySelector('#winners-loading');
+            const content = winnersTab.querySelector('#winners-content');
             
             if (!content.hasChildNodes()) {
                 loading.style.display = 'block';
@@ -505,8 +476,10 @@
         
         // Function to load correlation data
         function loadCorrelationsData() {
-            const loading = document.getElementById('correlations-loading');
-            const content = document.getElementById('correlations-content');
+            // Use querySelector to find elements within the correlations tab content
+            const correlationsTab = document.getElementById('correlations');
+            const loading = correlationsTab.querySelector('#correlations-loading');
+            const content = correlationsTab.querySelector('#correlations-content');
             
             if (!content.hasChildNodes()) {
                 loading.style.display = 'block';
