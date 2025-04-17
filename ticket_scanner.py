@@ -39,6 +39,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     extracted_game_type = ticket_info.get('game_type')
     extracted_draw_number = ticket_info.get('draw_number')
     extracted_draw_date = ticket_info.get('draw_date')
+    plays_powerball_plus = ticket_info.get('plays_powerball_plus', False)
     
     # Get both the raw and processed ticket numbers
     raw_ticket_info = ticket_info.get('raw_selected_numbers', {})
@@ -57,10 +58,16 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
         draw_number = extracted_draw_number
     
     # Log the extracted information
-    logger.info(f"Extracted ticket info - Game: {lottery_type}, Draw: {draw_number}, Date: {extracted_draw_date}, Numbers: {ticket_numbers}")
+    logger.info(f"Extracted ticket info - Game: {lottery_type}, Draw: {draw_number}, Date: {extracted_draw_date}, Numbers: {ticket_numbers}, Plays Powerball Plus: {plays_powerball_plus}")
     
     # Get the lottery result to compare against
     lottery_result = get_lottery_result(lottery_type, draw_number)
+    
+    # If this is a Powerball ticket that also plays Powerball Plus, check both
+    powerball_plus_result = None
+    if plays_powerball_plus and lottery_type == "Powerball":
+        logger.info("This ticket also plays Powerball Plus - checking both games")
+        powerball_plus_result = get_lottery_result("Powerball Plus", draw_number)
     
     if not lottery_result:
         # Enhanced error message with more helpful information
@@ -90,7 +97,8 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
                 "lottery_type": lottery_type,
                 "draw_number": draw_number if draw_number else extracted_draw_number,
                 "draw_date": extracted_draw_date,
-                "ticket_numbers": ticket_numbers
+                "ticket_numbers": ticket_numbers,
+                "plays_powerball_plus": plays_powerball_plus
             }
         }
     
@@ -132,7 +140,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     # Format draw date for display
     formatted_date = lottery_result.draw_date.strftime("%A, %d %B %Y")
     
-    # Return enhanced result with all extracted ticket information
+    # Initialize result structure
     result = {
         "lottery_type": lottery_type,
         "draw_number": lottery_result.draw_number,
@@ -141,7 +149,8 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             "detected_game_type": extracted_game_type,
             "detected_draw_number": extracted_draw_number,
             "detected_draw_date": extracted_draw_date,
-            "selected_numbers": ticket_numbers
+            "selected_numbers": ticket_numbers,
+            "plays_powerball_plus": plays_powerball_plus
         },
         "ticket_numbers": ticket_numbers,
         "winning_numbers": winning_numbers,
@@ -160,6 +169,42 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     # Add rows with matches if we have them
     if rows_with_matches:
         result["rows_with_matches"] = rows_with_matches
+    
+    # If this ticket also plays Powerball Plus, check against those results
+    if powerball_plus_result:
+        # Get Powerball Plus winning numbers
+        pp_winning_numbers = powerball_plus_result.get_numbers_list()
+        pp_winning_numbers = [int(num) for num in pp_winning_numbers]
+        
+        pp_bonus_numbers = []
+        if powerball_plus_result.bonus_numbers:
+            pp_bonus_numbers = powerball_plus_result.get_bonus_numbers_list()
+            pp_bonus_numbers = [int(num) for num in pp_bonus_numbers]
+        
+        # Find matched numbers for Powerball Plus
+        pp_matched_numbers = [num for num in ticket_numbers if num in pp_winning_numbers]
+        pp_matched_bonus = [num for num in ticket_numbers if num in pp_bonus_numbers]
+        
+        # Check for prize in Powerball Plus
+        pp_prize_info = get_prize_info("Powerball Plus", pp_matched_numbers, pp_matched_bonus, powerball_plus_result)
+        
+        # Include Powerball Plus results in our response
+        result["powerball_plus_results"] = {
+            "lottery_type": "Powerball Plus",
+            "draw_number": powerball_plus_result.draw_number,
+            "draw_date": powerball_plus_result.draw_date.strftime("%A, %d %B %Y"),
+            "winning_numbers": pp_winning_numbers,
+            "bonus_numbers": pp_bonus_numbers,
+            "matched_numbers": pp_matched_numbers,
+            "matched_bonus": pp_matched_bonus,
+            "total_matched": len(pp_matched_numbers) + len(pp_matched_bonus),
+            "has_prize": bool(pp_prize_info),
+            "prize_info": pp_prize_info if pp_prize_info else {}
+        }
+        
+        # If Powerball Plus has a prize but the main game doesn't, mark overall ticket as winning
+        if bool(pp_prize_info) and not bool(prize_info):
+            result["has_prize"] = True
         
     return result
 
@@ -188,6 +233,7 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
         2. Draw date (in YYYY-MM-DD format if possible)
         3. Draw number (ID number of the specific draw)
         4. Selected numbers (the player's chosen numbers on the ticket)
+        5. IMPORTANT: Check if the ticket has "POWERBALL PLUS: YES" indicated anywhere. This means the ticket is valid for both Powerball and Powerball Plus draws.
         
         CRITICAL REQUIREMENT: If the ticket has MULTIPLE ROWS or SETS of numbers (e.g., A01-F01 or multiple games),
         you MUST extract ALL ROWS and ALL NUMBERS from the ticket. Do not just extract the first row.
@@ -198,6 +244,7 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
         - For Lotto/Lotto Plus tickets, look for 6 selected numbers per row
         - For Powerball/Powerball Plus tickets, look for 5 main numbers + 1 Powerball number per row
         - For Daily Lotto tickets, look for 5 selected numbers per row
+        - CAREFULLY check if "POWERBALL PLUS: YES" is indicated on the ticket. This is critical information.
         - Return all information in a structured JSON format with no additional text or explanations
         - If you can't determine certain fields with confidence, use "unknown" as the value
         
@@ -206,6 +253,7 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
             "game_type": "The detected game type (e.g., Lotto, Powerball)",
             "draw_date": "Draw date in YYYY-MM-DD format if possible",
             "draw_number": "Draw ID number as shown on ticket",
+            "plays_powerball_plus": true/false, 
             "selected_numbers": {
                 "A01": [first set of numbers],
                 "B01": [second set of numbers],

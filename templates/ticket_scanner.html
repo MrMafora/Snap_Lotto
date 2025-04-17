@@ -277,15 +277,23 @@
                                         <h5 class="mb-0">Winning Numbers</h5>
                                     </div>
                                     <div class="card-body">
+                                        <!-- Primary game winning numbers -->
                                         <div class="row mb-3">
-                                            <div class="col-md-6">
-                                                <p><strong>Main Numbers:</strong></p>
+                                            <div class="col-md-12">
+                                                <p><strong id="primary-game-label">Main Numbers:</strong></p>
                                                 <div id="winning-numbers" class="mb-3"></div>
                                             </div>
-                                            <div class="col-md-6" id="bonus-numbers-container">
+                                            <div class="col-md-12" id="bonus-numbers-container">
                                                 <p><strong>Bonus Number:</strong></p>
                                                 <div id="bonus-numbers" class="mb-3"></div>
                                             </div>
+                                        </div>
+                                        
+                                        <!-- Powerball Plus winning numbers displayed in main winning numbers card -->
+                                        <div id="powerball-plus-numbers-container" class="mb-3 d-none">
+                                            <hr>
+                                            <p><strong>Powerball Plus Numbers:</strong></p>
+                                            <div id="powerball-plus-numbers" class="mb-2"></div>
                                         </div>
                                         
                                         <div class="mt-4">
@@ -294,6 +302,17 @@
                                             <div class="mt-2" id="matched-bonus-section">
                                                 <p><strong>Matched Bonus:</strong> <span id="matched-bonus-count" class="badge bg-warning text-dark">0</span></p>
                                                 <div id="matched-bonus-numbers"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Matched Powerball Plus numbers displayed in main winning numbers card -->
+                                        <div id="powerball-plus-matches-container" class="mt-4 d-none">
+                                            <hr>
+                                            <p><strong>Powerball Plus Matches:</strong> <span id="pp-matched-count" class="badge bg-success">0</span></p>
+                                            <div id="pp-matched-numbers"></div>
+                                            <div class="mt-2" id="pp-matched-bonus-section">
+                                                <p><strong>Matched Powerball Plus Bonus:</strong> <span id="pp-matched-bonus-count" class="badge bg-warning text-dark">0</span></p>
+                                                <div id="pp-matched-bonus-numbers"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -327,6 +346,9 @@
                                         </div>
                                     </div>
                                 </div>
+                                
+                                <!-- Container for Powerball Plus results -->
+                                <div id="powerball-plus-container" class="d-none mt-4"></div>
                             </div>
                         </div>
                     </div>
@@ -722,9 +744,16 @@
                     
                     // Add balls for this row
                     numbers.forEach((num, index) => {
-                        // In the old implementation, we were adding "+" sign before the last ball
-                        // in ANY row for Powerball games, which was incorrect.
-                        // We now only add "+" between rows.
+                        // For Powerball tickets, add a plus sign before the last number (bonus ball)
+                        // This is for Row A style display (where we keep the bonus ball on the same line)
+                        if (data.lottery_type.toLowerCase().includes('powerball') && 
+                            index === numbers.length - 1 && 
+                            numbers.length === 6) {
+                            const plusSpan = document.createElement('span');
+                            plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
+                            plusSpan.textContent = '+';
+                            rowContainer.appendChild(plusSpan);
+                        }
                         
                         const ball = document.createElement('span');
                         ball.classList.add('lottery-ball');
@@ -840,6 +869,15 @@
                 winningNumbersContainer.appendChild(ball);
             });
             
+            // Add a plus sign between main numbers and bonus numbers if this is a Powerball game
+            if (data.bonus_numbers && data.bonus_numbers.length > 0 && 
+                data.lottery_type.toLowerCase().includes('powerball')) {
+                const plusSpan = document.createElement('span');
+                plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
+                plusSpan.textContent = '+';
+                winningNumbersContainer.appendChild(plusSpan);
+            }
+            
             // Display bonus numbers in dedicated section
             const bonusNumbersContainer = document.getElementById('bonus-numbers');
             bonusNumbersContainer.innerHTML = '';
@@ -928,6 +966,158 @@
             } else {
                 prizeContainer.classList.add('d-none');
                 noPrizeContainer.classList.remove('d-none');
+            }
+            
+            // Check if ticket also plays Powerball Plus and display those results
+            if (data.powerball_plus_results) {
+                // Update the primary game label to include the game name
+                const primaryGameLabel = document.getElementById('primary-game-label');
+                primaryGameLabel.textContent = data.lottery_type + ' Numbers:';
+                
+                // Powerball Plus Numbers - Add to the main winning numbers card
+                const ppNumbersContainer = document.getElementById('powerball-plus-numbers-container');
+                const ppNumbersDiv = document.getElementById('powerball-plus-numbers');
+                
+                // Show the container
+                ppNumbersContainer.classList.remove('d-none');
+                ppNumbersDiv.innerHTML = '';
+                
+                // Add main numbers
+                data.powerball_plus_results.winning_numbers.forEach((num, index) => {
+                    const ball = document.createElement('span');
+                    ball.classList.add('lottery-ball');
+                    
+                    // Add color classes in sequence
+                    if (index % 4 === 0) {
+                        ball.classList.add('lottery-ball-red');
+                    } else if (index % 4 === 1) {
+                        ball.classList.add('lottery-ball-yellow');
+                    } else if (index % 4 === 2) {
+                        ball.classList.add('lottery-ball-green');
+                    } else {
+                        ball.classList.add('lottery-ball-blue');
+                    }
+                    
+                    ball.textContent = num;
+                    ppNumbersDiv.appendChild(ball);
+                });
+                
+                // Always add a plus sign between main numbers and bonus, even if there's only one bonus number
+                if (data.powerball_plus_results.bonus_numbers && data.powerball_plus_results.bonus_numbers.length > 0) {
+                    const plusSpan = document.createElement('span');
+                    plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
+                    plusSpan.textContent = '+';
+                    ppNumbersDiv.appendChild(plusSpan);
+                    
+                    // Add bonus numbers
+                    data.powerball_plus_results.bonus_numbers.forEach(num => {
+                        const ball = document.createElement('span');
+                        ball.classList.add('lottery-ball', 'lottery-ball-yellow');
+                        ball.textContent = num;
+                        ppNumbersDiv.appendChild(ball);
+                    });
+                }
+                
+                // Display Powerball Plus matches in the main card
+                if (data.powerball_plus_results.matched_numbers.length > 0 || data.powerball_plus_results.matched_bonus.length > 0) {
+                    // Show the PowerballPlus matches container
+                    const ppMatchesContainer = document.getElementById('powerball-plus-matches-container');
+                    ppMatchesContainer.classList.remove('d-none');
+                    
+                    // Update matched count
+                    document.getElementById('pp-matched-count').textContent = data.powerball_plus_results.matched_numbers.length;
+                    
+                    // Display matched numbers
+                    const ppMatchedNumbersDiv = document.getElementById('pp-matched-numbers');
+                    ppMatchedNumbersDiv.innerHTML = '';
+                    
+                    if (data.powerball_plus_results.matched_numbers.length > 0) {
+                        data.powerball_plus_results.matched_numbers.forEach((num, index) => {
+                            const ball = document.createElement('span');
+                            ball.classList.add('lottery-ball', 'ball-matched');
+                            
+                            // Add color classes in sequence
+                            if (index % 4 === 0) {
+                                ball.classList.add('lottery-ball-red');
+                            } else if (index % 4 === 1) {
+                                ball.classList.add('lottery-ball-yellow');
+                            } else if (index % 4 === 2) {
+                                ball.classList.add('lottery-ball-green');
+                            } else {
+                                ball.classList.add('lottery-ball-blue');
+                            }
+                            
+                            ball.textContent = num;
+                            ppMatchedNumbersDiv.appendChild(ball);
+                        });
+                    } else {
+                        ppMatchedNumbersDiv.innerHTML = '<p>No matching main numbers found for Powerball Plus.</p>';
+                    }
+                    
+                    // Display matched bonus
+                    const ppMatchedBonusSection = document.getElementById('pp-matched-bonus-section');
+                    const ppMatchedBonusDiv = document.getElementById('pp-matched-bonus-numbers');
+                    ppMatchedBonusDiv.innerHTML = '';
+                    
+                    if (data.powerball_plus_results.matched_bonus.length > 0) {
+                        ppMatchedBonusSection.classList.remove('d-none');
+                        document.getElementById('pp-matched-bonus-count').textContent = data.powerball_plus_results.matched_bonus.length;
+                        
+                        data.powerball_plus_results.matched_bonus.forEach(num => {
+                            const ball = document.createElement('span');
+                            ball.classList.add('lottery-ball', 'ball-matched', 'lottery-ball-yellow');
+                            ball.style.animation = 'pulse 2s infinite';
+                            ball.textContent = num;
+                            ppMatchedBonusDiv.appendChild(ball);
+                        });
+                    } else {
+                        ppMatchedBonusSection.classList.add('d-none');
+                    }
+                }
+                
+                // Keep the separate card for prize information
+                const powerballPlusContainer = document.getElementById('powerball-plus-container');
+                if (powerballPlusContainer) {
+                    // Show the container for prize information
+                    powerballPlusContainer.classList.remove('d-none');
+                    
+                    // Create header for prize information
+                    powerballPlusContainer.innerHTML = '';  // Clear any existing content
+                    
+                    // Only display prize information if there is a prize
+                    if (data.powerball_plus_results.has_prize) {
+                        // Create a card for Powerball Plus prize
+                        const ppPrizeCard = document.createElement('div');
+                        ppPrizeCard.classList.add('card', 'mb-4');
+                        
+                        // Card header
+                        const ppCardHeader = document.createElement('div');
+                        ppCardHeader.classList.add('card-header', 'bg-primary', 'text-white');
+                        ppCardHeader.innerHTML = `<h5 class="mb-0">Powerball Plus Prize</h5>`;
+                        ppPrizeCard.appendChild(ppCardHeader);
+                        
+                        // Card body
+                        const ppCardBody = document.createElement('div');
+                        ppCardBody.classList.add('card-body');
+                        
+                        // Prize information
+                        const ppPrizeSection = document.createElement('div');
+                        ppPrizeSection.classList.add('alert', 'alert-success', 'mt-3');
+                        ppPrizeSection.innerHTML = `
+                            <h6 class="alert-heading">Congratulations! You won a prize in Powerball Plus:</h6>
+                            <p>Division: ${data.powerball_plus_results.prize_info.division}</p>
+                            <p>Match Type: ${data.powerball_plus_results.prize_info.match_type}</p>
+                            <p>Prize Amount: ${data.powerball_plus_results.prize_info.prize_amount}</p>
+                        `;
+                        ppCardBody.appendChild(ppPrizeSection);
+                        
+                        ppPrizeCard.appendChild(ppCardBody);
+                        powerballPlusContainer.appendChild(ppPrizeCard);
+                    }
+                }
+            } else if (powerballPlusContainer) {
+                // Hide the container if no Powerball Plus results
+                powerballPlusContainer.classList.add('d-none');
             }
             
             // Scroll to results
