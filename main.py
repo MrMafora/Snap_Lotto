@@ -583,7 +583,7 @@ def import_data():
                         import_type='excel',
                         file_name=filename,
                         records_added=import_stats.get('added', 0),
-                        records_updated=import_stats.get('total', 0) - import_stats.get('added', 0),
+                        records_updated=import_stats.get('updated', 0),
                         total_processed=import_stats.get('total', 0),
                         errors=import_stats.get('errors', 0),
                         user_id=current_user.id
@@ -625,7 +625,7 @@ def import_data():
                                 import_type='snap_lotto',
                                 file_name=filename,
                                 records_added=import_stats.get('added', 0),
-                                records_updated=import_stats.get('total', 0) - import_stats.get('added', 0),
+                                records_updated=import_stats.get('updated', 0),
                                 total_processed=import_stats.get('total', 0),
                                 errors=import_stats.get('errors', 0),
                                 user_id=current_user.id
@@ -653,10 +653,15 @@ def import_data():
                             total = import_stats.get('total', 0)
                             errors = import_stats.get('errors', 0)
                             
-                            if added > 0:
+                            updated = import_stats.get('updated', 0)
+                            if added > 0 and updated > 0:
+                                flash(f'Snap Lotto import completed successfully. Added {added} new records, updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
+                            elif added > 0:
                                 flash(f'Snap Lotto import completed successfully. Added {added} new records, processed {total} total records with {errors} errors.', 'success')
+                            elif updated > 0:
+                                flash(f'Snap Lotto import completed successfully. Updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
                             else:
-                                flash(f'Snap Lotto import completed. No new records were added. Processed {total} records with {errors} errors.', 'info')
+                                flash(f'Snap Lotto import completed. No records were added or updated. Processed {total} records with {errors} errors.', 'info')
                         else:
                             flash('Snap Lotto import completed', 'info')
                         
@@ -684,10 +689,15 @@ def import_data():
                         total = import_stats.get('total', 0)
                         errors = import_stats.get('errors', 0)
                         
-                        if added > 0:
+                        updated = import_stats.get('updated', 0)
+                        if added > 0 and updated > 0:
+                            flash(f'Import completed successfully. Added {added} new records, updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
+                        elif added > 0:
                             flash(f'Import completed successfully. Added {added} new records, processed {total} total records with {errors} errors.', 'success')
+                        elif updated > 0:
+                            flash(f'Import completed successfully. Updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
                         else:
-                            flash(f'Import completed. No new records were added. Processed {total} records with {errors} errors.', 'info')
+                            flash(f'Import completed. No records were added or updated. Processed {total} records with {errors} errors.', 'info')
                     else:
                         flash('Import completed', 'info')
                     
@@ -729,10 +739,35 @@ def import_data():
         app.logger.error(f"Database error in import_data: {str(e)}")
         # If we can't get any example results, proceed without them
     
+    # Extract structured data from import_stats (if available) for template rendering
+    added_count = 0
+    updated_count = 0
+    total_count = 0
+    error_count = 0
+    imported_results = []
+    
+    if isinstance(import_stats, dict) and import_stats.get('success'):
+        added_count = import_stats.get('added', 0)
+        updated_count = import_stats.get('updated', 0)
+        total_count = import_stats.get('total', 0)
+        error_count = import_stats.get('errors', 0)
+        
+        # Get imported records for display
+        if 'imported_records' in import_stats and import_stats['imported_records']:
+            for record_data in import_stats['imported_records']:
+                result = LotteryResult.query.get(record_data.get('lottery_result_id'))
+                if result:
+                    imported_results.append(result)
+    
     return render_template('import_data.html', 
                            import_stats=import_stats,
                            example_results=example_results,
-                           title="Import Lottery Data")
+                           title="Import Lottery Data",
+                           added_count=added_count,
+                           updated_count=updated_count,
+                           total_count=total_count,
+                           error_count=error_count,
+                           imported_results=imported_results)
 
 @app.route('/retake-screenshots')
 @login_required

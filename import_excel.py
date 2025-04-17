@@ -182,21 +182,42 @@ def import_excel_data(excel_file, flask_app=None):
             
             # Map standard column names to actual columns in the spreadsheet
             column_mapping = {}
+            
+            # Check for common column name patterns in Snap Lotto format
+            game_name_variants = ['game name', 'game type', 'lottery type', 'lotto type']
+            draw_number_variants = ['draw number', 'draw no', 'draw id', 'number']
+            draw_date_variants = ['draw date', 'game date', 'date']
+            numbers_variants = ['winning numbers', 'main numbers', 'numbers']
+            bonus_variants = ['bonus ball', 'bonus number', 'powerball']
+            
             for col in df.columns:
-                col_lower = str(col).lower()
+                col_str = str(col)
+                col_lower = col_str.lower()
                 
-                # Map standard fields to actual column names
-                if 'game type' in col_lower or 'lottery' in col_lower or 'lotto type' in col_lower:
+                # Map standard fields to actual column names with more flexible matching
+                if any(variant in col_lower for variant in game_name_variants):
                     column_mapping['lottery_type'] = col
-                elif 'draw' in col_lower and ('id' in col_lower or 'number' in col_lower or 'no' in col_lower):
+                
+                # Special case for "Game Name" which is the most common in our templates
+                if col_str == "Game Name":
+                    column_mapping['lottery_type'] = col
+                
+                if any(variant in col_lower for variant in draw_number_variants):
                     column_mapping['draw_number'] = col
-                elif 'date' in col_lower or 'game date' in col_lower:
-                    column_mapping['draw_date'] = col
-                elif ('winning' in col_lower and 'number' in col_lower) or ('main' in col_lower and 'number' in col_lower):
+                
+                if any(variant in col_lower for variant in draw_date_variants):
+                    # If we have multiple date columns, prefer "Draw Date" over others
+                    if 'draw_date' not in column_mapping or col_str == "Draw Date":
+                        column_mapping['draw_date'] = col
+                
+                if any(variant in col_lower for variant in numbers_variants) or 'numerical' in col_lower:
                     column_mapping['numbers'] = col
-                elif ('bonus' in col_lower or 'ball' in col_lower) and 'number' in col_lower:
+                
+                if any(variant in col_lower for variant in bonus_variants):
                     column_mapping['bonus_numbers'] = col
-                elif 'division' in col_lower or 'prize' in col_lower or 'payout' in col_lower:
+                
+                # Division data handling - look for any columns related to divisions/winners/prizes
+                if 'div' in col_lower or 'division' in col_lower or 'winners' in col_lower or 'prize' in col_lower or 'winnings' in col_lower:
                     # Note multiple division columns for later
                     if 'divisions' not in column_mapping:
                         column_mapping['divisions'] = []
@@ -443,7 +464,8 @@ def create_empty_template(output_path):
                 cell.value = "Prize amount (e.g., R1,000.00)"
         
         # Add light yellow background to guidance row
-        yellow_fill = openpyxl.styles.PatternFill(start_color="FFFFE0", end_color="FFFFE0", fill_type="solid")
+        from openpyxl.styles import PatternFill
+        yellow_fill = PatternFill(start_color="FFFFE0", end_color="FFFFE0", fill_type="solid")
         for i in range(len(df.columns)):
             worksheet.cell(row=2, column=i+1).fill = yellow_fill
         

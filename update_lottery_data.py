@@ -202,6 +202,9 @@ def update_excel_data(excel_file, flask_app=None):
                 'errors': 0
             }
             
+            # Track imported records for history
+            imported_records = []
+            
             # Process each row
             for _, row in df.iterrows():
                 try:
@@ -283,6 +286,15 @@ def update_excel_data(excel_file, flask_app=None):
                         db.session.commit()
                         logger.info(f"Updated {lottery_type} draw {draw_number}")
                         counters['updated'] += 1
+                        
+                        # Track this record
+                        imported_records.append({
+                            'lottery_type': lottery_type,
+                            'draw_number': draw_number,
+                            'draw_date': draw_date,
+                            'is_new': False,
+                            'lottery_result_id': existing.id
+                        })
                     else:
                         # Create new record
                         new_result = LotteryResult(
@@ -301,6 +313,15 @@ def update_excel_data(excel_file, flask_app=None):
                         db.session.commit()
                         logger.info(f"Added new {lottery_type} draw {draw_number}")
                         counters['added'] += 1
+                        
+                        # Track this record
+                        imported_records.append({
+                            'lottery_type': lottery_type,
+                            'draw_number': draw_number,
+                            'draw_date': draw_date,
+                            'is_new': True,
+                            'lottery_result_id': new_result.id
+                        })
                 
                 except Exception as e:
                     logger.error(f"Error processing row: {str(e)}")
@@ -313,6 +334,17 @@ def update_excel_data(excel_file, flask_app=None):
             print(f"  - Updated: {counters['updated']} existing draws")
             print(f"  - Skipped: {counters['skipped']} rows")
             print(f"  - Errors: {counters['errors']} rows")
+            
+            # Return detailed statistics including explicit success status
+            return {
+                'success': True, 
+                'added': counters['added'], 
+                'updated': counters['updated'],
+                'skipped': counters['skipped'], 
+                'errors': counters['errors'],
+                'total': counters['added'] + counters['updated'] + counters['skipped'],
+                'imported_records': imported_records
+            }
             
         except Exception as e:
             logger.error(f"Error during import operation: {str(e)}")
