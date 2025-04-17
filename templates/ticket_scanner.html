@@ -278,41 +278,30 @@
                                     </div>
                                     <div class="card-body">
                                         <!-- Primary game winning numbers -->
-                                        <div class="row mb-3">
-                                            <div class="col-md-12">
-                                                <p><strong id="primary-game-label">Main Numbers:</strong></p>
-                                                <div id="winning-numbers" class="mb-3"></div>
+                                        <div class="mb-3">
+                                            <p><strong id="primary-game-label">Main Numbers:</strong></p>
+                                            <div id="winning-numbers-container">
+                                                <div id="winning-numbers" class="d-inline-flex flex-wrap mb-3"></div>
                                             </div>
-                                            <div class="col-md-12" id="bonus-numbers-container">
-                                                <p><strong>Bonus Number:</strong></p>
-                                                <div id="bonus-numbers" class="mb-3"></div>
+                                            <div id="matched-numbers-section" class="mt-2">
+                                                <p><strong>Your Matches:</strong> <span id="matched-count" class="badge bg-success">0</span></p>
+                                                <div id="matched-numbers"></div>
                                             </div>
+                                        </div>
+                                        
+                                        <!-- Hidden container for bonus (this won't be displayed separately anymore) -->
+                                        <div id="bonus-numbers-container" class="d-none">
+                                            <div id="bonus-numbers"></div>
                                         </div>
                                         
                                         <!-- Powerball Plus winning numbers displayed in main winning numbers card -->
                                         <div id="powerball-plus-numbers-container" class="mb-3 d-none">
                                             <hr>
                                             <p><strong>Powerball Plus Numbers:</strong></p>
-                                            <div id="powerball-plus-numbers" class="mb-2"></div>
-                                        </div>
-                                        
-                                        <div class="mt-4">
-                                            <p><strong>Matched Numbers:</strong> <span id="matched-count" class="badge bg-success">0</span></p>
-                                            <div id="matched-numbers"></div>
-                                            <div class="mt-2" id="matched-bonus-section">
-                                                <p><strong>Matched Bonus:</strong> <span id="matched-bonus-count" class="badge bg-warning text-dark">0</span></p>
-                                                <div id="matched-bonus-numbers"></div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Matched Powerball Plus numbers displayed in main winning numbers card -->
-                                        <div id="powerball-plus-matches-container" class="mt-4 d-none">
-                                            <hr>
-                                            <p><strong>Powerball Plus Matches:</strong> <span id="pp-matched-count" class="badge bg-success">0</span></p>
-                                            <div id="pp-matched-numbers"></div>
-                                            <div class="mt-2" id="pp-matched-bonus-section">
-                                                <p><strong>Matched Powerball Plus Bonus:</strong> <span id="pp-matched-bonus-count" class="badge bg-warning text-dark">0</span></p>
-                                                <div id="pp-matched-bonus-numbers"></div>
+                                            <div id="powerball-plus-numbers" class="d-inline-flex flex-wrap mb-2"></div>
+                                            <div id="pp-matched-numbers-section" class="mt-2">
+                                                <p><strong>Your Matches:</strong> <span id="pp-matched-count" class="badge bg-success">0</span></p>
+                                                <div id="pp-matched-numbers"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -846,10 +835,15 @@
                 });
             }
             
-            // Display winning numbers (main numbers)
+            // Display winning numbers (main numbers with bonus on same line)
             const winningNumbersContainer = document.getElementById('winning-numbers');
             winningNumbersContainer.innerHTML = '';
             
+            // Update the game label
+            const primaryGameLabel = document.getElementById('primary-game-label');
+            primaryGameLabel.textContent = data.lottery_type + ' Numbers:';
+            
+            // Add main numbers
             data.winning_numbers.forEach(num => {
                 const ball = document.createElement('span');
                 ball.classList.add('lottery-ball');
@@ -869,46 +863,39 @@
                 winningNumbersContainer.appendChild(ball);
             });
             
-            // Add a plus sign between main numbers and bonus numbers if this is a Powerball game
-            if (data.bonus_numbers && data.bonus_numbers.length > 0 && 
-                data.lottery_type.toLowerCase().includes('powerball')) {
+            // Add a plus sign followed immediately by bonus numbers on the same line
+            if (data.bonus_numbers && data.bonus_numbers.length > 0) {
+                // Add plus sign
                 const plusSpan = document.createElement('span');
                 plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
                 plusSpan.textContent = '+';
                 winningNumbersContainer.appendChild(plusSpan);
-            }
-            
-            // Display bonus numbers in dedicated section
-            const bonusNumbersContainer = document.getElementById('bonus-numbers');
-            bonusNumbersContainer.innerHTML = '';
-            
-            // Show/hide bonus container based on whether there are bonus numbers
-            const bonusContainer = document.getElementById('bonus-numbers-container');
-            if (data.bonus_numbers && data.bonus_numbers.length > 0) {
-                bonusContainer.classList.remove('d-none');
                 
-                // Add bonus balls
+                // Add bonus balls to the same container as main numbers
                 data.bonus_numbers.forEach(num => {
                     const ball = document.createElement('span');
                     // Make bonus balls visually distinct
                     ball.classList.add('lottery-ball', 'lottery-ball-yellow');
-                    // Add a pulsing effect to bonus balls
-                    ball.style.animation = 'pulse 2s infinite';
                     ball.textContent = num;
-                    bonusNumbersContainer.appendChild(ball);
+                    winningNumbersContainer.appendChild(ball);
                 });
-            } else {
-                bonusContainer.classList.add('d-none');
             }
             
-            // Display matched main numbers
-            document.getElementById('matched-count').textContent = data.matched_numbers.length;
+            // Update the hidden bonus container (we don't display it separately anymore)
+            const bonusNumbersContainer = document.getElementById('bonus-numbers');
+            bonusNumbersContainer.innerHTML = '';
+            document.getElementById('bonus-numbers-container').classList.add('d-none');
             
+            // Display unique matched numbers under the winning numbers
             const matchedNumbersContainer = document.getElementById('matched-numbers');
             matchedNumbersContainer.innerHTML = '';
             
-            if (data.matched_numbers.length > 0) {
-                data.matched_numbers.forEach(num => {
+            // Get unique matched numbers
+            const uniqueMatchedNumbers = [...new Set(data.matched_numbers)];
+            document.getElementById('matched-count').textContent = uniqueMatchedNumbers.length;
+            
+            if (uniqueMatchedNumbers.length > 0) {
+                uniqueMatchedNumbers.forEach(num => {
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball', 'ball-matched');
                     
@@ -927,27 +914,28 @@
                     matchedNumbersContainer.appendChild(ball);
                 });
             } else {
-                matchedNumbersContainer.innerHTML = '<p>No matching main numbers found.</p>';
+                matchedNumbersContainer.innerHTML = '<p>No matching numbers found.</p>';
             }
             
-            // Display matched bonus numbers
-            const matchedBonusSection = document.getElementById('matched-bonus-section');
-            const matchedBonusContainer = document.getElementById('matched-bonus-numbers');
-            matchedBonusContainer.innerHTML = '';
-            
+            // Get unique matched bonus numbers and add them to the matched numbers section
             if (data.matched_bonus && data.matched_bonus.length > 0) {
-                matchedBonusSection.classList.remove('d-none');
-                document.getElementById('matched-bonus-count').textContent = data.matched_bonus.length;
+                const uniqueMatchedBonus = [...new Set(data.matched_bonus)];
                 
-                data.matched_bonus.forEach(num => {
+                // Add a separator if there are also matched main numbers
+                if (uniqueMatchedNumbers.length > 0) {
+                    const separator = document.createElement('div');
+                    separator.classList.add('mt-2', 'mb-2');
+                    separator.innerHTML = '<strong>Matched Bonus:</strong>';
+                    matchedNumbersContainer.appendChild(separator);
+                }
+                
+                uniqueMatchedBonus.forEach(num => {
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball', 'ball-matched', 'lottery-ball-yellow');
                     ball.style.animation = 'pulse 2s infinite';
                     ball.textContent = num;
-                    matchedBonusContainer.appendChild(ball);
+                    matchedNumbersContainer.appendChild(ball);
                 });
-            } else {
-                matchedBonusSection.classList.add('d-none');
             }
             
             // Display prize information if any
@@ -1018,30 +1006,32 @@
                     });
                 }
                 
-                // Display Powerball Plus matches in the main card
+                // Display Powerball Plus matches in the main card (with unique matched numbers)
                 if (data.powerball_plus_results.matched_numbers.length > 0 || data.powerball_plus_results.matched_bonus.length > 0) {
                     // Show the PowerballPlus matches container
-                    const ppMatchesContainer = document.getElementById('powerball-plus-matches-container');
-                    ppMatchesContainer.classList.remove('d-none');
+                    const ppMatchesContainer = document.getElementById('pp-matched-numbers-section');
+                    
+                    // Get unique matched numbers
+                    const uniquePPMatchedNumbers = [...new Set(data.powerball_plus_results.matched_numbers)];
                     
                     // Update matched count
-                    document.getElementById('pp-matched-count').textContent = data.powerball_plus_results.matched_numbers.length;
+                    document.getElementById('pp-matched-count').textContent = uniquePPMatchedNumbers.length;
                     
                     // Display matched numbers
                     const ppMatchedNumbersDiv = document.getElementById('pp-matched-numbers');
                     ppMatchedNumbersDiv.innerHTML = '';
                     
-                    if (data.powerball_plus_results.matched_numbers.length > 0) {
-                        data.powerball_plus_results.matched_numbers.forEach((num, index) => {
+                    if (uniquePPMatchedNumbers.length > 0) {
+                        uniquePPMatchedNumbers.forEach(num => {
                             const ball = document.createElement('span');
                             ball.classList.add('lottery-ball', 'ball-matched');
                             
                             // Add color classes in sequence
-                            if (index % 4 === 0) {
+                            if (ppMatchedNumbersDiv.children.length % 4 === 0) {
                                 ball.classList.add('lottery-ball-red');
-                            } else if (index % 4 === 1) {
+                            } else if (ppMatchedNumbersDiv.children.length % 4 === 1) {
                                 ball.classList.add('lottery-ball-yellow');
-                            } else if (index % 4 === 2) {
+                            } else if (ppMatchedNumbersDiv.children.length % 4 === 2) {
                                 ball.classList.add('lottery-ball-green');
                             } else {
                                 ball.classList.add('lottery-ball-blue');
@@ -1054,24 +1044,25 @@
                         ppMatchedNumbersDiv.innerHTML = '<p>No matching main numbers found for Powerball Plus.</p>';
                     }
                     
-                    // Display matched bonus
-                    const ppMatchedBonusSection = document.getElementById('pp-matched-bonus-section');
-                    const ppMatchedBonusDiv = document.getElementById('pp-matched-bonus-numbers');
-                    ppMatchedBonusDiv.innerHTML = '';
-                    
-                    if (data.powerball_plus_results.matched_bonus.length > 0) {
-                        ppMatchedBonusSection.classList.remove('d-none');
-                        document.getElementById('pp-matched-bonus-count').textContent = data.powerball_plus_results.matched_bonus.length;
+                    // Get unique matched bonus numbers and add them to the matched numbers section
+                    if (data.powerball_plus_results.matched_bonus && data.powerball_plus_results.matched_bonus.length > 0) {
+                        const uniquePPMatchedBonus = [...new Set(data.powerball_plus_results.matched_bonus)];
                         
-                        data.powerball_plus_results.matched_bonus.forEach(num => {
+                        // Add a separator if there are also matched main numbers
+                        if (uniquePPMatchedNumbers.length > 0) {
+                            const separator = document.createElement('div');
+                            separator.classList.add('mt-2', 'mb-2');
+                            separator.innerHTML = '<strong>Matched Bonus:</strong>';
+                            ppMatchedNumbersDiv.appendChild(separator);
+                        }
+                        
+                        uniquePPMatchedBonus.forEach(num => {
                             const ball = document.createElement('span');
                             ball.classList.add('lottery-ball', 'ball-matched', 'lottery-ball-yellow');
                             ball.style.animation = 'pulse 2s infinite';
                             ball.textContent = num;
-                            ppMatchedBonusDiv.appendChild(ball);
+                            ppMatchedNumbersDiv.appendChild(ball);
                         });
-                    } else {
-                        ppMatchedBonusSection.classList.add('d-none');
                     }
                 }
                 
