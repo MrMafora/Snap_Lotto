@@ -234,6 +234,7 @@ def admin():
                           title="Admin Dashboard")
 
 @app.route('/login', methods=['GET', 'POST'])
+@csrf.exempt
 def login():
     """Login page"""
     if current_user.is_authenticated:

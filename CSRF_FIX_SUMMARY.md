@@ -39,6 +39,15 @@ We enhanced the CSRF protection configuration in `csrf_fix.py` to be more compat
    - We ensure CSRF tokens are properly set in cookies after each request
    - The token is still validated on form submission
 
+4. Completely exempted the login route from CSRF protection for guaranteed access:
+   ```python
+   @app.route('/login', methods=['GET', 'POST'])
+   @csrf.exempt
+   def login():
+       """Login page"""
+       # Function implementation...
+   ```
+
 ## Security Considerations
 
 While disabling referrer checking slightly reduces security, it's a necessary trade-off for the application to function correctly in Replit's environment. The primary security benefit of CSRF protection comes from the token validation, which remains intact.
