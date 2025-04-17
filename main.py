@@ -268,6 +268,7 @@ def ticket_scanner():
     return render_template('ticket_scanner.html', title="Ticket Scanner")
 
 @app.route('/scan-ticket', methods=['POST'])
+@csrf.exempt
 def scan_ticket():
     """Process uploaded ticket image and return results"""
     # Check if file is included in the request

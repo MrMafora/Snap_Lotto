@@ -499,7 +499,50 @@
         }
         
         // Function to handle showing ads and processing the ticket
+        // Clear previous results to prevent mixing results from different tickets
+        function clearPreviousResults() {
+            // Hide result containers
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                resultsContainer.classList.add('d-none');
+            }
+            
+            const successContent = document.getElementById('success-content');
+            if (successContent) {
+                successContent.classList.add('d-none');
+            }
+            
+            // Clear winning numbers
+            const winningNumbersContainer = document.getElementById('winning-numbers');
+            if (winningNumbersContainer) {
+                winningNumbersContainer.innerHTML = '';
+            }
+            
+            // Clear ticket numbers
+            const ticketNumbersContainer = document.getElementById('ticket-numbers');
+            if (ticketNumbersContainer) {
+                ticketNumbersContainer.innerHTML = '';
+            }
+            
+            // Hide related game sections if they exist
+            ['powerball-plus-section', 'lotto-plus-1-section', 'lotto-plus-2-section'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.classList.add('d-none');
+                }
+            });
+            
+            console.log('Cleared previous results');
+        }
+        
         function processTicketWithAds() {
+            // Clear any previous results first
+            clearPreviousResults();
+            
+            // Scroll to top and disable scrolling during processing
+            window.scrollTo(0, 0);
+            disableScrolling();
+            
             // Show loading indicator
             loadingIndicator.style.display = 'block';
             // Never disable the scan button
@@ -508,24 +551,34 @@
             // Create form data for later use
             const formData = new FormData(ticketForm);
             
-            // Check if AdManager is available and use it to show ad, otherwise just process
-            if (window.AdManager && typeof window.AdManager.showLoadingAd === 'function') {
-                console.log('Using AdManager to show loading ad');
-                window.AdManager.showLoadingAd(function(adShown) {
-                    // After ad is loaded (or if it failed), process the ticket
-                    console.log('Ad loading callback returned:', adShown);
-                    processTicket(formData);
-                });
-            } else {
-                // Fallback - Show ad loading overlay manually
-                console.log('AdManager not available, showing overlay manually');
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                adOverlayLoading.style.display = 'flex';
-                
-                // Process the ticket immediately
-                console.log('Processing ticket without AdManager');
-                processTicket(formData);
-            }
+            // Show the loading ad overlay first
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            adOverlayLoading.style.display = 'flex';
+            
+            // Ensure the ad overlay stays visible for at least 2 seconds before processing
+            setTimeout(() => {
+                // Check if AdManager is available and use it to show ad, otherwise just process
+                if (window.AdManager && typeof window.AdManager.showLoadingAd === 'function') {
+                    console.log('Using AdManager to show loading ad');
+                    window.AdManager.showLoadingAd(function(adShown) {
+                        // Keep ad visible for at least 5 seconds total
+                        setTimeout(() => {
+                            // After ad is displayed for minimum time, process the ticket
+                            console.log('Ad loading callback returned after minimum display time:', adShown);
+                            processTicket(formData);
+                        }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
+                    });
+                } else {
+                    // Fallback - Ad overlay is already shown manually
+                    console.log('AdManager not available, showing overlay manually');
+                    
+                    // Process the ticket after a minimum viewing time
+                    setTimeout(() => {
+                        console.log('Processing ticket without AdManager after minimum ad view time');
+                        processTicket(formData);
+                    }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
+                }
+            }, 2000); // Initial 2 seconds minimum display time
         }
         
         // Function to process the ticket after ad is shown
@@ -533,12 +586,20 @@
             // Add CSRF token to headers
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
             
-            // Send request - Flask-WTF uses CSRF token from formData, no need to add header
+            // Add CSRF token to request headers
             fetch('/scan-ticket', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
                 console.log('Success:', data);
                 
@@ -546,18 +607,22 @@
                 const adOverlayLoading = document.getElementById('ad-overlay-loading');
                 adOverlayLoading.style.display = 'none';
                 
-                // Try to use the AdManager to show the interstitial ad, or fallback to manual
+                // Ensure the results overlay is shown
                 const adOverlayResults = document.getElementById('ad-overlay-results');
                 
+                // Always make sure the results overlay is displayed
+                adOverlayResults.style.display = 'flex';
+                
+                // Try to use AdManager for tracking, but we'll show the overlay manually either way
                 if (window.AdManager && typeof window.AdManager.showInterstitialAd === 'function') {
                     console.log('Using AdManager to show interstitial ad');
                     window.AdManager.showInterstitialAd(function(adShown) {
                         console.log('Interstitial ad shown:', adShown);
+                        // Make sure the overlay is displayed even if AdManager fails
+                        adOverlayResults.style.display = 'flex';
                     });
                 } else {
-                    // Fallback - Show ad results overlay manually
                     console.log('AdManager not available, showing results overlay manually');
-                    adOverlayResults.style.display = 'flex';
                 }
                 
                 console.log('Showing results interstitial ad');
@@ -569,6 +634,8 @@
                 const viewResultsBtn = document.getElementById('view-results-btn');
                 viewResultsBtn.onclick = function() {
                     adOverlayResults.style.display = 'none';
+                    // Make sure scrolling is enabled
+                    enableScrolling();
                     displayResults(data);
                 };
                 
@@ -582,6 +649,12 @@
                 viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 30s)';
                 
                 // Add a counter display to show remaining seconds
+                // First, remove any existing countdown elements to prevent duplicates
+                const existingCountdown = document.getElementById('ad-countdown');
+                if (existingCountdown) {
+                    existingCountdown.remove();
+                }
+                
                 const counterElement = document.createElement('div');
                 counterElement.id = 'ad-countdown';
                 counterElement.style.cssText = 'margin-top: 10px; font-size: 14px; color: #666; font-weight: bold;';
@@ -589,8 +662,18 @@
                 
                 let remainingSeconds = 30;
                 
+                // Clear any existing countdown intervals
+                if (window.countdownInterval) {
+                    clearInterval(window.countdownInterval);
+                }
+                
+                // Clear any existing timeouts
+                if (window.countdownTimeout) {
+                    clearTimeout(window.countdownTimeout);
+                }
+                
                 // Update the counter every second
-                const countdownInterval = setInterval(() => {
+                window.countdownInterval = setInterval(() => {
                     remainingSeconds--;
                     counterElement.textContent = `Results available in ${remainingSeconds} seconds...`;
                     
@@ -598,7 +681,7 @@
                     viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${remainingSeconds}s)`;
                     
                     if (remainingSeconds <= 0) {
-                        clearInterval(countdownInterval);
+                        clearInterval(window.countdownInterval);
                         // Enable the button after time is up
                         viewResultsBtn.disabled = false;
                         viewResultsBtn.style.opacity = '1';
@@ -610,9 +693,9 @@
                 }, 1000);
                 
                 // After 30 seconds, enable the View Results button and update UI
-                setTimeout(() => {
-                    if (countdownInterval) {
-                        clearInterval(countdownInterval);
+                window.countdownTimeout = setTimeout(() => {
+                    if (window.countdownInterval) {
+                        clearInterval(window.countdownInterval);
                     }
                     
                     console.log('30-second ad display timer completed');
@@ -632,6 +715,8 @@
                 // Hide ad loading overlay
                 const adOverlayLoading = document.getElementById('ad-overlay-loading');
                 adOverlayLoading.style.display = 'none';
+                // Make sure scrolling is enabled in case of error
+                enableScrolling();
                 showError('An error occurred while scanning your ticket. Please try again.');
             })
             .finally(() => {
@@ -654,23 +739,43 @@
             
             // Process the ticket with ads
             processTicketWithAds();
+            
+            // No return false to prevent interfering with normal form submission
         });
         
+        // Enable body scrolling
+        function enableScrolling() {
+            document.body.style.overflow = 'auto';
+            document.body.style.height = 'auto';
+            console.log('Scrolling enabled');
+        }
+        
+        // Disable body scrolling
+        function disableScrolling() {
+            document.body.style.overflow = 'hidden';
+            document.body.style.height = '100vh';
+            console.log('Scrolling disabled');
+        }
+        
         function displayResults(data) {
-            // Show results container
-            resultsContainer.classList.remove('d-none');
-            
-            // Hide error message by default
-            document.getElementById('error-message').classList.add('d-none');
-            
-            if (data.error) {
-                showError(data.error);
-                return;
-            }
-            
-            // Show success content
-            const successContent = document.getElementById('success-content');
-            successContent.classList.remove('d-none');
+            try {
+                // Enable scrolling when showing results
+                enableScrolling();
+                
+                // Prepare the results container first
+                resultsContainer.classList.remove('d-none');
+                
+                // Hide error message by default
+                document.getElementById('error-message').classList.add('d-none');
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                // Show success content
+                const successContent = document.getElementById('success-content');
+                successContent.classList.remove('d-none');
             
             // Populate ticket info
             document.getElementById('result-lottery-type').textContent = data.lottery_type;
@@ -1345,11 +1450,26 @@
                 }
             }
             
-            // Scroll to results
-            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+            // Scroll to results with a slight delay to ensure DOM is updated
+            setTimeout(() => {
+                window.scrollTo({
+                    top: resultsContainer.offsetTop,
+                    behavior: 'smooth'
+                });
+                // Make sure scrolling is fully enabled
+                enableScrolling();
+            }, 300);
+            } catch (error) {
+                console.error("Error displaying results:", error);
+                showError("An error occurred while displaying results. Please try again.");
+                enableScrolling();
+            }
         }
         
         function showError(message) {
+            // Ensure scrolling is enabled
+            enableScrolling();
+            
             const errorMessage = document.getElementById('error-message');
             const errorText = document.getElementById('error-text');
             const successContent = document.getElementById('success-content');
