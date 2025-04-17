@@ -1128,9 +1128,12 @@
                         powerballPlusContainer.appendChild(ppPrizeCard);
                     }
                 }
-            } else if (powerballPlusContainer) {
-                // Hide the container if no Powerball Plus results
-                powerballPlusContainer.classList.add('d-none');
+            } else {
+                // Get the Powerball Plus container and hide it if it exists
+                const powerballPlusContainer = document.getElementById('powerball-plus-container');
+                if (powerballPlusContainer) {
+                    powerballPlusContainer.classList.add('d-none');
+                }
             }
             
             // Handle Lotto Plus 1 numbers if present
