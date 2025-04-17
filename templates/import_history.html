@@ -54,12 +54,17 @@
                                         </td>
                                         <td>
                                             {% if import.records_updated > 0 %}
-                                                <span class="badge bg-warning">{{ import.records_updated }}</span>
+                                                <span class="badge bg-warning fw-bold text-dark">{{ import.records_updated }}</span>
                                             {% else %}
                                                 <span class="badge bg-secondary">0</span>
                                             {% endif %}
                                         </td>
-                                        <td>{{ import.total_processed }}</td>
+                                        <td>
+                                            <span class="fw-bold">{{ import.total_processed }}</span>
+                                            {% if import.records_updated > 0 and import.records_added == 0 %}
+                                                <small class="d-block text-muted">(All updated)</small>
+                                            {% endif %}
+                                        </td>
                                         <td>
                                             {% if import.errors > 0 %}
                                                 <span class="badge bg-danger">{{ import.errors }}</span>

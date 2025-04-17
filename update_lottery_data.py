@@ -8,6 +8,7 @@ import os
 import sys
 import logging
 import json
+import traceback
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -118,6 +119,12 @@ def parse_divisions(divisions_data):
 
 def standardize_lottery_type(lottery_type):
     """Standardize lottery type names for consistency"""
+    original_type = lottery_type
+    
+    if lottery_type is None:
+        logger.warning("standardize_lottery_type received None value")
+        return None
+        
     lottery_type = str(lottery_type).strip()
     
     # Map common variations to standard names
@@ -137,8 +144,19 @@ def standardize_lottery_type(lottery_type):
     
     # Standardize case for lookup
     key = lottery_type.lower()
+    
+    # Detailed logging for lottery type mapping
+    if '2533' in str(original_type) or any('2533' in str(col) for col in lottery_type.split() if col.isdigit()):
+        logger.info(f"DRAW 2533: Standardizing lottery type from '{original_type}' with key '{key}'")
+    
     if key in mapping:
-        return mapping[key]
+        standardized = mapping[key]
+        if '2533' in str(original_type) or any('2533' in str(col) for col in lottery_type.split() if col.isdigit()):
+            logger.info(f"DRAW 2533: Mapped '{lottery_type}' to '{standardized}'")
+        return standardized
+    
+    if '2533' in str(original_type) or any('2533' in str(col) for col in lottery_type.split() if col.isdigit()):
+        logger.info(f"DRAW 2533: No mapping found for '{lottery_type}', returning as is")
     
     return lottery_type
 
@@ -337,7 +355,21 @@ def update_excel_data(excel_file, flask_app=None):
                         })
                 
                 except Exception as e:
+                    error_details = traceback.format_exc()
                     logger.error(f"Error processing row: {str(e)}")
+                    
+                    # More detailed logging for row that caused error
+                    try:
+                        logger.error(f"Error details for row: {error_details}")
+                        logger.error(f"Row data that caused error: {row.to_dict() if hasattr(row, 'to_dict') else row}")
+                        
+                        # Special handling for draw 2533
+                        if '2533' in str(row):
+                            logger.error(f"DRAW 2533 PROCESSING ERROR: {str(e)}")
+                            logger.error(f"DRAW 2533 ERROR DETAILS: {error_details}")
+                    except Exception as inner_e:
+                        logger.error(f"Error while logging row details: {str(inner_e)}")
+                    
                     counters['errors'] += 1
                     continue
             

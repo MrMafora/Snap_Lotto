@@ -90,7 +90,18 @@
         <div class="col-12">
             <div class="card shadow">
                 <div class="card-header bg-light">
-                    <h5 class="card-title mb-0">Imported Records</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Imported Records</h5>
+                        {% if import_record.records_updated > 0 and import_record.records_added == 0 %}
+                            <span class="badge bg-warning text-dark px-3 py-2">
+                                <i class="fas fa-sync-alt me-2"></i> All records were updates to existing data
+                            </span>
+                        {% elif import_record.records_updated > 0 %}
+                            <span class="badge bg-info text-dark px-3 py-2">
+                                <i class="fas fa-info-circle me-2"></i> Some records were updates to existing data
+                            </span>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-body">
                     {% if records_by_type %}
@@ -137,7 +148,9 @@
                                                         {% if record.is_new %}
                                                             <span class="badge bg-success">New Record</span>
                                                         {% else %}
-                                                            <span class="badge bg-warning text-dark">Updated</span>
+                                                            <span class="badge bg-warning text-dark">
+                                                                <i class="fas fa-sync-alt me-1"></i> Updated
+                                                            </span>
                                                         {% endif %}
                                                     </td>
                                                     <td>
