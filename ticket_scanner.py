@@ -469,7 +469,7 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
         
         1. Game type (which lottery game: Lotto, Lotto Plus 1, Lotto Plus 2, Powerball, Powerball Plus, Daily Lotto)
         2. Draw date (in YYYY-MM-DD format if possible)
-        3. Draw number (ID number of the specific draw)
+        3. Draw number (ID number of the specific draw) - CRITICAL: Extract the exact draw number as printed on the ticket
         4. Selected numbers (the player's chosen numbers on the ticket)
         5. IMPORTANT: Check if the ticket has any of these indications:
            - "POWERBALL PLUS: YES" - means the ticket is valid for both Powerball and Powerball Plus draws
@@ -481,6 +481,8 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
         
         Important notes:
         - South African lottery tickets typically display game type, draw date and draw number clearly
+        - For Powerball tickets, the draw number is EXTREMELY IMPORTANT - look for text like "Draw: 1603" or just "1603"
+        - Powerball tickets may say "PowerBall" or "Power Ball" - treat these as the same game type
         - Focus on the player's selected numbers (usually circled, marked, or otherwise highlighted)
         - For Lotto/Lotto Plus tickets, look for 6 selected numbers per row
         - For Powerball/Powerball Plus tickets, look for 5 main numbers + 1 Powerball number per row
@@ -782,25 +784,52 @@ def get_lottery_result(lottery_type, draw_number=None):
     """
     # Import models here to avoid circular imports
     from models import LotteryResult, db
+    import re
     
-    query = LotteryResult.query.filter_by(lottery_type=lottery_type)
+    # Normalize lottery type
+    normalized_lottery_type = lottery_type.strip()
+    
+    # Handle common variations
+    if normalized_lottery_type.lower() in ['powerball', 'power ball']:
+        normalized_lottery_type = 'Powerball'
+    elif normalized_lottery_type.lower() in ['powerball plus', 'power ball plus']:
+        normalized_lottery_type = 'Powerball Plus'
+    
+    query = LotteryResult.query.filter_by(lottery_type=normalized_lottery_type)
     
     if draw_number:
+        # Clean the draw number - remove any non-digit characters
+        if isinstance(draw_number, str):
+            clean_draw_number = re.sub(r'\D', '', draw_number)
+        else:
+            clean_draw_number = str(draw_number)
+            
+        # Log what we're searching for
+        logger.info(f"Searching for {normalized_lottery_type} draw {clean_draw_number}")
+        
         # Try to find the exact match first
-        result = query.filter_by(draw_number=draw_number).first()
+        result = query.filter_by(draw_number=clean_draw_number).first()
         if result:
+            logger.info(f"Found exact match for {normalized_lottery_type} draw {clean_draw_number}")
             return result
             
         # If not found, try partial match
-        result = query.filter(LotteryResult.draw_number.like(f"%{draw_number}%")).first()
+        result = query.filter(LotteryResult.draw_number.like(f"%{clean_draw_number}%")).first()
         if result:
+            logger.info(f"Found partial match for {normalized_lottery_type} draw {clean_draw_number} -> {result.draw_number}")
             return result
             
         # No match found
+        logger.warning(f"No match found for {normalized_lottery_type} draw {clean_draw_number}")
         return None
     else:
         # Get the latest result for this lottery type
-        return query.order_by(LotteryResult.draw_date.desc()).first()
+        result = query.order_by(LotteryResult.draw_date.desc()).first()
+        if result:
+            logger.info(f"Using latest {normalized_lottery_type} draw: {result.draw_number}")
+        else:
+            logger.warning(f"No results found for {normalized_lottery_type}")
+        return result
 
 def get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result):
     """
