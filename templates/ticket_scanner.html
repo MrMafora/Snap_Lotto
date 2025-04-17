@@ -304,6 +304,28 @@
                                                 <div id="pp-matched-numbers"></div>
                                             </div>
                                         </div>
+
+                                        <!-- Lotto Plus 1 winning numbers section -->
+                                        <div id="lotto-plus-1-numbers-container" class="mb-3 d-none">
+                                            <hr>
+                                            <p><strong>Lotto Plus 1 Numbers:</strong></p>
+                                            <div id="lotto-plus-1-numbers" class="d-inline-flex flex-wrap mb-2"></div>
+                                            <div id="lp1-matched-numbers-section" class="mt-2">
+                                                <p><strong>Your Matches:</strong> <span id="lp1-matched-count" class="badge bg-success">0</span></p>
+                                                <div id="lp1-matched-numbers"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Lotto Plus 2 winning numbers section -->
+                                        <div id="lotto-plus-2-numbers-container" class="mb-3 d-none">
+                                            <hr>
+                                            <p><strong>Lotto Plus 2 Numbers:</strong></p>
+                                            <div id="lotto-plus-2-numbers" class="d-inline-flex flex-wrap mb-2"></div>
+                                            <div id="lp2-matched-numbers-section" class="mt-2">
+                                                <p><strong>Your Matches:</strong> <span id="lp2-matched-count" class="badge bg-success">0</span></p>
+                                                <div id="lp2-matched-numbers"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -1109,6 +1131,224 @@
             } else if (powerballPlusContainer) {
                 // Hide the container if no Powerball Plus results
                 powerballPlusContainer.classList.add('d-none');
+            }
+            
+            // Handle Lotto Plus 1 numbers if present
+            if (data.lotto_plus_1_results) {
+                // Get the Lotto Plus 1 container
+                const lp1Container = document.getElementById('lotto-plus-1-numbers-container');
+                const lp1NumbersDiv = document.getElementById('lotto-plus-1-numbers');
+                
+                // Show the container
+                lp1Container.classList.remove('d-none');
+                lp1NumbersDiv.innerHTML = '';
+                
+                // Add main numbers
+                data.lotto_plus_1_results.winning_numbers.forEach((num, index) => {
+                    const ball = document.createElement('span');
+                    ball.classList.add('lottery-ball');
+                    
+                    // Add color classes in sequence
+                    if (index % 4 === 0) {
+                        ball.classList.add('lottery-ball-red');
+                    } else if (index % 4 === 1) {
+                        ball.classList.add('lottery-ball-yellow');
+                    } else if (index % 4 === 2) {
+                        ball.classList.add('lottery-ball-green');
+                    } else {
+                        ball.classList.add('lottery-ball-blue');
+                    }
+                    
+                    ball.textContent = num;
+                    lp1NumbersDiv.appendChild(ball);
+                });
+                
+                // Add plus sign and bonus numbers
+                if (data.lotto_plus_1_results.bonus_numbers && data.lotto_plus_1_results.bonus_numbers.length > 0) {
+                    const plusSpan = document.createElement('span');
+                    plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
+                    plusSpan.textContent = '+';
+                    lp1NumbersDiv.appendChild(plusSpan);
+                    
+                    // Add bonus numbers
+                    data.lotto_plus_1_results.bonus_numbers.forEach(num => {
+                        const ball = document.createElement('span');
+                        ball.classList.add('lottery-ball', 'lottery-ball-yellow');
+                        ball.textContent = num;
+                        lp1NumbersDiv.appendChild(ball);
+                    });
+                }
+                
+                // Display Lotto Plus 1 matches
+                if (data.lotto_plus_1_results.matched_numbers.length > 0 || 
+                    (data.lotto_plus_1_results.matched_bonus && data.lotto_plus_1_results.matched_bonus.length > 0)) {
+                    
+                    // Show the Lotto Plus 1 matches container
+                    const lp1MatchesContainer = document.getElementById('lp1-matched-numbers-section');
+                    
+                    // Get unique matched numbers
+                    const uniqueLP1MatchedNumbers = [...new Set(data.lotto_plus_1_results.matched_numbers)];
+                    
+                    // Update matched count
+                    document.getElementById('lp1-matched-count').textContent = uniqueLP1MatchedNumbers.length;
+                    
+                    // Display matched numbers
+                    const lp1MatchedNumbersDiv = document.getElementById('lp1-matched-numbers');
+                    lp1MatchedNumbersDiv.innerHTML = '';
+                    
+                    if (uniqueLP1MatchedNumbers.length > 0) {
+                        uniqueLP1MatchedNumbers.forEach(num => {
+                            const ball = document.createElement('span');
+                            ball.classList.add('lottery-ball', 'ball-matched');
+                            
+                            // Add color classes in sequence
+                            if (lp1MatchedNumbersDiv.children.length % 4 === 0) {
+                                ball.classList.add('lottery-ball-red');
+                            } else if (lp1MatchedNumbersDiv.children.length % 4 === 1) {
+                                ball.classList.add('lottery-ball-yellow');
+                            } else if (lp1MatchedNumbersDiv.children.length % 4 === 2) {
+                                ball.classList.add('lottery-ball-green');
+                            } else {
+                                ball.classList.add('lottery-ball-blue');
+                            }
+                            
+                            ball.textContent = num;
+                            lp1MatchedNumbersDiv.appendChild(ball);
+                        });
+                    } else {
+                        lp1MatchedNumbersDiv.innerHTML = '<p>No matching main numbers found for Lotto Plus 1.</p>';
+                    }
+                    
+                    // Get unique matched bonus numbers and add them to the matched numbers section
+                    if (data.lotto_plus_1_results.matched_bonus && data.lotto_plus_1_results.matched_bonus.length > 0) {
+                        const uniqueLP1MatchedBonus = [...new Set(data.lotto_plus_1_results.matched_bonus)];
+                        
+                        // Add a separator if there are also matched main numbers
+                        if (uniqueLP1MatchedNumbers.length > 0) {
+                            const separator = document.createElement('div');
+                            separator.classList.add('mt-2', 'mb-2');
+                            separator.innerHTML = '<strong>Matched Bonus:</strong>';
+                            lp1MatchedNumbersDiv.appendChild(separator);
+                        }
+                        
+                        uniqueLP1MatchedBonus.forEach(num => {
+                            const ball = document.createElement('span');
+                            ball.classList.add('lottery-ball', 'ball-matched', 'lottery-ball-yellow');
+                            ball.style.animation = 'pulse 2s infinite';
+                            ball.textContent = num;
+                            lp1MatchedNumbersDiv.appendChild(ball);
+                        });
+                    }
+                }
+            }
+            
+            // Handle Lotto Plus 2 numbers if present
+            if (data.lotto_plus_2_results) {
+                // Get the Lotto Plus 2 container
+                const lp2Container = document.getElementById('lotto-plus-2-numbers-container');
+                const lp2NumbersDiv = document.getElementById('lotto-plus-2-numbers');
+                
+                // Show the container
+                lp2Container.classList.remove('d-none');
+                lp2NumbersDiv.innerHTML = '';
+                
+                // Add main numbers
+                data.lotto_plus_2_results.winning_numbers.forEach((num, index) => {
+                    const ball = document.createElement('span');
+                    ball.classList.add('lottery-ball');
+                    
+                    // Add color classes in sequence
+                    if (index % 4 === 0) {
+                        ball.classList.add('lottery-ball-red');
+                    } else if (index % 4 === 1) {
+                        ball.classList.add('lottery-ball-yellow');
+                    } else if (index % 4 === 2) {
+                        ball.classList.add('lottery-ball-green');
+                    } else {
+                        ball.classList.add('lottery-ball-blue');
+                    }
+                    
+                    ball.textContent = num;
+                    lp2NumbersDiv.appendChild(ball);
+                });
+                
+                // Add plus sign and bonus numbers
+                if (data.lotto_plus_2_results.bonus_numbers && data.lotto_plus_2_results.bonus_numbers.length > 0) {
+                    const plusSpan = document.createElement('span');
+                    plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
+                    plusSpan.textContent = '+';
+                    lp2NumbersDiv.appendChild(plusSpan);
+                    
+                    // Add bonus numbers
+                    data.lotto_plus_2_results.bonus_numbers.forEach(num => {
+                        const ball = document.createElement('span');
+                        ball.classList.add('lottery-ball', 'lottery-ball-yellow');
+                        ball.textContent = num;
+                        lp2NumbersDiv.appendChild(ball);
+                    });
+                }
+                
+                // Display Lotto Plus 2 matches
+                if (data.lotto_plus_2_results.matched_numbers.length > 0 || 
+                    (data.lotto_plus_2_results.matched_bonus && data.lotto_plus_2_results.matched_bonus.length > 0)) {
+                    
+                    // Show the Lotto Plus 2 matches container
+                    const lp2MatchesContainer = document.getElementById('lp2-matched-numbers-section');
+                    
+                    // Get unique matched numbers
+                    const uniqueLP2MatchedNumbers = [...new Set(data.lotto_plus_2_results.matched_numbers)];
+                    
+                    // Update matched count
+                    document.getElementById('lp2-matched-count').textContent = uniqueLP2MatchedNumbers.length;
+                    
+                    // Display matched numbers
+                    const lp2MatchedNumbersDiv = document.getElementById('lp2-matched-numbers');
+                    lp2MatchedNumbersDiv.innerHTML = '';
+                    
+                    if (uniqueLP2MatchedNumbers.length > 0) {
+                        uniqueLP2MatchedNumbers.forEach(num => {
+                            const ball = document.createElement('span');
+                            ball.classList.add('lottery-ball', 'ball-matched');
+                            
+                            // Add color classes in sequence
+                            if (lp2MatchedNumbersDiv.children.length % 4 === 0) {
+                                ball.classList.add('lottery-ball-red');
+                            } else if (lp2MatchedNumbersDiv.children.length % 4 === 1) {
+                                ball.classList.add('lottery-ball-yellow');
+                            } else if (lp2MatchedNumbersDiv.children.length % 4 === 2) {
+                                ball.classList.add('lottery-ball-green');
+                            } else {
+                                ball.classList.add('lottery-ball-blue');
+                            }
+                            
+                            ball.textContent = num;
+                            lp2MatchedNumbersDiv.appendChild(ball);
+                        });
+                    } else {
+                        lp2MatchedNumbersDiv.innerHTML = '<p>No matching main numbers found for Lotto Plus 2.</p>';
+                    }
+                    
+                    // Get unique matched bonus numbers and add them to the matched numbers section
+                    if (data.lotto_plus_2_results.matched_bonus && data.lotto_plus_2_results.matched_bonus.length > 0) {
+                        const uniqueLP2MatchedBonus = [...new Set(data.lotto_plus_2_results.matched_bonus)];
+                        
+                        // Add a separator if there are also matched main numbers
+                        if (uniqueLP2MatchedNumbers.length > 0) {
+                            const separator = document.createElement('div');
+                            separator.classList.add('mt-2', 'mb-2');
+                            separator.innerHTML = '<strong>Matched Bonus:</strong>';
+                            lp2MatchedNumbersDiv.appendChild(separator);
+                        }
+                        
+                        uniqueLP2MatchedBonus.forEach(num => {
+                            const ball = document.createElement('span');
+                            ball.classList.add('lottery-ball', 'ball-matched', 'lottery-ball-yellow');
+                            ball.style.animation = 'pulse 2s infinite';
+                            ball.textContent = num;
+                            lp2MatchedNumbersDiv.appendChild(ball);
+                        });
+                    }
+                }
             }
             
             // Scroll to results
