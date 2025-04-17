@@ -71,19 +71,28 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     lotto_plus_2_result = None
     
     # Check for Powerball Plus if applicable
-    if plays_powerball_plus and lottery_type == "Powerball":
+    # Only check if primary game is Powerball and ticket plays Powerball Plus
+    if lottery_type == "Powerball" and plays_powerball_plus:
         logger.info("This ticket also plays Powerball Plus - checking both games")
         powerball_plus_result = get_lottery_result("Powerball Plus", draw_number)
+    elif lottery_type == "Powerball":
+        logger.info("This ticket is Powerball only - NOT checking Powerball Plus")
     
     # Check for Lotto Plus 1 if applicable
-    if plays_lotto_plus_1 and lottery_type == "Lotto":
+    # Only check if primary game is Lotto and ticket plays Lotto Plus 1
+    if lottery_type == "Lotto" and plays_lotto_plus_1:
         logger.info("This ticket also plays Lotto Plus 1 - checking both games")
         lotto_plus_1_result = get_lottery_result("Lotto Plus 1", draw_number)
+    elif lottery_type == "Lotto":
+        logger.info("This ticket doesn't play Lotto Plus 1 or it wasn't detected")
     
     # Check for Lotto Plus 2 if applicable
-    if plays_lotto_plus_2 and lottery_type == "Lotto":
+    # Only check if primary game is Lotto and ticket plays Lotto Plus 2
+    if lottery_type == "Lotto" and plays_lotto_plus_2:
         logger.info("This ticket also plays Lotto Plus 2 - checking both games")
         lotto_plus_2_result = get_lottery_result("Lotto Plus 2", draw_number)
+    elif lottery_type == "Lotto":
+        logger.info("This ticket doesn't play Lotto Plus 2 or it wasn't detected")
     
     if not lottery_result:
         # Enhanced error message with more helpful information

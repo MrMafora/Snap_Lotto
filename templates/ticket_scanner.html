@@ -501,6 +501,20 @@
         // Function to handle showing ads and processing the ticket
         // Clear previous results to prevent mixing results from different tickets
         function clearPreviousResults() {
+            // Clean up any existing countdown timers when clearing results
+            if (window.countdownInterval) {
+                clearInterval(window.countdownInterval);
+                window.countdownInterval = null;
+            }
+            
+            if (window.countdownTimeout) {
+                clearTimeout(window.countdownTimeout);
+                window.countdownTimeout = null;
+            }
+            
+            // Reset the countdown running flag since we're starting fresh
+            window.countdownRunning = false;
+            
             // Hide result containers
             const resultsContainer = document.getElementById('results-container');
             if (resultsContainer) {
@@ -523,6 +537,40 @@
             if (ticketNumbersContainer) {
                 ticketNumbersContainer.innerHTML = '';
             }
+            
+            // Hide and clear all additional game containers
+            const additionalGameContainers = [
+                'powerball-plus-numbers-container',
+                'lotto-plus-1-numbers-container',
+                'lotto-plus-2-numbers-container'
+            ];
+            
+            additionalGameContainers.forEach(id => {
+                const container = document.getElementById(id);
+                if (container) {
+                    container.classList.add('d-none');
+                    
+                    // Also clear the numbers inside these containers
+                    const numbersEl = document.getElementById(id.replace('-container', ''));
+                    if (numbersEl) {
+                        numbersEl.innerHTML = '';
+                    }
+                    
+                    // Clear the matched numbers
+                    const matchedId = id.replace('numbers-container', 'matched-numbers');
+                    const matchedEl = document.getElementById(matchedId);
+                    if (matchedEl) {
+                        matchedEl.innerHTML = '';
+                    }
+                    
+                    // Reset the matched count
+                    const countId = id.replace('numbers-container', 'matched-count');
+                    const countEl = document.getElementById(countId);
+                    if (countEl) {
+                        countEl.textContent = '0';
+                    }
+                }
+            });
             
             // Hide related game sections if they exist
             ['powerball-plus-section', 'lotto-plus-1-section', 'lotto-plus-2-section'].forEach(id => {
@@ -634,87 +682,147 @@
                 const viewResultsBtn = document.getElementById('view-results-btn');
                 viewResultsBtn.onclick = function() {
                     adOverlayResults.style.display = 'none';
+                    
+                    // Clean up all timers and reset the state
+                    if (window.countdownInterval) {
+                        clearInterval(window.countdownInterval);
+                        window.countdownInterval = null;
+                    }
+                    
+                    if (window.countdownTimeout) {
+                        clearTimeout(window.countdownTimeout);
+                        window.countdownTimeout = null;
+                    }
+                    
+                    // Reset the countdown running flag
+                    window.countdownRunning = false;
+                    
                     // Make sure scrolling is enabled
                     enableScrolling();
                     displayResults(data);
+                    console.log('User clicked View Results, countdown state cleared');
                 };
                 
                 // FORCEFULLY disable the view results button for 30 seconds
-                console.log('Setting 30-second mandatory ad display timer...');
-                
-                // Disable the View Results button
-                viewResultsBtn.disabled = true;
-                viewResultsBtn.style.opacity = '0.5';
-                viewResultsBtn.style.cursor = 'not-allowed';
-                viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 30s)';
-                
-                // Add a counter display to show remaining seconds
-                // First, remove any existing countdown elements to prevent duplicates
-                const existingCountdown = document.getElementById('ad-countdown');
-                if (existingCountdown) {
-                    existingCountdown.remove();
-                }
-                
-                const counterElement = document.createElement('div');
-                counterElement.id = 'ad-countdown';
-                counterElement.style.cssText = 'margin-top: 10px; font-size: 14px; color: #666; font-weight: bold;';
-                adOverlayResults.querySelector('.ad-container').appendChild(counterElement);
-                
-                let remainingSeconds = 30;
-                
-                // Clear any existing countdown intervals
-                if (window.countdownInterval) {
-                    clearInterval(window.countdownInterval);
-                }
-                
-                // Clear any existing timeouts
-                if (window.countdownTimeout) {
-                    clearTimeout(window.countdownTimeout);
-                }
-                
-                // Update the counter every second
-                window.countdownInterval = setInterval(() => {
-                    remainingSeconds--;
-                    counterElement.textContent = `Results available in ${remainingSeconds} seconds...`;
+                // We'll use a global flag to track if countdown is already running
+                if (!window.countdownRunning) {
+                    console.log('Setting 30-second mandatory ad display timer...');
                     
-                    // Update button text
-                    viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${remainingSeconds}s)`;
+                    // Set global flag to prevent multiple timers
+                    window.countdownRunning = true;
                     
-                    if (remainingSeconds <= 0) {
-                        clearInterval(window.countdownInterval);
-                        // Enable the button after time is up
-                        viewResultsBtn.disabled = false;
-                        viewResultsBtn.style.opacity = '1';
-                        viewResultsBtn.style.cursor = 'pointer';
-                        viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                        // Make the button pulse to draw attention
-                        viewResultsBtn.classList.add('btn-pulse');
+                    // Disable the View Results button
+                    viewResultsBtn.disabled = true;
+                    viewResultsBtn.style.opacity = '0.5';
+                    viewResultsBtn.style.cursor = 'not-allowed';
+                    viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 30s)';
+                    
+                    // Add a counter display to show remaining seconds
+                    // First, remove any existing countdown elements to prevent duplicates
+                    const existingCountdown = document.getElementById('ad-countdown');
+                    if (existingCountdown) {
+                        existingCountdown.remove();
                     }
-                }, 1000);
-                
-                // After 30 seconds, enable the View Results button and update UI
-                window.countdownTimeout = setTimeout(() => {
+                    
+                    const counterElement = document.createElement('div');
+                    counterElement.id = 'ad-countdown';
+                    counterElement.style.cssText = 'margin-top: 10px; font-size: 14px; color: #666; font-weight: bold;';
+                    adOverlayResults.querySelector('.ad-container').appendChild(counterElement);
+                    
+                    // Store timer start time to prevent deviations
+                    window.countdownStartTime = Date.now();
+                    window.countdownDuration = 30000; // 30 seconds in milliseconds
+                    
+                    // Make sure to clear any existing timers first
                     if (window.countdownInterval) {
                         clearInterval(window.countdownInterval);
                     }
                     
-                    console.log('30-second ad display timer completed');
-                    
-                    // Make sure the button is enabled
-                    if (adOverlayResults.style.display === 'flex') {
-                        viewResultsBtn.disabled = false;
-                        viewResultsBtn.style.opacity = '1';
-                        viewResultsBtn.style.cursor = 'pointer';
-                        viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                        viewResultsBtn.classList.add('btn-pulse');
+                    if (window.countdownTimeout) {
+                        clearTimeout(window.countdownTimeout);
                     }
-                }, 30000);
+                    
+                    // Update the counter every second based on elapsed time
+                    window.countdownInterval = setInterval(() => {
+                        // Calculate remaining time based on actual elapsed time
+                        const elapsedMs = Date.now() - window.countdownStartTime;
+                        const remainingMs = Math.max(0, window.countdownDuration - elapsedMs);
+                        const remainingSeconds = Math.ceil(remainingMs / 1000);
+                        
+                        // Update display
+                        counterElement.textContent = `Results available in ${remainingSeconds} seconds...`;
+                        
+                        // Update button text
+                        viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${remainingSeconds}s)`;
+                        
+                        // Check if countdown is complete
+                        if (remainingSeconds <= 0) {
+                            // Clear interval and reset running flag
+                            clearInterval(window.countdownInterval);
+                            window.countdownInterval = null;
+                            window.countdownRunning = false;
+                            
+                            // Enable the button after time is up
+                            viewResultsBtn.disabled = false;
+                            viewResultsBtn.style.opacity = '1';
+                            viewResultsBtn.style.cursor = 'pointer';
+                            viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                            
+                            // Make the button pulse to draw attention
+                            viewResultsBtn.classList.add('btn-pulse');
+                            
+                            console.log('Countdown completed naturally based on elapsed time');
+                        }
+                    }, 1000);
+                    
+                    // Set a single timeout for exactly 30 seconds from now
+                    // This is a backup to ensure the button is enabled after 30 seconds
+                    window.countdownTimeout = setTimeout(() => {
+                        // Clear any running interval
+                        if (window.countdownInterval) {
+                            clearInterval(window.countdownInterval);
+                            window.countdownInterval = null;
+                        }
+                        
+                        // Reset the running flag
+                        window.countdownRunning = false;
+                        
+                        console.log('30-second ad display timer completed via timeout');
+                        
+                        // Make sure the button is enabled
+                        if (adOverlayResults.style.display === 'flex') {
+                            viewResultsBtn.disabled = false;
+                            viewResultsBtn.style.opacity = '1';
+                            viewResultsBtn.style.cursor = 'pointer';
+                            viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                            viewResultsBtn.classList.add('btn-pulse');
+                        }
+                    }, window.countdownDuration);
+                } else {
+                    console.log('Countdown already running, not starting a new one');
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
+                
+                // Clean up any running timers in case of error
+                if (window.countdownInterval) {
+                    clearInterval(window.countdownInterval);
+                    window.countdownInterval = null;
+                }
+                
+                if (window.countdownTimeout) {
+                    clearTimeout(window.countdownTimeout);
+                    window.countdownTimeout = null;
+                }
+                
+                // Reset the countdown running flag
+                window.countdownRunning = false;
+                
                 // Hide ad loading overlay
                 const adOverlayLoading = document.getElementById('ad-overlay-loading');
                 adOverlayLoading.style.display = 'none';
+                
                 // Make sure scrolling is enabled in case of error
                 enableScrolling();
                 showError('An error occurred while scanning your ticket. Please try again.');
@@ -1081,10 +1189,11 @@
             }
             
             // Check if ticket also plays Powerball Plus and display those results
-            if (data.powerball_plus_results) {
+            // Make sure we only show the Powerball Plus section if this ticket plays Powerball Plus
+            if (data.lottery_type === "Powerball" && data.powerball_plus_results) {
                 // Update the primary game label to include the game name
                 const primaryGameLabel = document.getElementById('primary-game-label');
-                primaryGameLabel.textContent = data.lottery_type + ' Numbers:';
+                primaryGameLabel.textContent = 'Powerball Numbers:';
                 
                 // Powerball Plus Numbers - Add to the main winning numbers card
                 const ppNumbersContainer = document.getElementById('powerball-plus-numbers-container');
@@ -1238,8 +1347,8 @@
                 }
             }
             
-            // Handle Lotto Plus 1 numbers if present
-            if (data.lotto_plus_1_results) {
+            // Handle Lotto Plus 1 numbers if present - but only if the main game is Lotto
+            if (data.lottery_type === "Lotto" && data.lotto_plus_1_results) {
                 // Get the Lotto Plus 1 container
                 const lp1Container = document.getElementById('lotto-plus-1-numbers-container');
                 const lp1NumbersDiv = document.getElementById('lotto-plus-1-numbers');
@@ -1347,8 +1456,8 @@
                 }
             }
             
-            // Handle Lotto Plus 2 numbers if present
-            if (data.lotto_plus_2_results) {
+            // Handle Lotto Plus 2 numbers if present - but only if the main game is Lotto
+            if (data.lottery_type === "Lotto" && data.lotto_plus_2_results) {
                 // Get the Lotto Plus 2 container
                 const lp2Container = document.getElementById('lotto-plus-2-numbers-container');
                 const lp2NumbersDiv = document.getElementById('lotto-plus-2-numbers');
