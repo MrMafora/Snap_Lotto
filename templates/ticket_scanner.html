@@ -686,20 +686,21 @@
                     // Track if we should show Powerball/bonus number indicator
                     let isPowerball = false;
                     
+                    // For Powerball tickets, if this row is a single-number row (like Row A2 with the bonus number),
+                    // it should NOT have a plus sign before it. Instead, the plus sign should come AFTER
+                    // the previous row's numbers.
+                    
+                    // Special handling for Powerball or Powerball Plus where Row A2, B2, etc. are bonus rows
+                    if (data.lottery_type.toLowerCase().includes('powerball') && 
+                        rowName.endsWith('2') && numbers.length === 1) {
+                        isPowerball = true;
+                    }
+                    
                     // Add balls for this row
                     numbers.forEach((num, index) => {
-                        // Special handling for the last number in rows for Powerball games
-                        if (data.lottery_type.toLowerCase().includes('powerball') && 
-                            index === numbers.length - 1 && 
-                            numbers.length > 1) {
-                            
-                            // Add plus sign before the Powerball
-                            const plusSpan = document.createElement('span');
-                            plusSpan.classList.add('mx-2');
-                            plusSpan.textContent = '+';
-                            rowContainer.appendChild(plusSpan);
-                            isPowerball = true;
-                        }
+                        // In the old implementation, we were adding "+" sign before the last ball
+                        // in ANY row for Powerball games, which was incorrect.
+                        // We now only add "+" between rows.
                         
                         const ball = document.createElement('span');
                         ball.classList.add('lottery-ball');
@@ -730,6 +731,30 @@
                     });
                     
                     ticketNumbersContainer.appendChild(rowContainer);
+                    
+                    // For Powerball tickets, if this is Row A1, B1, etc. and the next row is A2, B2, etc.
+                    // add a plus sign AFTER this row to indicate the bonus number
+                    if (data.lottery_type.toLowerCase().includes('powerball') && 
+                        rowName.endsWith('1')) {
+                        // Check if we have a corresponding Row "X2" to match this Row "X1"
+                        const baseRowName = rowName.charAt(0); // Get the letter part (A, B, etc.)
+                        const nextRowName = baseRowName + '2';  // Create the next row name (A2, B2, etc.)
+                        
+                        // Check if we have a corresponding bonus row
+                        if (data.ticket_info.raw_selected_numbers[nextRowName] && 
+                            data.ticket_info.raw_selected_numbers[nextRowName].length === 1) {
+                            // Add a plus sign AFTER this row
+                            const plusContainer = document.createElement('div');
+                            plusContainer.classList.add('d-flex', 'align-items-center', 'mb-2');
+                            
+                            const plusSpan = document.createElement('span');
+                            plusSpan.classList.add('mx-2', 'fw-bold');
+                            plusSpan.textContent = '+';
+                            plusContainer.appendChild(plusSpan);
+                            
+                            ticketNumbersContainer.appendChild(plusContainer);
+                        }
+                    }
                 });
             } else {
                 // Fallback to flat display if raw data not available
