@@ -1308,48 +1308,42 @@
                     const lp2MatchedNumbersDiv = document.getElementById('lp2-matched-numbers');
                     lp2MatchedNumbersDiv.innerHTML = '';
                     
-                    if (uniqueLP2MatchedNumbers.length > 0) {
-                        uniqueLP2MatchedNumbers.forEach(num => {
+                    // Display both main and bonus matches together
+                    const allLP2Matches = [...uniqueLP2MatchedNumbers];
+                    
+                    // Add bonus matches if they exist
+                    if (data.lotto_plus_2_results.matched_bonus && data.lotto_plus_2_results.matched_bonus.length > 0) {
+                        // Add bonus numbers to the main matched numbers display
+                        allLP2Matches.push(...data.lotto_plus_2_results.matched_bonus);
+                    }
+                    
+                    if (allLP2Matches.length > 0) {
+                        allLP2Matches.forEach(num => {
                             const ball = document.createElement('span');
                             ball.classList.add('lottery-ball', 'ball-matched');
                             
-                            // Add color classes in sequence
-                            if (lp2MatchedNumbersDiv.children.length % 4 === 0) {
-                                ball.classList.add('lottery-ball-red');
-                            } else if (lp2MatchedNumbersDiv.children.length % 4 === 1) {
+                            // Style bonus numbers differently if needed
+                            if (data.lotto_plus_2_results.bonus_numbers.includes(num)) {
                                 ball.classList.add('lottery-ball-yellow');
-                            } else if (lp2MatchedNumbersDiv.children.length % 4 === 2) {
-                                ball.classList.add('lottery-ball-green');
+                                ball.style.animation = 'pulse 2s infinite';
                             } else {
-                                ball.classList.add('lottery-ball-blue');
+                                // Add color classes in sequence for regular numbers
+                                if (lp2MatchedNumbersDiv.children.length % 4 === 0) {
+                                    ball.classList.add('lottery-ball-red');
+                                } else if (lp2MatchedNumbersDiv.children.length % 4 === 1) {
+                                    ball.classList.add('lottery-ball-yellow');
+                                } else if (lp2MatchedNumbersDiv.children.length % 4 === 2) {
+                                    ball.classList.add('lottery-ball-green');
+                                } else {
+                                    ball.classList.add('lottery-ball-blue');
+                                }
                             }
                             
                             ball.textContent = num;
                             lp2MatchedNumbersDiv.appendChild(ball);
                         });
                     } else {
-                        lp2MatchedNumbersDiv.innerHTML = '<p>No matching main numbers found for Lotto Plus 2.</p>';
-                    }
-                    
-                    // Get unique matched bonus numbers and add them to the matched numbers section
-                    if (data.lotto_plus_2_results.matched_bonus && data.lotto_plus_2_results.matched_bonus.length > 0) {
-                        const uniqueLP2MatchedBonus = [...new Set(data.lotto_plus_2_results.matched_bonus)];
-                        
-                        // Add a separator if there are also matched main numbers
-                        if (uniqueLP2MatchedNumbers.length > 0) {
-                            const separator = document.createElement('div');
-                            separator.classList.add('mt-2', 'mb-2');
-                            separator.innerHTML = '<strong>Matched Bonus:</strong>';
-                            lp2MatchedNumbersDiv.appendChild(separator);
-                        }
-                        
-                        uniqueLP2MatchedBonus.forEach(num => {
-                            const ball = document.createElement('span');
-                            ball.classList.add('lottery-ball', 'ball-matched', 'lottery-ball-yellow');
-                            ball.style.animation = 'pulse 2s infinite';
-                            ball.textContent = num;
-                            lp2MatchedNumbersDiv.appendChild(ball);
-                        });
+                        lp2MatchedNumbersDiv.innerHTML = '<p>No matching numbers found for Lotto Plus 2.</p>';
                     }
                 }
             }
