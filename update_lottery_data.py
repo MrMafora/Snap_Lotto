@@ -206,7 +206,7 @@ def update_excel_data(excel_file, flask_app=None):
             imported_records = []
             
             # Process each row
-            for _, row in df.iterrows():
+            for index, row in df.iterrows():
                 try:
                     # Extract and validate data
                     lottery_type = standardize_lottery_type(row['lottery_type'])
@@ -214,9 +214,15 @@ def update_excel_data(excel_file, flask_app=None):
                     draw_date = parse_date(row['draw_date'])
                     numbers = parse_numbers(row['numbers'])
                     
+                    # Enhanced logging for draw 2533 to help debug
+                    if draw_number == '2533' or '2533' in str(row['draw_number']):
+                        logger.info(f"FOUND DRAW 2533: Row {index} - Original value: {row['draw_number']} - Processed: {draw_number}")
+                        logger.info(f"DRAW 2533 Details: lottery_type={lottery_type}, draw_date={draw_date}, numbers={numbers}")
+                    
                     # Validate required fields
                     if not lottery_type or not draw_number or not draw_date or not numbers:
-                        logger.warning(f"Skipping row due to missing required data: {row.to_dict()}")
+                        logger.warning(f"Skipping row due to missing required data: lottery_type={lottery_type}, draw_number={draw_number}, draw_date={draw_date}, numbers={numbers}")
+                        logger.warning(f"Row data: {row.to_dict()}")
                         counters['skipped'] += 1
                         continue
                     
@@ -271,6 +277,13 @@ def update_excel_data(excel_file, flask_app=None):
                         lottery_type=lottery_type,
                         draw_number=draw_number
                     ).first()
+                    
+                    # Additional logging for draw 2533
+                    if draw_number == '2533' or '2533' in str(draw_number):
+                        if existing:
+                            logger.info(f"DRAW 2533 FOUND in database: id={existing.id}, lottery_type={existing.lottery_type}")
+                        else:
+                            logger.info(f"DRAW 2533 NOT FOUND in database - Will create new record")
                     
                     if existing:
                         # Update existing record
