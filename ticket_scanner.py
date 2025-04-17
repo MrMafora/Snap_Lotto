@@ -129,28 +129,46 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
         bonus_numbers = lottery_result.get_bonus_numbers_list()
         bonus_numbers = [int(num) for num in bonus_numbers]
     
-    # Find matched numbers in flattened list
-    matched_numbers = [num for num in ticket_numbers if num in winning_numbers]
-    matched_bonus = [num for num in ticket_numbers if num in bonus_numbers]
-    
-    # For multiple rows - analyze each row separately to determine which rows have matches
+    # Initialize variables for best matching row
+    best_row_matches = []
+    best_row_bonus_matches = []
     rows_with_matches = []
     
-    # Process each row separately if we have raw_ticket_info
+    # If we have raw ticket info (multiple rows), analyze each row separately
     if raw_ticket_info and isinstance(raw_ticket_info, dict) and len(raw_ticket_info) > 0:
+        # Process each row separately
         for row_name, numbers in raw_ticket_info.items():
             row_matches = [num for num in numbers if num in winning_numbers]
             row_bonus_matches = [num for num in numbers if num in bonus_numbers]
             
+            # Track row with matches
             if row_matches or row_bonus_matches:
-                # This row has at least one match
-                rows_with_matches.append({
+                row_data = {
                     "row": row_name,
                     "numbers": numbers,
                     "matched_numbers": row_matches,
                     "matched_bonus": row_bonus_matches,
                     "total_matched": len(row_matches) + len(row_bonus_matches)
-                })
+                }
+                rows_with_matches.append(row_data)
+                
+                # Keep track of best row (most matches)
+                if len(row_matches) + len(row_bonus_matches) > len(best_row_matches) + len(best_row_bonus_matches):
+                    best_row_matches = row_matches
+                    best_row_bonus_matches = row_bonus_matches
+        
+        # If we found rows with matches, use the best row for prize determination
+        if best_row_matches or best_row_bonus_matches:
+            matched_numbers = best_row_matches
+            matched_bonus = best_row_bonus_matches
+        else:
+            # No matches in any row
+            matched_numbers = []
+            matched_bonus = []
+    else:
+        # For single row tickets, check the flattened list
+        matched_numbers = [num for num in ticket_numbers if num in winning_numbers]
+        matched_bonus = [num for num in ticket_numbers if num in bonus_numbers]
     
     # Get prize information based on matches
     prize_info = get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result)
@@ -203,15 +221,49 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             pp_bonus_numbers = powerball_plus_result.get_bonus_numbers_list()
             pp_bonus_numbers = [int(num) for num in pp_bonus_numbers]
         
-        # Find matched numbers for Powerball Plus
-        pp_matched_numbers = [num for num in ticket_numbers if num in pp_winning_numbers]
-        pp_matched_bonus = [num for num in ticket_numbers if num in pp_bonus_numbers]
+        # Initialize best matches for Powerball Plus
+        pp_best_matches = []
+        pp_best_bonus_matches = []
+        pp_rows_with_matches = []
+        
+        # Check each row separately for Powerball Plus matches
+        if raw_ticket_info and isinstance(raw_ticket_info, dict) and len(raw_ticket_info) > 0:
+            for row_name, numbers in raw_ticket_info.items():
+                row_matches = [num for num in numbers if num in pp_winning_numbers]
+                row_bonus_matches = [num for num in numbers if num in pp_bonus_numbers]
+                
+                if row_matches or row_bonus_matches:
+                    pp_rows_with_matches.append({
+                        "row": row_name,
+                        "numbers": numbers,
+                        "matched_numbers": row_matches,
+                        "matched_bonus": row_bonus_matches,
+                        "total_matched": len(row_matches) + len(row_bonus_matches)
+                    })
+                    
+                    # Track best matches
+                    if len(row_matches) + len(row_bonus_matches) > len(pp_best_matches) + len(pp_best_bonus_matches):
+                        pp_best_matches = row_matches
+                        pp_best_bonus_matches = row_bonus_matches
+            
+            # Use best row matches if any found
+            if pp_best_matches or pp_best_bonus_matches:
+                pp_matched_numbers = pp_best_matches
+                pp_matched_bonus = pp_best_bonus_matches
+            else:
+                # No matches in any row
+                pp_matched_numbers = []
+                pp_matched_bonus = []
+        else:
+            # For single row tickets
+            pp_matched_numbers = [num for num in ticket_numbers if num in pp_winning_numbers]
+            pp_matched_bonus = [num for num in ticket_numbers if num in pp_bonus_numbers]
         
         # Check for prize in Powerball Plus
         pp_prize_info = get_prize_info("Powerball Plus", pp_matched_numbers, pp_matched_bonus, powerball_plus_result)
         
         # Include Powerball Plus results in our response
-        result["powerball_plus_results"] = {
+        pp_result_data = {
             "lottery_type": "Powerball Plus",
             "draw_number": powerball_plus_result.draw_number,
             "draw_date": powerball_plus_result.draw_date.strftime("%A, %d %B %Y"),
@@ -223,6 +275,12 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             "has_prize": bool(pp_prize_info),
             "prize_info": pp_prize_info if pp_prize_info else {}
         }
+        
+        # Add rows with matches for Powerball Plus if available
+        if pp_rows_with_matches:
+            pp_result_data["rows_with_matches"] = pp_rows_with_matches
+            
+        result["powerball_plus_results"] = pp_result_data
         
         # If Powerball Plus has a prize but the main game doesn't, mark overall ticket as winning
         if bool(pp_prize_info) and not bool(prize_info):
@@ -239,15 +297,49 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             lp1_bonus_numbers = lotto_plus_1_result.get_bonus_numbers_list()
             lp1_bonus_numbers = [int(num) for num in lp1_bonus_numbers]
         
-        # Find matched numbers for Lotto Plus 1
-        lp1_matched_numbers = [num for num in ticket_numbers if num in lp1_winning_numbers]
-        lp1_matched_bonus = [num for num in ticket_numbers if num in lp1_bonus_numbers]
+        # Initialize best matches for Lotto Plus 1
+        lp1_best_matches = []
+        lp1_best_bonus_matches = []
+        lp1_rows_with_matches = []
+        
+        # Check each row separately for Lotto Plus 1 matches
+        if raw_ticket_info and isinstance(raw_ticket_info, dict) and len(raw_ticket_info) > 0:
+            for row_name, numbers in raw_ticket_info.items():
+                row_matches = [num for num in numbers if num in lp1_winning_numbers]
+                row_bonus_matches = [num for num in numbers if num in lp1_bonus_numbers]
+                
+                if row_matches or row_bonus_matches:
+                    lp1_rows_with_matches.append({
+                        "row": row_name,
+                        "numbers": numbers,
+                        "matched_numbers": row_matches,
+                        "matched_bonus": row_bonus_matches,
+                        "total_matched": len(row_matches) + len(row_bonus_matches)
+                    })
+                    
+                    # Track best matches
+                    if len(row_matches) + len(row_bonus_matches) > len(lp1_best_matches) + len(lp1_best_bonus_matches):
+                        lp1_best_matches = row_matches
+                        lp1_best_bonus_matches = row_bonus_matches
+            
+            # Use best row matches if any found
+            if lp1_best_matches or lp1_best_bonus_matches:
+                lp1_matched_numbers = lp1_best_matches
+                lp1_matched_bonus = lp1_best_bonus_matches
+            else:
+                # No matches in any row
+                lp1_matched_numbers = []
+                lp1_matched_bonus = []
+        else:
+            # For single row tickets
+            lp1_matched_numbers = [num for num in ticket_numbers if num in lp1_winning_numbers]
+            lp1_matched_bonus = [num for num in ticket_numbers if num in lp1_bonus_numbers]
         
         # Check for prize in Lotto Plus 1
         lp1_prize_info = get_prize_info("Lotto Plus 1", lp1_matched_numbers, lp1_matched_bonus, lotto_plus_1_result)
         
         # Include Lotto Plus 1 results in our response
-        result["lotto_plus_1_results"] = {
+        lp1_result_data = {
             "lottery_type": "Lotto Plus 1",
             "draw_number": lotto_plus_1_result.draw_number,
             "draw_date": lotto_plus_1_result.draw_date.strftime("%A, %d %B %Y"),
@@ -259,6 +351,12 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             "has_prize": bool(lp1_prize_info),
             "prize_info": lp1_prize_info if lp1_prize_info else {}
         }
+        
+        # Add rows with matches for Lotto Plus 1 if available
+        if lp1_rows_with_matches:
+            lp1_result_data["rows_with_matches"] = lp1_rows_with_matches
+            
+        result["lotto_plus_1_results"] = lp1_result_data
         
         # If Lotto Plus 1 has a prize but the main game doesn't, mark overall ticket as winning
         if bool(lp1_prize_info) and not bool(prize_info):
@@ -275,15 +373,49 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             lp2_bonus_numbers = lotto_plus_2_result.get_bonus_numbers_list()
             lp2_bonus_numbers = [int(num) for num in lp2_bonus_numbers]
         
-        # Find matched numbers for Lotto Plus 2
-        lp2_matched_numbers = [num for num in ticket_numbers if num in lp2_winning_numbers]
-        lp2_matched_bonus = [num for num in ticket_numbers if num in lp2_bonus_numbers]
+        # Initialize best matches for Lotto Plus 2
+        lp2_best_matches = []
+        lp2_best_bonus_matches = []
+        lp2_rows_with_matches = []
+        
+        # Check each row separately for Lotto Plus 2 matches
+        if raw_ticket_info and isinstance(raw_ticket_info, dict) and len(raw_ticket_info) > 0:
+            for row_name, numbers in raw_ticket_info.items():
+                row_matches = [num for num in numbers if num in lp2_winning_numbers]
+                row_bonus_matches = [num for num in numbers if num in lp2_bonus_numbers]
+                
+                if row_matches or row_bonus_matches:
+                    lp2_rows_with_matches.append({
+                        "row": row_name,
+                        "numbers": numbers,
+                        "matched_numbers": row_matches,
+                        "matched_bonus": row_bonus_matches,
+                        "total_matched": len(row_matches) + len(row_bonus_matches)
+                    })
+                    
+                    # Track best matches
+                    if len(row_matches) + len(row_bonus_matches) > len(lp2_best_matches) + len(lp2_best_bonus_matches):
+                        lp2_best_matches = row_matches
+                        lp2_best_bonus_matches = row_bonus_matches
+            
+            # Use best row matches if any found
+            if lp2_best_matches or lp2_best_bonus_matches:
+                lp2_matched_numbers = lp2_best_matches
+                lp2_matched_bonus = lp2_best_bonus_matches
+            else:
+                # No matches in any row
+                lp2_matched_numbers = []
+                lp2_matched_bonus = []
+        else:
+            # For single row tickets
+            lp2_matched_numbers = [num for num in ticket_numbers if num in lp2_winning_numbers]
+            lp2_matched_bonus = [num for num in ticket_numbers if num in lp2_bonus_numbers]
         
         # Check for prize in Lotto Plus 2
         lp2_prize_info = get_prize_info("Lotto Plus 2", lp2_matched_numbers, lp2_matched_bonus, lotto_plus_2_result)
         
         # Include Lotto Plus 2 results in our response
-        result["lotto_plus_2_results"] = {
+        lp2_result_data = {
             "lottery_type": "Lotto Plus 2",
             "draw_number": lotto_plus_2_result.draw_number,
             "draw_date": lotto_plus_2_result.draw_date.strftime("%A, %d %B %Y"),
@@ -295,6 +427,12 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             "has_prize": bool(lp2_prize_info),
             "prize_info": lp2_prize_info if lp2_prize_info else {}
         }
+        
+        # Add rows with matches for Lotto Plus 2 if available
+        if lp2_rows_with_matches:
+            lp2_result_data["rows_with_matches"] = lp2_rows_with_matches
+            
+        result["lotto_plus_2_results"] = lp2_result_data
         
         # If Lotto Plus 2 has a prize but no other game has a prize, mark overall ticket as winning
         # First check if we have a Lotto Plus 1 result with a prize
