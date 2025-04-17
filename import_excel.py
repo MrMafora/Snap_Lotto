@@ -10,7 +10,8 @@ import logging
 import json
 import pandas as pd
 import numpy as np
-from datetime import datetime
+import openpyxl
+from datetime import datetime, timedelta
 from flask import current_app
 from models import db, LotteryResult, Screenshot
 
@@ -382,6 +383,7 @@ def import_excel_data(excel_file, flask_app=None):
 def create_empty_template(output_path):
     """
     Create an empty Excel template for lottery data import.
+    Single sheet format with standardized columns that matches the actual spreadsheet format.
     
     Args:
         output_path (str): Path to save the Excel file
@@ -390,66 +392,73 @@ def create_empty_template(output_path):
         bool: Success status
     """
     try:
-        # Create a Pandas Excel writer
+        # Define the columns based on observed format
+        columns = [
+            "Game Name", "Draw Number", "Draw Date", "Winning Numbers (Numerical)", "Bonus Ball",
+            "Div 1 Winners", "Div 1 Winnings", "Div 2 Winners", "Div 2 Winnings",
+            "Div 3 Winners", "Div 3 Winnings", "Div 4 Winners", "Div 4 Winnings",
+            "Div 5 Winners", "Div 5 Winnings", "Div 6 Winners", "Div 6 Winnings",
+            "Div 7 Winners", "Div 7 Winnings", "Div 8 Winners", "Div 8 Winnings",
+            "Rollover Amount", "Total Pool Size", "Total Sales", "Next Jackpot",
+            "Draw Machine", "Next Draw Date"
+        ]
+        
+        # Create an empty dataframe with the columns
+        df = pd.DataFrame(columns=columns)
+        
+        # Create Excel writer
         writer = pd.ExcelWriter(output_path, engine='openpyxl')
         
-        # Create template dataframes for each lottery type
-        lottery_types = [
-            'Lotto', 
-            'Lotto Plus 1', 
-            'Lotto Plus 2', 
-            'Powerball', 
-            'Powerball Plus', 
-            'Daily Lotto'
-        ]
+        # Write to Excel without examples - completely empty
+        df.to_excel(writer, sheet_name='Lotto', index=False)
         
-        # Define columns for the template
-        columns = [
-            'Game Type', 
-            'Draw Number', 
-            'Draw Date', 
-            'Winning Numbers', 
-            'Bonus Number',
-            'Division 1 Prize', 
-            'Division 1 Winners',
-            'Division 2 Prize', 
-            'Division 2 Winners',
-            'Division 3 Prize', 
-            'Division 3 Winners'
-        ]
+        # Auto-adjust column widths
+        workbook = writer.book
+        worksheet = writer.sheets['Lotto']
         
-        # Create a sheet for each lottery type
-        for lottery_type in lottery_types:
-            # Create empty dataframe with headers
-            df = pd.DataFrame(columns=columns)
+        # Make columns wider for data entry
+        for i, col in enumerate(df.columns):
+            col_width = max(len(col) + 5, 20)  # Minimum width of 20 characters
+            worksheet.column_dimensions[chr(65 + i)].width = col_width
+        
+        # Add column formatting guidelines in first row
+        # Get worksheet
+        for i, col in enumerate(df.columns):
+            cell = worksheet.cell(row=2, column=i+1)
             
-            # Add a sample row with format hints
-            sample_data = {
-                'Game Type': lottery_type,
-                'Draw Number': '1234',
-                'Draw Date': '2025-01-01',
-                'Winning Numbers': '1, 2, 3, 4, 5, 6' if lottery_type != 'Daily Lotto' else '1, 2, 3, 4, 5',
-                'Bonus Number': '7' if lottery_type != 'Daily Lotto' else '',
-                'Division 1 Prize': 'R1,000,000.00',
-                'Division 1 Winners': '1',
-                'Division 2 Prize': 'R100,000.00',
-                'Division 2 Winners': '5',
-                'Division 3 Prize': 'R2,500.00',
-                'Division 3 Winners': '100'
-            }
-            df = pd.concat([df, pd.DataFrame([sample_data])], ignore_index=True)
-            
-            # Write dataframe to Excel sheet
-            df.to_excel(writer, sheet_name=lottery_type, index=False)
-            
-        # Save the Excel file
+            # Add guidance text based on column type
+            if col == "Game Name":
+                cell.value = "e.g., LOTTO, POWERBALL, DAILY LOTTO"
+            elif col == "Draw Number":
+                cell.value = "e.g., 2533"
+            elif col == "Draw Date":
+                cell.value = "YYYY-MM-DD format"
+            elif col == "Winning Numbers (Numerical)":
+                cell.value = "e.g., 01 02 03 04 05 06"
+            elif col == "Bonus Ball":
+                cell.value = "e.g., 07"
+            elif "Winners" in col:
+                cell.value = "Number of winners"
+            elif "Winnings" in col:
+                cell.value = "Prize amount (e.g., R1,000.00)"
+        
+        # Add light yellow background to guidance row
+        yellow_fill = openpyxl.styles.PatternFill(start_color="FFFFE0", end_color="FFFFE0", fill_type="solid")
+        for i in range(len(df.columns)):
+            worksheet.cell(row=2, column=i+1).fill = yellow_fill
+        
+        # Save the file
         writer.close()
         
+        # Include timestamp in filename to avoid overwrites
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        print(f"Empty template created at {output_path}")
         logger.info(f"Empty template created at {output_path}")
         return True
     
     except Exception as e:
         logger.error(f"Error creating empty template: {str(e)}")
+        print(f"Error creating empty template: {str(e)}")
         return False
 
 if __name__ == "__main__":

@@ -160,35 +160,9 @@ def update_excel_data(excel_file, flask_app=None):
     
     with app.app_context():
         try:
-            # Load all sheets from the Excel file
-            xls = pd.ExcelFile(excel_file)
-            sheet_names = xls.sheet_names
-            logger.info(f"Found {len(sheet_names)} sheets in Excel file: {sheet_names}")
-            
-            # Combined dataframe to store all records
-            all_records = []
-            total_rows = 0
-            
-            # Process each sheet
-            for sheet_name in sheet_names:
-                df = pd.read_excel(excel_file, sheet_name=sheet_name)
-                total_rows += len(df)
-                # Skip empty sheets or sheets with no rows
-                if len(df) == 0:
-                    logger.info(f"Sheet {sheet_name} is empty, skipping")
-                    continue
-                    
-                # Set lottery type based on sheet name if not present in data
-                if 'Game Name' not in df.columns:
-                    # Create Game Name column with the sheet name
-                    df['Game Name'] = sheet_name
-                    logger.info(f"Added lottery type '{sheet_name}' to all rows in sheet")
-                
-                all_records.append(df)
-            
-            # Concatenate all dataframes
-            df = pd.concat(all_records, ignore_index=True)
-            logger.info(f"Loaded {total_rows} rows from all sheets")
+            # Load the single sheet from the Excel file (expecting only one sheet)
+            df = pd.read_excel(excel_file)
+            logger.info(f"Loaded {len(df)} rows from Excel file")
             
             # Define possible column name mappings for different sheets
             possible_name_mappings = {
