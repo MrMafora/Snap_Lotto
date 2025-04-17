@@ -26,11 +26,14 @@ class EnhancedCSRFProtect(CSRFProtect):
         # Override the default CSRF cookie settings
         app.config.setdefault('WTF_CSRF_TIME_LIMIT', 3600)  # 1 hour token timeout
         
+        # Disable referrer check in all environments for Replit compatibility
+        app.config.setdefault('WTF_CSRF_CHECK_REFERER', False)
+        
         # Set proper cookie settings for production vs development
         environment = app.config.get('ENVIRONMENT', 'development')
         if environment == 'production':
             # Secure settings for production
-            app.config.setdefault('WTF_CSRF_SSL_STRICT', True)
+            app.config.setdefault('WTF_CSRF_SSL_STRICT', False)  # Disable SSL strict check for Replit
             app.config.setdefault('WTF_CSRF_COOKIE_SECURE', True)
             app.config.setdefault('WTF_CSRF_COOKIE_SAMESITE', 'Lax')
             
