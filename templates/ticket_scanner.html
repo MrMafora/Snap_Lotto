@@ -662,8 +662,16 @@
             
             // Check if we have raw selected numbers for a better display
             if (data.ticket_info && data.ticket_info.raw_selected_numbers) {
+                // Array to track rows that should be skipped (e.g., A2/B2 rows that are merged with A1/B1)
+                const rowsToSkip = [];
+                
                 // Display numbers by rows
                 Object.entries(data.ticket_info.raw_selected_numbers).forEach(([rowName, numbers]) => {
+                    // Skip rows that are already handled (bonus number rows like A2, B2)
+                    if (rowsToSkip.includes(rowName)) {
+                        return;
+                    }
+                    
                     // Check if this row has any matches
                     const rowMatches = numbers.filter(num => data.winning_numbers.includes(num));
                     const rowBonusMatches = numbers.filter(num => data.bonus_numbers.includes(num));
@@ -672,10 +680,26 @@
                     // Create row label with match indicator if applicable
                     const rowLabel = document.createElement('div');
                     rowLabel.classList.add('mt-2', 'mb-1');
+                    
+                    // Check if this is Row A1, B1, etc. with a corresponding bonus number row
+                    let displayRowName = rowName;
+                    if (data.lottery_type.toLowerCase().includes('powerball') && 
+                        rowName.endsWith('1')) {
+                        // Check if we have a corresponding Row "X2" to match this Row "X1"
+                        const baseRowName = rowName.charAt(0); // Get the letter part (A, B, etc.)
+                        const nextRowName = baseRowName + '2';  // Create the next row name (A2, B2, etc.)
+                        
+                        // If there's a bonus row, display just "Row A" instead of "Row A1"
+                        if (data.ticket_info.raw_selected_numbers[nextRowName] && 
+                            data.ticket_info.raw_selected_numbers[nextRowName].length === 1) {
+                            displayRowName = baseRowName;
+                        }
+                    }
+                    
                     if (hasMatches) {
-                        rowLabel.innerHTML = `<strong>Row ${rowName}:</strong> <span class="badge bg-success ms-2">Matches: ${rowMatches.length + rowBonusMatches.length}</span>`;
+                        rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong> <span class="badge bg-success ms-2">Matches: ${rowMatches.length + rowBonusMatches.length}</span>`;
                     } else {
-                        rowLabel.innerHTML = `<strong>Row ${rowName}:</strong>`;
+                        rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong>`;
                     }
                     ticketNumbersContainer.appendChild(rowLabel);
                     
@@ -733,7 +757,7 @@
                     ticketNumbersContainer.appendChild(rowContainer);
                     
                     // For Powerball tickets, if this is Row A1, B1, etc. and the next row is A2, B2, etc.
-                    // add a plus sign AFTER this row to indicate the bonus number
+                    // We'll handle the bonus number differently - we won't display a separate row
                     if (data.lottery_type.toLowerCase().includes('powerball') && 
                         rowName.endsWith('1')) {
                         // Check if we have a corresponding Row "X2" to match this Row "X1"
@@ -743,16 +767,31 @@
                         // Check if we have a corresponding bonus row
                         if (data.ticket_info.raw_selected_numbers[nextRowName] && 
                             data.ticket_info.raw_selected_numbers[nextRowName].length === 1) {
-                            // Add a plus sign AFTER this row
-                            const plusContainer = document.createElement('div');
-                            plusContainer.classList.add('d-flex', 'align-items-center', 'mb-2');
                             
+                            // Instead of creating a new row, add a plus sign to the end of the current row
                             const plusSpan = document.createElement('span');
-                            plusSpan.classList.add('mx-2', 'fw-bold');
+                            plusSpan.classList.add('mx-2');
                             plusSpan.textContent = '+';
-                            plusContainer.appendChild(plusSpan);
+                            rowContainer.appendChild(plusSpan);
                             
-                            ticketNumbersContainer.appendChild(plusContainer);
+                            // Get the bonus number
+                            const bonusNumber = data.ticket_info.raw_selected_numbers[nextRowName][0];
+                            
+                            // Create the bonus ball in the same row
+                            const bonusBall = document.createElement('span');
+                            bonusBall.classList.add('lottery-ball', 'lottery-ball-bonus', 'lottery-ball-yellow');
+                            
+                            // Check if this bonus number is a match
+                            const isBonusMatch = data.bonus_numbers.includes(bonusNumber);
+                            if (isBonusMatch) {
+                                bonusBall.classList.add('ball-matched');
+                            }
+                            
+                            bonusBall.textContent = bonusNumber;
+                            rowContainer.appendChild(bonusBall);
+                            
+                            // Skip the next row since we've already added its number here
+                            rowsToSkip.push(nextRowName);
                         }
                     }
                 });
