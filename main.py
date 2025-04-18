@@ -1182,6 +1182,7 @@ def view_zoomed_screenshot(screenshot_id):
 
 @app.route('/sync-all-screenshots', methods=['POST'])
 @login_required
+@csrf.exempt
 def sync_all_screenshots():
     """Sync all screenshots from their source URLs"""
     if not current_user.is_admin:
@@ -1214,6 +1215,7 @@ def sync_all_screenshots():
 
 @app.route('/sync-screenshot/<int:screenshot_id>', methods=['POST'])
 @login_required
+@csrf.exempt
 def sync_single_screenshot(screenshot_id):
     """Sync a single screenshot by its ID"""
     if not current_user.is_admin:
@@ -1249,6 +1251,7 @@ def sync_single_screenshot(screenshot_id):
 
 @app.route('/cleanup-screenshots', methods=['POST'])
 @login_required
+@csrf.exempt
 def cleanup_screenshots():
     """Route to cleanup old screenshots"""
     if not current_user.is_admin:

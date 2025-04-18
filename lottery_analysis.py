@@ -22,7 +22,23 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import io
 import base64
+import json
 from sqlalchemy import func, and_, or_, distinct
+import numpy as np
+
+# Custom JSON encoder to handle numpy types
+class NumpyEncoder(json.JSONEncoder):
+    """Custom encoder for numpy data types"""
+    def default(self, obj):
+        if isinstance(obj, (np.int_, np.intc, np.intp, np.int8,
+                          np.int16, np.int32, np.int64, np.uint8,
+                          np.uint16, np.uint32, np.uint64)):
+            return int(obj)
+        elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
+            return float(obj)
+        elif isinstance(obj, (np.ndarray,)):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -763,7 +779,13 @@ class LotteryAnalyzer:
                 })
             
             # Sort divisions numerically
-            division_data.sort(key=lambda x: int(x['division']))
+            try:
+                # Try to sort numerically if all divisions are integers
+                division_data.sort(key=lambda x: int(x['division']) if str(x['division']).isdigit() else 0)
+            except (ValueError, TypeError):
+                # If there's any error, sort by string representation
+                # This handles cases where divisions have text like "Division 1"
+                division_data.sort(key=lambda x: str(x['division']))
             
             # Generate winners chart
             plt.figure(figsize=(12, 6))
@@ -1285,7 +1307,7 @@ def register_analysis_routes(app, db):
         days = int(request.args.get('days', 365))
         
         data = analyzer.analyze_time_series(lottery_type, days)
-        return jsonify(data)
+        return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
     
     @app.route('/api/lottery-analysis/correlations')
     @login_required
@@ -1312,7 +1334,7 @@ def register_analysis_routes(app, db):
         days = int(request.args.get('days', 365))
         
         data = analyzer.analyze_winners(lottery_type, days)
-        return jsonify(data)
+        return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
     
     @app.route('/api/lottery-analysis/predict')
     @login_required
