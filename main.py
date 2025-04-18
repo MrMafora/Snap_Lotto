@@ -459,6 +459,7 @@ def get_file_upload_progress():
 
 @app.route('/api/file-upload-progress/reset', methods=['POST'])
 @login_required
+@csrf.exempt
 def reset_file_upload_progress():
     """Reset the file upload progress for the current user"""
     user_id = current_user.id
@@ -530,6 +531,7 @@ def import_details(import_id):
 
 @app.route('/import-data', methods=['GET', 'POST'])
 @login_required
+@csrf.exempt
 def import_data():
     """Import data from Excel spreadsheet"""
     if not current_user.is_admin:
