@@ -93,6 +93,15 @@ csrf.exempt('get_file_upload_progress')
 csrf.exempt('health_check')
 csrf.exempt('health_port_check')
 
+# Exempt all lottery analysis API endpoints
+csrf.exempt('api_frequency_analysis')
+csrf.exempt('api_pattern_analysis')
+csrf.exempt('api_time_series_analysis')
+csrf.exempt('api_correlation_analysis')
+csrf.exempt('api_winner_analysis')
+csrf.exempt('api_lottery_prediction')
+csrf.exempt('api_full_analysis')
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))

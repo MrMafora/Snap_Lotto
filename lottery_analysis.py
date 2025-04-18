@@ -1247,6 +1247,7 @@ def register_analysis_routes(app, db):
     
     @app.route('/api/lottery-analysis/frequency')
     @login_required
+    @csrf.exempt
     def api_frequency_analysis():
         """API endpoint for frequency analysis data"""
         if not current_user.is_admin:
