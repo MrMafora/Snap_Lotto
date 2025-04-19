@@ -331,9 +331,15 @@
                 const lotteryType = document.getElementById('lottery_type').value || '';
                 const days = document.getElementById('days').value || '365';
                 
+                console.log("Loading pattern data...");
+                
                 fetchWithCSRF(`/api/lottery-analysis/patterns?lottery_type=${lotteryType}&days=${days}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log("Pattern API response status:", response.status);
+                        return response.json();
+                    })
                     .then(data => {
+                        console.log("Pattern data received:", data);
                         let html = '';
                         
                         if (data && Object.keys(data).length > 0) {
@@ -451,16 +457,76 @@
                 const lotteryType = document.getElementById('lottery_type').value || '';
                 const days = document.getElementById('days').value || '365';
                 
+                console.log("Loading time series data...");
+                
                 fetchWithCSRF(`/api/lottery-analysis/time-series?lottery_type=${lotteryType}&days=${days}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log("Time series API response status:", response.status);
+                        return response.json();
+                    })
                     .then(data => {
-                        // Process and display time series data
-                        content.innerHTML = '<div class="col-12"><p>Time series data loaded successfully!</p></div>';
+                        console.log("Time series data received:", data);
+                        
+                        // Display any data received, even if it contains errors
+                        if (data && Object.keys(data).length > 0) {
+                            let html = '<div class="row">';
+                            
+                            // Loop through lottery types
+                            for (const [lotteryType, typeData] of Object.entries(data)) {
+                                if (typeData && typeData.error) {
+                                    // Display error for this lottery type
+                                    html += `
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card border-left-warning shadow h-100 py-2">
+                                                <div class="card-body">
+                                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                        ${lotteryType}
+                                                    </div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                        Time Series Error
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <p>${typeData.error}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                } else if (typeData && typeData.chart_base64) {
+                                    // Display chart for this lottery type
+                                    html += `
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card border-left-primary shadow h-100 py-2">
+                                                <div class="card-body">
+                                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                        ${lotteryType}
+                                                    </div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                        Time Series Analysis
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <img src="data:image/png;base64,${typeData.chart_base64}" 
+                                                             alt="Time Series Chart for ${lotteryType}" 
+                                                             class="img-fluid">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+                            }
+                            
+                            html += '</div>';
+                            content.innerHTML = html;
+                        } else {
+                            content.innerHTML = '<div class="col-12"><div class="alert alert-info">No time series data available.</div></div>';
+                        }
+                        
                         loading.style.display = 'none';
                         content.style.display = 'block';
                     })
                     .catch(error => {
-                        console.error('Error:', error);
+                        console.error('Error loading time series data:', error);
                         content.innerHTML = '<div class="col-12"><div class="alert alert-danger">Error loading time series data</div></div>';
                         loading.style.display = 'none';
                         content.style.display = 'block';
@@ -482,16 +548,76 @@
                 const lotteryType = document.getElementById('lottery_type').value || '';
                 const days = document.getElementById('days').value || '365';
                 
+                console.log("Loading winners data...");
+                
                 fetchWithCSRF(`/api/lottery-analysis/winners?lottery_type=${lotteryType}&days=${days}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log("Winners API response status:", response.status);
+                        return response.json();
+                    })
                     .then(data => {
-                        // Process and display winner data
-                        content.innerHTML = '<div class="col-12"><p>Winner data loaded successfully!</p></div>';
+                        console.log("Winners data received:", data);
+                        
+                        // Display any data received, even if it contains errors
+                        if (data && Object.keys(data).length > 0) {
+                            let html = '<div class="row">';
+                            
+                            // Loop through lottery types
+                            for (const [lotteryType, typeData] of Object.entries(data)) {
+                                if (typeData && typeData.error) {
+                                    // Display error for this lottery type
+                                    html += `
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card border-left-warning shadow h-100 py-2">
+                                                <div class="card-body">
+                                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                        ${lotteryType}
+                                                    </div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                        Winner Analysis Error
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <p>${typeData.error}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                } else if (typeData && typeData.divisions_chart) {
+                                    // Display winner data for this lottery type
+                                    html += `
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card border-left-primary shadow h-100 py-2">
+                                                <div class="card-body">
+                                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                        ${lotteryType}
+                                                    </div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                        Winner Analysis
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <img src="data:image/png;base64,${typeData.divisions_chart}" 
+                                                             alt="Winners Chart for ${lotteryType}" 
+                                                             class="img-fluid">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+                            }
+                            
+                            html += '</div>';
+                            content.innerHTML = html;
+                        } else {
+                            content.innerHTML = '<div class="col-12"><div class="alert alert-info">No winner data available.</div></div>';
+                        }
+                        
                         loading.style.display = 'none';
                         content.style.display = 'block';
                     })
                     .catch(error => {
-                        console.error('Error:', error);
+                        console.error('Error loading winner data:', error);
                         content.innerHTML = '<div class="col-12"><div class="alert alert-danger">Error loading winner data</div></div>';
                         loading.style.display = 'none';
                         content.style.display = 'block';
@@ -512,16 +638,76 @@
                 
                 const days = document.getElementById('days').value || '365';
                 
+                console.log("Loading correlations data...");
+                
                 fetchWithCSRF(`/api/lottery-analysis/correlations?days=${days}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log("Correlations API response status:", response.status);
+                        return response.json();
+                    })
                     .then(data => {
-                        // Process and display correlation data
-                        content.innerHTML = '<div class="col-12"><p>Correlation data loaded successfully!</p></div>';
+                        console.log("Correlations data received:", data);
+                        
+                        // Display any data received, even if it contains errors
+                        if (data && data.error) {
+                            content.innerHTML = `
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <h5>Error in Correlation Analysis</h5>
+                                        <p>${data.error}</p>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (data && data.correlation_matrix) {
+                            // Display the correlation heatmap
+                            content.innerHTML = `
+                                <div class="col-12 mb-4">
+                                    <div class="card shadow">
+                                        <div class="card-header py-3">
+                                            <h6 class="m-0 font-weight-bold text-primary">Lottery Type Correlation Matrix</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p>Correlation strength between different lottery types based on winning numbers:</p>
+                                            <div class="text-center">
+                                                <img src="data:image/png;base64,${data.correlation_matrix}" 
+                                                     alt="Lottery Type Correlation Matrix" 
+                                                     class="img-fluid">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            // Add additional correlation visualizations if available
+                            if (data.additional_charts) {
+                                for (const [chartName, chartData] of Object.entries(data.additional_charts)) {
+                                    content.innerHTML += `
+                                        <div class="col-12 mb-4">
+                                            <div class="card shadow">
+                                                <div class="card-header py-3">
+                                                    <h6 class="m-0 font-weight-bold text-primary">${chartName}</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="text-center">
+                                                        <img src="data:image/png;base64,${chartData}" 
+                                                             alt="${chartName}" 
+                                                             class="img-fluid">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+                            }
+                        } else {
+                            content.innerHTML = '<div class="col-12"><div class="alert alert-info">No correlation data available.</div></div>';
+                        }
+                        
                         loading.style.display = 'none';
                         content.style.display = 'block';
                     })
                     .catch(error => {
-                        console.error('Error:', error);
+                        console.error('Error loading correlation data:', error);
                         content.innerHTML = '<div class="col-12"><div class="alert alert-danger">Error loading correlation data</div></div>';
                         loading.style.display = 'none';
                         content.style.display = 'block';
