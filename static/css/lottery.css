@@ -51,28 +51,30 @@
 
 .lottery-ball .number {
     position: absolute;
-    top: 25%;
-    left: 0;
-    right: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     font-size: 18px;
     font-weight: bold;
     text-align: center;
     line-height: 1;
     margin: 0;
     padding: 0;
+    width: 100%;
 }
 
 .lottery-ball .frequency {
     position: absolute;
-    bottom: 15%;
-    left: 0;
-    right: 0;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: 9px;
     font-weight: normal;
     text-align: center;
     line-height: 1;
     margin: 0;
     padding: 0;
+    width: 100%;
 }
 
 .lottery-ball-sm {
@@ -330,6 +332,21 @@
     width: 15px;
     height: 15px;
     border-radius: 50%;
+}
+
+/* Latest Numbers Display */
+.numbers-container {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.lottery-ball-container {
+    width: 26px;
+    text-align: center;
+    display: inline-block;
+    margin: 0 2px;
 }
 
 /* Ad Management */

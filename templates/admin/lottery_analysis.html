@@ -267,12 +267,25 @@
             if (parts.length === 2) return parts.pop().split(';').shift();
         }
         
-        const csrfToken = getCookie('csrf_token');
+        // Get CSRF token from meta tag as backup
+        function getMetaCsrfToken() {
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            return metaTag ? metaTag.getAttribute('content') : '';
+        }
+        
+        // Try to get token from cookie first, then from meta tag
+        let csrfToken = getCookie('csrf_token');
+        if (!csrfToken) {
+            csrfToken = getMetaCsrfToken();
+            console.log("Using meta CSRF token instead of cookie");
+        }
+        
+        console.log("CSRF token found:", csrfToken ? "Yes" : "No");
         
         // Default options
         options = options || {};
         options.headers = options.headers || {};
-        options.credentials = 'same-origin'; // Include cookies
+        options.credentials = 'include'; // Include cookies for all origins
         
         // Add CSRF token to headers
         if (csrfToken) {
@@ -285,6 +298,26 @@
     
     // Bootstrap 5 Tab Functionality
     document.addEventListener('DOMContentLoaded', function() {
+        console.log("DOM Content Loaded - Setting up tabs");
+        
+        // Manually load initial data for frequency tab
+        // This is needed because Bootstrap 5 doesn't trigger shown.bs.tab for the default active tab
+        setTimeout(() => {
+            console.log("Triggering initial tab data load");
+            // Number frequency is loaded by the server, no need to reload it
+            
+            // Automatically trigger loading of pattern data after a short delay
+            // to ensure the UI is responsive first
+            setTimeout(() => {
+                loadPatternData();
+                
+                // Then load the other tabs' data in sequence with small delays
+                setTimeout(() => loadTimeSeriesData(), 800);
+                setTimeout(() => loadWinnersData(), 1600);
+                setTimeout(() => loadCorrelationsData(), 2400);
+            }, 1000);
+        }, 500);
+        
         // Setup event listeners for Bootstrap 5 tabs
         const tabs = [
             { id: 'patterns-tab', loadFunction: loadPatternData },
@@ -293,12 +326,13 @@
             { id: 'correlations-tab', loadFunction: loadCorrelationsData }
         ];
         
-        // Add event listeners to load data when a tab is shown
+        // Add event listeners to reload data when a tab is shown again
         tabs.forEach(tab => {
             const tabElement = document.getElementById(tab.id);
             if (tabElement) {
                 // Use Bootstrap 5's tab shown event
                 tabElement.addEventListener('shown.bs.tab', function() {
+                    console.log(`Tab shown: ${tab.id}`);
                     if (tab.loadFunction) {
                         tab.loadFunction();
                     }
@@ -336,6 +370,10 @@
                 fetchWithCSRF(`/api/lottery-analysis/patterns?lottery_type=${lotteryType}&days=${days}`)
                     .then(response => {
                         console.log("Pattern API response status:", response.status);
+                        // Check if response is a redirect to login page
+                        if (response.redirected && response.url.includes('/login')) {
+                            throw new Error('Session expired, please refresh the page to login again');
+                        }
                         return response.json();
                     })
                     .then(data => {
@@ -462,6 +500,10 @@
                 fetchWithCSRF(`/api/lottery-analysis/time-series?lottery_type=${lotteryType}&days=${days}`)
                     .then(response => {
                         console.log("Time series API response status:", response.status);
+                        // Check if response is a redirect to login page
+                        if (response.redirected && response.url.includes('/login')) {
+                            throw new Error('Session expired, please refresh the page to login again');
+                        }
                         return response.json();
                     })
                     .then(data => {
@@ -553,6 +595,10 @@
                 fetchWithCSRF(`/api/lottery-analysis/winners?lottery_type=${lotteryType}&days=${days}`)
                     .then(response => {
                         console.log("Winners API response status:", response.status);
+                        // Check if response is a redirect to login page
+                        if (response.redirected && response.url.includes('/login')) {
+                            throw new Error('Session expired, please refresh the page to login again');
+                        }
                         return response.json();
                     })
                     .then(data => {
@@ -643,6 +689,10 @@
                 fetchWithCSRF(`/api/lottery-analysis/correlations?days=${days}`)
                     .then(response => {
                         console.log("Correlations API response status:", response.status);
+                        // Check if response is a redirect to login page
+                        if (response.redirected && response.url.includes('/login')) {
+                            throw new Error('Session expired, please refresh the page to login again');
+                        }
                         return response.json();
                     })
                     .then(data => {

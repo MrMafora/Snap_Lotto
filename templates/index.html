@@ -137,12 +137,20 @@
                                                 {% set ball_class = ball_class + 'lottery-ball-blue' %}
                                             {% endif %}
                                             
-                                            <span class="{{ ball_class }}">{{ num }}</span>
+                                            <div class="lottery-ball-container">
+                                                <span class="{{ ball_class }}">
+                                                    <span class="number">{{ num }}</span>
+                                                </span>
+                                            </div>
                                         {% endfor %}
                                         {% if result.bonus_numbers %}
-                                            <span class="mx-1">+</span>
+                                            <div class="mx-1 d-flex align-items-center">+</div>
                                             {% for num in result.get_bonus_numbers_list() %}
-                                                <span class="lottery-ball lottery-ball-sm lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
+                                                <div class="lottery-ball-container">
+                                                    <span class="lottery-ball lottery-ball-sm lottery-ball-yellow lottery-ball-bonus">
+                                                        <span class="number">{{ num }}</span>
+                                                    </span>
+                                                </div>
                                             {% endfor %}
                                         {% endif %}
                                     </div>

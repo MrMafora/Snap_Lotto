@@ -1268,39 +1268,36 @@ def register_analysis_routes(app, db):
                               prediction=prediction)
     
     @app.route('/api/lottery-analysis/frequency')
-    @login_required
     @csrf.exempt
     def api_frequency_analysis():
         """API endpoint for frequency analysis data"""
-        if not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.is_admin:
             return jsonify({"error": "Unauthorized"}), 403
         
         lottery_type = request.args.get('lottery_type', None)
         days = int(request.args.get('days', 365))
         
         data = analyzer.analyze_frequency(lottery_type, days)
-        return jsonify(data)
+        return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
     
     @app.route('/api/lottery-analysis/patterns')
-    @login_required
     @csrf.exempt
     def api_pattern_analysis():
         """API endpoint for pattern analysis data"""
-        if not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.is_admin:
             return jsonify({"error": "Unauthorized"}), 403
         
         lottery_type = request.args.get('lottery_type', None)
         days = int(request.args.get('days', 365))
         
         data = analyzer.analyze_patterns(lottery_type, days)
-        return jsonify(data)
+        return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
     
     @app.route('/api/lottery-analysis/time-series')
-    @login_required
     @csrf.exempt
     def api_time_series_analysis():
         """API endpoint for time series analysis data"""
-        if not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.is_admin:
             return jsonify({"error": "Unauthorized"}), 403
         
         lottery_type = request.args.get('lottery_type', None)
@@ -1310,24 +1307,22 @@ def register_analysis_routes(app, db):
         return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
     
     @app.route('/api/lottery-analysis/correlations')
-    @login_required
     @csrf.exempt
     def api_correlation_analysis():
         """API endpoint for correlation analysis data"""
-        if not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.is_admin:
             return jsonify({"error": "Unauthorized"}), 403
         
         days = int(request.args.get('days', 365))
         
         data = analyzer.analyze_correlations(days)
-        return jsonify(data)
+        return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
     
     @app.route('/api/lottery-analysis/winners')
-    @login_required
     @csrf.exempt
     def api_winner_analysis():
         """API endpoint for winner analysis data"""
-        if not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.is_admin:
             return jsonify({"error": "Unauthorized"}), 403
         
         lottery_type = request.args.get('lottery_type', None)
@@ -1337,31 +1332,29 @@ def register_analysis_routes(app, db):
         return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
     
     @app.route('/api/lottery-analysis/predict')
-    @login_required
     @csrf.exempt
     def api_lottery_prediction():
         """API endpoint for lottery prediction"""
-        if not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.is_admin:
             return jsonify({"error": "Unauthorized"}), 403
         
         lottery_type = request.args.get('lottery_type', 'Lotto')
         
         data = analyzer.predict_next_draw(lottery_type)
-        return jsonify(data)
+        return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
     
     @app.route('/api/lottery-analysis/full')
-    @login_required
     @csrf.exempt
     def api_full_analysis():
         """API endpoint for full analysis data"""
-        if not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.is_admin:
             return jsonify({"error": "Unauthorized"}), 403
         
         lottery_type = request.args.get('lottery_type', None)
         days = int(request.args.get('days', 365))
         
         data = analyzer.run_full_analysis(lottery_type, days)
-        return jsonify(data)
+        return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
     
     @app.route('/static/analysis/<path:filename>')
     def analysis_images(filename):
