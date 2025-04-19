@@ -1,113 +1,93 @@
-# Lottery Analysis Tab Fix Documentation
+# Lottery Analysis Dashboard Bug Fixes
 
-## Issue Summary
-The lottery analysis tabs in the admin dashboard were failing to load data due to two main issues:
-1. Fetch requests did not include CSRF tokens, resulting in 403 Forbidden responses
-2. JSON serialization errors with numpy data types returned 500 Internal Server errors
+## Overview of Fixes
+The lottery analysis dashboard was experiencing issues where only the number frequency tab was working correctly, while other tabs (Pattern Analysis, Time Series Analysis, Winner Analysis, and Correlation Analysis) were failing to load. The following fixes were implemented to resolve these issues:
 
-## Solutions Implemented
+## 1. Fixed Correlation Analysis
+- Fixed duplicate date index handling in the correlation analysis function
+- Added protection using pandas `.reindex()` to properly handle dataframes with duplicate date indexes
+- Added error handling to catch and report any issues with correlation calculations
 
-### 1. CSRF Token Integration in Frontend
+## 2. Fixed Pattern Analysis 
+- Added null-value handling for `draw_number` to prevent errors
+- Fixed PCA data processing to handle missing values by properly filtering out rows with NaN values
+- Added proper error messaging to guide users when data is insufficient for pattern analysis
+- Implemented proper index tracking to correctly map draw numbers in the filtered dataset
+- Enhanced the draw number annotation system to handle subsets of data correctly
 
-Added a universal `fetchWithCSRF` helper function in the admin lottery analysis template that automatically includes CSRF tokens in all fetch requests:
+## 3. Fixed Time Series Analysis
+- Implemented sort order of dates before plotting to ensure chronological display
+- Added null-value checks with `pd.notnull()` for date values
+- Used `.values` accessor to avoid pandas index issues in matplotlib plotting
+- Fixed multiple instances of plotting code for consistency
 
-```javascript
-function fetchWithCSRF(url, options = {}) {
-    // Get CSRF token from cookie
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-    }
-    
-    const csrfToken = getCookie('csrf_token');
-    
-    // Default options
-    options = options || {};
-    options.headers = options.headers || {};
-    options.credentials = 'same-origin'; // Include cookies
-    
-    // Add CSRF token to headers
-    if (csrfToken) {
-        options.headers['X-CSRFToken'] = csrfToken;
-    }
-    
-    // Return fetch promise
-    return fetch(url, options);
-}
-```
+## 4. Fixed Winner Analysis
+- Added null-value protection for bar chart height labels
+- Implemented safeguards for `value_counts()` operations on potentially empty dataframes
+- Added type conversion with null checking to handle potential NaN values
+- Fixed display of statistics by adding proper error handling
 
-Modified all API calls to use this new function:
-```javascript
-// Before
-fetch(`/api/lottery-analysis/patterns?lottery_type=${lotteryType}&days=${days}`)
+## Technical Implementation Details
+The main fixes involved:
 
-// After
-fetchWithCSRF(`/api/lottery-analysis/patterns?lottery_type=${lotteryType}&days=${days}`)
-```
+1. **Modified the data sorting process:**
+   ```python
+   lt_df_sorted = lt_df.sort_values('draw_date')
+   plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['sum'].values, 'o-', label='Sum')
+   ```
 
-### 2. Custom JSON Serialization for NumPy Types
+2. **Added null checking:**
+   ```python
+   'draw_date': row['draw_date'].strftime('%Y-%m-%d') if pd.notnull(row['draw_date']) else 'Unknown date'
+   ```
 
-Added a custom NumPy-aware JSON encoder to properly serialize numpy data types like int64 that were causing JSON serialization errors:
+3. **Fixed value_counts for empty dataframes:**
+   ```python
+   'most_common': lt_df['even_count'].value_counts().idxmax() if not lt_df['even_count'].empty else 0
+   ```
 
-```python
-class NumpyEncoder(json.JSONEncoder):
-    """Custom encoder for numpy data types"""
-    def default(self, obj):
-        if isinstance(obj, (np.int_, np.intc, np.intp, np.int8,
-                          np.int16, np.int32, np.int64, np.uint8,
-                          np.uint16, np.uint32, np.uint64)):
-            return int(obj)
-        elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
-            return float(obj)
-        elif isinstance(obj, (np.ndarray,)):
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)
-```
+4. **Added null checking in plotting:**
+   ```python
+   if pd.notnull(height) and height > 0:
+       plt.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+               f'{int(height):,}',
+               ha='center', va='bottom', rotation=0)
+   ```
 
-Updated API endpoints to use this custom encoder:
-```python
-# Before
-return jsonify(data)
+5. **Improved Pattern Analysis with proper NaN handling:**
+   ```python
+   # Check if we have missing values
+   if number_df.isna().any().any():
+       # Filter out rows with NaN values
+       complete_rows = number_df.dropna(how='any')
+       
+       # If we don't have enough data after filtering, skip this lottery type
+       if len(complete_rows) < 5:
+           logger.warning(f"Not enough complete data for {lt} after removing NaN values")
+           results[lt] = {
+               'error': f"Not enough complete data after removing rows with missing values"
+           }
+           continue
+           
+       # Use only complete rows for analysis
+       features = complete_rows.values
+       # Keep track of indices for later when adding draw numbers
+       valid_indices = complete_rows.index
+   else:
+       # All data is complete, proceed normally
+       features = number_df.values
+       valid_indices = number_df.index
+   ```
 
-# After
-return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
-```
+6. **Enhanced draw number mapping:**
+   ```python
+   # Map original dataframe indices to PCA dataframe rows
+   draw_numbers = []
+   for idx in valid_indices:
+       if idx < len(lt_df) and pd.notna(lt_df.loc[idx, 'draw_number']):
+           draw_numbers.append(str(lt_df.loc[idx, 'draw_number']))
+       else:
+           draw_numbers.append(f"Draw {idx}")
+   ```
 
-### 3. Improved Error Handling for Division Sorting
-
-Added more robust error handling for division sorting in the winners analysis:
-
-```python
-# Before
-division_data.sort(key=lambda x: int(x['division']))
-
-# After
-try:
-    # Try to sort numerically if all divisions are integers
-    division_data.sort(key=lambda x: int(x['division']) if str(x['division']).isdigit() else 0)
-except (ValueError, TypeError):
-    # If there's any error, sort by string representation
-    division_data.sort(key=lambda x: str(x['division']))
-```
-
-## Verification
-
-Created a test script (`test_csrf_fetch.py`) that verifies all API endpoints now correctly:
-1. Accept CSRF tokens in requests
-2. Return valid JSON responses
-3. Process data without errors
-
-The test confirmed all endpoints now return 200 OK responses:
-- `/api/lottery-analysis/patterns` - Working correctly
-- `/api/lottery-analysis/time-series` - Working correctly
-- `/api/lottery-analysis/winners` - Working correctly
-- `/api/lottery-analysis/correlations` - Working correctly
-
-## Code Changes
-- Modified `templates/admin/lottery_analysis.html` to add fetchWithCSRF function
-- Added custom NumpyEncoder class to `lottery_analysis.py`
-- Updated API endpoints in `lottery_analysis.py` to use custom encoder
-- Improved error handling for division sorting in winners analysis
-
-These changes ensure all tabs in the lottery analysis dashboard now load data correctly.
+These improvements ensure the lottery analysis dashboard functions reliably with real-world data that may contain inconsistencies, missing values, or unusual patterns.

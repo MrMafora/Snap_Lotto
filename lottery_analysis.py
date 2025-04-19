@@ -301,11 +301,30 @@ class LotteryAnalyzer:
             # Get the number columns for this lottery type
             number_cols = [col for col in lt_df.columns if col.startswith('number_')]
             
-            # Create features matrix - each row is a draw with its numbers
-            features = lt_df[number_cols].values
+            # Create a clean dataframe with only the number columns
+            number_df = lt_df[number_cols].copy()
             
-            # Fill NaN values with 0 (for cases where not all draws have the same number of balls)
-            features = np.nan_to_num(features)
+            # Check if we have missing values
+            if number_df.isna().any().any():
+                # Filter out rows with NaN values
+                complete_rows = number_df.dropna(how='any')
+                
+                # If we don't have enough data after filtering, skip this lottery type
+                if len(complete_rows) < 5:
+                    logger.warning(f"Not enough complete data for {lt} after removing NaN values")
+                    results[lt] = {
+                        'error': f"Not enough complete data after removing rows with missing values"
+                    }
+                    continue
+                    
+                # Use only complete rows for analysis
+                features = complete_rows.values
+                # Keep track of indices for later when adding draw numbers
+                valid_indices = complete_rows.index
+            else:
+                # All data is complete, proceed normally
+                features = number_df.values
+                valid_indices = number_df.index
             
             try:
                 # Normalize the data
@@ -325,9 +344,28 @@ class LotteryAnalyzer:
                 pca_df = pd.DataFrame({
                     'PC1': reduced_features[:, 0],
                     'PC2': reduced_features[:, 1],
-                    'Cluster': clusters,
-                    'Draw': lt_df['draw_number'].values
+                    'Cluster': clusters
                 })
+                
+                # Add draw numbers safely, taking into account we might be using a subset of rows
+                if 'draw_number' in lt_df.columns:
+                    # Map original dataframe indices to PCA dataframe rows
+                    draw_numbers = []
+                    for idx in valid_indices:
+                        if idx < len(lt_df) and pd.notna(lt_df.loc[idx, 'draw_number']):
+                            draw_numbers.append(str(lt_df.loc[idx, 'draw_number']))
+                        else:
+                            draw_numbers.append(f"Draw {idx}")
+                            
+                    # If we have the right number of draw numbers, use them
+                    if len(draw_numbers) == len(pca_df):
+                        pca_df['Draw'] = draw_numbers
+                    else:
+                        # Fallback to generic numbering if something went wrong
+                        pca_df['Draw'] = [f"Draw {i+1}" for i in range(len(pca_df))]
+                else:
+                    # Use row index as a fallback for missing draw numbers
+                    pca_df['Draw'] = [f"Draw {i+1}" for i in range(len(pca_df))]
                 
                 # Generate pattern chart
                 plt.figure(figsize=(10, 8))
@@ -471,22 +509,23 @@ class LotteryAnalyzer:
             # Generate time series chart for number sum
             plt.figure(figsize=(12, 7))
             
-            # Plot the sum of numbers over time
+            # Plot the sum of numbers over time - ensure dates are sorted
             plt.subplot(3, 1, 1)
-            plt.plot(lt_df['draw_date'], lt_df['sum'], 'o-', label='Sum')
+            lt_df_sorted = lt_df.sort_values('draw_date')
+            plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['sum'].values, 'o-', label='Sum')
             plt.title(f'Time Series Analysis for {lt}')
             plt.ylabel('Sum of Numbers')
             plt.grid(True)
             
             # Plot the standard deviation over time
             plt.subplot(3, 1, 2)
-            plt.plot(lt_df['draw_date'], lt_df['std'], 'o-', color='orange', label='Std Dev')
+            plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['std'].values, 'o-', color='orange', label='Std Dev')
             plt.ylabel('Standard Deviation')
             plt.grid(True)
             
             # Plot the count of even numbers over time
             plt.subplot(3, 1, 3)
-            plt.plot(lt_df['draw_date'], lt_df['even_count'], 'o-', color='green', label='Even Count')
+            plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['even_count'].values, 'o-', color='green', label='Even Count')
             plt.ylabel('Count of Even Numbers')
             plt.grid(True)
             
@@ -502,18 +541,18 @@ class LotteryAnalyzer:
             plt.figure(figsize=(12, 7))
             
             plt.subplot(3, 1, 1)
-            plt.plot(lt_df['draw_date'], lt_df['sum'], 'o-', label='Sum')
+            plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['sum'].values, 'o-', label='Sum')
             plt.title(f'Time Series Analysis for {lt}')
             plt.ylabel('Sum of Numbers')
             plt.grid(True)
             
             plt.subplot(3, 1, 2)
-            plt.plot(lt_df['draw_date'], lt_df['std'], 'o-', color='orange', label='Std Dev')
+            plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['std'].values, 'o-', color='orange', label='Std Dev')
             plt.ylabel('Standard Deviation')
             plt.grid(True)
             
             plt.subplot(3, 1, 3)
-            plt.plot(lt_df['draw_date'], lt_df['even_count'], 'o-', color='green', label='Even Count')
+            plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['even_count'].values, 'o-', color='green', label='Even Count')
             plt.ylabel('Count of Even Numbers')
             plt.grid(True)
             
@@ -545,7 +584,7 @@ class LotteryAnalyzer:
                     
                     anomaly_data.append({
                         'draw_number': row['draw_number'],
-                        'draw_date': row['draw_date'].strftime('%Y-%m-%d'),
+                        'draw_date': row['draw_date'].strftime('%Y-%m-%d') if pd.notnull(row['draw_date']) else 'Unknown date',
                         'numbers': numbers,
                         'sum': row['sum'],
                         'mean': row['mean'],
@@ -569,7 +608,7 @@ class LotteryAnalyzer:
                     },
                     'even_count': {
                         'mean': lt_df['even_count'].mean(),
-                        'most_common': lt_df['even_count'].value_counts().idxmax()
+                        'most_common': lt_df['even_count'].value_counts().idxmax() if not lt_df['even_count'].empty else 0
                     }
                 }
                 
@@ -653,12 +692,41 @@ class LotteryAnalyzer:
             
             # Add features for each lottery type
             for lt, lt_df in lottery_features.items():
-                # Resample to daily data and forward fill to align dates
+                # Ensure the index is datetime and handle duplicates
+                # If there are multiple draws on the same date, use the latest one
+                if lt_df['draw_date'].duplicated().any():
+                    # Sort by draw_date and any other relevant columns (e.g., draw_number if available)
+                    sort_cols = ['draw_date']
+                    if 'draw_number' in lt_df.columns:
+                        sort_cols.append('draw_number')
+                    
+                    # Sort and drop duplicates keeping the last occurrence
+                    lt_df = lt_df.sort_values(by=sort_cols).drop_duplicates(subset=['draw_date'], keep='last')
+                
+                # Now set the index safely
                 lt_df = lt_df.set_index('draw_date')
+                
+                # Create a temporary dataframe with the same index as corr_df
+                temp_df = pd.DataFrame(index=corr_df.index)
                 
                 # Add features with lottery type prefix to avoid name conflicts
                 for col in ['sum', 'mean', 'std', 'range', 'even_count']:
-                    corr_df[f'{lt}_{col}'] = lt_df[col]
+                    if col in lt_df.columns:
+                        try:
+                            # Use reindex with a clean index to avoid duplicate issues
+                            temp_df[f'{lt}_{col}'] = lt_df[col].reindex(temp_df.index, method='ffill')
+                        except Exception as e:
+                            logger.warning(f"Could not reindex column {col} for {lt}: {e}")
+                            # Alternative approach: use a safer method with forward fill
+                            merged = pd.DataFrame({col: lt_df[col]})
+                            merged = merged.reset_index()
+                            merged = merged.drop_duplicates(subset=['draw_date'], keep='last')
+                            merged = merged.set_index('draw_date')
+                            temp_df[f'{lt}_{col}'] = merged[col].reindex(temp_df.index, method='ffill')
+                
+                # Merge the temporary dataframe with the correlation dataframe
+                for col in temp_df.columns:
+                    corr_df[col] = temp_df[col]
             
             # Forward fill to handle missing dates (when no draw occurred)
             corr_df = corr_df.ffill()
@@ -793,7 +861,7 @@ class LotteryAnalyzer:
             # Plot total winners by division
             plt.subplot(1, 2, 1)
             divisions = [d['division'] for d in division_data]
-            total_winners = [d['total_winners'] for d in division_data]
+            total_winners = [float(d['total_winners']) if pd.notnull(d['total_winners']) else 0 for d in division_data]
             
             bars = plt.bar(divisions, total_winners, color='skyblue')
             plt.title(f'Total Winners by Division for {lt}')
@@ -804,13 +872,14 @@ class LotteryAnalyzer:
             # Add value labels on top of bars
             for bar in bars:
                 height = bar.get_height()
-                plt.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                        f'{int(height):,}',
-                        ha='center', va='bottom', rotation=0)
+                if pd.notnull(height) and height > 0:
+                    plt.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                            f'{int(height):,}',
+                            ha='center', va='bottom', rotation=0)
             
             # Plot average winners by division
             plt.subplot(1, 2, 2)
-            avg_winners = [d['avg_winners'] for d in division_data]
+            avg_winners = [float(d['avg_winners']) if pd.notnull(d['avg_winners']) else 0 for d in division_data]
             
             bars = plt.bar(divisions, avg_winners, color='lightgreen')
             plt.title(f'Average Winners per Draw for {lt}')
@@ -821,9 +890,10 @@ class LotteryAnalyzer:
             # Add value labels on top of bars
             for bar in bars:
                 height = bar.get_height()
-                plt.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                        f'{height:.1f}',
-                        ha='center', va='bottom', rotation=0)
+                if pd.notnull(height) and height > 0:
+                    plt.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                            f'{height:.1f}',
+                            ha='center', va='bottom', rotation=0)
             
             plt.tight_layout()
             
@@ -844,9 +914,10 @@ class LotteryAnalyzer:
             plt.grid(axis='y', alpha=0.3)
             for bar in bars:
                 height = bar.get_height()
-                plt.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                        f'{int(height):,}',
-                        ha='center', va='bottom', rotation=0)
+                if pd.notnull(height) and height > 0:
+                    plt.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                            f'{int(height):,}',
+                            ha='center', va='bottom', rotation=0)
             
             plt.subplot(1, 2, 2)
             bars = plt.bar(divisions, avg_winners, color='lightgreen')
@@ -856,9 +927,10 @@ class LotteryAnalyzer:
             plt.grid(axis='y', alpha=0.3)
             for bar in bars:
                 height = bar.get_height()
-                plt.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                        f'{height:.1f}',
-                        ha='center', va='bottom', rotation=0)
+                if pd.notnull(height) and height > 0:
+                    plt.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                            f'{height:.1f}',
+                            ha='center', va='bottom', rotation=0)
             
             plt.tight_layout()
             plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight')
@@ -897,7 +969,14 @@ class LotteryAnalyzer:
                     y = lt_df[col].values
                     
                     # Skip if no valid data
-                    if len(X) < 10 or np.isnan(X).any() or np.isnan(y).any():
+                    # Convert X and y to numeric types before checking for NaN values
+                    try:
+                        X_numeric = X.astype(float)
+                        y_numeric = y.astype(float)
+                        if len(X) < 10 or np.isnan(X_numeric).any() or np.isnan(y_numeric).any():
+                            continue
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Error converting data to numeric for division {div_num}: {e}")
                         continue
                         
                     # Split data
