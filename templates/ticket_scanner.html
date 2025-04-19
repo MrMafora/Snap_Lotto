@@ -8,11 +8,42 @@
         max-width: 800px;
         margin: 0 auto;
     }
+    
+    @media (max-width: 576px) {
+        .card-body {
+            padding: 0.75rem;
+        }
+        
+        .ticket-scanner-container .form-control, 
+        .ticket-scanner-container .form-select {
+            padding-top: 0.375rem;
+            padding-bottom: 0.375rem;
+        }
+        
+        .ticket-preview {
+            max-height: 200px;
+            margin: 10px 0;
+        }
+        
+        h1 {
+            font-size: 1.75rem;
+        }
+        
+        .lead {
+            font-size: 1rem;
+        }
+    }
     .ticket-drop-area {
         border: 2px dashed #aaa;
         border-radius: 8px;
         padding: 40px;
         text-align: center;
+    }
+    
+    @media (max-width: 576px) {
+        .ticket-drop-area {
+            padding: 20px;
+        }
     }
     @keyframes pulse {
         0% {
@@ -163,13 +194,13 @@
     </button>
 </div>
 
-<div class="container py-4">
-    <div class="row mb-4">
+<div class="container py-3">
+    <div class="row mb-3">
         <div class="col-12">
             <h1 class="d-flex align-items-center">
-                <i class="fa fa-ticket-alt me-3"></i> Lottery Ticket Scanner
+                <i class="fa fa-ticket-alt me-2"></i> Lottery Ticket Scanner
             </h1>
-            <p class="lead">Upload your lottery ticket to check if you've won a prize</p>
+            <p class="lead mb-2">Upload your ticket to check if you've won</p>
         </div>
     </div>
 
@@ -178,15 +209,15 @@
             <div class="card">
                 <div class="card-body">
                     <div class="ticket-scanner-container">
-                        <div class="alert alert-info">
-                            <i class="fa fa-info-circle me-2"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
+                        <div class="alert alert-info py-2 small">
+                            <i class="fa fa-info-circle me-1"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
                         </div>
 
                         <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="mb-3">
-                                <label for="lottery-type" class="form-label">Select Lottery Type (Optional - will be detected by AI)</label>
-                                <select class="form-select" id="lottery-type" name="lottery_type">
+                            <div class="mb-2">
+                                <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
+                                <select class="form-select form-select-sm" id="lottery-type" name="lottery_type">
                                     <option value="">Auto-detect from ticket</option>
                                     <option value="Lotto">Lotto</option>
                                     <option value="Lotto Plus 1">Lotto Plus 1</option>
@@ -197,17 +228,17 @@
                                 </select>
                             </div>
 
-                            <div class="mb-3">
-                                <label for="draw-number" class="form-label">Draw Number (optional)</label>
-                                <input type="text" class="form-control" id="draw-number" name="draw_number" 
-                                    placeholder="Leave blank to check against latest draw">
+                            <div class="mb-2">
+                                <label for="draw-number" class="form-label small">Draw Number (optional)</label>
+                                <input type="text" class="form-control form-control-sm" id="draw-number" name="draw_number" 
+                                    placeholder="Leave blank to check latest draw">
                             </div>
 
                             <div class="ticket-drop-area" id="drop-area">
-                                <div class="mb-3">
-                                    <i class="fa fa-upload fa-2x mb-3"></i>
-                                    <h5>Drag and drop your ticket image here</h5>
-                                    <p>or</p>
+                                <div class="mb-2">
+                                    <i class="fa fa-upload fa-2x mb-2"></i>
+                                    <h5 class="mb-2">Drag and drop your ticket image here</h5>
+                                    <p class="mb-2">or</p>
                                     <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
                                     <button type="button" id="file-select-btn" class="btn btn-primary">Select Image</button>
                                 </div>
@@ -238,7 +269,7 @@
 
                         <div id="results-container" class="results-container d-none">
                             <hr>
-                            <h3 class="mb-4 text-center">Scanning Results</h3>
+                            <h3 class="mb-3 text-center">Scanning Results</h3>
                             
                             <div id="error-message" class="alert alert-danger d-none">
                                 <i class="fa fa-exclamation-triangle me-2"></i>

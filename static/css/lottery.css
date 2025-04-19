@@ -43,10 +43,34 @@
     border-radius: 50%;
     background-color: var(--lottery-red);
     color: white;
-    margin: 0 auto;
+    margin: 0 5px 10px 0;
     border: 1px solid rgba(0, 0, 0, 0.1);
     box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
     padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Mobile-specific lottery ball styles */
+@media (max-width: 576px) {
+    .lottery-ball {
+        width: 40px;
+        height: 40px;
+        font-size: 0.9rem;
+        margin: 0 4px 8px 0;
+    }
+}
+
+/* Even smaller screens */
+@media (max-width: 360px) {
+    .lottery-ball {
+        width: 34px;
+        height: 34px;
+        font-size: 0.85rem;
+        margin: 0 3px 6px 0;
+    }
 }
 
 .lottery-ball .number {
@@ -81,6 +105,22 @@
     width: 26px;
     height: 26px;
     font-size: 0.85rem;
+}
+
+@media (max-width: 576px) {
+    .lottery-ball-sm {
+        width: 23px;
+        height: 23px;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .lottery-ball-sm {
+        width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+    }
 }
 
 .lottery-ball-red {
@@ -119,6 +159,24 @@
     border: 1px solid white;
 }
 
+@media (max-width: 576px) {
+    .lottery-ball-bonus::after {
+        width: 8px;
+        height: 8px;
+        top: -2px;
+        right: -2px;
+    }
+}
+
+@media (max-width: 400px) {
+    .lottery-ball-bonus::after {
+        width: 6px;
+        height: 6px;
+        top: -1px;
+        right: -1px;
+    }
+}
+
 .bonus-indicator {
     display: inline-flex;
     align-items: center;
@@ -126,6 +184,43 @@
     width: 20px;
     font-weight: bold;
     color: var(--lottery-dark);
+}
+
+/* Fix for mobile ticket scanner display */
+#ticket-numbers .mb-3 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 1rem !important;
+}
+
+@media (max-width: 576px) {
+    #ticket-numbers .mb-3 {
+        justify-content: flex-start;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    /* Make the plus sign smaller on mobile */
+    #ticket-numbers .mb-3 .mx-2 {
+        margin-left: 0.25rem !important;
+        margin-right: 0.25rem !important;
+    }
+    
+    /* Adjust spacing to show more content */
+    #ticket-numbers .mb-3 + .mb-3 {
+        margin-top: 0.5rem;
+    }
+    
+    /* Reduce vertical spacing between rows */
+    #ticket-numbers strong {
+        margin-bottom: 0.25rem;
+        display: inline-block;
+    }
+    
+    /* Reduce overall padding in the scanner results */
+    #results-container .card-body {
+        padding: 1rem 0.75rem;
+    }
 }
 
 /* Game Type Badges */
@@ -337,7 +432,7 @@
 /* Latest Numbers Display */
 .numbers-container {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: flex-start;
 }
@@ -346,7 +441,25 @@
     width: 26px;
     text-align: center;
     display: inline-block;
-    margin: 0 2px;
+    margin: 0 2px 4px;
+}
+
+@media (max-width: 576px) {
+    .numbers-container {
+        justify-content: center;
+    }
+    
+    .lottery-ball-container {
+        width: 23px;
+        margin: 0 1px 3px;
+    }
+}
+
+@media (max-width: 400px) {
+    .lottery-ball-container {
+        width: 20px;
+        margin: 0 1px 2px;
+    }
 }
 
 /* Ad Management */
