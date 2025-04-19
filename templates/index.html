@@ -83,20 +83,47 @@
             margin-bottom: 20px;
         }
     }
+    
+    /* Card styling to ensure equal height */
+    .equal-height-row {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    .equal-height-row > div {
+        display: flex;
+    }
+    
+    .equal-height-row .card {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .equal-height-row .card-body.results-body {
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .equal-height-row .card-body.scanner-body {
+        display: flex;
+        align-items: center;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 
 
-<div class="row">
+<div class="row equal-height-row">
     <div class="col-lg-6">
         <div class="card mb-4">
             <div class="card-header lottery-header">
                 <h5 class="card-title mb-0">LATEST LOTTERY RESULTS</h5>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
+            <div class="card-body results-body">
+                <div class="table-responsive flex-grow-1">
                     <table class="table table-lottery table-striped mb-0">
                         <thead>
                             <tr>
@@ -160,7 +187,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="text-center py-2 border-top">
+                <div class="text-center py-2 border-top mt-auto">
                     <a href="{{ url_for('results') }}" class="btn btn-lottery-primary btn-sm">
                         <i class="fas fa-search me-1"></i> View All Results
                     </a>
@@ -173,8 +200,8 @@
             <div class="card-header lottery-header">
                 <h5 class="card-title mb-0">CHECK YOUR TICKET</h5>
             </div>
-            <div class="card-body">
-                <div class="text-center py-2">
+            <div class="card-body scanner-body">
+                <div class="text-center py-2 w-100">
                     <div class="d-flex align-items-center justify-content-center flex-column">
                         <i class="fas fa-ticket-alt fa-3x text-primary mb-3"></i>
                         <h4 class="mb-2">Scan Your Lottery Ticket</h4>
