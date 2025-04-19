@@ -411,35 +411,96 @@
             
             console.log("Loading pattern data...");
             
-            fetchWithCSRF(`/api/lottery-analysis/patterns?lottery_type=${lotteryType}&days=${days}`)
+            console.log(`Requesting pattern analysis data with params: lottery_type=${lotteryType}, days=${days}`);
+            
+            // Debug flag to show more details
+            const DEBUG = true;
+            
+            // Add timestamp to prevent caching
+            const timestamp = new Date().getTime();
+            const url = `/api/lottery-analysis/patterns?lottery_type=${lotteryType}&days=${days}&_ts=${timestamp}`;
+            
+            console.log(`Fetching from URL: ${url}`);
+            document.getElementById('patterns-loading').innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <p class="mt-2">Loading pattern analysis data...</p>
+                <p class="small text-muted">Request URL: ${url}</p>
+            `;
+            
+            fetchWithCSRF(url)
                 .then(response => {
-                    console.log("Pattern API response status:", response.status);
-                    console.log("Pattern API response headers:", response.headers);
+                    console.log("Pattern API response received:", {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: Array.from(response.headers.entries()),
+                        redirected: response.redirected,
+                        url: response.url
+                    });
                     
                     // Check if response is a redirect to login page
                     if (response.redirected && response.url.includes('/login')) {
                         throw new Error('Session expired, please refresh the page to login again');
                     }
+                    
                     if (!response.ok) {
-                        console.error(`API returned error status: ${response.status}`);
-                        throw new Error(`API returned status ${response.status}`);
+                        console.error(`API returned error status: ${response.status} (${response.statusText})`);
+                        
+                        // Try to get more error details from response
+                        return response.text().then(text => {
+                            console.error("Error response text:", text);
+                            try {
+                                // Try to parse as JSON error message
+                                const errorData = JSON.parse(text);
+                                throw new Error(`API error: ${errorData.error || errorData.message || response.statusText}`);
+                            } catch (e) {
+                                // If not valid JSON, use raw text
+                                throw new Error(`API error: ${text.substring(0, 100)}...`);
+                            }
+                        });
                     }
                     
                     // Clone the response to log it
                     const clonedResponse = response.clone();
-                    clonedResponse.text().then(text => {
-                        try {
-                            // Try to parse as JSON to see if it's valid
-                            const data = JSON.parse(text);
-                            console.log("Pattern API response received (parsed):", data);
-                        } catch(e) {
-                            // If not valid JSON, log the raw text
-                            console.log("Pattern API raw response:", text);
-                            console.error("Pattern API JSON parse error:", e);
+                    return clonedResponse.text().then(text => {
+                        if (DEBUG) {
+                            try {
+                                // Try to parse as JSON to see if it's valid
+                                const data = JSON.parse(text);
+                                console.log("Pattern API response content:", data);
+                                
+                                // Check for typical error structures
+                                if (typeof data === 'object') {
+                                    if (data.error) {
+                                        console.error("API returned error object:", data.error);
+                                    } else {
+                                        // Check if it's a dictionary with lottery types as keys
+                                        const lotteryTypes = Object.keys(data);
+                                        console.log(`Response contains data for ${lotteryTypes.length} lottery types:`, lotteryTypes);
+                                        
+                                        // Check for per-lottery type errors
+                                        lotteryTypes.forEach(lt => {
+                                            if (data[lt] && data[lt].error) {
+                                                console.warn(`Error for ${lt}:`, data[lt].error);
+                                            }
+                                        });
+                                    }
+                                }
+                                
+                                // Now parse the response as JSON for actual processing
+                                return JSON.parse(text);
+                            } catch(e) {
+                                // If not valid JSON, log the raw text
+                                console.error("Pattern API invalid JSON response:", text.substring(0, 200));
+                                console.error("JSON parse error:", e);
+                                throw new Error("Failed to parse API response as JSON");
+                            }
+                        } else {
+                            // Regular non-debug mode
+                            return JSON.parse(text);
                         }
                     });
-                    
-                    return response.json();
                 })
                 .then(data => {
                     console.log("Pattern data received:", data);
