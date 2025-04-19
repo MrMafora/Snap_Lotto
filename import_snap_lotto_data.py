@@ -236,7 +236,16 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     lottery_type = get_lottery_type(game_name)
                     # Extract and normalize draw number by removing any "Draw" prefix
                     draw_number = str(row['draw_number']).strip()
-                    draw_number = draw_number.replace('Draw', '').replace('DRAW', '').strip()
+                    
+                    # Enhanced extraction - use data_aggregator's normalize function if available
+                    try:
+                        from data_aggregator import normalize_draw_number
+                        draw_number = normalize_draw_number(draw_number)
+                        logger.info(f"Normalized draw number to: {draw_number}")
+                    except ImportError:
+                        # Fallback to simple normalization if function not available
+                        draw_number = draw_number.replace('Draw', '').replace('DRAW', '').strip()
+                        logger.info(f"Basic normalization of draw number to: {draw_number}")
                     draw_date = parse_date(row['draw_date'])
                     
                     # Skip rows with missing essential data

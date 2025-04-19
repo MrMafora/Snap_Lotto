@@ -228,7 +228,18 @@ def update_excel_data(excel_file, flask_app=None):
                 try:
                     # Extract and validate data
                     lottery_type = standardize_lottery_type(row['lottery_type'])
-                    draw_number = str(row['draw_number']).strip()
+                    
+                    # Enhanced draw number extraction
+                    raw_draw_number = str(row['draw_number']).strip()
+                    # Try to use the comprehensive normalize function from data_aggregator if available
+                    try:
+                        from data_aggregator import normalize_draw_number
+                        draw_number = normalize_draw_number(raw_draw_number)
+                        logger.info(f"Normalized draw number from '{raw_draw_number}' to '{draw_number}'")
+                    except ImportError:
+                        # Fall back to basic normalization
+                        draw_number = raw_draw_number
+                        
                     draw_date = parse_date(row['draw_date'])
                     numbers = parse_numbers(row['numbers'])
                     

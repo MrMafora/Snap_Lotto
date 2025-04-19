@@ -248,7 +248,26 @@ def import_excel_data(excel_file, flask_app=None):
                     
                     # Extract data using our column mapping
                     lottery_type = standardize_lottery_type(row.get(column_mapping.get('lottery_type', ''), None))
-                    draw_number = str(row.get(column_mapping.get('draw_number', ''), '')).strip()
+                    
+                    # Enhanced draw number extraction with better normalization
+                    raw_draw_number = str(row.get(column_mapping.get('draw_number', ''), '')).strip()
+                    
+                    # Try to use the normalize_draw_number function from data_aggregator
+                    try:
+                        # Import here to avoid circular imports
+                        from data_aggregator import normalize_draw_number
+                        draw_number = normalize_draw_number(raw_draw_number)
+                        # Log the normalization if it changed
+                        if raw_draw_number != draw_number:
+                            logger.info(f"Normalized draw number from '{raw_draw_number}' to '{draw_number}'")
+                    except ImportError:
+                        # Fallback to basic cleaning if importing fails
+                        draw_number = raw_draw_number
+                        # Remove "Draw" prefix if present
+                        draw_number = draw_number.replace('Draw', '').replace('DRAW', '').strip()
+                        if raw_draw_number != draw_number:
+                            logger.info(f"Basic normalization of draw number from '{raw_draw_number}' to '{draw_number}'")
+                    
                     draw_date_str = row.get(column_mapping.get('draw_date', ''), None)
                     numbers_str = row.get(column_mapping.get('numbers', ''), None)
                     bonus_numbers_str = row.get(column_mapping.get('bonus_numbers', ''), None)

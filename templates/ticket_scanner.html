@@ -734,10 +734,10 @@
                     console.log('User clicked View Results, countdown state cleared');
                 };
                 
-                // FORCEFULLY disable the view results button for 30 seconds
+                // FORCEFULLY disable the view results button for 15 seconds
                 // We'll use a global flag to track if countdown is already running
                 if (!window.countdownRunning) {
-                    console.log('Setting 30-second mandatory ad display timer...');
+                    console.log('Setting 15-second mandatory ad display timer...');
                     
                     // Set global flag to prevent multiple timers
                     window.countdownRunning = true;
@@ -746,7 +746,7 @@
                     viewResultsBtn.disabled = true;
                     viewResultsBtn.style.opacity = '0.5';
                     viewResultsBtn.style.cursor = 'not-allowed';
-                    viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 30s)';
+                    viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
                     
                     // Add a counter display to show remaining seconds
                     // First, remove any existing countdown elements to prevent duplicates
@@ -806,8 +806,8 @@
                         }
                     }, 1000);
                     
-                    // Set a single timeout for exactly 30 seconds from now
-                    // This is a backup to ensure the button is enabled after 30 seconds
+                    // Set a single timeout for exactly 15 seconds from now
+                    // This is a backup to ensure the button is enabled after 15 seconds
                     window.countdownTimeout = setTimeout(() => {
                         // Clear any running interval
                         if (window.countdownInterval) {
