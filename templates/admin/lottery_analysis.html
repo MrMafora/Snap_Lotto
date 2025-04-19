@@ -63,28 +63,28 @@
         </div>
     </div>
 
-    <!-- Analysis Tabs - Bootstrap 5 style -->
+    <!-- Analysis Tabs -->
     <ul class="nav nav-tabs" id="analysisTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="frequency-tab" data-bs-toggle="tab" data-bs-target="#frequency" type="button" role="tab" 
-               aria-controls="frequency" aria-selected="true">Number Frequency</button>
+            <a class="nav-link active" id="frequency-tab" data-toggle="tab" href="#frequency" role="tab" 
+               aria-controls="frequency" aria-selected="true">Number Frequency</a>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="patterns-tab" data-bs-toggle="tab" data-bs-target="#patterns" type="button" role="tab" 
-               aria-controls="patterns" aria-selected="false">Pattern Analysis</button>
+            <a class="nav-link" id="patterns-tab" data-toggle="tab" href="#patterns" role="tab" 
+               aria-controls="patterns" aria-selected="false">Pattern Analysis</a>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="timeseries-tab" data-bs-toggle="tab" data-bs-target="#timeseries" type="button" role="tab" 
-               aria-controls="timeseries" aria-selected="false">Time Series</button>
+            <a class="nav-link" id="timeseries-tab" data-toggle="tab" href="#timeseries" role="tab" 
+               aria-controls="timeseries" aria-selected="false">Time Series</a>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="winners-tab" data-bs-toggle="tab" data-bs-target="#winners" type="button" role="tab" 
-               aria-controls="winners" aria-selected="false">Winner Analysis</button>
+            <a class="nav-link" id="winners-tab" data-toggle="tab" href="#winners" role="tab" 
+               aria-controls="winners" aria-selected="false">Winner Analysis</a>
         </li>
         {% if not selected_type %}
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="correlations-tab" data-bs-toggle="tab" data-bs-target="#correlations" type="button" role="tab" 
-               aria-controls="correlations" aria-selected="false">Lottery Correlations</button>
+            <a class="nav-link" id="correlations-tab" data-toggle="tab" href="#correlations" role="tab" 
+               aria-controls="correlations" aria-selected="false">Lottery Correlations</a>
         </li>
         {% endif %}
     </ul>
