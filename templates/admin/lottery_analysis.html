@@ -258,7 +258,7 @@
 
 {% block script %}
 <script>
-    // Helper function to add CSRF token to fetch requests
+    // Helper function to add CSRF token to fetch requests with enhanced error handling
     function fetchWithCSRF(url, options = {}) {
         // Get CSRF token from cookie
         function getCookie(name) {
@@ -280,7 +280,7 @@
             console.log("Using meta CSRF token instead of cookie");
         }
         
-        console.log("CSRF token found:", csrfToken ? "Yes" : "No");
+        console.log(`CSRF token found for ${url}:`, csrfToken ? "Yes" : "No");
         
         // Default options
         options = options || {};
@@ -292,62 +292,105 @@
             options.headers['X-CSRFToken'] = csrfToken;
         }
         
-        // Return fetch promise
-        return fetch(url, options);
+        // Set timeout for the fetch request - 30 seconds
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+        options.signal = controller.signal;
+        
+        // Return fetch promise with timeout and error handling
+        return fetch(url, options)
+            .then(response => {
+                clearTimeout(timeoutId); // Clear the timeout
+                return response;
+            })
+            .catch(error => {
+                clearTimeout(timeoutId); // Clear the timeout
+                console.error(`Fetch error for ${url}:`, error);
+                
+                // Provide more detailed error information
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timed out. The server took too long to respond.');
+                } else if (!navigator.onLine) {
+                    throw new Error('Network connection lost. Please check your internet connection and try again.');
+                } else {
+                    throw error; // Rethrow original error if it's something else
+                }
+            });
     }
     
     // Bootstrap 5 Tab Functionality
     document.addEventListener('DOMContentLoaded', function() {
         console.log("DOM Content Loaded - Setting up tabs");
         
-        // Manually load initial data for frequency tab
-        // This is needed because Bootstrap 5 doesn't trigger shown.bs.tab for the default active tab
-        setTimeout(() => {
-            console.log("Triggering initial tab data load");
-            // Number frequency is loaded by the server, no need to reload it
-            
-            // Automatically trigger loading of pattern data after a short delay
-            // to ensure the UI is responsive first
-            setTimeout(() => {
-                loadPatternData();
-                
-                // Then load the other tabs' data in sequence with small delays
-                setTimeout(() => loadTimeSeriesData(), 800);
-                setTimeout(() => loadWinnersData(), 1600);
-                setTimeout(() => loadCorrelationsData(), 2400);
-            }, 1000);
-        }, 500);
-        
-        // Setup event listeners for Bootstrap 5 tabs
+        // Define tab configurations
         const tabs = [
-            { id: 'patterns-tab', loadFunction: loadPatternData },
-            { id: 'timeseries-tab', loadFunction: loadTimeSeriesData },
-            { id: 'winners-tab', loadFunction: loadWinnersData },
-            { id: 'correlations-tab', loadFunction: loadCorrelationsData }
+            { id: 'patterns-tab', target: 'patterns', loadFunction: loadPatternData },
+            { id: 'timeseries-tab', target: 'timeseries', loadFunction: loadTimeSeriesData },
+            { id: 'winners-tab', target: 'winners', loadFunction: loadWinnersData },
+            { id: 'correlations-tab', target: 'correlations', loadFunction: loadCorrelationsData }
         ];
         
-        // Add event listeners to reload data when a tab is shown again
+        // Preload data for all tabs to ensure it's available when needed
+        window.addEventListener('load', function() {
+            console.log("Window loaded - Preloading tab data");
+            
+            // Preload all tab data after a short delay
+            setTimeout(() => {
+                console.log("Preloading all tab data");
+                loadPatternData();
+                loadTimeSeriesData();
+                loadWinnersData();
+                // Only load correlations data if tab exists
+                if (document.getElementById('correlations-tab')) {
+                    loadCorrelationsData();
+                }
+            }, 1000);
+        });
+        
+        // Setup manual tab click handlers since Bootstrap's event handling can be inconsistent
         tabs.forEach(tab => {
             const tabElement = document.getElementById(tab.id);
             if (tabElement) {
-                // Use Bootstrap 5's tab shown event
-                tabElement.addEventListener('shown.bs.tab', function() {
-                    console.log(`Tab shown: ${tab.id}`);
-                    if (tab.loadFunction) {
-                        tab.loadFunction();
+                tabElement.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    console.log(`Tab clicked: ${tab.id}`);
+                    
+                    // Manually handle tab activation
+                    document.querySelectorAll('.nav-link').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-pane').forEach(p => {
+                        p.classList.remove('show', 'active');
+                    });
+                    
+                    // Activate the clicked tab
+                    tabElement.classList.add('active');
+                    
+                    // Activate the corresponding content pane
+                    const targetPane = document.getElementById(tab.target);
+                    if (targetPane) {
+                        targetPane.classList.add('show', 'active');
+                        
+                        // Load data if needed
+                        if (tab.loadFunction) {
+                            tab.loadFunction();
+                        }
                     }
                 });
             }
         });
         
-        // Initialize Bootstrap tabs
-        const triggerTabList = Array.from(document.querySelectorAll('#analysisTab button'));
-        triggerTabList.forEach(triggerEl => {
-            const tabTrigger = new bootstrap.Tab(triggerEl);
-            
-            triggerEl.addEventListener('click', event => {
-                event.preventDefault();
-                tabTrigger.show();
+        // Handle tab show events as well (for when tabs are shown programmatically)
+        const tabElList = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        tabElList.forEach(tabEl => {
+            tabEl.addEventListener('shown.bs.tab', function(event) {
+                const targetId = event.target.getAttribute('id');
+                console.log(`Tab shown via Bootstrap: ${targetId}`);
+                
+                // Find the matching tab config and load data
+                const tabConfig = tabs.find(t => t.id === targetId);
+                if (tabConfig && tabConfig.loadFunction) {
+                    tabConfig.loadFunction();
+                }
             });
         });
         
@@ -358,29 +401,72 @@
             const loading = patternsTab.querySelector('#patterns-loading');
             const content = patternsTab.querySelector('#patterns-content');
             
-            if (!content.hasChildNodes()) {
-                loading.style.display = 'block';
-                content.style.display = 'none';
-                
-                const lotteryType = document.getElementById('lottery_type').value || '';
-                const days = document.getElementById('days').value || '365';
-                
-                console.log("Loading pattern data...");
-                
-                fetchWithCSRF(`/api/lottery-analysis/patterns?lottery_type=${lotteryType}&days=${days}`)
-                    .then(response => {
-                        console.log("Pattern API response status:", response.status);
-                        // Check if response is a redirect to login page
-                        if (response.redirected && response.url.includes('/login')) {
-                            throw new Error('Session expired, please refresh the page to login again');
+            // Always reload data for better reliability
+            loading.style.display = 'block';
+            content.style.display = 'none';
+            content.innerHTML = ''; // Clear existing content
+            
+            const lotteryType = document.getElementById('lottery_type').value || '';
+            const days = document.getElementById('days').value || '365';
+            
+            console.log("Loading pattern data...");
+            
+            fetchWithCSRF(`/api/lottery-analysis/patterns?lottery_type=${lotteryType}&days=${days}`)
+                .then(response => {
+                    console.log("Pattern API response status:", response.status);
+                    console.log("Pattern API response headers:", response.headers);
+                    
+                    // Check if response is a redirect to login page
+                    if (response.redirected && response.url.includes('/login')) {
+                        throw new Error('Session expired, please refresh the page to login again');
+                    }
+                    if (!response.ok) {
+                        console.error(`API returned error status: ${response.status}`);
+                        throw new Error(`API returned status ${response.status}`);
+                    }
+                    
+                    // Clone the response to log it
+                    const clonedResponse = response.clone();
+                    clonedResponse.text().then(text => {
+                        try {
+                            // Try to parse as JSON to see if it's valid
+                            const data = JSON.parse(text);
+                            console.log("Pattern API response received (parsed):", data);
+                        } catch(e) {
+                            // If not valid JSON, log the raw text
+                            console.log("Pattern API raw response:", text);
+                            console.error("Pattern API JSON parse error:", e);
                         }
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log("Pattern data received:", data);
-                        let html = '';
+                    });
+                    
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Pattern data received:", data);
+                    let html = '';
+                    
+                    if (data && Object.keys(data).length > 0) {
+                        // Count how many items have errors
+                        const errorCount = Object.values(data).filter(item => item && item.error).length;
+                        const totalItems = Object.keys(data).length;
                         
-                        if (data && Object.keys(data).length > 0) {
+                        // If all items have errors, show a consolidated error message
+                        if (errorCount === totalItems) {
+                            html = `
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <h5>Insufficient Data for Pattern Analysis</h5>
+                                        <p>There isn't enough complete data to perform pattern analysis. The analysis requires:</p>
+                                        <ul>
+                                            <li>Multiple draws with complete number sets</li>
+                                            <li>No missing values in the datasets</li>
+                                        </ul>
+                                        <p>Try importing more data or selecting a different lottery type.</p>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // Process individual lottery types
                             for (const [lotteryType, typeData] of Object.entries(data)) {
                                 if (!typeData || typeData.error) {
                                     html += `
@@ -407,18 +493,20 @@
                                     continue;
                                 }
                                 
-                                // Create pattern card
+                                // Create pattern card for valid data
                                 let clusterHtml = '';
                                 if (typeData.cluster_details && typeData.cluster_details.length > 0) {
                                     clusterHtml = '<div class="mt-3"><h6>Identified Pattern Clusters:</h6><ul>';
                                     typeData.cluster_details.forEach(cluster => {
                                         const commonNumbers = cluster.common_numbers
-                                            .filter(n => n !== null)
-                                            .join(', ');
+                                            ? cluster.common_numbers
+                                                .filter(n => n !== null)
+                                                .join(', ')
+                                            : 'None identified';
                                         clusterHtml += `
                                             <li>
                                                 <strong>Cluster ${cluster.id + 1}</strong> (${cluster.size} draws): 
-                                                Common numbers: ${commonNumbers || 'None identified'}
+                                                Common numbers: ${commonNumbers}
                                             </li>
                                         `;
                                     });
@@ -452,33 +540,37 @@
                                     </div>
                                 `;
                             }
-                        } else {
-                            html = `
-                                <div class="col-12">
-                                    <div class="alert alert-info">
-                                        No data available for pattern analysis. Please ensure there are sufficient lottery results in the database.
-                                    </div>
-                                </div>
-                            `;
                         }
-                        
-                        content.innerHTML = html;
-                        loading.style.display = 'none';
-                        content.style.display = 'block';
-                    })
-                    .catch(error => {
-                        console.error('Error loading pattern analysis:', error);
-                        content.innerHTML = `
+                    } else {
+                        html = `
                             <div class="col-12">
-                                <div class="alert alert-danger">
-                                    Error loading pattern analysis data. Please try again later.
+                                <div class="alert alert-info">
+                                    <h5>No Data Available</h5>
+                                    <p>No data available for pattern analysis. Please ensure there are sufficient lottery results in the database.</p>
                                 </div>
                             </div>
                         `;
-                        loading.style.display = 'none';
-                        content.style.display = 'block';
-                    });
-            }
+                    }
+                    
+                    content.innerHTML = html;
+                    loading.style.display = 'none';
+                    content.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error loading pattern analysis:', error);
+                    content.innerHTML = `
+                        <div class="col-12">
+                            <div class="alert alert-danger">
+                                <h5>Error Loading Analysis</h5>
+                                <p>There was a problem loading the pattern analysis data:</p>
+                                <p>${error.message || 'Unknown error'}</p>
+                                <p>Please try again later or contact support if the problem persists.</p>
+                            </div>
+                        </div>
+                    `;
+                    loading.style.display = 'none';
+                    content.style.display = 'block';
+                });
         }
         
         // Function to load time series data
@@ -488,16 +580,17 @@
             const loading = timeseriesTab.querySelector('#timeseries-loading');
             const content = timeseriesTab.querySelector('#timeseries-content');
             
-            if (!content.hasChildNodes()) {
-                loading.style.display = 'block';
-                content.style.display = 'none';
-                
-                const lotteryType = document.getElementById('lottery_type').value || '';
-                const days = document.getElementById('days').value || '365';
-                
-                console.log("Loading time series data...");
-                
-                fetchWithCSRF(`/api/lottery-analysis/time-series?lottery_type=${lotteryType}&days=${days}`)
+            // Always reload data for better reliability
+            loading.style.display = 'block';
+            content.style.display = 'none';
+            content.innerHTML = ''; // Clear existing content
+            
+            const lotteryType = document.getElementById('lottery_type').value || '';
+            const days = document.getElementById('days').value || '365';
+            
+            console.log("Loading time series data...");
+            
+            fetchWithCSRF(`/api/lottery-analysis/time-series?lottery_type=${lotteryType}&days=${days}`)
                     .then(response => {
                         console.log("Time series API response status:", response.status);
                         // Check if response is a redirect to login page
@@ -583,17 +676,18 @@
             const loading = winnersTab.querySelector('#winners-loading');
             const content = winnersTab.querySelector('#winners-content');
             
-            if (!content.hasChildNodes()) {
-                loading.style.display = 'block';
-                content.style.display = 'none';
-                
-                const lotteryType = document.getElementById('lottery_type').value || '';
-                const days = document.getElementById('days').value || '365';
-                
-                console.log("Loading winners data...");
-                
-                fetchWithCSRF(`/api/lottery-analysis/winners?lottery_type=${lotteryType}&days=${days}`)
-                    .then(response => {
+            // Always reload data for better reliability
+            loading.style.display = 'block';
+            content.style.display = 'none';
+            content.innerHTML = ''; // Clear existing content
+            
+            const lotteryType = document.getElementById('lottery_type').value || '';
+            const days = document.getElementById('days').value || '365';
+            
+            console.log("Loading winners data...");
+            
+            fetchWithCSRF(`/api/lottery-analysis/winners?lottery_type=${lotteryType}&days=${days}`)
+                .then(response => {
                         console.log("Winners API response status:", response.status);
                         // Check if response is a redirect to login page
                         if (response.redirected && response.url.includes('/login')) {
@@ -601,15 +695,15 @@
                         }
                         return response.json();
                     })
-                    .then(data => {
-                        console.log("Winners data received:", data);
+                .then(data => {
+                    console.log("Winners data received:", data);
+                    
+                    // Display any data received, even if it contains errors
+                    if (data && Object.keys(data).length > 0) {
+                        let html = '<div class="row">';
                         
-                        // Display any data received, even if it contains errors
-                        if (data && Object.keys(data).length > 0) {
-                            let html = '<div class="row">';
-                            
-                            // Loop through lottery types
-                            for (const [lotteryType, typeData] of Object.entries(data)) {
+                        // Loop through lottery types
+                        for (const [lotteryType, typeData] of Object.entries(data)) {
                                 if (typeData && typeData.error) {
                                     // Display error for this lottery type
                                     html += `
@@ -678,91 +772,91 @@
             const loading = correlationsTab.querySelector('#correlations-loading');
             const content = correlationsTab.querySelector('#correlations-content');
             
-            if (!content.hasChildNodes()) {
-                loading.style.display = 'block';
-                content.style.display = 'none';
-                
-                const days = document.getElementById('days').value || '365';
-                
-                console.log("Loading correlations data...");
-                
-                fetchWithCSRF(`/api/lottery-analysis/correlations?days=${days}`)
-                    .then(response => {
-                        console.log("Correlations API response status:", response.status);
-                        // Check if response is a redirect to login page
-                        if (response.redirected && response.url.includes('/login')) {
-                            throw new Error('Session expired, please refresh the page to login again');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log("Correlations data received:", data);
+            // Always reload data for better reliability
+            loading.style.display = 'block';
+            content.style.display = 'none';
+            content.innerHTML = ''; // Clear existing content
+            
+            const days = document.getElementById('days').value || '365';
+            
+            console.log("Loading correlations data...");
+            
+            fetchWithCSRF(`/api/lottery-analysis/correlations?days=${days}`)
+                .then(response => {
+                    console.log("Correlations API response status:", response.status);
+                    // Check if response is a redirect to login page
+                    if (response.redirected && response.url.includes('/login')) {
+                        throw new Error('Session expired, please refresh the page to login again');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Correlations data received:", data);
+                    
+                    // Display any data received, even if it contains errors
+                    if (data && data.error) {
+                        content.innerHTML = `
+                            <div class="col-12">
+                                <div class="alert alert-warning">
+                                    <h5>Error in Correlation Analysis</h5>
+                                    <p>${data.error}</p>
+                                </div>
+                            </div>
+                        `;
+                    } else if (data && data.correlation_matrix) {
+                        // Display the correlation heatmap
+                        content.innerHTML = `
+                            <div class="col-12 mb-4">
+                                <div class="card shadow">
+                                    <div class="card-header py-3">
+                                        <h6 class="m-0 font-weight-bold text-primary">Lottery Type Correlation Matrix</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Correlation strength between different lottery types based on winning numbers:</p>
+                                        <div class="text-center">
+                                            <img src="data:image/png;base64,${data.correlation_matrix}" 
+                                                 alt="Lottery Type Correlation Matrix" 
+                                                 class="img-fluid">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
                         
-                        // Display any data received, even if it contains errors
-                        if (data && data.error) {
-                            content.innerHTML = `
-                                <div class="col-12">
-                                    <div class="alert alert-warning">
-                                        <h5>Error in Correlation Analysis</h5>
-                                        <p>${data.error}</p>
-                                    </div>
-                                </div>
-                            `;
-                        } else if (data && data.correlation_matrix) {
-                            // Display the correlation heatmap
-                            content.innerHTML = `
-                                <div class="col-12 mb-4">
-                                    <div class="card shadow">
-                                        <div class="card-header py-3">
-                                            <h6 class="m-0 font-weight-bold text-primary">Lottery Type Correlation Matrix</h6>
-                                        </div>
-                                        <div class="card-body">
-                                            <p>Correlation strength between different lottery types based on winning numbers:</p>
-                                            <div class="text-center">
-                                                <img src="data:image/png;base64,${data.correlation_matrix}" 
-                                                     alt="Lottery Type Correlation Matrix" 
-                                                     class="img-fluid">
+                        // Add additional correlation visualizations if available
+                        if (data.additional_charts) {
+                            for (const [chartName, chartData] of Object.entries(data.additional_charts)) {
+                                content.innerHTML += `
+                                    <div class="col-12 mb-4">
+                                        <div class="card shadow">
+                                            <div class="card-header py-3">
+                                                <h6 class="m-0 font-weight-bold text-primary">${chartName}</h6>
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                            
-                            // Add additional correlation visualizations if available
-                            if (data.additional_charts) {
-                                for (const [chartName, chartData] of Object.entries(data.additional_charts)) {
-                                    content.innerHTML += `
-                                        <div class="col-12 mb-4">
-                                            <div class="card shadow">
-                                                <div class="card-header py-3">
-                                                    <h6 class="m-0 font-weight-bold text-primary">${chartName}</h6>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="text-center">
-                                                        <img src="data:image/png;base64,${chartData}" 
-                                                             alt="${chartName}" 
-                                                             class="img-fluid">
-                                                    </div>
+                                            <div class="card-body">
+                                                <div class="text-center">
+                                                    <img src="data:image/png;base64,${chartData}" 
+                                                         alt="${chartName}" 
+                                                         class="img-fluid">
                                                 </div>
                                             </div>
                                         </div>
-                                    `;
-                                }
+                                    </div>
+                                `;
                             }
-                        } else {
-                            content.innerHTML = '<div class="col-12"><div class="alert alert-info">No correlation data available.</div></div>';
                         }
-                        
-                        loading.style.display = 'none';
-                        content.style.display = 'block';
-                    })
-                    .catch(error => {
-                        console.error('Error loading correlation data:', error);
-                        content.innerHTML = '<div class="col-12"><div class="alert alert-danger">Error loading correlation data</div></div>';
-                        loading.style.display = 'none';
-                        content.style.display = 'block';
-                    });
-            }
+                    } else {
+                        content.innerHTML = '<div class="col-12"><div class="alert alert-info">No correlation data available.</div></div>';
+                    }
+                    
+                    loading.style.display = 'none';
+                    content.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error loading correlation data:', error);
+                    content.innerHTML = '<div class="col-12"><div class="alert alert-danger">Error loading correlation data</div></div>';
+                    loading.style.display = 'none';
+                    content.style.display = 'block';
+                });
         }
     });
 </script>

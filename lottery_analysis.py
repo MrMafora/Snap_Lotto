@@ -327,25 +327,54 @@ class LotteryAnalyzer:
                 valid_indices = number_df.index
             
             try:
-                # Normalize the data
-                scaler = StandardScaler()
-                scaled_features = scaler.fit_transform(features)
+                logger.info(f"Starting pattern analysis for {lt} with {len(features)} rows of data")
                 
-                # Apply PCA for dimensionality reduction
-                pca = PCA(n_components=2)
-                reduced_features = pca.fit_transform(scaled_features)
+                # Check for NaN values again before StandardScaler
+                if np.isnan(features).any():
+                    logger.warning(f"NaN values found in features for {lt} before scaling")
+                    # Replace any remaining NaN with 0 (not ideal but prevents crashes)
+                    features = np.nan_to_num(features, nan=0.0)
+                
+                # Normalize the data with verbose error handling
+                try:
+                    scaler = StandardScaler()
+                    scaled_features = scaler.fit_transform(features)
+                    logger.info(f"Data successfully scaled for {lt}")
+                except Exception as e:
+                    logger.error(f"Error in StandardScaler for {lt}: {str(e)}")
+                    raise ValueError(f"StandardScaler failed: {str(e)}")
+                
+                # Apply PCA for dimensionality reduction with verbose error handling
+                try:
+                    pca = PCA(n_components=2)
+                    reduced_features = pca.fit_transform(scaled_features)
+                    logger.info(f"PCA successfully applied for {lt}, explained variance: {pca.explained_variance_ratio_}")
+                except Exception as e:
+                    logger.error(f"Error in PCA for {lt}: {str(e)}")
+                    raise ValueError(f"PCA failed: {str(e)}")
                 
                 # Apply clustering to find patterns
-                n_clusters = min(5, len(lt_df))  # Limit clusters to 5 or number of draws
-                kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-                clusters = kmeans.fit_predict(scaled_features)
+                try:
+                    n_clusters = min(5, len(features))  # Limit clusters to 5 or number of samples
+                    logger.info(f"Using {n_clusters} clusters for {lt}")
+                    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+                    clusters = kmeans.fit_predict(scaled_features)
+                    logger.info(f"KMeans clustering successfully applied for {lt}")
+                except Exception as e:
+                    logger.error(f"Error in KMeans for {lt}: {str(e)}")
+                    raise ValueError(f"KMeans clustering failed: {str(e)}")
                 
                 # Create a DataFrame with the PCA results and cluster assignments
-                pca_df = pd.DataFrame({
-                    'PC1': reduced_features[:, 0],
-                    'PC2': reduced_features[:, 1],
-                    'Cluster': clusters
-                })
+                try:
+                    pca_df = pd.DataFrame({
+                        'PC1': reduced_features[:, 0],
+                        'PC2': reduced_features[:, 1],
+                        'Cluster': clusters
+                    })
+                    logger.info(f"Successfully created PCA DataFrame for {lt}")
+                except Exception as e:
+                    logger.error(f"Error creating PCA DataFrame for {lt}: {str(e)}")
+                    raise ValueError(f"Failed to create PCA DataFrame: {str(e)}")
                 
                 # Add draw numbers safely, taking into account we might be using a subset of rows
                 if 'draw_number' in lt_df.columns:
@@ -1366,11 +1395,40 @@ def register_analysis_routes(app, db):
         if not current_user.is_authenticated or not current_user.is_admin:
             return jsonify({"error": "Unauthorized"}), 403
         
-        lottery_type = request.args.get('lottery_type', None)
-        days = int(request.args.get('days', 365))
-        
-        data = analyzer.analyze_patterns(lottery_type, days)
-        return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
+        try:
+            # Get parameters with validation
+            lottery_type = request.args.get('lottery_type', None)
+            days_str = request.args.get('days', '365')
+            
+            # Validate and convert days
+            try:
+                days = int(days_str)
+                if days <= 0:
+                    days = 365  # Default to 365 if invalid
+                    logger.warning(f"Invalid days value: {days_str}, using default 365")
+            except ValueError:
+                days = 365  # Default to 365 if non-numeric
+                logger.warning(f"Non-numeric days value: {days_str}, using default 365")
+            
+            logger.info(f"API pattern analysis request: lottery_type={lottery_type}, days={days}")
+            
+            # Get data with exception handling
+            data = analyzer.analyze_patterns(lottery_type, days)
+            
+            # Log response size for debugging
+            response_size = len(json.dumps(data, cls=NumpyEncoder))
+            logger.info(f"Pattern analysis response size: {response_size} bytes")
+            
+            return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
+            
+        except Exception as e:
+            # Log and return error
+            logger.error(f"Error in pattern analysis API: {str(e)}", exc_info=True)
+            return jsonify({
+                "error": f"Analysis failed: {str(e)}",
+                "status": "error",
+                "message": "An unexpected error occurred during pattern analysis."
+            }), 500
     
     @app.route('/api/lottery-analysis/time-series')
     @csrf.exempt
