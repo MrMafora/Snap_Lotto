@@ -410,7 +410,7 @@ window.AdManager = window.AdManager || {
             id: Math.floor(Math.random() * 1000),
             name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Ad Example`,
             file_url: '/static/ads/sample_video.mp4', // This should be a real sample video in production
-            duration: 30,
+            duration: 15,
             loading_duration: 10, // Default loading overlay duration in seconds
             custom_message: 'Processing your lottery ticket...', // Default custom message
             custom_image_path: null, // No custom image in mock data

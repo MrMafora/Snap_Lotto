@@ -762,7 +762,7 @@
                     
                     // Store timer start time to prevent deviations
                     window.countdownStartTime = Date.now();
-                    window.countdownDuration = 30000; // 30 seconds in milliseconds
+                    window.countdownDuration = 15000; // 15 seconds in milliseconds
                     
                     // Make sure to clear any existing timers first
                     if (window.countdownInterval) {
@@ -818,7 +818,7 @@
                         // Reset the running flag
                         window.countdownRunning = false;
                         
-                        console.log('30-second ad display timer completed via timeout');
+                        console.log('15-second ad display timer completed via timeout');
                         
                         // Make sure the button is enabled
                         if (adOverlayResults.style.display === 'flex') {
