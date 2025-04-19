@@ -1,0 +1,103 @@
+#!/usr/bin/env python
+"""
+Script to import the most recent lottery data Excel spreadsheet in the attached_assets directory.
+This handles dynamic filenames with timestamps automatically.
+"""
+
+import os
+import sys
+import glob
+import logging
+import argparse
+from datetime import datetime
+# Import these inside functions to avoid circular imports
+# from import_excel import import_excel_data
+# from import_snap_lotto_data import import_snap_lotto_data
+# import main  # Import main to get Flask application context
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def find_latest_spreadsheet(directory="attached_assets", pattern="lottery_data_*.xlsx"):
+    """
+    Find the most recent Excel spreadsheet matching the pattern in the specified directory.
+    
+    Args:
+        directory (str): Directory to search in
+        pattern (str): Filename pattern to match
+        
+    Returns:
+        str: Path to the most recent matching file, or None if not found
+    """
+    # Get full path to the directory
+    search_path = os.path.join(directory, pattern)
+    matching_files = glob.glob(search_path)
+    
+    if not matching_files:
+        logger.error(f"No files matching '{pattern}' found in '{directory}'")
+        return None
+    
+    # Find the most recently modified file
+    latest_file = max(matching_files, key=os.path.getmtime)
+    logger.info(f"Found latest spreadsheet: {latest_file}")
+    return latest_file
+
+def import_latest_spreadsheet(directory="attached_assets", pattern="lottery_data_*.xlsx", 
+                             import_type="excel", purge=False):
+    """
+    Import the most recent lottery spreadsheet from the specified directory.
+    
+    Args:
+        directory (str): Directory to search in
+        pattern (str): Filename pattern to match
+        import_type (str): Type of import to perform ("excel" or "snap_lotto")
+        purge (bool): Whether to purge existing data before import
+        
+    Returns:
+        bool: Success status
+    """
+    # Import here to avoid circular imports
+    import main
+    from import_excel import import_excel_data
+    from import_snap_lotto_data import import_snap_lotto_data
+    
+    latest_file = find_latest_spreadsheet(directory, pattern)
+    
+    if not latest_file:
+        return False
+    
+    logger.info(f"Starting import of {latest_file} using {import_type} importer")
+    
+    # Handle different import types
+    with main.app.app_context():
+        if import_type.lower() == "excel":
+            result = import_excel_data(latest_file, main.app)
+            return result
+        elif import_type.lower() == "snap_lotto":
+            result = import_snap_lotto_data(latest_file, main.app)
+            return result
+        else:
+            logger.error(f"Unknown import type: {import_type}")
+            return False
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Import most recent lottery data spreadsheet')
+    parser.add_argument('--directory', '-d', default='attached_assets',
+                        help='Directory containing spreadsheets (default: attached_assets)')
+    parser.add_argument('--pattern', '-p', default='lottery_data_*.xlsx',
+                        help='Filename pattern to match (default: lottery_data_*.xlsx)')
+    parser.add_argument('--type', '-t', default='excel', choices=['excel', 'snap_lotto'],
+                        help='Type of import to perform (default: excel)')
+    
+    args = parser.parse_args()
+    
+    success = import_latest_spreadsheet(args.directory, args.pattern, args.type)
+    
+    if success:
+        logger.info("Import completed successfully!")
+        sys.exit(0)
+    else:
+        logger.error("Import failed!")
+        sys.exit(1)

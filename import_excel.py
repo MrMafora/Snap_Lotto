@@ -118,23 +118,38 @@ def standardize_lottery_type(lottery_type):
     if pd.isna(lottery_type):
         return ""
         
+    # Convert to string, strip whitespace, and lowercase for comparison
     lt = str(lottery_type).strip().lower()
     
-    # Normalize common variations
-    if 'lotto plus 1' in lt or 'lotto+1' in lt or 'lotto + 1' in lt:
+    # Enhanced logging for troubleshooting
+    logger.debug(f"Standardizing lottery type: '{lottery_type}' (lowercase: '{lt}')")
+    
+    # Normalize common variations with improved pattern matching
+    if ('lotto plus 1' in lt or 'lotto+1' in lt or 'lotto + 1' in lt or 
+        'lotto plus1' in lt or lt == 'lotto plus 1' or 'lottoplus1' in lt):
         return 'Lotto Plus 1'
-    elif 'lotto plus 2' in lt or 'lotto+2' in lt or 'lotto + 2' in lt:
+    elif ('lotto plus 2' in lt or 'lotto+2' in lt or 'lotto + 2' in lt or 
+          'lotto plus2' in lt or lt == 'lotto plus 2' or 'lottoplus2' in lt):
         return 'Lotto Plus 2'
-    elif 'powerball plus' in lt or 'powerball+' in lt or 'power ball plus' in lt:
+    elif ('powerball plus' in lt or 'powerball+' in lt or 'power ball plus' in lt or 
+          'powerballplus' in lt or lt == 'powerball plus'):
         return 'Powerball Plus'
-    elif 'powerball' in lt or 'power ball' in lt:
-        return 'Powerball'
-    elif 'daily lotto' in lt or 'dailylotto' in lt:
+    elif ('powerball' in lt or 'power ball' in lt or lt == 'powerball'):
+        # Only match if it's not "powerball plus"
+        if 'plus' not in lt:
+            return 'Powerball'
+    elif ('daily lotto' in lt or 'dailylotto' in lt or lt == 'daily lotto' or 
+          lt == 'dailylotto'):
         return 'Daily Lotto'
-    elif 'lotto' in lt:
+    # Main Lotto - match only if it contains "lotto" but NOT "plus" or "daily"
+    elif 'lotto' in lt and 'plus' not in lt and 'daily' not in lt:
+        # Log when we standardize LOTTO → Lotto for debugging
+        if lottery_type.upper() == 'LOTTO':
+            logger.info(f"Standardizing '{lottery_type}' to 'Lotto'")
         return 'Lotto'
     
-    # If no match, return original with proper capitalization
+    # If no match, log a warning and return original with proper capitalization
+    logger.warning(f"No standard match found for lottery type: '{lottery_type}'")
     return str(lottery_type).strip()
 
 def import_excel_data(excel_file, flask_app=None):

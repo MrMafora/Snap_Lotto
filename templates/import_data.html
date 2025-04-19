@@ -74,11 +74,36 @@
                             <li><strong>Standard Format</strong> - Our lottery template downloaded from Export Screenshots</li>
                         </ul>
                         <p class="mt-2 mb-0">The system will automatically detect the format and extract all game types, draw numbers, and prize information.</p>
-                        <div class="mt-2">
-                            <a href="{{ url_for('export_template') }}" class="btn btn-sm btn-primary">
+                        <div class="mt-2 d-flex flex-wrap">
+                            <a href="{{ url_for('export_template') }}" class="btn btn-sm btn-primary me-2 mb-2">
                                 <i class="fas fa-download me-1"></i> Download Empty Template
                             </a>
-                            <small class="text-muted ms-2">Get a fresh single-sheet template for data entry</small>
+                            <form action="{{ url_for('import_latest_spreadsheet_route') }}" method="POST" class="d-inline me-2 mb-2" id="latest-spreadsheet-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="import_type" value="excel">
+                                <input type="hidden" name="purge" value="no">
+                                <button type="submit" class="btn btn-sm btn-success" id="latest-spreadsheet-btn">
+                                    <i class="fas fa-file-import me-1"></i> Import Latest Spreadsheet
+                                </button>
+                            </form>
+                            <script>
+                                document.getElementById('latest-spreadsheet-form').addEventListener('submit', function(e) {
+                                    const btn = document.getElementById('latest-spreadsheet-btn');
+                                    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Importing...';
+                                    btn.disabled = true;
+                                });
+                            </script>
+                            <div class="mt-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="auto_import_type" id="auto-excel" value="excel" checked onclick="document.querySelector('#latest-spreadsheet-form input[name=import_type]').value = 'excel';">
+                                    <label class="form-check-label" for="auto-excel">Standard Format</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="auto_import_type" id="auto-snap" value="snap_lotto" onclick="document.querySelector('#latest-spreadsheet-form input[name=import_type]').value = 'snap_lotto';">
+                                    <label class="form-check-label" for="auto-snap">Snap Lotto Format</label>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-1">The "Import Latest Spreadsheet" button will automatically find and import the most recent spreadsheet file in the attached_assets directory, handling changing timestamps in filenames.</small>
                         </div>
                     </div>
 

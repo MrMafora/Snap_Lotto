@@ -27,6 +27,7 @@ from config import Config
 # Import modules
 import ad_management
 import lottery_analysis
+from import_latest_spreadsheet import import_latest_spreadsheet, find_latest_spreadsheet
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -471,6 +472,41 @@ def reset_file_upload_progress():
     }
     
     return jsonify({'success': True})
+
+@app.route('/import-latest-spreadsheet', methods=['POST'])
+@login_required
+@csrf.exempt
+def import_latest_spreadsheet_route():
+    """Import the latest spreadsheet file from attached_assets directory"""
+    if not current_user.is_admin:
+        flash('You must be an admin to import data.', 'danger')
+        return redirect(url_for('index'))
+    
+    import_type = request.form.get('import_type', 'excel')
+    purge = request.form.get('purge', 'no') == 'yes'
+    pattern = request.form.get('pattern', 'lottery_data_*.xlsx')
+    
+    # Find the latest spreadsheet before importing
+    latest_file = find_latest_spreadsheet("attached_assets", pattern)
+    
+    if not latest_file:
+        flash(f'No spreadsheet files matching pattern "{pattern}" found in attached_assets directory.', 'danger')
+        return redirect(url_for('import_data'))
+    
+    try:
+        success = import_latest_spreadsheet("attached_assets", pattern, import_type, purge)
+        
+        if success:
+            flash(f'Successfully imported latest spreadsheet: {os.path.basename(latest_file)}', 'success')
+        else:
+            flash(f'Failed to import latest spreadsheet: {os.path.basename(latest_file)}', 'danger')
+            
+        return redirect(url_for('import_data'))
+        
+    except Exception as e:
+        logger.exception(f"Error importing latest spreadsheet: {str(e)}")
+        flash(f'Error importing latest spreadsheet: {str(e)}', 'danger')
+        return redirect(url_for('import_data'))
 
 @app.route('/import-history')
 @login_required
