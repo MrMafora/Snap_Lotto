@@ -7,6 +7,7 @@ cross-lottery type pattern detection.
 """
 import os
 import logging
+import json
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
@@ -22,7 +23,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import io
 import base64
-import json
 from sqlalchemy import func, and_, or_, distinct
 import numpy as np
 
@@ -114,56 +114,78 @@ class LotteryAnalyzer:
             # Convert to dataframe
             data = []
             for result in results:
-                # Extract the numbers as a list
-                numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
-                
-                # Get bonus number if available
-                bonus_number = None
-                if hasattr(result, 'bonus_number') and result.bonus_number:
-                    bonus_number = int(result.bonus_number)
-                
-                # Create row dictionary
-                row = {
-                    'id': result.id,
-                    'lottery_type': result.lottery_type,
-                    'draw_number': result.draw_number,
-                    'draw_date': result.draw_date,
-                }
-                
-                # Add individual numbers as separate columns
-                max_numbers = self.required_numbers.get(result.lottery_type, 6)
-                for i in range(max_numbers):
-                    if i < len(numbers):
-                        row[f'number_{i+1}'] = numbers[i]
+                try:
+                    # Extract the numbers as a list - handle JSON strings
+                    if isinstance(result.numbers, str):
+                        if result.numbers.startswith('[') and result.numbers.endswith(']'):
+                            # JSON format
+                            try:
+                                numbers = json.loads(result.numbers)
+                            except json.JSONDecodeError:
+                                # Try handling as comma-separated values
+                                numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
+                        else:
+                            # Comma-separated values
+                            numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
                     else:
-                        row[f'number_{i+1}'] = None
-                
-                # Add bonus number if applicable
-                if result.lottery_type in ['Powerball', 'Powerball Plus']:
-                    row['bonus_number'] = bonus_number
-                
-                # Add division data if available
-                if result.divisions:
-                    try:
-                        divisions = result.divisions
-                        if isinstance(divisions, str):
-                            import json
-                            divisions = json.loads(divisions)
-                            
-                        # Add key division metrics
-                        if isinstance(divisions, dict):
-                            for div_num, div_data in divisions.items():
-                                winners = div_data.get('winners', 0)
-                                if isinstance(winners, str):
-                                    if winners.isdigit():
-                                        winners = int(winners)
-                                    else:
-                                        winners = 0
-                                row[f'div_{div_num}_winners'] = winners
-                    except Exception as e:
-                        logger.error(f"Error parsing divisions: {e}")
-                
-                data.append(row)
+                        # Already in list form
+                        numbers = result.numbers
+                    
+                    # Get bonus numbers if available
+                    bonus_numbers = []
+                    if result.bonus_numbers:
+                        if isinstance(result.bonus_numbers, str):
+                            try:
+                                bonus_numbers = json.loads(result.bonus_numbers)
+                            except json.JSONDecodeError:
+                                bonus_numbers = [int(n.strip()) for n in result.bonus_numbers.split(',') if n.strip().isdigit()]
+                        else:
+                            bonus_numbers = result.bonus_numbers
+                    
+                    # Create row dictionary
+                    row = {
+                        'id': result.id,
+                        'lottery_type': result.lottery_type,
+                        'draw_number': result.draw_number,
+                        'draw_date': result.draw_date,
+                    }
+                    
+                    # Add individual numbers as separate columns
+                    max_numbers = self.required_numbers.get(result.lottery_type, 6)
+                    for i in range(max_numbers):
+                        if i < len(numbers):
+                            row[f'number_{i+1}'] = numbers[i]
+                        else:
+                            row[f'number_{i+1}'] = None
+                    
+                    # Add bonus number if applicable
+                    if result.lottery_type in ['Powerball', 'Powerball Plus'] and bonus_numbers:
+                        row['bonus_number'] = bonus_numbers[0] if len(bonus_numbers) > 0 else None
+                    
+                    # Add division data if available
+                    if result.divisions:
+                        try:
+                            divisions = result.divisions
+                            if isinstance(divisions, str):
+                                divisions = json.loads(divisions)
+                                
+                            # Add key division metrics
+                            if isinstance(divisions, dict):
+                                for div_num, div_data in divisions.items():
+                                    winners = div_data.get('winners', 0)
+                                    if isinstance(winners, str):
+                                        if winners.isdigit():
+                                            winners = int(winners)
+                                        else:
+                                            winners = 0
+                                    row[f'div_{div_num}_winners'] = winners
+                        except Exception as e:
+                            logger.error(f"Error parsing divisions: {e}")
+                    
+                    data.append(row)
+                except Exception as e:
+                    logger.error(f"Error processing lottery result {result.id}: {e}")
+                    continue
             
             # Create DataFrame
             df = pd.DataFrame(data)
@@ -1357,7 +1379,7 @@ def register_analysis_routes(app, db):
         app: Flask application
         db: SQLAlchemy database instance
     """
-    from flask import render_template, request, jsonify, send_from_directory
+    from flask import render_template, request, jsonify, send_from_directory, redirect, url_for
     from flask_login import login_required, current_user
     from main import csrf
     
