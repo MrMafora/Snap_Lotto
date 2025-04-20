@@ -313,6 +313,9 @@
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
             ...(options.headers || {})
         };
         
@@ -336,73 +339,52 @@
         
         console.log(`Fetching URL: ${url}`);
         
-        // Use a more robust fetch implementation
-        return new Promise((resolve, reject) => {
-            fetch(url, finalOptions)
-                .then(response => {
-                    clearTimeout(timeoutId);
-                    
-                    console.log(`Response received for ${url}:`, {
-                        status: response.status,
-                        ok: response.ok,
-                        statusText: response.statusText
-                    });
-                    
-                    // Handle redirects to login page
-                    if (response.redirected && response.url.includes('/login')) {
-                        console.error("Session expired or unauthorized - redirected to login");
-                        window.location.href = "/login";
-                        return reject(new Error("Session expired - please login again"));
-                    }
-                    
-                    // Handle non-OK responses
-                    if (!response.ok) {
-                        console.warn(`API error: ${response.status} ${response.statusText}`);
-                        // Try to get more details from the response
-                        return response.text().then(text => {
-                            try {
-                                const errorData = JSON.parse(text);
-                                reject(new Error(errorData.error || errorData.message || response.statusText));
-                            } catch (e) {
-                                reject(new Error(`API error: ${response.status} - ${response.statusText}`));
-                            }
-                        }).catch(() => {
-                            reject(new Error(`API error: ${response.status} - ${response.statusText}`));
-                        });
-                    }
-                    
-                    // Parse JSON with error handling
-                    response.json()
-                        .then(data => {
-                            console.log(`Data received from ${url} successfully`);
-                            resolve(data);
-                        })
-                        .catch(error => {
-                            console.error(`JSON parse error for ${url}:`, error);
-                            
-                            // Get the raw response to see what's wrong
-                            response.text().then(text => {
-                                console.error("Raw response:", text.substring(0, 500) + (text.length > 500 ? "..." : ""));
-                                reject(new Error("Invalid JSON response from server"));
-                            }).catch(e => {
-                                reject(new Error("Failed to parse server response"));
-                            });
-                        });
-                })
-                .catch(error => {
-                    clearTimeout(timeoutId);
-                    console.error(`Network error for ${url}:`, error);
-                    
-                    // Provide more specific error messages
-                    if (error.name === 'AbortError') {
-                        reject(new Error('Request timed out. The server took too long to respond.'));
-                    } else if (!navigator.onLine) {
-                        reject(new Error('Network connection lost. Please check your internet connection.'));
-                    } else {
-                        reject(new Error(`Network request failed: ${error.message}`));
-                    }
+        return fetch(url, finalOptions)
+            .then(response => {
+                clearTimeout(timeoutId);
+                
+                console.log(`Response received for ${url}:`, {
+                    status: response.status,
+                    ok: response.ok,
+                    statusText: response.statusText
                 });
-        });
+                
+                // Handle redirects to login page
+                if (response.redirected && response.url.includes('/login')) {
+                    console.error("Session expired or unauthorized - redirected to login");
+                    window.location.href = "/login";
+                    throw new Error("Session expired - please login again");
+                }
+                
+                // Handle non-OK responses
+                if (!response.ok) {
+                    console.warn(`API error: ${response.status} ${response.statusText}`);
+                    // Try to get more details from the response
+                    return response.text().then(text => {
+                        try {
+                            const errorData = JSON.parse(text);
+                            throw new Error(errorData.error || errorData.message || response.statusText);
+                        } catch (e) {
+                            throw new Error(`API error: ${response.status} - ${response.statusText}`);
+                        }
+                    });
+                }
+                
+                return response;
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                console.error(`Network error for ${url}:`, error);
+                
+                // Provide more specific error messages
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timed out. The server took too long to respond.');
+                } else if (!navigator.onLine) {
+                    throw new Error('Network connection lost. Please check your internet connection.');
+                } else {
+                    throw error; // Pass through the original error
+                }
+            });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -605,83 +587,36 @@
             
             // Use improved fetchWithCSRF with robust error handling
             fetchWithCSRF(url)
-                .then(response => {
-                    console.log("Pattern API response received:", {
-                        status: response.status,
-                        statusText: response.statusText,
-                        headers: Array.from(response.headers.entries()),
-                        redirected: response.redirected,
-                        url: response.url
-                    });
-                    
-                    // Check if response is a redirect to login page
-                    if (response.redirected && response.url.includes('/login')) {
-                        throw new Error('Session expired, please refresh the page to login again');
+                .then(response => response.json())
+                .then(data => {
+                    // Make sure we always have a valid object
+                    if (!data) {
+                        console.warn("Null or undefined data received, using empty object");
+                        data = {};
                     }
                     
-                    if (!response.ok) {
-                        console.error(`API returned error status: ${response.status} (${response.statusText})`);
-                        
-                        // Try to get more error details from response
-                        return response.text().then(text => {
-                            console.error("Error response text:", text);
-                            try {
-                                // Try to parse as JSON error message
-                                const errorData = JSON.parse(text);
-                                throw new Error(`API error: ${errorData.error || errorData.message || response.statusText}`);
-                            } catch (e) {
-                                // If not valid JSON, use raw text
-                                throw new Error(`API error: ${text.substring(0, 100)}...`);
-                            }
-                        });
+                    // Log the parsed data
+                    console.log("Pattern API response parsed successfully");
+                    
+                    // Check for typical error structures
+                    if (typeof data === 'object') {
+                        if (data.error) {
+                            console.error("API returned error object:", data.error);
+                        } else {
+                            // Check if it's a dictionary with lottery types as keys
+                            const lotteryTypes = Object.keys(data);
+                            console.log(`Response contains data for ${lotteryTypes.length} lottery types:`, lotteryTypes);
+                            
+                            // Check for per-lottery type errors
+                            lotteryTypes.forEach(lt => {
+                                if (data[lt] && data[lt].error) {
+                                    console.warn(`Error for ${lt}:`, data[lt].error);
+                                }
+                            });
+                        }
                     }
                     
-                    // Get the JSON content directly
-                    return response.json().catch(error => {
-                        console.error("Error parsing JSON:", error);
-                        
-                        // If JSON parsing fails, try to get the text to see what's wrong
-                        return response.text().then(text => {
-                            console.error("Invalid JSON received:", text.substring(0, 500));
-                            
-                            // If the response is empty, return an empty object rather than throwing
-                            if (!text.trim()) {
-                                console.warn("Empty response received, returning empty object");
-                                return {}; // Return empty object instead of throwing
-                            }
-                            
-                            throw new Error("Failed to parse API response as JSON");
-                        });
-                    }).then(data => {
-                        // Make sure we always have a valid object
-                        if (!data) {
-                            console.warn("Null or undefined data received, using empty object");
-                            data = {};
-                        }
-                        
-                        // Log the parsed data
-                        console.log("Pattern API response parsed successfully");
-                        
-                        // Check for typical error structures
-                        if (typeof data === 'object') {
-                            if (data.error) {
-                                console.error("API returned error object:", data.error);
-                            } else {
-                                // Check if it's a dictionary with lottery types as keys
-                                const lotteryTypes = Object.keys(data);
-                                console.log(`Response contains data for ${lotteryTypes.length} lottery types:`, lotteryTypes);
-                                
-                                // Check for per-lottery type errors
-                                lotteryTypes.forEach(lt => {
-                                    if (data[lt] && data[lt].error) {
-                                        console.warn(`Error for ${lt}:`, data[lt].error);
-                                    }
-                                });
-                            }
-                        }
-                        
-                        return data;
-                    });
+                    return data;
                 })
                 .then(data => {
                     console.log("Pattern data received:", data);
@@ -918,64 +853,17 @@
             
             // Use improved fetchWithCSRF with robust error handling
             fetchWithCSRF(url)
-                .then(response => {
-                    console.log("Time series API response received:", {
-                        status: response.status,
-                        statusText: response.statusText,
-                        headers: Array.from(response.headers.entries()),
-                        redirected: response.redirected,
-                        url: response.url
-                    });
-                    
-                    // Check if response is a redirect to login page
-                    if (response.redirected && response.url.includes('/login')) {
-                        throw new Error('Session expired, please refresh the page to login again');
+                .then(response => response.json())
+                .then(data => {
+                    // Make sure we always have a valid object
+                    if (!data) {
+                        console.warn("Null or undefined data received, using empty object");
+                        data = {};
                     }
                     
-                    if (!response.ok) {
-                        console.error(`API returned error status: ${response.status} (${response.statusText})`);
-                        
-                        // Try to get more error details from response
-                        return response.text().then(text => {
-                            console.error("Error response text:", text);
-                            try {
-                                // Try to parse as JSON error message
-                                const errorData = JSON.parse(text);
-                                throw new Error(`API error: ${errorData.error || errorData.message || response.statusText}`);
-                            } catch (e) {
-                                // If not valid JSON, use raw text
-                                throw new Error(`API error: ${text.substring(0, 100)}...`);
-                            }
-                        });
-                    }
-                    
-                    // Get the JSON content directly
-                    return response.json().catch(error => {
-                        console.error("Error parsing JSON:", error);
-                        
-                        // If JSON parsing fails, try to get the text to see what's wrong
-                        return response.text().then(text => {
-                            console.error("Invalid JSON received:", text.substring(0, 500));
-                            
-                            // If the response is empty, return an empty object rather than throwing
-                            if (!text.trim()) {
-                                console.warn("Empty response received, returning empty object");
-                                return {}; // Return empty object instead of throwing
-                            }
-                            
-                            throw new Error("Failed to parse API response as JSON");
-                        });
-                    }).then(data => {
-                        // Make sure we always have a valid object
-                        if (!data) {
-                            console.warn("Null or undefined data received, using empty object");
-                            data = {};
-                        }
-                        
-                        // Log the parsed data
-                        console.log("Time series API response parsed successfully");
-                        return data;
-                    });
+                    // Log the parsed data
+                    console.log("Time series API response parsed successfully");
+                    return data;
                 })
                 .then(data => {
                     console.log("Time series data received:", data);
@@ -1164,64 +1052,17 @@
             
             // Use improved fetchWithCSRF with robust error handling
             fetchWithCSRF(url)
-                .then(response => {
-                    console.log("Winners API response received:", {
-                        status: response.status,
-                        statusText: response.statusText,
-                        headers: Array.from(response.headers.entries()),
-                        redirected: response.redirected,
-                        url: response.url
-                    });
-                    
-                    // Check if response is a redirect to login page
-                    if (response.redirected && response.url.includes('/login')) {
-                        throw new Error('Session expired, please refresh the page to login again');
+                .then(response => response.json())
+                .then(data => {
+                    // Make sure we always have a valid object
+                    if (!data) {
+                        console.warn("Null or undefined data received, using empty object");
+                        data = {};
                     }
                     
-                    if (!response.ok) {
-                        console.error(`API returned error status: ${response.status} (${response.statusText})`);
-                        
-                        // Try to get more error details from response
-                        return response.text().then(text => {
-                            console.error("Error response text:", text);
-                            try {
-                                // Try to parse as JSON error message
-                                const errorData = JSON.parse(text);
-                                throw new Error(`API error: ${errorData.error || errorData.message || response.statusText}`);
-                            } catch (e) {
-                                // If not valid JSON, use raw text
-                                throw new Error(`API error: ${text.substring(0, 100)}...`);
-                            }
-                        });
-                    }
-                    
-                    // Get the JSON content directly
-                    return response.json().catch(error => {
-                        console.error("Error parsing JSON:", error);
-                        
-                        // If JSON parsing fails, try to get the text to see what's wrong
-                        return response.text().then(text => {
-                            console.error("Invalid JSON received:", text.substring(0, 500));
-                            
-                            // If the response is empty, return an empty object rather than throwing
-                            if (!text.trim()) {
-                                console.warn("Empty response received, returning empty object");
-                                return {}; // Return empty object instead of throwing
-                            }
-                            
-                            throw new Error("Failed to parse API response as JSON");
-                        });
-                    }).then(data => {
-                        // Make sure we always have a valid object
-                        if (!data) {
-                            console.warn("Null or undefined data received, using empty object");
-                            data = {};
-                        }
-                        
-                        // Log the parsed data
-                        console.log("Winners API response parsed successfully");
-                        return data;
-                    });
+                    // Log the parsed data
+                    console.log("Winners API response parsed successfully");
+                    return data;
                 })
                     .then(data => {
                         console.log("Winners data received:", data);
@@ -1402,64 +1243,17 @@
             
             // Use improved fetchWithCSRF with robust error handling
             fetchWithCSRF(url)
-                .then(response => {
-                    console.log("Correlations API response received:", {
-                        status: response.status,
-                        statusText: response.statusText,
-                        headers: Array.from(response.headers.entries()),
-                        redirected: response.redirected,
-                        url: response.url
-                    });
-                    
-                    // Check if response is a redirect to login page
-                    if (response.redirected && response.url.includes('/login')) {
-                        throw new Error('Session expired, please refresh the page to login again');
+                .then(response => response.json())
+                .then(data => {
+                    // Make sure we always have a valid object
+                    if (!data) {
+                        console.warn("Null or undefined data received, using empty object");
+                        data = {};
                     }
                     
-                    if (!response.ok) {
-                        console.error(`API returned error status: ${response.status} (${response.statusText})`);
-                        
-                        // Try to get more error details from response
-                        return response.text().then(text => {
-                            console.error("Error response text:", text);
-                            try {
-                                // Try to parse as JSON error message
-                                const errorData = JSON.parse(text);
-                                throw new Error(`API error: ${errorData.error || errorData.message || response.statusText}`);
-                            } catch (e) {
-                                // If not valid JSON, use raw text
-                                throw new Error(`API error: ${text.substring(0, 100)}...`);
-                            }
-                        });
-                    }
-                    
-                    // Get the JSON content directly
-                    return response.json().catch(error => {
-                        console.error("Error parsing JSON:", error);
-                        
-                        // If JSON parsing fails, try to get the text to see what's wrong
-                        return response.text().then(text => {
-                            console.error("Invalid JSON received:", text.substring(0, 500));
-                            
-                            // If the response is empty, return an empty object rather than throwing
-                            if (!text.trim()) {
-                                console.warn("Empty response received, returning empty object");
-                                return {}; // Return empty object instead of throwing
-                            }
-                            
-                            throw new Error("Failed to parse API response as JSON");
-                        });
-                    }).then(data => {
-                        // Make sure we always have a valid object
-                        if (!data) {
-                            console.warn("Null or undefined data received, using empty object");
-                            data = {};
-                        }
-                        
-                        // Log the parsed data
-                        console.log("Correlations API response parsed successfully");
-                        return data;
-                    });
+                    // Log the parsed data
+                    console.log("Correlations API response parsed successfully");
+                    return data;
                 })
                 .then(data => {
                     console.log("Correlations data received:", data);
