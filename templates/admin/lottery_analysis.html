@@ -186,11 +186,15 @@
                     <h6 class="m-0 font-weight-bold text-primary">Pattern Analysis</h6>
                 </div>
                 <div class="card-body">
-                    <div id="patterns-loading" class="text-center">
+                    <div id="patterns-loading" class="text-center p-5">
                         <div class="spinner-border text-primary" role="status">
                             <span class="sr-only">Loading...</span>
                         </div>
                         <p class="mt-2">Loading pattern analysis data...</p>
+                        <p class="small text-muted">Analyzing patterns in lottery numbers...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 75%"></div>
+                        </div>
                     </div>
                     <div id="patterns-content" class="row mt-3" style="display: none;"></div>
                 </div>
@@ -204,11 +208,15 @@
                     <h6 class="m-0 font-weight-bold text-primary">Time Series Analysis</h6>
                 </div>
                 <div class="card-body">
-                    <div id="timeseries-loading" class="text-center">
+                    <div id="timeseries-loading" class="text-center p-5">
                         <div class="spinner-border text-primary" role="status">
                             <span class="sr-only">Loading...</span>
                         </div>
                         <p class="mt-2">Loading time series analysis data...</p>
+                        <p class="small text-muted">Analyzing lottery trends over time...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 75%"></div>
+                        </div>
                     </div>
                     <div id="timeseries-content" class="row" style="display: none;"></div>
                 </div>
@@ -222,11 +230,15 @@
                     <h6 class="m-0 font-weight-bold text-primary">Winner Analysis</h6>
                 </div>
                 <div class="card-body">
-                    <div id="winners-loading" class="text-center">
+                    <div id="winners-loading" class="text-center p-5">
                         <div class="spinner-border text-primary" role="status">
                             <span class="sr-only">Loading...</span>
                         </div>
                         <p class="mt-2">Loading winner analysis data...</p>
+                        <p class="small text-muted">Analyzing division statistics and prize distributions...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 75%"></div>
+                        </div>
                     </div>
                     <div id="winners-content" class="row" style="display: none;"></div>
                 </div>
@@ -241,11 +253,15 @@
                     <h6 class="m-0 font-weight-bold text-primary">Lottery Type Correlations</h6>
                 </div>
                 <div class="card-body">
-                    <div id="correlations-loading" class="text-center">
+                    <div id="correlations-loading" class="text-center p-5">
                         <div class="spinner-border text-primary" role="status">
                             <span class="sr-only">Loading...</span>
                         </div>
                         <p class="mt-2">Loading correlation analysis data...</p>
+                        <p class="small text-muted">Finding relationships between different lottery types...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" style="width: 75%"></div>
+                        </div>
                     </div>
                     <div id="correlations-content" class="row" style="display: none;"></div>
                 </div>
@@ -280,12 +296,12 @@
         
         // Try to get token from cookie first, then from meta tag
         let csrfToken = getCookie('csrf_token') || getMetaCsrfToken();
+        console.log("CSRF Token found:", csrfToken ? "Yes" : "No");
         
         // Add token to headers if found
         const headers = {
             ...(options.headers || {}),
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'application/json'
+            'X-CSRFToken': csrfToken
         };
         
         // Create AbortController for timeout
@@ -300,14 +316,21 @@
             credentials: 'same-origin'
         };
         
+        console.log(`Fetching URL: ${url}`, finalOptions);
+        
         // Perform fetch with enhanced error handling
         return fetch(url, finalOptions)
             .then(response => {
                 clearTimeout(timeoutId); // Clear the timeout
+                console.log(`Fetch response for ${url}:`, {
+                    status: response.status,
+                    statusText: response.statusText
+                });
                 return response;
             })
             .catch(error => {
                 clearTimeout(timeoutId); // Clear the timeout
+                console.error(`Fetch error for ${url}:`, error);
                 
                 // Enhance error message based on type
                 if (error.name === 'AbortError') {
@@ -336,42 +359,128 @@
         window.addEventListener('load', function() {
             console.log("Window loaded - Preloading tab data");
             
-            // Preload all tab data after a short delay
-            setTimeout(() => {
-                console.log("Preloading all tab data");
-                loadPatternData();
-                loadTimeSeriesData();
-                loadWinnersData();
-                // Only load correlations data if tab exists
-                if (document.getElementById('correlations-tab')) {
-                    loadCorrelationsData();
+            // Check for jquery and bootstrap
+            console.log("jQuery loaded: ", typeof jQuery !== 'undefined');
+            console.log("Bootstrap loaded: ", typeof bootstrap !== 'undefined');
+            
+            // Check if all tab content containers exist 
+            console.log("Looking for content containers:");
+            console.log("- Patterns container:", document.getElementById('patterns-content') ? 'found ✓' : 'missing ✗');
+            console.log("- Time-series container:", document.getElementById('timeseries-content') ? 'found ✓' : 'missing ✗');
+            console.log("- Winners container:", document.getElementById('winners-content') ? 'found ✓' : 'missing ✗'); 
+            console.log("- Correlations container:", document.getElementById('correlations-content') ? 'found ✓' : 'missing ✗');
+            
+            // Log which tabs are available
+            console.log("Available tabs:", 
+                document.getElementById('frequency-tab') ? 'frequency ✓' : 'frequency ✗',
+                document.getElementById('patterns-tab') ? 'patterns ✓' : 'patterns ✗',
+                document.getElementById('timeseries-tab') ? 'timeseries ✓' : 'timeseries ✗',
+                document.getElementById('winners-tab') ? 'winners ✓' : 'winners ✗',
+                document.getElementById('correlations-tab') ? 'correlations ✓' : 'correlations ✗'
+            );
+            
+            // Verify API endpoints
+            console.log("Checking API endpoints to use:");
+            console.log("- Patterns API endpoint: /api/lottery-analysis/patterns");
+            console.log("- Time Series API endpoint: /api/lottery-analysis/time-series");
+            console.log("- Winners API endpoint: /api/lottery-analysis/winners");
+            console.log("- Correlations API endpoint: /api/lottery-analysis/correlations");
+            
+            // Don't preload automatically - let user click on tabs
+            console.log("Skipping preloading - will load data when tabs are clicked");
+            
+            // Optional: Manually click on first tab to ensure it's active
+            const firstTab = document.querySelector('button[data-bs-toggle="tab"].active');
+            if (firstTab) {
+                console.log("First tab is already active:", firstTab.id);
+            } else {
+                console.log("No active tab found, activating frequency tab");
+                const frequencyTab = document.getElementById('frequency-tab');
+                if (frequencyTab) {
+                    frequencyTab.click();
                 }
-            }, 1000);
+            }
         });
         
         // Initialize Bootstrap 5 tabs
         const triggerTabList = document.querySelectorAll('button[data-bs-toggle="tab"]');
         triggerTabList.forEach(triggerEl => {
-            const tabTrigger = new bootstrap.Tab(triggerEl);
-            
-            triggerEl.addEventListener('click', function(event) {
-                event.preventDefault();
-                tabTrigger.show();
-            });
-            
-            // Also add event listener for when tab is shown
-            triggerEl.addEventListener('shown.bs.tab', function(event) {
-                console.log(`Tab shown: ${event.target.id}`);
-                
-                // Find the tab configuration to get the load function
-                const tabConfig = tabs.find(tab => tab.id === event.target.id);
-                
-                // If we have a load function, call it
-                if (tabConfig && tabConfig.loadFunction) {
-                    console.log(`Loading data for ${tabConfig.id}`);
-                    tabConfig.loadFunction();
+            try {
+                // Only create Tab if bootstrap is available
+                let tabTrigger = null;
+                if (typeof bootstrap !== 'undefined') {
+                    tabTrigger = new bootstrap.Tab(triggerEl);
+                } else {
+                    console.error("Bootstrap not loaded - can't initialize tabs");
                 }
-            });
+                
+                triggerEl.addEventListener('click', function(event) {
+                    console.log(`Tab clicked: ${triggerEl.id}`);
+                    event.preventDefault();
+                    
+                    if (tabTrigger) {
+                        tabTrigger.show();
+                    } else {
+                        // Manual tab activation if bootstrap is not available
+                        console.log("Manually activating tab");
+                        
+                        // Get all tab panes
+                        const tabPanes = document.querySelectorAll('.tab-pane');
+                        tabPanes.forEach(pane => {
+                            pane.classList.remove('show', 'active');
+                        });
+                        
+                        // Get all nav links
+                        const navLinks = document.querySelectorAll('button[data-bs-toggle="tab"]');
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            link.setAttribute('aria-selected', 'false');
+                        });
+                        
+                        // Activate this tab
+                        triggerEl.classList.add('active');
+                        triggerEl.setAttribute('aria-selected', 'true');
+                        
+                        // Activate content
+                        const target = document.querySelector(triggerEl.getAttribute('data-bs-target'));
+                        if (target) {
+                            target.classList.add('show', 'active');
+                        }
+                        
+                        // Manually trigger data loading
+                        const tabId = triggerEl.id;
+                        const tabConfig = tabs.find(tab => tab.id === tabId);
+                        if (tabConfig && tabConfig.loadFunction) {
+                            console.log(`Manually loading data for ${tabConfig.id}`);
+                            try {
+                                tabConfig.loadFunction();
+                            } catch(e) {
+                                console.error(`Error calling loadFunction for ${tabId}:`, e);
+                            }
+                        }
+                    }
+                });
+                
+                // Also add event listener for when tab is shown
+                triggerEl.addEventListener('shown.bs.tab', function(event) {
+                    console.log(`Tab shown: ${event.target.id}`);
+                    
+                    // Find the tab configuration to get the load function
+                    const tabConfig = tabs.find(tab => tab.id === event.target.id);
+                    
+                    // If we have a load function, call it
+                    if (tabConfig && tabConfig.loadFunction) {
+                        console.log(`Loading data for ${tabConfig.id}`);
+                        try {
+                            tabConfig.loadFunction();
+                        } catch(e) {
+                            console.error(`Error calling loadFunction for ${event.target.id}:`, e);
+                        }
+                    }
+                });
+            } catch(e) {
+                console.error(`Error setting up tab ${triggerEl.id}:`, e);
+            }
         });
         // Bootstrap 5 will handle the tab switching now
         
@@ -379,19 +488,41 @@
         function loadPatternData() {
             // Use querySelector to find elements within the patterns tab content
             const patternsTab = document.getElementById('patterns');
+            if (!patternsTab) {
+                console.error("Cannot find patterns tab element");
+                return;
+            }
+            
             const loading = patternsTab.querySelector('#patterns-loading');
             const content = patternsTab.querySelector('#patterns-content');
+            
+            if (!loading || !content) {
+                console.error("Cannot find loading or content elements within patterns tab", { 
+                    loadingFound: !!loading, 
+                    contentFound: !!content 
+                });
+                return;
+            }
             
             // Always reload data for better reliability
             loading.style.display = 'block';
             content.style.display = 'none';
             content.innerHTML = ''; // Clear existing content
             
-            const lotteryType = document.getElementById('lottery_type').value || '';
-            const days = document.getElementById('days').value || '365';
+            const lotteryTypeSelect = document.getElementById('lottery_type');
+            const daysSelect = document.getElementById('days');
+            
+            if (!lotteryTypeSelect || !daysSelect) {
+                console.error("Cannot find filter elements", { 
+                    lotteryTypeFound: !!lotteryTypeSelect, 
+                    daysFound: !!daysSelect 
+                });
+            }
+            
+            const lotteryType = lotteryTypeSelect ? lotteryTypeSelect.value || '' : '';
+            const days = daysSelect ? daysSelect.value || '365' : '365';
             
             console.log("Loading pattern data...");
-            
             console.log(`Requesting pattern analysis data with params: lottery_type=${lotteryType}, days=${days}`);
             
             // Debug flag to show more details
@@ -442,45 +573,38 @@
                         });
                     }
                     
-                    // Clone the response to log it
-                    const clonedResponse = response.clone();
-                    return clonedResponse.text().then(text => {
-                        if (DEBUG) {
-                            try {
-                                // Try to parse as JSON to see if it's valid
-                                const data = JSON.parse(text);
-                                console.log("Pattern API response content:", data);
+                    // Get the JSON content directly
+                    return response.json().catch(error => {
+                        console.error("Error parsing JSON:", error);
+                        
+                        // If JSON parsing fails, try to get the text to see what's wrong
+                        return response.text().then(text => {
+                            console.error("Invalid JSON received:", text.substring(0, 500));
+                            throw new Error("Failed to parse API response as JSON");
+                        });
+                    }).then(data => {
+                        // Log the parsed data
+                        console.log("Pattern API response parsed successfully");
+                        
+                        // Check for typical error structures
+                        if (typeof data === 'object') {
+                            if (data.error) {
+                                console.error("API returned error object:", data.error);
+                            } else {
+                                // Check if it's a dictionary with lottery types as keys
+                                const lotteryTypes = Object.keys(data);
+                                console.log(`Response contains data for ${lotteryTypes.length} lottery types:`, lotteryTypes);
                                 
-                                // Check for typical error structures
-                                if (typeof data === 'object') {
-                                    if (data.error) {
-                                        console.error("API returned error object:", data.error);
-                                    } else {
-                                        // Check if it's a dictionary with lottery types as keys
-                                        const lotteryTypes = Object.keys(data);
-                                        console.log(`Response contains data for ${lotteryTypes.length} lottery types:`, lotteryTypes);
-                                        
-                                        // Check for per-lottery type errors
-                                        lotteryTypes.forEach(lt => {
-                                            if (data[lt] && data[lt].error) {
-                                                console.warn(`Error for ${lt}:`, data[lt].error);
-                                            }
-                                        });
+                                // Check for per-lottery type errors
+                                lotteryTypes.forEach(lt => {
+                                    if (data[lt] && data[lt].error) {
+                                        console.warn(`Error for ${lt}:`, data[lt].error);
                                     }
-                                }
-                                
-                                // Now parse the response as JSON for actual processing
-                                return JSON.parse(text);
-                            } catch(e) {
-                                // If not valid JSON, log the raw text
-                                console.error("Pattern API invalid JSON response:", text.substring(0, 200));
-                                console.error("JSON parse error:", e);
-                                throw new Error("Failed to parse API response as JSON");
+                                });
                             }
-                        } else {
-                            // Regular non-debug mode
-                            return JSON.parse(text);
                         }
+                        
+                        return data;
                     });
                 })
                 .then(data => {
@@ -491,6 +615,8 @@
                         // Count how many items have errors
                         const errorCount = Object.values(data).filter(item => item && item.error).length;
                         const totalItems = Object.keys(data).length;
+                        
+                        console.log(`Pattern data stats: ${errorCount}/${totalItems} items have errors`);
                         
                         // If all items have errors, show a consolidated error message
                         if (errorCount === totalItems) {
@@ -509,7 +635,9 @@
                             `;
                         } else {
                             // Process individual lottery types
+                            console.log("Processing lottery types:", Object.keys(data));
                             for (const [lotteryType, typeData] of Object.entries(data)) {
+                                console.log(`Processing ${lotteryType} data:`, typeData ? "data present" : "no data");
                                 if (!typeData || typeData.error) {
                                     html += `
                                         <div class="col-md-6 mb-4">
@@ -599,16 +727,60 @@
                 })
                 .catch(error => {
                     console.error('Error loading pattern analysis:', error);
+                    
+                    // Define suggested actions based on error message
+                    const suggestedActions = [];
+                    
+                    if (error.message && error.message.includes('login')) {
+                        suggestedActions.push('Your session may have expired. Try refreshing the page and logging in again.');
+                    } else if (error.message && error.message.includes('response')) {
+                        suggestedActions.push('There may be network connectivity issues. Check your internet connection.');
+                        suggestedActions.push('The server may be under heavy load. Wait a moment and try again.');
+                    } else if (error.message && error.message.includes('parse')) {
+                        suggestedActions.push('The API returned an invalid response format. This may be a temporary server issue.');
+                    } else {
+                        suggestedActions.push('Refresh the page and try again.');
+                        suggestedActions.push('Try selecting a different lottery type or date range.');
+                    }
+                    
                     content.innerHTML = `
                         <div class="col-12">
-                            <div class="alert alert-danger">
-                                <h5>Error Loading Analysis</h5>
-                                <p>There was a problem loading the pattern analysis data:</p>
-                                <p>${error.message || 'Unknown error'}</p>
-                                <p>Please try again later or contact support if the problem persists.</p>
+                            <div class="card border-left-danger shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold text-danger">Error Loading Pattern Analysis</h6>
+                                    <button class="btn btn-sm btn-outline-primary retry-patterns-btn">
+                                        <i class="fas fa-sync"></i> Retry
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-danger">
+                                        <p>There was a problem loading the pattern analysis data:</p>
+                                        <p><strong>${error.message || 'Unknown error'}</strong></p>
+                                    </div>
+                                    <div class="mt-3">
+                                        <h6 class="font-weight-bold">Suggested actions:</h6>
+                                        <ul class="text-left">
+                                            ${suggestedActions.map(action => `<li>${action}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                    <div class="mt-3 small text-muted">
+                                        <p>Technical details: ${new Date().toISOString()}</p>
+                                        <p>If the problem persists, please contact support with this information.</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     `;
+                    
+                    // Add retry functionality
+                    const retryButton = content.querySelector('.retry-patterns-btn');
+                    if (retryButton) {
+                        retryButton.addEventListener('click', function() {
+                            console.log('Retrying pattern data load...');
+                            loadPatternData();
+                        });
+                    }
+                    
                     loading.style.display = 'none';
                     content.style.display = 'block';
                 });
@@ -618,27 +790,88 @@
         function loadTimeSeriesData() {
             // Use querySelector to find elements within the timeseries tab content
             const timeseriesTab = document.getElementById('timeseries');
+            if (!timeseriesTab) {
+                console.error("Cannot find timeseries tab element");
+                return;
+            }
+            
             const loading = timeseriesTab.querySelector('#timeseries-loading');
             const content = timeseriesTab.querySelector('#timeseries-content');
+            
+            if (!loading || !content) {
+                console.error("Cannot find loading or content elements within timeseries tab", { 
+                    loadingFound: !!loading, 
+                    contentFound: !!content 
+                });
+                return;
+            }
             
             // Always reload data for better reliability
             loading.style.display = 'block';
             content.style.display = 'none';
             content.innerHTML = ''; // Clear existing content
             
-            const lotteryType = document.getElementById('lottery_type').value || '';
-            const days = document.getElementById('days').value || '365';
+            const lotteryTypeSelect = document.getElementById('lottery_type');
+            const daysSelect = document.getElementById('days');
+            
+            if (!lotteryTypeSelect || !daysSelect) {
+                console.error("Cannot find filter elements", { 
+                    lotteryTypeFound: !!lotteryTypeSelect, 
+                    daysFound: !!daysSelect 
+                });
+            }
+            
+            const lotteryType = lotteryTypeSelect ? lotteryTypeSelect.value || '' : '';
+            const days = daysSelect ? daysSelect.value || '365' : '365';
             
             console.log("Loading time series data...");
             
-            fetchWithCSRF(`/api/lottery-analysis/time-series?lottery_type=${lotteryType}&days=${days}`)
+            fetchWithCSRF(url)
                 .then(response => {
-                    console.log("Time series API response status:", response.status);
+                    console.log("Time series API response received:", {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: Array.from(response.headers.entries()),
+                        redirected: response.redirected,
+                        url: response.url
+                    });
+                    
                     // Check if response is a redirect to login page
                     if (response.redirected && response.url.includes('/login')) {
                         throw new Error('Session expired, please refresh the page to login again');
                     }
-                    return response.json();
+                    
+                    if (!response.ok) {
+                        console.error(`API returned error status: ${response.status} (${response.statusText})`);
+                        
+                        // Try to get more error details from response
+                        return response.text().then(text => {
+                            console.error("Error response text:", text);
+                            try {
+                                // Try to parse as JSON error message
+                                const errorData = JSON.parse(text);
+                                throw new Error(`API error: ${errorData.error || errorData.message || response.statusText}`);
+                            } catch (e) {
+                                // If not valid JSON, use raw text
+                                throw new Error(`API error: ${text.substring(0, 100)}...`);
+                            }
+                        });
+                    }
+                    
+                    // Get the JSON content directly
+                    return response.json().catch(error => {
+                        console.error("Error parsing JSON:", error);
+                        
+                        // If JSON parsing fails, try to get the text to see what's wrong
+                        return response.text().then(text => {
+                            console.error("Invalid JSON received:", text.substring(0, 500));
+                            throw new Error("Failed to parse API response as JSON");
+                        });
+                    }).then(data => {
+                        // Log the parsed data
+                        console.log("Time series API response parsed successfully");
+                        return data;
+                    });
                 })
                 .then(data => {
                     console.log("Time series data received:", data);
@@ -713,7 +946,60 @@
                 })
                 .catch(error => {
                     console.error('Error loading time series data:', error);
-                    content.innerHTML = '<div class="col-12"><div class="alert alert-danger">Error loading time series data</div></div>';
+                    
+                    // Define suggested actions based on error message
+                    const suggestedActions = [];
+                    
+                    if (error.message && error.message.includes('login')) {
+                        suggestedActions.push('Your session may have expired. Try refreshing the page and logging in again.');
+                    } else if (error.message && error.message.includes('response')) {
+                        suggestedActions.push('There may be network connectivity issues. Check your internet connection.');
+                        suggestedActions.push('The server may be under heavy load. Wait a moment and try again.');
+                    } else if (error.message && error.message.includes('parse')) {
+                        suggestedActions.push('The API returned an invalid response format. This may be a temporary server issue.');
+                    } else {
+                        suggestedActions.push('Refresh the page and try again.');
+                        suggestedActions.push('Try selecting a different lottery type or date range.');
+                    }
+                    
+                    content.innerHTML = `
+                        <div class="col-12">
+                            <div class="card border-left-danger shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold text-danger">Error Loading Time Series Analysis</h6>
+                                    <button class="btn btn-sm btn-outline-primary retry-timeseries-btn">
+                                        <i class="fas fa-sync"></i> Retry
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-danger">
+                                        <p>There was a problem loading the time series analysis data:</p>
+                                        <p><strong>${error.message || 'Unknown error'}</strong></p>
+                                    </div>
+                                    <div class="mt-3">
+                                        <h6 class="font-weight-bold">Suggested actions:</h6>
+                                        <ul class="text-left">
+                                            ${suggestedActions.map(action => `<li>${action}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                    <div class="mt-3 small text-muted">
+                                        <p>Technical details: ${new Date().toISOString()}</p>
+                                        <p>If the problem persists, please contact support with this information.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add retry functionality
+                    const retryButton = content.querySelector('.retry-timeseries-btn');
+                    if (retryButton) {
+                        retryButton.addEventListener('click', function() {
+                            console.log('Retrying time series data load...');
+                            loadTimeSeriesData();
+                        });
+                    }
+                    
                     loading.style.display = 'none';
                     content.style.display = 'block';
                 });
@@ -723,28 +1009,102 @@
         function loadWinnersData() {
             // Use querySelector to find elements within the winners tab content
             const winnersTab = document.getElementById('winners');
+            if (!winnersTab) {
+                console.error("Cannot find winners tab element");
+                return;
+            }
+            
             const loading = winnersTab.querySelector('#winners-loading');
             const content = winnersTab.querySelector('#winners-content');
+            
+            if (!loading || !content) {
+                console.error("Cannot find loading or content elements within winners tab", { 
+                    loadingFound: !!loading, 
+                    contentFound: !!content 
+                });
+                return;
+            }
             
             // Always reload data for better reliability
             loading.style.display = 'block';
             content.style.display = 'none';
             content.innerHTML = ''; // Clear existing content
             
-            const lotteryType = document.getElementById('lottery_type').value || '';
-            const days = document.getElementById('days').value || '365';
+            const lotteryTypeSelect = document.getElementById('lottery_type');
+            const daysSelect = document.getElementById('days');
+            
+            if (!lotteryTypeSelect || !daysSelect) {
+                console.error("Cannot find filter elements", { 
+                    lotteryTypeFound: !!lotteryTypeSelect, 
+                    daysFound: !!daysSelect 
+                });
+            }
+            
+            const lotteryType = lotteryTypeSelect ? lotteryTypeSelect.value || '' : '';
+            const days = daysSelect ? daysSelect.value || '365' : '365';
             
             console.log("Loading winners data...");
             
-            fetchWithCSRF(`/api/lottery-analysis/winners?lottery_type=${lotteryType}&days=${days}`)
+            // Add timestamp to prevent caching
+            const timestamp = new Date().getTime();
+            const url = `/api/lottery-analysis/winners?lottery_type=${lotteryType}&days=${days}&_ts=${timestamp}`;
+            
+            console.log(`Fetching from URL: ${url}`);
+            document.getElementById('winners-loading').innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <p class="mt-2">Loading winners analysis data...</p>
+                <p class="small text-muted">Request URL: ${url}</p>
+            `;
+            
+            fetchWithCSRF(url)
                 .then(response => {
-                        console.log("Winners API response status:", response.status);
-                        // Check if response is a redirect to login page
-                        if (response.redirected && response.url.includes('/login')) {
-                            throw new Error('Session expired, please refresh the page to login again');
-                        }
-                        return response.json();
-                    })
+                    console.log("Winners API response received:", {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: Array.from(response.headers.entries()),
+                        redirected: response.redirected,
+                        url: response.url
+                    });
+                    
+                    // Check if response is a redirect to login page
+                    if (response.redirected && response.url.includes('/login')) {
+                        throw new Error('Session expired, please refresh the page to login again');
+                    }
+                    
+                    if (!response.ok) {
+                        console.error(`API returned error status: ${response.status} (${response.statusText})`);
+                        
+                        // Try to get more error details from response
+                        return response.text().then(text => {
+                            console.error("Error response text:", text);
+                            try {
+                                // Try to parse as JSON error message
+                                const errorData = JSON.parse(text);
+                                throw new Error(`API error: ${errorData.error || errorData.message || response.statusText}`);
+                            } catch (e) {
+                                // If not valid JSON, use raw text
+                                throw new Error(`API error: ${text.substring(0, 100)}...`);
+                            }
+                        });
+                    }
+                    
+                    // Get the JSON content directly
+                    return response.json().catch(error => {
+                        console.error("Error parsing JSON:", error);
+                        
+                        // If JSON parsing fails, try to get the text to see what's wrong
+                        return response.text().then(text => {
+                            console.error("Invalid JSON received:", text.substring(0, 500));
+                            throw new Error("Failed to parse API response as JSON");
+                        });
+                    }).then(data => {
+                        // Log the parsed data
+                        console.log("Winners API response parsed successfully");
+                        return data;
+                    });
+                })
                     .then(data => {
                         console.log("Winners data received:", data);
                         
@@ -816,7 +1176,60 @@
                     })
                     .catch(error => {
                         console.error('Error loading winner data:', error);
-                        content.innerHTML = '<div class="col-12"><div class="alert alert-danger">Error loading winner data</div></div>';
+                        
+                        // Define suggested actions based on error message
+                        const suggestedActions = [];
+                        
+                        if (error.message && error.message.includes('login')) {
+                            suggestedActions.push('Your session may have expired. Try refreshing the page and logging in again.');
+                        } else if (error.message && error.message.includes('response')) {
+                            suggestedActions.push('There may be network connectivity issues. Check your internet connection.');
+                            suggestedActions.push('The server may be under heavy load. Wait a moment and try again.');
+                        } else if (error.message && error.message.includes('parse')) {
+                            suggestedActions.push('The API returned an invalid response format. This may be a temporary server issue.');
+                        } else {
+                            suggestedActions.push('Refresh the page and try again.');
+                            suggestedActions.push('Try selecting a different lottery type or date range.');
+                        }
+                        
+                        content.innerHTML = `
+                            <div class="col-12">
+                                <div class="card border-left-danger shadow mb-4">
+                                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                        <h6 class="m-0 font-weight-bold text-danger">Error Loading Winner Analysis</h6>
+                                        <button class="btn btn-sm btn-outline-primary retry-winners-btn">
+                                            <i class="fas fa-sync"></i> Retry
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="alert alert-danger">
+                                            <p>There was a problem loading the winner analysis data:</p>
+                                            <p><strong>${error.message || 'Unknown error'}</strong></p>
+                                        </div>
+                                        <div class="mt-3">
+                                            <h6 class="font-weight-bold">Suggested actions:</h6>
+                                            <ul class="text-left">
+                                                ${suggestedActions.map(action => `<li>${action}</li>`).join('')}
+                                            </ul>
+                                        </div>
+                                        <div class="mt-3 small text-muted">
+                                            <p>Technical details: ${new Date().toISOString()}</p>
+                                            <p>If the problem persists, please contact support with this information.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Add retry functionality
+                        const retryButton = content.querySelector('.retry-winners-btn');
+                        if (retryButton) {
+                            retryButton.addEventListener('click', function() {
+                                console.log('Retrying winners data load...');
+                                loadWinnersData();
+                            });
+                        }
+                        
                         loading.style.display = 'none';
                         content.style.display = 'block';
                     });
@@ -826,26 +1239,95 @@
         function loadCorrelationsData() {
             // Use querySelector to find elements within the correlations tab content
             const correlationsTab = document.getElementById('correlations');
+            if (!correlationsTab) {
+                console.error("Cannot find correlations tab element");
+                return;
+            }
+            
             const loading = correlationsTab.querySelector('#correlations-loading');
             const content = correlationsTab.querySelector('#correlations-content');
+            
+            if (!loading || !content) {
+                console.error("Cannot find loading or content elements within correlations tab", { 
+                    loadingFound: !!loading, 
+                    contentFound: !!content 
+                });
+                return;
+            }
             
             // Always reload data for better reliability
             loading.style.display = 'block';
             content.style.display = 'none';
             content.innerHTML = ''; // Clear existing content
             
-            const days = document.getElementById('days').value || '365';
+            const daysSelect = document.getElementById('days');
+            if (!daysSelect) {
+                console.error("Cannot find days filter element");
+            }
+            
+            const days = daysSelect ? daysSelect.value || '365' : '365';
             
             console.log("Loading correlations data...");
             
-            fetchWithCSRF(`/api/lottery-analysis/correlations?days=${days}`)
+            // Add timestamp to prevent caching
+            const timestamp = new Date().getTime();
+            const url = `/api/lottery-analysis/correlations?days=${days}&_ts=${timestamp}`;
+            
+            console.log(`Fetching from URL: ${url}`);
+            document.getElementById('correlations-loading').innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <p class="mt-2">Loading correlation analysis data...</p>
+                <p class="small text-muted">Request URL: ${url}</p>
+            `;
+            
+            fetchWithCSRF(url)
                 .then(response => {
-                    console.log("Correlations API response status:", response.status);
+                    console.log("Correlations API response received:", {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: Array.from(response.headers.entries()),
+                        redirected: response.redirected,
+                        url: response.url
+                    });
+                    
                     // Check if response is a redirect to login page
                     if (response.redirected && response.url.includes('/login')) {
                         throw new Error('Session expired, please refresh the page to login again');
                     }
-                    return response.json();
+                    
+                    if (!response.ok) {
+                        console.error(`API returned error status: ${response.status} (${response.statusText})`);
+                        
+                        // Try to get more error details from response
+                        return response.text().then(text => {
+                            console.error("Error response text:", text);
+                            try {
+                                // Try to parse as JSON error message
+                                const errorData = JSON.parse(text);
+                                throw new Error(`API error: ${errorData.error || errorData.message || response.statusText}`);
+                            } catch (e) {
+                                // If not valid JSON, use raw text
+                                throw new Error(`API error: ${text.substring(0, 100)}...`);
+                            }
+                        });
+                    }
+                    
+                    // Get the JSON content directly
+                    return response.json().catch(error => {
+                        console.error("Error parsing JSON:", error);
+                        
+                        // If JSON parsing fails, try to get the text to see what's wrong
+                        return response.text().then(text => {
+                            console.error("Invalid JSON received:", text.substring(0, 500));
+                            throw new Error("Failed to parse API response as JSON");
+                        });
+                    }).then(data => {
+                        // Log the parsed data
+                        console.log("Correlations API response parsed successfully");
+                        return data;
+                    });
                 })
                 .then(data => {
                     console.log("Correlations data received:", data);
@@ -932,7 +1414,60 @@
                 })
                 .catch(error => {
                     console.error('Error loading correlation data:', error);
-                    content.innerHTML = '<div class="col-12"><div class="alert alert-danger">Error loading correlation data</div></div>';
+                    
+                    // Define suggested actions based on error message
+                    const suggestedActions = [];
+                    
+                    if (error.message && error.message.includes('login')) {
+                        suggestedActions.push('Your session may have expired. Try refreshing the page and logging in again.');
+                    } else if (error.message && error.message.includes('response')) {
+                        suggestedActions.push('There may be network connectivity issues. Check your internet connection.');
+                        suggestedActions.push('The server may be under heavy load. Wait a moment and try again.');
+                    } else if (error.message && error.message.includes('parse')) {
+                        suggestedActions.push('The API returned an invalid response format. This may be a temporary server issue.');
+                    } else {
+                        suggestedActions.push('Refresh the page and try again.');
+                        suggestedActions.push('Try selecting a different date range. Correlations need sufficient data to generate results.');
+                    }
+                    
+                    content.innerHTML = `
+                        <div class="col-12">
+                            <div class="card border-left-danger shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold text-danger">Error Loading Correlation Analysis</h6>
+                                    <button class="btn btn-sm btn-outline-primary retry-correlations-btn">
+                                        <i class="fas fa-sync"></i> Retry
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-danger">
+                                        <p>There was a problem loading the correlation analysis data:</p>
+                                        <p><strong>${error.message || 'Unknown error'}</strong></p>
+                                    </div>
+                                    <div class="mt-3">
+                                        <h6 class="font-weight-bold">Suggested actions:</h6>
+                                        <ul class="text-left">
+                                            ${suggestedActions.map(action => `<li>${action}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                    <div class="mt-3 small text-muted">
+                                        <p>Technical details: ${new Date().toISOString()}</p>
+                                        <p>If the problem persists, please contact support with this information.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add retry functionality
+                    const retryButton = content.querySelector('.retry-correlations-btn');
+                    if (retryButton) {
+                        retryButton.addEventListener('click', function() {
+                            console.log('Retrying correlations data load...');
+                            loadCorrelationsData();
+                        });
+                    }
+                    
                     loading.style.display = 'none';
                     content.style.display = 'block';
                 });
