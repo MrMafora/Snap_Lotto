@@ -306,7 +306,7 @@
         
         // Create AbortController for timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout - longer for complex operations
         
         // Prepare final options
         const finalOptions = {
@@ -324,8 +324,15 @@
                 clearTimeout(timeoutId); // Clear the timeout
                 console.log(`Fetch response for ${url}:`, {
                     status: response.status,
-                    statusText: response.statusText
+                    statusText: response.statusText,
+                    type: response.type
                 });
+                
+                // Add more logging for debugging
+                if (!response.ok) {
+                    console.warn(`Response not OK: ${response.status} ${response.statusText}`);
+                }
+                
                 return response;
             })
             .catch(error => {
@@ -334,11 +341,19 @@
                 
                 // Enhance error message based on type
                 if (error.name === 'AbortError') {
-                    throw new Error('Request timed out. The server took too long to respond.');
+                    throw new Error('Request timed out. The server took too long to respond. This might happen with complex analysis operations.');
                 } else if (!navigator.onLine) {
                     throw new Error('Network connection lost. Please check your internet connection and try again.');
                 } else {
-                    throw error; // Rethrow original error if it's something else
+                    console.error('Error details:', {
+                        name: error.name,
+                        message: error.message,
+                        stack: error.stack
+                    });
+                    // Create a more user-friendly error with the original error info attached
+                    const enhancedError = new Error(`Network request failed: ${error.message}`);
+                    enhancedError.originalError = error;
+                    throw enhancedError;
                 }
             });
     }
@@ -580,9 +595,22 @@
                         // If JSON parsing fails, try to get the text to see what's wrong
                         return response.text().then(text => {
                             console.error("Invalid JSON received:", text.substring(0, 500));
+                            
+                            // If the response is empty, return an empty object rather than throwing
+                            if (!text.trim()) {
+                                console.warn("Empty response received, returning empty object");
+                                return {}; // Return empty object instead of throwing
+                            }
+                            
                             throw new Error("Failed to parse API response as JSON");
                         });
                     }).then(data => {
+                        // Make sure we always have a valid object
+                        if (!data) {
+                            console.warn("Null or undefined data received, using empty object");
+                            data = {};
+                        }
+                        
                         // Log the parsed data
                         console.log("Pattern API response parsed successfully");
                         
@@ -865,9 +893,22 @@
                         // If JSON parsing fails, try to get the text to see what's wrong
                         return response.text().then(text => {
                             console.error("Invalid JSON received:", text.substring(0, 500));
+                            
+                            // If the response is empty, return an empty object rather than throwing
+                            if (!text.trim()) {
+                                console.warn("Empty response received, returning empty object");
+                                return {}; // Return empty object instead of throwing
+                            }
+                            
                             throw new Error("Failed to parse API response as JSON");
                         });
                     }).then(data => {
+                        // Make sure we always have a valid object
+                        if (!data) {
+                            console.warn("Null or undefined data received, using empty object");
+                            data = {};
+                        }
+                        
                         // Log the parsed data
                         console.log("Time series API response parsed successfully");
                         return data;
@@ -1097,9 +1138,22 @@
                         // If JSON parsing fails, try to get the text to see what's wrong
                         return response.text().then(text => {
                             console.error("Invalid JSON received:", text.substring(0, 500));
+                            
+                            // If the response is empty, return an empty object rather than throwing
+                            if (!text.trim()) {
+                                console.warn("Empty response received, returning empty object");
+                                return {}; // Return empty object instead of throwing
+                            }
+                            
                             throw new Error("Failed to parse API response as JSON");
                         });
                     }).then(data => {
+                        // Make sure we always have a valid object
+                        if (!data) {
+                            console.warn("Null or undefined data received, using empty object");
+                            data = {};
+                        }
+                        
                         // Log the parsed data
                         console.log("Winners API response parsed successfully");
                         return data;
@@ -1321,9 +1375,22 @@
                         // If JSON parsing fails, try to get the text to see what's wrong
                         return response.text().then(text => {
                             console.error("Invalid JSON received:", text.substring(0, 500));
+                            
+                            // If the response is empty, return an empty object rather than throwing
+                            if (!text.trim()) {
+                                console.warn("Empty response received, returning empty object");
+                                return {}; // Return empty object instead of throwing
+                            }
+                            
                             throw new Error("Failed to parse API response as JSON");
                         });
                     }).then(data => {
+                        // Make sure we always have a valid object
+                        if (!data) {
+                            console.warn("Null or undefined data received, using empty object");
+                            data = {};
+                        }
+                        
                         // Log the parsed data
                         console.log("Correlations API response parsed successfully");
                         return data;
@@ -1342,61 +1409,144 @@
                                 </div>
                             </div>
                         `;
-                    } else if (data && data.correlation_matrix) {
-                        // Display the correlation heatmap
-                        content.innerHTML = `
-                            <div class="col-12 mb-4">
-                                <div class="card border-left-primary shadow h-100 py-2">
-                                    <div class="card-body">
-                                        <h5 class="mb-3">Cross-Lottery Correlation Heatmap</h5>
-                                        <div class="correlation-chart">
-                                            <img src="data:image/png;base64,${data.correlation_matrix}" 
-                                                 alt="Correlation Heatmap" 
-                                                 class="img-fluid">
-                                        </div>
-                                        <div class="mt-3">
-                                            <p class="text-muted">This heatmap shows correlations between different lottery types. 
-                                            Brighter colors indicate stronger correlation.</p>
+                    } else if (data) {
+                        // Function to extract chart_base64 and strong_correlations from potentially nested data
+                        const extractData = (responseData) => {
+                            let chart = null;
+                            let correlations = null;
+                            
+                            // Check direct properties first
+                            if (responseData.chart_base64) {
+                                chart = responseData.chart_base64;
+                            }
+                            
+                            if (responseData.strong_correlations) {
+                                correlations = responseData.strong_correlations;
+                            }
+                            
+                            // If not found directly, check for nested structures
+                            if (!chart || !correlations) {
+                                for (const key in responseData) {
+                                    if (typeof responseData[key] === 'object' && responseData[key] !== null) {
+                                        // If it's a nested object
+                                        if (!chart && responseData[key].chart_base64) {
+                                            chart = responseData[key].chart_base64;
+                                        }
+                                        
+                                        if (!correlations && responseData[key].strong_correlations) {
+                                            correlations = responseData[key].strong_correlations;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            return { chart, correlations };
+                        };
+                        
+                        // Extract data from response
+                        const extractedData = extractData(data);
+                        
+                        // Display the correlation heatmap if chart data is available
+                        if (extractedData.chart) {
+                            content.innerHTML = `
+                                <div class="col-12 mb-4">
+                                    <div class="card border-left-primary shadow h-100 py-2">
+                                        <div class="card-body">
+                                            <h5 class="mb-3">Cross-Lottery Correlation Heatmap</h5>
+                                            <div class="correlation-chart">
+                                                <img src="data:image/png;base64,${extractedData.chart}" 
+                                                     alt="Correlation Heatmap" 
+                                                     class="img-fluid">
+                                            </div>
+                                            <div class="mt-3">
+                                                <p class="text-muted">This heatmap shows correlations between different lottery types. 
+                                                Brighter colors indicate stronger correlation.</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        `;
+                            `;
+                        } else {
+                            content.innerHTML = '<div class="col-12"><div class="alert alert-warning">No correlation heatmap data available.</div></div>';
+                        }
                         
-                        // If we have per-lottery insights
-                        if (data.lottery_insights && Object.keys(data.lottery_insights).length > 0) {
+                        // Display strong correlations as insights if available
+                        if (extractedData.correlations && extractedData.correlations.length > 0) {
                             let insightsHtml = `
                                 <div class="col-12 mt-3">
                                     <div class="card shadow h-100">
                                         <div class="card-header py-3">
-                                            <h6 class="m-0 font-weight-bold text-primary">Correlation Insights</h6>
+                                            <h6 class="m-0 font-weight-bold text-primary">Strong Correlations</h6>
                                         </div>
                                         <div class="card-body">
                                             <div class="row">
+                                                <div class="col-12">
+                                                    <div class="table-responsive">
+                                                        <table class="table table-bordered">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Feature 1</th>
+                                                                    <th>Feature 2</th>
+                                                                    <th>Correlation</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
                             `;
                             
-                            for (const [lotteryType, insights] of Object.entries(data.lottery_insights)) {
-                                if (insights && insights.length > 0) {
-                                    insightsHtml += `
-                                        <div class="col-md-6 mb-4">
-                                            <div class="card border-left-info shadow h-100 py-2">
-                                                <div class="card-body">
-                                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                                        ${lotteryType}
-                                                    </div>
-                                                    <div class="mt-2">
-                                                        <ul>
-                                                            ${insights.map(insight => `<li>${insight}</li>`).join('')}
-                                                        </ul>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
+                            // Sort correlations by absolute value (strongest first)
+                            const sortedCorrelations = [...extractedData.correlations].sort((a, b) => 
+                                Math.abs(b.correlation) - Math.abs(a.correlation)
+                            );
+                            
+                            for (const correlation of sortedCorrelations) {
+                                // Determine color based on correlation value
+                                let correlationClass = '';
+                                if (correlation.correlation > 0.7) {
+                                    correlationClass = 'text-success font-weight-bold';  // Strong positive
+                                } else if (correlation.correlation > 0.3) {
+                                    correlationClass = 'text-success';  // Moderate positive
+                                } else if (correlation.correlation < -0.7) {
+                                    correlationClass = 'text-danger font-weight-bold';  // Strong negative
+                                } else if (correlation.correlation < -0.3) {
+                                    correlationClass = 'text-danger';  // Moderate negative
                                 }
+                                
+                                insightsHtml += `
+                                    <tr>
+                                        <td>${correlation.feature1}</td>
+                                        <td>${correlation.feature2}</td>
+                                        <td class="${correlationClass}">${correlation.correlation.toFixed(3)}</td>
+                                    </tr>
+                                `;
                             }
                             
                             insightsHtml += `
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    <div class="mt-3">
+                                                        <div class="text-muted small">
+                                                            <p><strong>Interpretation Guide:</strong></p>
+                                                            <ul>
+                                                                <li><span class="text-success font-weight-bold">Strong positive correlation</span>: When one value increases, the other tends to increase strongly</li>
+                                                                <li><span class="text-success">Moderate positive correlation</span>: When one value increases, the other tends to increase moderately</li>
+                                                                <li><span class="text-danger font-weight-bold">Strong negative correlation</span>: When one value increases, the other tends to decrease strongly</li>
+                                                                <li><span class="text-danger">Moderate negative correlation</span>: When one value increases, the other tends to decrease moderately</li>
+                                                            </ul>
+                                                            <p>Features are structured as <strong>Lottery Type_Statistic</strong>, where statistics include:</p>
+                                                            <ul class="list-inline">
+                                                                <li class="list-inline-item"><small>mean</small></li>
+                                                                <li class="list-inline-item"><small>std</small></li>
+                                                                <li class="list-inline-item"><small>min</small></li>
+                                                                <li class="list-inline-item"><small>max</small></li>
+                                                                <li class="list-inline-item"><small>range</small></li>
+                                                                <li class="list-inline-item"><small>sum</small></li>
+                                                                <li class="list-inline-item"><small>even_count</small></li>
+                                                                <li class="list-inline-item"><small>odd_count</small></li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
