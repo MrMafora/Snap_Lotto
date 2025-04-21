@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /login/
+Disallow: /logout/
+Disallow: /api/
+
+# Crawl delay for better server performance
+Crawl-delay: 10
+
+# Sitemap location
+Sitemap: https://www.snaplotto.co.za/sitemap.xml

@@ -1,6 +1,39 @@
 {% extends "base.html" %}
 
-{% block title %}Lottery Ticket Scanner | Snap Lotto{% endblock %}
+{% block title %}South African Lottery Ticket Scanner | Check If You've Won | Snap Lotto{% endblock %}
+
+{% block meta_description %}Upload your South African lottery ticket and instantly check if you've won. Compatible with Lotto, PowerBall, Daily Lotto and all bonus draws. No registration required.{% endblock %}
+
+{% block meta_keywords %}lottery ticket scanner, check lottery ticket, South African lottery checker, Lotto ticket scanner, PowerBall ticket scanner, lottery number checker{% endblock %}
+
+{% block og_title %}Free South African Lottery Ticket Scanner | Check If You've Won{% endblock %}
+{% block og_description %}Upload a photo of your lottery ticket and our AI will instantly check if you've won against the latest South African lottery results. Fast, free and secure.{% endblock %}
+
+{% block head_content %}
+<!-- Structured Data for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Snap Lotto Ticket Scanner",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "All",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "ZAR"
+  },
+  "featureList": [
+    "Instant ticket scanning",
+    "AI-powered number recognition",
+    "All South African lottery games supported",
+    "No registration required",
+    "Free to use"
+  ],
+  "description": "Upload your South African lottery ticket and instantly check if you've won. Compatible with all South African lottery games."
+}
+</script>
+{% endblock %}
 
 {% block additional_head %}
 <style>

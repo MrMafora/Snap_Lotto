@@ -1,6 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}Lottery Results | Snap Lotto{% endblock %}
+{% block title %}South African Lottery Results History | Lotto, PowerBall & Daily Lotto | Snap Lotto{% endblock %}
+
+{% block meta_description %}Access complete historical results for South African Lotto, PowerBall, Daily Lotto and bonus draws. Includes winning numbers, draw dates, and jackpot information.{% endblock %}
+
+{% block meta_keywords %}South African lottery history, Lotto results archive, PowerBall historical numbers, Daily Lotto results, lottery draw archive, winning numbers history{% endblock %}
+
+{% block og_title %}Complete South African Lottery Results History | Snap Lotto{% endblock %}
+{% block og_description %}Search and filter historical results for all South African lottery games, including Lotto, PowerBall, and Daily Lotto from the official database.{% endblock %}
+
+{% block head_content %}
+<!-- Structured Data for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Table",
+  "about": "South African Lottery Results",
+  "description": "Historical archive of all South African lottery results showing draw numbers, dates and winning numbers."
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <div class="card">
