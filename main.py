@@ -212,20 +212,36 @@ def index():
             logger.error(f"Error getting division statistics: {e}")
             division_stats = {}
         
+        # Define rich meta description for SEO
+        meta_description = "Get the latest South African lottery results for Lotto, Powerball and Daily Lotto. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
+        
+        # Home page doesn't need breadcrumbs (it's the root), but we define an empty list for consistency
+        breadcrumbs = []
+        
         return render_template('index.html', 
                             latest_results=latest_results,
                             results=results_list,
                             frequent_numbers=frequent_numbers,
                             division_stats=division_stats,
-                            title="Latest Lottery Results")
+                            title="South African Lottery Results | Latest Winning Numbers",
+                            meta_description=meta_description,
+                            breadcrumbs=breadcrumbs)
     except Exception as e:
         logger.error(f"Critical error in index route: {e}")
+        # Define rich meta description for SEO even in error case
+        meta_description = "Get the latest South African lottery results for Lotto, Powerball and Daily Lotto. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
+        
+        # Define empty breadcrumbs for consistency even in error case
+        breadcrumbs = []
+        
         return render_template('index.html', 
                             latest_results={},
                             results=[],
                             frequent_numbers=[],
                             division_stats={},
-                            title="Latest Lottery Results")
+                            title="South African Lottery Results | Latest Winning Numbers",
+                            meta_description=meta_description,
+                            breadcrumbs=breadcrumbs)
 
 @app.route('/admin')
 @login_required
@@ -238,10 +254,20 @@ def admin():
     screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
     schedule_configs = ScheduleConfig.query.all()
 
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Admin Dashboard", "url": url_for('admin')}
+    ]
+
+    # Define SEO metadata
+    meta_description = "Admin dashboard for the South African lottery results system. Manage data, screenshots, schedule configurations, and system settings."
+    
     return render_template('admin/dashboard.html', 
                           screenshots=screenshots,
                           schedule_configs=schedule_configs,
-                          title="Admin Dashboard")
+                          title="Admin Dashboard | Lottery Results Management",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
 
 @app.route('/login', methods=['GET', 'POST'])
 @csrf.exempt
@@ -263,7 +289,18 @@ def login():
         else:
             flash('Invalid username or password', 'danger')
     
-    return render_template('login.html', title="Login")
+    # Define SEO metadata
+    meta_description = "Secure login for administration of the South African lottery results system. Access administrative features to manage lottery data and system settings."
+    
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Admin Login", "url": url_for('login')}
+    ]
+    
+    return render_template('login.html', 
+                          title="Admin Login | Lottery Results Management",
+                          meta_description=meta_description,
+                          breadcrumbs=breadcrumbs)
 
 @app.route('/logout')
 @login_required
@@ -275,8 +312,19 @@ def logout():
 
 @app.route('/ticket-scanner')
 def ticket_scanner():
-    """Ticket scanner page"""
-    return render_template('ticket_scanner.html', title="Ticket Scanner")
+    """Ticket scanner page - Allows users to scan and validate their lottery tickets"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Ticket Scanner", "url": url_for('ticket_scanner')}
+    ]
+    
+    # Additional SEO metadata
+    meta_description = "Check if your South African lottery ticket is a winner. Our free ticket scanner uses advanced technology to analyze and verify your lottery tickets instantly."
+    
+    return render_template('ticket_scanner.html', 
+                          title="Lottery Ticket Scanner | Check If You've Won",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
 
 @app.route('/scan-ticket', methods=['POST'])
 @csrf.exempt
@@ -341,10 +389,16 @@ def results():
     
     latest_results = data_aggregator.get_latest_results()
     
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Results", "url": url_for('results')}
+    ]
+    
     return render_template('results_overview.html',
                           lottery_types=lottery_types,
                           latest_results=latest_results,
-                          title="All Lottery Results")
+                          title="All Lottery Results",
+                          breadcrumbs=breadcrumbs)
 
 @app.route('/results/<lottery_type>')
 def lottery_results(lottery_type):
@@ -412,10 +466,17 @@ def lottery_results(lottery_type):
     # Create the pagination object
     results = PaginatedResults(items, page, per_page, len(all_results))
     
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Results", "url": url_for('results')},
+        {"name": lottery_type, "url": url_for('lottery_results', lottery_type=lottery_type)}
+    ]
+    
     return render_template('results.html', 
                            results=results, 
                            lottery_type=lottery_type,
-                           title=f"{lottery_type} Results")
+                           title=f"{lottery_type} Results",
+                           breadcrumbs=breadcrumbs)
 
 @app.route('/export-template')
 @login_required
@@ -1003,7 +1064,7 @@ def register():
 
 @app.route('/visualizations')
 def visualizations():
-    """Advanced data visualization and analytics"""
+    """Advanced data visualization and analytics for South African lottery results"""
     lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 
                     'Powerball', 'Powerball Plus', 'Daily Lotto']
     
@@ -1012,11 +1073,21 @@ def visualizations():
     latest_draw = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).first()
     latest_draw_date = latest_draw.draw_date if latest_draw else None
     
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Analytics", "url": url_for('visualizations')}
+    ]
+    
+    # Additional SEO metadata
+    meta_description = "Explore comprehensive South African lottery analytics. View frequency charts, number patterns, and winning statistics for Lotto, Powerball, and Daily Lotto games."
+    
     return render_template('visualizations.html',
                           lottery_types=lottery_types,
                           total_draws=total_draws,
                           latest_draw_date=latest_draw_date,
-                          title="Data Analytics")
+                          title="Lottery Data Analytics | Statistical Analysis & Visualizations",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
 
 @app.route('/api/visualization-data')
 def visualization_data():
@@ -1173,10 +1244,18 @@ def draw_details(lottery_type, draw_number):
         flash(f"Draw {draw_number} not found for {lottery_type}", "warning")
         return redirect(url_for('lottery_results', lottery_type=lottery_type))
     
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Results", "url": url_for('results')},
+        {"name": lottery_type, "url": url_for('lottery_results', lottery_type=lottery_type)},
+        {"name": f"Draw {draw_number}", "url": url_for('draw_details', lottery_type=lottery_type, draw_number=draw_number)}
+    ]
+    
     return render_template('draw_details.html',
                           result=result,
                           lottery_type=lottery_type,
-                          title=f"{lottery_type} Draw {draw_number} Details")
+                          title=f"{lottery_type} Draw {draw_number} Details",
+                          breadcrumbs=breadcrumbs)
 
 @app.route('/screenshot/<int:screenshot_id>')
 def view_screenshot(screenshot_id):
