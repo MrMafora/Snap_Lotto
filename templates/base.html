@@ -91,7 +91,7 @@
                         <a class="nav-link d-flex align-items-center py-2" href="/visualizations"><i class="fas fa-chart-bar me-2"></i> Analytics</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center py-2" href="/ticket-scanner"><i class="fas fa-ticket-alt me-2"></i> Scanner</a>
+                        <a class="nav-link d-flex align-items-center py-2 {% if request.path == '/ticket-scanner' or request.path == '/scan-lottery-ticket-south-africa' or request.path == '/scanner-landing' %}active{% endif %}" href="/scan-lottery-ticket-south-africa"><i class="fas fa-ticket-alt me-2"></i> Scanner</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav ms-auto">
@@ -189,7 +189,7 @@
                     </a>
                 </div>
                 <div class="col">
-                    <a href="/ticket-scanner" class="mobile-nav-link {% if request.path == '/ticket-scanner' %}active{% endif %}">
+                    <a href="/scan-lottery-ticket-south-africa" class="mobile-nav-link {% if request.path == '/ticket-scanner' or request.path == '/scan-lottery-ticket-south-africa' or request.path == '/scanner-landing' %}active{% endif %}">
                         <i class="fas fa-ticket-alt"></i>
                         <span>Scanner</span>
                     </a>
