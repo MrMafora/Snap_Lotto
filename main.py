@@ -372,6 +372,76 @@ def scan_ticket():
         logger.exception(f"Error processing ticket: {str(e)}")
         return jsonify({"error": f"Error processing ticket: {str(e)}"}), 500
 
+# Guides Routes
+@app.route('/guides')
+def guides_index():
+    """Display index of lottery guides"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Home", "url": url_for('index')},
+        {"name": "Lottery Guides", "url": url_for('guides_index')}
+    ]
+    
+    # Define SEO metadata
+    meta_description = "Comprehensive guides on how to play South African lottery games. Learn rules, strategies, and tips for Lotto, PowerBall, Daily Lotto and more."
+    
+    return render_template('guides/index.html', 
+                          title="South African Lottery Guides | Tips & How-To Articles",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
+
+@app.route('/guides/how-to-play-lotto')
+def how_to_play_lotto():
+    """Display guide on how to play Lotto"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Home", "url": url_for('index')},
+        {"name": "Lottery Guides", "url": url_for('guides_index')},
+        {"name": "How to Play Lotto", "url": url_for('how_to_play_lotto')}
+    ]
+    
+    # Define SEO metadata
+    meta_description = "Comprehensive guide on how to play the South African Lotto. Learn Lotto rules, drawing days, odds of winning, prize divisions, and expert tips."
+    
+    return render_template('guides/how_to_play_lotto.html',
+                          title="How to Play Lotto South Africa | Complete Guide & Tips",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
+
+@app.route('/guides/how-to-play-powerball')
+def how_to_play_powerball():
+    """Display guide on how to play PowerBall"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Home", "url": url_for('index')},
+        {"name": "Lottery Guides", "url": url_for('guides_index')},
+        {"name": "How to Play PowerBall", "url": url_for('how_to_play_powerball')}
+    ]
+    
+    # Define SEO metadata
+    meta_description = "Complete guide to playing PowerBall South Africa. Learn game rules, drawing schedule, odds, prize divisions, and expert strategies to increase your chances."
+    
+    # Placeholder until we create the PowerBall guide template
+    flash("PowerBall guide coming soon! Check out our Lotto guide in the meantime.", "info")
+    return redirect(url_for('guides_index'))
+
+@app.route('/guides/how-to-play-daily-lotto')
+def how_to_play_daily_lotto():
+    """Display guide on how to play Daily Lotto"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Home", "url": url_for('index')},
+        {"name": "Lottery Guides", "url": url_for('guides_index')},
+        {"name": "How to Play Daily Lotto", "url": url_for('how_to_play_daily_lotto')}
+    ]
+    
+    # Define SEO metadata
+    meta_description = "Learn how to play Daily Lotto South Africa with our comprehensive guide. Discover game rules, draw times, odds of winning, and how to claim prizes."
+    
+    # Placeholder until we create the Daily Lotto guide template
+    flash("Daily Lotto guide coming soon! Check out our Lotto guide in the meantime.", "info")
+    return redirect(url_for('guides_index'))
+
 @app.route('/results')
 def results():
     """Show overview of all lottery types with links to specific results"""
