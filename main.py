@@ -311,6 +311,7 @@ def logout():
     return redirect(url_for('index'))
 
 @app.route('/scan-lottery-ticket-south-africa')
+@app.route('/scanner-landing')
 def scanner_landing():
     """Landing page focused on the exclusive lottery ticket scanner feature"""
     # Define breadcrumbs for SEO
