@@ -316,7 +316,7 @@ def scanner_landing():
     """Landing page focused on the exclusive lottery ticket scanner feature"""
     # Define breadcrumbs for SEO
     breadcrumbs = [
-        {"name": "Scanner", "url": url_for('scanner_landing')}
+        {"name": "Lottery Ticket Scanner", "url": url_for('scanner_landing')}
     ]
     
     # Define SEO metadata
@@ -332,7 +332,8 @@ def ticket_scanner():
     """Ticket scanner page - Allows users to scan and validate their lottery tickets"""
     # Define breadcrumbs for SEO
     breadcrumbs = [
-        {"name": "Ticket Scanner", "url": url_for('ticket_scanner')}
+        {"name": "Lottery Ticket Scanner", "url": url_for('scanner_landing')},
+        {"name": "Scan Your Ticket", "url": url_for('ticket_scanner')}
     ]
     
     # Additional SEO metadata
