@@ -33,3 +33,4 @@ numpy
 pandas
 scikit-learn
 seaborn
+openai

@@ -310,6 +310,22 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('index'))
 
+@app.route('/scan-lottery-ticket-south-africa')
+def scanner_landing():
+    """Landing page focused on the exclusive lottery ticket scanner feature"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Scanner", "url": url_for('scanner_landing')}
+    ]
+    
+    # Define SEO metadata
+    meta_description = "South Africa's ONLY lottery ticket scanner app. Instantly check if your Lotto, PowerBall, or Daily Lotto ticket is a winner by uploading a photo."
+    
+    return render_template('scanner_landing.html',
+                          title="South Africa's ONLY Lottery Ticket Scanner App | Check If You've Won Instantly",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
+
 @app.route('/ticket-scanner')
 def ticket_scanner():
     """Ticket scanner page - Allows users to scan and validate their lottery tickets"""

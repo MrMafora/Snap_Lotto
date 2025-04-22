@@ -17,8 +17,8 @@
     <title>{% block title %}Snap Lotto{% endblock %}</title>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="{% block meta_description %}Snap Lotto - Comprehensive South African lottery data analysis, results tracking, and ticket scanning. Check the latest Lotto, Powerball, and Daily Lotto results.{% endblock %}">
-    <meta name="keywords" content="{% block meta_keywords %}South African lottery, Lotto results, Powerball results, Daily Lotto, lottery analytics, lottery ticket scanner{% endblock %}">
+    <meta name="description" content="{% block meta_description %}Snap Lotto - South Africa's ONLY app that scans lottery tickets to instantly check if you've won. Get the latest Lotto, PowerBall, and Daily Lotto results with our exclusive scanner technology.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}South African lottery ticket scanner, check lottery ticket South Africa, scan Lotto ticket, PowerBall ticket scanner, Daily Lotto results, lottery ticket checker{% endblock %}">
     <meta name="author" content="Snap Lotto">
     <meta name="robots" content="index, follow">
     <meta name="language" content="English">
@@ -26,15 +26,15 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url }}">
-    <meta property="og:title" content="{% block og_title %}Snap Lotto - South African Lottery Data{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}Get the latest South African lottery results, analyze trends, and check your tickets with our scanner.{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}Snap Lotto - South Africa's ONLY Lottery Ticket Scanner App{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}South Africa's ONLY app that scans lottery tickets to instantly check if you've won. Exclusive ticket scanning technology not available anywhere else!{% endblock %}">
     <meta property="og:image" content="{{ url_for('static', filename='img/snap-lotto-social.jpg', _external=True) }}">
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{{ request.url }}">
-    <meta property="twitter:title" content="{% block twitter_title %}Snap Lotto - South African Lottery Data{% endblock %}">
-    <meta property="twitter:description" content="{% block twitter_description %}Get the latest South African lottery results, analyze trends, and check your tickets with our scanner.{% endblock %}">
+    <meta property="twitter:title" content="{% block twitter_title %}Snap Lotto - South Africa's ONLY Lottery Ticket Scanner App{% endblock %}">
+    <meta property="twitter:description" content="{% block twitter_description %}South Africa's ONLY app that scans lottery tickets to instantly check if you've won. Exclusive ticket scanning technology not available anywhere else!{% endblock %}">
     <meta property="twitter:image" content="{{ url_for('static', filename='img/snap-lotto-social.jpg', _external=True) }}">
     
     <!-- Canonical URL -->
@@ -180,6 +180,12 @@
                     <a href="/results" class="mobile-nav-link {% if request.path == '/results' %}active{% endif %}">
                         <i class="fas fa-list-ol"></i>
                         <span>Results</span>
+                    </a>
+                </div>
+                <div class="col">
+                    <a href="/guides" class="mobile-nav-link {% if request.path.startswith('/guides') %}active{% endif %}">
+                        <i class="fas fa-book"></i>
+                        <span>Guides</span>
                     </a>
                 </div>
                 <div class="col">
