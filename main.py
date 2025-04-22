@@ -577,6 +577,15 @@ def import_history():
         flash('You must be an admin to view import history.', 'danger')
         return redirect(url_for('index'))
     
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Admin Dashboard", "url": url_for('admin')},
+        {"name": "Import History", "url": url_for('import_history')}
+    ]
+    
+    # Define SEO metadata
+    meta_description = "View and analyze South African lottery data import history. Track data sources, import dates, success rates, and detailed import logs for system administration."
+    
     try:
         # Get recent imports with pagination
         page = request.args.get('page', 1, type=int)
@@ -588,7 +597,9 @@ def import_history():
         
         return render_template('import_history.html',
                             imports=imports,
-                            title="Import History")
+                            title="Lottery Data Import History | System Administration",
+                            breadcrumbs=breadcrumbs,
+                            meta_description=meta_description)
     except Exception as e:
         app.logger.error(f"Error retrieving import history: {str(e)}")
         flash(f"Error loading import history: {str(e)}", 'danger')
@@ -602,9 +613,19 @@ def import_details(import_id):
         flash('You must be an admin to view import details.', 'danger')
         return redirect(url_for('index'))
     
+    # Define SEO metadata (will be updated with specific import details when the record is loaded)
+    meta_description = "Detailed South African lottery data import information. View imported draw numbers, dates, and success status for administrative record-keeping."
+    
     try:
         # Get the import record
         import_record = ImportHistory.query.get_or_404(import_id)
+        
+        # Define breadcrumbs for SEO
+        breadcrumbs = [
+            {"name": "Admin Dashboard", "url": url_for('admin')},
+            {"name": "Import History", "url": url_for('import_history')},
+            {"name": f"Import #{import_id}", "url": url_for('import_details', import_id=import_id)}
+        ]
         
         # Get all records that were imported in this batch
         imported_records = ImportedRecord.query.filter_by(import_id=import_id).all()
@@ -617,10 +638,15 @@ def import_details(import_id):
                 records_by_type[lottery_type] = []
             records_by_type[lottery_type].append(record)
         
+        # Update meta description with specific import details
+        meta_description = f"Details for lottery data import #{import_id} from {import_record.import_date.strftime('%Y-%m-%d')}. Contains {len(imported_records)} records across {len(records_by_type)} lottery types."
+        
         return render_template('import_details.html',
                               import_record=import_record,
                               records_by_type=records_by_type,
-                              title=f"Import Details - {import_record.import_date.strftime('%Y-%m-%d %H:%M')}")
+                              title=f"Import Details #{import_id} | {import_record.import_date.strftime('%Y-%m-%d %H:%M')}",
+                              breadcrumbs=breadcrumbs,
+                              meta_description=meta_description)
     except Exception as e:
         app.logger.error(f"Error retrieving import details: {str(e)}")
         flash(f"Error loading import details: {str(e)}", 'danger')
@@ -637,6 +663,15 @@ def import_data():
         
     import_stats = None
     user_id = current_user.id
+    
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Admin Dashboard", "url": url_for('admin')},
+        {"name": "Import Data", "url": url_for('import_data')}
+    ]
+    
+    # Define SEO metadata
+    meta_description = "Import South African lottery data from Excel spreadsheets. Upload Lotto, PowerBall, and Daily Lotto results to maintain an up-to-date database of winning numbers and prize information."
     
     # Initialize or reset progress tracking
     file_upload_progress[user_id] = {
@@ -871,7 +906,9 @@ def import_data():
     return render_template('import_data.html', 
                            import_stats=import_stats,
                            example_results=example_results,
-                           title="Import Lottery Data",
+                           title="Import South African Lottery Data | Admin Tools",
+                           meta_description=meta_description,
+                           breadcrumbs=breadcrumbs,
                            added_count=added_count,
                            updated_count=updated_count,
                            total_count=total_count,
@@ -933,6 +970,15 @@ def settings():
         flash('You must be an admin to access settings.', 'danger')
         return redirect(url_for('index'))
     
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Admin Dashboard", "url": url_for('admin')},
+        {"name": "System Settings", "url": url_for('settings')}
+    ]
+    
+    # Define SEO metadata
+    meta_description = "Configure South African lottery system settings and scheduled tasks. Manage data synchronization, screenshot capture timing, and system preferences."
+    
     schedule_configs = ScheduleConfig.query.all()
     
     # Handle form submission for updating settings
@@ -943,7 +989,9 @@ def settings():
     
     return render_template('settings.html', 
                           schedule_configs=schedule_configs,
-                          title="System Settings")
+                          title="System Settings | Lottery Data Management",
+                          meta_description=meta_description,
+                          breadcrumbs=breadcrumbs)
 
 @app.route('/export-screenshots')
 @login_required
@@ -952,6 +1000,15 @@ def export_screenshots():
     if not current_user.is_admin:
         flash('You must be an admin to export screenshots.', 'danger')
         return redirect(url_for('index'))
+    
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Admin Dashboard", "url": url_for('admin')},
+        {"name": "Export Screenshots", "url": url_for('export_screenshots')}
+    ]
+    
+    # Define SEO metadata
+    meta_description = "Export and manage South African lottery screenshots. Download captured lottery result images in various formats for analysis and record-keeping."
     
     screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
     
@@ -967,7 +1024,9 @@ def export_screenshots():
     
     return render_template('export_screenshots.html',
                           screenshots=screenshots,
-                          title="Export Screenshots",
+                          title="Export Lottery Screenshots | Data Management",
+                          meta_description=meta_description,
+                          breadcrumbs=breadcrumbs,
                           sync_status=sync_status,
                           last_updated=last_updated)
 
@@ -1038,6 +1097,15 @@ def register():
         flash('You must be an admin to register new users.', 'danger')
         return redirect(url_for('index'))
     
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Admin Dashboard", "url": url_for('admin')},
+        {"name": "Register Admin", "url": url_for('register')}
+    ]
+    
+    # Define SEO metadata
+    meta_description = "Administrative user registration for South African lottery results system. Create secure admin accounts to manage lottery data and system configurations."
+    
     if request.method == 'POST':
         username = request.form.get('username')
         email = request.form.get('email')
@@ -1060,7 +1128,10 @@ def register():
         flash(f'Admin user {username} registered successfully!', 'success')
         return redirect(url_for('admin'))
     
-    return render_template('register.html', title="Register Admin User")
+    return render_template('register.html', 
+                          title="Register Admin User | Lottery Management System", 
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
 
 @app.route('/visualizations')
 def visualizations():
