@@ -2,6 +2,11 @@
 
 {% block title %}Lottery Data Analysis{% endblock %}
 
+{% block head %}
+<!-- Add debug script for analysis functionality -->
+<script src="{{ url_for('static', filename='js/analysis_debug.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <!-- Page Heading -->
@@ -587,7 +592,10 @@
             
             // Use improved fetchWithCSRF with robust error handling
             fetchWithCSRF(url)
-                .then(response => response.json())
+                .then(response => {
+                    console.log("Raw pattern API response:", response);
+                    return response.json();
+                })
                 .then(data => {
                     // Make sure we always have a valid object
                     if (!data) {
@@ -595,8 +603,8 @@
                         data = {};
                     }
                     
-                    // Log the parsed data
-                    console.log("Pattern API response parsed successfully");
+                    // Log the parsed data with more details
+                    console.log("Pattern API response parsed successfully", data);
                     
                     // Check for typical error structures
                     if (typeof data === 'object') {
@@ -732,9 +740,20 @@
                         `;
                     }
                     
+                    // Set the HTML
                     content.innerHTML = html;
+                    
+                    // Make sure content becomes visible
                     loading.style.display = 'none';
                     content.style.display = 'block';
+                    
+                    // Log visibility status for debugging
+                    console.log("Pattern content updated:", {
+                        contentHtml: content.innerHTML.substring(0, 100) + '...',
+                        displayStyle: content.style.display,
+                        isVisible: content.offsetHeight > 0,
+                        contentLength: html.length
+                    });
                 })
                 .catch(error => {
                     console.error('Error loading pattern analysis:', error);
@@ -853,7 +872,10 @@
             
             // Use improved fetchWithCSRF with robust error handling
             fetchWithCSRF(url)
-                .then(response => response.json())
+                .then(response => {
+                    console.log("Raw time series API response:", response);
+                    return response.json();
+                })
                 .then(data => {
                     // Make sure we always have a valid object
                     if (!data) {
@@ -861,8 +883,8 @@
                         data = {};
                     }
                     
-                    // Log the parsed data
-                    console.log("Time series API response parsed successfully");
+                    // Log the parsed data with details
+                    console.log("Time series API response parsed successfully", data);
                     return data;
                 })
                 .then(data => {

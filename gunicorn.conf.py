@@ -16,17 +16,17 @@ logger = logging.getLogger('gunicorn.conf')
 # Default to production for deployments
 environment = os.environ.get('ENVIRONMENT', 'production')
 
-# CRITICAL: Always use port 5000 to match the actual binding
-# This is hard-coded to avoid any environment variables overriding
-bind = "0.0.0.0:5000"
+# CRITICAL: Use port 8080 for Replit compatibility
+# This is updated to match Replit's expected port
+bind = "0.0.0.0:8080"
 
 # Print binding information to help debug port issues
 logger.info(f"Gunicorn configured to bind to {bind}")
 print(f"IMPORTANT: Gunicorn binding to {bind}", file=sys.stderr)
 
 # Overwrite any potentially conflicting environment variables
-os.environ['PORT'] = '5000'
-os.environ['GUNICORN_PORT'] = '5000'
+os.environ['PORT'] = '8080'
+os.environ['GUNICORN_PORT'] = '8080'
 
 # Worker configuration
 workers = 2
