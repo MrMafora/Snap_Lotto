@@ -9,6 +9,8 @@
 <script src="{{ url_for('static', filename='js/analysis_fixes.js') }}"></script>
 <!-- Add direct tab fix script -->
 <script src="{{ url_for('static', filename='js/tabs_fix.js') }}"></script>
+<!-- Add override script for critical fixes -->
+<script src="{{ url_for('static', filename='js/analysis_override.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -97,6 +99,25 @@
         </li>
         {% endif %}
     </ul>
+    
+    <!-- Direct tab links (for browsers with Bootstrap issues) -->
+    <div class="card shadow mb-3 mt-2">
+        <div class="card-header py-2">
+            <h6 class="m-0 font-weight-bold text-primary">Direct Tab Links</h6>
+        </div>
+        <div class="card-body py-2">
+            <p class="small text-muted mb-2">If tabs above aren't working, use these direct buttons instead:</p>
+            <div class="btn-group mb-2" role="group" aria-label="Direct tab links">
+                <button type="button" id="direct-frequency-btn" class="btn btn-sm btn-outline-primary">Number Frequency</button>
+                <button type="button" id="direct-patterns-btn" class="btn btn-sm btn-outline-info">Pattern Analysis</button>
+                <button type="button" id="direct-timeseries-btn" class="btn btn-sm btn-outline-warning">Time Series</button>
+                <button type="button" id="direct-winners-btn" class="btn btn-sm btn-outline-success">Winner Analysis</button>
+                {% if not selected_type %}
+                <button type="button" id="direct-correlations-btn" class="btn btn-sm btn-outline-danger">Lottery Correlations</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
     <div class="tab-content" id="analysisTabContent">
         <!-- Frequency Analysis Tab -->
@@ -188,13 +209,14 @@
             </div>
         </div>
 
-        <!-- Pattern Analysis Tab -->
+        <!-- Pattern Analysis Tab - Enhanced with auto-repair functions -->
         <div class="tab-pane fade" id="patterns" role="tabpanel" aria-labelledby="patterns-tab">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Pattern Analysis</h6>
                 </div>
                 <div class="card-body">
+                    <!-- Loading indicator - automatically shown/hidden by JS -->
                     <div id="patterns-loading" class="text-center p-5">
                         <div class="spinner-border text-primary" role="status">
                             <span class="sr-only">Loading...</span>
@@ -205,18 +227,20 @@
                             <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 75%"></div>
                         </div>
                     </div>
+                    <!-- Content area - populated by JS api call -->
                     <div id="patterns-content" class="row mt-3" style="display: none;"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Time Series Tab -->
+        <!-- Time Series Tab - Enhanced with auto-repair functions -->
         <div class="tab-pane fade" id="timeseries" role="tabpanel" aria-labelledby="timeseries-tab">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold text-primary">Time Series Analysis</h6>
                 </div>
                 <div class="card-body">
+                    <!-- Loading indicator - automatically shown/hidden by JS -->
                     <div id="timeseries-loading" class="text-center p-5">
                         <div class="spinner-border text-primary" role="status">
                             <span class="sr-only">Loading...</span>
@@ -227,6 +251,7 @@
                             <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 75%"></div>
                         </div>
                     </div>
+                    <!-- Content area - populated by JS api call -->
                     <div id="timeseries-content" class="row" style="display: none;"></div>
                 </div>
             </div>
