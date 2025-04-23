@@ -36,8 +36,9 @@
 {% endblock %}
 
 {% block additional_head %}
-<!-- Include the checkmark fix CSS -->
+<!-- Include all checkmark fix CSS options -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/checkmark_fix.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/simple_checkmark.css') }}">
 <style>
     .ticket-scanner-container {
         max-width: 800px;
@@ -1148,8 +1149,7 @@
                             // Create match indicator with game-specific styling
                             const matchIcon = document.createElement('div');
                             matchIcon.classList.add('match-indicator');
-                            // Add checkmark symbol
-                            matchIcon.innerHTML = '&#10004;';
+                            matchIcon.textContent = '✓';
                             
                             // Color code the match indicator based on game type
                             if (data.lottery_type === "Powerball") {
@@ -1268,7 +1268,7 @@
                                 // Create match indicator with game-specific styling
                                 const matchIcon = document.createElement('div');
                                 matchIcon.classList.add('match-indicator');
-                                matchIcon.textContent = "✓";
+                                
                                 
                                 
                                 // Color code based on game type
@@ -1463,7 +1463,7 @@
                                 // Create match indicator with game-specific styling
                                 const matchIcon = document.createElement('div');
                                 matchIcon.classList.add('match-indicator');
-                                matchIcon.textContent = "✓";
+                                
                                 
                                 
                                 // Color code based on game type
@@ -1669,7 +1669,7 @@
                                         
                                         // Create match indicator with game-specific styling
                                         const matchIcon = document.createElement('div');
-                                        matchIcon.textContent = "✓";
+                                        
                                         matchIcon.classList.add('match-indicator');
                                         
                                         matchIcon.classList.add('match-powerball-plus');
@@ -1736,7 +1736,7 @@
                                 ball.setAttribute('title', 'Match in Powerball Plus'); // Add game type indicator
                                 
                                 // Create match indicator with game-specific styling
-                                matchIcon.textContent = "✓";
+                                
                                 const matchIcon = document.createElement('div');
                                 matchIcon.classList.add('match-indicator');
                                 
@@ -1943,7 +1943,7 @@
                                     if (rowData.matched_numbers.includes(num)) {
                                         ball.classList.add('ball-matched');
                                         
-                                        matchIcon.textContent = "✓";
+                                        
                                         // Create match indicator with game-specific styling
                                         const matchIcon = document.createElement('div');
                                         matchIcon.classList.add('match-indicator');
@@ -2010,7 +2010,7 @@
                                 const ball = document.createElement('span');
                                 ball.classList.add('lottery-ball', 'ball-matched');
                                 ball.setAttribute('title', 'Match in Lotto Plus 1'); // Add game type indicator
-                                matchIcon.textContent = "✓";
+                                
                                 
                                 // Create match indicator with game-specific styling
                                 const matchIcon = document.createElement('div');
@@ -2170,7 +2170,7 @@
                                     
                                     // Check if this number is a match
                                     if (rowData.matched_numbers.includes(num)) {
-                                        matchIcon.textContent = "✓";
+                                        
                                         ball.classList.add('ball-matched');
                                         
                                         // Create match indicator with game-specific styling
@@ -2262,7 +2262,7 @@
                                     
                                     // Add the match indicator to the ball
                                     ball.appendChild(bonusIcon);
-                                    matchIcon.textContent = "✓";
+                                    
                                 } else {
                                     ball.setAttribute('title', 'Match in Lotto Plus 2'); // Add game type indicator
                                     
@@ -2326,6 +2326,7 @@
         }
     });
 </script>
-<!-- Add checkmark fix script to ensure checkmarks display correctly -->
+<!-- Add all checkmark fix script variations to ensure checkmarks display correctly -->
 <script src="{{ url_for('static', filename='js/checkmark_fix.js') }}"></script>
+<script src="{{ url_for('static', filename='js/direct_checkmark.js') }}"></script>
 {% endblock %}

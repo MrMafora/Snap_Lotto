@@ -1,65 +1,36 @@
-/**
- * Checkmark Fix CSS
- * These styles ensure that checkmarks are properly displayed in ticket scanner results
- * Simplified to avoid stacking effect conflicts
- */
-
-/* Enhanced match indicator styling - with simpler, more compatible approach */
+/* Checkmark Fix Styles */
 .match-indicator {
-    position: absolute !important;
-    top: -6px !important;
-    right: -6px !important;
-    width: 18px !important;
-    height: 18px !important;
-    border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-weight: bold !important;
-    font-size: 12px !important;
-    color: white !important;
-    border: 1px solid white !important;
-    box-shadow: none !important;
-    font-family: Arial, sans-serif !important;
-    z-index: 100 !important;
+    /* Basic styling */
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    
+    /* Text styling */
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 18px;
+    text-align: center;
+    
+    /* Enhanced visibility */
+    z-index: 100;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
+    border: 2px solid white;
+    
+    /* Other properties */
+    pointer-events: none;
+    font-family: Arial, sans-serif;
 }
 
-/* Ultimate fallback approach - use direct content in CSS */
-.ball-matched::before {
-    content: "✓" !important;
-    position: absolute !important;
-    top: -10px !important;
-    right: -10px !important;
-    width: 20px !important;
-    height: 20px !important;
-    background-color: #28a745 !important;
-    border-radius: 50% !important;
-    color: white !important;
-    font-weight: bold !important;
-    font-size: 12px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border: 1px solid white !important;
-    z-index: 1000 !important;
+/* Ensure text content is displayed properly */
+.match-indicator::before {
+    display: none !important;
 }
 
-/* Style to make matched balls stand out without complex animations */
-.ball-matched {
-    border: 3px solid #28a745 !important;
-    position: relative !important;
-}
-
-/* Make the font color much darker than usual */
+/* Force content to be visible */
 .match-indicator {
-    font-weight: 900 !important;
-    text-shadow: 0 0 1px black !important;
-}
-
-/* Add alternative X symbol in case checkmark doesn't render */
-.match-indicator:empty::after {
-    content: "+";
-    display: block;
-    font-size: 16px !important;
-    font-weight: 900 !important;
+    font-size: 12px !important;
 }
