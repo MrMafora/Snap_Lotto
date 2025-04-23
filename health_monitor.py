@@ -198,14 +198,9 @@ def check_server_status():
     # Get environment setting
     environment = os.environ.get('ENVIRONMENT', 'development')
     
-    # In development mode, only check port 5000
-    # In production mode, only check port 8080
-    if environment.lower() == 'production':
-        monitored_ports = [8080]
-        critical_port = 8080
-    else:
-        monitored_ports = [5000]
-        critical_port = 5000
+    # Always check port 5000 - this is where our app is actually running
+    monitored_ports = [5000]
+    critical_port = 5000
     
     # Track status for each port
     port_status = {}
@@ -316,11 +311,8 @@ def check_port_usage():
     # Get environment setting
     environment = os.environ.get('ENVIRONMENT', 'development')
     
-    # Define critical ports based on environment
-    if environment.lower() == 'production':
-        critical_ports = [8080]
-    else:
-        critical_ports = [5000]
+    # Always use port 5000 as critical - this is where our app is running
+    critical_ports = [5000]
     
     # Define common ports to monitor (can be expanded as needed)
     monitored_ports = critical_ports + [80, 443, 3000, 3306, 5432, 27017, 6379, 9090, 9000]
@@ -444,17 +436,14 @@ def check_port_usage():
             if port not in port_details or port_details[port].get("status") != "LISTEN":
                 missing_critical_ports.append(port)
         
-        # Update status based on environment expectations
-        environment = os.environ.get('ENVIRONMENT', 'development')
-        if environment == 'production' and 8080 in missing_critical_ports:
+        # Check for missing critical port (5000)
+        if 5000 in missing_critical_ports:
             status = "CRITICAL"
-            create_alert("port_8080_missing", "Critical port 8080 is missing in production environment")
-        elif environment == 'development' and 5000 in missing_critical_ports:
-            status = "WARNING"
-            create_alert("port_5000_missing", "Expected port 5000 is missing in development environment")
+            create_alert("port_5000_missing", "Critical port 5000 is missing")
         else:
-            resolve_alert("port_8080_missing")
             resolve_alert("port_5000_missing")
+            # Clean up old 8080 port alerts if they exist
+            resolve_alert("port_8080_missing")
             
         # Add missing ports to details
         details["missing_critical_ports"] = missing_critical_ports
@@ -693,12 +682,8 @@ def get_active_ports():
             
         # Special case for our application - always include relevant port status
         # This ensures our health dashboard always shows critical ports
-        # Get environment setting to determine which port to monitor
-        environment = os.environ.get('ENVIRONMENT', 'development')
-        if environment.lower() == 'production':
-            monitored_ports = [8080]
-        else:
-            monitored_ports = [5000]
+        # Always monitor port 5000 - this is where our app is running
+        monitored_ports = [5000]
         for port in monitored_ports:
             if not any(p['port'] == port for p in active_ports):
                 # Add port with inactive status

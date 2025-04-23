@@ -16,6 +16,20 @@
       "metadata": {
         "agentRequireRestartOnSave": false
       }
+    },
+    {
+      "name": "Port Proxy",
+      "tasks": [
+        {
+          "task": "shell.exec",
+          "args": "python port_proxy.py",
+          "waitForPort": 8080,
+          "description": "Run the Flask-based port proxy on port 8080"
+        }
+      ],
+      "metadata": {
+        "agentRequireRestartOnSave": false
+      }
     }
   ]
 }

@@ -1,0 +1,4 @@
+[[tasks]]
+task = "shell.exec"
+command = "python port_proxy.py"
+waitForPort = 8080

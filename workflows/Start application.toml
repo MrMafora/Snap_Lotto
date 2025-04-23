@@ -3,5 +3,5 @@ task = "packager.installForAll"
 
 [[tasks]]
 task = "shell.exec"
-command = "gunicorn --bind 0.0.0.0:8080 --workers=4 --reuse-port --reload main:app"
-waitForPort = 8080
+command = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
+waitForPort = 5000

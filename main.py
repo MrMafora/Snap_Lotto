@@ -2660,8 +2660,8 @@ if __name__ == "__main__":
     
     logging.getLogger('werkzeug').setLevel(logging.INFO)
     
-    # Get port from environment or use default
-    port = int(os.environ.get('PORT', 5000))
+    # Use port 8080 for Replit compatibility
+    port = int(os.environ.get('PORT', 8080))
     
     # Start Flask app
     print(f"Starting Flask application on 0.0.0.0:{port}...")
