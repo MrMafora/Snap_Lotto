@@ -197,23 +197,30 @@
 /* Match indicator styles with improved visibility */
 .match-indicator {
     position: absolute;
-    top: -5px;
-    right: -5px;
-    width: 20px;
-    height: 20px;
-    font-size: 14px;
+    top: -8px;
+    right: -8px;
+    width: 22px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    font-weight: bold;
-    color: white;
     background-color: #00aa00;
     z-index: 20;
     box-shadow: 0 0 4px 1px rgba(0, 0, 0, 0.5);
-    border: 1px solid white;
-    line-height: 1;
-    text-align: center;
+    border: 2px solid white;
+}
+
+/* Create checkmark from CSS */
+.match-indicator::before {
+    content: '';
+    display: block;
+    width: 7px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+    margin-bottom: 2px;
 }
 
 /* Mobile-specific match indicator styles */
@@ -221,9 +228,17 @@
     .match-indicator {
         width: 18px;
         height: 18px;
-        font-size: 12px;
-        top: -4px;
-        right: -4px;
+        top: -5px;
+        right: -5px;
+        border-width: 1.5px;
+    }
+    
+    /* Smaller checkmark for mobile */
+    .match-indicator::before {
+        width: 6px;
+        height: 10px;
+        border-width: 0 2px 2px 0;
+        margin-bottom: 1px;
     }
 }
 
