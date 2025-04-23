@@ -44,7 +44,7 @@
 
 /* Main Lotto Games */
 .match-lotto { 
-    background-color: #2ecc71; /* Bright Green */
+    background-color: #28a745; /* Green (Default) */
 }
 
 .match-lotto-plus-1 { 
@@ -59,7 +59,7 @@
 
 /* Powerball Games */
 .match-powerball { 
-    background-color: #3498db; /* Bright Blue */
+    background-color: #28a745; /* Green (Default) */
 }
 
 .match-powerball-plus { 
