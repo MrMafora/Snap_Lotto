@@ -287,30 +287,54 @@
 <script>
     // Helper function to add CSRF token to fetch requests with enhanced error handling
     function fetchWithCSRF(url, options = {}) {
-        // Get CSRF token from several possible sources
+        console.log(`Setting up fetchWithCSRF for: ${url}`);
+        
+        // Get CSRF token from several possible sources with robust error handling
         function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
+            try {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+            } catch (e) {
+                console.error(`Error getting cookie ${name}:`, e);
+                return null;
+            }
+            return null;
         }
         
         function getMetaCsrfToken() {
-            const metaTag = document.querySelector('meta[name="csrf-token"]');
-            return metaTag ? metaTag.getAttribute('content') : '';
+            try {
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                return metaTag ? metaTag.getAttribute('content') : '';
+            } catch (e) {
+                console.error('Error getting meta CSRF token:', e);
+                return '';
+            }
         }
         
         function getHiddenCsrfToken() {
-            const csrfField = document.querySelector('input[name="csrf_token"]');
-            return csrfField ? csrfField.value : '';
+            try {
+                const csrfField = document.querySelector('input[name="csrf_token"]');
+                return csrfField ? csrfField.value : '';
+            } catch (e) {
+                console.error('Error getting hidden CSRF token:', e);
+                return '';
+            }
         }
         
-        // Try to get token from all possible sources
-        let csrfToken = getCookie('csrf_token') || getMetaCsrfToken() || getHiddenCsrfToken() || '';
+        // Try to get token from all possible sources with detailed logging
+        let csrfFromCookie = getCookie('csrf_token');
+        let csrfFromMeta = getMetaCsrfToken();
+        let csrfFromHidden = getHiddenCsrfToken();
         
-        console.log("Debug info for fetchWithCSRF:", {
-            url,
-            csrfToken: csrfToken ? "Found token" : "No token found",
-            cookie: document.cookie.includes('csrf_token') ? "Has csrf cookie" : "No csrf cookie"
+        let csrfToken = csrfFromCookie || csrfFromMeta || csrfFromHidden || '';
+        let csrfSource = csrfFromCookie ? 'cookie' : (csrfFromMeta ? 'meta' : (csrfFromHidden ? 'hidden' : 'none'));
+        
+        console.log("CSRF token sources:", {
+            cookie: csrfFromCookie ? "present" : "not found",
+            meta: csrfFromMeta ? "present" : "not found",
+            hidden: csrfFromHidden ? "present" : "not found",
+            selectedSource: csrfSource
         });
         
         // Create headers object
@@ -533,25 +557,80 @@
         });
         // Bootstrap 5 will handle the tab switching now
         
-        // Function to load pattern data
+        // Function to load pattern data with improved error handling
         function loadPatternData() {
-            // Use querySelector to find elements within the patterns tab content
-            const patternsTab = document.getElementById('patterns');
-            if (!patternsTab) {
-                console.error("Cannot find patterns tab element");
-                return;
-            }
-            
-            const loading = patternsTab.querySelector('#patterns-loading');
-            const content = patternsTab.querySelector('#patterns-content');
-            
-            if (!loading || !content) {
-                console.error("Cannot find loading or content elements within patterns tab", { 
-                    loadingFound: !!loading, 
-                    contentFound: !!content 
-                });
-                return;
-            }
+            console.log("loadPatternData called");
+            try {
+                // Use querySelector to find elements within the patterns tab content
+                const patternsTab = document.getElementById('patterns');
+                if (!patternsTab) {
+                    console.error("Cannot find patterns tab element");
+                    // Try to create it if missing
+                    const tabContent = document.querySelector('.tab-content');
+                    if (tabContent) {
+                        console.log("Creating missing patterns tab pane");
+                        const newPatternsTab = document.createElement('div');
+                        newPatternsTab.id = 'patterns';
+                        newPatternsTab.className = 'tab-pane fade';
+                        newPatternsTab.setAttribute('role', 'tabpanel');
+                        newPatternsTab.setAttribute('aria-labelledby', 'patterns-tab');
+                        
+                        // Add loading and content divs
+                        newPatternsTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Pattern Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="patterns-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading pattern analysis data...</p>
+                                    </div>
+                                    <div id="patterns-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        tabContent.appendChild(newPatternsTab);
+                        return loadPatternData(); // Try again now that we've created it
+                    }
+                    return;
+                }
+                
+                const loading = patternsTab.querySelector('#patterns-loading');
+                const content = patternsTab.querySelector('#patterns-content');
+                
+                if (!loading || !content) {
+                    console.error("Cannot find loading or content elements within patterns tab", { 
+                        loadingFound: !!loading, 
+                        contentFound: !!content 
+                    });
+                    
+                    // Try to create missing elements
+                    if (!loading && !content) {
+                        console.log("Creating missing loading and content elements");
+                        patternsTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Pattern Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="patterns-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading pattern analysis data...</p>
+                                    </div>
+                                    <div id="patterns-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        return loadPatternData(); // Try again
+                    }
+                    return;
+                }
             
             // Always reload data for better reliability
             loading.style.display = 'block';
@@ -818,23 +897,78 @@
         
         // Function to load time series data
         function loadTimeSeriesData() {
-            // Use querySelector to find elements within the timeseries tab content
-            const timeseriesTab = document.getElementById('timeseries');
-            if (!timeseriesTab) {
-                console.error("Cannot find timeseries tab element");
-                return;
-            }
-            
-            const loading = timeseriesTab.querySelector('#timeseries-loading');
-            const content = timeseriesTab.querySelector('#timeseries-content');
-            
-            if (!loading || !content) {
-                console.error("Cannot find loading or content elements within timeseries tab", { 
-                    loadingFound: !!loading, 
-                    contentFound: !!content 
-                });
-                return;
-            }
+            console.log("loadTimeSeriesData called");
+            try {
+                // Use querySelector to find elements within the timeseries tab content
+                const timeseriesTab = document.getElementById('timeseries');
+                if (!timeseriesTab) {
+                    console.error("Cannot find timeseries tab element");
+                    // Try to create it if missing
+                    const tabContent = document.querySelector('.tab-content');
+                    if (tabContent) {
+                        console.log("Creating missing timeseries tab pane");
+                        const newTimeseriesTab = document.createElement('div');
+                        newTimeseriesTab.id = 'timeseries';
+                        newTimeseriesTab.className = 'tab-pane fade';
+                        newTimeseriesTab.setAttribute('role', 'tabpanel');
+                        newTimeseriesTab.setAttribute('aria-labelledby', 'timeseries-tab');
+                        
+                        // Add loading and content divs
+                        newTimeseriesTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Time Series Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="timeseries-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading time series analysis data...</p>
+                                    </div>
+                                    <div id="timeseries-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        tabContent.appendChild(newTimeseriesTab);
+                        return loadTimeSeriesData(); // Try again now that we've created it
+                    }
+                    return;
+                }
+                
+                const loading = timeseriesTab.querySelector('#timeseries-loading');
+                const content = timeseriesTab.querySelector('#timeseries-content');
+                
+                if (!loading || !content) {
+                    console.error("Cannot find loading or content elements within timeseries tab", { 
+                        loadingFound: !!loading, 
+                        contentFound: !!content 
+                    });
+                    
+                    // Try to create missing elements
+                    if (!loading && !content) {
+                        console.log("Creating missing loading and content elements");
+                        timeseriesTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Time Series Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="timeseries-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading time series analysis data...</p>
+                                    </div>
+                                    <div id="timeseries-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        return loadTimeSeriesData(); // Try again
+                    }
+                    return;
+                }
             
             // Always reload data for better reliability
             loading.style.display = 'block';
@@ -1019,25 +1153,80 @@
                 });
         }
         
-        // Function to load winner data
+        // Function to load winner data with improved error handling
         function loadWinnersData() {
-            // Use querySelector to find elements within the winners tab content
-            const winnersTab = document.getElementById('winners');
-            if (!winnersTab) {
-                console.error("Cannot find winners tab element");
-                return;
-            }
-            
-            const loading = winnersTab.querySelector('#winners-loading');
-            const content = winnersTab.querySelector('#winners-content');
-            
-            if (!loading || !content) {
-                console.error("Cannot find loading or content elements within winners tab", { 
-                    loadingFound: !!loading, 
-                    contentFound: !!content 
-                });
-                return;
-            }
+            console.log("loadWinnersData called");
+            try {
+                // Use querySelector to find elements within the winners tab content
+                const winnersTab = document.getElementById('winners');
+                if (!winnersTab) {
+                    console.error("Cannot find winners tab element");
+                    // Try to create it if missing
+                    const tabContent = document.querySelector('.tab-content');
+                    if (tabContent) {
+                        console.log("Creating missing winners tab pane");
+                        const newWinnersTab = document.createElement('div');
+                        newWinnersTab.id = 'winners';
+                        newWinnersTab.className = 'tab-pane fade';
+                        newWinnersTab.setAttribute('role', 'tabpanel');
+                        newWinnersTab.setAttribute('aria-labelledby', 'winners-tab');
+                        
+                        // Add loading and content divs
+                        newWinnersTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Winner Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="winners-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading winner analysis data...</p>
+                                    </div>
+                                    <div id="winners-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        tabContent.appendChild(newWinnersTab);
+                        return loadWinnersData(); // Try again now that we've created it
+                    }
+                    return;
+                }
+                
+                const loading = winnersTab.querySelector('#winners-loading');
+                const content = winnersTab.querySelector('#winners-content');
+                
+                if (!loading || !content) {
+                    console.error("Cannot find loading or content elements within winners tab", { 
+                        loadingFound: !!loading, 
+                        contentFound: !!content 
+                    });
+                    
+                    // Try to create missing elements
+                    if (!loading && !content) {
+                        console.log("Creating missing loading and content elements");
+                        winnersTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Winner Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="winners-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading winner analysis data...</p>
+                                    </div>
+                                    <div id="winners-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        return loadWinnersData(); // Try again
+                    }
+                    return;
+                }
             
             // Always reload data for better reliability
             loading.style.display = 'block';
@@ -1218,23 +1407,78 @@
         
         // Function to load correlation data
         function loadCorrelationsData() {
-            // Use querySelector to find elements within the correlations tab content
-            const correlationsTab = document.getElementById('correlations');
-            if (!correlationsTab) {
-                console.error("Cannot find correlations tab element");
-                return;
-            }
-            
-            const loading = correlationsTab.querySelector('#correlations-loading');
-            const content = correlationsTab.querySelector('#correlations-content');
-            
-            if (!loading || !content) {
-                console.error("Cannot find loading or content elements within correlations tab", { 
-                    loadingFound: !!loading, 
-                    contentFound: !!content 
-                });
-                return;
-            }
+            console.log("loadCorrelationsData called");
+            try {
+                // Use querySelector to find elements within the correlations tab content
+                const correlationsTab = document.getElementById('correlations');
+                if (!correlationsTab) {
+                    console.error("Cannot find correlations tab element");
+                    // Try to create it if missing
+                    const tabContent = document.querySelector('.tab-content');
+                    if (tabContent) {
+                        console.log("Creating missing correlations tab pane");
+                        const newCorrelationsTab = document.createElement('div');
+                        newCorrelationsTab.id = 'correlations';
+                        newCorrelationsTab.className = 'tab-pane fade';
+                        newCorrelationsTab.setAttribute('role', 'tabpanel');
+                        newCorrelationsTab.setAttribute('aria-labelledby', 'correlations-tab');
+                        
+                        // Add loading and content divs
+                        newCorrelationsTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Correlation Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="correlations-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading correlation analysis data...</p>
+                                    </div>
+                                    <div id="correlations-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        tabContent.appendChild(newCorrelationsTab);
+                        return loadCorrelationsData(); // Try again now that we've created it
+                    }
+                    return;
+                }
+                
+                const loading = correlationsTab.querySelector('#correlations-loading');
+                const content = correlationsTab.querySelector('#correlations-content');
+                
+                if (!loading || !content) {
+                    console.error("Cannot find loading or content elements within correlations tab", { 
+                        loadingFound: !!loading, 
+                        contentFound: !!content 
+                    });
+                    
+                    // Try to create missing elements
+                    if (!loading && !content) {
+                        console.log("Creating missing loading and content elements");
+                        correlationsTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Correlation Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="correlations-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading correlation analysis data...</p>
+                                    </div>
+                                    <div id="correlations-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        return loadCorrelationsData(); // Try again
+                    }
+                    return;
+                }
             
             // Always reload data for better reliability
             loading.style.display = 'block';
@@ -1502,6 +1746,36 @@
                     loading.style.display = 'none';
                     content.style.display = 'block';
                 });
+            } catch (e) {
+                console.error("Unexpected error in loadCorrelationsData:", e);
+                if (content) {
+                    content.innerHTML = `
+                        <div class="col-12">
+                            <div class="alert alert-danger">
+                                <h5>Unexpected Error</h5>
+                                <p>An unexpected error occurred while loading correlation data:</p>
+                                <p><code>${e.message || 'Unknown error'}</code></p>
+                                <p>Please try refreshing the page.</p>
+                                <button class="btn btn-outline-primary mt-2 retry-correlations-btn">
+                                    <i class="fas fa-sync"></i> Retry
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add retry functionality
+                    const retryButton = content.querySelector('.retry-correlations-btn');
+                    if (retryButton) {
+                        retryButton.addEventListener('click', function() {
+                            console.log('Retrying correlations data load after error...');
+                            loadCorrelationsData();
+                        });
+                    }
+                    
+                    content.style.display = 'block';
+                }
+                if (loading) loading.style.display = 'none';
+            }
         }
     });
 </script>
