@@ -1261,6 +1261,7 @@
                 uniqueMatchedNumbers.forEach(num => {
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball', 'ball-matched');
+                    ball.setAttribute('title', `Match in ${data.lottery_type}`);
                     
                     // Add color classes in sequence
                     if (matchedNumbersContainer.children.length % 4 === 0) {
@@ -1296,9 +1297,88 @@
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball', 'ball-matched', 'lottery-ball-yellow');
                     ball.style.animation = 'pulse 2s infinite';
+                    ball.setAttribute('title', `Bonus match in ${data.lottery_type}`);
                     ball.textContent = num;
                     matchedNumbersContainer.appendChild(ball);
                 });
+            }
+            
+            // Display matches by row for the main game type
+            if (data.ticket_info && data.ticket_info.raw_selected_numbers && data.rows_with_matches) {
+                // Add a section header for row-specific matches
+                const rowMatchesHeader = document.createElement('div');
+                rowMatchesHeader.classList.add('mt-4', 'mb-3');
+                rowMatchesHeader.innerHTML = `<h6>${data.lottery_type} Matches by Row:</h6>`;
+                matchedNumbersContainer.appendChild(rowMatchesHeader);
+                
+                // Find rows with matches for this specific game type
+                const rowsWithMatches = data.rows_with_matches.filter(row => row.game_type === data.lottery_type);
+                
+                if (rowsWithMatches.length > 0) {
+                    // Create rows with matches for the main game
+                    rowsWithMatches.forEach(rowData => {
+                        // Create row label with match indicator
+                        const rowLabel = document.createElement('div');
+                        rowLabel.classList.add('mt-3', 'mb-1');
+                        
+                        // Display row name with match count
+                        let displayRowName = rowData.row;
+                        
+                        // Show match count only if there are matches
+                        const matchCount = rowData.total_matched;
+                        if (matchCount > 0) {
+                            rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong> <span class="badge bg-success ms-2">Matches: ${matchCount}</span>`;
+                        } else {
+                            rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong>`;
+                        }
+                        matchedNumbersContainer.appendChild(rowLabel);
+                        
+                        // Create row container
+                        const rowContainer = document.createElement('div');
+                        rowContainer.classList.add('mb-3');
+                        
+                        // Add balls for this row
+                        rowData.numbers.forEach(num => {
+                            const ball = document.createElement('span');
+                            ball.classList.add('lottery-ball');
+                            
+                            // Check if this number is a match
+                            if (rowData.matched_numbers.includes(num)) {
+                                ball.classList.add('ball-matched');
+                                ball.setAttribute('title', `Match in ${data.lottery_type}`);
+                            }
+                            
+                            // Check if this number is a bonus match
+                            if (rowData.matched_bonus && rowData.matched_bonus.includes(num)) {
+                                ball.classList.add('ball-matched', 'lottery-ball-yellow');
+                                ball.style.animation = 'pulse 2s infinite';
+                                ball.setAttribute('title', `Bonus match in ${data.lottery_type}`);
+                            }
+                            
+                            // Add color classes in sequence
+                            if (!ball.classList.contains('lottery-ball-yellow')) {
+                                if (rowContainer.children.length % 4 === 0) {
+                                    ball.classList.add('lottery-ball-red');
+                                } else if (rowContainer.children.length % 4 === 1) {
+                                    ball.classList.add('lottery-ball-yellow');
+                                } else if (rowContainer.children.length % 4 === 2) {
+                                    ball.classList.add('lottery-ball-green');
+                                } else {
+                                    ball.classList.add('lottery-ball-blue');
+                                }
+                            }
+                            
+                            ball.textContent = num;
+                            rowContainer.appendChild(ball);
+                        });
+                        
+                        matchedNumbersContainer.appendChild(rowContainer);
+                    });
+                } else {
+                    const noMatchesMsg = document.createElement('p');
+                    noMatchesMsg.textContent = `No rows with ${data.lottery_type} matches found.`;
+                    matchedNumbersContainer.appendChild(noMatchesMsg);
+                }
             }
             
             // Display prize information if any
@@ -1614,60 +1694,139 @@
                     // Show the Lotto Plus 1 matches container
                     const lp1MatchesContainer = document.getElementById('lp1-matched-numbers-section');
                     
-                    // Get unique matched numbers
-                    const uniqueLP1MatchedNumbers = [...new Set(data.lotto_plus_1_results.matched_numbers)];
-                    
-                    // Update matched count
-                    document.getElementById('lp1-matched-count').textContent = uniqueLP1MatchedNumbers.length;
-                    
-                    // Display matched numbers
-                    const lp1MatchedNumbersDiv = document.getElementById('lp1-matched-numbers');
-                    lp1MatchedNumbersDiv.innerHTML = '';
-                    
-                    if (uniqueLP1MatchedNumbers.length > 0) {
-                        uniqueLP1MatchedNumbers.forEach(num => {
-                            const ball = document.createElement('span');
-                            ball.classList.add('lottery-ball', 'ball-matched');
-                            ball.setAttribute('title', 'Match in Lotto Plus 1'); // Add game type indicator
-                            
-                            // Add color classes in sequence
-                            if (lp1MatchedNumbersDiv.children.length % 4 === 0) {
-                                ball.classList.add('lottery-ball-red');
-                            } else if (lp1MatchedNumbersDiv.children.length % 4 === 1) {
-                                ball.classList.add('lottery-ball-yellow');
-                            } else if (lp1MatchedNumbersDiv.children.length % 4 === 2) {
-                                ball.classList.add('lottery-ball-green');
-                            } else {
-                                ball.classList.add('lottery-ball-blue');
-                            }
-                            
-                            ball.textContent = num;
-                            lp1MatchedNumbersDiv.appendChild(ball);
-                        });
-                    } else {
-                        lp1MatchedNumbersDiv.innerHTML = '<p>No matching main numbers found for Lotto Plus 1.</p>';
-                    }
-                    
-                    // Get unique matched bonus numbers and add them to the matched numbers section
-                    if (data.lotto_plus_1_results.matched_bonus && data.lotto_plus_1_results.matched_bonus.length > 0) {
-                        const uniqueLP1MatchedBonus = [...new Set(data.lotto_plus_1_results.matched_bonus)];
+                    // Check if we have multiple rows with matches for Lotto Plus 1
+                    if (data.ticket_info && data.ticket_info.raw_selected_numbers && data.lotto_plus_1_results.rows_with_matches) {
+                        // Display matches by row for Lotto Plus 1
+                        const lp1MatchedNumbersDiv = document.getElementById('lp1-matched-numbers');
+                        lp1MatchedNumbersDiv.innerHTML = '<h6 class="mb-3">Lotto Plus 1 Matches by Row:</h6>';
                         
-                        // Add a separator if there are also matched main numbers
+                        // Get unique matched numbers to update the count
+                        const uniqueLP1MatchedNumbers = [...new Set(data.lotto_plus_1_results.matched_numbers)];
+                        document.getElementById('lp1-matched-count').textContent = uniqueLP1MatchedNumbers.length;
+                        
+                        // Create rows with matches for Lotto Plus 1 game only
+                        const rowsToDisplay = data.lotto_plus_1_results.rows_with_matches || [];
+                        
+                        if (rowsToDisplay.length > 0) {
+                            // Rows with matches
+                            rowsToDisplay.forEach(rowData => {
+                                // Create row label with match indicator
+                                const rowLabel = document.createElement('div');
+                                rowLabel.classList.add('mt-3', 'mb-1');
+                                
+                                // Display row name with match count
+                                let displayRowName = rowData.row;
+                                
+                                // Show match count only if there are matches specific to this game type
+                                const matchCount = rowData.total_matched;
+                                if (matchCount > 0) {
+                                    rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong> <span class="badge bg-success ms-2">Matches: ${matchCount}</span>`;
+                                } else {
+                                    rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong>`;
+                                }
+                                lp1MatchedNumbersDiv.appendChild(rowLabel);
+                                
+                                // Create row container
+                                const rowContainer = document.createElement('div');
+                                rowContainer.classList.add('mb-3');
+                                
+                                // Add balls for this row
+                                rowData.numbers.forEach(num => {
+                                    const ball = document.createElement('span');
+                                    ball.classList.add('lottery-ball');
+                                    
+                                    // Check if this number is a match
+                                    if (rowData.matched_numbers.includes(num)) {
+                                        ball.classList.add('ball-matched');
+                                        ball.setAttribute('title', 'Match in Lotto Plus 1');
+                                    }
+                                    
+                                    // Check if this number is a bonus match
+                                    if (rowData.matched_bonus && rowData.matched_bonus.includes(num)) {
+                                        ball.classList.add('ball-matched', 'lottery-ball-yellow');
+                                        ball.style.animation = 'pulse 2s infinite';
+                                        ball.setAttribute('title', 'Bonus match in Lotto Plus 1');
+                                    }
+                                    
+                                    // Add color classes in sequence
+                                    if (!ball.classList.contains('lottery-ball-yellow')) {
+                                        if (rowContainer.children.length % 4 === 0) {
+                                            ball.classList.add('lottery-ball-red');
+                                        } else if (rowContainer.children.length % 4 === 1) {
+                                            ball.classList.add('lottery-ball-yellow');
+                                        } else if (rowContainer.children.length % 4 === 2) {
+                                            ball.classList.add('lottery-ball-green');
+                                        } else {
+                                            ball.classList.add('lottery-ball-blue');
+                                        }
+                                    }
+                                    
+                                    ball.textContent = num;
+                                    rowContainer.appendChild(ball);
+                                });
+                                
+                                lp1MatchedNumbersDiv.appendChild(rowContainer);
+                            });
+                        } else {
+                            lp1MatchedNumbersDiv.innerHTML += '<p>No rows with Lotto Plus 1 matches found.</p>';
+                        }
+                    } else {
+                        // Legacy display method - for backward compatibility
+                        // Get unique matched numbers
+                        const uniqueLP1MatchedNumbers = [...new Set(data.lotto_plus_1_results.matched_numbers)];
+                        
+                        // Update matched count
+                        document.getElementById('lp1-matched-count').textContent = uniqueLP1MatchedNumbers.length;
+                        
+                        // Display matched numbers
+                        const lp1MatchedNumbersDiv = document.getElementById('lp1-matched-numbers');
+                        lp1MatchedNumbersDiv.innerHTML = '';
+                        
                         if (uniqueLP1MatchedNumbers.length > 0) {
-                            const separator = document.createElement('div');
-                            separator.classList.add('mt-2', 'mb-2');
-                            separator.innerHTML = '<strong>Matched Bonus:</strong>';
-                            lp1MatchedNumbersDiv.appendChild(separator);
+                            uniqueLP1MatchedNumbers.forEach(num => {
+                                const ball = document.createElement('span');
+                                ball.classList.add('lottery-ball', 'ball-matched');
+                                ball.setAttribute('title', 'Match in Lotto Plus 1'); // Add game type indicator
+                                
+                                // Add color classes in sequence
+                                if (lp1MatchedNumbersDiv.children.length % 4 === 0) {
+                                    ball.classList.add('lottery-ball-red');
+                                } else if (lp1MatchedNumbersDiv.children.length % 4 === 1) {
+                                    ball.classList.add('lottery-ball-yellow');
+                                } else if (lp1MatchedNumbersDiv.children.length % 4 === 2) {
+                                    ball.classList.add('lottery-ball-green');
+                                } else {
+                                    ball.classList.add('lottery-ball-blue');
+                                }
+                                
+                                ball.textContent = num;
+                                lp1MatchedNumbersDiv.appendChild(ball);
+                            });
+                        } else {
+                            lp1MatchedNumbersDiv.innerHTML = '<p>No matching main numbers found for Lotto Plus 1.</p>';
                         }
                         
-                        uniqueLP1MatchedBonus.forEach(num => {
-                            const ball = document.createElement('span');
-                            ball.classList.add('lottery-ball', 'ball-matched', 'lottery-ball-yellow');
-                            ball.style.animation = 'pulse 2s infinite';
-                            ball.setAttribute('title', 'Bonus match in Lotto Plus 1'); // Add game type indicator
-                            ball.textContent = num;
-                            lp1MatchedNumbersDiv.appendChild(ball);
-                        });
+                        // Get unique matched bonus numbers and add them to the matched numbers section
+                        if (data.lotto_plus_1_results.matched_bonus && data.lotto_plus_1_results.matched_bonus.length > 0) {
+                            const uniqueLP1MatchedBonus = [...new Set(data.lotto_plus_1_results.matched_bonus)];
+                            
+                            // Add a separator if there are also matched main numbers
+                            if (uniqueLP1MatchedNumbers.length > 0) {
+                                const separator = document.createElement('div');
+                                separator.classList.add('mt-2', 'mb-2');
+                                separator.innerHTML = '<strong>Matched Bonus:</strong>';
+                                lp1MatchedNumbersDiv.appendChild(separator);
+                            }
+                            
+                            uniqueLP1MatchedBonus.forEach(num => {
+                                const ball = document.createElement('span');
+                                ball.classList.add('lottery-ball', 'ball-matched', 'lottery-ball-yellow');
+                                ball.style.animation = 'pulse 2s infinite';
+                                ball.setAttribute('title', 'Bonus match in Lotto Plus 1'); // Add game type indicator
+                                ball.textContent = num;
+                                lp1MatchedNumbersDiv.appendChild(ball);
+                            });
+                        }
                     }
                 }
             }
@@ -1725,54 +1884,133 @@
                     // Show the Lotto Plus 2 matches container
                     const lp2MatchesContainer = document.getElementById('lp2-matched-numbers-section');
                     
-                    // Get unique matched numbers
-                    const uniqueLP2MatchedNumbers = [...new Set(data.lotto_plus_2_results.matched_numbers)];
-                    
-                    // Update matched count
-                    document.getElementById('lp2-matched-count').textContent = uniqueLP2MatchedNumbers.length;
-                    
-                    // Display matched numbers
-                    const lp2MatchedNumbersDiv = document.getElementById('lp2-matched-numbers');
-                    lp2MatchedNumbersDiv.innerHTML = '';
-                    
-                    // Display both main and bonus matches together
-                    const allLP2Matches = [...uniqueLP2MatchedNumbers];
-                    
-                    // Add bonus matches if they exist
-                    if (data.lotto_plus_2_results.matched_bonus && data.lotto_plus_2_results.matched_bonus.length > 0) {
-                        // Add bonus numbers to the main matched numbers display
-                        allLP2Matches.push(...data.lotto_plus_2_results.matched_bonus);
-                    }
-                    
-                    if (allLP2Matches.length > 0) {
-                        allLP2Matches.forEach(num => {
-                            const ball = document.createElement('span');
-                            ball.classList.add('lottery-ball', 'ball-matched');
-                            
-                            // Style bonus numbers differently if needed
-                            if (data.lotto_plus_2_results.bonus_numbers.includes(num)) {
-                                ball.classList.add('lottery-ball-yellow');
-                                ball.style.animation = 'pulse 2s infinite';
-                                ball.setAttribute('title', 'Bonus match in Lotto Plus 2'); // Add game type indicator
-                            } else {
-                                ball.setAttribute('title', 'Match in Lotto Plus 2'); // Add game type indicator
-                                // Add color classes in sequence for regular numbers
-                                if (lp2MatchedNumbersDiv.children.length % 4 === 0) {
-                                    ball.classList.add('lottery-ball-red');
-                                } else if (lp2MatchedNumbersDiv.children.length % 4 === 1) {
-                                    ball.classList.add('lottery-ball-yellow');
-                                } else if (lp2MatchedNumbersDiv.children.length % 4 === 2) {
-                                    ball.classList.add('lottery-ball-green');
+                    // Check if we have multiple rows with matches for Lotto Plus 2
+                    if (data.ticket_info && data.ticket_info.raw_selected_numbers && data.lotto_plus_2_results.rows_with_matches) {
+                        // Display matches by row for Lotto Plus 2
+                        const lp2MatchedNumbersDiv = document.getElementById('lp2-matched-numbers');
+                        lp2MatchedNumbersDiv.innerHTML = '<h6 class="mb-3">Lotto Plus 2 Matches by Row:</h6>';
+                        
+                        // Get unique matched numbers to update the count
+                        const uniqueLP2MatchedNumbers = [...new Set(data.lotto_plus_2_results.matched_numbers)];
+                        document.getElementById('lp2-matched-count').textContent = uniqueLP2MatchedNumbers.length;
+                        
+                        // Create rows with matches for Lotto Plus 2 game only
+                        const rowsToDisplay = data.lotto_plus_2_results.rows_with_matches || [];
+                        
+                        if (rowsToDisplay.length > 0) {
+                            // Rows with matches
+                            rowsToDisplay.forEach(rowData => {
+                                // Create row label with match indicator
+                                const rowLabel = document.createElement('div');
+                                rowLabel.classList.add('mt-3', 'mb-1');
+                                
+                                // Display row name with match count
+                                let displayRowName = rowData.row;
+                                
+                                // Show match count only if there are matches specific to this game type
+                                const matchCount = rowData.total_matched;
+                                if (matchCount > 0) {
+                                    rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong> <span class="badge bg-success ms-2">Matches: ${matchCount}</span>`;
                                 } else {
-                                    ball.classList.add('lottery-ball-blue');
+                                    rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong>`;
                                 }
-                            }
-                            
-                            ball.textContent = num;
-                            lp2MatchedNumbersDiv.appendChild(ball);
-                        });
+                                lp2MatchedNumbersDiv.appendChild(rowLabel);
+                                
+                                // Create row container
+                                const rowContainer = document.createElement('div');
+                                rowContainer.classList.add('mb-3');
+                                
+                                // Add balls for this row
+                                rowData.numbers.forEach(num => {
+                                    const ball = document.createElement('span');
+                                    ball.classList.add('lottery-ball');
+                                    
+                                    // Check if this number is a match
+                                    if (rowData.matched_numbers.includes(num)) {
+                                        ball.classList.add('ball-matched');
+                                        ball.setAttribute('title', 'Match in Lotto Plus 2');
+                                    }
+                                    
+                                    // Check if this number is a bonus match
+                                    if (rowData.matched_bonus && rowData.matched_bonus.includes(num)) {
+                                        ball.classList.add('ball-matched', 'lottery-ball-yellow');
+                                        ball.style.animation = 'pulse 2s infinite';
+                                        ball.setAttribute('title', 'Bonus match in Lotto Plus 2');
+                                    }
+                                    
+                                    // Add color classes in sequence
+                                    if (!ball.classList.contains('lottery-ball-yellow')) {
+                                        if (rowContainer.children.length % 4 === 0) {
+                                            ball.classList.add('lottery-ball-red');
+                                        } else if (rowContainer.children.length % 4 === 1) {
+                                            ball.classList.add('lottery-ball-yellow');
+                                        } else if (rowContainer.children.length % 4 === 2) {
+                                            ball.classList.add('lottery-ball-green');
+                                        } else {
+                                            ball.classList.add('lottery-ball-blue');
+                                        }
+                                    }
+                                    
+                                    ball.textContent = num;
+                                    rowContainer.appendChild(ball);
+                                });
+                                
+                                lp2MatchedNumbersDiv.appendChild(rowContainer);
+                            });
+                        } else {
+                            lp2MatchedNumbersDiv.innerHTML += '<p>No rows with Lotto Plus 2 matches found.</p>';
+                        }
                     } else {
-                        lp2MatchedNumbersDiv.innerHTML = '<p>No matching numbers found for Lotto Plus 2.</p>';
+                        // Legacy display method - for backward compatibility
+                        // Get unique matched numbers
+                        const uniqueLP2MatchedNumbers = [...new Set(data.lotto_plus_2_results.matched_numbers)];
+                        
+                        // Update matched count
+                        document.getElementById('lp2-matched-count').textContent = uniqueLP2MatchedNumbers.length;
+                        
+                        // Display matched numbers
+                        const lp2MatchedNumbersDiv = document.getElementById('lp2-matched-numbers');
+                        lp2MatchedNumbersDiv.innerHTML = '';
+                        
+                        // Display both main and bonus matches together
+                        const allLP2Matches = [...uniqueLP2MatchedNumbers];
+                        
+                        // Add bonus matches if they exist
+                        if (data.lotto_plus_2_results.matched_bonus && data.lotto_plus_2_results.matched_bonus.length > 0) {
+                            // Add bonus numbers to the main matched numbers display
+                            allLP2Matches.push(...data.lotto_plus_2_results.matched_bonus);
+                        }
+                        
+                        if (allLP2Matches.length > 0) {
+                            allLP2Matches.forEach(num => {
+                                const ball = document.createElement('span');
+                                ball.classList.add('lottery-ball', 'ball-matched');
+                                
+                                // Style bonus numbers differently if needed
+                                if (data.lotto_plus_2_results.bonus_numbers.includes(num)) {
+                                    ball.classList.add('lottery-ball-yellow');
+                                    ball.style.animation = 'pulse 2s infinite';
+                                    ball.setAttribute('title', 'Bonus match in Lotto Plus 2'); // Add game type indicator
+                                } else {
+                                    ball.setAttribute('title', 'Match in Lotto Plus 2'); // Add game type indicator
+                                    // Add color classes in sequence for regular numbers
+                                    if (lp2MatchedNumbersDiv.children.length % 4 === 0) {
+                                        ball.classList.add('lottery-ball-red');
+                                    } else if (lp2MatchedNumbersDiv.children.length % 4 === 1) {
+                                        ball.classList.add('lottery-ball-yellow');
+                                    } else if (lp2MatchedNumbersDiv.children.length % 4 === 2) {
+                                        ball.classList.add('lottery-ball-green');
+                                    } else {
+                                        ball.classList.add('lottery-ball-blue');
+                                    }
+                                }
+                                
+                                ball.textContent = num;
+                                lp2MatchedNumbersDiv.appendChild(ball);
+                            });
+                        } else {
+                            lp2MatchedNumbersDiv.innerHTML = '<p>No matching numbers found for Lotto Plus 2.</p>';
+                        }
                     }
                 }
             }
@@ -1786,11 +2024,11 @@
                 // Make sure scrolling is fully enabled
                 enableScrolling();
             }, 300);
-            } catch (error) {
-                console.error("Error displaying results:", error);
-                showError("An error occurred while displaying results. Please try again.");
-                enableScrolling();
-            }
+        } catch (error) {
+            console.error("Error displaying results:", error);
+            showError("An error occurred while displaying results. Please try again.");
+            enableScrolling();
+        }
         }
         
         function showError(message) {
