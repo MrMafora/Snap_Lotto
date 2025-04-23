@@ -194,6 +194,68 @@
     color: var(--lottery-dark);
 }
 
+/* Match indicators */
+.match-indicator {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+    color: white;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Powerball matches - green */
+.match-powerball {
+    background-color: #25a244;
+}
+
+/* Powerball Plus matches - blue/teal */
+.match-powerball-plus {
+    background-color: #1a98c5;
+}
+
+/* Lotto Plus 1 matches - purple */
+.match-lotto-plus-1 {
+    background-color: #8a2be2;
+}
+
+/* Lotto Plus 2 matches - orange */
+.match-lotto-plus-2 {
+    background-color: #ff7f00;
+}
+
+/* Bonus match indicators */
+.match-powerball-bonus {
+    background-color: #008000;
+}
+
+.match-powerball-plus-bonus {
+    background-color: #0070c0;
+}
+
+.match-lotto-plus-1-bonus {
+    background-color: #6a1b9a;
+}
+
+.match-lotto-plus-2-bonus {
+    background-color: #e65100;
+}
+
+@media (max-width: 576px) {
+    .match-indicator {
+        width: 10px;
+        height: 10px;
+        font-size: 7px;
+    }
+}
+
 /* Fix for mobile ticket scanner display */
 #ticket-numbers .mb-3 {
     display: flex;
