@@ -194,21 +194,44 @@
     color: var(--lottery-dark);
 }
 
-/* Match indicators */
+/* Ball with match styles */
+.ball-matched {
+    box-shadow: 0 0 8px rgba(0, 170, 0, 0.7);
+    border: 1px solid rgba(0, 255, 0, 0.4) !important;
+}
+
+/* Match indicator styles with improved visibility */
 .match-indicator {
     position: absolute;
-    top: 0;
-    right: 0;
-    width: 12px;
-    height: 12px;
-    font-size: 9px;
+    top: -5px;
+    right: -5px;
+    width: 16px;
+    height: 16px;
+    font-size: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
     font-weight: bold;
     color: white;
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+    background-color: red;
+    box-shadow: 0 0 6px rgba(255, 0, 0, 0.8);
+    z-index: 10;
+    line-height: 1;
+    text-align: center;
+    border: 2px solid white;
+}
+
+/* Mobile-specific match indicator styles */
+@media (max-width: 576px) {
+    .match-indicator {
+        width: 14px;
+        height: 14px;
+        font-size: 12px;
+        top: -2px;
+        right: -2px;
+        border: 1.5px solid white;
+    }
 }
 
 /* Powerball matches - green */
@@ -246,14 +269,6 @@
 
 .match-lotto-plus-2-bonus {
     background-color: #e65100;
-}
-
-@media (max-width: 576px) {
-    .match-indicator {
-        width: 10px;
-        height: 10px;
-        font-size: 7px;
-    }
 }
 
 /* Fix for mobile ticket scanner display */

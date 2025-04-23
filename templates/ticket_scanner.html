@@ -476,6 +476,12 @@
 {% block additional_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Helper function to create checkmark for match indicators
+        // This ensures consistent checkmarks across all match indicators
+        window.createCheckmark = function() {
+            return '✓';
+        };
+        
         const dropArea = document.getElementById('drop-area');
         const fileInput = document.getElementById('ticket-image');
         const fileSelectBtn = document.getElementById('file-select-btn');
@@ -1136,7 +1142,8 @@
                             // Create match indicator with game-specific styling
                             const matchIcon = document.createElement('span');
                             matchIcon.classList.add('match-indicator');
-                            matchIcon.innerHTML = '✓';
+                            // Use our helper function for consistent checkmarks
+                            matchIcon.textContent = '✓';
                             
                             // Color code the match indicator based on game type
                             if (data.lottery_type === "Powerball") {
@@ -1255,7 +1262,7 @@
                                 // Create match indicator with game-specific styling
                                 const matchIcon = document.createElement('span');
                                 matchIcon.classList.add('match-indicator');
-                                matchIcon.innerHTML = '✓';
+                                // No text needed for the dot indicator
                                 
                                 // Color code based on game type
                                 if (data.lottery_type === "Powerball") {
@@ -1449,7 +1456,7 @@
                                 // Create match indicator with game-specific styling
                                 const matchIcon = document.createElement('span');
                                 matchIcon.classList.add('match-indicator');
-                                matchIcon.innerHTML = '✓';
+                                // No text needed for the dot indicator
                                 
                                 // Color code based on game type
                                 if (data.lottery_type === "Powerball") {
@@ -1655,7 +1662,7 @@
                                         // Create match indicator with game-specific styling
                                         const matchIcon = document.createElement('span');
                                         matchIcon.classList.add('match-indicator');
-                                        matchIcon.innerHTML = '✓';
+                                        // No text needed for the dot indicator
                                         matchIcon.classList.add('match-powerball-plus');
                                         ball.setAttribute('title', 'Match in Powerball Plus');
                                         
@@ -1722,7 +1729,7 @@
                                 // Create match indicator with game-specific styling
                                 const matchIcon = document.createElement('span');
                                 matchIcon.classList.add('match-indicator');
-                                matchIcon.innerHTML = '✓';
+                                // No text needed for the dot indicator
                                 matchIcon.classList.add('match-powerball-plus');
                                 
                                 // Add the match indicator to the ball
@@ -1929,7 +1936,7 @@
                                         // Create match indicator with game-specific styling
                                         const matchIcon = document.createElement('span');
                                         matchIcon.classList.add('match-indicator');
-                                        matchIcon.innerHTML = '✓';
+                                        // No text needed for the dot indicator
                                         matchIcon.classList.add('match-lotto-plus-1');
                                         ball.setAttribute('title', 'Match in Lotto Plus 1');
                                         
@@ -1996,7 +2003,7 @@
                                 // Create match indicator with game-specific styling
                                 const matchIcon = document.createElement('span');
                                 matchIcon.classList.add('match-indicator');
-                                matchIcon.innerHTML = '✓';
+                                // No text needed for the dot indicator
                                 matchIcon.classList.add('match-lotto-plus-1');
                                 
                                 // Add the match indicator to the ball
@@ -2156,7 +2163,7 @@
                                         // Create match indicator with game-specific styling
                                         const matchIcon = document.createElement('span');
                                         matchIcon.classList.add('match-indicator');
-                                        matchIcon.innerHTML = '✓';
+                                        // No text needed for the dot indicator
                                         matchIcon.classList.add('match-lotto-plus-2');
                                         ball.setAttribute('title', 'Match in Lotto Plus 2');
                                         
@@ -2248,7 +2255,7 @@
                                     // Create match indicator with game-specific styling
                                     const matchIcon = document.createElement('span');
                                     matchIcon.classList.add('match-indicator');
-                                    matchIcon.innerHTML = '✓';
+                                    // No text needed for the dot indicator
                                     matchIcon.classList.add('match-lotto-plus-2');
                                     
                                     // Add the match indicator to the ball
