@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Snap Lotto | South Africa's #1 Lottery Ticket Scanner & Results App{% endblock %}
+{% block title %}Snap Lotto | South Africa's #1 PowerBall & Daily Lotto Ticket Scanner App{% endblock %}
 
-{% block meta_description %}Snap Lotto - South Africa's ONLY lottery ticket scanner app. Check latest Lotto, PowerBall, and Daily Lotto results instantly. Scan tickets to see if you've won with our exclusive scanner technology.{% endblock %}
+{% block meta_description %}Snap Lotto - South Africa's ONLY PowerBall & Daily Lotto ticket scanner app. The ONLY app pulling data directly from Ithuba (official source). Scan tickets instantly to check if you've won.{% endblock %}
 
-{% block meta_keywords %}Snap Lotto, South African lottery results, SA Lotto scanner, lottery ticket scanner South Africa, check lotto ticket, PowerBall results, Daily Lotto numbers, SA lottery results{% endblock %}
+{% block meta_keywords %}Snap Lotto, PowerBall South Africa, Daily Lotto South Africa, Ithuba official data, PowerBall scanner South Africa, Daily Lotto scanner, PowerBall winning numbers, Daily Lotto results, official Ithuba results{% endblock %}
 
 {% block og_title %}Snap Lotto | South Africa's #1 Lottery Ticket Scanner & Results App{% endblock %}
 {% block og_description %}Snap Lotto is South Africa's premier lottery app with the ONLY ticket scanner that instantly checks if you've won. Get Lotto, PowerBall & Daily Lotto results and scan your tickets today!{% endblock %}
@@ -19,14 +19,14 @@
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "Snap Lotto",
-  "alternateName": ["SA Lottery Scanner", "South African Lottery App"],
+  "alternateName": ["SA PowerBall App", "South African Daily Lotto Scanner", "Official Ithuba Results App"],
   "url": "https://www.snaplotto.co.za/",
   "potentialAction": {
     "@type": "SearchAction",
     "target": "https://www.snaplotto.co.za/results?search={search_term}",
     "query-input": "required name=search_term"
   },
-  "description": "South Africa's #1 lottery ticket scanner app. Check latest Lotto, PowerBall, and Daily Lotto results instantly. Scan tickets to see if you've won!"
+  "description": "South Africa's ONLY app pulling PowerBall, Daily Lotto & Lotto data directly from Ithuba (official source). Scan tickets instantly to check if you've won with 100% accurate results!"
 }
 </script>
 
@@ -59,8 +59,8 @@
     "https://twitter.com/snaplotto",
     "https://www.instagram.com/snaplotto/"
   ],
-  "slogan": "Snap, Scan and Win = Phusha Phanda Play",
-  "description": "South Africa's premier lottery ticket scanner app that instantly checks if you've won"
+  "slogan": "The ONLY South African PowerBall & Daily Lotto App with Official Ithuba Data",
+  "description": "South Africa's #1 PowerBall and Daily Lotto scanner app with exclusive direct access to Ithuba's official data. The ONLY app in South Africa that verifies winning tickets with 100% accurate source data."
 }
 </script>
 
@@ -292,7 +292,7 @@
                         <p class="mb-1">Have a lottery ticket? Check if you've won instantly!</p>
                         <p class="small mb-3">Simply upload a photo of your ticket and our system will check it against the latest results.</p>
                         <div class="slogan-banner mb-3">
-                            <span class="slogan-text">Snap, Scan and Win = Phusha Phanda Play</span>
+                            <span class="slogan-text">The ONLY app with official Ithuba PowerBall & Daily Lotto data</span>
                         </div>
                         <a href="{{ url_for('ticket_scanner') }}" class="btn btn-lottery-primary">
                             <i class="fas fa-qrcode me-2"></i> Scan Your Ticket Now
