@@ -472,9 +472,11 @@ def create_empty_template(output_path):
         worksheet = writer.sheets['Lotto']
         
         # Make columns wider for data entry
+        from openpyxl.utils import get_column_letter
         for i, col in enumerate(df.columns):
             col_width = max(len(col) + 5, 20)  # Minimum width of 20 characters
-            worksheet.column_dimensions[chr(65 + i)].width = col_width
+            col_letter = get_column_letter(i + 1)  # Convert number to Excel column letter (1=A, 27=AA, etc)
+            worksheet.column_dimensions[col_letter].width = col_width
         
         # Add column formatting guidelines in first row
         # Get worksheet
