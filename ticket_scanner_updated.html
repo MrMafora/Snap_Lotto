@@ -102,15 +102,20 @@
         position: relative;
     }
     
-    /* Match indicators - alternate style guaranteed to work on all devices */
+    /* Match indicators - stronger style */
     .match-indicator {
         position: absolute;
-        top: -10px;
-        right: -10px;
-        width: 20px;
-        height: 20px;
+        top: -8px;
+        right: -8px;
+        width: 22px;
+        height: 22px;
         border-radius: 50%;
-        background-color: #ff0000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 16px;
+        color: white;
         border: 2px solid white;
         box-shadow: 0 0 5px rgba(0,0,0,0.5);
     }
@@ -1140,7 +1145,7 @@
                             const matchIcon = document.createElement('div');
                             matchIcon.classList.add('match-indicator');
                             // Add simpler check symbol (plus sign) that works on all devices
-                            
+                            matchIcon.textContent = '+';
                             
                             // Color code the match indicator based on game type
                             if (data.lottery_type === "Powerball") {
@@ -1259,7 +1264,7 @@
                                 // Create match indicator with game-specific styling
                                 const matchIcon = document.createElement('div');
                                 matchIcon.classList.add('match-indicator');
-                                
+                                matchIcon.textContent = '+';
                                 
                                 // Color code based on game type
                                 if (data.lottery_type === "Powerball") {
@@ -1453,7 +1458,7 @@
                                 // Create match indicator with game-specific styling
                                 const matchIcon = document.createElement('div');
                                 matchIcon.classList.add('match-indicator');
-                                
+                                matchIcon.textContent = '+';
                                 
                                 // Color code based on game type
                                 if (data.lottery_type === "Powerball") {
@@ -1659,7 +1664,7 @@
                                         // Create match indicator with game-specific styling
                                         const matchIcon = document.createElement('div');
                                         matchIcon.classList.add('match-indicator');
-                                        
+                                        matchIcon.textContent = '+';
                                         matchIcon.classList.add('match-powerball-plus');
                                         ball.setAttribute('title', 'Match in Powerball Plus');
                                         
@@ -1726,7 +1731,7 @@
                                 // Create match indicator with game-specific styling
                                 const matchIcon = document.createElement('div');
                                 matchIcon.classList.add('match-indicator');
-                                
+                                matchIcon.textContent = '+';
                                 matchIcon.classList.add('match-powerball-plus');
                                 
                                 // Add the match indicator to the ball
@@ -1933,7 +1938,7 @@
                                         // Create match indicator with game-specific styling
                                         const matchIcon = document.createElement('div');
                                         matchIcon.classList.add('match-indicator');
-                                        
+                                        matchIcon.textContent = '+';
                                         matchIcon.classList.add('match-lotto-plus-1');
                                         ball.setAttribute('title', 'Match in Lotto Plus 1');
                                         
@@ -2000,7 +2005,7 @@
                                 // Create match indicator with game-specific styling
                                 const matchIcon = document.createElement('div');
                                 matchIcon.classList.add('match-indicator');
-                                
+                                matchIcon.textContent = '+';
                                 matchIcon.classList.add('match-lotto-plus-1');
                                 
                                 // Add the match indicator to the ball
@@ -2160,7 +2165,7 @@
                                         // Create match indicator with game-specific styling
                                         const matchIcon = document.createElement('div');
                                         matchIcon.classList.add('match-indicator');
-                                        
+                                        matchIcon.textContent = '+';
                                         matchIcon.classList.add('match-lotto-plus-2');
                                         ball.setAttribute('title', 'Match in Lotto Plus 2');
                                         
@@ -2252,7 +2257,7 @@
                                     // Create match indicator with game-specific styling
                                     const matchIcon = document.createElement('div');
                                     matchIcon.classList.add('match-indicator');
-                                    
+                                    matchIcon.textContent = '+';
                                     matchIcon.classList.add('match-lotto-plus-2');
                                     
                                     // Add the match indicator to the ball
