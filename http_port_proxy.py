@@ -23,7 +23,7 @@ logger = logging.getLogger('http_port_proxy')
 SOURCE_PORT = 8080
 DESTINATION_PORT = 5000
 DESTINATION_HOST = "localhost"
-PID_FILE = "http_proxy.pid"
+PID_FILE = "proxy.pid"
 
 def create_pid_file():
     """Create a PID file for the proxy process"""

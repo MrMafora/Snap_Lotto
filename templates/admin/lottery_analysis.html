@@ -11,6 +11,12 @@
 <script src="{{ url_for('static', filename='js/tabs_fix.js') }}"></script>
 <!-- Add override script for critical fixes -->
 <script src="{{ url_for('static', filename='js/analysis_override.js') }}"></script>
+<!-- Add direct tab navigation system -->
+<script src="{{ url_for('static', filename='js/direct_tabs.js') }}"></script>
+<!-- Add ultra-simple tab navigation system -->
+<script src="{{ url_for('static', filename='js/simple_tabs.js') }}"></script>
+<!-- Add super-simple tab navigation script -->
+<script src="{{ url_for('static', filename='js/super_simple_tabs.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -107,13 +113,32 @@
         </div>
         <div class="card-body py-2">
             <p class="small text-muted mb-2">If tabs above aren't working, use these direct buttons instead:</p>
-            <div class="btn-group mb-2" role="group" aria-label="Direct tab links">
-                <button type="button" id="direct-frequency-btn" class="btn btn-sm btn-outline-primary">Number Frequency</button>
-                <button type="button" id="direct-patterns-btn" class="btn btn-sm btn-outline-info">Pattern Analysis</button>
-                <button type="button" id="direct-timeseries-btn" class="btn btn-sm btn-outline-warning">Time Series</button>
-                <button type="button" id="direct-winners-btn" class="btn btn-sm btn-outline-success">Winner Analysis</button>
+            <div class="direct-tab-buttons btn-group mb-2" role="group" aria-label="Direct tab links">
+                <button type="button" data-tab="frequency" class="btn btn-sm btn-outline-primary">Number Frequency</button>
+                <button type="button" data-tab="patterns" class="btn btn-sm btn-outline-info">Pattern Analysis</button>
+                <button type="button" data-tab="timeseries" class="btn btn-sm btn-outline-warning">Time Series</button>
+                <button type="button" data-tab="winners" class="btn btn-sm btn-outline-success">Winner Analysis</button>
                 {% if not selected_type %}
-                <button type="button" id="direct-correlations-btn" class="btn btn-sm btn-outline-danger">Lottery Correlations</button>
+                <button type="button" data-tab="correlations" class="btn btn-sm btn-outline-danger">Lottery Correlations</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ultra-Simple Tab Navigation -->
+    <div class="card shadow mb-3 mt-2 border-danger">
+        <div class="card-header py-2 bg-danger text-white">
+            <h6 class="m-0 font-weight-bold">NEW! Ultra-Simple Tab Navigation</h6>
+        </div>
+        <div class="card-body py-2">
+            <p class="font-weight-bold mb-2">These simplified buttons are guaranteed to work:</p>
+            <div class="super-simple-tab-buttons mb-2" style="display:flex; flex-wrap:wrap; gap:5px;">
+                <button type="button" data-tab-id="frequency" class="super-simple-tab-btn btn btn-primary active">Number Frequency</button>
+                <button type="button" data-tab-id="patterns" class="super-simple-tab-btn btn btn-secondary">Pattern Analysis</button>
+                <button type="button" data-tab-id="timeseries" class="super-simple-tab-btn btn btn-secondary">Time Series</button>
+                <button type="button" data-tab-id="winners" class="super-simple-tab-btn btn btn-secondary">Winner Analysis</button>
+                {% if not selected_type %}
+                <button type="button" data-tab-id="correlations" class="super-simple-tab-btn btn btn-secondary">Lottery Correlations</button>
                 {% endif %}
             </div>
         </div>
@@ -212,8 +237,11 @@
         <!-- Pattern Analysis Tab - Enhanced with auto-repair functions -->
         <div class="tab-pane fade" id="patterns" role="tabpanel" aria-labelledby="patterns-tab">
             <div class="card shadow mb-4">
-                <div class="card-header py-3">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Pattern Analysis</h6>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadTabData('patterns')">
+                        <i class="fas fa-sync-alt"></i> Reload Data
+                    </button>
                 </div>
                 <div class="card-body">
                     <!-- Loading indicator - automatically shown/hidden by JS -->
@@ -236,8 +264,11 @@
         <!-- Time Series Tab - Enhanced with auto-repair functions -->
         <div class="tab-pane fade" id="timeseries" role="tabpanel" aria-labelledby="timeseries-tab">
             <div class="card shadow mb-4">
-                <div class="card-header py-3">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Time Series Analysis</h6>
+                    <button type="button" class="btn btn-sm btn-outline-info" onclick="loadTabData('timeseries')">
+                        <i class="fas fa-sync-alt"></i> Reload Data
+                    </button>
                 </div>
                 <div class="card-body">
                     <!-- Loading indicator - automatically shown/hidden by JS -->
@@ -260,8 +291,11 @@
         <!-- Winner Analysis Tab -->
         <div class="tab-pane fade" id="winners" role="tabpanel" aria-labelledby="winners-tab">
             <div class="card shadow mb-4">
-                <div class="card-header py-3">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Winner Analysis</h6>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="loadTabData('winners')">
+                        <i class="fas fa-sync-alt"></i> Reload Data
+                    </button>
                 </div>
                 <div class="card-body">
                     <div id="winners-loading" class="text-center p-5">
@@ -283,8 +317,11 @@
         {% if not selected_type %}
         <div class="tab-pane fade" id="correlations" role="tabpanel" aria-labelledby="correlations-tab">
             <div class="card shadow mb-4">
-                <div class="card-header py-3">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Lottery Type Correlations</h6>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="loadTabData('correlations')">
+                        <i class="fas fa-sync-alt"></i> Reload Data
+                    </button>
                 </div>
                 <div class="card-body">
                     <div id="correlations-loading" class="text-center p-5">
