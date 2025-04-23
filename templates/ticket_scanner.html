@@ -964,12 +964,55 @@
                 // Array to track rows that should be skipped (e.g., A2/B2 rows that are merged with A1/B1)
                 const rowsToSkip = [];
                 
+                // First, let's organize and combine the row data 
+                // to display main numbers and bonus balls on the same line
+                const organizedRows = {};
+                
+                // First pass: Identify all row pairs (A1/A2, B1/B2, etc.)
+                Object.entries(data.ticket_info.raw_selected_numbers).forEach(([rowName, numbers]) => {
+                    // Check if this is a main row (like A1, B1) or bonus row (like A2, B2)
+                    if (rowName.match(/^[A-Z]1/) || rowName.match(/^[A-Z]1\(\d+\)/)) {
+                        // This is a main row (A1, B1, etc.)
+                        const baseRowName = rowName.charAt(0); // Get A, B, C, etc.
+                        
+                        // Initialize the combined row data
+                        organizedRows[baseRowName] = {
+                            mainRowName: rowName,
+                            mainNumbers: numbers,
+                            bonusRowName: null,
+                            bonusNumbers: []
+                        };
+                    }
+                    else if (rowName.match(/^[A-Z]2/) || rowName.match(/^[A-Z]2\(\d+\)/)) {
+                        // This is a bonus row (A2, B2, etc.)
+                        const baseRowName = rowName.charAt(0); // Get A, B, C, etc.
+                        
+                        // If we already have this base row, add as bonus
+                        if (organizedRows[baseRowName]) {
+                            organizedRows[baseRowName].bonusRowName = rowName;
+                            organizedRows[baseRowName].bonusNumbers = numbers;
+                            
+                            // Add this row to the skip list since we're handling it with its main row
+                            rowsToSkip.push(rowName);
+                        }
+                    }
+                });
+                
                 // Display numbers by rows
                 Object.entries(data.ticket_info.raw_selected_numbers).forEach(([rowName, numbers]) => {
                     // Skip rows that are already handled (bonus number rows like A2, B2)
                     if (rowsToSkip.includes(rowName)) {
                         return;
                     }
+                    
+                    // Check if this is a main row that has a corresponding bonus row
+                    const baseRowName = rowName.charAt(0);
+                    const combinedRow = organizedRows[baseRowName];
+                    
+                    // If this is a main row with a bonus ball, use the combined data
+                    // Otherwise, just use the original row data
+                    const combinedNumbers = combinedRow && combinedRow.mainRowName === rowName && combinedRow.bonusNumbers.length > 0 ? 
+                        [...numbers, ...combinedRow.bonusNumbers] : numbers;
                     
                     // Check if this row has any matches - use game_type to ensure matches are from the correct game
                     let rowMatches = [];
@@ -1055,12 +1098,15 @@
                     }
                     
                     // Add balls for this row
-                    numbers.forEach((num, index) => {
-                        // For Powerball tickets, add a plus sign before the last number (bonus ball)
-                        // This is for Row A style display (where we keep the bonus ball on the same line)
-                        if (data.lottery_type.toLowerCase().includes('powerball') && 
-                            index === numbers.length - 1 && 
-                            numbers.length === 6) {
+                    // Use combined numbers array if available (main numbers + bonus numbers)
+                    // This displays the bonus balls on the same line as the main numbers
+                    (combinedNumbers || numbers).forEach((num, index) => {
+                        // For Powerball tickets, add a plus sign between main numbers and bonus numbers
+                        const hasBonus = combinedRow && combinedRow.bonusNumbers.length > 0;
+                        const mainNumberCount = combinedRow ? combinedRow.mainNumbers.length : numbers.length;
+                        
+                        // Add a plus sign when we've reached the bonus ball
+                        if (hasBonus && index === mainNumberCount) {
                             const plusSpan = document.createElement('span');
                             plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
                             plusSpan.textContent = '+';
