@@ -1504,7 +1504,7 @@
             
             // Check if ticket also plays Powerball Plus and display those results
             // Make sure we only show the Powerball Plus section if this ticket plays Powerball Plus
-            if (data.lottery_type === "Powerball" && data.powerball_plus_results) {
+            if (data.lottery_type === "Powerball" && (data.powerball_plus_results || (data.ticket_info && data.ticket_info.plays_powerball_plus))) {
                 // Update the primary game label to include the game name
                 const primaryGameLabel = document.getElementById('primary-game-label');
                 primaryGameLabel.textContent = 'Powerball Numbers:';
@@ -1609,9 +1609,14 @@
                                         const matchIcon = document.createElement('div');
                                         matchIcon.classList.add('match-indicator');
                                         matchIcon.textContent = '✓'; // Direct text checkmark
+                                        matchIcon.style.position = 'absolute';
+                                        matchIcon.style.top = '-5px';
+                                        matchIcon.style.right = '-5px';
+                                        matchIcon.style.zIndex = '2';
                                         
                                         matchIcon.classList.add('match-powerball-plus');
                                         ball.setAttribute('title', 'Match in Powerball Plus');
+                                        ball.style.position = 'relative';
                                         
                                         // Add the match indicator to the ball
                                         ball.appendChild(matchIcon);
@@ -1626,8 +1631,13 @@
                                         const bonusIcon = document.createElement('span');
                                         bonusIcon.classList.add('match-indicator');
                                         bonusIcon.textContent = '✓'; // Direct text checkmark
+                                        bonusIcon.style.position = 'absolute';
+                                        bonusIcon.style.top = '-5px';
+                                        bonusIcon.style.right = '-5px';
+                                        bonusIcon.style.zIndex = '2';
                                         bonusIcon.classList.add('match-powerball-plus-bonus');
                                         ball.setAttribute('title', 'Bonus match in Powerball Plus');
+                                        ball.style.position = 'relative';
                                         
                                         // Add the match indicator to the ball
                                         ball.appendChild(bonusIcon);
@@ -1678,8 +1688,13 @@
                                 const matchIcon = document.createElement('div');
                                 matchIcon.classList.add('match-indicator');
                                 matchIcon.textContent = '✓'; // Direct text checkmark
+                                matchIcon.style.position = 'absolute';
+                                matchIcon.style.top = '-5px';
+                                matchIcon.style.right = '-5px';
+                                matchIcon.style.zIndex = '2';
                                 
                                 matchIcon.classList.add('match-powerball-plus');
+                                ball.style.position = 'relative';
                                 
                                 // Add the match indicator to the ball
                                 ball.appendChild(matchIcon);
@@ -1724,7 +1739,12 @@
                                 const bonusIcon = document.createElement('span');
                                 bonusIcon.classList.add('match-indicator');
                                 bonusIcon.textContent = '✓'; // Direct text checkmark
+                                bonusIcon.style.position = 'absolute';
+                                bonusIcon.style.top = '-5px';
+                                bonusIcon.style.right = '-5px';
+                                bonusIcon.style.zIndex = '2';
                                 bonusIcon.classList.add('match-powerball-plus-bonus');
+                                ball.style.position = 'relative';
                                 
                                 // Add the match indicator to the ball
                                 ball.appendChild(bonusIcon);
@@ -1785,7 +1805,7 @@
             }
             
             // Handle Lotto Plus 1 numbers if present - but only if the main game is Lotto
-            if (data.lottery_type === "Lotto" && data.lotto_plus_1_results) {
+            if (data.lottery_type === "Lotto" && (data.lotto_plus_1_results || (data.ticket_info && data.ticket_info.plays_lotto_plus_1))) {
                 // Get the Lotto Plus 1 container
                 const lp1Container = document.getElementById('lotto-plus-1-numbers-container');
                 const lp1NumbersDiv = document.getElementById('lotto-plus-1-numbers');
@@ -1794,8 +1814,9 @@
                 lp1Container.classList.remove('d-none');
                 lp1NumbersDiv.innerHTML = '';
                 
-                // Add main numbers
-                data.lotto_plus_1_results.winning_numbers.forEach((num, index) => {
+                // Add main numbers if we have results
+                if (data.lotto_plus_1_results && data.lotto_plus_1_results.winning_numbers) {
+                    data.lotto_plus_1_results.winning_numbers.forEach((num, index) => {
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball');
                     
@@ -1828,6 +1849,7 @@
                         ball.textContent = num;
                         lp1NumbersDiv.appendChild(ball);
                     });
+                }
                 }
                 
                 // Display Lotto Plus 1 matches
@@ -2016,7 +2038,7 @@
             }
             
             // Handle Lotto Plus 2 numbers if present - but only if the main game is Lotto
-            if (data.lottery_type === "Lotto" && data.lotto_plus_2_results) {
+            if (data.lottery_type === "Lotto" && (data.lotto_plus_2_results || (data.ticket_info && data.ticket_info.plays_lotto_plus_2))) {
                 // Get the Lotto Plus 2 container
                 const lp2Container = document.getElementById('lotto-plus-2-numbers-container');
                 const lp2NumbersDiv = document.getElementById('lotto-plus-2-numbers');
