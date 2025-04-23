@@ -2,6 +2,60 @@
 
 {% block title %}Export Screenshots | Snap Lotto{% endblock %}
 
+{% block head_content %}
+<style>
+    /* Ensure gallery container is properly scrollable */
+    html, body {
+        height: 100%;
+        overflow-y: auto !important;
+    }
+    
+    .gallery-container {
+        overflow-y: visible !important;
+    }
+    
+    /* Fix for image containers preventing scroll */
+    .gallery-image-container {
+        pointer-events: auto;
+    }
+    
+    .gallery-image-container img {
+        pointer-events: auto;
+    }
+</style>
+<script>
+    // Fix for scrolling issues on export-screenshots page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Remove any scroll-blocking event listeners
+        document.addEventListener('wheel', function(event) {
+            event.stopPropagation();
+        }, true);
+        
+        // Ensure images don't capture scroll events and prevent dragging
+        const galleryImages = document.querySelectorAll('.gallery-image-container img');
+        galleryImages.forEach(img => {
+            // Prevent wheel events from being captured
+            img.addEventListener('wheel', function(event) {
+                event.stopPropagation();
+            }, false);
+            
+            // Prevent dragging which can interfere with scrolling
+            img.setAttribute('draggable', 'false');
+            img.addEventListener('dragstart', function(event) {
+                event.preventDefault();
+            });
+            
+            // Ensure pointer events work properly
+            img.style.pointerEvents = 'auto';
+        });
+        
+        // Add prevention for any other event handlers that might block scrolling
+        document.body.style.overflowY = 'scroll';
+        document.documentElement.style.overflowY = 'scroll';
+    });
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
@@ -121,10 +175,10 @@
             <div class="card-body">
                 <p>Browse and download individual screenshots</p>
                 
-                <div class="row">
+                <div class="row gallery-container">
                     {% for screenshot in screenshots %}
                     <div class="col-md-4 mb-4">
-                        <div class="card h-100 gallery-card">
+                        <div class="card h-100 gallery-card" style="user-select: none;">
                             <div class="gallery-image-container">
                                 <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" target="_blank">
                                     <img src="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
