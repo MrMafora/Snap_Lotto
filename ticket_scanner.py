@@ -157,7 +157,8 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
                     "numbers": numbers,
                     "matched_numbers": row_matches,
                     "matched_bonus": row_bonus_matches,
-                    "total_matched": len(row_matches) + len(row_bonus_matches)
+                    "total_matched": len(row_matches) + len(row_bonus_matches),
+                    "game_type": lottery_type  # This identifies which game the matches belong to
                 }
                 rows_with_matches.append(row_data)
                 
@@ -247,7 +248,8 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
                         "numbers": numbers,
                         "matched_numbers": row_matches,
                         "matched_bonus": row_bonus_matches,
-                        "total_matched": len(row_matches) + len(row_bonus_matches)
+                        "total_matched": len(row_matches) + len(row_bonus_matches),
+                        "game_type": "Powerball Plus"  # Add game type for clarity
                     })
                     
                     # Track best matches
@@ -323,7 +325,8 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
                         "numbers": numbers,
                         "matched_numbers": row_matches,
                         "matched_bonus": row_bonus_matches,
-                        "total_matched": len(row_matches) + len(row_bonus_matches)
+                        "total_matched": len(row_matches) + len(row_bonus_matches),
+                        "game_type": "Lotto Plus 1"  # Add game type for clarity
                     })
                     
                     # Track best matches
@@ -399,7 +402,8 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
                         "numbers": numbers,
                         "matched_numbers": row_matches,
                         "matched_bonus": row_bonus_matches,
-                        "total_matched": len(row_matches) + len(row_bonus_matches)
+                        "total_matched": len(row_matches) + len(row_bonus_matches),
+                        "game_type": "Lotto Plus 2"  # Add game type for clarity
                     })
                     
                     # Track best matches
