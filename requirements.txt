@@ -32,3 +32,4 @@ numpy
 pandas
 scikit-learn
 seaborn
+trafilatura

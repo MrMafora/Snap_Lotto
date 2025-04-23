@@ -17,24 +17,28 @@
     <title>{% block title %}Snap Lotto{% endblock %}</title>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="{% block meta_description %}Snap Lotto - South Africa's ONLY app that scans lottery tickets to instantly check if you've won. Get the latest Lotto, PowerBall, and Daily Lotto results with our exclusive scanner technology.{% endblock %}">
-    <meta name="keywords" content="{% block meta_keywords %}South African lottery ticket scanner, check lottery ticket South Africa, scan Lotto ticket, PowerBall ticket scanner, Daily Lotto results, lottery ticket checker{% endblock %}">
+    <meta name="description" content="{% block meta_description %}Snap Lotto - South Africa's #1 Lottery Ticket Scanner App. Instantly check winning numbers for Lotto, PowerBall, and Daily Lotto. The ONLY app in South Africa that scans tickets to verify wins.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}Snap Lotto, South Africa lottery, lottery ticket scanner South Africa, scan lottery ticket, SA Lotto numbers, PowerBall results, Daily Lotto results, check lottery ticket South Africa{% endblock %}">
     <meta name="author" content="Snap Lotto">
-    <meta name="robots" content="index, follow">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
     <meta name="language" content="English">
+    <meta name="geo.region" content="ZA">
+    <meta name="geo.placename" content="South Africa">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url }}">
-    <meta property="og:title" content="{% block og_title %}Snap Lotto - South Africa's ONLY Lottery Ticket Scanner App{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}South Africa's ONLY app that scans lottery tickets to instantly check if you've won. Exclusive ticket scanning technology not available anywhere else!{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}Snap Lotto | South Africa's #1 Lottery Ticket Scanner App{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Snap Lotto is South Africa's premier lottery app with the ONLY ticket scanner that instantly checks if you've won. Get results for Lotto, PowerBall & Daily Lotto instantly!{% endblock %}">
     <meta property="og:image" content="{{ url_for('static', filename='img/snap-lotto-social.jpg', _external=True) }}">
+    <meta property="og:locale" content="en_ZA">
+    <meta property="og:site_name" content="Snap Lotto">
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{{ request.url }}">
-    <meta property="twitter:title" content="{% block twitter_title %}Snap Lotto - South Africa's ONLY Lottery Ticket Scanner App{% endblock %}">
-    <meta property="twitter:description" content="{% block twitter_description %}South Africa's ONLY app that scans lottery tickets to instantly check if you've won. Exclusive ticket scanning technology not available anywhere else!{% endblock %}">
+    <meta property="twitter:title" content="{% block twitter_title %}Snap Lotto | South Africa's #1 Lottery Ticket Scanner App{% endblock %}">
+    <meta property="twitter:description" content="{% block twitter_description %}Snap Lotto is South Africa's premier lottery app with the ONLY ticket scanner that instantly checks if you've won. Get results for Lotto, PowerBall & Daily Lotto!{% endblock %}">
     <meta property="twitter:image" content="{{ url_for('static', filename='img/snap-lotto-social.jpg', _external=True) }}">
     
     <!-- Canonical URL -->
@@ -162,11 +166,42 @@
         {% block content %}{% endblock %}
     </div>
 
-    <footer class="footer mt-4 py-2 py-sm-3">
-        <div class="container text-center">
-            <span class="d-block d-sm-inline">Snap Lotto - South African Lottery Data &copy; 2025</span>
-            <span class="d-none d-sm-inline"> | </span>
-            <a href="https://www.snaplotto.co.za" class="d-block d-sm-inline" target="_blank">www.snaplotto.co.za</a>
+    <footer class="footer mt-4 py-3">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <h5 class="h6 mb-2">Snap Lotto</h5>
+                    <p class="small mb-2">South Africa's #1 Lottery Scanner App that lets you check if your tickets are winners instantly. The ONLY scanner app in South Africa.</p>
+                    <p class="small">&copy; 2025 Snap Lotto</p>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <h5 class="h6 mb-2">Lottery Games</h5>
+                    <ul class="list-unstyled small">
+                        <li><a href="/results?game=Lotto" class="text-decoration-none">SA Lotto Results</a></li>
+                        <li><a href="/results?game=Powerball" class="text-decoration-none">PowerBall Results</a></li>
+                        <li><a href="/results?game=Daily+Lotto" class="text-decoration-none">Daily Lotto Results</a></li>
+                        <li><a href="/visualizations" class="text-decoration-none">Lottery Analysis</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <h5 class="h6 mb-2">Quick Links</h5>
+                    <ul class="list-unstyled small">
+                        <li><a href="/ticket-scanner" class="text-decoration-none">Scan Your Ticket</a></li>
+                        <li><a href="/guides/how-to-play-lotto" class="text-decoration-none">How to Play Lotto</a></li>
+                        <li><a href="/guides/how-to-play-powerball" class="text-decoration-none">How to Play PowerBall</a></li>
+                        <li><a href="/guides/how-to-play-daily-lotto" class="text-decoration-none">How to Play Daily Lotto</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h5 class="h6 mb-2">Connect</h5>
+                    <p class="small mb-2"><a href="https://www.snaplotto.co.za" class="text-decoration-none" target="_blank">www.snaplotto.co.za</a></p>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="text-decoration-none" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-decoration-none" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-decoration-none" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+            </div>
         </div>
     </footer>
     
