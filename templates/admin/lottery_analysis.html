@@ -5,6 +5,10 @@
 {% block head %}
 <!-- Add debug script for analysis functionality -->
 <script src="{{ url_for('static', filename='js/analysis_debug.js') }}"></script>
+<!-- Add fixes script for analysis functionality -->
+<script src="{{ url_for('static', filename='js/analysis_fixes.js') }}"></script>
+<!-- Add direct tab fix script -->
+<script src="{{ url_for('static', filename='js/tabs_fix.js') }}"></script>
 {% endblock %}
 
 {% block content %}
