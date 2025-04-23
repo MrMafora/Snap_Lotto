@@ -1517,8 +1517,9 @@
                 ppNumbersContainer.classList.remove('d-none');
                 ppNumbersDiv.innerHTML = '';
                 
-                // Add main numbers
-                data.powerball_plus_results.winning_numbers.forEach((num, index) => {
+                // Add main numbers if we have results
+                if (data.powerball_plus_results && data.powerball_plus_results.winning_numbers) {
+                    data.powerball_plus_results.winning_numbers.forEach((num, index) => {
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball');
                     
@@ -1552,10 +1553,11 @@
                         ppNumbersDiv.appendChild(ball);
                     });
                 }
+                }
                 
                 // Display Powerball Plus matches in the main card (with unique matched numbers)
-                if (data.powerball_plus_results.matched_numbers.length > 0 || 
-                    (data.powerball_plus_results.matched_bonus && data.powerball_plus_results.matched_bonus.length > 0)) {
+                if (data.powerball_plus_results && data.powerball_plus_results.matched_numbers && data.powerball_plus_results.matched_numbers.length > 0 || 
+                    (data.powerball_plus_results && data.powerball_plus_results.matched_bonus && data.powerball_plus_results.matched_bonus.length > 0)) {
                     
                     // Show the PowerballPlus matches container
                     const ppMatchesContainer = document.getElementById('pp-matched-numbers-section');
@@ -1853,8 +1855,8 @@
                 }
                 
                 // Display Lotto Plus 1 matches
-                if (data.lotto_plus_1_results.matched_numbers.length > 0 || 
-                    (data.lotto_plus_1_results.matched_bonus && data.lotto_plus_1_results.matched_bonus.length > 0)) {
+                if (data.lotto_plus_1_results && data.lotto_plus_1_results.matched_numbers && data.lotto_plus_1_results.matched_numbers.length > 0 || 
+                    (data.lotto_plus_1_results && data.lotto_plus_1_results.matched_bonus && data.lotto_plus_1_results.matched_bonus.length > 0)) {
                     
                     // Show the Lotto Plus 1 matches container
                     const lp1MatchesContainer = document.getElementById('lp1-matched-numbers-section');
@@ -2047,8 +2049,9 @@
                 lp2Container.classList.remove('d-none');
                 lp2NumbersDiv.innerHTML = '';
                 
-                // Add main numbers
-                data.lotto_plus_2_results.winning_numbers.forEach((num, index) => {
+                // Add main numbers if we have results
+                if (data.lotto_plus_2_results && data.lotto_plus_2_results.winning_numbers) {
+                    data.lotto_plus_2_results.winning_numbers.forEach((num, index) => {
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball');
                     
@@ -2082,10 +2085,11 @@
                         lp2NumbersDiv.appendChild(ball);
                     });
                 }
+                }
                 
                 // Display Lotto Plus 2 matches
-                if (data.lotto_plus_2_results.matched_numbers.length > 0 || 
-                    (data.lotto_plus_2_results.matched_bonus && data.lotto_plus_2_results.matched_bonus.length > 0)) {
+                if (data.lotto_plus_2_results && data.lotto_plus_2_results.matched_numbers && data.lotto_plus_2_results.matched_numbers.length > 0 || 
+                    (data.lotto_plus_2_results && data.lotto_plus_2_results.matched_bonus && data.lotto_plus_2_results.matched_bonus.length > 0)) {
                     
                     // Show the Lotto Plus 2 matches container
                     const lp2MatchesContainer = document.getElementById('lp2-matched-numbers-section');
