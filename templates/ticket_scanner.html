@@ -350,8 +350,8 @@
                                             <hr>
                                             <p><strong>Powerball Plus Numbers:</strong></p>
                                             <div id="powerball-plus-numbers" class="d-inline-flex flex-wrap mb-2"></div>
-                                            <!-- Hidden but needed for JavaScript to work -->
-                                            <div id="pp-matched-numbers-section" class="d-none">
+                                            <!-- Always show the Matches section for PowerBall Plus -->
+                                            <div id="pp-matched-numbers-section">
                                                 <p><strong>Your Matches:</strong> <span id="pp-matched-count" class="badge bg-success">0</span></p>
                                                 <div id="pp-matched-numbers"></div>
                                             </div>
@@ -1337,12 +1337,23 @@
             
             // Add a plus sign followed immediately by bonus numbers on the same line
             if (data.bonus_numbers && data.bonus_numbers.length > 0) {
-                // Add plus sign with higher visibility
+                // Create a container to hold the plus sign with better visibility
+                const plusContainer = document.createElement('div');
+                plusContainer.classList.add('d-inline-block', 'mx-3', 'position-relative', 'align-middle');
+                plusContainer.style.width = '40px'; // Wider container for larger plus sign
+                plusContainer.style.textAlign = 'center';
+                
+                // Add plus sign with extreme visibility
                 const plusSpan = document.createElement('span');
-                plusSpan.classList.add('mx-2', 'my-auto', 'fs-4', 'fw-bold');
+                plusSpan.classList.add('fw-bolder', 'fs-1'); // Larger font size (fs-1 instead of fs-2)
                 plusSpan.textContent = '+';
-                plusSpan.style.color = '#000';  // Make sure it's visible
-                winningNumbersContainer.appendChild(plusSpan);
+                plusSpan.style.color = '#FF5500'; // Bright orange for high visibility
+                plusSpan.style.textShadow = '2px 2px 4px rgba(0,0,0,0.7)'; // Stronger shadow for better contrast
+                plusSpan.style.display = 'inline-block'; // Ensure block display
+                plusSpan.style.transform = 'scale(1.2)'; // Make plus sign 20% larger
+                
+                plusContainer.appendChild(plusSpan);
+                winningNumbersContainer.appendChild(plusContainer);
                 
                 // Add bonus balls to the same container as main numbers
                 data.bonus_numbers.forEach(num => {
@@ -1362,37 +1373,16 @@
             bonusNumbersContainer.innerHTML = '';
             document.getElementById('bonus-numbers-container').classList.add('d-none');
             
-            // Display unique matched numbers under the winning numbers
+            // Update matched count for display without showing matched balls
             const matchedNumbersContainer = document.getElementById('matched-numbers');
             matchedNumbersContainer.innerHTML = '';
             
-            // Get unique matched numbers
+            // Get unique matched numbers for the count
             const uniqueMatchedNumbers = [...new Set(data.matched_numbers)];
             document.getElementById('matched-count').textContent = uniqueMatchedNumbers.length;
             
-            if (uniqueMatchedNumbers.length > 0) {
-                uniqueMatchedNumbers.forEach(num => {
-                    const ball = document.createElement('span');
-                    ball.classList.add('lottery-ball', 'ball-matched');
-                    ball.setAttribute('title', `Match in ${data.lottery_type}`);
-                    
-                    // Add color classes in sequence
-                    if (matchedNumbersContainer.children.length % 4 === 0) {
-                        ball.classList.add('lottery-ball-red');
-                    } else if (matchedNumbersContainer.children.length % 4 === 1) {
-                        ball.classList.add('lottery-ball-yellow');
-                    } else if (matchedNumbersContainer.children.length % 4 === 2) {
-                        ball.classList.add('lottery-ball-green');
-                    } else {
-                        ball.classList.add('lottery-ball-blue');
-                    }
-                    
-                    ball.textContent = num;
-                    matchedNumbersContainer.appendChild(ball);
-                });
-            } else {
-                matchedNumbersContainer.innerHTML = '<p>No matching numbers found.</p>';
-            }
+            // Don't display matched balls here - we'll just show them in the rows below
+            // This makes Powerball and Powerball Plus sections match in appearance
             
             // Get unique matched bonus numbers and add them to the matched numbers section
             if (data.matched_bonus && data.matched_bonus.length > 0) {
@@ -1564,7 +1554,10 @@
             
             // Check if ticket also plays Powerball Plus and display those results
             // Make sure we only show the Powerball Plus section if this ticket plays Powerball Plus
-            if (data.lottery_type === "Powerball" && (data.powerball_plus_results || (data.ticket_info && data.ticket_info.plays_powerball_plus))) {
+            // Using case-insensitive comparison for "Powerball" to handle OCR variations
+            if (data.lottery_type.toLowerCase() === "powerball".toLowerCase() && 
+                (data.powerball_plus_results || (data.ticket_info && data.ticket_info.plays_powerball_plus))) {
+                console.log("PowerBall Plus section should be visible");
                 // Update the primary game label to include the game name
                 const primaryGameLabel = document.getElementById('primary-game-label');
                 primaryGameLabel.textContent = 'Powerball Numbers:';
@@ -1600,10 +1593,23 @@
                 
                 // Always add a plus sign between main numbers and bonus, even if there's only one bonus number
                 if (data.powerball_plus_results.bonus_numbers && data.powerball_plus_results.bonus_numbers.length > 0) {
+                    // Create a container to hold the plus sign with better visibility
+                    const plusContainer = document.createElement('div');
+                    plusContainer.classList.add('d-inline-block', 'mx-3', 'position-relative', 'align-middle');
+                    plusContainer.style.width = '40px'; // Wider container for larger plus sign
+                    plusContainer.style.textAlign = 'center';
+                    
+                    // Add plus sign with extreme visibility
                     const plusSpan = document.createElement('span');
-                    plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
+                    plusSpan.classList.add('fw-bolder', 'fs-1'); // Larger font size (fs-1 instead of fs-2)
                     plusSpan.textContent = '+';
-                    ppNumbersDiv.appendChild(plusSpan);
+                    plusSpan.style.color = '#FF5500'; // Bright orange for high visibility
+                    plusSpan.style.textShadow = '2px 2px 4px rgba(0,0,0,0.7)'; // Stronger shadow for better contrast
+                    plusSpan.style.display = 'inline-block'; // Ensure block display
+                    plusSpan.style.transform = 'scale(1.2)'; // Make plus sign 20% larger
+                    
+                    plusContainer.appendChild(plusSpan);
+                    ppNumbersDiv.appendChild(plusContainer);
                     
                     // Add bonus numbers
                     data.powerball_plus_results.bonus_numbers.forEach(num => {
@@ -1619,11 +1625,9 @@
                 if (data.powerball_plus_results && data.powerball_plus_results.matched_numbers && data.powerball_plus_results.matched_numbers.length > 0 || 
                     (data.powerball_plus_results && data.powerball_plus_results.matched_bonus && data.powerball_plus_results.matched_bonus.length > 0)) {
                     
-                    // Show the PowerballPlus matches container
+                    // PowerballPlus matches container is now always visible
                     const ppMatchesContainer = document.getElementById('pp-matched-numbers-section');
-                    if (ppMatchesContainer) {
-                        ppMatchesContainer.classList.remove('d-none');
-                    }
+                    // No need to remove d-none class because the section is always visible now
                     
                     // Check if we have multiple rows with matches for Powerball Plus
                     if (data.ticket_info && data.ticket_info.raw_selected_numbers && data.powerball_plus_results.rows_with_matches) {

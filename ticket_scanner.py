@@ -72,10 +72,11 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     
     # Check for Powerball Plus if applicable
     # Only check if primary game is Powerball and ticket plays Powerball Plus
-    if lottery_type == "Powerball" and plays_powerball_plus:
+    # Use case-insensitive comparison for "Powerball" to handle any OCR variations
+    if lottery_type.lower() == "powerball" and plays_powerball_plus:
         logger.info("This ticket also plays Powerball Plus - checking both games")
         powerball_plus_result = get_lottery_result("Powerball Plus", draw_number)
-    elif lottery_type == "Powerball":
+    elif lottery_type.lower() == "powerball":
         logger.info("This ticket is Powerball only - NOT checking Powerball Plus")
     
     # Check for Lotto Plus 1 if applicable
