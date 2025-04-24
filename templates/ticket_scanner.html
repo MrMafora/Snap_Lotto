@@ -1188,16 +1188,31 @@
                             ball.appendChild(matchIcon);
                         }
                         
-                        // Add color classes in sequence or special color for Powerball
-                        if (isPowerball) {
-                            ball.classList.add('lottery-ball-blue', 'lottery-ball-bonus');
-                        } else if (rowContainer.children.length % 4 === 0) {
+                        // Use consistent game-specific colors
+                        if (data.lottery_type === "Lotto" || data.lottery_type === "Powerball") {
+                            if (isPowerball) {
+                                // For the Powerball (bonus ball), use blue with bonus indicator
+                                ball.classList.add('lottery-ball-blue', 'lottery-ball-bonus');
+                            } else {
+                                // Green for main Lotto and Powerball games
+                                ball.classList.add('lottery-ball-green');
+                            }
+                        } else if (data.lottery_type === "Lotto Plus 1") {
+                            // Red for Lotto Plus 1
                             ball.classList.add('lottery-ball-red');
-                        } else if (rowContainer.children.length % 4 === 1) {
+                        } else if (data.lottery_type === "Lotto Plus 2") {
+                            // Yellow for Lotto Plus 2
                             ball.classList.add('lottery-ball-yellow');
-                        } else if (rowContainer.children.length % 4 === 2) {
-                            ball.classList.add('lottery-ball-green');
+                        } else if (data.lottery_type === "Powerball Plus") {
+                            if (isPowerball) {
+                                // For the Powerball Plus bonus ball
+                                ball.classList.add('lottery-ball-yellow', 'lottery-ball-bonus');
+                            } else {
+                                // Blue for Powerball Plus main numbers (reverting change)
+                                ball.classList.add('lottery-ball-blue');
+                            }
                         } else {
+                            // Default colors for other games
                             ball.classList.add('lottery-ball-blue');
                         }
                         
@@ -1285,14 +1300,21 @@
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball');
                     
-                    // Add color classes in sequence
-                    if (ticketNumbersContainer.children.length % 4 === 0) {
-                        ball.classList.add('lottery-ball-red');
-                    } else if (ticketNumbersContainer.children.length % 4 === 1) {
-                        ball.classList.add('lottery-ball-yellow');
-                    } else if (ticketNumbersContainer.children.length % 4 === 2) {
+                    // Use consistent color based on game type
+                    if (data.lottery_type === "Lotto" || data.lottery_type === "Powerball") {
+                        // Green for main Lotto and Powerball games
                         ball.classList.add('lottery-ball-green');
+                    } else if (data.lottery_type === "Lotto Plus 1") {
+                        // Red for Lotto Plus 1
+                        ball.classList.add('lottery-ball-red');
+                    } else if (data.lottery_type === "Lotto Plus 2") {
+                        // Yellow for Lotto Plus 2
+                        ball.classList.add('lottery-ball-yellow');
+                    } else if (data.lottery_type === "Powerball Plus") {
+                        // Blue for Powerball Plus (original color)
+                        ball.classList.add('lottery-ball-blue');
                     } else {
+                        // Default colors for other games
                         ball.classList.add('lottery-ball-blue');
                     }
                     
@@ -1309,19 +1331,26 @@
             const primaryGameLabel = document.getElementById('primary-game-label');
             primaryGameLabel.textContent = data.lottery_type + ' Numbers:';
             
-            // Add main numbers
+            // Add main numbers with game-specific colors
             data.winning_numbers.forEach(num => {
                 const ball = document.createElement('span');
                 ball.classList.add('lottery-ball');
                 
-                // Add color classes in sequence
-                if (winningNumbersContainer.children.length % 4 === 0) {
-                    ball.classList.add('lottery-ball-red');
-                } else if (winningNumbersContainer.children.length % 4 === 1) {
-                    ball.classList.add('lottery-ball-yellow');
-                } else if (winningNumbersContainer.children.length % 4 === 2) {
+                // Use consistent color based on game type
+                if (data.lottery_type === "Lotto" || data.lottery_type === "Powerball") {
+                    // Green for main Lotto and Powerball games
                     ball.classList.add('lottery-ball-green');
+                } else if (data.lottery_type === "Lotto Plus 1") {
+                    // Red for Lotto Plus 1
+                    ball.classList.add('lottery-ball-red');
+                } else if (data.lottery_type === "Lotto Plus 2") {
+                    // Yellow for Lotto Plus 2
+                    ball.classList.add('lottery-ball-yellow');
+                } else if (data.lottery_type === "Powerball Plus") {
+                    // Blue for Powerball Plus (original color)
+                    ball.classList.add('lottery-ball-blue');
                 } else {
+                    // Default colors for other games
                     ball.classList.add('lottery-ball-blue');
                 }
                 
@@ -1366,14 +1395,21 @@
                     ball.classList.add('lottery-ball', 'ball-matched');
                     ball.setAttribute('title', `Match in ${data.lottery_type}`);
                     
-                    // Add color classes in sequence
-                    if (matchedNumbersContainer.children.length % 4 === 0) {
-                        ball.classList.add('lottery-ball-red');
-                    } else if (matchedNumbersContainer.children.length % 4 === 1) {
-                        ball.classList.add('lottery-ball-yellow');
-                    } else if (matchedNumbersContainer.children.length % 4 === 2) {
+                    // Use consistent color based on game type
+                    if (data.lottery_type === "Lotto" || data.lottery_type === "Powerball") {
+                        // Green for main Lotto and Powerball games
                         ball.classList.add('lottery-ball-green');
+                    } else if (data.lottery_type === "Lotto Plus 1") {
+                        // Red for Lotto Plus 1
+                        ball.classList.add('lottery-ball-red');
+                    } else if (data.lottery_type === "Lotto Plus 2") {
+                        // Yellow for Lotto Plus 2
+                        ball.classList.add('lottery-ball-yellow');
+                    } else if (data.lottery_type === "Powerball Plus") {
+                        // Blue for Powerball Plus (original color)
+                        ball.classList.add('lottery-ball-blue');
                     } else {
+                        // Default colors for other games
                         ball.classList.add('lottery-ball-blue');
                     }
                     
@@ -1573,16 +1609,8 @@
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball');
                     
-                    // Add color classes in sequence
-                    if (index % 4 === 0) {
-                        ball.classList.add('lottery-ball-red');
-                    } else if (index % 4 === 1) {
-                        ball.classList.add('lottery-ball-yellow');
-                    } else if (index % 4 === 2) {
-                        ball.classList.add('lottery-ball-green');
-                    } else {
-                        ball.classList.add('lottery-ball-blue');
-                    }
+                    // Use consistent purple color for Powerball Plus
+                    ball.classList.add('lottery-ball-blue');
                     
                     ball.textContent = num;
                     ppNumbersDiv.appendChild(ball);
@@ -1872,16 +1900,8 @@
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball');
                     
-                    // Add color classes in sequence
-                    if (index % 4 === 0) {
-                        ball.classList.add('lottery-ball-red');
-                    } else if (index % 4 === 1) {
-                        ball.classList.add('lottery-ball-yellow');
-                    } else if (index % 4 === 2) {
-                        ball.classList.add('lottery-ball-green');
-                    } else {
-                        ball.classList.add('lottery-ball-blue');
-                    }
+                    // Use consistent red color for Lotto Plus 1
+                    ball.classList.add('lottery-ball-red');
                     
                     ball.textContent = num;
                     lp1NumbersDiv.appendChild(ball);
@@ -2105,16 +2125,8 @@
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball');
                     
-                    // Add color classes in sequence
-                    if (index % 4 === 0) {
-                        ball.classList.add('lottery-ball-red');
-                    } else if (index % 4 === 1) {
-                        ball.classList.add('lottery-ball-yellow');
-                    } else if (index % 4 === 2) {
-                        ball.classList.add('lottery-ball-green');
-                    } else {
-                        ball.classList.add('lottery-ball-blue');
-                    }
+                    // Use consistent yellow color for Lotto Plus 2
+                    ball.classList.add('lottery-ball-yellow');
                     
                     ball.textContent = num;
                     lp2NumbersDiv.appendChild(ball);
