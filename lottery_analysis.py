@@ -1605,7 +1605,12 @@ def register_analysis_routes(app, db):
             data = analyzer.analyze_time_series(lottery_type, days)
             print(f"Time series analysis completed successfully")
             
-            return jsonify(data), 200
+            # Use NumpyEncoder for proper JSON serialization of NumPy types
+            return app.response_class(
+                response=json.dumps(data, cls=NumpyEncoder),
+                status=200,
+                mimetype='application/json'
+            )
             
         except Exception as e:
             print(f"ERROR IN TIME SERIES ANALYSIS API: {str(e)}")
@@ -1644,7 +1649,12 @@ def register_analysis_routes(app, db):
             data = analyzer.analyze_correlations(days)
             print("Correlation analysis completed successfully")
             
-            return jsonify(data), 200
+            # Use NumpyEncoder for proper JSON serialization of NumPy types
+            return app.response_class(
+                response=json.dumps(data, cls=NumpyEncoder),
+                status=200,
+                mimetype='application/json'
+            )
             
         except Exception as e:
             print(f"ERROR IN CORRELATION ANALYSIS API: {str(e)}")
