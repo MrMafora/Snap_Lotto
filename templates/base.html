@@ -69,8 +69,7 @@ Snap Scan and Win = Phanda Phusha Play{% endblock %}">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="format-detection" content="telephone=no">
     <meta name="mobile-web-app-capable" content="yes">
-    <!-- Content Security Policy with needed permissions -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data:;">
+    <!-- CSP removed to ensure mobile compatibility -->
     
     {% if config.get('ENVIRONMENT') == 'production' %}
     <!-- Google AdSense - Only loaded in production environment -->
