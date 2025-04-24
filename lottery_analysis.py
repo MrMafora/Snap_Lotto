@@ -613,20 +613,35 @@ class LotteryAnalyzer:
             # Plot the sum of numbers over time - ensure dates are sorted
             plt.subplot(3, 1, 1)
             lt_df_sorted = lt_df.sort_values('draw_date')
-            plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['sum'].values, 'o-', label='Sum')
+            
+            # Handle any NaN values before plotting
+            draw_dates = lt_df_sorted['draw_date'].values
+            sum_values = lt_df_sorted['sum'].values
+            # Replace NaN with 0 to prevent plotting errors
+            sum_values = np.nan_to_num(sum_values, nan=0.0)
+            
+            plt.plot(draw_dates, sum_values, 'o-', label='Sum')
             plt.title(f'Time Series Analysis for {lt}')
             plt.ylabel('Sum of Numbers')
             plt.grid(True)
             
             # Plot the standard deviation over time
             plt.subplot(3, 1, 2)
-            plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['std'].values, 'o-', color='orange', label='Std Dev')
+            std_values = lt_df_sorted['std'].values
+            # Replace NaN with 0 to prevent plotting errors
+            std_values = np.nan_to_num(std_values, nan=0.0)
+            
+            plt.plot(draw_dates, std_values, 'o-', color='orange', label='Std Dev')
             plt.ylabel('Standard Deviation')
             plt.grid(True)
             
             # Plot the count of even numbers over time
             plt.subplot(3, 1, 3)
-            plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['even_count'].values, 'o-', color='green', label='Even Count')
+            even_values = lt_df_sorted['even_count'].values
+            # Replace NaN with 0 to prevent plotting errors
+            even_values = np.nan_to_num(even_values, nan=0.0)
+            
+            plt.plot(draw_dates, even_values, 'o-', color='green', label='Even Count')
             plt.ylabel('Count of Even Numbers')
             plt.grid(True)
             
@@ -642,18 +657,21 @@ class LotteryAnalyzer:
             plt.figure(figsize=(12, 7))
             
             plt.subplot(3, 1, 1)
-            plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['sum'].values, 'o-', label='Sum')
+            # Use the same NaN handling as before
+            plt.plot(draw_dates, sum_values, 'o-', label='Sum')
             plt.title(f'Time Series Analysis for {lt}')
             plt.ylabel('Sum of Numbers')
             plt.grid(True)
             
             plt.subplot(3, 1, 2)
-            plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['std'].values, 'o-', color='orange', label='Std Dev')
+            # Use the same NaN handling as before
+            plt.plot(draw_dates, std_values, 'o-', color='orange', label='Std Dev')
             plt.ylabel('Standard Deviation')
             plt.grid(True)
             
             plt.subplot(3, 1, 3)
-            plt.plot(lt_df_sorted['draw_date'].values, lt_df_sorted['even_count'].values, 'o-', color='green', label='Even Count')
+            # Use the same NaN handling as before
+            plt.plot(draw_dates, even_values, 'o-', color='green', label='Even Count')
             plt.ylabel('Count of Even Numbers')
             plt.grid(True)
             
@@ -871,11 +889,12 @@ class LotteryAnalyzer:
                     
                     if row_lt != col_lt:
                         corr_value = corr_matrix.iloc[i, j]
-                        if abs(corr_value) > 0.5:  # Only include strong correlations
+                        # Check for NaN and convert to proper JSON-serializable format
+                        if pd.notnull(corr_value) and abs(corr_value) > 0.5:  # Only include strong correlations
                             strong_correlations.append({
                                 'feature1': row_name,
                                 'feature2': col_name,
-                                'correlation': corr_value
+                                'correlation': float(corr_value) if not pd.isna(corr_value) else 0
                             })
             
             # Sort by absolute correlation value
@@ -941,10 +960,11 @@ class LotteryAnalyzer:
                 total_winners = lt_df[col].sum()
                 avg_winners = lt_df[col].mean()
                 
+                # Handle NaN values before adding to division_data
                 division_data.append({
                     'division': div_num,
-                    'total_winners': total_winners,
-                    'avg_winners': avg_winners
+                    'total_winners': float(total_winners) if not pd.isna(total_winners) else 0,
+                    'avg_winners': float(avg_winners) if not pd.isna(avg_winners) else 0
                 })
             
             # Sort divisions numerically
@@ -1485,17 +1505,24 @@ def register_analysis_routes(app, db):
             data = analyzer.analyze_frequency(lottery_type, days)
             print(f"Analysis completed successfully with {len(data.keys() if isinstance(data, dict) else [])} items")
             
-            # Return the analysis data
-            return jsonify(data), 200
+            # Return the analysis data with custom encoder for NumPy data types
+            return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
             
         except Exception as e:
             print(f"ERROR IN FREQUENCY ANALYSIS API: {str(e)}")
             logger.error(f"Error in frequency analysis API: {str(e)}", exc_info=True)
-            return jsonify({
+            # Format error response consistently
+            error_response = json.dumps({
                 "error": f"Analysis failed: {str(e)}",
                 "status": "error",
                 "message": "An unexpected error occurred during frequency analysis."
-            }), 500
+            }, cls=NumpyEncoder)
+            
+            return app.response_class(
+                response=error_response,
+                status=500,
+                mimetype='application/json'
+            )
     
     @app.route('/api/lottery-analysis/patterns')
     @csrf.exempt
@@ -1551,7 +1578,12 @@ def register_analysis_routes(app, db):
                     if isinstance(value, dict) and 'error' in value:
                         print(f"Error for {key}: {value['error']}")
                 
-                return jsonify(data), 200
+                # Use NumpyEncoder for proper JSON serialization
+                return app.response_class(
+                    response=json_data,  # Already converted with NumpyEncoder above
+                    status=200,
+                    mimetype='application/json'
+                )
             except TypeError as json_error:
                 print(f"JSON serialization error: {str(json_error)}")
                 # Try to identify the problematic objects
@@ -1570,11 +1602,18 @@ def register_analysis_routes(app, db):
             # Log and return error with detailed information
             print(f"ERROR IN PATTERN ANALYSIS API: {str(e)}")
             logger.error(f"Error in pattern analysis API: {str(e)}", exc_info=True)
-            return jsonify({
+            # Format error response consistently
+            error_response = json.dumps({
                 "error": f"Analysis failed: {str(e)}",
                 "status": "error",
                 "message": "An unexpected error occurred during pattern analysis."
-            }), 500
+            }, cls=NumpyEncoder)
+            
+            return app.response_class(
+                response=error_response,
+                status=500,
+                mimetype='application/json'
+            )
     
     @app.route('/api/lottery-analysis/time-series')
     @csrf.exempt
@@ -1615,11 +1654,18 @@ def register_analysis_routes(app, db):
         except Exception as e:
             print(f"ERROR IN TIME SERIES ANALYSIS API: {str(e)}")
             logger.error(f"Error in time series analysis API: {str(e)}", exc_info=True)
-            return jsonify({
+            # Format error response consistently
+            error_response = json.dumps({
                 "error": f"Analysis failed: {str(e)}",
                 "status": "error",
                 "message": "An unexpected error occurred during time series analysis."
-            }), 500
+            }, cls=NumpyEncoder)
+            
+            return app.response_class(
+                response=error_response,
+                status=500,
+                mimetype='application/json'
+            )
     
     @app.route('/api/lottery-analysis/correlations')
     @csrf.exempt
@@ -1659,11 +1705,18 @@ def register_analysis_routes(app, db):
         except Exception as e:
             print(f"ERROR IN CORRELATION ANALYSIS API: {str(e)}")
             logger.error(f"Error in correlation analysis API: {str(e)}", exc_info=True)
-            return jsonify({
+            # Format error response consistently
+            error_response = json.dumps({
                 "error": f"Analysis failed: {str(e)}",
                 "status": "error",
                 "message": "An unexpected error occurred during correlation analysis."
-            }), 500
+            }, cls=NumpyEncoder)
+            
+            return app.response_class(
+                response=error_response,
+                status=500,
+                mimetype='application/json'
+            )
     
     @app.route('/api/lottery-analysis/winners')
     @csrf.exempt
@@ -1694,16 +1747,28 @@ def register_analysis_routes(app, db):
             data = analyzer.analyze_winners(lottery_type, days)
             print("Winner analysis completed successfully")
             
-            return jsonify(data), 200
+            # Use NumpyEncoder for proper JSON serialization of NumPy types
+            return app.response_class(
+                response=json.dumps(data, cls=NumpyEncoder),
+                status=200,
+                mimetype='application/json'
+            )
             
         except Exception as e:
             print(f"ERROR IN WINNER ANALYSIS API: {str(e)}")
             logger.error(f"Error in winner analysis API: {str(e)}", exc_info=True)
-            return jsonify({
+            # Format error response consistently
+            error_response = json.dumps({
                 "error": f"Analysis failed: {str(e)}",
                 "status": "error",
                 "message": "An unexpected error occurred during winner analysis."
-            }), 500
+            }, cls=NumpyEncoder)
+            
+            return app.response_class(
+                response=error_response,
+                status=500,
+                mimetype='application/json'
+            )
     
     @app.route('/api/lottery-analysis/predict')
     @csrf.exempt
@@ -1724,16 +1789,28 @@ def register_analysis_routes(app, db):
             data = analyzer.predict_next_draw(lottery_type)
             print("Prediction analysis completed successfully")
             
-            return jsonify(data), 200
+            # Use NumpyEncoder for proper JSON serialization of NumPy types
+            return app.response_class(
+                response=json.dumps(data, cls=NumpyEncoder),
+                status=200,
+                mimetype='application/json'
+            )
             
         except Exception as e:
             print(f"ERROR IN PREDICTION API: {str(e)}")
             logger.error(f"Error in prediction API: {str(e)}", exc_info=True)
-            return jsonify({
+            # Format error response consistently
+            error_response = json.dumps({
                 "error": f"Analysis failed: {str(e)}",
                 "status": "error",
                 "message": "An unexpected error occurred during prediction analysis."
-            }), 500
+            }, cls=NumpyEncoder)
+            
+            return app.response_class(
+                response=error_response,
+                status=500,
+                mimetype='application/json'
+            )
     
     @app.route('/api/lottery-analysis/full')
     @csrf.exempt
@@ -1764,16 +1841,28 @@ def register_analysis_routes(app, db):
             data = analyzer.run_full_analysis(lottery_type, days)
             print("Full analysis completed successfully")
             
-            return jsonify(data), 200
+            # Use NumpyEncoder for proper JSON serialization of NumPy types
+            return app.response_class(
+                response=json.dumps(data, cls=NumpyEncoder),
+                status=200,
+                mimetype='application/json'
+            )
             
         except Exception as e:
             print(f"ERROR IN FULL ANALYSIS API: {str(e)}")
             logger.error(f"Error in full analysis API: {str(e)}", exc_info=True)
-            return jsonify({
+            # Format error response consistently
+            error_response = json.dumps({
                 "error": f"Analysis failed: {str(e)}",
                 "status": "error",
                 "message": "An unexpected error occurred during full analysis."
-            }), 500
+            }, cls=NumpyEncoder)
+            
+            return app.response_class(
+                response=error_response,
+                status=500,
+                mimetype='application/json'
+            )
     
     @app.route('/static/analysis/<path:filename>')
     def analysis_images(filename):
