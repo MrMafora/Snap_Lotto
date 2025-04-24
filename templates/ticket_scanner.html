@@ -452,8 +452,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <i class="fa fa-upload fa-2x mb-2"></i>
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
-                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
-                                    <button type="button" id="file-select-btn" class="btn btn-primary">Select Image</button>
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" style="position: absolute; opacity: 0; width: 1px; height: 1px;">
+                                    <label for="ticket-image" id="file-select-btn" class="btn btn-primary" style="cursor: pointer;">Select Image</label>
                                 </div>
                             </div>
 
@@ -711,36 +711,84 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             console.log("Initial button state check on page load");
         }, 500);
         
-        // File selection via button - with improved error handling
+        // File selection via button - completely rewritten for reliability
         fileSelectBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             console.log("Select Image button clicked");
             
+            // Always get a fresh reference to the input
+            const input = document.getElementById('ticket-image');
+            
+            if (!input) {
+                console.error("File input element not found");
+                // Create new input if missing
+                createAndClickFileInput();
+                return;
+            }
+            
+            // Create a direct onclick function that doesn't rely on stored references
             try {
-                // Directly trigger the hidden file input
-                if (fileInput) {
-                    fileInput.click();
-                    console.log("File input click triggered");
-                } else {
-                    console.error("File input element not found");
-                    // Try to recreate the input if it's missing
-                    const newInput = document.createElement('input');
-                    newInput.type = 'file';
-                    newInput.id = 'ticket-image';
-                    newInput.name = 'ticket_image';
-                    newInput.accept = 'image/*';
-                    newInput.className = 'd-none';
-                    document.querySelector('.ticket-drop-area').appendChild(newInput);
-                    newInput.addEventListener('change', handleFileSelect);
-                    newInput.click();
-                    console.log("Created new file input and clicked it");
-                }
+                // Use native DOM method to click the element
+                input.click();
+                console.log("File input click triggered directly");
             } catch (error) {
-                console.error("Error triggering file input:", error);
-                alert("There was a problem with the file selection. Please try again or refresh the page.");
+                console.error("Error triggering file input click:", error);
+                // Fallback - create a new input
+                createAndClickFileInput();
             }
         });
+        
+        // Helper function to create and click a new file input
+        function createAndClickFileInput() {
+            try {
+                console.log("Creating new file input");
+                const dropArea = document.querySelector('.ticket-drop-area');
+                
+                // Remove any existing input with the same ID to avoid duplicates
+                const existingInput = document.getElementById('ticket-image');
+                if (existingInput) {
+                    existingInput.remove();
+                }
+                
+                // Create new input
+                const newInput = document.createElement('input');
+                newInput.type = 'file';
+                newInput.id = 'ticket-image';
+                newInput.name = 'ticket_image';
+                newInput.accept = 'image/*';
+                newInput.className = 'd-none';
+                
+                // Make sure we have a parent to append to
+                if (!dropArea) {
+                    const form = document.getElementById('ticket-form');
+                    if (form) {
+                        form.appendChild(newInput);
+                    } else {
+                        document.body.appendChild(newInput);
+                    }
+                } else {
+                    dropArea.appendChild(newInput);
+                }
+                
+                // Add change listener before clicking
+                newInput.addEventListener('change', function(e) {
+                    console.log("New file input changed");
+                    handleFileSelect(e);
+                });
+                
+                // Click after a short delay to ensure the browser has registered the element
+                setTimeout(() => {
+                    newInput.click();
+                    console.log("New file input clicked");
+                    // Update fileInput reference
+                    fileInput = newInput;
+                }, 50);
+            } catch (error) {
+                console.error("Failed to create new file input:", error);
+                alert("There was a problem with the file selection. Please reload the page and try again.");
+            }
+        }
         
         // File selection change - with additional logging
         fileInput.addEventListener('change', function(e) {
