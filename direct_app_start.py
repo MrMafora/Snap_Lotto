@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Direct application starter for development
-Ensures the application binds to the expected port (8080) for Replit
+Ensures the application binds to both the internal port (5000) and the expected port (8080) for Replit
 """
 import os
 import sys
@@ -10,15 +10,21 @@ import signal
 import time
 
 # Configuration
-PORT = 8080
+PORTS = [5000, 8080]  # Run on both ports
 APP_MODULE = "main:app"
 
 def run_gunicorn():
-    """Run the gunicorn server directly on port 8080"""
-    print(f"Starting gunicorn on port {PORT}...")
+    """Run the gunicorn server directly on multiple ports"""
+    print(f"Starting gunicorn on ports {PORTS}...")
+    
+    # Create bind arguments for all ports
+    bind_args = []
+    for port in PORTS:
+        bind_args.extend(["--bind", f"0.0.0.0:{port}"])
+    
     cmd = [
         "gunicorn",
-        "--bind", f"0.0.0.0:{PORT}",
+        *bind_args,
         "--reuse-port",
         "--reload",
         APP_MODULE
