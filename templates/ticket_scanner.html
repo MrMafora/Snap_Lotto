@@ -1349,16 +1349,13 @@
                 plusContainer.style.justifyContent = 'center';
                 plusContainer.style.alignItems = 'center';
                 
-                // Add plus sign with EXTREME visibility
+                // Add plus sign with high visibility
                 const plusSpan = document.createElement('span');
-                plusSpan.classList.add('fw-bolder', 'display-3'); // Even larger size using display classes
+                plusSpan.classList.add('fw-bolder', 'fs-1'); // Larger font size
                 plusSpan.textContent = '+';
-                plusSpan.style.color = '#FF5500'; // Bright orange for high visibility
-                plusSpan.style.textShadow = '3px 3px 6px rgba(0,0,0,0.8)'; // Stronger shadow for better contrast
-                plusSpan.style.display = 'inline-block'; // Ensure block display
-                plusSpan.style.transform = 'scale(1.5)'; // Make plus sign 50% larger
-                plusSpan.style.zIndex = '100'; // Ensure it stays on top
-                plusSpan.style.position = 'relative'; // For z-index to work
+                plusSpan.style.color = '#FF5500'; // Orange for visibility
+                plusSpan.style.textShadow = '1px 1px 2px rgba(0,0,0,0.5)'; // Light shadow
+                plusSpan.style.display = 'inline-block';
                 
                 plusContainer.appendChild(plusSpan);
                 winningNumbersContainer.appendChild(plusContainer);
@@ -1467,7 +1464,22 @@
                         rowContainer.classList.add('mb-3');
                         
                         // Add balls for this row
-                        rowData.numbers.forEach(num => {
+                        rowData.numbers.forEach((num, index) => {
+                            // If this is the last number (bonus ball), add a plus sign before it
+                            if (index === rowData.numbers.length - 1) {
+                                // Add plus sign with high visibility
+                                const plusContainer = document.createElement('div');
+                                plusContainer.classList.add('d-inline-block', 'mx-2', 'align-middle');
+                                
+                                const plusSpan = document.createElement('span');
+                                plusSpan.classList.add('fw-bolder', 'fs-4');
+                                plusSpan.textContent = '+';
+                                plusSpan.style.color = '#FF5500'; // Orange for visibility
+                                
+                                plusContainer.appendChild(plusSpan);
+                                rowContainer.appendChild(plusContainer);
+                            }
+                            
                             const ball = document.createElement('span');
                             ball.classList.add('lottery-ball');
                             
@@ -1534,8 +1546,12 @@
                                 ball.appendChild(bonusIcon);
                             }
                             
-                            // Add color classes in sequence
-                            if (!ball.classList.contains('lottery-ball-yellow')) {
+                            // If this is the last number, make it yellow to identify as bonus
+                            if (index === rowData.numbers.length - 1) {
+                                ball.classList.add('lottery-ball-yellow');
+                            } 
+                            // Otherwise add color classes in sequence
+                            else if (!ball.classList.contains('lottery-ball-yellow')) {
                                 if (rowContainer.children.length % 4 === 0) {
                                     ball.classList.add('lottery-ball-red');
                                 } else if (rowContainer.children.length % 4 === 1) {
@@ -1631,16 +1647,13 @@
                     plusContainer.style.justifyContent = 'center';
                     plusContainer.style.alignItems = 'center';
                     
-                    // Add plus sign with EXTREME visibility
+                    // Add plus sign with high visibility
                     const plusSpan = document.createElement('span');
-                    plusSpan.classList.add('fw-bolder', 'display-3'); // Even larger size using display classes
+                    plusSpan.classList.add('fw-bolder', 'fs-1'); // Larger font size
                     plusSpan.textContent = '+';
-                    plusSpan.style.color = '#FF5500'; // Bright orange for high visibility
-                    plusSpan.style.textShadow = '3px 3px 6px rgba(0,0,0,0.8)'; // Stronger shadow for better contrast
-                    plusSpan.style.display = 'inline-block'; // Ensure block display
-                    plusSpan.style.transform = 'scale(1.5)'; // Make plus sign 50% larger
-                    plusSpan.style.zIndex = '100'; // Ensure it stays on top
-                    plusSpan.style.position = 'relative'; // For z-index to work
+                    plusSpan.style.color = '#FF5500'; // Orange for visibility
+                    plusSpan.style.textShadow = '1px 1px 2px rgba(0,0,0,0.5)'; // Light shadow
+                    plusSpan.style.display = 'inline-block';
                     
                     plusContainer.appendChild(plusSpan);
                     ppNumbersDiv.appendChild(plusContainer);
@@ -1700,7 +1713,22 @@
                                 rowContainer.classList.add('mb-3');
                                 
                                 // Add balls for this row
-                                rowData.numbers.forEach(num => {
+                                rowData.numbers.forEach((num, index) => {
+                                    // If this is the last number (bonus ball), add a plus sign before it
+                                    if (index === rowData.numbers.length - 1) {
+                                        // Add plus sign with high visibility
+                                        const plusContainer = document.createElement('div');
+                                        plusContainer.classList.add('d-inline-block', 'mx-2', 'align-middle');
+                                        
+                                        const plusSpan = document.createElement('span');
+                                        plusSpan.classList.add('fw-bolder', 'fs-4');
+                                        plusSpan.textContent = '+';
+                                        plusSpan.style.color = '#FF5500'; // Orange for visibility
+                                        
+                                        plusContainer.appendChild(plusSpan);
+                                        rowContainer.appendChild(plusContainer);
+                                    }
+                                    
                                     const ball = document.createElement('span');
                                     ball.classList.add('lottery-ball');
                                     
@@ -1746,8 +1774,12 @@
                                         ball.appendChild(bonusIcon);
                                     }
                                     
-                                    // Add color classes in sequence
-                                    if (!ball.classList.contains('lottery-ball-yellow')) {
+                                    // If this is the last number, make it yellow to identify as bonus
+                                    if (index === rowData.numbers.length - 1) {
+                                        ball.classList.add('lottery-ball-yellow');
+                                    } 
+                                    // Otherwise add color classes in sequence
+                                    else if (!ball.classList.contains('lottery-ball-yellow')) {
                                         if (rowContainer.children.length % 4 === 0) {
                                             ball.classList.add('lottery-ball-red');
                                         } else if (rowContainer.children.length % 4 === 1) {
