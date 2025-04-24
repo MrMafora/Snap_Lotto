@@ -83,26 +83,6 @@ login_manager.login_view = 'login'
 csrf = EnhancedCSRFProtect(app)
 # EnhancedCSRFProtect class handles all the configuration, so we don't need to set these manually
 
-# Add Content Security Policy configuration to allow Google Analytics and other external services
-@app.after_request
-def add_security_headers(response):
-    """
-    Add security headers to all responses.
-    This includes Content Security Policy to allow Google Analytics and other services.
-    """
-    # Set a Content Security Policy that allows Google Analytics
-    csp = (
-        "default-src 'self'; "
-        "img-src 'self' data: https://www.google-analytics.com; "
-        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; "
-        "connect-src 'self' https://www.google-analytics.com; "
-        "style-src 'self' 'unsafe-inline'; "
-        "frame-src 'self'; "
-        "font-src 'self';"
-    )
-    response.headers['Content-Security-Policy'] = csp
-    return response
-
 # Exempt endpoints that don't need CSRF protection
 csrf.exempt('scan_ticket')
 csrf.exempt('check_js')

@@ -2,12 +2,9 @@
 CSRF configuration enhancement for deployment environments.
 This module extends the default Flask-WTF CSRF protection to work properly
 in production deployments with Replit URLs.
-
-Additionally handles Content Security Policy (CSP) configuration to allow
-specific external services like Google Analytics.
 """
 
-from flask import session, request, current_app, Response
+from flask import session, request, current_app
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 
 class EnhancedCSRFProtect(CSRFProtect):
