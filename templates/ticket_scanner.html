@@ -124,37 +124,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     }
     .results-container {
         margin-top: 30px;
-        position: relative;
-        height: auto !important;
-        min-height: 200px;
-        overflow: visible !important;
-        z-index: 50;
-        display: block !important;
-        transform: translateZ(0);
-        backface-visibility: hidden;
-        perspective: 1000px;
     }
     /* Position for matched balls is handled in fresh_checkmark.css */
     /* We'll use .match-indicator elements instead of ::after pseudo-element */
     .prize-card {
         border-left: 5px solid var(--bs-success);
-        position: relative !important;
-        z-index: 99999 !important;
-        transform: translateZ(0);
-        backface-visibility: hidden;
-        will-change: transform;
-        visibility: visible !important; 
-        display: block !important;
-    }
-    
-    #prize-container, #no-prize-container {
-        position: relative !important;
-        z-index: 99999 !important;
-        transform: translateZ(0);
-        backface-visibility: hidden;
-        will-change: transform;
-        visibility: visible !important;
-        display: block !important;
     }
     #scanner-loading {
         display: none;
@@ -320,32 +294,32 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             </div>
                         </form>
 
-                        <div id="results-container" class="results-container d-none" style="position: relative !important; z-index: 99980 !important; transform: translateZ(0); backface-visibility: hidden; will-change: transform; visibility: visible !important; display: block !important;">
+                        <div id="results-container" class="results-container d-none">
                             <hr>
                             <h3 class="mb-3 text-center">Scanning Results</h3>
                             
-                            <div id="error-message" class="alert alert-danger d-none" style="position: relative !important; z-index: 99998 !important; transform: translateZ(0); backface-visibility: hidden; will-change: transform; visibility: visible !important; display: block !important;">
+                            <div id="error-message" class="alert alert-danger d-none">
                                 <i class="fa fa-exclamation-triangle me-2"></i>
-                                <span id="error-text" style="visibility: visible !important; display: inline !important;"></span>
+                                <span id="error-text"></span>
                             </div>
                             
-                            <div id="success-content" class="d-none" style="position: relative !important; z-index: 99990 !important; transform: translateZ(0); backface-visibility: hidden; will-change: transform; visibility: visible !important; display: block !important;">
-                                <div class="card mb-4" style="position: relative !important; z-index: 99990 !important; transform: translateZ(0); backface-visibility: hidden; will-change: transform; visibility: visible !important; display: block !important;">
-                                    <div class="card-header bg-light" style="position: relative !important; z-index: 99990 !important; visibility: visible !important;">
+                            <div id="success-content" class="d-none">
+                                <div class="card mb-4">
+                                    <div class="card-header bg-light">
                                         <h5 class="mb-0" id="ticket-info-title">Your Ticket</h5>
                                     </div>
-                                    <div class="card-body" style="position: relative !important; z-index: 99990 !important; transform: translateZ(0); visibility: visible !important; display: block !important;">
+                                    <div class="card-body">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <p><strong>Lottery Type:</strong> <span id="result-lottery-type" style="visibility: visible !important; display: inline !important;"></span></p>
-                                                <p><strong>Draw Number:</strong> <span id="result-draw-number" style="visibility: visible !important; display: inline !important;"></span></p>
-                                                <p><strong>Draw Date:</strong> <span id="result-draw-date" style="visibility: visible !important; display: inline !important;"></span></p>
+                                                <p><strong>Lottery Type:</strong> <span id="result-lottery-type"></span></p>
+                                                <p><strong>Draw Number:</strong> <span id="result-draw-number"></span></p>
+                                                <p><strong>Draw Date:</strong> <span id="result-draw-date"></span></p>
                                                 
-                                                <div id="detected-info" class="mt-3 small" style="visibility: visible !important; display: block !important;">
+                                                <div id="detected-info" class="mt-3 small">
                                                     <p class="text-muted mb-1"><i class="fas fa-search-plus me-1"></i> <strong>OCR Detected Information:</strong></p>
-                                                    <p class="mb-1"><strong>Game Type:</strong> <span id="detected-game-type" style="visibility: visible !important; display: inline !important;"></span></p>
-                                                    <p class="mb-1"><strong>Draw Number:</strong> <span id="detected-draw-number" style="visibility: visible !important; display: inline !important;"></span></p>
-                                                    <p class="mb-1"><strong>Draw Date:</strong> <span id="detected-draw-date" style="visibility: visible !important; display: inline !important;"></span></p>
+                                                    <p class="mb-1"><strong>Game Type:</strong> <span id="detected-game-type"></span></p>
+                                                    <p class="mb-1"><strong>Draw Number:</strong> <span id="detected-draw-number"></span></p>
+                                                    <p class="mb-1"><strong>Draw Date:</strong> <span id="detected-draw-date"></span></p>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
@@ -356,11 +330,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     </div>
                                 </div>
                                 
-                                <div class="card mb-4" style="position: relative !important; z-index: 99990 !important; transform: translateZ(0); backface-visibility: hidden; will-change: transform; visibility: visible !important; display: block !important;">
-                                    <div class="card-header bg-light" style="position: relative !important; z-index: 99990 !important; visibility: visible !important;">
+                                <div class="card mb-4">
+                                    <div class="card-header bg-light">
                                         <h5 class="mb-0">Winning Numbers</h5>
                                     </div>
-                                    <div class="card-body" style="position: relative !important; z-index: 99990 !important; transform: translateZ(0); visibility: visible !important; display: block !important;">
+                                    <div class="card-body">
                                         <!-- Primary game winning numbers -->
                                         <div class="mb-3">
                                             <p><strong id="primary-game-label">Main Numbers:</strong></p>
@@ -417,18 +391,18 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     </div>
                                 </div>
                                 
-                                <div id="prize-container" class="d-none" style="position: relative !important; z-index: 99999 !important; visibility: visible !important; display: block !important;">
-                                    <div class="card prize-card" style="position: relative !important; z-index: 99999 !important; transform: translateZ(0); backface-visibility: hidden; will-change: transform; visibility: visible !important; display: block !important;">
-                                        <div class="card-body" style="position: relative !important; z-index: 99999 !important; transform: translateZ(0); visibility: visible !important; display: block !important;">
+                                <div id="prize-container" class="d-none">
+                                    <div class="card prize-card">
+                                        <div class="card-body">
                                             <h4 class="text-success mb-3"><i class="fa fa-trophy me-2"></i> Congratulations!</h4>
-                                            <p class="lead">You've won a prize in <span id="prize-lottery-type" style="visibility: visible !important; display: inline !important;"></span> Draw <span id="prize-draw-number" style="visibility: visible !important; display: inline !important;"></span>!</p>
+                                            <p class="lead">You've won a prize in <span id="prize-lottery-type"></span> Draw <span id="prize-draw-number"></span>!</p>
                                             <div class="row">
                                                 <div class="col-md-6">
-                                                    <p><strong>Division:</strong> <span id="prize-division" style="visibility: visible !important; display: inline !important;"></span></p>
-                                                    <p><strong>Match Type:</strong> <span id="prize-match-type" style="visibility: visible !important; display: inline !important;"></span></p>
+                                                    <p><strong>Division:</strong> <span id="prize-division"></span></p>
+                                                    <p><strong>Match Type:</strong> <span id="prize-match-type"></span></p>
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <h3 class="text-success">Prize: <span id="prize-amount" style="visibility: visible !important; display: inline !important;"></span></h3>
+                                                    <h3 class="text-success">Prize: <span id="prize-amount"></span></h3>
                                                 </div>
                                             </div>
                                             <p class="small text-muted mt-3">Visit the official South African National Lottery website or an authorized retailer to claim your prize.</p>
@@ -436,9 +410,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     </div>
                                 </div>
                                 
-                                <div id="no-prize-container" class="d-none" style="position: relative !important; z-index: 99999 !important; visibility: visible !important; display: block !important;">
-                                    <div class="card" style="position: relative !important; z-index: 99999 !important; transform: translateZ(0); backface-visibility: hidden; will-change: transform; visibility: visible !important; display: block !important;">
-                                        <div class="card-body text-center" style="position: relative !important; z-index: 99999 !important; transform: translateZ(0); visibility: visible !important; display: block !important;">
+                                <div id="no-prize-container" class="d-none">
+                                    <div class="card">
+                                        <div class="card-body text-center">
                                             <h4 class="text-muted mb-3"><i class="fa fa-times-circle me-2"></i> No Prize</h4>
                                             <p>Sorry, your ticket did not win a prize in this draw.</p>
                                             <p>Better luck next time!</p>
@@ -447,7 +421,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 </div>
                                 
                                 <!-- Container for Powerball Plus results -->
-                                <div id="powerball-plus-container" class="d-none mt-4" style="position: relative !important; z-index: 99999 !important; transform: translateZ(0); visibility: visible !important; display: block !important;"></div>
+                                <div id="powerball-plus-container" class="d-none mt-4"></div>
                             </div>
                         </div>
                     </div>
@@ -461,7 +435,12 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% block additional_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Get DOM elements for containers we'll be working with
+        // Helper function to create checkmark for match indicators
+        // This ensures consistent checkmarks across all match indicators
+        window.createCheckmark = function() {
+            return ''; // We're now using CSS to create the checkmark visually
+        };
+        
         const dropArea = document.getElementById('drop-area');
         const fileInput = document.getElementById('ticket-image');
         const fileSelectBtn = document.getElementById('file-select-btn');
@@ -473,35 +452,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         const lotteryTypeSelect = document.getElementById('lottery-type');
         const loadingIndicator = document.getElementById('scanner-loading');
         const resultsContainer = document.getElementById('results-container');
-        
-        // Reset error message state on page load to prevent false errors
-        const errorMessage = document.getElementById('error-message');
-        if (errorMessage) {
-            errorMessage.classList.add('d-none');
-            errorMessage.style.display = 'none';
-            console.log("Error message container hidden on page load");
-        }
-        
-        // Make sure results container is hidden on page load
-        if (resultsContainer) {
-            resultsContainer.classList.add('d-none');
-            resultsContainer.style.display = 'none';
-            console.log("Results container hidden on page load");
-        }
-        
-        // Also hide success content on page load
-        const successContent = document.getElementById('success-content');
-        if (successContent) {
-            successContent.classList.add('d-none');
-            successContent.style.display = 'none';
-            console.log("Success content hidden on page load");
-        }
-        
-        // Helper function to create checkmark for match indicators
-        // This ensures consistent checkmarks across all match indicators
-        window.createCheckmark = function() {
-            return ''; // We're now using CSS to create the checkmark visually
-        };
         
         // Initialize scan button state after a short delay
         setTimeout(() => {
@@ -705,8 +655,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             // Clear any previous results first
             clearPreviousResults();
             
-            // Scroll to top but don't disable scrolling as it might cause display issues
+            // Scroll to top and disable scrolling during processing
             window.scrollTo(0, 0);
+            disableScrolling();
             
             // Show loading indicator
             loadingIndicator.style.display = 'block';
@@ -814,7 +765,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Reset the countdown running flag
                     window.countdownRunning = false;
                     
-                    // No need to enable scrolling as we didn't disable it
+                    // Make sure scrolling is enabled
+                    enableScrolling();
                     displayResults(data);
                     console.log('User clicked View Results, countdown state cleared');
                 };
@@ -941,7 +893,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 const adOverlayLoading = document.getElementById('ad-overlay-loading');
                 adOverlayLoading.style.display = 'none';
                 
-                // No need to enable scrolling in case of error
+                // Make sure scrolling is enabled in case of error
+                enableScrolling();
                 showError('An error occurred while scanning your ticket. Please try again.');
             })
             .finally(() => {
@@ -968,59 +921,45 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             // No return false to prevent interfering with normal form submission
         });
         
-        // Scrolling functions completely removed to fix visibility issues
-        // No need to manipulate document scrolling, which was causing content to disappear
-        
-        // Define empty functions to avoid breaking any existing code that might call these
-        // These functions have been completely removed as they were causing display issues
-        // The scroll state should never be manipulated during the ticket scanning process
+        // Enable body scrolling
         function enableScrolling() {
-            // Intentionally empty - do not add any scroll manipulation code here
-            console.log('Scroll enabling function removed to prevent display issues');
-            return;
+            document.body.style.overflow = 'auto';
+            document.body.style.height = 'auto';
+            document.documentElement.style.overflow = 'auto';  // Fix for scroll wheel in Replit IDE
+            console.log('Scrolling enabled');
         }
         
+        // Disable body scrolling
         function disableScrolling() {
-            // Intentionally empty - do not add any scroll manipulation code here
-            console.log('Scroll disabling function removed to prevent display issues');
-            return;
+            // Don't disable scrolling in Replit IDE to avoid scroll wheel issues
+            if (window.location.hostname.includes('replit.dev')) {
+                console.log('Scrolling kept enabled for Replit IDE');
+                return;
+            }
+            document.body.style.overflow = 'hidden';
+            document.body.style.height = '100vh';
+            console.log('Scrolling disabled');
         }
         
         function displayResults(data) {
             try {
-                // Make sure we never manipulate scroll state
-                
-                // Make sure we have valid data before showing results
-                if (!data) {
-                    console.log("Skipping result display - no data provided");
-                    return;
-                }
+                // Enable scrolling when showing results
+                enableScrolling();
                 
                 // Prepare the results container first
                 resultsContainer.classList.remove('d-none');
-                resultsContainer.style.display = 'block';
-                resultsContainer.style.visibility = 'visible';
                 
                 // Hide error message by default
-                const errorMessage = document.getElementById('error-message');
-                errorMessage.classList.add('d-none');
-                errorMessage.style.display = 'none';
+                document.getElementById('error-message').classList.add('d-none');
                 
                 if (data.error) {
-                    // Only show the error if we have a legitimate scan attempt
-                    if (document.getElementById('ticket-preview').src) {
-                        showError(data.error);
-                    } else {
-                        console.log("Error suppressed - no ticket image found");
-                    }
+                    showError(data.error);
                     return;
                 }
                 
                 // Show success content
                 const successContent = document.getElementById('success-content');
                 successContent.classList.remove('d-none');
-                successContent.style.display = 'block';
-                successContent.style.visibility = 'visible';
             
             // Populate ticket info
             document.getElementById('result-lottery-type').textContent = data.lottery_type;
@@ -1673,30 +1612,17 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             const noPrizeContainer = document.getElementById('no-prize-container');
             
             if (data.has_prize) {
-                // Show prize container
                 prizeContainer.classList.remove('d-none');
-                prizeContainer.style.display = 'block';
-                prizeContainer.style.visibility = 'visible';
-                
-                // Hide no-prize container
                 noPrizeContainer.classList.add('d-none');
-                noPrizeContainer.style.display = 'none';
                 
-                // Fill in prize details
                 document.getElementById('prize-lottery-type').textContent = data.lottery_type;
                 document.getElementById('prize-draw-number').textContent = data.draw_number;
                 document.getElementById('prize-division').textContent = data.prize_info.division;
                 document.getElementById('prize-match-type').textContent = data.prize_info.match_type;
                 document.getElementById('prize-amount').textContent = data.prize_info.prize_amount;
             } else {
-                // Hide prize container
                 prizeContainer.classList.add('d-none');
-                prizeContainer.style.display = 'none';
-                
-                // Show no-prize container
                 noPrizeContainer.classList.remove('d-none');
-                noPrizeContainer.style.display = 'block';
-                noPrizeContainer.style.visibility = 'visible';
             }
             
             // Check if ticket also plays Powerball Plus and display those results
@@ -2526,27 +2452,16 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         }
         
         function showError(message) {
-            // No need to manipulate scroll state
+            // Ensure scrolling is enabled
+            enableScrolling();
             
             const errorMessage = document.getElementById('error-message');
             const errorText = document.getElementById('error-text');
             const successContent = document.getElementById('success-content');
             
-            // Only show error if we have a valid message and the results container is visible
-            if (message && resultsContainer && !resultsContainer.classList.contains('d-none')) {
-                errorText.textContent = message;
-                errorMessage.classList.remove('d-none');
-                errorMessage.style.display = 'block';
-                errorMessage.style.visibility = 'visible';
-                
-                successContent.classList.add('d-none');
-                successContent.style.display = 'none';
-            } else {
-                // Hide the error message if it's being shown without a proper scan
-                errorMessage.classList.add('d-none');
-                errorMessage.style.display = 'none';
-                console.log("Error display prevented - no active scan detected");
-            }
+            errorText.textContent = message;
+            errorMessage.classList.remove('d-none');
+            successContent.classList.add('d-none');
         }
     });
 </script>
