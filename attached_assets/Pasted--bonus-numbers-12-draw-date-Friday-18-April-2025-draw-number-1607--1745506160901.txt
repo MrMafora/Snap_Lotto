@@ -1,0 +1,315 @@
+{
+  "bonus_numbers": [
+    12
+  ],
+  "draw_date": "Friday, 18 April 2025",
+  "draw_number": "1607",
+  "has_prize": false,
+  "lottery_type": "Powerball",
+  "matched_bonus": [
+    12,
+    12
+  ],
+  "matched_numbers": [
+    17
+  ],
+  "powerball_plus_results": {
+    "bonus_numbers": [
+      16
+    ],
+    "draw_date": "Friday, 18 April 2025",
+    "draw_number": "1607",
+    "has_prize": false,
+    "lottery_type": "Powerball Plus",
+    "matched_bonus": [],
+    "matched_numbers": [
+      15
+    ],
+    "prize_info": {},
+    "rows_with_matches": [
+      {
+        "game_type": "Powerball Plus",
+        "matched_bonus": [],
+        "matched_numbers": [
+          15
+        ],
+        "numbers": [
+          5,
+          15,
+          17,
+          24,
+          32,
+          12
+        ],
+        "row": "C1",
+        "total_matched": 1
+      },
+      {
+        "game_type": "Powerball Plus",
+        "matched_bonus": [],
+        "matched_numbers": [
+          15
+        ],
+        "numbers": [
+          15,
+          17,
+          26,
+          31,
+          35,
+          12
+        ],
+        "row": "D1",
+        "total_matched": 1
+      },
+      {
+        "game_type": "Powerball Plus",
+        "matched_bonus": [],
+        "matched_numbers": [
+          15
+        ],
+        "numbers": [
+          15,
+          18,
+          28,
+          35,
+          50,
+          12
+        ],
+        "row": "F1",
+        "total_matched": 1
+      }
+    ],
+    "total_matched": 1,
+    "winning_numbers": [
+      4,
+      10,
+      15,
+      29,
+      43
+    ]
+  },
+  "prize_info": {},
+  "rows_with_matches": [
+    {
+      "game_type": "Powerball",
+      "matched_bonus": [
+        12,
+        12
+      ],
+      "matched_numbers": [
+        17
+      ],
+      "numbers": [
+        12,
+        17,
+        24,
+        26,
+        35,
+        12
+      ],
+      "row": "A1",
+      "total_matched": 3
+    },
+    {
+      "game_type": "Powerball",
+      "matched_bonus": [
+        12,
+        12
+      ],
+      "matched_numbers": [
+        17
+      ],
+      "numbers": [
+        12,
+        17,
+        24,
+        34,
+        35,
+        12
+      ],
+      "row": "B1",
+      "total_matched": 3
+    },
+    {
+      "game_type": "Powerball",
+      "matched_bonus": [
+        12
+      ],
+      "matched_numbers": [
+        15,
+        17
+      ],
+      "numbers": [
+        5,
+        15,
+        17,
+        24,
+        32,
+        12
+      ],
+      "row": "C1",
+      "total_matched": 3
+    },
+    {
+      "game_type": "Powerball",
+      "matched_bonus": [
+        12
+      ],
+      "matched_numbers": [
+        15,
+        17
+      ],
+      "numbers": [
+        15,
+        17,
+        26,
+        31,
+        35,
+        12
+      ],
+      "row": "D1",
+      "total_matched": 3
+    },
+    {
+      "game_type": "Powerball",
+      "matched_bonus": [
+        12
+      ],
+      "matched_numbers": [
+        15
+      ],
+      "numbers": [
+        15,
+        18,
+        28,
+        35,
+        50,
+        12
+      ],
+      "row": "F1",
+      "total_matched": 2
+    }
+  ],
+  "ticket_info": {
+    "detected_draw_date": "2025-4-18",
+    "detected_draw_number": "1607",
+    "detected_game_type": "Powerball",
+    "plays_lotto_plus_1": false,
+    "plays_lotto_plus_2": false,
+    "plays_powerball_plus": true,
+    "raw_selected_numbers": {
+      "A1": [
+        12,
+        17,
+        24,
+        26,
+        35,
+        12
+      ],
+      "B1": [
+        12,
+        17,
+        24,
+        34,
+        35,
+        12
+      ],
+      "C1": [
+        5,
+        15,
+        17,
+        24,
+        32,
+        12
+      ],
+      "D1": [
+        15,
+        17,
+        26,
+        31,
+        35,
+        12
+      ],
+      "F1": [
+        15,
+        18,
+        28,
+        35,
+        50,
+        12
+      ]
+    },
+    "selected_numbers": [
+      12,
+      17,
+      24,
+      26,
+      35,
+      12,
+      12,
+      17,
+      24,
+      34,
+      35,
+      12,
+      5,
+      15,
+      17,
+      24,
+      32,
+      12,
+      15,
+      17,
+      26,
+      31,
+      35,
+      12,
+      15,
+      18,
+      28,
+      35,
+      50,
+      12
+    ]
+  },
+  "ticket_numbers": [
+    12,
+    17,
+    24,
+    26,
+    35,
+    12,
+    12,
+    17,
+    24,
+    34,
+    35,
+    12,
+    5,
+    15,
+    17,
+    24,
+    32,
+    12,
+    15,
+    17,
+    26,
+    31,
+    35,
+    12,
+    15,
+    18,
+    28,
+    35,
+    50,
+    12
+  ],
+  "total_matched": 3,
+  "winning_numbers": [
+    15,
+    17,
+    22,
+    33,
+    45
+  ]
+}
