@@ -10,6 +10,52 @@ window.displayTabData = function(tabId, data) {
     
     // Generate appropriate HTML based on tab type and data
     if (tabId === 'patterns') {
+        // Add a lottery type selector at the top
+        html += `
+            <div class="col-12 mb-4">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h5 class="font-weight-bold text-primary mb-3">Pattern Analysis Settings</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="pattern-lottery-type">Lottery Type:</label>
+                                    <select class="form-control" id="pattern-lottery-type">
+                                        <option value="">All Lottery Types</option>
+                                        <option value="Lotto">Lotto</option>
+                                        <option value="Lotto Plus 1">Lotto Plus 1</option>
+                                        <option value="Lotto Plus 2">Lotto Plus 2</option>
+                                        <option value="Powerball">Powerball</option>
+                                        <option value="Powerball Plus">Powerball Plus</option>
+                                        <option value="Daily Lotto">Daily Lotto</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="pattern-days">Data Range:</label>
+                                    <select class="form-control" id="pattern-days">
+                                        <option value="30">Last 30 days</option>
+                                        <option value="90">Last 90 days</option>
+                                        <option value="180">Last 6 months</option>
+                                        <option value="365" selected>Last year</option>
+                                        <option value="730">Last 2 years</option>
+                                        <option value="999999">All time</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group" style="margin-top: 32px;">
+                                    <button class="btn btn-primary" id="run-pattern-analysis">Analyze Patterns</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Display pattern analysis results if available
         if (data && data.patterns) {
             Object.entries(data.patterns).forEach(([lottery_type, patterns]) => {
                 if (patterns && patterns.length > 0) {
@@ -47,17 +93,63 @@ window.displayTabData = function(tabId, data) {
             });
         }
         
-        if (html === '') {
-            html = `
+        if (!data || !data.patterns || Object.keys(data.patterns).length === 0) {
+            html += `
                 <div class="col-12">
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle mr-1"></i> No pattern analysis data available for the selected lottery type(s).
+                        <i class="fas fa-info-circle mr-1"></i> No pattern analysis data available for the selected lottery type(s). Please select a lottery type above and click "Analyze Patterns".
                     </div>
                 </div>
             `;
         }
     } 
     else if (tabId === 'timeseries') {
+        // Add a lottery type selector at the top
+        html += `
+            <div class="col-12 mb-4">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h5 class="font-weight-bold text-primary mb-3">Time Series Analysis Settings</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="timeseries-lottery-type">Lottery Type:</label>
+                                    <select class="form-control" id="timeseries-lottery-type">
+                                        <option value="">All Lottery Types</option>
+                                        <option value="Lotto">Lotto</option>
+                                        <option value="Lotto Plus 1">Lotto Plus 1</option>
+                                        <option value="Lotto Plus 2">Lotto Plus 2</option>
+                                        <option value="Powerball">Powerball</option>
+                                        <option value="Powerball Plus">Powerball Plus</option>
+                                        <option value="Daily Lotto">Daily Lotto</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="timeseries-days">Data Range:</label>
+                                    <select class="form-control" id="timeseries-days">
+                                        <option value="30">Last 30 days</option>
+                                        <option value="90">Last 90 days</option>
+                                        <option value="180">Last 6 months</option>
+                                        <option value="365" selected>Last year</option>
+                                        <option value="730">Last 2 years</option>
+                                        <option value="999999">All time</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group" style="margin-top: 32px;">
+                                    <button class="btn btn-primary" id="run-timeseries-analysis">Analyze Time Series</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Display time series results if available
         if (data && data.time_series) {
             Object.entries(data.time_series).forEach(([lottery_type, typeData]) => {
                 html += `
@@ -82,11 +174,11 @@ window.displayTabData = function(tabId, data) {
             });
         }
         
-        if (html === '') {
-            html = `
+        if (!data || !data.time_series || Object.keys(data.time_series).length === 0) {
+            html += `
                 <div class="col-12">
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle mr-1"></i> No time series data available for the selected lottery type(s).
+                        <i class="fas fa-info-circle mr-1"></i> No time series data available for the selected lottery type(s). Please select a lottery type above and click "Analyze Time Series".
                     </div>
                 </div>
             `;
@@ -148,6 +240,53 @@ window.displayTabData = function(tabId, data) {
         }
     } 
     else if (tabId === 'correlations') {
+        // First add lottery type selectors at the top
+        html += `
+            <div class="col-12 mb-4">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h5 class="font-weight-bold text-primary mb-3">Select Lottery Types for Correlation</h5>
+                        <div class="row" id="correlation-selectors">
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label for="correlation-type-a">Lottery Type A:</label>
+                                    <select class="form-control" id="correlation-type-a">
+                                        <option value="">Select Lottery Type</option>
+                                        <option value="Lotto">Lotto</option>
+                                        <option value="Lotto Plus 1">Lotto Plus 1</option>
+                                        <option value="Lotto Plus 2">Lotto Plus 2</option>
+                                        <option value="Powerball">Powerball</option>
+                                        <option value="Powerball Plus">Powerball Plus</option>
+                                        <option value="Daily Lotto">Daily Lotto</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label for="correlation-type-b">Lottery Type B:</label>
+                                    <select class="form-control" id="correlation-type-b">
+                                        <option value="">Select Lottery Type</option>
+                                        <option value="Lotto">Lotto</option>
+                                        <option value="Lotto Plus 1">Lotto Plus 1</option>
+                                        <option value="Lotto Plus 2">Lotto Plus 2</option>
+                                        <option value="Powerball">Powerball</option>
+                                        <option value="Powerball Plus">Powerball Plus</option>
+                                        <option value="Daily Lotto">Daily Lotto</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group" style="margin-top: 32px;">
+                                    <button class="btn btn-primary" id="run-correlation">Calculate Correlation</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Now add the correlation results if available
         if (data && data.correlations && data.correlations.length > 0) {
             html += `
                 <div class="col-12 mb-4">
@@ -181,8 +320,8 @@ window.displayTabData = function(tabId, data) {
                 
                 html += `
                     <tr>
-                        <td>${corr.type_a}</td>
-                        <td>${corr.type_b}</td>
+                        <td>${corr.feature1 || corr.type_a}</td>
+                        <td>${corr.feature2 || corr.type_b}</td>
                         <td>${corr.correlation.toFixed(2)}</td>
                         <td class="${strengthClass}">${strength}</td>
                     </tr>
@@ -213,10 +352,10 @@ window.displayTabData = function(tabId, data) {
                 `;
             }
         } else {
-            html = `
+            html += `
                 <div class="col-12">
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle mr-1"></i> No correlation data available. Need at least two lottery types with sufficient data for correlation analysis.
+                        <i class="fas fa-info-circle mr-1"></i> Please select two lottery types above to analyze their correlation, or select a lottery type in the main filters to see all correlations.
                     </div>
                 </div>
             `;
@@ -252,6 +391,11 @@ window.loadTabData = function(tabId) {
     
     // Build API endpoint
     let endpoint = '';
+    
+    // Check if we have type_a and type_b parameters (for correlations)
+    const typeA = urlParams.get('type_a') || '';
+    const typeB = urlParams.get('type_b') || '';
+    
     switch(tabId) {
         case 'patterns':
             endpoint = `/api/lottery-analysis/patterns?lottery_type=${lotteryType}&days=${days}`;
@@ -263,7 +407,12 @@ window.loadTabData = function(tabId) {
             endpoint = `/api/lottery-analysis/winners?lottery_type=${lotteryType}&days=${days}`;
             break;
         case 'correlations':
-            endpoint = `/api/lottery-analysis/correlations?lottery_type=${lotteryType}&days=${days}`;
+            // If we have type_a and type_b, use them for correlation analysis
+            if (typeA && typeB) {
+                endpoint = `/api/lottery-analysis/correlations?type_a=${encodeURIComponent(typeA)}&type_b=${encodeURIComponent(typeB)}&days=${days}`;
+            } else {
+                endpoint = `/api/lottery-analysis/correlations?lottery_type=${lotteryType}&days=${days}`;
+            }
             break;
         default:
             console.error(`Unknown tab ID: ${tabId}`);
@@ -378,6 +527,117 @@ document.addEventListener('DOMContentLoaded', function() {
         const contentEl = document.getElementById('correlations-content');
         if (contentEl) contentEl.innerHTML = '';
         window.loadTabData('correlations');
+    });
+    
+    // Add click handlers for the various analysis buttons
+    document.addEventListener('click', function(e) {
+        // Handler for the pattern analysis button
+        if (e.target && e.target.id === 'run-pattern-analysis') {
+            // Get selected lottery type and days
+            const lotteryType = document.getElementById('pattern-lottery-type')?.value;
+            const days = document.getElementById('pattern-days')?.value || '365';
+            
+            console.log(`Running pattern analysis for lottery type: ${lotteryType || 'All'}, days: ${days}`);
+            
+            // Show loading, hide content
+            const loadingEl = document.getElementById('patterns-loading');
+            const contentEl = document.getElementById('patterns-content');
+            
+            if (loadingEl && contentEl) {
+                loadingEl.style.display = 'block';
+                contentEl.style.display = 'none';
+                
+                // Create custom endpoint
+                const endpoint = `/api/lottery-analysis/patterns?lottery_type=${encodeURIComponent(lotteryType)}&days=${days}`;
+                
+                // Fetch pattern data
+                fetch(endpoint)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Pattern data loaded successfully');
+                        window.displayTabData('patterns', data);
+                    })
+                    .catch(error => {
+                        console.error('Error loading pattern data:', error);
+                        contentEl.innerHTML = `
+                            <div class="col-12">
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i> Error loading pattern data: ${error.message}
+                                    <button class="btn btn-outline-danger btn-sm ml-3" onclick="window.loadTabData('patterns')">Try Again</button>
+                                </div>
+                            </div>
+                        `;
+                        loadingEl.style.display = 'none';
+                        contentEl.style.display = 'block';
+                    });
+            }
+        }
+        
+        // Handler for the correlation calculation button
+        if (e.target && e.target.id === 'run-correlation') {
+            // Get selected lottery types
+            const typeA = document.getElementById('correlation-type-a')?.value;
+            const typeB = document.getElementById('correlation-type-b')?.value;
+            
+            if (!typeA || !typeB) {
+                alert('Please select two different lottery types for correlation analysis');
+                return;
+            }
+            
+            if (typeA === typeB) {
+                alert('Please select two different lottery types');
+                return;
+            }
+            
+            // Get the days parameter from the main form
+            const urlParams = new URLSearchParams(window.location.search);
+            const days = urlParams.get('days') || '365';
+            
+            // Create a custom endpoint for this specific correlation
+            const endpoint = `/api/lottery-analysis/correlations?type_a=${encodeURIComponent(typeA)}&type_b=${encodeURIComponent(typeB)}&days=${days}`;
+            
+            // Show loading, hide content
+            const loadingEl = document.getElementById('correlations-loading');
+            const contentEl = document.getElementById('correlations-content');
+            
+            if (loadingEl && contentEl) {
+                loadingEl.style.display = 'block';
+                contentEl.style.display = 'none';
+                
+                console.log(`Running correlation analysis between ${typeA} and ${typeB}`);
+                
+                // Fetch correlation data
+                fetch(endpoint)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Correlation data loaded successfully');
+                        window.displayTabData('correlations', data);
+                    })
+                    .catch(error => {
+                        console.error('Error loading correlation data:', error);
+                        contentEl.innerHTML = `
+                            <div class="col-12">
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i> Error loading correlation data: ${error.message}
+                                    <button class="btn btn-outline-danger btn-sm ml-3" onclick="window.loadTabData('correlations')">Try Again</button>
+                                </div>
+                            </div>
+                        `;
+                        loadingEl.style.display = 'none';
+                        contentEl.style.display = 'block';
+                    });
+            }
+        }
     });
     
     // Function to reload all tab data
