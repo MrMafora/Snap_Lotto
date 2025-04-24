@@ -452,8 +452,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <i class="fa fa-upload fa-2x mb-2"></i>
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
-                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" style="position: absolute; opacity: 0; width: 1px; height: 1px;">
-                                    <label for="ticket-image" class="btn btn-primary" style="cursor: pointer;">Select Image</label>
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" style="display:none;">
+                                    <button type="button" id="file-select-btn" class="btn btn-primary" onclick="document.getElementById('ticket-image').click();">Select Image</button>
                                 </div>
                             </div>
 
@@ -624,8 +624,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         // Get DOM elements for containers we'll be working with
         const dropArea = document.getElementById('drop-area');
         const fileInput = document.getElementById('ticket-image');
-        // We're using a label for the file input, not a button anymore
-        const fileSelectBtn = document.querySelector('label[for="ticket-image"]');
+        const fileSelectBtn = document.getElementById('file-select-btn');
         const previewContainer = document.getElementById('preview-container');
         const ticketPreview = document.getElementById('ticket-preview');
         const removeImageBtn = document.getElementById('remove-image');
@@ -712,10 +711,14 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             console.log("Initial button state check on page load");
         }, 500);
         
-        // We'll simplify this since we're using a label for the button
-        // No need for click handlers on the button element since the label handles it
-        
-        // Just focus on the file input change event
+        // Add a backup file selection click handler (in addition to the inline one)
+        fileSelectBtn.addEventListener('click', function(e) {
+            console.log("Select Image button clicked via event listener");
+            const fileInput = document.getElementById('ticket-image');
+            if (fileInput) {
+                fileInput.click();
+            }
+        });
         
         // File selection change - with additional logging
         fileInput.addEventListener('change', function(e) {
