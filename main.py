@@ -2652,6 +2652,9 @@ def api_tracking_dashboard():
         service_tokens=service_tokens
     )
 
+# Import port forwarding solution for Replit
+import replit_port_integration
+
 # When running directly, not through gunicorn
 if __name__ == "__main__":
     # Extra logging to help diagnose startup issues
@@ -2660,9 +2663,10 @@ if __name__ == "__main__":
     
     logging.getLogger('werkzeug').setLevel(logging.INFO)
     
-    # Use port 8080 for Replit compatibility
-    port = int(os.environ.get('PORT', 8080))
+    # Use port 5000 for Flask's default (our proxy will forward from 8080)
+    port = int(os.environ.get('PORT', 5000))
     
     # Start Flask app
     print(f"Starting Flask application on 0.0.0.0:{port}...")
+    print(f"Port forwarding active: requests to port 8080 will be forwarded to port {port}")
     app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)

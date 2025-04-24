@@ -711,13 +711,42 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             console.log("Initial button state check on page load");
         }, 500);
         
-        // File selection via button
-        fileSelectBtn.addEventListener('click', () => {
-            fileInput.click();
+        // File selection via button - with improved error handling
+        fileSelectBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Select Image button clicked");
+            
+            try {
+                // Directly trigger the hidden file input
+                if (fileInput) {
+                    fileInput.click();
+                    console.log("File input click triggered");
+                } else {
+                    console.error("File input element not found");
+                    // Try to recreate the input if it's missing
+                    const newInput = document.createElement('input');
+                    newInput.type = 'file';
+                    newInput.id = 'ticket-image';
+                    newInput.name = 'ticket_image';
+                    newInput.accept = 'image/*';
+                    newInput.className = 'd-none';
+                    document.querySelector('.ticket-drop-area').appendChild(newInput);
+                    newInput.addEventListener('change', handleFileSelect);
+                    newInput.click();
+                    console.log("Created new file input and clicked it");
+                }
+            } catch (error) {
+                console.error("Error triggering file input:", error);
+                alert("There was a problem with the file selection. Please try again or refresh the page.");
+            }
         });
         
-        // File selection change
-        fileInput.addEventListener('change', handleFileSelect);
+        // File selection change - with additional logging
+        fileInput.addEventListener('change', function(e) {
+            console.log("File input changed");
+            handleFileSelect(e);
+        });
         
         // Drag and drop events
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -748,29 +777,64 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         dropArea.addEventListener('drop', handleDrop, false);
         
         function handleDrop(e) {
+            console.log("Drop event detected");
             const dt = e.dataTransfer;
             const files = dt.files;
             
             if (files.length > 0) {
-                fileInput.files = files;
-                handleFileSelect();
+                console.log("Files dropped:", files.length);
+                
+                // Get the most reliable reference to the file input
+                const input = document.getElementById('ticket-image');
+                if (!input) {
+                    console.error("File input element not found in handleDrop");
+                    alert("Error: File input not found. Please refresh the page and try again.");
+                    return;
+                }
+                
+                try {
+                    // Assign files to input
+                    input.files = files;
+                    console.log("Files assigned to input");
+                    
+                    // Call the file select handler with an artificial event
+                    const mockEvent = { target: input };
+                    handleFileSelect(mockEvent);
+                } catch (error) {
+                    console.error("Error handling dropped files:", error);
+                    alert("There was a problem processing the dropped files. Please try selecting the file with the button instead.");
+                }
+            } else {
+                console.log("No files in drop event");
             }
         }
         
-        function handleFileSelect() {
-            const file = fileInput.files[0];
+        function handleFileSelect(e) {
+            console.log("handleFileSelect called", e ? "with event" : "without event");
+            
+            // Get the file input element that we know is reliable
+            const input = document.getElementById('ticket-image');
+            if (!input) {
+                console.error("File input element not found in handleFileSelect");
+                alert("Error: File input not found. Please refresh the page and try again.");
+                return;
+            }
+            
+            const file = input.files && input.files[0];
+            console.log("File selected:", file ? file.name : "none");
             
             if (file) {
                 // Check if file is an image
                 if (!file.type.match('image.*')) {
                     alert('Please select an image file');
-                    fileInput.value = ''; // Clear the file input
+                    input.value = ''; // Clear the file input
                     return;
                 }
                 
                 const reader = new FileReader();
                 
                 reader.onload = function(e) {
+                    console.log("File read successfully");
                     ticketPreview.src = e.target.result;
                     previewContainer.classList.remove('d-none');
                     // Update scan button state
@@ -778,14 +842,23 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     console.log("File loaded successfully");
                 }
                 
-                reader.onerror = function() {
+                reader.onerror = function(error) {
+                    console.error("Error reading file:", error);
                     alert('Error reading the image file. Please try a different image.');
-                    fileInput.value = ''; // Clear the file input on error
+                    input.value = ''; // Clear the file input on error
                     updateScanButton();
                 }
                 
-                reader.readAsDataURL(file);
+                try {
+                    reader.readAsDataURL(file);
+                } catch (error) {
+                    console.error("Exception reading file:", error);
+                    alert('Error processing the image file. Please try a different image.');
+                    input.value = '';
+                    updateScanButton();
+                }
             } else {
+                console.log("No file selected or file selection cancelled");
                 previewContainer.classList.add('d-none');
                 updateScanButton();
             }
