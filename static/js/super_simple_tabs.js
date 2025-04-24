@@ -3,6 +3,41 @@
  * A bare-minimum solution that works across all browsers 
  */
 
+// Function to reload all tab data
+function reloadAllData() {
+    console.log('Reloading all tab data');
+    
+    // The tabs we want to reload
+    const tabIds = ['frequency', 'patterns', 'timeseries', 'winners', 'correlations'];
+    
+    // For each tab, find and click its button to trigger a reload
+    tabIds.forEach(tabId => {
+        const button = document.querySelector(`.super-simple-tab-btn[data-tab-id="${tabId}"]`);
+        if (button) {
+            // Keep track of currently active tab
+            const activeTab = document.querySelector('.tab-pane.active');
+            const activeTabId = activeTab ? activeTab.id : null;
+            
+            // Click the button to reload the tab
+            button.click();
+            
+            // If this wasn't the active tab, click the button for the active tab to go back
+            if (activeTabId && activeTabId !== tabId) {
+                const activeButton = document.querySelector(`.super-simple-tab-btn[data-tab-id="${activeTabId}"]`);
+                if (activeButton) {
+                    setTimeout(() => activeButton.click(), 1000);
+                }
+            }
+        }
+    });
+    
+    // Show notification
+    alert('All analysis data is being refreshed. This may take a moment.');
+}
+
+// Make the function globally available
+window.reloadAllData = reloadAllData;
+
 // Wait for page to load fully
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Super Simple Tabs loaded');

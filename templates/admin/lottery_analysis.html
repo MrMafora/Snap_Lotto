@@ -3,19 +3,7 @@
 {% block title %}Lottery Data Analysis{% endblock %}
 
 {% block head %}
-<!-- Add debug script for analysis functionality -->
-<script src="{{ url_for('static', filename='js/analysis_debug.js') }}"></script>
-<!-- Add fixes script for analysis functionality -->
-<script src="{{ url_for('static', filename='js/analysis_fixes.js') }}"></script>
-<!-- Add direct tab fix script -->
-<script src="{{ url_for('static', filename='js/tabs_fix.js') }}"></script>
-<!-- Add override script for critical fixes -->
-<script src="{{ url_for('static', filename='js/analysis_override.js') }}"></script>
-<!-- Add direct tab navigation system -->
-<script src="{{ url_for('static', filename='js/direct_tabs.js') }}"></script>
-<!-- Add ultra-simple tab navigation system -->
-<script src="{{ url_for('static', filename='js/simple_tabs.js') }}"></script>
-<!-- Add super-simple tab navigation script -->
+<!-- Add one consolidated tab script for reliable navigation -->
 <script src="{{ url_for('static', filename='js/super_simple_tabs.js') }}"></script>
 {% endblock %}
 
@@ -80,65 +68,30 @@
         </div>
     </div>
 
-    <!-- Analysis Tabs -->
-    <ul class="nav nav-tabs" id="analysisTab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="frequency-tab" data-bs-toggle="tab" data-bs-target="#frequency" type="button" role="tab" 
-               aria-controls="frequency" aria-selected="true">Number Frequency</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="patterns-tab" data-bs-toggle="tab" data-bs-target="#patterns" type="button" role="tab" 
-               aria-controls="patterns" aria-selected="false">Pattern Analysis</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="timeseries-tab" data-bs-toggle="tab" data-bs-target="#timeseries" type="button" role="tab" 
-               aria-controls="timeseries" aria-selected="false">Time Series</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="winners-tab" data-bs-toggle="tab" data-bs-target="#winners" type="button" role="tab" 
-               aria-controls="winners" aria-selected="false">Winner Analysis</button>
-        </li>
-        {% if not selected_type %}
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="correlations-tab" data-bs-toggle="tab" data-bs-target="#correlations" type="button" role="tab" 
-               aria-controls="correlations" aria-selected="false">Lottery Correlations</button>
-        </li>
-        {% endif %}
-    </ul>
-    
-    <!-- Direct tab links (for browsers with Bootstrap issues) -->
-    <div class="card shadow mb-3 mt-2">
-        <div class="card-header py-2">
-            <h6 class="m-0 font-weight-bold text-primary">Direct Tab Links</h6>
-        </div>
-        <div class="card-body py-2">
-            <p class="small text-muted mb-2">If tabs above aren't working, use these direct buttons instead:</p>
-            <div class="direct-tab-buttons btn-group mb-2" role="group" aria-label="Direct tab links">
-                <button type="button" data-tab="frequency" class="btn btn-sm btn-outline-primary">Number Frequency</button>
-                <button type="button" data-tab="patterns" class="btn btn-sm btn-outline-info">Pattern Analysis</button>
-                <button type="button" data-tab="timeseries" class="btn btn-sm btn-outline-warning">Time Series</button>
-                <button type="button" data-tab="winners" class="btn btn-sm btn-outline-success">Winner Analysis</button>
-                {% if not selected_type %}
-                <button type="button" data-tab="correlations" class="btn btn-sm btn-outline-danger">Lottery Correlations</button>
-                {% endif %}
+    <!-- Simplified Tab Navigation -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Analysis Categories</h6>
+            <div class="dropdown no-arrow">
+                <a class="dropdown-toggle" href="#" role="button" id="analysisDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="analysisDropdown">
+                    <a class="dropdown-item" href="#" onclick="reloadAllData()">
+                        <i class="fas fa-sync-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                        Reload All Data
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Ultra-Simple Tab Navigation -->
-    <div class="card shadow mb-3 mt-2 border-danger">
-        <div class="card-header py-2 bg-danger text-white">
-            <h6 class="m-0 font-weight-bold">NEW! Ultra-Simple Tab Navigation</h6>
-        </div>
-        <div class="card-body py-2">
-            <p class="font-weight-bold mb-2">These simplified buttons are guaranteed to work:</p>
-            <div class="super-simple-tab-buttons mb-2" style="display:flex; flex-wrap:wrap; gap:5px;">
+        <div class="card-body py-3">
+            <div class="nav-tabs-clean mb-4" style="display:flex; flex-wrap:wrap; gap:10px;">
                 <button type="button" data-tab-id="frequency" class="super-simple-tab-btn btn btn-primary active">Number Frequency</button>
-                <button type="button" data-tab-id="patterns" class="super-simple-tab-btn btn btn-secondary">Pattern Analysis</button>
-                <button type="button" data-tab-id="timeseries" class="super-simple-tab-btn btn btn-secondary">Time Series</button>
-                <button type="button" data-tab-id="winners" class="super-simple-tab-btn btn btn-secondary">Winner Analysis</button>
+                <button type="button" data-tab-id="patterns" class="super-simple-tab-btn btn btn-primary">Pattern Analysis</button>
+                <button type="button" data-tab-id="timeseries" class="super-simple-tab-btn btn btn-primary">Time Series</button>
+                <button type="button" data-tab-id="winners" class="super-simple-tab-btn btn btn-primary">Winner Analysis</button>
                 {% if not selected_type %}
-                <button type="button" data-tab-id="correlations" class="super-simple-tab-btn btn btn-secondary">Lottery Correlations</button>
+                <button type="button" data-tab-id="correlations" class="super-simple-tab-btn btn btn-primary">Lottery Correlations</button>
                 {% endif %}
             </div>
         </div>
