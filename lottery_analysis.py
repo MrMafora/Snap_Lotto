@@ -1486,7 +1486,7 @@ def register_analysis_routes(app, db):
             print(f"Analysis completed successfully with {len(data.keys() if isinstance(data, dict) else [])} items")
             
             # Return the analysis data
-            return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
+            return jsonify(data), 200
             
         except Exception as e:
             print(f"ERROR IN FREQUENCY ANALYSIS API: {str(e)}")
@@ -1551,7 +1551,7 @@ def register_analysis_routes(app, db):
                     if isinstance(value, dict) and 'error' in value:
                         print(f"Error for {key}: {value['error']}")
                 
-                return json_data, 200, {'Content-Type': 'application/json'}
+                return jsonify(data), 200
             except TypeError as json_error:
                 print(f"JSON serialization error: {str(json_error)}")
                 # Try to identify the problematic objects
@@ -1605,7 +1605,7 @@ def register_analysis_routes(app, db):
             data = analyzer.analyze_time_series(lottery_type, days)
             print(f"Time series analysis completed successfully")
             
-            return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
+            return jsonify(data), 200
             
         except Exception as e:
             print(f"ERROR IN TIME SERIES ANALYSIS API: {str(e)}")
@@ -1644,7 +1644,7 @@ def register_analysis_routes(app, db):
             data = analyzer.analyze_correlations(days)
             print("Correlation analysis completed successfully")
             
-            return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
+            return jsonify(data), 200
             
         except Exception as e:
             print(f"ERROR IN CORRELATION ANALYSIS API: {str(e)}")
@@ -1684,7 +1684,7 @@ def register_analysis_routes(app, db):
             data = analyzer.analyze_winners(lottery_type, days)
             print("Winner analysis completed successfully")
             
-            return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
+            return jsonify(data), 200
             
         except Exception as e:
             print(f"ERROR IN WINNER ANALYSIS API: {str(e)}")
@@ -1714,7 +1714,7 @@ def register_analysis_routes(app, db):
             data = analyzer.predict_next_draw(lottery_type)
             print("Prediction analysis completed successfully")
             
-            return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
+            return jsonify(data), 200
             
         except Exception as e:
             print(f"ERROR IN PREDICTION API: {str(e)}")
@@ -1754,7 +1754,7 @@ def register_analysis_routes(app, db):
             data = analyzer.run_full_analysis(lottery_type, days)
             print("Full analysis completed successfully")
             
-            return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
+            return jsonify(data), 200
             
         except Exception as e:
             print(f"ERROR IN FULL ANALYSIS API: {str(e)}")
