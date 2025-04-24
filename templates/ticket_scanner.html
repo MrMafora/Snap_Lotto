@@ -1340,17 +1340,25 @@
                 // Create a container to hold the plus sign with better visibility
                 const plusContainer = document.createElement('div');
                 plusContainer.classList.add('d-inline-block', 'mx-3', 'position-relative', 'align-middle');
-                plusContainer.style.width = '40px'; // Wider container for larger plus sign
+                plusContainer.style.width = '60px'; // Even wider container for larger plus sign
+                plusContainer.style.height = '60px'; // Ensure height is also sufficient
                 plusContainer.style.textAlign = 'center';
+                plusContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'; // Light background for better visibility
+                plusContainer.style.borderRadius = '50%'; // Make it circular
+                plusContainer.style.display = 'inline-flex';
+                plusContainer.style.justifyContent = 'center';
+                plusContainer.style.alignItems = 'center';
                 
-                // Add plus sign with extreme visibility
+                // Add plus sign with EXTREME visibility
                 const plusSpan = document.createElement('span');
-                plusSpan.classList.add('fw-bolder', 'fs-1'); // Larger font size (fs-1 instead of fs-2)
+                plusSpan.classList.add('fw-bolder', 'display-3'); // Even larger size using display classes
                 plusSpan.textContent = '+';
                 plusSpan.style.color = '#FF5500'; // Bright orange for high visibility
-                plusSpan.style.textShadow = '2px 2px 4px rgba(0,0,0,0.7)'; // Stronger shadow for better contrast
+                plusSpan.style.textShadow = '3px 3px 6px rgba(0,0,0,0.8)'; // Stronger shadow for better contrast
                 plusSpan.style.display = 'inline-block'; // Ensure block display
-                plusSpan.style.transform = 'scale(1.2)'; // Make plus sign 20% larger
+                plusSpan.style.transform = 'scale(1.5)'; // Make plus sign 50% larger
+                plusSpan.style.zIndex = '100'; // Ensure it stays on top
+                plusSpan.style.position = 'relative'; // For z-index to work
                 
                 plusContainer.appendChild(plusSpan);
                 winningNumbersContainer.appendChild(plusContainer);
@@ -1367,6 +1375,24 @@
             
             // Debug to ensure we're getting bonus numbers
             console.log("Main numbers: ", data.winning_numbers, "Bonus numbers: ", data.bonus_numbers || 'None');
+            console.log("Plus sign container added:", !!document.querySelector(".d-inline-block[style*='backgroundColor: rgba(255, 255, 255, 0.2)']"));
+            
+            // Log the element dimensions for debugging
+            setTimeout(() => {
+                const plusContainers = document.querySelectorAll(".d-inline-block[style*='backgroundColor: rgba(255, 255, 255, 0.2)']");
+                if (plusContainers.length > 0) {
+                    plusContainers.forEach((container, index) => {
+                        console.log(`Plus container ${index} dimensions:`, {
+                            width: container.offsetWidth,
+                            height: container.offsetHeight,
+                            visible: container.offsetWidth > 0 && container.offsetHeight > 0,
+                            display: window.getComputedStyle(container).display
+                        });
+                    });
+                } else {
+                    console.log("No plus containers found on the page");
+                }
+            }, 500);
             
             // Update the hidden bonus container (we don't display it separately anymore)
             const bonusNumbersContainer = document.getElementById('bonus-numbers');
@@ -1596,17 +1622,25 @@
                     // Create a container to hold the plus sign with better visibility
                     const plusContainer = document.createElement('div');
                     plusContainer.classList.add('d-inline-block', 'mx-3', 'position-relative', 'align-middle');
-                    plusContainer.style.width = '40px'; // Wider container for larger plus sign
+                    plusContainer.style.width = '60px'; // Even wider container for larger plus sign
+                    plusContainer.style.height = '60px'; // Ensure height is also sufficient
                     plusContainer.style.textAlign = 'center';
+                    plusContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'; // Light background for better visibility
+                    plusContainer.style.borderRadius = '50%'; // Make it circular
+                    plusContainer.style.display = 'inline-flex';
+                    plusContainer.style.justifyContent = 'center';
+                    plusContainer.style.alignItems = 'center';
                     
-                    // Add plus sign with extreme visibility
+                    // Add plus sign with EXTREME visibility
                     const plusSpan = document.createElement('span');
-                    plusSpan.classList.add('fw-bolder', 'fs-1'); // Larger font size (fs-1 instead of fs-2)
+                    plusSpan.classList.add('fw-bolder', 'display-3'); // Even larger size using display classes
                     plusSpan.textContent = '+';
                     plusSpan.style.color = '#FF5500'; // Bright orange for high visibility
-                    plusSpan.style.textShadow = '2px 2px 4px rgba(0,0,0,0.7)'; // Stronger shadow for better contrast
+                    plusSpan.style.textShadow = '3px 3px 6px rgba(0,0,0,0.8)'; // Stronger shadow for better contrast
                     plusSpan.style.display = 'inline-block'; // Ensure block display
-                    plusSpan.style.transform = 'scale(1.2)'; // Make plus sign 20% larger
+                    plusSpan.style.transform = 'scale(1.5)'; // Make plus sign 50% larger
+                    plusSpan.style.zIndex = '100'; // Ensure it stays on top
+                    plusSpan.style.position = 'relative'; // For z-index to work
                     
                     plusContainer.appendChild(plusSpan);
                     ppNumbersDiv.appendChild(plusContainer);
