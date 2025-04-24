@@ -1110,16 +1110,30 @@
                     // Add balls for this row
                     // Use combined numbers array if available (main numbers + bonus numbers)
                     // This displays the bonus balls on the same line as the main numbers
-                    (combinedNumbers || numbers).forEach((num, index) => {
-                        // For Powerball tickets, add a plus sign between main numbers and bonus numbers
-                        const hasBonus = combinedRow && combinedRow.bonusNumbers.length > 0;
-                        const mainNumberCount = combinedRow ? combinedRow.mainNumbers.length : numbers.length;
-                        
-                        // Add a plus sign when we've reached the bonus ball
-                        if (hasBonus && index === mainNumberCount) {
+                    const allNumbers = combinedNumbers || numbers;
+                    
+                    allNumbers.forEach((num, index) => {
+                        // For all lottery tickets, add a plus sign before the last number (bonus ball)
+                        // Check if this is the last number in the row
+                        if (index === allNumbers.length - 1) {
+                            // Add a plus sign before the last number (which is the bonus ball)
                             const plusSpan = document.createElement('span');
                             plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
                             plusSpan.textContent = '+';
+                            plusSpan.style.color = '#FF5500'; // Orange for visibility
+                            rowContainer.appendChild(plusSpan);
+                        }
+                        
+                        // For legacy compatibility - keep the old bonus handling code
+                        const hasBonus = combinedRow && combinedRow.bonusNumbers.length > 0;
+                        const mainNumberCount = combinedRow ? combinedRow.mainNumbers.length : numbers.length;
+                        
+                        // Only add in special cases where the new approach doesn't work
+                        if (hasBonus && index === mainNumberCount && mainNumberCount !== allNumbers.length - 1) {
+                            const plusSpan = document.createElement('span');
+                            plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
+                            plusSpan.textContent = '+';
+                            plusSpan.style.color = '#FF5500'; // Orange for visibility
                             rowContainer.appendChild(plusSpan);
                         }
                         
@@ -1194,10 +1208,16 @@
                             ball.appendChild(matchIcon);
                         }
                         
-                        // Add color classes in sequence or special color for Powerball
+                        // Add color classes in sequence or special color for Powerball/bonus balls
                         if (isPowerball) {
                             ball.classList.add('lottery-ball-blue', 'lottery-ball-bonus');
-                        } else if (rowContainer.children.length % 4 === 0) {
+                        } 
+                        // If this is the last ball in the row (bonus number), make it yellow
+                        else if (index === allNumbers.length - 1) {
+                            ball.classList.add('lottery-ball-yellow');
+                        }
+                        // Otherwise add colors in sequence
+                        else if (rowContainer.children.length % 4 === 0) {
                             ball.classList.add('lottery-ball-red');
                         } else if (rowContainer.children.length % 4 === 1) {
                             ball.classList.add('lottery-ball-yellow');
@@ -1227,8 +1247,9 @@
                             
                             // Instead of creating a new row, add a plus sign to the end of the current row
                             const plusSpan = document.createElement('span');
-                            plusSpan.classList.add('mx-2');
+                            plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
                             plusSpan.textContent = '+';
+                            plusSpan.style.color = '#FF5500'; // Orange for visibility
                             rowContainer.appendChild(plusSpan);
                             
                             // Get the bonus number
