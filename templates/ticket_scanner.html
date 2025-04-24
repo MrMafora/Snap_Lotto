@@ -16,52 +16,6 @@ Daily Lotto data,
 Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you instant results for all lottery tickets.{% endblock %}
 
 {% block head_content %}
-<!-- Initial hide for scan results -->
-<style>
-    #results-container {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        height: 0 !important;
-        overflow: hidden !important;
-        pointer-events: none !important;
-    }
-    
-    /* Only show results when explicitly activated */
-    #results-container.show-results {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        height: auto !important;
-        overflow: visible !important;
-        pointer-events: auto !important;
-    }
-    
-    /* Fixed container for results that stays visible during scrolling */
-    .fixed-results-wrapper {
-        display: none;
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        background-color: #fff !important;
-        z-index: 2147483647 !important; /* Maximum possible z-index value */
-        overflow-y: auto !important;
-        padding: 20px !important;
-        box-sizing: border-box !important;
-        transform: translateZ(0) !important;
-        -webkit-transform: translate3d(0,0,0) !important;
-        backface-visibility: hidden !important;
-        -webkit-backface-visibility: hidden !important;
-        will-change: transform !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-    }
-</style>
-
 <!-- Structured Data for SEO -->
 <script type="application/ld+json">
 {
@@ -91,83 +45,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <!-- Fresh checkmark system - clean slate approach -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fresh_checkmark.css') }}">
 <style>
-    /* Critical fix for disappearing content during scrolling */
-    body.fixed-content {
-        height: 100%;
-        overflow: hidden;
-        position: fixed;
-        width: 100%;
-    }
-    
-    /* Create a scrollable container for results - this is overridden by the one in head_content */
-    /* .fixed-results-wrapper {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        overflow-y: auto;
-        z-index: 9990;
-        background-color: white;
-        padding: 20px;
-        display: none;
-    } */
-    
-    /* Enhanced visibility for ALL content in results area */
-    .lottery-ball, 
-    .match-indicator, 
-    .results-container, 
-    .card, 
-    .card-body, 
-    .card-header,
-    #ticket-numbers,
-    #winning-numbers,
-    #matched-numbers,
-    #powerball-plus-numbers,
-    #lotto-plus-1-numbers,
-    #lotto-plus-2-numbers,
-    #success-content,
-    #error-message,
-    #prize-container,
-    #no-prize-container,
-    #result-lottery-type,
-    #result-draw-number,
-    #result-draw-date,
-    #detected-game-type,
-    #detected-draw-number,
-    #detected-draw-date,
-    #matched-count,
-    #pp-matched-count,
-    #lp1-matched-count,
-    #lp2-matched-count {
-        visibility: visible !important;
-        position: relative !important;
-        z-index: auto !important;
-        transform: translateZ(0);
-        -webkit-transform: translate3d(0,0,0);
-        backface-visibility: hidden;
-        -webkit-backface-visibility: hidden;
-        will-change: transform;
-    }
-    
-    /* Highest z-index for prize information */
-    #prize-container, 
-    #no-prize-container {
-        z-index: 99999 !important; 
-    }
-    
-    /* Higher z-index for the actual ticket information */
-    #success-content, 
-    .card, 
-    .card-body, 
-    .card-header {
-        z-index: 99990 !important;
-    }
-    
-    /* Even higher z-index for the error message */
-    #error-message {
-        z-index: 99998 !important;
-    }
     .ticket-scanner-container {
         max-width: 800px;
         margin: 0 auto;
@@ -247,38 +124,15 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     }
     .results-container {
         margin-top: 30px;
-        position: relative !important;
+        position: relative;
         height: auto !important;
         min-height: 200px;
         overflow: visible !important;
-        z-index: 99980 !important;
+        z-index: 50;
         display: block !important;
-        visibility: visible !important;
         transform: translateZ(0);
         backface-visibility: hidden;
         perspective: 1000px;
-        -webkit-transform: translate3d(0,0,0);
-        -webkit-backface-visibility: hidden;
-        isolation: isolate;
-    }
-    
-    /* Ensure all content in results container is visible */
-    .results-container * {
-        visibility: visible !important;
-        position: relative !important;
-        z-index: 1 !important;
-    }
-    
-    /* Higher z-index for important elements */
-    .results-container .card, 
-    .results-container .card-header,
-    .results-container .card-body {
-        position: relative !important;
-        z-index: 99990 !important;
-        visibility: visible !important;
-        display: block !important;
-        transform: translateZ(0);
-        -webkit-transform: translate3d(0,0,0);
     }
     /* Position for matched balls is handled in fresh_checkmark.css */
     /* We'll use .match-indicator elements instead of ::after pseudo-element */
@@ -352,20 +206,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% endblock %}
 
 {% block content %}
-<!-- Fixed position wrapper for results to prevent disappearing content when scrolling -->
-<div id="fixed-results-wrapper" class="fixed-results-wrapper" style="display: none; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; height: 100vh !important; background-color: #fff !important; z-index: 2147483647 !important; overflow-y: auto !important; padding: 20px !important; box-sizing: border-box !important;">
-    <div class="container py-4">
-        <div class="mb-4" style="position: sticky; top: 0; background-color: white; padding: 10px 0; z-index: 100000;">
-            <button id="back-to-scanner" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left me-2"></i> Back to Scanner
-            </button>
-            <h2 class="mt-3 mb-4 text-center">Your Ticket Results</h2>
-        </div>
-        <!-- The results container will be cloned into here when displayed -->
-        <div id="fixed-results-content" style="position: relative; z-index: 99999;"></div>
-    </div>
-</div>
-
 <!-- Ad overlay - Loading screen -->
 <div id="ad-overlay-loading" class="interstitial-view">
     <h4 class="mb-4">Processing your ticket...</h4>
@@ -452,8 +292,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <i class="fa fa-upload fa-2x mb-2"></i>
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
-                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-block mx-auto mb-3">
-                                    <button type="button" id="file-select-btn" class="btn btn-primary d-none">Select Image</button>
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
+                                    <button type="button" id="file-select-btn" class="btn btn-primary">Select Image</button>
                                 </div>
                             </div>
 
@@ -480,7 +320,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             </div>
                         </form>
 
-                        <div id="results-container" class="results-container d-none" style="position: relative !important; z-index: 99980 !important; transform: translateZ(0); backface-visibility: hidden; will-change: transform; visibility: hidden !important; display: none !important; opacity: 0 !important; overflow-y: auto !important; max-height: none !important;" aria-hidden="true">
+                        <div id="results-container" class="results-container d-none" style="position: relative !important; z-index: 99980 !important; transform: translateZ(0); backface-visibility: hidden; will-change: transform; visibility: visible !important; display: block !important;">
                             <hr>
                             <h3 class="mb-3 text-center">Scanning Results</h3>
                             
@@ -619,12 +459,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% endblock %}
 
 {% block additional_scripts %}
-<!-- Include the simplified file handler script -->
-<script src="{{ url_for('static', filename='js/simple_file_handler.js') }}"></script>
-<!-- Include the new results display script -->
-<script src="{{ url_for('static', filename='js/results_display.js') }}"></script>
 <script>
-    // Completely rewritten file handling code - simple, direct approach
     document.addEventListener('DOMContentLoaded', function() {
         // Get DOM elements for containers we'll be working with
         const dropArea = document.getElementById('drop-area');
@@ -639,61 +474,19 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         const loadingIndicator = document.getElementById('scanner-loading');
         const resultsContainer = document.getElementById('results-container');
         
-        // Function to completely hide all result-related containers on page load
-        function hideAllResultsContainers() {
-            // Hide main results container and fixed wrapper
-            const containers = [
-                'results-container',
-                'fixed-results-wrapper',
-                'error-message',
-                'success-content',
-                'prize-container',
-                'no-prize-container',
-                'fixed-results-content',
-                'powerball-plus-numbers-container',
-                'lotto-plus-1-numbers-container',
-                'lotto-plus-2-numbers-container',
-                'powerball-plus-section',
-                'lotto-plus-1-section',
-                'lotto-plus-2-section'
-            ];
-            
-            containers.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.classList.add('d-none');
-                    element.style.setProperty('display', 'none', 'important');
-                    element.style.setProperty('visibility', 'hidden', 'important');
-                    element.style.setProperty('opacity', '0', 'important');
-                    element.setAttribute('aria-hidden', 'true');
-                    
-                    // For certain containers, we need to clear their content too
-                    if (id === 'fixed-results-content' || id === 'ticket-numbers' ||
-                        id === 'winning-numbers' || id.includes('matched-numbers')) {
-                        element.innerHTML = '';
-                    }
-                }
-            });
-            
-            // Make sure the body doesn't have fixed-content class on page load
-            document.body.classList.remove('fixed-content');
-            
-            console.log("All results containers hidden on page load");
-        }
-        
-        // Run this immediately on page load
-        hideAllResultsContainers();
-        
-        // Run it again after a short delay to catch any containers that might have been shown
-        // by other scripts or template logic
-        setTimeout(hideAllResultsContainers, 500);
-        
         // Reset error message state on page load to prevent false errors
         const errorMessage = document.getElementById('error-message');
         if (errorMessage) {
             errorMessage.classList.add('d-none');
             errorMessage.style.display = 'none';
             console.log("Error message container hidden on page load");
+        }
+        
+        // Make sure results container is hidden on page load
+        if (resultsContainer) {
+            resultsContainer.classList.add('d-none');
+            resultsContainer.style.display = 'none';
+            console.log("Results container hidden on page load");
         }
         
         // Also hide success content on page load
@@ -716,20 +509,13 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             console.log("Initial button state check on page load");
         }, 500);
         
-        // Add a backup file selection click handler (in addition to the inline one)
-        fileSelectBtn.addEventListener('click', function(e) {
-            console.log("Select Image button clicked via event listener");
-            const fileInput = document.getElementById('ticket-image');
-            if (fileInput) {
-                fileInput.click();
-            }
+        // File selection via button
+        fileSelectBtn.addEventListener('click', () => {
+            fileInput.click();
         });
         
-        // File selection change - with additional logging
-        fileInput.addEventListener('change', function(e) {
-            console.log("File input changed");
-            handleFileSelect(e);
-        });
+        // File selection change
+        fileInput.addEventListener('change', handleFileSelect);
         
         // Drag and drop events
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -760,121 +546,45 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         dropArea.addEventListener('drop', handleDrop, false);
         
         function handleDrop(e) {
-            console.log("Drop event detected");
             const dt = e.dataTransfer;
             const files = dt.files;
             
             if (files.length > 0) {
-                console.log("Files dropped:", files.length);
-                
-                // Get the most reliable reference to the file input
-                const input = document.getElementById('ticket-image');
-                if (!input) {
-                    console.error("File input element not found in handleDrop");
-                    alert("Error: File input not found. Please refresh the page and try again.");
-                    return;
-                }
-                
-                try {
-                    // Assign files to input
-                    input.files = files;
-                    console.log("Files assigned to input");
-                    
-                    // Call the file select handler with an artificial event
-                    const mockEvent = { target: input };
-                    handleFileSelect(mockEvent);
-                } catch (error) {
-                    console.error("Error handling dropped files:", error);
-                    alert("There was a problem processing the dropped files. Please try selecting the file with the button instead.");
-                }
-            } else {
-                console.log("No files in drop event");
+                fileInput.files = files;
+                handleFileSelect();
             }
         }
         
-        function handleFileSelect(e) {
-            console.log("handleFileSelect called", e ? "with event" : "without event");
-            
-            // Get the file input element directly
-            const input = document.getElementById('ticket-image');
-            if (!input) {
-                console.error("File input element not found in handleFileSelect");
-                alert("Error: File input not found. Please refresh the page and try again.");
-                return;
-            }
-            
-            const file = input.files && input.files[0];
-            console.log("File selected:", file ? file.name : "none");
+        function handleFileSelect() {
+            const file = fileInput.files[0];
             
             if (file) {
                 // Check if file is an image
                 if (!file.type.match('image.*')) {
                     alert('Please select an image file');
-                    input.value = ''; // Clear the file input
+                    fileInput.value = ''; // Clear the file input
                     return;
                 }
-                
-                // Log the file details for debugging
-                console.log('Selected file:', {
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                    lastModified: file.lastModified
-                });
                 
                 const reader = new FileReader();
                 
                 reader.onload = function(e) {
-                    console.log("File read successfully");
-                    const result = e.target.result;
-                    console.log("File data loaded, length:", result.length);
-                    
-                    // Ensure the preview image exists
-                    const previewImg = document.getElementById('ticket-preview');
-                    if (previewImg) {
-                        previewImg.src = result;
-                        console.log("Preview image source set");
-                        
-                        // Make sure the preview container is visible
-                        const previewContainer = document.getElementById('preview-container');
-                        if (previewContainer) {
-                            previewContainer.classList.remove('d-none');
-                            console.log("Preview container shown");
-                        } else {
-                            console.error("Preview container not found");
-                        }
-                    } else {
-                        console.error("Preview image element not found");
-                    }
-                    
+                    ticketPreview.src = e.target.result;
+                    previewContainer.classList.remove('d-none');
                     // Update scan button state
                     updateScanButton();
+                    console.log("File loaded successfully");
                 }
                 
-                reader.onerror = function(error) {
-                    console.error("Error reading file:", error);
+                reader.onerror = function() {
                     alert('Error reading the image file. Please try a different image.');
-                    input.value = ''; // Clear the file input on error
+                    fileInput.value = ''; // Clear the file input on error
                     updateScanButton();
                 }
                 
-                // Add additional logging before reading the file
-                console.log("About to read file as data URL");
-                try {
-                    reader.readAsDataURL(file);
-                    console.log("ReadAsDataURL called successfully");
-                } catch (error) {
-                    console.error("Exception reading file:", error);
-                    alert('Error processing the image file. Please try a different image.');
-                    input.value = '';
-                    updateScanButton();
-                }
+                reader.readAsDataURL(file);
             } else {
-                console.log("No file selected or file selection cancelled");
-                const previewContainer = document.getElementById('preview-container');
-                if (previewContainer) {
-                    previewContainer.classList.add('d-none');
-                }
+                previewContainer.classList.add('d-none');
                 updateScanButton();
             }
         }
@@ -1278,35 +988,23 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         
         function displayResults(data) {
             try {
+                // Make sure we never manipulate scroll state
+                
                 // Make sure we have valid data before showing results
                 if (!data) {
                     console.log("Skipping result display - no data provided");
                     return;
                 }
                 
-                // Reset visibility flags to ensure proper display
+                // Prepare the results container first
+                resultsContainer.classList.remove('d-none');
                 resultsContainer.style.display = 'block';
                 resultsContainer.style.visibility = 'visible';
-                resultsContainer.style.opacity = '1';
-                resultsContainer.classList.remove('d-none');
-                resultsContainer.setAttribute('aria-hidden', 'false');
-                
-                // Force scroll to top to prevent rendering issues
-                window.scrollTo(0, 0);
-                
-                // NEW APPROACH: Use fixed position container for results
-                // This solves the issue of content disappearing when scrolling
-                const fixedWrapper = document.getElementById('fixed-results-wrapper');
-                const fixedContent = document.getElementById('fixed-results-content');
-                
-                // First prepare the regular results container
-                resultsContainer.classList.remove('d-none');
-                resultsContainer.style.setProperty('display', 'block', 'important');
-                resultsContainer.style.setProperty('visibility', 'visible', 'important');
                 
                 // Hide error message by default
                 const errorMessage = document.getElementById('error-message');
                 errorMessage.classList.add('d-none');
+                errorMessage.style.display = 'none';
                 
                 if (data.error) {
                     // Only show the error if we have a legitimate scan attempt
@@ -1318,17 +1016,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     return;
                 }
                 
-                // Show success content with enhanced visibility settings
+                // Show success content
                 const successContent = document.getElementById('success-content');
                 successContent.classList.remove('d-none');
-                successContent.style.setProperty('display', 'block', 'important');
-                successContent.style.setProperty('visibility', 'visible', 'important');
-                successContent.style.setProperty('position', 'relative', 'important');
-                successContent.style.setProperty('z-index', '99990', 'important');
-                successContent.style.setProperty('transform', 'translateZ(0)', 'important');
-                successContent.style.setProperty('-webkit-transform', 'translate3d(0,0,0)', 'important');
-                successContent.style.setProperty('backface-visibility', 'hidden', 'important');
-                successContent.style.setProperty('-webkit-backface-visibility', 'hidden', 'important');
+                successContent.style.display = 'block';
+                successContent.style.visibility = 'visible';
             
             // Populate ticket info
             document.getElementById('result-lottery-type').textContent = data.lottery_type;
@@ -1518,12 +1210,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         
                         const ball = document.createElement('span');
                         ball.classList.add('lottery-ball');
-                        // Add important visibility styles to ensure balls remain visible when scrolling
-                        ball.style.setProperty('position', 'relative', 'important');
-                        ball.style.setProperty('z-index', '100', 'important');
-                        ball.style.setProperty('visibility', 'visible', 'important');
-                        ball.style.setProperty('transform', 'translateZ(0)', 'important');
-                        ball.style.setProperty('-webkit-transform', 'translate3d(0,0,0)', 'important');
                         
                         // Check if this number is a match in the current game type
                         let isMatch = false;
@@ -1696,12 +1382,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 data.ticket_numbers.forEach(num => {
                     const ball = document.createElement('span');
                     ball.classList.add('lottery-ball');
-                    // Add important visibility styles to ensure balls remain visible when scrolling
-                    ball.style.setProperty('position', 'relative', 'important');
-                    ball.style.setProperty('z-index', '100', 'important');
-                    ball.style.setProperty('visibility', 'visible', 'important');
-                    ball.style.setProperty('transform', 'translateZ(0)', 'important');
-                    ball.style.setProperty('-webkit-transform', 'translate3d(0,0,0)', 'important');
                     
                     // Add color classes in sequence
                     if (ticketNumbersContainer.children.length % 4 === 0) {
@@ -2830,59 +2510,14 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             }
             
             // Scroll to results with a slight delay to ensure DOM is updated
-            // COMPLETELY NEW APPROACH: Use fixed position container to solve disappearing content issue
-            // Clone the content into the fixed results wrapper
-            const fixedWrapper = document.getElementById('fixed-results-wrapper');
-            const fixedContent = document.getElementById('fixed-results-content');
-            
-            // Clear any previous content
-            fixedContent.innerHTML = '';
-            
-            // Clone all the content from the results container into the fixed wrapper
-            const clone = resultsContainer.cloneNode(true);
-            
-            // Make sure all child elements in the clone are visible
-            Array.from(clone.querySelectorAll('*')).forEach(el => {
-                el.style.setProperty('visibility', 'visible', 'important');
-                el.style.setProperty('display', el.classList.contains('d-none') ? 'none' : 'block', 'important');
-                el.style.setProperty('opacity', '1', 'important');
-                el.style.setProperty('position', 'relative', 'important');
-                el.style.setProperty('z-index', '1', 'important');
-            });
-            
-            // First, make the clone visible (but the content inside may still be hidden)
-            clone.style.setProperty('display', 'block', 'important');
-            clone.style.setProperty('visibility', 'visible', 'important');
-            clone.style.setProperty('opacity', '1', 'important');
-            clone.classList.remove('d-none');
-            clone.setAttribute('aria-hidden', 'false');
-            
-            // Add the clone to the fixed wrapper
-            fixedContent.appendChild(clone);
-            
-            // Show the fixed results wrapper with maximum z-index
-            fixedWrapper.style.setProperty('display', 'block', 'important');
-            fixedWrapper.style.setProperty('visibility', 'visible', 'important');
-            fixedWrapper.style.setProperty('z-index', '2147483647', 'important');
-            
-            // Add a class to the body to prevent scrolling behind the fixed overlay
-            document.body.classList.add('fixed-content');
-            
-            // Set up the back button functionality with a cleanup to prevent memory leaks
-            const backButton = document.getElementById('back-to-scanner');
-            const closeFixed = function() {
-                fixedWrapper.style.setProperty('display', 'none', 'important');
-                document.body.classList.remove('fixed-content');
-                fixedContent.innerHTML = ''; // Clear content to prevent memory leaks
-                backButton.removeEventListener('click', closeFixed); // Clean up event listener
-            };
-            
-            // Remove any existing click handlers and add a fresh one
-            backButton.removeEventListener('click', closeFixed);
-            backButton.addEventListener('click', closeFixed);
-            
-            // No need for smooth scrolling as the content is now fixed position
-            enableScrolling();
+            setTimeout(() => {
+                window.scrollTo({
+                    top: resultsContainer.offsetTop,
+                    behavior: 'smooth'
+                });
+                // Make sure scrolling is fully enabled
+                enableScrolling();
+            }, 300);
         } catch (error) {
             console.error("Error displaying results:", error);
             showError("An error occurred while displaying results. Please try again.");
@@ -2901,28 +2536,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             if (message && resultsContainer && !resultsContainer.classList.contains('d-none')) {
                 errorText.textContent = message;
                 errorMessage.classList.remove('d-none');
-                errorMessage.style.setProperty('display', 'block', 'important');
-                errorMessage.style.setProperty('visibility', 'visible', 'important');
-                errorMessage.style.setProperty('position', 'relative', 'important');
-                errorMessage.style.setProperty('z-index', '99998', 'important');
-                
-                // Also display the error in the fixed position wrapper if it's active
-                let fixedWrapperEl = document.getElementById('fixed-results-wrapper');
-                if (fixedWrapperEl.style.display === 'block') {
-                    // Create error message for the fixed content
-                    let fixedError = document.createElement('div');
-                    fixedError.className = 'alert alert-danger';
-                    fixedError.innerHTML = `<i class="fa fa-exclamation-triangle me-2"></i>${message}`;
-                    fixedError.style.setProperty('margin-bottom', '20px', 'important');
-                    fixedError.style.setProperty('z-index', '99998', 'important');
-                    
-                    // Add to the beginning of the fixed content
-                    let fixedContentEl = document.getElementById('fixed-results-content');
-                    fixedContentEl.prepend(fixedError);
-                }
+                errorMessage.style.display = 'block';
+                errorMessage.style.visibility = 'visible';
                 
                 successContent.classList.add('d-none');
-                successContent.style.setProperty('display', 'none', 'important');
+                successContent.style.display = 'none';
             } else {
                 // Hide the error message if it's being shown without a proper scan
                 errorMessage.classList.add('d-none');

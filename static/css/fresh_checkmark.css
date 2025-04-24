@@ -1,27 +1,17 @@
 /* Fresh checkmark system - clean slate approach */
 .lottery-ball {
-    position: relative !important;
-    z-index: 100 !important;
-    transform: translateZ(0);
-    -webkit-transform: translate3d(0,0,0);
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    visibility: visible !important;
+    position: relative;
 }
 
 .ball-matched {
     border: 3px solid #28a745 !important;
     box-shadow: 0 0 10px #28a745;
-    position: relative !important;
-    z-index: 101 !important;
-    transform: translateZ(0);
-    -webkit-transform: translate3d(0,0,0);
 }
 
 .match-indicator {
     width: 20px;
     height: 20px;
-    position: absolute !important;
+    position: absolute;
     top: -8px;
     right: -8px;
     border-radius: 50%;
@@ -31,14 +21,11 @@
     justify-content: center;
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
     border: 2px solid white;
-    z-index: 200 !important;
+    z-index: 100;
     color: white;
     font-weight: bold;
     font-family: Arial, sans-serif;
     font-size: 14px;
-    visibility: visible !important;
-    transform: translateZ(0);
-    -webkit-transform: translate3d(0,0,0);
 }
 
 /* Game-specific colors with high contrast backgrounds for better visibility */
@@ -92,55 +79,10 @@
 .match-powerball-plus-bonus::after,
 .match-daily-lotto-bonus::after {
     content: "*";
-    position: absolute !important;
+    position: absolute;
     top: -5px;
     right: -5px;
     font-size: 18px;
     color: #ffd700; /* Gold */
     text-shadow: 0 0 3px black;
-    z-index: 300 !important;
-    visibility: visible !important;
-    transform: translateZ(0);
-    -webkit-transform: translate3d(0,0,0);
-}
-
-/* Add specific improvements to ensure content stays visible when scrolling */
-#winning-numbers-container,
-#matched-numbers-section,
-#winning-numbers,
-#matched-numbers,
-#bonus-numbers-container,
-#bonus-numbers,
-#powerball-plus-numbers-container,
-#powerball-plus-numbers,
-#pp-matched-numbers-section,
-#pp-matched-numbers,
-#lotto-plus-1-numbers-container,
-#lotto-plus-1-numbers,
-#lp1-matched-numbers-section,
-#lp1-matched-numbers,
-#lotto-plus-2-numbers-container,
-#lotto-plus-2-numbers,
-#lp2-matched-numbers-section,
-#lp2-matched-numbers,
-#prize-section,
-#matched-count,
-#pp-matched-count,
-#lp1-matched-count,
-#lp2-matched-count,
-#result-lottery-type,
-#result-draw-number,
-#result-draw-date,
-#detected-info,
-#detected-game-type,
-#detected-draw-number,
-#detected-draw-date,
-#ticket-numbers {
-    position: relative !important;
-    z-index: 100 !important;
-    visibility: visible !important;
-    transform: translateZ(0);
-    -webkit-transform: translate3d(0,0,0);
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
 }
