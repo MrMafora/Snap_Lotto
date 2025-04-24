@@ -1400,7 +1400,8 @@ def register_analysis_routes(app, db):
         # Run basic analysis for the dashboard
         frequency_data = analyzer.analyze_frequency(lottery_type, days)
         
-        return render_template('admin/lottery_analysis.html',
+        # Use the direct template with integrated JS
+        return render_template('admin/lottery_analysis_direct.html',
                               title="Lottery Data Analysis",
                               lottery_types=analyzer.lottery_types,
                               selected_type=lottery_type,

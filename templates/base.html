@@ -17,7 +17,7 @@
     <title>{% block title %}Snap Lotto{% endblock %}</title>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="{% block meta_description %}Snap Lotto - South Africa's #1 Lottery, PowerBall & Daily Lotto Ticket Scanner App. The ONLY app that pulls data directly from Ithuba (official source) and scans tickets to verify wins instantly.{% endblock %}">
+    <meta name="description" content="{% block meta_description %}Snap Lotto - South Africa's #1 Lottery, PowerBall & Daily Lotto Ticket Scanner App. The ONLY app with official Ithuba Lotto, PowerBall & Daily Lotto data, and scans tickets to verify wins instantly.{% endblock %}">
     <meta name="keywords" content="{% block meta_keywords %}Snap Lotto, South Africa PowerBall, South Africa Daily Lotto, Ithuba official results, PowerBall ticket scanner, Daily Lotto ticket scanner, PowerBall numbers, Daily Lotto results, direct Ithuba data, official lottery data South Africa{% endblock %}">
     <meta name="author" content="Snap Lotto">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
@@ -29,7 +29,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url }}">
     <meta property="og:title" content="{% block og_title %}Snap Lotto | South Africa's #1 PowerBall & Daily Lotto Ticket Scanner App{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}The ONLY South African app pulling data directly from Ithuba (official source). Scan PowerBall, Daily Lotto & Lotto tickets instantly to check winnings, with 100% accurate official results!{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}The ONLY app with official Ithuba Lotto, PowerBall & Daily Lotto data. Scan your tickets instantly to check winnings, with 100% accurate official results!{% endblock %}">
     <meta property="og:image" content="{{ url_for('static', filename='img/snap-lotto-social.jpg', _external=True) }}">
     <meta property="og:locale" content="en_ZA">
     <meta property="og:site_name" content="Snap Lotto">
@@ -38,7 +38,7 @@
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{{ request.url }}">
     <meta property="twitter:title" content="{% block twitter_title %}Snap Lotto | South Africa's #1 PowerBall & Daily Lotto Scanner App{% endblock %}">
-    <meta property="twitter:description" content="{% block twitter_description %}The ONLY app pulling PowerBall, Daily Lotto & Lotto data directly from Ithuba. Scan your tickets instantly to check if you've won with 100% official data!{% endblock %}">
+    <meta property="twitter:description" content="{% block twitter_description %}The ONLY app with official Ithuba Lotto, PowerBall & Daily Lotto data. Scan your tickets instantly to check if you've won with 100% official data!{% endblock %}">
     <meta property="twitter:image" content="{{ url_for('static', filename='img/snap-lotto-social.jpg', _external=True) }}">
     
     <!-- Canonical URL -->
@@ -99,7 +99,7 @@
                         <a class="nav-link d-flex align-items-center py-2" href="/visualizations"><i class="fas fa-chart-bar me-2"></i> Analytics</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center py-2 {% if request.path == '/ticket-scanner' or request.path == '/scan-lottery-ticket-south-africa' or request.path == '/scanner-landing' %}active{% endif %}" href="/ticket-scanner"><i class="fas fa-ticket-alt me-2"></i> Scanner</a>
+                        <a class="nav-link d-flex align-items-center py-2 {% if request.path == '/ticket-scanner' or request.path == '/scan-lottery-ticket-south-africa' or request.path == '/scanner-landing' %}active{% endif %}" href="/scanner-landing"><i class="fas fa-ticket-alt me-2"></i> Scanner</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav ms-auto">
@@ -171,7 +171,7 @@
             <div class="row">
                 <div class="col-md-4 mb-3 mb-md-0">
                     <h5 class="h6 mb-2">Snap Lotto</h5>
-                    <p class="small mb-2">South Africa's #1 PowerBall, Daily Lotto & Lottery Scanner App that pulls data directly from Ithuba (official source). The ONLY scanner app in South Africa that verifies winning tickets with 100% accurate data.</p>
+                    <p class="small mb-2">South Africa's #1 PowerBall, Daily Lotto & Lottery Scanner App. The ONLY app with official Ithuba Lotto, PowerBall & Daily Lotto data, and the only scanner app in South Africa that verifies winning tickets with 100% accurate data.</p>
                     <p class="small">&copy; 2025 Snap Lotto</p>
                 </div>
                 <div class="col-md-3 mb-3 mb-md-0">
@@ -186,7 +186,7 @@
                 <div class="col-md-3 mb-3 mb-md-0">
                     <h5 class="h6 mb-2">Quick Links</h5>
                     <ul class="list-unstyled small">
-                        <li><a href="/ticket-scanner" class="text-decoration-none">Scan Your Ticket</a></li>
+                        <li><a href="/scanner-landing" class="text-decoration-none">Scan Your Ticket</a></li>
                         <li><a href="/guides/how-to-play-lotto" class="text-decoration-none">How to Play Lotto</a></li>
                         <li><a href="/guides/how-to-play-powerball" class="text-decoration-none">How to Play PowerBall</a></li>
                         <li><a href="/guides/how-to-play-daily-lotto" class="text-decoration-none">How to Play Daily Lotto</a></li>
