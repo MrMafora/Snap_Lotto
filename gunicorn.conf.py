@@ -1,3 +1,4 @@
+
 """
 Gunicorn configuration for both development and production
 """
@@ -11,19 +12,14 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger('gunicorn.conf')
 
 # Determine environment and port
-environment = os.environ.get('ENVIRONMENT', 'development')
 port = os.environ.get('PORT', '8080')  # Default to 8080 for Replit compatibility
 
 # Bind to the appropriate port
-bind = f"0.0.0.0:5000"
+bind = f"0.0.0.0:{port}"
 
 # Print binding information to help debug port issues
 logger.info(f"Gunicorn configured to bind to {bind}")
 print(f"IMPORTANT: Gunicorn binding to port {port}", file=sys.stderr)
-
-# Overwrite any potentially conflicting environment variables
-os.environ['PORT'] = port
-os.environ['GUNICORN_PORT'] = port
 
 # Worker configuration
 workers = 2
