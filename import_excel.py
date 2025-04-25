@@ -23,20 +23,58 @@ logger = logging.getLogger(__name__)
 def parse_date(date_str):
     """Parse date from string format to datetime object"""
     try:
+        # Use our dedicated date parsing module
+        from excel_date_utils import parse_excel_date
+        
+        # Handle NaN values
         if pd.isna(date_str):
             return None
             
-        # Convert to string if it's not
-        date_str = str(date_str).strip()
+        # Use the utility function for consistent date parsing
+        result = parse_excel_date(date_str)
         
-        # Try various date formats
+        # Log the result for debugging
+        logger.info(f"Using excel_date_utils to parse '{date_str}' → {result}")
+        
+        return result
+                
+        # Try various date formats in order of likelihood
         for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d', '%m/%d/%Y']:
             try:
                 return datetime.strptime(date_str, fmt)
             except ValueError:
                 continue
+        
+        # Last resort - try to handle Excel date serial numbers
+        try:
+            if date_str.isdigit():
+                # Excel date serial number conversion
+                return datetime(1899, 12, 30) + timedelta(days=int(date_str))
+        except:
+            pass
                 
-        # If all formats fail, raise error
+        # If all formats fail, log the error but don't immediately fail
+        # Try to extract any date-like pattern from the string
+        import re
+        date_patterns = [
+            r'(\d{4})[/-](\d{1,2})[/-](\d{1,2})',  # YYYY-MM-DD
+            r'(\d{1,2})[/-](\d{1,2})[/-](\d{4})'   # DD-MM-YYYY or MM-DD-YYYY
+        ]
+        
+        for pattern in date_patterns:
+            match = re.search(pattern, date_str)
+            if match:
+                try:
+                    groups = match.groups()
+                    if len(groups[0]) == 4:  # YYYY-MM-DD
+                        return datetime(int(groups[0]), int(groups[1]), int(groups[2]))
+                    else:  # DD-MM-YYYY or MM-DD-YYYY (assume DD-MM-YYYY)
+                        return datetime(int(groups[2]), int(groups[1]), int(groups[0]))
+                except:
+                    continue
+                    
+        # If we still can't parse it, raise error
+        logger.error(f"All date parsing attempts failed for: {date_str}")
         raise ValueError(f"Couldn't parse date: {date_str}")
     except Exception as e:
         logger.error(f"Error parsing date {date_str}: {str(e)}")

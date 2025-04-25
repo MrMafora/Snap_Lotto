@@ -9,7 +9,7 @@ import sys
 import logging
 import json
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from models import db, LotteryResult, Screenshot
 
 # Set up logging
@@ -18,25 +18,22 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 def parse_date(date_str):
-    """Parse date from string or datetime object to datetime object"""
+    """Parse date from string format to datetime object"""
     try:
-        if isinstance(date_str, datetime):
-            return date_str
-        if pd.isna(date_str):
+        # Use our dedicated date parsing module
+        from excel_date_utils import parse_excel_date
+        
+        # Handle NaN values
+        if date_str is None or pd.isna(date_str):
             return None
             
-        # Convert to string if it's not
-        date_str = str(date_str).strip()
+        # Use the utility function for consistent date parsing
+        result = parse_excel_date(date_str)
         
-        # Try various date formats
-        for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d', '%m/%d/%Y']:
-            try:
-                return datetime.strptime(date_str, fmt)
-            except ValueError:
-                continue
-                
-        # If all formats fail, raise error
-        raise ValueError(f"Couldn't parse date: {date_str}")
+        # Log the result for debugging
+        logger.info(f"Using excel_date_utils to parse '{date_str}' → {result}")
+        
+        return result
     except Exception as e:
         logger.error(f"Error parsing date {date_str}: {str(e)}")
         return None
