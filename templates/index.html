@@ -773,17 +773,23 @@ function updateFrequencyChart(data) {
         }
     });
     
-    // Use exact maximum frequency for the y-axis (no padding)
-    const yAxisMax = maxFrequency; 
-    const yAxisStep = Math.ceil(yAxisMax / 4); // 4 steps on y-axis
+    // Use rounded maximum frequency for the y-axis with 10% padding for better visualization
+    const yAxisMax = Math.ceil(maxFrequency * 1.1); 
     
-    // Add y-axis labels with actual frequency values
+    // Calculate evenly spaced steps for y-axis (5 steps including 0)
+    const numSteps = 4;
+    const yAxisStep = Math.ceil(yAxisMax / numSteps);
+    
+    // Round the yAxisMax to make nice even increments
+    const roundedMax = yAxisStep * numSteps;
+    
+    // Add y-axis labels with evenly distributed values
     svgContent += `
         <div class="y-axis-labels" style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px;">
-            <div class="chart-y-axis" style="position: absolute; top: 0;">${yAxisMax}</div>
-            <div class="chart-y-axis" style="position: absolute; top: 25%;">${Math.max(0, Math.round(yAxisMax - yAxisStep))}</div>
-            <div class="chart-y-axis" style="position: absolute; top: 50%;">${Math.max(0, Math.round(yAxisMax - 2*yAxisStep))}</div>
-            <div class="chart-y-axis" style="position: absolute; top: 75%;">${Math.max(0, Math.round(yAxisMax - 3*yAxisStep))}</div>
+            <div class="chart-y-axis" style="position: absolute; top: 0;">${roundedMax}</div>
+            <div class="chart-y-axis" style="position: absolute; top: 25%;">${Math.round(roundedMax * 0.75)}</div>
+            <div class="chart-y-axis" style="position: absolute; top: 50%;">${Math.round(roundedMax * 0.5)}</div>
+            <div class="chart-y-axis" style="position: absolute; top: 75%;">${Math.round(roundedMax * 0.25)}</div>
             <div class="chart-y-axis" style="position: absolute; bottom: 0;">0</div>
         </div>`;
     
@@ -813,8 +819,9 @@ function updateFrequencyChart(data) {
         let heightPercent = 0;
         
         // Only calculate percentage when max frequency > 0 to avoid division by zero
-        if (yAxisMax > 0) {
-            heightPercent = ((frequency / yAxisMax) * 100);
+        // Use the rounded max for consistent scaling with the y-axis labels
+        if (roundedMax > 0) {
+            heightPercent = ((frequency / roundedMax) * 100);
         }
         
         // Ensure minimum height for visibility (at least 5% of chart height)
