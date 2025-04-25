@@ -125,14 +125,10 @@ class LotteryAnalyzer:
                 elif rank == 2:  # 3rd place
                     bar.set_color('green')
             
-            # Add shadow effect to all bars
-            bar.set_path_effects([
-                plt.matplotlib.patheffects.withSimplePatchShadow(
-                    offset=(2, -2),
-                    shadow_rgbFace='gray',
-                    alpha=0.3
-                )
-            ])
+            # Add styling to enhance visual appeal
+            # Note: Using simpler styling instead of patheffects which isn't available
+            bar.set_edgecolor('darkgray')
+            bar.set_linewidth(0.8)
         
         plt.xlabel('Number', fontweight='bold', fontsize=12)
         plt.ylabel('Frequency', fontweight='bold', fontsize=12)
@@ -185,14 +181,10 @@ class LotteryAnalyzer:
                 elif rank == 2:  # 3rd place
                     bar.set_color('green')
             
-            # Add shadow effect
-            bar.set_path_effects([
-                plt.matplotlib.patheffects.withSimplePatchShadow(
-                    offset=(2, -2),
-                    shadow_rgbFace='gray',
-                    alpha=0.3
-                )
-            ])
+            # Add styling to enhance visual appeal
+            # Note: Using simpler styling instead of patheffects which isn't available
+            bar.set_edgecolor('darkgray')
+            bar.set_linewidth(0.8)
         
         plt.xlabel('Number', fontweight='bold', fontsize=12)
         plt.ylabel('Frequency', fontweight='bold', fontsize=12)
