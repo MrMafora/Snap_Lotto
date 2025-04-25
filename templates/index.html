@@ -435,10 +435,10 @@ Snap Scan and Win = Phanda Phusha Play</span>
                     </div>
                 </div>
                 
-                <!-- Right chart: Winners By Division -->
-                <div class="winners-chart-container mt-5 pt-4">
+                <!-- Right chart: Hot & Cold Numbers -->
+                <div class="temperature-chart-container mt-5 pt-4">
                     <h6 class="mb-3 d-flex justify-content-between">
-                        <span>Winners By Division</span>
+                        <span>Hot & Cold Numbers</span>
                         <span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>
                     </h6>
                     <!-- Chart container with pie chart and legend side by side -->
@@ -955,11 +955,190 @@ function updateFrequencyChart(data) {
     chartWrapper.appendChild(topBox);
 }
 
-// Function to update the division statistics chart (pie chart)
+// Function to update the Hot & Cold Numbers chart
 function updateDivisionChart(data) {
-    // Implementation for division chart update
-    // This would be similar to the frequency chart update but for division data
-    // We'll leave this as a placeholder for now
+    // Get the temperature chart container
+    const tempChartContainer = document.querySelector('.temperature-chart-container');
+    if (!tempChartContainer) return;
+    
+    // Find the lottery type with the most data
+    let selectedLotteryType = null;
+    let maxFrequencyData = [];
+    
+    // Find the lottery type with the most data
+    for (const lotteryType in data) {
+        if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
+            maxFrequencyData = data[lotteryType].frequency;
+            selectedLotteryType = lotteryType;
+        }
+    }
+    
+    // If we have no data, show a message and return
+    if (!selectedLotteryType) {
+        tempChartContainer.innerHTML = '<div class="text-center my-5">No number data available for the selected filters.</div>';
+        return;
+    }
+    
+    // Get the frequency data for this lottery type
+    const frequencyData = data[selectedLotteryType].frequency;
+    
+    // If no frequency data, show a message and return
+    if (!frequencyData || !frequencyData.length) {
+        tempChartContainer.innerHTML = '<div class="text-center my-5">No number data available for the selected filters.</div>';
+        return;
+    }
+    
+    // Clear the container except for the header
+    const header = tempChartContainer.querySelector('h6');
+    tempChartContainer.innerHTML = '';
+    if (header) {
+        tempChartContainer.appendChild(header);
+    } else {
+        // Create a new header if it doesn't exist
+        const newHeader = document.createElement('h6');
+        newHeader.className = 'mb-3 d-flex justify-content-between';
+        newHeader.innerHTML = '<span>Hot & Cold Numbers</span><span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>';
+        tempChartContainer.appendChild(newHeader);
+    }
+    
+    // Create the main chart container
+    const chartContainer = document.createElement('div');
+    chartContainer.className = 'hot-cold-chart-container';
+    chartContainer.style.height = '250px';
+    tempChartContainer.appendChild(chartContainer);
+    
+    // Collect the frequency data and sort by frequency
+    const sortedNumbers = [];
+    for (let i = 0; i < frequencyData.length; i++) {
+        sortedNumbers.push({
+            number: i + 1,
+            frequency: frequencyData[i]
+        });
+    }
+    
+    // Sort by frequency descending
+    sortedNumbers.sort((a, b) => b.frequency - a.frequency);
+    
+    // Determine hot and cold numbers
+    const middleIndex = Math.floor(sortedNumbers.length / 2);
+    const hotNumbers = sortedNumbers.slice(0, middleIndex);
+    const coldNumbers = sortedNumbers.slice(middleIndex);
+    
+    // Create the hot and cold sections
+    const sectionsContainer = document.createElement('div');
+    sectionsContainer.className = 'd-flex';
+    sectionsContainer.style.height = '100%';
+    chartContainer.appendChild(sectionsContainer);
+    
+    // Hot numbers section
+    const hotSection = document.createElement('div');
+    hotSection.className = 'hot-numbers-section';
+    hotSection.style.flex = '1';
+    hotSection.style.borderRight = '1px solid #ddd';
+    hotSection.style.padding = '15px';
+    sectionsContainer.appendChild(hotSection);
+    
+    // Hot section title
+    const hotTitle = document.createElement('h6');
+    hotTitle.className = 'text-center mb-3';
+    hotTitle.innerHTML = '<span class="badge bg-danger">HOT</span> Most Frequent';
+    hotSection.appendChild(hotTitle);
+    
+    // Hot numbers list
+    const hotList = document.createElement('div');
+    hotList.className = 'number-list';
+    hotList.style.height = '190px';
+    hotList.style.overflowY = 'auto';
+    hotSection.appendChild(hotList);
+    
+    // Add top 10 hot numbers
+    hotNumbers.slice(0, 10).forEach((item, index) => {
+        const listItem = document.createElement('div');
+        listItem.className = 'd-flex justify-content-between align-items-center mb-2';
+        
+        const numberBadge = document.createElement('span');
+        numberBadge.className = 'btn btn-sm btn-outline-danger rounded-circle number-badge';
+        numberBadge.style.width = '32px';
+        numberBadge.style.height = '32px';
+        numberBadge.style.display = 'flex';
+        numberBadge.style.alignItems = 'center';
+        numberBadge.style.justifyContent = 'center';
+        numberBadge.style.fontWeight = 'bold';
+        numberBadge.textContent = item.number;
+        
+        const frequencyText = document.createElement('span');
+        frequencyText.className = 'frequency-text';
+        frequencyText.textContent = `${item.frequency} times`;
+        
+        const rank = document.createElement('small');
+        rank.className = 'rank text-muted';
+        rank.textContent = `#${index + 1}`;
+        
+        listItem.appendChild(numberBadge);
+        listItem.appendChild(frequencyText);
+        listItem.appendChild(rank);
+        
+        hotList.appendChild(listItem);
+    });
+    
+    // Cold numbers section
+    const coldSection = document.createElement('div');
+    coldSection.className = 'cold-numbers-section';
+    coldSection.style.flex = '1';
+    coldSection.style.padding = '15px';
+    sectionsContainer.appendChild(coldSection);
+    
+    // Cold section title
+    const coldTitle = document.createElement('h6');
+    coldTitle.className = 'text-center mb-3';
+    coldTitle.innerHTML = '<span class="badge bg-primary">COLD</span> Least Frequent';
+    coldSection.appendChild(coldTitle);
+    
+    // Cold numbers list
+    const coldList = document.createElement('div');
+    coldList.className = 'number-list';
+    coldList.style.height = '190px';
+    coldList.style.overflowY = 'auto';
+    coldSection.appendChild(coldList);
+    
+    // Reverse cold numbers to show the least frequent first
+    const reversedColdNumbers = [...coldNumbers].reverse();
+    
+    // Add bottom 10 cold numbers
+    reversedColdNumbers.slice(0, 10).forEach((item, index) => {
+        const listItem = document.createElement('div');
+        listItem.className = 'd-flex justify-content-between align-items-center mb-2';
+        
+        const numberBadge = document.createElement('span');
+        numberBadge.className = 'btn btn-sm btn-outline-primary rounded-circle number-badge';
+        numberBadge.style.width = '32px';
+        numberBadge.style.height = '32px';
+        numberBadge.style.display = 'flex';
+        numberBadge.style.alignItems = 'center';
+        numberBadge.style.justifyContent = 'center';
+        numberBadge.style.fontWeight = 'bold';
+        numberBadge.textContent = item.number;
+        
+        const frequencyText = document.createElement('span');
+        frequencyText.className = 'frequency-text';
+        frequencyText.textContent = `${item.frequency} times`;
+        
+        const rank = document.createElement('small');
+        rank.className = 'rank text-muted';
+        rank.textContent = `#${coldNumbers.length - index}`;
+        
+        listItem.appendChild(numberBadge);
+        listItem.appendChild(frequencyText);
+        listItem.appendChild(rank);
+        
+        coldList.appendChild(listItem);
+    });
+    
+    // Note about the data
+    const noteContainer = document.createElement('div');
+    noteContainer.className = 'text-center mt-2';
+    noteContainer.innerHTML = `<small class="text-muted">${selectedLotteryType} number frequency, ${data[selectedLotteryType].total_draws} draws</small>`;
+    tempChartContainer.appendChild(noteContainer);
 }
 
 document.addEventListener('DOMContentLoaded', function() {

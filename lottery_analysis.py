@@ -391,7 +391,8 @@ class LotteryAnalyzer:
                     results["All Lottery Types"] = {
                         'frequency': combined_frequency.tolist(),
                         'top_numbers': sorted(top_numbers, key=lambda x: x[1], reverse=True),
-                        'is_combined': True
+                        'is_combined': True,
+                        'total_draws': len(df['draw_number'].unique())
                     }
                     
                     # Generate frequency chart for combined data
@@ -437,6 +438,11 @@ class LotteryAnalyzer:
                     # Get top numbers
                     top_indices = np.argsort(frequency)[-5:]
                     top_numbers = [(i+1, frequency[i]) for i in top_indices]
+                    
+                    # Add total draws count to the results
+                    if lt not in results:
+                        results[lt] = {}
+                    results[lt]['total_draws'] = len(lt_df['draw_number'].unique())
                     
                     # Generate frequency chart for this lottery type
                     self._generate_frequency_chart(frequency, top_numbers, lt, results)
