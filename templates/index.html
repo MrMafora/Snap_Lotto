@@ -785,8 +785,34 @@ function updateFrequencyChart(data) {
     chartWrapper.style.marginBottom = '20px';
     barChartContainer.appendChild(chartWrapper);
     
-    // The fixed Y-axis values (exactly matching the reference image)
-    const yAxisValues = [32, 24, 16, 8, 0];
+    // Calculate dynamic Y-axis values based on maximum frequency
+    let maxFrequency = 0;
+    topNumbers.forEach(item => {
+        if (Array.isArray(item) && item.length >= 2) {
+            maxFrequency = Math.max(maxFrequency, item[1]);
+        }
+    });
+    
+    // Determine the appropriate step size based on maximum frequency
+    let stepSize = 2;
+    if (maxFrequency > 32) {
+        stepSize = 8;
+    } else if (maxFrequency > 20) {
+        stepSize = 5;
+    } else if (maxFrequency > 10) {
+        stepSize = 4;
+    } else {
+        stepSize = 2;
+    }
+    
+    // Round up maximum value to next multiple of step size
+    const maxYValue = Math.ceil(maxFrequency / stepSize) * stepSize;
+    
+    // Create dynamic Y-axis values with 5 points (including 0)
+    const yAxisValues = [];
+    for (let i = 4; i >= 0; i--) {
+        yAxisValues.push(Math.round(i * maxYValue / 4));
+    }
     
     // Create Y-axis labels container
     const yAxis = document.createElement('div');
@@ -852,13 +878,7 @@ function updateFrequencyChart(data) {
         chartArea.appendChild(gridLine);
     });
     
-    // Calculate the maximum frequency for scaling
-    let maxFrequency = 0;
-    topNumbers.forEach(item => {
-        if (Array.isArray(item) && item.length >= 2) {
-            maxFrequency = Math.max(maxFrequency, item[1]);
-        }
-    });
+    // We already calculated maxFrequency above, no need to recalculate
     
     // Create the bar container
     const barContainer = document.createElement('div');
@@ -898,8 +918,8 @@ function updateFrequencyChart(data) {
         column.style.position = 'relative';
         barContainer.appendChild(column);
         
-        // Calculate height as percentage (0-100%) of maxYValue (32)
-        const maxYValue = yAxisValues[0]; // 32
+        // Calculate height as percentage (0-100%) of the dynamic maxYValue
+        const maxYValue = yAxisValues[0]; // Now dynamically calculated
         const heightPercent = (frequency / maxYValue) * 100;
         
         // Create the bar itself
