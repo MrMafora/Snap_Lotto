@@ -287,15 +287,15 @@ def import_excel_data(excel_file, flask_app=None):
             errors_count = 0
             imported_records = []  # Track individual records for import history
             
+            # CRITICAL FIX: Skip the header row before processing like in import_snap_lotto_data.py
+            logger.warning("⚠️ CRITICAL: Using iloc[1:] to skip only the header row and prevent data loss")
+            logger.warning("⚠️ This ensures row 2 in the Excel file (idx 1) is properly processed")
+            # Skip only the first row (header) and reset the index
+            df = df.iloc[1:].reset_index(drop=True)
+            
             # Process each row
             for idx, row in df.iterrows():
                 try:
-                    # ONLY skip the very first row (idx 0) which is the header
-                    # ⚠️ CRITICAL: We used to skip multiple rows which caused data loss
-                    # We NEVER skip more than the first row to ensure all lottery data is imported
-                    if idx == 0:
-                        logger.warning("⚠️ Only skipping the first row (header) to prevent data loss")
-                        continue
                         
                     # Determine if this is a valid data row
                     # Skip if row appears empty (more than 50% of values are None/NaN)
