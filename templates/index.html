@@ -735,6 +735,12 @@ function updateFrequencyChart(data) {
     const barChartContainer = document.querySelector('.bar-chart-container');
     if (!barChartContainer) return;
     
+    // Reset the container styles for a fresh implementation
+    barChartContainer.style.position = 'relative';
+    barChartContainer.style.height = '300px';
+    barChartContainer.style.width = '100%';
+    barChartContainer.style.overflow = 'hidden';
+    
     // We need to get the lottery type with the most data
     let selectedLotteryType = null;
     let maxFrequencyData = [];
@@ -762,185 +768,191 @@ function updateFrequencyChart(data) {
         return;
     }
     
-    // Create the SVG content for the bar chart
-    let svgContent = '';
+    // Clear the container for a fresh start
+    barChartContainer.innerHTML = '';
     
-    // Calculate the maximum frequency from the top numbers data
+    // Create a header for the chart
+    const chartHeader = document.createElement('h6');
+    chartHeader.className = 'mb-3';
+    chartHeader.textContent = 'Most Frequent Numbers';
+    chartHeader.style.fontWeight = 'bold';
+    barChartContainer.appendChild(chartHeader);
+    
+    // Create the main chart container
+    const chartWrapper = document.createElement('div');
+    chartWrapper.style.position = 'relative';
+    chartWrapper.style.height = '250px';
+    chartWrapper.style.marginBottom = '20px';
+    barChartContainer.appendChild(chartWrapper);
+    
+    // The fixed Y-axis values (exactly matching the reference image)
+    const yAxisValues = [32, 24, 16, 8, 0];
+    
+    // Create Y-axis labels container
+    const yAxis = document.createElement('div');
+    yAxis.style.position = 'absolute';
+    yAxis.style.left = '0';
+    yAxis.style.top = '0';
+    yAxis.style.bottom = '30px';
+    yAxis.style.width = '30px';
+    yAxis.style.borderRight = 'none';
+    chartWrapper.appendChild(yAxis);
+    
+    // Add the Y-axis values
+    yAxisValues.forEach((value, index) => {
+        const position = index * 25; // 0%, 25%, 50%, 75%, 100%
+        const label = document.createElement('div');
+        label.textContent = value;
+        label.style.position = 'absolute';
+        label.style.right = '7px';
+        label.style.top = `${position}%`;
+        label.style.fontSize = '12px';
+        label.style.color = '#666';
+        label.style.lineHeight = '1';
+        
+        if (index === 0) {
+            // Top value (32)
+            label.style.transform = 'translateY(0)';
+        } else if (index === yAxisValues.length - 1) {
+            // Bottom value (0)
+            label.style.bottom = '0';
+            label.style.top = 'auto';
+            label.style.transform = 'translateY(0)';
+        } else {
+            // Middle values (24, 16, 8)
+            label.style.transform = 'translateY(-50%)';
+        }
+        
+        yAxis.appendChild(label);
+    });
+    
+    // Create the main chart area
+    const chartArea = document.createElement('div');
+    chartArea.style.position = 'absolute';
+    chartArea.style.left = '30px';
+    chartArea.style.right = '0';
+    chartArea.style.top = '0';
+    chartArea.style.bottom = '30px';
+    chartArea.style.borderLeft = '1px solid #ddd';
+    chartArea.style.borderBottom = '1px solid #ddd';
+    chartWrapper.appendChild(chartArea);
+    
+    // Add horizontal grid lines
+    yAxisValues.forEach((value, index) => {
+        if (index === yAxisValues.length - 1) return; // Skip the last one (0)
+        
+        const position = index * 25; // 0%, 25%, 50%, 75%
+        const gridLine = document.createElement('div');
+        gridLine.style.position = 'absolute';
+        gridLine.style.left = '0';
+        gridLine.style.right = '0';
+        gridLine.style.top = `${position}%`;
+        gridLine.style.height = '1px';
+        gridLine.style.backgroundColor = '#eee';
+        chartArea.appendChild(gridLine);
+    });
+    
+    // Calculate the maximum frequency for scaling
     let maxFrequency = 0;
     topNumbers.forEach(item => {
-        if (item && item.length >= 2) {
+        if (Array.isArray(item) && item.length >= 2) {
             maxFrequency = Math.max(maxFrequency, item[1]);
         }
     });
     
-    // Use rounded maximum frequency for the y-axis with 20% padding for better visualization
-    const yAxisMax = Math.ceil(maxFrequency * 1.2); 
+    // Create the bar container
+    const barContainer = document.createElement('div');
+    barContainer.style.display = 'flex';
+    barContainer.style.justifyContent = 'space-between';
+    barContainer.style.height = '100%';
+    barContainer.style.padding = '0 20px';
+    chartArea.appendChild(barContainer);
     
-    // First find the maximum frequency from the actual data
-    // Then calculate nice-looking Y-axis with values divisible by 8 for even spacing
-    // This matches the reference design exactly
+    // The fixed colors from the reference image for each position
+    const barColors = [
+        'bg-danger',    // 1st - Red
+        'bg-warning',   // 2nd - Yellow
+        'bg-success',   // 3rd - Green
+        'bg-info',      // 4th - Light Blue
+        'bg-primary',   // 5th - Dark Blue
+        'bg-secondary', // 6th - Gray
+        'bg-dark',      // 7th - Dark Gray
+        'bg-primary',   // 8th - Blue (reusing)
+        'bg-dark',      // 9th - Dark (reusing)
+        'bg-secondary'  // 10th - Gray (reusing)
+    ];
     
-    // Get the maximum frequency
-    // For example: if max is 21, we use 32 as our max (next multiple of 8 after 24)
-    const numSteps = 4; // We want 4 steps (0, 8, 16, 24, 32)
-    const stepSize = 8; // Fixed step size of 8 to match design
-    
-    // Calculate the max value by rounding up to the next multiple of stepSize
-    const roundedMax = Math.ceil(maxFrequency / stepSize) * stepSize * (numSteps / 3);
-    
-    // Calculate positions for y-axis labels (exact positioning)
-    const labelHeight = `calc(100% - 40px)`;
-    
-    // Add y-axis labels with fixed values to match reference image: 0, 8, 16, 24, 32
-    const yValues = [32, 24, 16, 8, 0];
-    
-    svgContent += `
-        <div class="y-axis-labels" style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px; height: ${labelHeight};">
-            <div class="chart-y-axis" style="position: absolute; top: 0%; transform: translateY(-50%);">${yValues[0]}</div>
-            <div class="chart-y-axis" style="position: absolute; top: 25%; transform: translateY(-50%);">${yValues[1]}</div>
-            <div class="chart-y-axis" style="position: absolute; top: 50%; transform: translateY(-50%);">${yValues[2]}</div>
-            <div class="chart-y-axis" style="position: absolute; top: 75%; transform: translateY(-50%);">${yValues[3]}</div>
-            <div class="chart-y-axis" style="position: absolute; bottom: 0; transform: translateY(0);">${yValues[4]}</div>
-        </div>`;
-    
-    // Add the main chart area with grid lines - increase bottom margin for labels
-    svgContent += `
-        <div class="chart-container" style="position: absolute; left: 30px; top: 5px; right: 5px; bottom: 50px;">
-            <!-- Horizontal grid lines -->
-            <div style="position: absolute; top: 0; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
-            <div style="position: absolute; top: 25%; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
-            <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
-            <div style="position: absolute; top: 75%; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
-            <div style="position: absolute; bottom: 0; left: -30px; right: 0; height: 1px; background-color: #333;"></div>
-            
-            <!-- Bar columns with increased spacing between them -->
-            <div class="d-flex justify-content-around w-100" style="position: absolute; bottom: 0; left: 0; right: 0; top: 0; padding: 0 5%;">`;
-    
-    // Use the top numbers data to display the bars in order of frequency (highest first)
-    for (let i = 0; i < Math.min(10, topNumbers.length); i++) {
-        if (!topNumbers[i] || topNumbers[i].length < 2) continue;
+    // Process and display the top numbers
+    topNumbers.slice(0, 10).forEach((item, index) => {
+        if (!Array.isArray(item) || item.length < 2) return;
         
-        const number = topNumbers[i][0]; // The lottery number
-        const frequency = topNumbers[i][1]; // How many times it appeared
+        const number = item[0];
+        const frequency = item[1];
         
-        // For bar height, ensure a minimum height for visibility
-        // Scale to available space (use 100% for maximum frequency)
-        // This ensures the tallest bar is at 100% height and others are proportional
-        let heightPercent = 0;
+        // Create column container for this bar
+        const column = document.createElement('div');
+        column.style.display = 'flex';
+        column.style.flexDirection = 'column';
+        column.style.alignItems = 'center';
+        column.style.width = '9%';
+        column.style.position = 'relative';
+        barContainer.appendChild(column);
         
-        // Only calculate percentage when max frequency > 0 to avoid division by zero
-        // Use the rounded max for consistent scaling with the y-axis labels
-        if (roundedMax > 0) {
-            heightPercent = ((frequency / roundedMax) * 100);
-        }
+        // Calculate height as percentage (0-100%) of maxYValue (32)
+        const maxYValue = yAxisValues[0]; // 32
+        const heightPercent = (frequency / maxYValue) * 100;
         
-        // Ensure minimum height for visibility (at least 5% of chart height)
-        const displayHeight = Math.max(5, heightPercent);
-        const height = `${displayHeight}%`;
+        // Create the bar itself
+        const bar = document.createElement('div');
+        bar.className = `${barColors[index]}`;
+        bar.style.width = '100%';
+        bar.style.height = `${heightPercent}%`;
+        bar.style.position = 'absolute';
+        bar.style.bottom = '0';
+        bar.style.borderRadius = '3px 3px 0 0';
+        bar.style.display = 'flex';
+        bar.style.justifyContent = 'center';
+        bar.style.alignItems = 'center';
+        bar.style.color = 'white';
+        bar.style.fontWeight = 'bold';
+        bar.style.fontSize = '11px';
+        bar.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        bar.textContent = frequency;
+        column.appendChild(bar);
         
-        // Fixed color classes matching the reference image exactly
-        // We're using the standard Bootstrap colors but ensuring no white/light colors
-        const colorClasses = [
-            'bg-danger',    // 1st - Red
-            'bg-warning',   // 2nd - Yellow
-            'bg-success',   // 3rd - Green
-            'bg-info',      // 4th - Light Blue
-            'bg-primary',   // 5th - Dark Blue
-            'bg-secondary', // 6th - Medium Gray
-            'bg-dark',      // 7th - Dark Gray
-            'bg-primary',   // 8th - Dark Blue again
-            'bg-secondary', // 9th - Medium Gray again
-            'bg-dark'       // 10th - Dark Gray again
-        ];
-        
-        // Get the color for this position
-        const colorClass = colorClasses[i];
-        
-        // Add the bar - using absolute positioning to ensure it starts from the bottom
-        // The bar is positioned at the bottom of the container and grows upward
-        svgContent += `
-            <div class="bar-column text-center" style="flex: 1; position: relative; height: 100%; max-width: 8%;">
-                <div class="interactive-bar ${colorClass} bar d-flex align-items-center justify-content-center" 
-                    style="position: absolute; bottom: 0; left: 10%; right: 10%; height: ${height}; border-radius: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" 
-                    data-number="${number}" 
-                    data-frequency="${frequency}">
-                    <span style="color: white; font-size: 11px; font-weight: bold;">${frequency}</span>
-                </div>
-                <div style="position: absolute; bottom: -35px; left: 0; right: 0; font-size: 12px;" class="fw-bold">${number}</div>
-            </div>`;
-    }
+        // Create the number label below the bar
+        const label = document.createElement('div');
+        label.textContent = number;
+        label.style.position = 'absolute';
+        label.style.bottom = '-25px';
+        label.style.fontWeight = 'bold';
+        label.style.fontSize = '12px';
+        column.appendChild(label);
+    });
     
-    // Close the bars container and chart container
-    svgContent += `
-            </div>
-        </div>`;
+    // Create top numbers box
+    const topBox = document.createElement('div');
+    topBox.style.position = 'absolute';
+    topBox.style.top = '10px';
+    topBox.style.right = '10px';
+    topBox.style.backgroundColor = 'rgba(255,255,255,0.9)';
+    topBox.style.padding = '5px';
+    topBox.style.borderRadius = '4px';
+    topBox.style.fontSize = '11px';
+    topBox.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
     
-    // Add title with the lottery type
-    svgContent += `
-        <div class="text-center" style="position: absolute; bottom: 0; left: 0; right: 0; height: 20px;">
-            <small class="text-muted">${selectedLotteryType} Frequency</small>
-        </div>`;
+    const topTitle = document.createElement('div');
+    topTitle.innerHTML = '<strong>Top Numbers:</strong>';
+    topBox.appendChild(topTitle);
     
-    // Add top winners display
-    svgContent += `
-        <div style="position: absolute; top: 10px; right: 10px; background-color: rgba(255,255,255,0.8); padding: 5px; border-radius: 4px; font-size: 11px;">
-            <div><strong>Top Numbers:</strong></div>`;
-    
-    // Add each top number
+    // Add top 5 numbers
     topNumbers.slice(0, 5).forEach(([number, freq]) => {
-        svgContent += `<div># ${number}: ${freq} times</div>`;
+        const item = document.createElement('div');
+        item.textContent = `# ${number}: ${freq} times`;
+        topBox.appendChild(item);
     });
     
-    svgContent += `</div>`;
-    
-    // Update the container with the new chart
-    barChartContainer.innerHTML = svgContent;
-    
-    // Add event listeners to the new bars
-    const bars = barChartContainer.querySelectorAll('.interactive-bar');
-    bars.forEach(bar => {
-        bar.addEventListener('mouseover', function() {
-            // Scale up the bar slightly on hover
-            this.style.transform = 'scaleY(1.05)';
-            this.style.transition = 'transform 0.2s';
-            
-            // Create a tooltip
-            const number = this.getAttribute('data-number');
-            const frequency = this.getAttribute('data-frequency');
-            
-            // Display info in a floating tooltip
-            const tooltip = document.createElement('div');
-            tooltip.className = 'chart-tooltip';
-            tooltip.innerHTML = `Number ${number}<br>Appeared ${frequency} times`;
-            tooltip.style.position = 'absolute';
-            tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
-            tooltip.style.color = 'white';
-            tooltip.style.padding = '5px 10px';
-            tooltip.style.borderRadius = '4px';
-            tooltip.style.fontSize = '12px';
-            tooltip.style.zIndex = '1000';
-            
-            // Position tooltip above the bar
-            const rect = this.getBoundingClientRect();
-            tooltip.style.left = rect.left + 'px';
-            tooltip.style.top = (rect.top - 40) + 'px';
-            
-            document.body.appendChild(tooltip);
-            this.setAttribute('data-tooltip-id', Date.now());
-        });
-        
-        bar.addEventListener('mouseout', function() {
-            // Return to normal size
-            this.style.transform = 'scaleY(1)';
-            
-            // Remove any tooltips
-            const tooltipId = this.getAttribute('data-tooltip-id');
-            if (tooltipId) {
-                const tooltips = document.querySelectorAll('.chart-tooltip');
-                tooltips.forEach(tooltip => tooltip.remove());
-            }
-        });
-    });
+    chartWrapper.appendChild(topBox);
 }
 
 // Function to update the division statistics chart (pie chart)
