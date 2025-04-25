@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}South Africa's ONLY Lottery Ticket Scanner | Check If You've Won Instantly | Snap Lotto{% endblock %}
+{% block title %}South Africa's ONLY Lottery Ticket Scanner | Check If You've Won Instantly | Snap Lottery{% endblock %}
 
-{% block meta_description %}South Africa's ONLY app that instantly scans your lottery tickets to check if you've won. Upload your Lotto, PowerBall, or Daily Lotto ticket and get instant results. Free with no registration.{% endblock %}
+{% block meta_description %}South Africa's ONLY app that instantly scans your lottery tickets to check if you've won. Upload your Lottery, PowerBall, or Daily Lottery ticket and get instant results. Free with no registration.{% endblock %}
 
-{% block meta_keywords %}South Africa lottery ticket scanner, scan Lotto ticket South Africa, check lottery ticket South Africa, PowerBall ticket scanner, only lottery scanner app, instant lottery check{% endblock %}
+{% block meta_keywords %}South Africa lottery ticket scanner, scan Lottery ticket South Africa, check lottery ticket South Africa, PowerBall ticket scanner, only lottery scanner app, instant lottery check{% endblock %}
 
 {% block og_title %}South Africa's ONLY Lottery Ticket Scanner | Check If You've Won Instantly{% endblock %}
-{% block og_description %}THE ONLY app in South Africa that scans your lottery tickets to check if you've won. Our exclusive technology gives you instant results for Lotto, PowerBall and Daily Lotto tickets.{% endblock %}
+{% block og_description %}THE ONLY app in South Africa that scans your lottery tickets to check if you've won. Our exclusive technology gives you instant results for Lottery, PowerBall and Daily Lottery tickets.{% endblock %}
 
 {% block head_content %}
 <!-- Structured Data for SEO -->
@@ -15,7 +15,7 @@
 {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  "name": "Snap Lotto Ticket Scanner",
+  "name": "Snap Lottery Ticket Scanner",
   "applicationCategory": "UtilityApplication",
   "operatingSystem": "All",
   "offers": {
@@ -295,12 +295,12 @@
                                 <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
                                 <select class="form-select form-select-sm" id="lottery-type" name="lottery_type">
                                     <option value="">Auto-detect from ticket</option>
-                                    <option value="Lotto">Lotto</option>
-                                    <option value="Lotto Plus 1">Lotto Plus 1</option>
-                                    <option value="Lotto Plus 2">Lotto Plus 2</option>
+                                    <option value="Lottery">Lottery</option>
+                                    <option value="Lottery Plus 1">Lottery Plus 1</option>
+                                    <option value="Lottery Plus 2">Lottery Plus 2</option>
                                     <option value="Powerball">Powerball</option>
                                     <option value="Powerball Plus">Powerball Plus</option>
-                                    <option value="Daily Lotto">Daily Lotto</option>
+                                    <option value="Daily Lottery">Daily Lottery</option>
                                 </select>
                             </div>
 
@@ -412,22 +412,22 @@
                                             </div>
                                         </div>
 
-                                        <!-- Lotto Plus 1 winning numbers section -->
-                                        <div id="lotto-plus-1-numbers-container" class="mb-3 d-none">
+                                        <!-- Lottery Plus 1 winning numbers section -->
+                                        <div id="lottery-plus-1-numbers-container" class="mb-3 d-none">
                                             <hr>
-                                            <p><strong>Lotto Plus 1 Numbers:</strong></p>
-                                            <div id="lotto-plus-1-numbers" class="d-inline-flex flex-wrap mb-2"></div>
+                                            <p><strong>Lottery Plus 1 Numbers:</strong></p>
+                                            <div id="lottery-plus-1-numbers" class="d-inline-flex flex-wrap mb-2"></div>
                                             <div id="lp1-matched-numbers-section" class="mt-2">
                                                 <p><strong>Your Matches:</strong> <span id="lp1-matched-count" class="badge bg-success">0</span></p>
                                                 <div id="lp1-matched-numbers"></div>
                                             </div>
                                         </div>
                                         
-                                        <!-- Lotto Plus 2 winning numbers section -->
-                                        <div id="lotto-plus-2-numbers-container" class="mb-3 d-none">
+                                        <!-- Lottery Plus 2 winning numbers section -->
+                                        <div id="lottery-plus-2-numbers-container" class="mb-3 d-none">
                                             <hr>
-                                            <p><strong>Lotto Plus 2 Numbers:</strong></p>
-                                            <div id="lotto-plus-2-numbers" class="d-inline-flex flex-wrap mb-2"></div>
+                                            <p><strong>Lottery Plus 2 Numbers:</strong></p>
+                                            <div id="lottery-plus-2-numbers" class="d-inline-flex flex-wrap mb-2"></div>
                                             <div id="lp2-matched-numbers-section" class="mt-2">
                                                 <p><strong>Your Matches:</strong> <span id="lp2-matched-count" class="badge bg-success">0</span></p>
                                                 <div id="lp2-matched-numbers"></div>
@@ -654,8 +654,8 @@
             // Hide and clear all additional game containers
             const additionalGameContainers = [
                 'powerball-plus-numbers-container',
-                'lotto-plus-1-numbers-container',
-                'lotto-plus-2-numbers-container'
+                'lottery-plus-1-numbers-container',
+                'lottery-plus-2-numbers-container'
             ];
             
             additionalGameContainers.forEach(id => {
@@ -686,7 +686,7 @@
             });
             
             // Hide related game sections if they exist
-            ['powerball-plus-section', 'lotto-plus-1-section', 'lotto-plus-2-section'].forEach(id => {
+            ['powerball-plus-section', 'lottery-plus-1-section', 'lottery-plus-2-section'].forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
                     element.classList.add('d-none');
@@ -1168,26 +1168,26 @@
                                     matchIcon.classList.add('match-powerball-plus');
                                     ball.setAttribute('title', 'Match in Powerball Plus');
                                 }
-                            } else if (data.lottery_type === "Lotto Plus 1") {
-                                // Lotto Plus 1 game
+                            } else if (data.lottery_type === "Lottery Plus 1") {
+                                // Lottery Plus 1 game
                                 if (isBonusMatch) {
                                     matchIcon.classList.add('match-lotto-plus-1-bonus');
-                                    ball.setAttribute('title', 'Bonus match in Lotto Plus 1');
+                                    ball.setAttribute('title', 'Bonus match in Lottery Plus 1');
                                 } else {
                                     matchIcon.classList.add('match-lotto-plus-1');
-                                    ball.setAttribute('title', 'Match in Lotto Plus 1');
+                                    ball.setAttribute('title', 'Match in Lottery Plus 1');
                                 }
-                            } else if (data.lottery_type === "Lotto Plus 2") {
-                                // Lotto Plus 2 game
+                            } else if (data.lottery_type === "Lottery Plus 2") {
+                                // Lottery Plus 2 game
                                 if (isBonusMatch) {
                                     matchIcon.classList.add('match-lotto-plus-2-bonus');
-                                    ball.setAttribute('title', 'Bonus match in Lotto Plus 2');
+                                    ball.setAttribute('title', 'Bonus match in Lottery Plus 2');
                                 } else {
                                     matchIcon.classList.add('match-lotto-plus-2');
-                                    ball.setAttribute('title', 'Match in Lotto Plus 2');
+                                    ball.setAttribute('title', 'Match in Lottery Plus 2');
                                 }
                             } else {
-                                // Default for other game types like Lotto or Daily Lotto
+                                // Default for other game types like Lottery or Daily Lottery
                                 matchIcon.classList.add('match-powerball'); // Use green by default
                                 ball.setAttribute('title', 'Match in ' + data.lottery_type);
                             }
@@ -1843,11 +1843,11 @@
                 }
             }
             
-            // Handle Lotto Plus 1 numbers if present - but only if the main game is Lotto
-            if (data.lottery_type === "Lotto" && data.lotto_plus_1_results) {
-                // Get the Lotto Plus 1 container
-                const lp1Container = document.getElementById('lotto-plus-1-numbers-container');
-                const lp1NumbersDiv = document.getElementById('lotto-plus-1-numbers');
+            // Handle Lottery Plus 1 numbers if present - but only if the main game is Lottery
+            if (data.lottery_type === "Lottery" && data.lotto_plus_1_results) {
+                // Get the Lottery Plus 1 container
+                const lp1Container = document.getElementById('lottery-plus-1-numbers-container');
+                const lp1NumbersDiv = document.getElementById('lottery-plus-1-numbers');
                 
                 // Show the container
                 lp1Container.classList.remove('d-none');
@@ -1900,7 +1900,7 @@
                     if (data.ticket_info && data.ticket_info.raw_selected_numbers && data.lotto_plus_1_results.rows_with_matches) {
                         // Display matches by row for Lotto Plus 1
                         const lp1MatchedNumbersDiv = document.getElementById('lp1-matched-numbers');
-                        lp1MatchedNumbersDiv.innerHTML = '<h6 class="mb-3">Lotto Plus 1 Matches by Row:</h6>';
+                        lp1MatchedNumbersDiv.innerHTML = '<h6 class="mb-3">Lottery Plus 1 Matches by Row:</h6>';
                         
                         // Get unique matched numbers to update the count
                         const uniqueLP1MatchedNumbers = [...new Set(data.lotto_plus_1_results.matched_numbers)];
@@ -1947,7 +1947,7 @@
                                         matchIcon.classList.add('match-indicator');
                                         
                                         matchIcon.classList.add('match-lotto-plus-1');
-                                        ball.setAttribute('title', 'Match in Lotto Plus 1');
+                                        ball.setAttribute('title', 'Match in Lottery Plus 1');
                                         
                                         // Add the match indicator to the ball
                                         ball.appendChild(matchIcon);
@@ -2072,11 +2072,11 @@
                 }
             }
             
-            // Handle Lotto Plus 2 numbers if present - but only if the main game is Lotto
-            if (data.lottery_type === "Lotto" && data.lotto_plus_2_results) {
-                // Get the Lotto Plus 2 container
-                const lp2Container = document.getElementById('lotto-plus-2-numbers-container');
-                const lp2NumbersDiv = document.getElementById('lotto-plus-2-numbers');
+            // Handle Lottery Plus 2 numbers if present - but only if the main game is Lottery
+            if (data.lottery_type === "Lottery" && data.lotto_plus_2_results) {
+                // Get the Lottery Plus 2 container
+                const lp2Container = document.getElementById('lottery-plus-2-numbers-container');
+                const lp2NumbersDiv = document.getElementById('lottery-plus-2-numbers');
                 
                 // Show the container
                 lp2Container.classList.remove('d-none');
@@ -2129,7 +2129,7 @@
                     if (data.ticket_info && data.ticket_info.raw_selected_numbers && data.lotto_plus_2_results.rows_with_matches) {
                         // Display matches by row for Lotto Plus 2
                         const lp2MatchedNumbersDiv = document.getElementById('lp2-matched-numbers');
-                        lp2MatchedNumbersDiv.innerHTML = '<h6 class="mb-3">Lotto Plus 2 Matches by Row:</h6>';
+                        lp2MatchedNumbersDiv.innerHTML = '<h6 class="mb-3">Lottery Plus 2 Matches by Row:</h6>';
                         
                         // Get unique matched numbers to update the count
                         const uniqueLP2MatchedNumbers = [...new Set(data.lotto_plus_2_results.matched_numbers)];
@@ -2175,8 +2175,8 @@
                                         const matchIcon = document.createElement('div');
                                         matchIcon.classList.add('match-indicator');
                                         
-                                        matchIcon.classList.add('match-lotto-plus-2');
-                                        ball.setAttribute('title', 'Match in Lotto Plus 2');
+                                        matchIcon.classList.add('match-lottery-plus-2');
+                                        ball.setAttribute('title', 'Match in Lottery Plus 2');
                                         
                                         // Add the match indicator to the ball
                                         ball.appendChild(matchIcon);
@@ -2191,8 +2191,8 @@
                                         const bonusIcon = document.createElement('span');
                                         bonusIcon.classList.add('match-indicator');
                                         bonusIcon.innerHTML = '✓';
-                                        bonusIcon.classList.add('match-lotto-plus-2-bonus');
-                                        ball.setAttribute('title', 'Bonus match in Lotto Plus 2');
+                                        bonusIcon.classList.add('match-lottery-plus-2-bonus');
+                                        ball.setAttribute('title', 'Bonus match in Lottery Plus 2');
                                         
                                         // Add the match indicator to the ball
                                         ball.appendChild(bonusIcon);
@@ -2218,7 +2218,7 @@
                                 lp2MatchedNumbersDiv.appendChild(rowContainer);
                             });
                         } else {
-                            lp2MatchedNumbersDiv.innerHTML += '<p>No rows with Lotto Plus 2 matches found.</p>';
+                            lp2MatchedNumbersDiv.innerHTML += '<p>No rows with Lottery Plus 2 matches found.</p>';
                         }
                     } else {
                         // Legacy display method - for backward compatibility
@@ -2250,25 +2250,25 @@
                                 if (data.lotto_plus_2_results.bonus_numbers.includes(num)) {
                                     ball.classList.add('lottery-ball-yellow');
                                     ball.style.animation = 'pulse 2s infinite';
-                                    ball.setAttribute('title', 'Bonus match in Lotto Plus 2'); // Add game type indicator
+                                    ball.setAttribute('title', 'Bonus match in Lottery Plus 2'); // Add game type indicator
                                     
                                     // Create match indicator with game-specific styling for bonus match
                                     const bonusIcon = document.createElement('span');
                                     bonusIcon.classList.add('match-indicator');
                                     bonusIcon.innerHTML = '✓';
-                                    bonusIcon.classList.add('match-lotto-plus-2-bonus');
+                                    bonusIcon.classList.add('match-lottery-plus-2-bonus');
                                     
                                     // Add the match indicator to the ball
                                     ball.appendChild(bonusIcon);
                                     matchIcon.textContent = "✓";
                                 } else {
-                                    ball.setAttribute('title', 'Match in Lotto Plus 2'); // Add game type indicator
+                                    ball.setAttribute('title', 'Match in Lottery Plus 2'); // Add game type indicator
                                     
                                     // Create match indicator with game-specific styling
                                     const matchIcon = document.createElement('div');
                                     matchIcon.classList.add('match-indicator');
                                     
-                                    matchIcon.classList.add('match-lotto-plus-2');
+                                    matchIcon.classList.add('match-lottery-plus-2');
                                     
                                     // Add the match indicator to the ball
                                     ball.appendChild(matchIcon);
@@ -2288,7 +2288,7 @@
                                 lp2MatchedNumbersDiv.appendChild(ball);
                             });
                         } else {
-                            lp2MatchedNumbersDiv.innerHTML = '<p>No matching numbers found for Lotto Plus 2.</p>';
+                            lp2MatchedNumbersDiv.innerHTML = '<p>No matching numbers found for Lottery Plus 2.</p>';
                         }
                     }
                 }

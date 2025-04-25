@@ -163,12 +163,14 @@ def standardize_lottery_type(lottery_type):
     logger.debug(f"Standardizing lottery type: '{lottery_type}' (lowercase: '{lt}')")
     
     # Normalize common variations with improved pattern matching
-    if ('lotto plus 1' in lt or 'lotto+1' in lt or 'lotto + 1' in lt or 
-        'lotto plus1' in lt or lt == 'lotto plus 1' or 'lottoplus1' in lt):
-        return 'Lotto Plus 1'
-    elif ('lotto plus 2' in lt or 'lotto+2' in lt or 'lotto + 2' in lt or 
-          'lotto plus2' in lt or lt == 'lotto plus 2' or 'lottoplus2' in lt):
-        return 'Lotto Plus 2'
+    if ('lotto plus 1' in lt or 'lottery plus 1' in lt or 'lotto+1' in lt or 'lottery+1' in lt or
+        'lotto + 1' in lt or 'lottery + 1' in lt or 'lotto plus1' in lt or 'lottery plus1' in lt or
+        lt == 'lotto plus 1' or lt == 'lottery plus 1' or 'lottoplus1' in lt or 'lotteryplus1' in lt):
+        return 'Lottery Plus 1'
+    elif ('lotto plus 2' in lt or 'lottery plus 2' in lt or 'lotto+2' in lt or 'lottery+2' in lt or
+          'lotto + 2' in lt or 'lottery + 2' in lt or 'lotto plus2' in lt or 'lottery plus2' in lt or
+          lt == 'lotto plus 2' or lt == 'lottery plus 2' or 'lottoplus2' in lt or 'lotteryplus2' in lt):
+        return 'Lottery Plus 2'
     elif ('powerball plus' in lt or 'powerball+' in lt or 'power ball plus' in lt or 
           'powerballplus' in lt or lt == 'powerball plus'):
         return 'Powerball Plus'
@@ -176,15 +178,15 @@ def standardize_lottery_type(lottery_type):
         # Only match if it's not "powerball plus"
         if 'plus' not in lt:
             return 'Powerball'
-    elif ('daily lotto' in lt or 'dailylotto' in lt or lt == 'daily lotto' or 
-          lt == 'dailylotto'):
-        return 'Daily Lotto'
-    # Main Lotto - match only if it contains "lotto" but NOT "plus" or "daily"
-    elif 'lotto' in lt and 'plus' not in lt and 'daily' not in lt:
-        # Log when we standardize LOTTO → Lotto for debugging
-        if lottery_type.upper() == 'LOTTO':
-            logger.info(f"Standardizing '{lottery_type}' to 'Lotto'")
-        return 'Lotto'
+    elif ('daily lotto' in lt or 'daily lottery' in lt or 'dailylotto' in lt or 'dailylottery' in lt or
+          lt == 'daily lotto' or lt == 'daily lottery' or lt == 'dailylotto' or lt == 'dailylottery'):
+        return 'Daily Lottery'
+    # Main Lotto/Lottery - match only if it contains "lotto" or "lottery" but NOT "plus" or "daily"
+    elif ('lotto' in lt or 'lottery' in lt) and 'plus' not in lt and 'daily' not in lt:
+        # Log when we standardize LOTTO → Lottery for debugging
+        if lottery_type.upper() == 'LOTTO' or lottery_type.upper() == 'LOTTERY':
+            logger.info(f"Standardizing '{lottery_type}' to 'Lottery'")
+        return 'Lottery'
     
     # If no match, log a warning and return original with proper capitalization
     logger.warning(f"No standard match found for lottery type: '{lottery_type}'")
@@ -229,18 +231,18 @@ def import_excel_data(excel_file, flask_app=None):
                         
                         # Standardize lottery type directly
                         lottery_type = str(game_name).strip()
-                        if lottery_type.upper() == 'LOTTO':
-                            lottery_type = 'Lotto'
-                        elif 'LOTTO PLUS 1' in lottery_type.upper():
-                            lottery_type = 'Lotto Plus 1'
-                        elif 'LOTTO PLUS 2' in lottery_type.upper():
-                            lottery_type = 'Lotto Plus 2'
+                        if lottery_type.upper() == 'LOTTO' or lottery_type.upper() == 'LOTTERY':
+                            lottery_type = 'Lottery'
+                        elif 'LOTTO PLUS 1' in lottery_type.upper() or 'LOTTERY PLUS 1' in lottery_type.upper():
+                            lottery_type = 'Lottery Plus 1'
+                        elif 'LOTTO PLUS 2' in lottery_type.upper() or 'LOTTERY PLUS 2' in lottery_type.upper():
+                            lottery_type = 'Lottery Plus 2'
                         elif 'POWERBALL PLUS' in lottery_type.upper():
                             lottery_type = 'Powerball Plus'
                         elif 'POWERBALL' in lottery_type.upper():
                             lottery_type = 'Powerball'
-                        elif 'DAILY LOTTO' in lottery_type.upper():
-                            lottery_type = 'Daily Lotto'
+                        elif 'DAILY LOTTO' in lottery_type.upper() or 'DAILY LOTTERY' in lottery_type.upper():
+                            lottery_type = 'Daily Lottery'
                             
                         # Process numbers directly
                         if winning_numbers is not None and not pd.isna(winning_numbers):

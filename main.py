@@ -222,7 +222,7 @@ def index():
             division_stats = {}
         
         # Define rich meta description for SEO
-        meta_description = "Get the latest South African lottery results for Lotto, Powerball and Daily Lotto. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
+        meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
         
         # Home page doesn't need breadcrumbs (it's the root), but we define an empty list for consistency
         breadcrumbs = []
@@ -238,7 +238,7 @@ def index():
     except Exception as e:
         logger.error(f"Critical error in index route: {e}")
         # Define rich meta description for SEO even in error case
-        meta_description = "Get the latest South African lottery results for Lotto, Powerball and Daily Lotto. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
+        meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
         
         # Define empty breadcrumbs for consistency even in error case
         breadcrumbs = []
@@ -329,7 +329,7 @@ def scanner_landing():
     ]
     
     # Define SEO metadata
-    meta_description = "South Africa's ONLY lottery ticket scanner app. Instantly check if your Lotto, PowerBall, or Daily Lotto ticket is a winner by uploading a photo."
+    meta_description = "South Africa's ONLY lottery ticket scanner app. Instantly check if your Lottery, PowerBall, or Daily Lottery ticket is a winner by uploading a photo."
     
     return render_template('scanner_landing.html',
                           title="South Africa's ONLY Lottery Ticket Scanner App | Check If You've Won Instantly",
@@ -410,28 +410,28 @@ def guides_index():
     ]
     
     # Define SEO metadata
-    meta_description = "Comprehensive guides on how to play South African lottery games. Learn rules, strategies, and tips for Lotto, PowerBall, Daily Lotto and more."
+    meta_description = "Comprehensive guides on how to play South African lottery games. Learn rules, strategies, and tips for Lottery, PowerBall, Daily Lottery and more."
     
     return render_template('guides/index.html', 
                           title="South African Lottery Guides | Tips & How-To Articles",
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
 
-@app.route('/guides/how-to-play-lotto')
+@app.route('/guides/how-to-play-lottery')
 def how_to_play_lotto():
-    """Display guide on how to play Lotto"""
+    """Display guide on how to play Lottery"""
     # Define breadcrumbs for SEO
     breadcrumbs = [
         {"name": "Home", "url": url_for('index')},
         {"name": "Lottery Guides", "url": url_for('guides_index')},
-        {"name": "How to Play Lotto", "url": url_for('how_to_play_lotto')}
+        {"name": "How to Play Lottery", "url": url_for('how_to_play_lotto')}
     ]
     
     # Define SEO metadata
-    meta_description = "Comprehensive guide on how to play the South African Lotto. Learn Lotto rules, drawing days, odds of winning, prize divisions, and expert tips."
+    meta_description = "Comprehensive guide on how to play the South African Lottery. Learn Lottery rules, drawing days, odds of winning, prize divisions, and expert tips."
     
     return render_template('guides/how_to_play_lotto.html',
-                          title="How to Play Lotto South Africa | Complete Guide & Tips",
+                          title="How to Play Lottery South Africa | Complete Guide & Tips",
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
 
@@ -449,31 +449,31 @@ def how_to_play_powerball():
     meta_description = "Complete guide to playing PowerBall South Africa. Learn game rules, drawing schedule, odds, prize divisions, and expert strategies to increase your chances."
     
     # Placeholder until we create the PowerBall guide template
-    flash("PowerBall guide coming soon! Check out our Lotto guide in the meantime.", "info")
+    flash("PowerBall guide coming soon! Check out our Lottery guide in the meantime.", "info")
     return redirect(url_for('guides_index'))
 
-@app.route('/guides/how-to-play-daily-lotto')
+@app.route('/guides/how-to-play-daily-lottery')
 def how_to_play_daily_lotto():
-    """Display guide on how to play Daily Lotto"""
+    """Display guide on how to play Daily Lottery"""
     # Define breadcrumbs for SEO
     breadcrumbs = [
         {"name": "Home", "url": url_for('index')},
         {"name": "Lottery Guides", "url": url_for('guides_index')},
-        {"name": "How to Play Daily Lotto", "url": url_for('how_to_play_daily_lotto')}
+        {"name": "How to Play Daily Lottery", "url": url_for('how_to_play_daily_lotto')}
     ]
     
     # Define SEO metadata
-    meta_description = "Learn how to play Daily Lotto South Africa with our comprehensive guide. Discover game rules, draw times, odds of winning, and how to claim prizes."
+    meta_description = "Learn how to play Daily Lottery South Africa with our comprehensive guide. Discover game rules, draw times, odds of winning, and how to claim prizes."
     
-    # Placeholder until we create the Daily Lotto guide template
-    flash("Daily Lotto guide coming soon! Check out our Lotto guide in the meantime.", "info")
+    # Placeholder until we create the Daily Lottery guide template
+    flash("Daily Lottery guide coming soon! Check out our Lottery guide in the meantime.", "info")
     return redirect(url_for('guides_index'))
 
 @app.route('/results')
 def results():
     """Show overview of all lottery types with links to specific results"""
-    lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 
-                     'Powerball', 'Powerball Plus', 'Daily Lotto']
+    lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
+                     'Powerball', 'Powerball Plus', 'Daily Lottery']
     
     # Ensure data_aggregator is loaded before using it
     global data_aggregator
@@ -987,8 +987,8 @@ def import_data():
                 
     # Get some example results for each lottery type to display
     example_results = {}
-    lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 
-                     'Powerball', 'Powerball Plus', 'Daily Lotto']
+    lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
+                     'Powerball', 'Powerball Plus', 'Daily Lottery']
     
     try:                 
         for lottery_type in lottery_types:
@@ -1258,8 +1258,8 @@ def register():
 @app.route('/visualizations')
 def visualizations():
     """Advanced data visualization and analytics for South African lottery results"""
-    lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 
-                    'Powerball', 'Powerball Plus', 'Daily Lotto']
+    lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
+                    'Powerball', 'Powerball Plus', 'Daily Lottery']
     
     # Get some summary statistics
     total_draws = LotteryResult.query.count()
@@ -2115,7 +2115,7 @@ def system_status():
     js_status = True  # Will be set by frontend JS
     
     # Get lottery stats
-    lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lotto']
+    lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lottery']
     lottery_stats = []
     
     for lottery_type in lottery_types:

@@ -52,7 +52,7 @@ def has_better_formatted_prizes(new_divisions, existing_divisions):
 
 # Known correct lottery draw results for verification
 KNOWN_CORRECT_DRAWS = {
-    "Lotto": {
+    "Lottery": {
         "2532": {  # April 12, 2025 draw
             "numbers": [3, 9, 16, 17, 31, 48],
             "bonus_numbers": [36],
@@ -146,7 +146,7 @@ KNOWN_CORRECT_DRAWS = {
             }
         }
     },
-    "Lotto Plus 1": {
+    "Lottery Plus 1": {
         "2530": {  # April 5, 2025 draw
             "numbers": [4, 9, 18, 20, 38, 39],
             "bonus_numbers": [47],
@@ -245,8 +245,9 @@ def normalize_draw_number(draw_number):
     
     # Remove "DRAW" keyword and other prefixes
     prefixes_to_remove = [
+        "LOTTERY DRAW", "LOTTERY PLUS 1 DRAW", "LOTTERY PLUS 2 DRAW",
         "LOTTO DRAW", "LOTTO PLUS 1 DRAW", "LOTTO PLUS 2 DRAW",
-        "POWERBALL DRAW", "POWERBALL PLUS DRAW", "DAILY LOTTO DRAW",
+        "POWERBALL DRAW", "POWERBALL PLUS DRAW", "DAILY LOTTERY DRAW", "DAILY LOTTO DRAW",
         "DRAW", "DRAW NUMBER", "DRAW NO", "DRAW NO.", "DRAW #"
     ]
     
@@ -289,22 +290,34 @@ def normalize_lottery_type(lottery_type):
     
     # Handle common variations
     normalized_map = {
-        "lotto plus 1": "Lotto Plus 1",
-        "lotto plus one": "Lotto Plus 1",
-        "lotto plus1": "Lotto Plus 1", 
-        "lottoplus1": "Lotto Plus 1",
-        "lotto plus 2": "Lotto Plus 2",
-        "lotto plus two": "Lotto Plus 2",
-        "lotto plus2": "Lotto Plus 2",
-        "lottoplus2": "Lotto Plus 2",
+        "lotto plus 1": "Lottery Plus 1",
+        "lottery plus 1": "Lottery Plus 1",
+        "lotto plus one": "Lottery Plus 1",
+        "lottery plus one": "Lottery Plus 1",
+        "lotto plus1": "Lottery Plus 1", 
+        "lottery plus1": "Lottery Plus 1",
+        "lottoplus1": "Lottery Plus 1",
+        "lotteryplus1": "Lottery Plus 1",
+        "lotto plus 2": "Lottery Plus 2",
+        "lottery plus 2": "Lottery Plus 2",
+        "lotto plus two": "Lottery Plus 2",
+        "lottery plus two": "Lottery Plus 2",
+        "lotto plus2": "Lottery Plus 2",
+        "lottery plus2": "Lottery Plus 2",
+        "lottoplus2": "Lottery Plus 2",
+        "lotteryplus2": "Lottery Plus 2",
         "powerball plus": "Powerball Plus",
         "power ball plus": "Powerball Plus",
         "powerball+": "Powerball Plus",
         "powerballplus": "Powerball Plus",
-        "daily lotto": "Daily Lotto",
-        "dailylotto": "Daily Lotto",
-        "daily-lotto": "Daily Lotto",
-        "lotto": "Lotto",
+        "daily lotto": "Daily Lottery",
+        "daily lottery": "Daily Lottery",
+        "dailylotto": "Daily Lottery",
+        "dailylottery": "Daily Lottery",
+        "daily-lotto": "Daily Lottery",
+        "daily-lottery": "Daily Lottery",
+        "lotto": "Lottery",
+        "lottery": "Lottery",
         "powerball": "Powerball"
     }
     
