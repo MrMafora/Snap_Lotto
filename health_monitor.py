@@ -198,9 +198,9 @@ def check_server_status():
     # Get environment setting
     environment = os.environ.get('ENVIRONMENT', 'development')
     
-    # Always check port 5000 - this is where our app is actually running
-    monitored_ports = [5000]
-    critical_port = 5000
+    # Always check port 8080 - this is where our production app runs
+    monitored_ports = [8080]
+    critical_port = 8080
     
     # Track status for each port
     port_status = {}
