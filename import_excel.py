@@ -210,6 +210,143 @@ def import_excel_data(excel_file, flask_app=None):
                 # First try reading with default sheet
                 df = pd.read_excel(excel_file)
                 
+                # FIX for Row 1 (index 0) - Special direct processing of the FIRST ROW
+                # This ensures the data in row 1 is NEVER missed, regardless of any skipping
+                if not df.empty:
+                    # Get raw row 1 data (index 0)
+                    logger.warning("🔍 DIRECT ROW 1 ACCESS: Processing first Excel row directly")
+                    row_1 = df.iloc[0]
+                    
+                    # Extract basic data directly
+                    game_name = row_1['Game Name'] if 'Game Name' in row_1 else None
+                    
+                    if game_name is not None and not pd.isna(game_name):
+                        logger.warning(f"🎯 DIRECT ROW 1: Found game {game_name}")
+                        draw_number = str(row_1['Draw Number']).strip() if 'Draw Number' in row_1 else None
+                        draw_date = row_1['Draw Date'] if 'Draw Date' in row_1 else None
+                        winning_numbers = row_1['Winning Numbers (Numerical)'] if 'Winning Numbers (Numerical)' in row_1 else None
+                        bonus_ball = row_1['Bonus Ball'] if 'Bonus Ball' in row_1 else None
+                        
+                        # Standardize lottery type directly
+                        lottery_type = str(game_name).strip()
+                        if lottery_type.upper() == 'LOTTO':
+                            lottery_type = 'Lotto'
+                        elif 'LOTTO PLUS 1' in lottery_type.upper():
+                            lottery_type = 'Lotto Plus 1'
+                        elif 'LOTTO PLUS 2' in lottery_type.upper():
+                            lottery_type = 'Lotto Plus 2'
+                        elif 'POWERBALL PLUS' in lottery_type.upper():
+                            lottery_type = 'Powerball Plus'
+                        elif 'POWERBALL' in lottery_type.upper():
+                            lottery_type = 'Powerball'
+                        elif 'DAILY LOTTO' in lottery_type.upper():
+                            lottery_type = 'Daily Lotto'
+                            
+                        # Process numbers directly
+                        if winning_numbers is not None and not pd.isna(winning_numbers):
+                            if isinstance(winning_numbers, str):
+                                numbers = [int(num.strip()) for num in winning_numbers.split() if num.strip().isdigit()]
+                            elif isinstance(winning_numbers, (int, float)):
+                                numbers = [int(winning_numbers)]
+                            else:
+                                numbers = []
+                                
+                            # Process bonus ball directly
+                            if bonus_ball is not None and not pd.isna(bonus_ball):
+                                if isinstance(bonus_ball, (int, float)):
+                                    bonus_numbers = [int(bonus_ball)]
+                                elif isinstance(bonus_ball, str):
+                                    bonus_numbers = [int(num.strip()) for num in bonus_ball.split() if num.strip().isdigit()]
+                                else:
+                                    bonus_numbers = []
+                            else:
+                                bonus_numbers = []
+                                
+                            # Build divisions directly
+                            divisions = {}
+                            for i in range(1, 9):
+                                winners_col = f'Div {i} Winners'
+                                prize_col = f'Div {i} Winnings'
+                                
+                                if winners_col in row_1 and prize_col in row_1 and not pd.isna(row_1[winners_col]) and not pd.isna(row_1[prize_col]):
+                                    winners_value = row_1[winners_col]
+                                    prize_value = row_1[prize_col]
+                                    
+                                    # Format winners
+                                    if isinstance(winners_value, (int, float)):
+                                        winners_value = str(int(winners_value))
+                                    else:
+                                        winners_value = str(winners_value)
+                                        
+                                    # Format prize
+                                    if isinstance(prize_value, str):
+                                        if not prize_value.startswith("R"):
+                                            prize_value = f"R{prize_value}"
+                                    else:
+                                        prize_value = f"R{prize_value}"
+                                        
+                                    divisions[f"Division {i}"] = {
+                                        "winners": winners_value,
+                                        "prize": prize_value
+                                    }
+                            
+                            # Check if this result already exists in the database
+                            if lottery_type and draw_number and draw_date and numbers:
+                                logger.warning(f"✓ ROW 1 DIRECT: Valid data for {lottery_type} Draw {draw_number}")
+                                
+                                existing = LotteryResult.query.filter_by(
+                                    lottery_type=lottery_type,
+                                    draw_number=draw_number
+                                ).first()
+                                
+                                if existing:
+                                    logger.warning(f"✓ ROW 1 DIRECT: Updating existing {lottery_type} Draw {draw_number}")
+                                    # Update existing record
+                                    existing.draw_date = draw_date
+                                    existing.numbers = json.dumps(numbers)
+                                    existing.bonus_numbers = json.dumps(bonus_numbers) if bonus_numbers else None
+                                    existing.divisions = json.dumps(divisions) if divisions else None
+                                    existing.source_url = "direct-row1-processing"
+                                    existing.ocr_provider = "direct-row1-processing"
+                                    existing.ocr_model = "excel-import"
+                                    existing.ocr_timestamp = datetime.utcnow().isoformat()
+                                    db.session.commit()
+                                    imported_count += 1
+                                else:
+                                    logger.warning(f"✓ ROW 1 DIRECT: Creating new entry for {lottery_type} Draw {draw_number}")
+                                    # Create new result
+                                    new_result = LotteryResult(
+                                        lottery_type=lottery_type,
+                                        draw_number=draw_number,
+                                        draw_date=draw_date,
+                                        numbers=json.dumps(numbers),
+                                        bonus_numbers=json.dumps(bonus_numbers) if bonus_numbers else None,
+                                        divisions=json.dumps(divisions) if divisions else None,
+                                        source_url="direct-row1-processing",
+                                        ocr_provider="direct-row1-processing",
+                                        ocr_model="excel-import",
+                                        ocr_timestamp=datetime.utcnow().isoformat()
+                                    )
+                                    db.session.add(new_result)
+                                    db.session.commit()
+                                    imported_count += 1
+                                
+                                # Store this record in imported_records for later reference
+                                imported_records.append({
+                                    'lottery_type': lottery_type,
+                                    'draw_number': draw_number,
+                                    'draw_date': draw_date,
+                                    'is_new': existing is None,
+                                    'lottery_result_id': (existing.id if existing else 
+                                        LotteryResult.query.filter_by(lottery_type=lottery_type, draw_number=draw_number).first().id)
+                                })
+                                
+                                logger.warning(f"✓ ROW 1 DIRECT: Successfully processed first Excel row")
+                            else:
+                                logger.warning("✗ ROW 1 DIRECT: Missing essential data")
+                    else:
+                        logger.warning("✗ DIRECT ROW 1: No valid Game Name found in first row")
+                
                 # If we got an empty dataframe or missing expected columns, try reading all sheets
                 if df.empty or not any(col for col in df.columns if 'lotto' in str(col).lower() or 'draw' in str(col).lower()):
                     logger.info("Initial sheet appears empty or missing lottery data. Checking all sheets...")
