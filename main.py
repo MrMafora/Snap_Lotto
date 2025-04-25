@@ -2530,7 +2530,12 @@ def health_history():
 @app.route('/health_port_check')
 def health_port_check():
     """Simple endpoint to check if the server is running on a specific port"""
-    return "OK"
+    return jsonify({
+        'status': 'ok',
+        'message': 'Port health check successful',
+        'port': request.environ.get('SERVER_PORT', '5000'),
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
 
 @app.route('/admin/run-health-checks', methods=['POST', 'GET'])
 @login_required
@@ -2556,6 +2561,8 @@ def health_check():
         'message': 'Health check successful',
         'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     })
+
+
 
 @app.route('/api/system-metrics', methods=['GET'])
 @csrf.exempt

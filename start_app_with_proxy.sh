@@ -1,17 +1,20 @@
 #!/bin/bash
-# Kill any existing proxy processes
-pkill -f "simple_proxy.py" || true
+# Start the application with the port proxy
+# This script runs both the main application and the port proxy
 
-# Start the proxy in the background
-echo "Starting port proxy (8080->5000)..."
-python simple_proxy.py > proxy_output.log 2>&1 &
-PROXY_PID=$!
-echo "Proxy started with PID: $PROXY_PID"
-echo $PROXY_PID > proxy.pid
+# Kill any existing processes on port 8080
+fuser -k 8080/tcp 2>/dev/null || true
+sleep 1
 
-# Wait for proxy to initialize
-sleep 2
+# Start the main app in the background
+echo "Starting main application on port 5000..."
+gunicorn --bind 0.0.0.0:5000 main:app &
+APP_PID=$!
 
-# Show status
-echo "Application available at port 8080"
-echo "Proxy running and forwarding requests from port 8080 to 5000"
+# Wait for app to start
+echo "Waiting for main application to start..."
+sleep 3
+
+# Start the port proxy in the foreground
+echo "Starting port proxy from 8080 to 5000..."
+exec python standalone_port_proxy.py

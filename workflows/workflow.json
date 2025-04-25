@@ -8,15 +8,9 @@
         },
         {
           "task": "shell.exec",
-          "args": "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app",
-          "waitForPort": 5000,
-          "description": "Start the application server"
-        },
-        {
-          "task": "shell.exec",
-          "args": "python port_proxy.py",
+          "args": "./start_app_with_proxy.sh",
           "waitForPort": 8080,
-          "description": "Run the port proxy on port 8080"
+          "description": "Start the application server on port 5000 with port proxy to 8080"
         }
       ],
       "metadata": {
