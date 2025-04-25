@@ -11,8 +11,12 @@ logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('gunicorn.conf')
 
-# Override bind setting - always use port 8080 for Replit compatibility
+# CRITICAL: Override bind setting - explicitly bind to port 8080
 bind = "0.0.0.0:8080"
+
+# Force overwrite of bind setting at runtime
+def get_bind():
+    return "0.0.0.0:8080"
 
 # Make absolutely certain we bind to port 8080
 os.environ['PORT'] = '8080'

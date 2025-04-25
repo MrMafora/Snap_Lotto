@@ -311,8 +311,8 @@ def check_port_usage():
     # Get environment setting
     environment = os.environ.get('ENVIRONMENT', 'development')
     
-    # Always use port 5000 as critical - this is where our app is running
-    critical_ports = [5000]
+    # Always use port 8080 as critical - this is where our app is running
+    critical_ports = [8080]
     
     # Define common ports to monitor (can be expanded as needed)
     monitored_ports = critical_ports + [80, 443, 3000, 3306, 5432, 27017, 6379, 9090, 9000]
@@ -436,14 +436,14 @@ def check_port_usage():
             if port not in port_details or port_details[port].get("status") != "LISTEN":
                 missing_critical_ports.append(port)
         
-        # Check for missing critical port (5000)
-        if 5000 in missing_critical_ports:
+        # Check for missing critical port (8080)
+        if 8080 in missing_critical_ports:
             status = "CRITICAL"
-            create_alert("port_5000_missing", "Critical port 5000 is missing")
+            create_alert("port_8080_missing", "Critical port 8080 is missing")
         else:
-            resolve_alert("port_5000_missing")
-            # Clean up old 8080 port alerts if they exist
             resolve_alert("port_8080_missing")
+            # Clean up old 5000 port alerts if they exist
+            resolve_alert("port_5000_missing")
             
         # Add missing ports to details
         details["missing_critical_ports"] = missing_critical_ports
@@ -648,10 +648,8 @@ def get_active_ports():
         # If psutil connection detection fails or gives incomplete results,
         # try a more basic approach using socket testing for important ports
         environment = os.environ.get('ENVIRONMENT', 'development')
-        if environment.lower() == 'production':
-            important_ports = [8080, 80, 443]
-        else:
-            important_ports = [5000, 80, 443]
+        # Always use 8080 as our primary port
+        important_ports = [8080, 80, 443]
         for port in important_ports:
             if port not in port_process_map:
                 # Check if port is open using a socket connection
@@ -682,8 +680,8 @@ def get_active_ports():
             
         # Special case for our application - always include relevant port status
         # This ensures our health dashboard always shows critical ports
-        # Always monitor port 5000 - this is where our app is running
-        monitored_ports = [5000]
+        # Always monitor port 8080 - this is where our app is running
+        monitored_ports = [8080]
         for port in monitored_ports:
             if not any(p['port'] == port for p in active_ports):
                 # Add port with inactive status

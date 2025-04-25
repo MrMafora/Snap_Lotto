@@ -1,38 +1,62 @@
 #!/usr/bin/env python3
+"""
+Direct Gunicorn Starter for port 8080 binding
+This script directly configures and starts Gunicorn to bind on port 8080
+"""
 import os
-import subprocess
 import sys
-import time
+import signal
+import logging
+import subprocess
 
-# Set environment variables to ensure consistent port usage
-os.environ['PORT'] = '8080'
-os.environ['GUNICORN_PORT'] = '8080'
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('direct_gunicorn_start')
 
-print("Starting Gunicorn on port 8080...")
+def signal_handler(sig, frame):
+    """Handle termination signals"""
+    logger.info(f"Received signal {sig}, shutting down")
+    sys.exit(0)
 
-# Start Gunicorn directly with the correct port
-try:
-    # Use a direct command with explicit port binding
-    cmd = ["gunicorn", "--bind", "0.0.0.0:8080", "--reuse-port", "--reload", "main:app"]
+def run_gunicorn():
+    """Start Gunicorn server directly on port 8080"""
+    logger.info("Starting Gunicorn directly on port 8080")
     
-    print(f"Executing: {' '.join(cmd)}")
+    # Force port to be 8080
+    os.environ['PORT'] = '8080'
+    os.environ['FLASK_RUN_PORT'] = '8080'
+    os.environ['GUNICORN_PORT'] = '8080'
     
-    # Start the process
-    process = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr)
+    # Command to run Gunicorn
+    cmd = [
+        "gunicorn",
+        "--bind", "0.0.0.0:8080",  # Explicitly bind to port 8080
+        "--workers", "2",
+        "--threads", "2",
+        "--worker-class", "gthread",
+        "--log-level", "info",
+        "--reload",
+        "main:app"
+    ]
     
-    # Wait for the process to initialize
-    time.sleep(2)
+    logger.info(f"Running command: {' '.join(cmd)}")
     
-    # Check if process is still running
-    if process.poll() is None:
-        print("Gunicorn started successfully on port 8080")
-    else:
-        print("Failed to start Gunicorn")
+    try:
+        # Execute Gunicorn directly
+        process = subprocess.Popen(cmd)
+        logger.info(f"Gunicorn started with PID {process.pid}")
+        process.wait()
+    except Exception as e:
+        logger.error(f"Error starting Gunicorn: {e}")
         sys.exit(1)
+
+if __name__ == "__main__":
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     
-    # Keep the script running
-    process.wait()
-    
-except Exception as e:
-    print(f"Error starting Gunicorn: {e}")
-    sys.exit(1)
+    logger.info("Starting direct Gunicorn launcher")
+    run_gunicorn()

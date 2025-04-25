@@ -1,46 +1,96 @@
-# Port Configuration and Web Server Access Documentation
+# Port Configuration for Snap Lotto App
 
-## Port Conflict Issue
-The Snap Lotto application was configured to run on port 5000, but Replit expects applications to be accessible via port 8080. This created an accessibility issue for the web interface.
+## Overview
 
-## Current Configuration
-- Gunicorn is configured to bind to port 5000 (internal server configuration)
-- Replit expects applications to be accessible on port 8080
-- The workflow is configured in `.replit` to run Gunicorn on port 5000
+This document outlines the port configuration setup for the Snap Lotto application to ensure it's accessible via port 8080, which is the default port expected by Replit.
 
-## Access Solution
-1. **Port Proxy**: Created a port proxy script (`port_proxy.py`) that:
-   - Listens on port 8080
-   - Forwards all requests to the application running on port 5000
-   - Handles all HTTP methods (GET, POST, PUT, DELETE, etc.)
-   - Preserves headers and response data
+## Problem Statement
 
-2. **Run Script**: Created a startup script (`run_proxy.sh`) to:
-   - Start the proxy in the background
-   - Log proxy activity to `proxy_log.txt`
+Our Flask application with Gunicorn was originally configured to run on port 5000, but Replit expects web applications to be accessible on port 8080. This discrepancy was causing accessibility issues in the Replit environment.
 
-3. **Application Port Configuration**:
-   - Added explicit port configuration to `gunicorn.conf.py`
-   - Set environment variables to ensure consistent port usage:
-     ```
-     os.environ['PORT'] = '8080'
-     os.environ['REPLIT_PORT'] = '8080'
-     ```
+## Solutions Implemented
 
-## Usage Instructions
-1. Start the main application using the workflow "Start application"
-2. Run the proxy script to enable external access:
-   ```
-   ./run_proxy.sh
-   ```
-3. The application will now be accessible through port 8080
+We've implemented several approaches to address this port configuration issue:
 
-## Future Improvements
-For long-term solution, the better approach would be:
-1. Modify the workflow configuration in `.replit` to use port 8080 directly
-2. Update all internal references from port 5000 to 8080
-3. Remove the proxy script once the direct port binding is working correctly
+### 1. Direct Gunicorn Configuration
 
-## Port Mapping
-- 5000: Internal application server (Gunicorn)
-- 8080: External access port (via proxy)
+Modified `gunicorn.conf.py` to explicitly bind to port 8080:
+
+```python
+# Override bind setting - always use port 8080 for Replit compatibility
+bind = "0.0.0.0:8080"
+
+# Make absolutely certain we bind to port 8080
+os.environ['PORT'] = '8080'
+os.environ['GUNICORN_PORT'] = '8080'
+os.environ['REPLIT_PORT'] = '8080'
+```
+
+### 2. Port Proxy Service
+
+Created `port_proxy_service.py` to forward requests from port 8080 to port 5000:
+
+```python
+#!/usr/bin/env python3
+"""
+Port Proxy Service for Snap Lotto Application
+
+This script creates a permanent proxy between port 8080 and port 5000
+to ensure the application is accessible via Replit's expected port.
+"""
+```
+
+The proxy service can be started using:
+
+```bash
+./run_proxy.sh
+```
+
+### 3. Direct Gunicorn Starter
+
+Created `direct_gunicorn_start.py` to explicitly start Gunicorn on port 8080:
+
+```python
+#!/usr/bin/env python3
+"""
+Direct Gunicorn Starter for port 8080 binding
+This script directly configures and starts Gunicorn to bind on port 8080
+"""
+```
+
+This script ensures Gunicorn binds to port 8080 by:
+- Setting environment variables
+- Explicitly passing the bind argument to Gunicorn
+- Managing the process directly
+
+### 4. Health Monitor Updates
+
+Updated `health_monitor.py` to check port 8080 instead of port 5000, ensuring our monitoring correctly aligns with Replit's expected port.
+
+## Recommended Approach
+
+The current recommended approach is using the `direct_gunicorn_start.py` script, which ensures the most reliable port configuration. This approach:
+
+1. Directly binds Gunicorn to port 8080
+2. Does not rely on a proxy service (avoiding an extra layer)
+3. Uses environment variables to enforce consistent port behavior
+4. Handles process management and signal handling properly
+
+## Usage
+
+The application is configured to start using:
+
+```
+python3 direct_gunicorn_start.py
+```
+
+This command is set in the `.replit-run-command` file to ensure consistent startup behavior.
+
+## Troubleshooting
+
+If the application is not accessible on port 8080:
+
+1. Check running processes: `ps aux | grep gunicorn`
+2. Verify the bind address: Look for `--bind 0.0.0.0:8080` in the process
+3. Check port usage: `netstat -tulpn | grep 8080`
+4. Examine logs: Check `proxy_service.log` (if using the proxy method)

@@ -1,1 +1,1 @@
-run = ["sh", "-c", "./run_on_port_8080.sh"]
+run = ["bash", "start_app_direct.sh"]
