@@ -252,8 +252,11 @@ def import_excel_data(excel_file, flask_app=None):
             # Process each row
             for idx, row in df.iterrows():
                 try:
-                    # Skip header rows or rows that appear to be titles/headers
-                    if idx < 1 and any(isinstance(val, str) and val.isupper() for val in row.values):
+                    # ONLY skip the very first row (idx 0) which is the header
+                    # ⚠️ CRITICAL: We used to skip multiple rows which caused data loss
+                    # We NEVER skip more than the first row to ensure all lottery data is imported
+                    if idx == 0:
+                        logger.warning("⚠️ Only skipping the first row (header) to prevent data loss")
                         continue
                         
                     # Determine if this is a valid data row

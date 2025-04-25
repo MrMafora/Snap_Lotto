@@ -202,10 +202,11 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     logger.error("No sheets found in the Excel file.")
                     return False
             
-            # Skip only the first row (header row)
-            # This ensures we capture all lottery data starting from row 1
-            # Updated to only skip row 0 instead of rows 0-3
-            logger.info(f"Skipping only the first row (header) and processing all lottery data.")
+            # CRITICAL: Only skip the first row (header row)
+            # This ensures we capture ALL lottery data starting from row 1
+            # We previously skipped rows 0-3 which caused data loss - NEVER skip more than 1 row
+            logger.warning(f"⚠️ CRITICAL: Only skipping the first row (header) to prevent data loss")
+            logger.warning(f"⚠️ Previous bug was skipping first 4 rows causing lottery results to be missed")
             df = df.iloc[1:].reset_index(drop=True)
             
             # Assign proper column names based on row 3

@@ -95,12 +95,33 @@ def import_latest_spreadsheet(directory="attached_assets", pattern="lottery_data
     
     # Handle different import types
     with main.app.app_context():
+        # Add explicit warnings about data import to ensure we never miss rows
+        logger.warning("⚠️ CRITICAL: Only skipping the header row to prevent data loss")
+        logger.warning("⚠️ REMINDER: Previous bug was skipping first 4 rows causing lottery results to be missed")
+        
         if import_type.lower() == "excel":
+            # Call the import function with detailed logging
             result = import_excel_data(latest_file, main.app)
+            
+            # Detailed logging of import results for verification
+            if result and isinstance(result, dict):
+                logger.info(f"Successfully imported {result.get('total', 0)} records")
+                logger.info(f"Records before: {result.get('initial_count', 0)}, after: {result.get('final_count', 0)}")
+                logger.info(f"Added {result.get('added', 0)} new records with {result.get('errors', 0)} errors")
+                
+                # Log the first few imported records for verification
+                imported = result.get('imported_records', [])
+                if imported and len(imported) > 0:
+                    logger.info(f"First imported record: {imported[0]}")
             return result
+            
         elif import_type.lower() == "snap_lotto":
             result = import_snap_lotto_data(latest_file, main.app)
+            # Add more detailed logging for snap_lotto imports
+            if result:
+                logger.info("Successfully imported Snap Lotto data")
             return result
+            
         else:
             logger.error(f"Unknown import type: {import_type}")
             return False
