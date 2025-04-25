@@ -10,7 +10,7 @@ run = ["sh", "-c", "gunicorn --bind 0.0.0.0:8080 main:app"]
 build = ["sh", "-c", "pip install -r requirements.txt"]
 
 [workflows]
-runButton = "Project"
+runButton = "Production Server"
 
 [[workflows.workflow]]
 name = "Project"
@@ -44,6 +44,15 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "gunicorn -c gunicorn.conf.py main:app"
+
+[[workflows.workflow]]
+name = "Production Server"
+author = 40744859
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn --bind 0.0.0.0:8080 main:app"
 
 [[ports]]
 localPort = 5000

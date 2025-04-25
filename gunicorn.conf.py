@@ -1,9 +1,6 @@
 """
-Gunicorn configuration for both development and deployment
-This ensures consistent binding across environments
+Gunicorn configuration for both development and production
 """
-
-# Import os to access environment variables
 import os
 import logging
 import sys
@@ -13,21 +10,20 @@ logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('gunicorn.conf')
 
-# Default to production for deployments
-environment = os.environ.get('ENVIRONMENT', 'production')
+# Determine environment and port
+environment = os.environ.get('ENVIRONMENT', 'development')
+port = os.environ.get('PORT', '8080')  # Default to 8080 for Replit compatibility
 
-# CRITICAL: Bind to both ports to ensure accessibility
-# - Port 5000 for internal app usage
-# - Port 8080 for Replit compatibility
-bind = ["0.0.0.0:5000", "0.0.0.0:8080"]
+# Bind to the appropriate port
+bind = f"0.0.0.0:{port}"
 
 # Print binding information to help debug port issues
 logger.info(f"Gunicorn configured to bind to {bind}")
-print(f"IMPORTANT: Gunicorn binding to both port 5000 and 8080", file=sys.stderr)
+print(f"IMPORTANT: Gunicorn binding to port {port}", file=sys.stderr)
 
 # Overwrite any potentially conflicting environment variables
-os.environ['PORT'] = '8080'
-os.environ['GUNICORN_PORT'] = '8080'
+os.environ['PORT'] = port
+os.environ['GUNICORN_PORT'] = port
 
 # Worker configuration
 workers = 2
@@ -46,5 +42,5 @@ def on_starting(server):
     print(f"Gunicorn starting - binding to {bind}", file=sys.stderr)
 
 def post_fork(server, worker):
-    logger.info(f"Worker forked - running on ports 5000 and 8080")
-    print(f"Worker forked - running on ports 5000 and 8080", file=sys.stderr)
+    logger.info(f"Worker forked - running on port {port}")
+    print(f"Worker forked - running on port {port}", file=sys.stderr)
