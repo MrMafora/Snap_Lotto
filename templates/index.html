@@ -636,12 +636,229 @@ function resetPieSegments() {
     tooltips.forEach(tooltip => tooltip.remove());
 }
 
+// Function to fetch chart data via AJAX
+function fetchChartData(lotteryType, timePeriod) {
+    // Build the API URL with query parameters
+    const apiUrl = `/api/lottery-analysis/frequency?lottery_type=${lotteryType === 'all' ? '' : lotteryType}&days=${timePeriod}`;
+    
+    // Fetch data from the API
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Update the charts with the new data
+            updateCharts(data);
+            
+            // Hide loading indicators
+            document.querySelectorAll('.chart-loading').forEach(indicator => {
+                indicator.classList.add('d-none');
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching chart data:', error);
+            
+            // Hide loading indicators even on error
+            document.querySelectorAll('.chart-loading').forEach(indicator => {
+                indicator.classList.add('d-none');
+            });
+            
+            // Show an error message
+            alert('Error loading chart data. Please try again later.');
+        });
+}
+
+// Function to update charts with new data
+function updateCharts(data) {
+    // Check if we have valid data
+    if (!data || typeof data !== 'object') {
+        console.error('Invalid chart data received');
+        return;
+    }
+    
+    // Update frequency chart
+    updateFrequencyChart(data);
+    
+    // Update division statistics chart
+    updateDivisionChart(data);
+}
+
+// Function to update the frequency chart
+function updateFrequencyChart(data) {
+    // Get the bar chart container
+    const barChartContainer = document.querySelector('.bar-chart-container');
+    if (!barChartContainer) return;
+    
+    // We need to get the lottery type with the most data
+    let selectedLotteryType = null;
+    let maxFrequencyData = [];
+    
+    // Find the lottery type with the most data
+    for (const lotteryType in data) {
+        if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
+            maxFrequencyData = data[lotteryType].frequency;
+            selectedLotteryType = lotteryType;
+        }
+    }
+    
+    // If we have no data, show a message and return
+    if (!selectedLotteryType) {
+        barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
+        return;
+    }
+    
+    // Get the frequency data and top numbers for this lottery type
+    const frequencyData = data[selectedLotteryType].frequency;
+    const topNumbers = data[selectedLotteryType].top_numbers;
+    
+    // Create the SVG content for the bar chart
+    let svgContent = '';
+    
+    // Add y-axis labels
+    svgContent += `
+        <div class="y-axis-labels" style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px;">
+            <div class="chart-y-axis" style="position: absolute; top: 0;">100%</div>
+            <div class="chart-y-axis" style="position: absolute; top: 25%;">75%</div>
+            <div class="chart-y-axis" style="position: absolute; top: 50%;">50%</div>
+            <div class="chart-y-axis" style="position: absolute; top: 75%;">25%</div>
+            <div class="chart-y-axis" style="position: absolute; bottom: 0;">0%</div>
+        </div>`;
+    
+    // Add the main chart area with grid lines
+    svgContent += `
+        <div class="chart-container d-flex align-items-end" style="position: absolute; left: 30px; top: 5px; right: 5px; bottom: 40px;">
+            <!-- Horizontal grid lines -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
+            <div style="position: absolute; top: 25%; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
+            <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
+            <div style="position: absolute; top: 75%; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
+            <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background-color: #ddd;"></div>
+            
+            <!-- Bar columns -->
+            <div class="d-flex justify-content-between align-items-end w-100 h-100">`;
+    
+    // Find the maximum frequency value for scaling
+    const maxFrequency = Math.max(...frequencyData);
+    
+    // Create bar for each number in the frequency data
+    for (let i = 0; i < Math.min(10, frequencyData.length); i++) {
+        const number = i + 1;
+        const frequency = frequencyData[i];
+        const percentage = ((frequency / maxFrequency) * 100).toFixed(1);
+        const height = `${percentage}%`;
+        
+        // Determine color class based on index
+        let colorClass = '';
+        if (i % 4 === 0) colorClass = 'bg-danger';
+        else if (i % 4 === 1) colorClass = 'bg-warning';
+        else if (i % 4 === 2) colorClass = 'bg-success';
+        else colorClass = 'bg-info';
+        
+        // Add the bar
+        svgContent += `
+            <div class="bar-column text-center" style="flex: 1">
+                <div class="interactive-bar ${colorClass} bar d-flex align-items-center justify-content-center" 
+                    style="height: ${height}; min-height: 15px;" 
+                    data-number="${number}" 
+                    data-frequency="${frequency}">
+                    <span style="color: white; font-size: 9px; font-weight: bold;">${percentage}%</span>
+                </div>
+                <div class="mt-1 small">${number}</div>
+            </div>`;
+    }
+    
+    // Close the bars container and chart container
+    svgContent += `
+            </div>
+        </div>`;
+    
+    // Add title with the lottery type
+    svgContent += `
+        <div class="text-center" style="position: absolute; bottom: 0; left: 0; right: 0; height: 20px;">
+            <small class="text-muted">${selectedLotteryType} Frequency</small>
+        </div>`;
+    
+    // Add top winners display
+    svgContent += `
+        <div style="position: absolute; top: 10px; right: 10px; background-color: rgba(255,255,255,0.8); padding: 5px; border-radius: 4px; font-size: 11px;">
+            <div><strong>Top Numbers:</strong></div>`;
+    
+    // Add each top number
+    topNumbers.slice(0, 5).forEach(([number, freq]) => {
+        svgContent += `<div># ${number}: ${freq} times</div>`;
+    });
+    
+    svgContent += `</div>`;
+    
+    // Update the container with the new chart
+    barChartContainer.innerHTML = svgContent;
+    
+    // Add event listeners to the new bars
+    const bars = barChartContainer.querySelectorAll('.interactive-bar');
+    bars.forEach(bar => {
+        bar.addEventListener('mouseover', function() {
+            // Scale up the bar slightly on hover
+            this.style.transform = 'scaleY(1.05)';
+            this.style.transition = 'transform 0.2s';
+            
+            // Create a tooltip
+            const number = this.getAttribute('data-number');
+            const frequency = this.getAttribute('data-frequency');
+            
+            // Display info in a floating tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'chart-tooltip';
+            tooltip.innerHTML = `Number ${number}<br>Appeared ${frequency} times`;
+            tooltip.style.position = 'absolute';
+            tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '5px 10px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '12px';
+            tooltip.style.zIndex = '1000';
+            
+            // Position tooltip above the bar
+            const rect = this.getBoundingClientRect();
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = (rect.top - 40) + 'px';
+            
+            document.body.appendChild(tooltip);
+            this.setAttribute('data-tooltip-id', Date.now());
+        });
+        
+        bar.addEventListener('mouseout', function() {
+            // Return to normal size
+            this.style.transform = 'scaleY(1)';
+            
+            // Remove any tooltips
+            const tooltipId = this.getAttribute('data-tooltip-id');
+            if (tooltipId) {
+                const tooltips = document.querySelectorAll('.chart-tooltip');
+                tooltips.forEach(tooltip => tooltip.remove());
+            }
+        });
+    });
+}
+
+// Function to update the division statistics chart (pie chart)
+function updateDivisionChart(data) {
+    // Implementation for division chart update
+    // This would be similar to the frequency chart update but for division data
+    // We'll leave this as a placeholder for now
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Bootstrap tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     })
+    
+    // Load initial chart data
+    fetchChartData('all', 'all');
     
     // Filter functionality
     const lotteryTypeFilters = document.querySelectorAll('a[data-lottery-type]');
@@ -667,12 +884,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show loading state
             loadingIndicators.forEach(indicator => indicator.classList.remove('d-none'));
             
-            // In a production app, we would fetch data via AJAX here
-            // For demo, we'll just simulate a loading delay
-            setTimeout(() => {
-                loadingIndicators.forEach(indicator => indicator.classList.add('d-none'));
-                // In production: updateCharts(lotteryType, currentTimePeriod.dataset.period);
-            }, 500);
+            // Get currently selected time period
+            const timePeriod = document.querySelector('.current-time-period').textContent.trim();
+            let daysParam = 'all';
+            if (timePeriod === 'Last 30 Days') daysParam = '30';
+            else if (timePeriod === 'Last 90 Days') daysParam = '90';
+            else if (timePeriod === 'Last Year') daysParam = '365';
+            
+            // Fetch updated data via AJAX
+            fetchChartData(lotteryType, daysParam);
         });
     });
     
@@ -693,12 +913,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show loading state
             loadingIndicators.forEach(indicator => indicator.classList.remove('d-none'));
             
-            // In a production app, we would fetch data via AJAX here
-            // For demo, we'll just simulate a loading delay
-            setTimeout(() => {
-                loadingIndicators.forEach(indicator => indicator.classList.add('d-none'));
-                // In production: updateCharts(currentLotteryType.dataset.type, timePeriod);
-            }, 500);
+            // Get currently selected lottery type
+            const lotteryType = document.querySelector('.current-lottery-type').textContent.trim() === 'All Lottery Types' ? 
+                'all' : document.querySelector('.current-lottery-type').textContent.trim();
+            
+            // Fetch updated data via AJAX
+            fetchChartData(lotteryType, timePeriod);
         });
     });
     
@@ -722,12 +942,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show loading state
         loadingIndicators.forEach(indicator => indicator.classList.remove('d-none'));
         
-        // In a production app, we would fetch data via AJAX here
-        // For demo, we'll just simulate a loading delay
-        setTimeout(() => {
-            loadingIndicators.forEach(indicator => indicator.classList.add('d-none'));
-            // In production: updateCharts('all', 'all');
-        }, 500);
+        // Fetch data for all lottery types and all time periods
+        fetchChartData('all', 'all');
     });
     
     // Add hover effects for bar chart
