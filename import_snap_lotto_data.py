@@ -206,6 +206,10 @@ def import_snap_lotto_data(excel_file, flask_app=None):
             logger.warning(f"⚠️ Previous bug was skipping first 4 rows causing lottery results to be missed")
             df = df.iloc[1:].reset_index(drop=True)
             
+            # Add extra debug logging for the first row (Excel row 2)
+            if not df.empty:
+                logger.warning(f"⚠️ Processing CRITICAL Row 2 data: {df.iloc[0].to_dict()}")
+            
             # Assign proper column names based on row 3
             column_names = {
                 df.columns[0]: 'game_name',

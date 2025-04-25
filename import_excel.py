@@ -296,10 +296,14 @@ def import_excel_data(excel_file, flask_app=None):
             # Process each row
             for idx, row in df.iterrows():
                 try:
-                        
-                    # Determine if this is a valid data row
-                    # Skip if row appears empty (more than 50% of values are None/NaN)
-                    if row.isna().sum() > len(row) * 0.5:
+                    # LOG ROW DETAILS for debugging - especially for row idx=0 (Excel row 2)
+                    if idx == 0:
+                        logger.warning(f"⚠️ Processing CRITICAL Row 2 (idx=0): {row.to_dict()}")
+                    
+                    # RELAXED EMPTINESS CHECK: Only skip if row appears completely empty (75%+ of values are None/NaN)
+                    # This is a more forgiving check that will process partially filled rows
+                    if row.isna().sum() > len(row) * 0.75:
+                        logger.warning(f"Skipping row {idx+2} as it's very empty ({row.isna().sum()}/{len(row)} empty values)")
                         continue
                     
                     # Extract data using our column mapping
