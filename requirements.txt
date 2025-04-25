@@ -11,8 +11,6 @@ gunicorn>=23.0.0
 mistralai>=1.6.0
 numpy>=2.2.4
 oauthlib
-openpyxl>=3.1.5
-pandas>=2.2.3
 playwright>=1.51.0
 psycopg2-binary>=2.9.10
 psutil
@@ -29,7 +27,8 @@ scipy
 seaborn
 matplotlib
 numpy
-pandas
 scikit-learn
 seaborn
 trafilatura
+openpyxl
+pandas

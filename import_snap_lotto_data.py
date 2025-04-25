@@ -138,9 +138,22 @@ def import_snap_lotto_data(excel_file, flask_app=None):
             logger.info(f"Starting import from {excel_file}...")
             
             # Check if this is an empty template file by getting all sheet names
-            xl = pd.ExcelFile(excel_file)
-            sheet_names = xl.sheet_names
-            logger.info(f"Found sheets: {sheet_names}")
+            try:
+                xl = pd.ExcelFile(excel_file, engine='openpyxl')  # Explicitly specify the engine
+                sheet_names = xl.sheet_names
+                logger.info(f"Found sheets: {sheet_names}")
+            except Exception as e:
+                logger.error(f"Error reading Excel file: {str(e)}. Trying with alternative engine.")
+                try:
+                    # Try with alternative engine
+                    xl = pd.ExcelFile(excel_file, engine='xlrd')
+                    sheet_names = xl.sheet_names
+                    logger.info(f"Found sheets using alternative engine: {sheet_names}")
+                except Exception as e2:
+                    logger.error(f"Error reading Excel file with alternative engine: {str(e2)}")
+                    from flask import flash
+                    flash(f"Unable to read the Excel file. The file might be corrupted or not a valid Excel file.", "danger")
+                    return False
             
             # Check if this is our template format (has lotto type sheets)
             expected_sheets = ["Lotto", "Lotto Plus 1", "Lotto Plus 2", "Powerball", "Powerball Plus", "Daily Lotto"]
@@ -152,7 +165,7 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                 for sheet in expected_sheets:
                     if sheet in sheet_names:
                         try:
-                            df = pd.read_excel(excel_file, sheet_name=sheet)
+                            df = pd.read_excel(excel_file, sheet_name=sheet, engine='openpyxl')
                             # Check if there are rows with actual data
                             if not df.empty and len(df) > 0:
                                 # Check if some common lottery columns exist
@@ -178,7 +191,7 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                 
             # Try to read the expected sheet for the standard Snap Lotto format
             try:
-                df = pd.read_excel(excel_file, sheet_name="Sheet1")
+                df = pd.read_excel(excel_file, sheet_name="Sheet1", engine='openpyxl')
             except ValueError as e:
                 logger.error(f"Worksheet named 'Sheet1' not found. Available sheets: {sheet_names}")
                 # Try to read the first available sheet instead
