@@ -710,21 +710,38 @@ function updateFrequencyChart(data) {
         return;
     }
     
-    // Get the frequency data and top numbers for this lottery type
-    const frequencyData = data[selectedLotteryType].frequency;
+    // Get the top numbers for this lottery type
     const topNumbers = data[selectedLotteryType].top_numbers;
+    
+    // If no top numbers, show a message and return
+    if (!topNumbers || !topNumbers.length) {
+        barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
+        return;
+    }
     
     // Create the SVG content for the bar chart
     let svgContent = '';
     
-    // Add y-axis labels
+    // Calculate the maximum frequency from the top numbers data
+    let maxFrequency = 0;
+    topNumbers.forEach(item => {
+        if (item && item.length >= 2) {
+            maxFrequency = Math.max(maxFrequency, item[1]);
+        }
+    });
+    
+    // Create nice rounded y-axis values based on the max frequency
+    const yAxisMax = Math.ceil(maxFrequency * 1.1); // Add 10% padding to the top
+    const yAxisStep = Math.ceil(yAxisMax / 4); // 4 steps on y-axis
+    
+    // Add y-axis labels with actual frequency values
     svgContent += `
         <div class="y-axis-labels" style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px;">
-            <div class="chart-y-axis" style="position: absolute; top: 0;">100%</div>
-            <div class="chart-y-axis" style="position: absolute; top: 25%;">75%</div>
-            <div class="chart-y-axis" style="position: absolute; top: 50%;">50%</div>
-            <div class="chart-y-axis" style="position: absolute; top: 75%;">25%</div>
-            <div class="chart-y-axis" style="position: absolute; bottom: 0;">0%</div>
+            <div class="chart-y-axis" style="position: absolute; top: 0;">${yAxisMax}</div>
+            <div class="chart-y-axis" style="position: absolute; top: 25%;">${Math.round(yAxisMax - yAxisStep)}</div>
+            <div class="chart-y-axis" style="position: absolute; top: 50%;">${Math.round(yAxisMax - 2*yAxisStep)}</div>
+            <div class="chart-y-axis" style="position: absolute; top: 75%;">${Math.round(yAxisMax - 3*yAxisStep)}</div>
+            <div class="chart-y-axis" style="position: absolute; bottom: 0;">0</div>
         </div>`;
     
     // Add the main chart area with grid lines
@@ -740,17 +757,16 @@ function updateFrequencyChart(data) {
             <!-- Bar columns -->
             <div class="d-flex justify-content-between align-items-end w-100 h-100">`;
     
-    // Find the maximum frequency value for scaling
-    const maxFrequency = Math.max(...frequencyData);
-    
-    // Create bar for each number in the frequency data
-    for (let i = 0; i < Math.min(10, frequencyData.length); i++) {
-        const number = i + 1;
-        const frequency = frequencyData[i];
-        const percentage = ((frequency / maxFrequency) * 100).toFixed(1);
+    // Use the top numbers data to display the bars in order of frequency (highest first)
+    for (let i = 0; i < Math.min(10, topNumbers.length); i++) {
+        if (!topNumbers[i] || topNumbers[i].length < 2) continue;
+        
+        const number = topNumbers[i][0]; // The lottery number
+        const frequency = topNumbers[i][1]; // How many times it appeared
+        const percentage = ((frequency / yAxisMax) * 100).toFixed(1); // Scale to our y-axis max
         const height = `${percentage}%`;
         
-        // Determine color class based on index
+        // Determine color class based on index (for visual variety)
         let colorClass = '';
         if (i % 4 === 0) colorClass = 'bg-danger';
         else if (i % 4 === 1) colorClass = 'bg-warning';
@@ -764,7 +780,7 @@ function updateFrequencyChart(data) {
                     style="height: ${height}; min-height: 15px;" 
                     data-number="${number}" 
                     data-frequency="${frequency}">
-                    <span style="color: white; font-size: 9px; font-weight: bold;">${percentage}%</span>
+                    <span style="color: white; font-size: 9px; font-weight: bold;">${frequency}</span>
                 </div>
                 <div class="mt-1 small">${number}</div>
             </div>`;
