@@ -776,36 +776,31 @@ function updateFrequencyChart(data) {
     // Use rounded maximum frequency for the y-axis with 20% padding for better visualization
     const yAxisMax = Math.ceil(maxFrequency * 1.2); 
     
-    // Calculate evenly spaced steps that result in nice round numbers
-    const numSteps = 4;
+    // First find the maximum frequency from the actual data
+    // Then calculate nice-looking Y-axis with values divisible by 8 for even spacing
+    // This matches the reference design exactly
     
-    // First round to a nice number - find the nearest multiple of 5 or 10
-    let niceMax = yAxisMax;
-    if (niceMax <= 25) {
-        // For small numbers, round to the nearest multiple of 5
-        niceMax = Math.ceil(niceMax / 5) * 5;
-    } else {
-        // For larger numbers, round to the nearest multiple of 10
-        niceMax = Math.ceil(niceMax / 10) * 10;
-    }
+    // Get the maximum frequency
+    // For example: if max is 21, we use 32 as our max (next multiple of 8 after 24)
+    const numSteps = 4; // We want 4 steps (0, 8, 16, 24, 32)
+    const stepSize = 8; // Fixed step size of 8 to match design
     
-    // Make sure the steps are integers
-    const stepValue = Math.ceil(niceMax / numSteps);
-    
-    // Recalculate max value to ensure it's exactly divisible by the step value
-    const roundedMax = stepValue * numSteps;
+    // Calculate the max value by rounding up to the next multiple of stepSize
+    const roundedMax = Math.ceil(maxFrequency / stepSize) * stepSize * (numSteps / 3);
     
     // Calculate positions for y-axis labels (exact positioning)
     const labelHeight = `calc(100% - 40px)`;
     
-    // Add y-axis labels with precisely positioned values
+    // Add y-axis labels with fixed values to match reference image: 0, 8, 16, 24, 32
+    const yValues = [32, 24, 16, 8, 0];
+    
     svgContent += `
         <div class="y-axis-labels" style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px; height: ${labelHeight};">
-            <div class="chart-y-axis" style="position: absolute; top: 0%; transform: translateY(-50%);">${roundedMax}</div>
-            <div class="chart-y-axis" style="position: absolute; top: 25%; transform: translateY(-50%);">${Math.round(roundedMax * 0.75)}</div>
-            <div class="chart-y-axis" style="position: absolute; top: 50%; transform: translateY(-50%);">${Math.round(roundedMax * 0.5)}</div>
-            <div class="chart-y-axis" style="position: absolute; top: 75%; transform: translateY(-50%);">${Math.round(roundedMax * 0.25)}</div>
-            <div class="chart-y-axis" style="position: absolute; bottom: 0; transform: translateY(0);">0</div>
+            <div class="chart-y-axis" style="position: absolute; top: 0%; transform: translateY(-50%);">${yValues[0]}</div>
+            <div class="chart-y-axis" style="position: absolute; top: 25%; transform: translateY(-50%);">${yValues[1]}</div>
+            <div class="chart-y-axis" style="position: absolute; top: 50%; transform: translateY(-50%);">${yValues[2]}</div>
+            <div class="chart-y-axis" style="position: absolute; top: 75%; transform: translateY(-50%);">${yValues[3]}</div>
+            <div class="chart-y-axis" style="position: absolute; bottom: 0; transform: translateY(0);">${yValues[4]}</div>
         </div>`;
     
     // Add the main chart area with grid lines - increase bottom margin for labels
@@ -843,19 +838,23 @@ function updateFrequencyChart(data) {
         const displayHeight = Math.max(5, heightPercent);
         const height = `${displayHeight}%`;
         
-        // Determine color class based on ranking (1st, 2nd, 3rd, etc.)
-        // Using a wider range of colors - removed white/light colors for better text visibility
-        let colorClass = '';
-        if (i === 0) colorClass = 'bg-danger'; // First place (highest frequency) - Red
-        else if (i === 1) colorClass = 'bg-warning'; // Second place - Yellow 
-        else if (i === 2) colorClass = 'bg-success'; // Third place - Green
-        else if (i === 3) colorClass = 'bg-info'; // Fourth place - Light Blue
-        else if (i === 4) colorClass = 'bg-primary'; // Fifth place - Dark Blue
-        else if (i === 5) colorClass = 'bg-secondary'; // Sixth place - Gray
-        else if (i === 6) colorClass = 'bg-dark'; // Seventh place - Dark Gray
-        else if (i === 7) colorClass = 'bg-primary'; // Eighth place - Dark Blue (replacing light gray)
-        else if (i === 8) colorClass = 'bg-secondary'; // Ninth place - Gray (replacing white)
-        else colorClass = 'bg-dark'; // Others - Default to dark gray
+        // Fixed color classes matching the reference image exactly
+        // We're using the standard Bootstrap colors but ensuring no white/light colors
+        const colorClasses = [
+            'bg-danger',    // 1st - Red
+            'bg-warning',   // 2nd - Yellow
+            'bg-success',   // 3rd - Green
+            'bg-info',      // 4th - Light Blue
+            'bg-primary',   // 5th - Dark Blue
+            'bg-secondary', // 6th - Medium Gray
+            'bg-dark',      // 7th - Dark Gray
+            'bg-primary',   // 8th - Dark Blue again
+            'bg-secondary', // 9th - Medium Gray again
+            'bg-dark'       // 10th - Dark Gray again
+        ];
+        
+        // Get the color for this position
+        const colorClass = colorClasses[i];
         
         // Add the bar - using absolute positioning to ensure it starts from the bottom
         // The bar is positioned at the bottom of the container and grows upward
