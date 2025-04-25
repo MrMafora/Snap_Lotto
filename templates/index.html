@@ -643,9 +643,32 @@ function fetchChartData(lotteryType, timePeriod) {
         indicator.classList.remove('d-none');
     });
     
+    // Get the bar chart container for showing loading/error states
+    const barChartContainer = document.querySelector('.bar-chart-container');
+    if (barChartContainer) {
+        barChartContainer.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <span class="ms-2">Loading chart data...</span>
+            </div>
+        `;
+    }
+    
     // Build the API URL with query parameters - properly handle the lottery type parameter
     // We need to keep the empty string if it's 'all' or not specified
-    const apiUrl = `/api/lottery-analysis/frequency?lottery_type=${lotteryType === 'all' ? '' : encodeURIComponent(lotteryType)}&days=${timePeriod === 'all' ? '365' : timePeriod}`;
+    const params = new URLSearchParams();
+    
+    // Only add lottery_type if it's not 'all'
+    if (lotteryType && lotteryType !== 'all') {
+        params.append('lottery_type', lotteryType);
+    }
+    
+    // Add days parameter with default 365 for 'all'
+    params.append('days', timePeriod === 'all' ? '365' : timePeriod);
+    
+    const apiUrl = `/api/lottery-analysis/frequency?${params.toString()}`;
     
     console.log("Fetching data from: " + apiUrl);
     
@@ -764,9 +787,9 @@ function updateFrequencyChart(data) {
             <div class="chart-y-axis" style="position: absolute; bottom: 0;">0</div>
         </div>`;
     
-    // Add the main chart area with grid lines
+    // Add the main chart area with grid lines - increase bottom margin for labels
     svgContent += `
-        <div class="chart-container" style="position: absolute; left: 30px; top: 5px; right: 5px; bottom: 40px;">
+        <div class="chart-container" style="position: absolute; left: 30px; top: 5px; right: 5px; bottom: 50px;">
             <!-- Horizontal grid lines -->
             <div style="position: absolute; top: 0; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
             <div style="position: absolute; top: 25%; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
@@ -774,8 +797,8 @@ function updateFrequencyChart(data) {
             <div style="position: absolute; top: 75%; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
             <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background-color: #ddd;"></div>
             
-            <!-- Bar columns -->
-            <div class="d-flex justify-content-between w-100" style="position: absolute; bottom: 0; left: 0; right: 0; top: 0;">`;
+            <!-- Bar columns with increased spacing between them -->
+            <div class="d-flex justify-content-around w-100" style="position: absolute; bottom: 0; left: 0; right: 0; top: 0; padding: 0 5%;">`;
     
     // Use the top numbers data to display the bars in order of frequency (highest first)
     for (let i = 0; i < Math.min(10, topNumbers.length); i++) {
@@ -799,23 +822,30 @@ function updateFrequencyChart(data) {
         const height = `${displayHeight}%`;
         
         // Determine color class based on ranking (1st, 2nd, 3rd, etc.)
+        // Using a wider range of colors to avoid the two blue bars looking alike
         let colorClass = '';
-        if (i === 0) colorClass = 'bg-danger'; // First place (highest frequency)
-        else if (i === 1) colorClass = 'bg-warning'; // Second place
-        else if (i === 2) colorClass = 'bg-success'; // Third place
-        else colorClass = 'bg-info'; // Others
+        if (i === 0) colorClass = 'bg-danger'; // First place (highest frequency) - Red
+        else if (i === 1) colorClass = 'bg-warning'; // Second place - Yellow
+        else if (i === 2) colorClass = 'bg-success'; // Third place - Green
+        else if (i === 3) colorClass = 'bg-info'; // Fourth place - Light Blue
+        else if (i === 4) colorClass = 'bg-primary'; // Fifth place - Dark Blue
+        else if (i === 5) colorClass = 'bg-secondary'; // Sixth place - Gray
+        else if (i === 6) colorClass = 'bg-dark'; // Seventh place - Dark Gray
+        else if (i === 7) colorClass = 'bg-light text-dark'; // Eighth place - Light Gray with dark text
+        else if (i === 8) colorClass = 'bg-white text-dark border'; // Ninth place - White with dark text and border
+        else colorClass = 'bg-secondary'; // Others - Default to gray
         
         // Add the bar - using absolute positioning to ensure it starts from the bottom
         // The bar is positioned at the bottom of the container and grows upward
         svgContent += `
-            <div class="bar-column text-center" style="flex: 1; position: relative; height: 100%;">
+            <div class="bar-column text-center" style="flex: 1; position: relative; height: 100%; max-width: 8%;">
                 <div class="interactive-bar ${colorClass} bar d-flex align-items-center justify-content-center" 
-                    style="position: absolute; bottom: 0; left: 0; right: 0; height: ${height};" 
+                    style="position: absolute; bottom: 0; left: 10%; right: 10%; height: ${height}; border-radius: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" 
                     data-number="${number}" 
                     data-frequency="${frequency}">
                     <span style="color: white; font-size: 11px; font-weight: bold;">${frequency}</span>
                 </div>
-                <div style="position: absolute; bottom: -25px; left: 0; right: 0;" class="small fw-bold">${number}</div>
+                <div style="position: absolute; bottom: -35px; left: 0; right: 0; font-size: 12px;" class="fw-bold">${number}</div>
             </div>`;
     }
     
