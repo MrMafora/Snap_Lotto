@@ -306,9 +306,9 @@ def import_excel_data(excel_file, flask_app=None):
                                     existing.numbers = json.dumps(numbers)
                                     existing.bonus_numbers = json.dumps(bonus_numbers) if bonus_numbers else None
                                     existing.divisions = json.dumps(divisions) if divisions else None
-                                    existing.source_url = "direct-row1-processing"
-                                    existing.ocr_provider = "direct-row1-processing"
-                                    existing.ocr_model = "excel-import"
+                                    existing.source_url = "imported-from-excel"
+                                    existing.ocr_provider = "manual-import"
+                                    existing.ocr_model = "excel-spreadsheet"
                                     existing.ocr_timestamp = datetime.utcnow().isoformat()
                                     db.session.commit()
                                     imported_count += 1
@@ -322,9 +322,9 @@ def import_excel_data(excel_file, flask_app=None):
                                         numbers=json.dumps(numbers),
                                         bonus_numbers=json.dumps(bonus_numbers) if bonus_numbers else None,
                                         divisions=json.dumps(divisions) if divisions else None,
-                                        source_url="direct-row1-processing",
-                                        ocr_provider="direct-row1-processing",
-                                        ocr_model="excel-import",
+                                        source_url="imported-from-excel",
+                                        ocr_provider="manual-import",
+                                        ocr_model="excel-spreadsheet",
                                         ocr_timestamp=datetime.utcnow().isoformat()
                                     )
                                     db.session.add(new_result)

@@ -168,9 +168,9 @@ def direct_import_row2():
             existing.numbers = json.dumps(numbers)
             existing.bonus_numbers = json.dumps(bonus_numbers) if bonus_numbers else None
             existing.divisions = json.dumps(divisions) if divisions else None
-            existing.source_url = "row2-fix-script"
-            existing.ocr_provider = "row2-fix-script"
-            existing.ocr_model = "direct-excel-access"
+            existing.source_url = "imported-from-excel"
+            existing.ocr_provider = "manual-import"
+            existing.ocr_model = "excel-spreadsheet"
             existing.ocr_timestamp = datetime.utcnow().isoformat()
             db.session.commit()
             logger.info(f"Updated existing record: {lottery_type} Draw {draw_number}")
@@ -185,9 +185,9 @@ def direct_import_row2():
                 numbers=json.dumps(numbers),
                 bonus_numbers=json.dumps(bonus_numbers) if bonus_numbers else None,
                 divisions=json.dumps(divisions) if divisions else None,
-                source_url="row2-fix-script",
-                ocr_provider="row2-fix-script",
-                ocr_model="direct-excel-access",
+                source_url="imported-from-excel",
+                ocr_provider="manual-import",
+                ocr_model="excel-spreadsheet",
                 ocr_timestamp=datetime.utcnow().isoformat()
             )
             db.session.add(new_result)
@@ -195,10 +195,11 @@ def direct_import_row2():
             logger.info(f"Created new record: {lottery_type} Draw {draw_number}")
             print(f"SUCCESS: Created new record: {lottery_type} Draw {draw_number}")
             
-        # Create import history record
+        # Create import history record with proper association to the imported record
         try:
+            # Step 1: Create the import history record
             import_history = ImportHistory(
-                import_type='row2-fix-script',
+                import_type='Excel',
                 file_name=os.path.basename(latest_file),
                 records_added=1 if not existing else 0,
                 records_updated=1 if existing else 0,
@@ -209,8 +210,31 @@ def direct_import_row2():
             db.session.add(import_history)
             db.session.commit()
             logger.info("Created import history record")
+            
+            # Step 2: Now create the ImportDetail records to link the history with the lottery results
+            from models import ImportDetail
+            
+            # Get the ID of the lottery result we just imported/updated
+            lottery_result_id = existing.id if existing else LotteryResult.query.filter_by(
+                lottery_type=lottery_type, 
+                draw_number=draw_number
+            ).first().id
+            
+            # Create import detail record
+            import_detail = ImportDetail(
+                import_history_id=import_history.id,
+                lottery_result_id=lottery_result_id,
+                lottery_type=lottery_type,
+                draw_number=draw_number,
+                draw_date=draw_date,
+                is_new=not existing
+            )
+            db.session.add(import_detail)
+            db.session.commit()
+            
+            logger.info(f"Created import detail record linking import {import_history.id} with lottery result {lottery_result_id}")
         except Exception as e:
-            logger.error(f"Error creating import history: {str(e)}")
+            logger.error(f"Error creating import history/details: {str(e)}")
         
         return True
     except Exception as e:
