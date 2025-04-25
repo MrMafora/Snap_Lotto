@@ -338,97 +338,128 @@ class LotteryAnalyzer:
         Returns:
             dict: Analysis results including frequency charts
         """
-        df = self.get_lottery_data(lottery_type, days)
-        if df.empty:
-            return {"error": "No data available for analysis"}
-        
-        results = {}
-        
-        if lottery_type:
-            lottery_types = [lottery_type]
-        else:
-            lottery_types = df['lottery_type'].unique()
+        try:
+            # Step 1: Get and validate data
+            df = self.get_lottery_data(lottery_type, days)
+            if df.empty:
+                logger.warning(f"No data available for analysis with lottery_type={lottery_type}, days={days}")
+                return {"error": "No data available for analysis"}
             
-            # Add a combined "All Lottery Types" analysis
-            all_types_df = df.copy()  # Use the entire DataFrame for combined analysis
+            results = {}
             
-            if not all_types_df.empty:
-                # Get all number columns across all lottery types
-                all_number_cols = [col for col in all_types_df.columns if col.startswith('number_')]
-                max_number = 0
+            # Validate lottery_type if specified
+            if lottery_type and lottery_type not in self.lottery_types and lottery_type != "All Lottery Types":
+                logger.warning(f"Invalid lottery type specified: {lottery_type}")
+                return {"error": f"Invalid lottery type: {lottery_type}"}
                 
-                # Find the highest number across all draws and all types
-                for col in all_number_cols:
-                    max_val = all_types_df[col].max()
-                    if max_val and max_val > max_number:
-                        max_number = int(max_val)
-                
-                # Create a frequency array for all possible numbers
-                combined_frequency = np.zeros(max_number + 1, dtype=int)
-                
-                # Count occurrences of each number across all lottery types
-                for col in all_number_cols:
-                    for num in all_types_df[col].dropna():
-                        if 0 <= int(num) <= max_number:
-                            combined_frequency[int(num)] += 1
-                
-                # Remove the 0 index since there's no ball numbered 0
-                combined_frequency = combined_frequency[1:]
-                
-                # Add the combined analysis to results with a special key
-                top_indices = np.argsort(combined_frequency)[-10:]  # Get top 10 for combined view
-                top_numbers = [(i+1, combined_frequency[i]) for i in top_indices]
-                
+            # Step 2: Determine which lottery types to analyze
+            if lottery_type:
+                lottery_types = [lottery_type]
+            else:
+                lottery_types = df['lottery_type'].unique()
+            
+            # Step 3: Add a combined "All Lottery Types" analysis
+            try:
+                all_types_df = df.copy()
+                if not all_types_df.empty:
+                    # Get all number columns across all lottery types
+                    all_number_cols = [col for col in all_types_df.columns if col.startswith('number_')]
+                    max_number = 0
+                    
+                    # Find the highest number across all draws and all types
+                    for col in all_number_cols:
+                        max_val = all_types_df[col].max()
+                        if max_val and max_val > max_number:
+                            max_number = int(max_val)
+                    
+                    # Create a frequency array for all possible numbers
+                    combined_frequency = np.zeros(max_number + 1, dtype=int)
+                    
+                    # Count occurrences of each number across all lottery types
+                    for col in all_number_cols:
+                        for num in all_types_df[col].dropna():
+                            if 0 <= int(num) <= max_number:
+                                combined_frequency[int(num)] += 1
+                    
+                    # Remove the 0 index since there's no ball numbered 0
+                    combined_frequency = combined_frequency[1:]
+                    
+                    # Add the combined analysis to results with a special key
+                    top_indices = np.argsort(combined_frequency)[-10:]
+                    top_numbers = [(i+1, combined_frequency[i]) for i in top_indices]
+                    
+                    results["All Lottery Types"] = {
+                        'frequency': combined_frequency.tolist(),
+                        'top_numbers': sorted(top_numbers, key=lambda x: x[1], reverse=True),
+                        'is_combined': True
+                    }
+                    
+                    # Generate frequency chart for combined data
+                    self._generate_frequency_chart(combined_frequency, top_numbers, "All Lottery Types", results)
+            except Exception as e:
+                logger.error(f"Error processing combined lottery types: {str(e)}")
                 results["All Lottery Types"] = {
-                    'frequency': combined_frequency.tolist(),
-                    'top_numbers': sorted(top_numbers, key=lambda x: x[1], reverse=True),
-                    'is_combined': True  # Flag to indicate this is combined data
+                    'error': f"Error generating combined chart: {str(e)}",
+                    'has_error': True
                 }
-                
-                # Generate frequency chart for combined data
-                self._generate_frequency_chart(combined_frequency, top_numbers, "All Lottery Types", results)
-        
-        # Process individual lottery types
-        for lt in lottery_types:
-            lt_df = df[df['lottery_type'] == lt]
-            if lt_df.empty:
-                continue
-                
-            # Get the number columns for this lottery type
-            number_cols = [col for col in lt_df.columns if col.startswith('number_')]
-            max_number = 0
             
-            # Find the highest number across all draws
-            for col in number_cols:
-                max_val = lt_df[col].max()
-                if max_val and max_val > max_number:
-                    max_number = int(max_val)
+            # Step 4: Process individual lottery types
+            for lt in lottery_types:
+                try:
+                    lt_df = df[df['lottery_type'] == lt]
+                    if lt_df.empty:
+                        logger.warning(f"No data found for lottery type: {lt}")
+                        continue
+                        
+                    # Get the number columns for this lottery type
+                    number_cols = [col for col in lt_df.columns if col.startswith('number_')]
+                    max_number = 0
+                    
+                    # Find the highest number across all draws
+                    for col in number_cols:
+                        max_val = lt_df[col].max()
+                        if max_val and max_val > max_number:
+                            max_number = int(max_val)
+                    
+                    # Create a frequency array for all possible numbers
+                    frequency = np.zeros(max_number + 1, dtype=int)
+                    
+                    # Count occurrences of each number
+                    for col in number_cols:
+                        for num in lt_df[col].dropna():
+                            if 0 <= int(num) <= max_number:
+                                frequency[int(num)] += 1
+                    
+                    # Remove the 0 index since there's no ball numbered 0
+                    frequency = frequency[1:]
+                    
+                    # Generate frequency chart
+                    # Get top numbers
+                    top_indices = np.argsort(frequency)[-5:]
+                    top_numbers = [(i+1, frequency[i]) for i in top_indices]
+                    
+                    # Generate frequency chart for this lottery type
+                    self._generate_frequency_chart(frequency, top_numbers, lt, results)
+                except Exception as e:
+                    logger.error(f"Error processing lottery type {lt}: {str(e)}")
+                    # Add error information to results instead of failing entirely
+                    results[lt] = {
+                        'error': f"Error generating chart: {str(e)}",
+                        'has_error': True
+                    }
             
-            # Create a frequency array for all possible numbers
-            frequency = np.zeros(max_number + 1, dtype=int)
+            # Step 5: Cache and return results
+            cache_key = f"frequency_{lottery_type}_{days}"
+            chart_cache[cache_key] = results
             
-            # Count occurrences of each number
-            for col in number_cols:
-                for num in lt_df[col].dropna():
-                    if 0 <= int(num) <= max_number:
-                        frequency[int(num)] += 1
+            return results
             
-            # Remove the 0 index since there's no ball numbered 0
-            frequency = frequency[1:]
-            
-            # Generate frequency chart
-            # Get top numbers
-            top_indices = np.argsort(frequency)[-5:]
-            top_numbers = [(i+1, frequency[i]) for i in top_indices]
-            
-            # Generate frequency chart for this lottery type
-            self._generate_frequency_chart(frequency, top_numbers, lt, results)
-        
-        # Cache results
-        cache_key = f"frequency_{lottery_type}_{days}"
-        chart_cache[cache_key] = results
-        
-        return results
+        except Exception as e:
+            logger.error(f"Error in analyze_frequency: {str(e)}")
+            return {
+                "error": f"Analysis failed: {str(e)}",
+                "status": "error"
+            }
     
     def analyze_patterns(self, lottery_type=None, days=365):
         """Find patterns in winning number combinations
