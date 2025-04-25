@@ -211,8 +211,8 @@ def direct_import_row2():
             db.session.commit()
             logger.info("Created import history record")
             
-            # Step 2: Now create the ImportDetail records to link the history with the lottery results
-            from models import ImportDetail
+            # Step 2: Now create the ImportedRecord records to link the history with the lottery results
+            from models import ImportedRecord
             
             # Get the ID of the lottery result we just imported/updated
             lottery_result_id = existing.id if existing else LotteryResult.query.filter_by(
@@ -221,8 +221,8 @@ def direct_import_row2():
             ).first().id
             
             # Create import detail record
-            import_detail = ImportDetail(
-                import_history_id=import_history.id,
+            import_detail = ImportedRecord(
+                import_id=import_history.id,
                 lottery_result_id=lottery_result_id,
                 lottery_type=lottery_type,
                 draw_number=draw_number,
