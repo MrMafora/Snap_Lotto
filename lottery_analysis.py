@@ -64,17 +64,17 @@ class LotteryAnalyzer:
         self.ImportedRecord = ImportedRecord
         
         # Supported lottery types
-        self.lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 
-                             'Powerball', 'Powerball Plus', 'Daily Lotto']
+        self.lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
+                             'Powerball', 'Powerball Plus', 'Daily Lottery']
         
         # Required number count by lottery type
         self.required_numbers = {
-            'Lotto': 6,
-            'Lotto Plus 1': 6,
-            'Lotto Plus 2': 6,
+            'Lottery': 6,
+            'Lottery Plus 1': 6,
+            'Lottery Plus 2': 6,
             'Powerball': 5,  # Plus 1 bonus ball
             'Powerball Plus': 5,  # Plus 1 bonus ball
-            'Daily Lotto': 5
+            'Daily Lottery': 5
         }
         
         # Store analysis results
@@ -1630,7 +1630,7 @@ def register_analysis_routes(app, db):
             return redirect(url_for('index'))
         
         # Get lottery type from query string
-        lottery_type = request.args.get('lottery_type', 'Lotto')
+        lottery_type = request.args.get('lottery_type', 'Lottery')
         
         # Get prediction for this lottery type
         prediction = analyzer.predict_next_draw(lottery_type)
@@ -1972,7 +1972,7 @@ def register_analysis_routes(app, db):
         #     return jsonify({"error": "Unauthorized"}), 403
         
         try:
-            lottery_type = request.args.get('lottery_type', 'Lotto')
+            lottery_type = request.args.get('lottery_type', 'Lottery')
             print(f"Prediction request args: lottery_type={lottery_type}")
             
             # Get data and return
