@@ -8,9 +8,9 @@
         },
         {
           "task": "shell.exec",
-          "args": "./start_app_with_proxy.sh",
+          "args": "python direct_8080.py",
           "waitForPort": 8080,
-          "description": "Start the application server on port 5000 with port proxy to 8080"
+          "description": "Start the application server directly on port 8080 with forced binding"
         }
       ],
       "metadata": {
