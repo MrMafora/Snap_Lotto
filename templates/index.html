@@ -805,7 +805,7 @@ function updateFrequencyChart(data) {
             <div class="chart-y-axis" style="position: absolute; top: 25%; transform: translateY(-50%);">${Math.round(roundedMax * 0.75)}</div>
             <div class="chart-y-axis" style="position: absolute; top: 50%; transform: translateY(-50%);">${Math.round(roundedMax * 0.5)}</div>
             <div class="chart-y-axis" style="position: absolute; top: 75%; transform: translateY(-50%);">${Math.round(roundedMax * 0.25)}</div>
-            <div class="chart-y-axis" style="position: absolute; bottom: 0%; transform: translateY(-50%);">0</div>
+            <div class="chart-y-axis" style="position: absolute; bottom: 0; transform: translateY(0);">0</div>
         </div>`;
     
     // Add the main chart area with grid lines - increase bottom margin for labels
@@ -816,7 +816,7 @@ function updateFrequencyChart(data) {
             <div style="position: absolute; top: 25%; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
             <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
             <div style="position: absolute; top: 75%; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
-            <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background-color: #ddd;"></div>
+            <div style="position: absolute; bottom: 0; left: -30px; right: 0; height: 1px; background-color: #333;"></div>
             
             <!-- Bar columns with increased spacing between them -->
             <div class="d-flex justify-content-around w-100" style="position: absolute; bottom: 0; left: 0; right: 0; top: 0; padding: 0 5%;">`;
