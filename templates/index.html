@@ -638,18 +638,28 @@ function resetPieSegments() {
 
 // Function to fetch chart data via AJAX
 function fetchChartData(lotteryType, timePeriod) {
-    // Build the API URL with query parameters
-    const apiUrl = `/api/lottery-analysis/frequency?lottery_type=${lotteryType === 'all' ? '' : lotteryType}&days=${timePeriod}`;
+    // Show loading state for charts
+    document.querySelectorAll('.chart-loading').forEach(indicator => {
+        indicator.classList.remove('d-none');
+    });
+    
+    // Build the API URL with query parameters - properly handle the lottery type parameter
+    // We need to keep the empty string if it's 'all' or not specified
+    const apiUrl = `/api/lottery-analysis/frequency?lottery_type=${lotteryType === 'all' ? '' : encodeURIComponent(lotteryType)}&days=${timePeriod === 'all' ? '365' : timePeriod}`;
+    
+    console.log("Fetching data from: " + apiUrl);
     
     // Fetch data from the API
     fetch(apiUrl)
         .then(response => {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
             }
             return response.json();
         })
         .then(data => {
+            console.log("Chart data received:", Object.keys(data));
+            
             // Update the charts with the new data
             updateCharts(data);
             
@@ -666,8 +676,18 @@ function fetchChartData(lotteryType, timePeriod) {
                 indicator.classList.add('d-none');
             });
             
-            // Show an error message
-            alert('Error loading chart data. Please try again later.');
+            // Show a more user-friendly error message in the chart container
+            const barChartContainer = document.querySelector('.bar-chart-container');
+            if (barChartContainer) {
+                barChartContainer.innerHTML = `
+                    <div class="alert alert-danger text-center my-5">
+                        <p>Error loading chart data. Please try again later.</p>
+                        <button class="btn btn-sm btn-outline-danger mt-2" onclick="fetchChartData('${lotteryType}', '${timePeriod}')">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
         });
 }
 
@@ -746,7 +766,7 @@ function updateFrequencyChart(data) {
     
     // Add the main chart area with grid lines
     svgContent += `
-        <div class="chart-container d-flex align-items-end" style="position: absolute; left: 30px; top: 5px; right: 5px; bottom: 40px;">
+        <div class="chart-container" style="position: absolute; left: 30px; top: 5px; right: 5px; bottom: 40px;">
             <!-- Horizontal grid lines -->
             <div style="position: absolute; top: 0; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
             <div style="position: absolute; top: 25%; left: 0; right: 0; height: 1px; background-color: #eee;"></div>
@@ -755,7 +775,7 @@ function updateFrequencyChart(data) {
             <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background-color: #ddd;"></div>
             
             <!-- Bar columns -->
-            <div class="d-flex justify-content-between align-items-end w-100 h-100">`;
+            <div class="d-flex justify-content-between w-100" style="position: absolute; bottom: 0; left: 0; right: 0; top: 0;">`;
     
     // Use the top numbers data to display the bars in order of frequency (highest first)
     for (let i = 0; i < Math.min(10, topNumbers.length); i++) {
@@ -764,10 +784,19 @@ function updateFrequencyChart(data) {
         const number = topNumbers[i][0]; // The lottery number
         const frequency = topNumbers[i][1]; // How many times it appeared
         
-        // Calculate exact percentage (if max is 7, and this is 7, it's 100%)
-        // If max is 7 and this is 3, it's (3/7)*100 = 42.85%
-        const percentage = ((frequency / yAxisMax) * 100); 
-        const height = `${percentage}%`;
+        // For bar height, ensure a minimum height for visibility
+        // Scale to available space (use 100% for maximum frequency)
+        // This ensures the tallest bar is at 100% height and others are proportional
+        let heightPercent = 0;
+        
+        // Only calculate percentage when max frequency > 0 to avoid division by zero
+        if (yAxisMax > 0) {
+            heightPercent = ((frequency / yAxisMax) * 100);
+        }
+        
+        // Ensure minimum height for visibility (at least 5% of chart height)
+        const displayHeight = Math.max(5, heightPercent);
+        const height = `${displayHeight}%`;
         
         // Determine color class based on ranking (1st, 2nd, 3rd, etc.)
         let colorClass = '';
@@ -776,16 +805,17 @@ function updateFrequencyChart(data) {
         else if (i === 2) colorClass = 'bg-success'; // Third place
         else colorClass = 'bg-info'; // Others
         
-        // Add the bar
+        // Add the bar - using absolute positioning to ensure it starts from the bottom
+        // The bar is positioned at the bottom of the container and grows upward
         svgContent += `
-            <div class="bar-column text-center" style="flex: 1">
+            <div class="bar-column text-center" style="flex: 1; position: relative; height: 100%;">
                 <div class="interactive-bar ${colorClass} bar d-flex align-items-center justify-content-center" 
-                    style="height: ${height}; min-height: 20px;" 
+                    style="position: absolute; bottom: 0; left: 0; right: 0; height: ${height};" 
                     data-number="${number}" 
                     data-frequency="${frequency}">
-                    <span style="color: white; font-size: 10px; font-weight: bold;">${frequency}</span>
+                    <span style="color: white; font-size: 11px; font-weight: bold;">${frequency}</span>
                 </div>
-                <div class="mt-1 small fw-bold">${number}</div>
+                <div style="position: absolute; bottom: -25px; left: 0; right: 0;" class="small fw-bold">${number}</div>
             </div>`;
     }
     

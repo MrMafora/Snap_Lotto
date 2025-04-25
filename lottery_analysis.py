@@ -1488,27 +1488,45 @@ def register_analysis_routes(app, db):
         #     return jsonify({"error": "Unauthorized"}), 403
         
         try:
+            # Get lottery type - handle empty strings and convert 'all' to None for proper handling
             lottery_type = request.args.get('lottery_type', None)
+            if lottery_type == '' or lottery_type == 'all':
+                lottery_type = None  # Use None to indicate "all lottery types"
+                
+            # Get time period parameter
             days_str = request.args.get('days', '365')
             print(f"Request args: lottery_type={lottery_type}, days={days_str}")
             
             # Convert days to int with validation
             try:
-                days = int(days_str)
-                if days <= 0:
-                    days = 365
+                if days_str == 'all':
+                    days = 365  # Use 365 days for "all time" to ensure we get plenty of data
+                else:
+                    days = int(days_str)
+                    if days <= 0:
+                        days = 365
             except ValueError:
                 days = 365
                 print(f"Invalid days value: {days_str}, using default 365")
             
             print(f"Performing analysis for: lottery_type={lottery_type}, days={days}")
-            data = analyzer.analyze_frequency(lottery_type, days)
-            print(f"Analysis completed successfully with {len(data.keys() if isinstance(data, dict) else [])} items")
             
-            # Return the analysis data with custom encoder for NumPy data types
-            return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
-            
+            # Use a try-except block to catch any errors during analysis
+            try:
+                data = analyzer.analyze_frequency(lottery_type, days)
+                print(f"Analysis completed successfully with {len(data.keys() if isinstance(data, dict) else [])} items")
+                
+                # Ensure we have some data to return
+                if not data or (isinstance(data, dict) and not data):
+                    return jsonify({"error": "No data available for the selected lottery type and time period."}), 404
+                    
+                # Return the analysis data with custom encoder for NumPy data types
+                return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
+            except Exception as e:
+                logger.error(f"Error during frequency analysis: {str(e)}")
+                return jsonify({"error": f"Analysis error: {str(e)}"}), 500
         except Exception as e:
+            # Log the error for debugging
             print(f"ERROR IN FREQUENCY ANALYSIS API: {str(e)}")
             logger.error(f"Error in frequency analysis API: {str(e)}", exc_info=True)
             # Format error response consistently
