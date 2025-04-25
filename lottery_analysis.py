@@ -80,6 +80,146 @@ class LotteryAnalyzer:
         # Store analysis results
         self.analysis_results = {}
         
+    def _generate_frequency_chart(self, frequency, top_numbers, lottery_type, results):
+        """Generate frequency chart and add to results
+        
+        Args:
+            frequency (numpy.ndarray): Frequency array for each number
+            top_numbers (list): List of tuples (number, frequency) for top numbers
+            lottery_type (str): Type of lottery
+            results (dict): Results dictionary to update
+        """
+        # Sort top numbers by frequency, highest first
+        sorted_top = sorted(top_numbers, key=lambda x: x[1], reverse=True)
+        
+        # Set up color palette - more distinct colors with visual hierarchy
+        # Use 9 colors instead of default to ensure better distinction
+        colors = plt.cm.viridis(np.linspace(0, 1, 9))
+        
+        # Add 10% padding on each side for visual distinction
+        bar_width = 0.8  
+        
+        # Generate frequency chart with enhanced styling
+        plt.figure(figsize=(10, 6))
+        bars = plt.bar(
+            range(1, len(frequency) + 1), 
+            frequency, 
+            width=bar_width,
+            edgecolor='gray',
+            linewidth=0.5,
+            zorder=3  # Make bars appear above grid lines
+        )
+        
+        # Add rounded corners and shadows to bars
+        for bar in bars:
+            # Get the current color of the bar
+            bar_color = bar.get_facecolor()
+            
+            # Highlight top 3 numbers with specific colors
+            if bar.get_x() + bar_width/2 in [n[0] for n in sorted_top[:3]]:
+                rank = [n[0] for n in sorted_top[:3]].index(bar.get_x() + bar_width/2)
+                if rank == 0:  # 1st place
+                    bar.set_color('red')
+                elif rank == 1:  # 2nd place
+                    bar.set_color('gold')
+                elif rank == 2:  # 3rd place
+                    bar.set_color('green')
+            
+            # Add shadow effect to all bars
+            bar.set_path_effects([
+                plt.matplotlib.patheffects.withSimplePatchShadow(
+                    offset=(2, -2),
+                    shadow_rgbFace='gray',
+                    alpha=0.3
+                )
+            ])
+        
+        plt.xlabel('Number', fontweight='bold', fontsize=12)
+        plt.ylabel('Frequency', fontweight='bold', fontsize=12)
+        plt.title(f'Number Frequency for {lottery_type}', fontsize=14, pad=20)
+        
+        # Enhance grid with lighter lines
+        plt.grid(axis='y', alpha=0.3, linestyle='--', zorder=0)
+        
+        # Increase spacing to prevent overlap with X-axis
+        plt.subplots_adjust(bottom=0.15, top=0.85)
+        
+        # Add text with the top 5 most frequent numbers
+        top_text = "Top 5 numbers:\n" + "\n".join([f"#{n}: {f} times" for n, f in sorted_top[:5]])
+        plt.annotate(top_text, xy=(0.02, 0.95), xycoords='axes fraction', 
+                    fontsize=10, bbox=dict(
+                        boxstyle="round,pad=0.5", 
+                        facecolor='white', 
+                        alpha=0.9,
+                        edgecolor='lightgray'
+                    ))
+        
+        # Save chart with enhanced quality
+        img_path = os.path.join(STATIC_DIR, f'frequency_{lottery_type.replace(" ", "_")}.png')
+        plt.savefig(img_path, dpi=120, bbox_inches='tight')
+        plt.close()
+        
+        # Also save as base64 for direct embedding
+        img_buffer = io.BytesIO()
+        
+        # Create the same chart again for buffer
+        plt.figure(figsize=(10, 6))
+        bars = plt.bar(
+            range(1, len(frequency) + 1), 
+            frequency, 
+            width=bar_width,
+            edgecolor='gray',
+            linewidth=0.5,
+            zorder=3
+        )
+        
+        # Add rounded corners and shadows to bars
+        for bar in bars:
+            # Highlight top 3 numbers with specific colors
+            if bar.get_x() + bar_width/2 in [n[0] for n in sorted_top[:3]]:
+                rank = [n[0] for n in sorted_top[:3]].index(bar.get_x() + bar_width/2)
+                if rank == 0:  # 1st place
+                    bar.set_color('red')
+                elif rank == 1:  # 2nd place
+                    bar.set_color('gold')
+                elif rank == 2:  # 3rd place
+                    bar.set_color('green')
+            
+            # Add shadow effect
+            bar.set_path_effects([
+                plt.matplotlib.patheffects.withSimplePatchShadow(
+                    offset=(2, -2),
+                    shadow_rgbFace='gray',
+                    alpha=0.3
+                )
+            ])
+        
+        plt.xlabel('Number', fontweight='bold', fontsize=12)
+        plt.ylabel('Frequency', fontweight='bold', fontsize=12)
+        plt.title(f'Number Frequency for {lottery_type}', fontsize=14, pad=20)
+        plt.grid(axis='y', alpha=0.3, linestyle='--', zorder=0)
+        plt.subplots_adjust(bottom=0.15, top=0.85)
+        plt.annotate(top_text, xy=(0.02, 0.95), xycoords='axes fraction', 
+                    fontsize=10, bbox=dict(
+                        boxstyle="round,pad=0.5", 
+                        facecolor='white', 
+                        alpha=0.9,
+                        edgecolor='lightgray'
+                    ))
+        
+        plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight')
+        plt.close()
+        img_buffer.seek(0)
+        img_base64 = base64.b64encode(img_buffer.read()).decode('utf-8')
+        
+        # Store results
+        results[lottery_type] = {
+            'frequency': frequency.tolist(),
+            'top_numbers': sorted_top,
+            'chart_path': f'/static/analysis/frequency_{lottery_type.replace(" ", "_")}.png',
+            'chart_base64': img_base64
+        }
+        
     def get_lottery_data(self, lottery_type=None, days=365):
         """Retrieve lottery data for analysis
         
@@ -216,7 +356,47 @@ class LotteryAnalyzer:
             lottery_types = [lottery_type]
         else:
             lottery_types = df['lottery_type'].unique()
+            
+            # Add a combined "All Lottery Types" analysis
+            all_types_df = df.copy()  # Use the entire DataFrame for combined analysis
+            
+            if not all_types_df.empty:
+                # Get all number columns across all lottery types
+                all_number_cols = [col for col in all_types_df.columns if col.startswith('number_')]
+                max_number = 0
+                
+                # Find the highest number across all draws and all types
+                for col in all_number_cols:
+                    max_val = all_types_df[col].max()
+                    if max_val and max_val > max_number:
+                        max_number = int(max_val)
+                
+                # Create a frequency array for all possible numbers
+                combined_frequency = np.zeros(max_number + 1, dtype=int)
+                
+                # Count occurrences of each number across all lottery types
+                for col in all_number_cols:
+                    for num in all_types_df[col].dropna():
+                        if 0 <= int(num) <= max_number:
+                            combined_frequency[int(num)] += 1
+                
+                # Remove the 0 index since there's no ball numbered 0
+                combined_frequency = combined_frequency[1:]
+                
+                # Add the combined analysis to results with a special key
+                top_indices = np.argsort(combined_frequency)[-10:]  # Get top 10 for combined view
+                top_numbers = [(i+1, combined_frequency[i]) for i in top_indices]
+                
+                results["All Lottery Types"] = {
+                    'frequency': combined_frequency.tolist(),
+                    'top_numbers': sorted(top_numbers, key=lambda x: x[1], reverse=True),
+                    'is_combined': True  # Flag to indicate this is combined data
+                }
+                
+                # Generate frequency chart for combined data
+                self._generate_frequency_chart(combined_frequency, top_numbers, "All Lottery Types", results)
         
+        # Process individual lottery types
         for lt in lottery_types:
             lt_df = df[df['lottery_type'] == lt]
             if lt_df.empty:
@@ -245,48 +425,12 @@ class LotteryAnalyzer:
             frequency = frequency[1:]
             
             # Generate frequency chart
-            plt.figure(figsize=(10, 6))
-            plt.bar(range(1, len(frequency) + 1), frequency)
-            plt.xlabel('Number')
-            plt.ylabel('Frequency')
-            plt.title(f'Number Frequency for {lt}')
-            plt.grid(axis='y', alpha=0.75)
-            
-            # Add text with the top 5 most frequent numbers
+            # Get top numbers
             top_indices = np.argsort(frequency)[-5:]
             top_numbers = [(i+1, frequency[i]) for i in top_indices]
-            top_text = "Top 5 numbers:\n" + "\n".join([f"#{n}: {f} times" for n, f in 
-                                                      sorted(top_numbers, key=lambda x: x[1], reverse=True)])
-            plt.annotate(top_text, xy=(0.02, 0.95), xycoords='axes fraction', 
-                        fontsize=9, bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
             
-            # Save chart
-            img_path = os.path.join(STATIC_DIR, f'frequency_{lt.replace(" ", "_")}.png')
-            plt.savefig(img_path, dpi=100, bbox_inches='tight')
-            plt.close()
-            
-            # Also save as base64 for direct embedding
-            img_buffer = io.BytesIO()
-            plt.figure(figsize=(10, 6))
-            plt.bar(range(1, len(frequency) + 1), frequency)
-            plt.xlabel('Number')
-            plt.ylabel('Frequency')
-            plt.title(f'Number Frequency for {lt}')
-            plt.grid(axis='y', alpha=0.75)
-            plt.annotate(top_text, xy=(0.02, 0.95), xycoords='axes fraction', 
-                        fontsize=9, bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
-            plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight')
-            plt.close()
-            img_buffer.seek(0)
-            img_base64 = base64.b64encode(img_buffer.read()).decode('utf-8')
-            
-            # Store results
-            results[lt] = {
-                'frequency': frequency.tolist(),
-                'top_numbers': sorted(top_numbers, key=lambda x: x[1], reverse=True),
-                'chart_path': f'/static/analysis/frequency_{lt.replace(" ", "_")}.png',
-                'chart_base64': img_base64
-            }
+            # Generate frequency chart for this lottery type
+            self._generate_frequency_chart(frequency, top_numbers, lt, results)
         
         # Cache results
         cache_key = f"frequency_{lottery_type}_{days}"
