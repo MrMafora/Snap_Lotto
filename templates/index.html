@@ -311,33 +311,85 @@ Snap Scan and Win = Phanda Phusha Play</span>
 </div>
 
 <div class="card mb-4 data-analytics-preview">
-    <div class="card-header lottery-header">
+    <div class="card-header lottery-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">DATA ANALYTICS PREVIEW</h5>
+        <!-- Time period and lottery type selector -->
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-lottery dropdown-toggle" type="button" id="dataFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-filter me-1"></i> Filter Data
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dataFilterDropdown">
+                <li><h6 class="dropdown-header">Lottery Type</h6></li>
+                <li><a class="dropdown-item active" href="#" data-lottery-type="all">All Types</a></li>
+                <li><a class="dropdown-item" href="#" data-lottery-type="Lotto">Lotto</a></li>
+                <li><a class="dropdown-item" href="#" data-lottery-type="Lotto Plus 1">Lotto Plus 1</a></li>
+                <li><a class="dropdown-item" href="#" data-lottery-type="Lotto Plus 2">Lotto Plus 2</a></li>
+                <li><a class="dropdown-item" href="#" data-lottery-type="Powerball">Powerball</a></li>
+                <li><a class="dropdown-item" href="#" data-lottery-type="Powerball Plus">Powerball Plus</a></li>
+                <li><a class="dropdown-item" href="#" data-lottery-type="Daily Lotto">Daily Lotto</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><h6 class="dropdown-header">Time Period</h6></li>
+                <li><a class="dropdown-item active" href="#" data-time-period="all">All Time</a></li>
+                <li><a class="dropdown-item" href="#" data-time-period="30">Last 30 Days</a></li>
+                <li><a class="dropdown-item" href="#" data-time-period="90">Last 90 Days</a></li>
+                <li><a class="dropdown-item" href="#" data-time-period="365">Last Year</a></li>
+            </ul>
+        </div>
     </div>
     <div class="card-body">
+        <!-- Currently selected filters -->
+        <div class="selected-filters mb-3">
+            <span class="badge bg-lottery me-2 current-lottery-type">All Lottery Types</span>
+            <span class="badge bg-lottery me-2 current-time-period">All Time</span>
+            <button class="btn btn-sm btn-link text-decoration-none reset-filters" type="button">
+                <i class="fas fa-undo-alt me-1"></i>Reset
+            </button>
+        </div>
+        
         <div class="row">
             <!-- Flex container that adjusts to mobile -->
             <div class="flex-container">
                 <!-- Left chart: Most Frequent Numbers -->
                 <div class="frequency-chart-container">
-                    <h6 class="mb-2">Most Frequent Numbers</h6>
+                    <h6 class="mb-2 d-flex justify-content-between">
+                        <span>Most Frequent Numbers</span>
+                        <span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>
+                    </h6>
                     <!-- SVG bar chart with perfect alignment between bars and numbers -->
                     <div class="bar-chart-container" style="position: relative; width: 100%; height: 170px;">
-                        <!-- Y-axis labels - moved to left of the chart with equal spacing -->
-                        <div style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px;">
-                            <div style="position: absolute; top: 0%; right: 5px; font-size: 11px; color: #666;">16</div>
-                            <div style="position: absolute; top: 16%; right: 5px; font-size: 11px; color: #666;">14</div>
-                            <div style="position: absolute; top: 32%; right: 5px; font-size: 11px; color: #666;">12</div>
-                            <div style="position: absolute; top: 48%; right: 5px; font-size: 11px; color: #666;">10</div>
-                            <div style="position: absolute; top: 64%; right: 5px; font-size: 11px; color: #666;">8</div>
-                            <div style="position: absolute; top: 80%; right: 5px; font-size: 11px; color: #666;">6</div>
-                            <div style="position: absolute; bottom: 0; right: 5px; font-size: 11px; color: #666;">0</div>
+                        <!-- Y-axis labels with dynamic values based on data range -->
+                        <div class="y-axis-labels" style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px;">
+                            {% if frequent_numbers %}
+                                {% set max_frequency = frequent_numbers[0][1] if frequent_numbers|length > 0 else 1 %}
+                                {% set step = (max_frequency / 5)|round(0, 'ceil')|int %}
+                                {% if step < 1 %}{% set step = 1 %}{% endif %}
+                                
+                                <div style="position: absolute; top: 0%; right: 5px; font-size: 11px; color: #666;">{{ max_frequency }}</div>
+                                <div style="position: absolute; top: 20%; right: 5px; font-size: 11px; color: #666;">{{ (max_frequency - step)|int }}</div>
+                                <div style="position: absolute; top: 40%; right: 5px; font-size: 11px; color: #666;">{{ (max_frequency - (step*2))|int }}</div>
+                                <div style="position: absolute; top: 60%; right: 5px; font-size: 11px; color: #666;">{{ (max_frequency - (step*3))|int }}</div>
+                                <div style="position: absolute; top: 80%; right: 5px; font-size: 11px; color: #666;">{{ (max_frequency - (step*4))|int }}</div>
+                                <div style="position: absolute; bottom: 0; right: 5px; font-size: 11px; color: #666;">0</div>
+                            {% else %}
+                                <div style="position: absolute; top: 0%; right: 5px; font-size: 11px; color: #666;">16</div>
+                                <div style="position: absolute; top: 20%; right: 5px; font-size: 11px; color: #666;">12</div>
+                                <div style="position: absolute; top: 40%; right: 5px; font-size: 11px; color: #666;">9</div>
+                                <div style="position: absolute; top: 60%; right: 5px; font-size: 11px; color: #666;">6</div>
+                                <div style="position: absolute; top: 80%; right: 5px; font-size: 11px; color: #666;">3</div>
+                                <div style="position: absolute; bottom: 0; right: 5px; font-size: 11px; color: #666;">0</div>
+                            {% endif %}
                         </div>
                         
-                        <!-- Chart area with grid line -->
-                        <div style="position: absolute; left: 30px; right: 0; top: 5px; bottom: 40px; border-bottom: 1px solid #ddd; border-left: 1px solid #ddd;">
+                        <!-- Chart area with grid lines -->
+                        <div class="chart-grid" style="position: absolute; left: 30px; right: 0; top: 5px; bottom: 40px; border-bottom: 1px solid #ddd; border-left: 1px solid #ddd;">
+                            <!-- Horizontal grid lines -->
+                            <div style="position: absolute; left: 0; right: 0; top: 20%; height: 1px; background-color: rgba(0,0,0,0.05);"></div>
+                            <div style="position: absolute; left: 0; right: 0; top: 40%; height: 1px; background-color: rgba(0,0,0,0.05);"></div>
+                            <div style="position: absolute; left: 0; right: 0; top: 60%; height: 1px; background-color: rgba(0,0,0,0.05);"></div>
+                            <div style="position: absolute; left: 0; right: 0; top: 80%; height: 1px; background-color: rgba(0,0,0,0.05);"></div>
+                            
                             <!-- Bar chart with exact positioning using dynamic data -->
-                            <div style="display: flex; justify-content: space-around; height: 100%; width: 100%;">
+                            <div class="frequency-bars" style="display: flex; justify-content: space-around; height: 100%; width: 100%;">
                                 {% if frequent_numbers %}
                                     {% set max_height = 90 %}
                                     {% set max_frequency = frequent_numbers[0][1] if frequent_numbers|length > 0 else 1 %}
@@ -351,17 +403,22 @@ Snap Scan and Win = Phanda Phusha Play</span>
                                         {% set color_index = loop.index0 % 4 %}
                                         
                                         <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;" 
-                                            class="bar-column" title="Number {{ number }} appeared {{ frequency }} times">
-                                            <div style="height: {{ bar_height }}px; width: 100%; background-color: {{ colors[color_index] }}; border-radius: 2px;" 
-                                                class="interactive-bar" 
-                                                data-number="{{ number }}" 
-                                                data-frequency="{{ frequency }}"></div>
+                                            class="bar-column" 
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            data-bs-title="Number {{ number }} appeared {{ frequency }} times">
+                                            <!-- Frequency at top of bar -->
+                                            <div style="position: relative; width: 80%; height: {{ bar_height }}%;" class="interactive-bar-container">
+                                                <div class="interactive-bar" style="position: absolute; bottom: 0; left: 0; right: 0; height: 100%; background-color: {{ colors[color_index] }}; border-top-left-radius: 3px; border-top-right-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                                </div>
+                                                <span style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 9px; color: #666; white-space: nowrap;">{{ frequency }}</span>
+                                            </div>
                                         </div>
                                     {% endfor %}
                                 {% else %}
                                     <!-- Fallback if no data available -->
-                                    <div class="text-center" style="width: 100%;">
-                                        <p>No frequency data available</p>
+                                    <div class="text-center w-100 d-flex align-items-center justify-content-center">
+                                        <p class="text-muted mb-0">No frequency data available</p>
                                     </div>
                                 {% endif %}
                             </div>
@@ -371,7 +428,7 @@ Snap Scan and Win = Phanda Phusha Play</span>
                         <div style="position: absolute; left: 30px; right: 0; bottom: 0; height: 30px; display: flex; justify-content: space-around; padding: 5px 0;">
                             {% if frequent_numbers %}
                                 {% for number, frequency in frequent_numbers %}
-                                    <div style="font-size: 11px; text-align: center; width: 9%;">{{ number }}</div>
+                                    <div style="font-size: 11px; text-align: center; width: 9%; font-weight: bold; color: #333;">{{ number }}</div>
                                 {% endfor %}
                             {% endif %}
                         </div>
@@ -380,7 +437,10 @@ Snap Scan and Win = Phanda Phusha Play</span>
                 
                 <!-- Right chart: Winners By Division -->
                 <div class="winners-chart-container">
-                    <h6 class="mb-2" style="text-align: left;">Winners By Division</h6>
+                    <h6 class="mb-2 d-flex justify-content-between">
+                        <span>Winners By Division</span>
+                        <span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>
+                    </h6>
                     <!-- Chart container with pie chart and legend side by side -->
                     <div class="chart-legend-container">
                         <!-- Pie chart with responsive width using dynamic data -->
@@ -392,13 +452,17 @@ Snap Scan and Win = Phanda Phusha Play</span>
                                     {% set total_winners = total_winners + winners %}
                                 {% endfor %}
                                 
-                                <!-- Simple interactive pie chart with division data -->
+                                <!-- Interactive pie chart with enhanced division data -->
                                 <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" class="interactive-pie">
-                                    <!-- Base circle -->
-                                    <circle cx="50" cy="50" r="40" fill="#f8f9fa" />
+                                    <!-- Base circle with subtle shadow -->
+                                    <filter id="dropShadow">
+                                        <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.2"/>
+                                    </filter>
+                                    <circle cx="50" cy="50" r="40" fill="#f8f9fa" filter="url(#dropShadow)" />
                                     
-                                    <!-- Division segments with data attributes - exactly 5 segments -->
+                                    <!-- Division segments with data attributes and enhanced styling -->
                                     {% set colors_map = {'1': '#e03237', '2': '#ffe11d', '3': '#19a03a', '4': '#67c6ed', '5': '#6c757d'} %}
+                                    
                                     <!-- Each segment has an exact position in the pie chart, creating 5 equal divisions -->
                                     {% set positions = [
                                         {'div': '1', 'path': 'M50,50 L90,50 A40,40 0 0,1 72,85 Z'}, 
@@ -421,15 +485,41 @@ Snap Scan and Win = Phanda Phusha Play</span>
                                             data-division="{{ div_num }}" 
                                             data-winners="{{ winners }}"
                                             data-percentage="{{ percentage }}"
-                                            title="Division {{ div_num }}: {{ winners }} winners ({{ percentage }}%)"
-                                            onmouseover="this.style.opacity='0.8';" 
-                                            onmouseout="this.style.opacity='1';"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-title="Division {{ div_num }}: {{ winners|int }} winners ({{ percentage }}%)"
                                         ></path>
+                                        
+                                        <!-- Add percentage label within segment if it's a significant portion -->
+                                        {% if percentage >= 15 %}
+                                            <!-- Calculate position for text based on segment position -->
+                                            {% set text_positions = {
+                                                '1': {'x': 70, 'y': 65},
+                                                '2': {'x': 50, 'y': 75},
+                                                '3': {'x': 30, 'y': 65},
+                                                '4': {'x': 35, 'y': 35},
+                                                '5': {'x': 65, 'y': 35}
+                                            } %}
+                                            
+                                            <text x="{{ text_positions[div_num]['x'] }}" 
+                                                 y="{{ text_positions[div_num]['y'] }}" 
+                                                 text-anchor="middle" 
+                                                 dominant-baseline="middle" 
+                                                 fill="white" 
+                                                 font-size="8"
+                                                 font-weight="bold"
+                                                 class="segment-text">
+                                                {{ percentage }}%
+                                            </text>
+                                        {% endif %}
                                     {% endfor %}
                                     
-                                    <!-- Center text showing total -->
-                                    <text x="50" y="50" text-anchor="middle" dominant-baseline="middle" fill="#333" font-size="8">
-                                        Total: {{ total_winners }}
+                                    <!-- Center circle with total count -->
+                                    <circle cx="50" cy="50" r="20" fill="white" stroke="#ddd" stroke-width="1" />
+                                    <text x="50" y="45" text-anchor="middle" dominant-baseline="middle" fill="#333" font-size="7" font-weight="bold">
+                                        Total Winners
+                                    </text>
+                                    <text x="50" y="55" text-anchor="middle" dominant-baseline="middle" fill="#333" font-size="9" font-weight="bold">
+                                        {{ total_winners|int }}
                                     </text>
                                 </svg>
                             {% else %}
@@ -440,7 +530,7 @@ Snap Scan and Win = Phanda Phusha Play</span>
                             {% endif %}
                         </div>
                         
-                        <!-- Legend with vertical layout that becomes more compact on mobile -->
+                        <!-- Enhanced legend with vertical layout and better visual indicators -->
                         <div class="legend-container">
                             {% if division_stats %}
                                 {% set total_winners = 0 %}
@@ -454,17 +544,19 @@ Snap Scan and Win = Phanda Phusha Play</span>
                                     {% set class_name = colors.get(div_num|string, 'legend-color-default') %}
                                     {% set percentage = (winners / total_winners * 100)|round(1) if total_winners > 0 else 0 %}
                                     
-                                    <div class="legend-item" 
+                                    <div class="legend-item d-flex align-items-center" 
                                          data-division="{{ div_num }}" 
                                          data-winners="{{ winners }}"
                                          data-percentage="{{ percentage }}"
-                                         title="Division {{ div_num }}: {{ winners }} winners ({{ percentage }}% of total)"
-                                         onmouseover="this.style.backgroundColor='rgba(0,0,0,0.05)'; highlightPieSegment('{{ div_num }}');" 
-                                         onmouseout="this.style.backgroundColor='transparent'; resetPieSegments();">
+                                         data-bs-toggle="tooltip" 
+                                         data-bs-placement="right"
+                                         data-bs-title="Division {{ div_num }}: {{ winners|int }} winners ({{ percentage }}% of total)">
                                         
-                                        <span class="legend-color {{ class_name }}"></span> 
-                                        <strong>Division {{ div_num }}</strong> 
-                                        <small>{{ winners }} winners ({{ percentage }}%)</small>
+                                        <span class="legend-color {{ class_name }} me-2"></span>
+                                        <div class="d-flex flex-column">
+                                            <strong class="mb-0">Division {{ div_num }}</strong> 
+                                            <small class="text-muted">{{ winners|int }} winners ({{ percentage }}%)</small>
+                                        </div>
                                     </div>
                                 {% endfor %}
                             {% else %}
@@ -476,8 +568,8 @@ Snap Scan and Win = Phanda Phusha Play</span>
                 </div>
             </div>
         </div>
-        <div class="text-center">
-            <a href="{{ url_for('visualizations') }}" class="btn btn-danger" style="background-color: #dc3545; font-size: 0.875rem; padding: 4px 12px;">
+        <div class="text-center mt-3">
+            <a href="{{ url_for('visualizations') }}" class="btn btn-lottery-primary">
                 <i class="fas fa-chart-bar me-1"></i> View Full Analytics Dashboard
             </a>
         </div>
@@ -545,6 +637,99 @@ function resetPieSegments() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+    
+    // Filter functionality
+    const lotteryTypeFilters = document.querySelectorAll('a[data-lottery-type]');
+    const timePeriodFilters = document.querySelectorAll('a[data-time-period]');
+    const resetFiltersBtn = document.querySelector('.reset-filters');
+    const currentLotteryType = document.querySelector('.current-lottery-type');
+    const currentTimePeriod = document.querySelector('.current-time-period');
+    const loadingIndicators = document.querySelectorAll('.chart-loading');
+    
+    // Filter selection handlers
+    lotteryTypeFilters.forEach(filter => {
+        filter.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Update active state
+            lotteryTypeFilters.forEach(f => f.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update displayed filter
+            const lotteryType = this.dataset.lotteryType;
+            currentLotteryType.textContent = lotteryType === 'all' ? 'All Lottery Types' : lotteryType;
+            
+            // Show loading state
+            loadingIndicators.forEach(indicator => indicator.classList.remove('d-none'));
+            
+            // In a production app, we would fetch data via AJAX here
+            // For demo, we'll just simulate a loading delay
+            setTimeout(() => {
+                loadingIndicators.forEach(indicator => indicator.classList.add('d-none'));
+                // In production: updateCharts(lotteryType, currentTimePeriod.dataset.period);
+            }, 500);
+        });
+    });
+    
+    timePeriodFilters.forEach(filter => {
+        filter.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Update active state
+            timePeriodFilters.forEach(f => f.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update displayed filter
+            const timePeriod = this.dataset.timePeriod;
+            currentTimePeriod.textContent = timePeriod === 'all' ? 'All Time' : 
+                                          timePeriod === '30' ? 'Last 30 Days' : 
+                                          timePeriod === '90' ? 'Last 90 Days' : 'Last Year';
+            
+            // Show loading state
+            loadingIndicators.forEach(indicator => indicator.classList.remove('d-none'));
+            
+            // In a production app, we would fetch data via AJAX here
+            // For demo, we'll just simulate a loading delay
+            setTimeout(() => {
+                loadingIndicators.forEach(indicator => indicator.classList.add('d-none'));
+                // In production: updateCharts(currentLotteryType.dataset.type, timePeriod);
+            }, 500);
+        });
+    });
+    
+    // Reset filters
+    resetFiltersBtn.addEventListener('click', function() {
+        // Reset active states
+        lotteryTypeFilters.forEach(f => {
+            f.classList.remove('active');
+            if (f.dataset.lotteryType === 'all') f.classList.add('active');
+        });
+        
+        timePeriodFilters.forEach(f => {
+            f.classList.remove('active');
+            if (f.dataset.timePeriod === 'all') f.classList.add('active');
+        });
+        
+        // Reset displayed filters
+        currentLotteryType.textContent = 'All Lottery Types';
+        currentTimePeriod.textContent = 'All Time';
+        
+        // Show loading state
+        loadingIndicators.forEach(indicator => indicator.classList.remove('d-none'));
+        
+        // In a production app, we would fetch data via AJAX here
+        // For demo, we'll just simulate a loading delay
+        setTimeout(() => {
+            loadingIndicators.forEach(indicator => indicator.classList.add('d-none'));
+            // In production: updateCharts('all', 'all');
+        }, 500);
+    });
+    
     // Add hover effects for bar chart
     const bars = document.querySelectorAll('.interactive-bar');
     bars.forEach(bar => {

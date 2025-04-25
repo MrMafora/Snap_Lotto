@@ -6,6 +6,18 @@ This file is imported by gunicorn using the 'main:app' notation.
 It also includes functionality to automatically bind to port 8080 
 when running directly, to support Replit's external access requirements.
 """
+import logging
+import os
+import threading
+import traceback
+from datetime import datetime, timedelta
+from functools import wraps
+
+# Set up logging first
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Now that logger is defined, import other modules
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory, send_file, session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -13,12 +25,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 # Import EnhancedCSRFProtect instead of CSRFProtect
 from csrf_fix import EnhancedCSRFProtect
-
-import logging
-import os
-import threading
-from datetime import datetime, timedelta
-from functools import wraps
 
 # Import models only (lightweight)
 from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, db
@@ -29,9 +35,12 @@ import ad_management
 import lottery_analysis
 from import_latest_spreadsheet import import_latest_spreadsheet, find_latest_spreadsheet
 
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+# Import auto_proxy to start the port proxy in the background
+try:
+    import auto_proxy
+    logger.info("Port proxy auto-starter loaded")
+except Exception as e:
+    logger.error(f"Failed to load port proxy auto-starter: {e}")
 
 # Create the Flask application
 app = Flask(__name__)
