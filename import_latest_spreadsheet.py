@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 def find_latest_spreadsheet(directory="attached_assets", pattern="lottery_data_*.xlsx"):
     """
     Find the most recent Excel spreadsheet matching the pattern in the specified directory.
+    If no files match the specified pattern, try to find any Excel file.
     
     Args:
         directory (str): Directory to search in
@@ -31,12 +32,34 @@ def find_latest_spreadsheet(directory="attached_assets", pattern="lottery_data_*
     Returns:
         str: Path to the most recent matching file, or None if not found
     """
-    # Get full path to the directory
+    # Get full path to the directory for the primary pattern
     search_path = os.path.join(directory, pattern)
     matching_files = glob.glob(search_path)
     
+    # If no files match the primary pattern, try other common patterns
     if not matching_files:
-        logger.error(f"No files matching '{pattern}' found in '{directory}'")
+        logger.warning(f"No files matching '{pattern}' found in '{directory}', trying alternative patterns...")
+        alternative_patterns = ["*.xlsx", "lottery*.xlsx", "*lottery*.xlsx", "*data*.xlsx"]
+        
+        for alt_pattern in alternative_patterns:
+            alt_search_path = os.path.join(directory, alt_pattern)
+            matching_files = glob.glob(alt_search_path)
+            if matching_files:
+                logger.info(f"Found files matching alternative pattern '{alt_pattern}'")
+                break
+    
+    # If still no files found, try to find any Excel files in the uploads folder
+    if not matching_files:
+        uploads_dir = "uploads"
+        if os.path.exists(uploads_dir):
+            uploads_search_path = os.path.join(uploads_dir, "*.xlsx")
+            matching_files = glob.glob(uploads_search_path)
+            if matching_files:
+                logger.info(f"Found Excel files in the uploads directory")
+    
+    # If no matching files found after all attempts
+    if not matching_files:
+        logger.error(f"No Excel files found in '{directory}' or in uploads directory")
         return None
     
     # Find the most recently modified file

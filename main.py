@@ -626,35 +626,60 @@ def reset_file_upload_progress():
 @login_required
 @csrf.exempt
 def import_latest_spreadsheet_route():
-    """Import the latest spreadsheet file from attached_assets directory"""
+    """Import the latest spreadsheet file from attached_assets or uploads directory"""
     if not current_user.is_admin:
         flash('You must be an admin to import data.', 'danger')
         return redirect(url_for('index'))
     
     import_type = request.form.get('import_type', 'excel')
     purge = request.form.get('purge', 'no') == 'yes'
-    pattern = request.form.get('pattern', 'lottery_data_*.xlsx')
-    
-    # Find the latest spreadsheet before importing
-    latest_file = find_latest_spreadsheet("attached_assets", pattern)
-    
-    if not latest_file:
-        flash(f'No spreadsheet files matching pattern "{pattern}" found in attached_assets directory.', 'danger')
-        return redirect(url_for('import_data'))
+    pattern = request.form.get('pattern', '*.xlsx')  # Modified to look for any Excel file
     
     try:
-        success = import_latest_spreadsheet("attached_assets", pattern, import_type, purge)
+        # First, try to find in attached_assets
+        latest_file = find_latest_spreadsheet("attached_assets", pattern)
+        
+        # If not found in attached_assets, look in uploads directory
+        if not latest_file and os.path.exists("uploads"):
+            latest_file = find_latest_spreadsheet("uploads", pattern)
+            
+            if latest_file:
+                logger.info(f"Using spreadsheet from uploads directory: {latest_file}")
+                # If found in uploads, use that directory for import
+                success = import_latest_spreadsheet("uploads", pattern, import_type, purge)
+        else:
+            # Using spreadsheet from attached_assets
+            success = import_latest_spreadsheet("attached_assets", pattern, import_type, purge)
+        
+        if not latest_file:
+            # Try one more time with the original lottery_data_*.xlsx pattern
+            original_pattern = "lottery_data_*.xlsx"
+            latest_file = find_latest_spreadsheet("attached_assets", original_pattern)
+            
+            if not latest_file and os.path.exists("uploads"):
+                latest_file = find_latest_spreadsheet("uploads", original_pattern)
+                
+                if latest_file:
+                    # If found in uploads with original pattern, use that
+                    success = import_latest_spreadsheet("uploads", original_pattern, import_type, purge)
+            else:
+                # Using spreadsheet from attached_assets with original pattern
+                success = import_latest_spreadsheet("attached_assets", original_pattern, import_type, purge)
+        
+        if not latest_file:
+            flash(f'No Excel spreadsheets found in attached_assets or uploads directories. Please upload a spreadsheet first.', 'danger')
+            return redirect(url_for('import_data'))
         
         if success:
             flash(f'Successfully imported latest spreadsheet: {os.path.basename(latest_file)}', 'success')
         else:
-            flash(f'Failed to import latest spreadsheet: {os.path.basename(latest_file)}', 'danger')
+            flash(f'Failed to import spreadsheet: {os.path.basename(latest_file)}. Check logs for details.', 'danger')
             
         return redirect(url_for('import_data'))
         
     except Exception as e:
-        logger.exception(f"Error importing latest spreadsheet: {str(e)}")
-        flash(f'Error importing latest spreadsheet: {str(e)}', 'danger')
+        logger.exception(f"Error importing spreadsheet: {str(e)}")
+        flash(f'Error importing spreadsheet: {str(e)}', 'danger')
         return redirect(url_for('import_data'))
 
 @app.route('/import-history')
