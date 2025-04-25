@@ -1,27 +1,18 @@
 
 """
-Gunicorn configuration file
+Gunicorn configuration file for deployment
 """
 import os
-import logging
 import sys
+import logging
 
 # Setup basic logging
 logging.basicConfig(level=logging.INFO, 
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('gunicorn.conf')
 
-# CRITICAL: Override bind setting - explicitly bind to port 8080
+# Always bind to port 8080 for Replit compatibility
 bind = "0.0.0.0:8080"
-
-# Force overwrite of bind setting at runtime
-def get_bind():
-    return "0.0.0.0:8080"
-
-# Make absolutely certain we bind to port 8080
-os.environ['PORT'] = '8080'
-os.environ['GUNICORN_PORT'] = '8080'
-os.environ['REPLIT_PORT'] = '8080'
 
 # Worker configuration
 workers = 2
@@ -35,9 +26,11 @@ errorlog = "-"
 loglevel = "info"
 
 def on_starting(server):
+    """Log server startup"""
     logger.info(f"Gunicorn starting - binding to {bind}")
     print(f"Gunicorn starting - binding to {bind}", file=sys.stderr)
 
 def post_fork(server, worker):
-    logger.info(f"Worker forked - running on port 8080")
-    print(f"Worker forked - running on port 8080", file=sys.stderr)
+    """Log worker startup"""
+    logger.info("Worker forked - running on port 8080")
+    print("Worker forked - running on port 8080", file=sys.stderr)
