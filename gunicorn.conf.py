@@ -15,7 +15,7 @@ environment = os.environ.get('ENVIRONMENT', 'development')
 port = os.environ.get('PORT', '8080')  # Default to 8080 for Replit compatibility
 
 # Bind to the appropriate port
-bind = f"0.0.0.0:{port}"
+bind = f"0.0.0.0:5000"
 
 # Print binding information to help debug port issues
 logger.info(f"Gunicorn configured to bind to {bind}")
