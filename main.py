@@ -203,20 +203,24 @@ def index():
             seen_draws = {}
             normalized_results = {}
             
-            # First pass: create a mapping of normalized game types
+            # First, create a dictionary to group results by normalized type
+            type_groups = {}
             for lottery_type, result in latest_results.items():
                 # Normalize the lottery type
                 normalized_type = data_aggregator.normalize_lottery_type(lottery_type)
                 
-                # Use the normalized type as the key
-                if normalized_type not in normalized_results:
-                    normalized_results[normalized_type] = result
-                    # Save the normalized type back to the result for display
-                    result.normalized_type = normalized_type
-                # If we already have a result for this type, keep the newest one
-                elif result.draw_date > normalized_results[normalized_type].draw_date:
-                    normalized_results[normalized_type] = result
-                    result.normalized_type = normalized_type
+                # Group all results by normalized type
+                if normalized_type not in type_groups:
+                    type_groups[normalized_type] = []
+                type_groups[normalized_type].append(result)
+            
+            # Now select the newest result for each normalized type
+            for normalized_type, type_results in type_groups.items():
+                # Sort by date (newest first)
+                type_results.sort(key=lambda x: x.draw_date, reverse=True)
+                # Take the newest result only
+                newest_result = type_results[0]
+                normalized_results[normalized_type] = newest_result
             
             # Second pass: add results using normalized keys to avoid duplicates
             for normalized_type, result in normalized_results.items():
