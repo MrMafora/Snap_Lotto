@@ -440,130 +440,76 @@
                 <div class="chart-card">
                     <h6 class="mb-3 d-flex justify-content-between">
                         <span>Hot & Cold Numbers</span>
-                        <span class="chart-loading" id="pieChartLoading"><i class="fas fa-spinner fa-spin"></i></span>
+                        <span class="chart-loading d-none" id="hotColdLoading"><i class="fas fa-spinner fa-spin"></i></span>
                     </h6>
-                    <!-- Chart container with pie chart and legend side by side -->
-                    <div class="chart-legend-container" id="pieChartContainer" style="display: none;">
-                        <!-- Pie chart with responsive width using dynamic data -->
-                        <div class="pie-chart-container">
-                            {% if division_stats %}
-                                <!-- Calculate total for percentage -->
-                                {% set total_winners = 0 %}
-                                {% for div_num, winners in division_stats.items() %}
-                                    {% set total_winners = total_winners + winners %}
-                                {% endfor %}
-                                
-                                <!-- Interactive pie chart with enhanced division data -->
-                                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" class="interactive-pie">
-                                    <!-- Base circle with subtle shadow -->
-                                    <filter id="dropShadow">
-                                        <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.2"/>
-                                    </filter>
-                                    <circle cx="50" cy="50" r="40" fill="#f8f9fa" filter="url(#dropShadow)" />
-                                    
-                                    <!-- Division segments with data attributes and enhanced styling -->
-                                    {% set colors_map = {'1': '#e03237', '2': '#ffe11d', '3': '#19a03a', '4': '#67c6ed', '5': '#6c757d'} %}
-                                    
-                                    <!-- Each segment has an exact position in the pie chart, creating 5 equal divisions -->
-                                    {% set positions = [
-                                        {'div': '1', 'path': 'M50,50 L90,50 A40,40 0 0,1 72,85 Z'}, 
-                                        {'div': '2', 'path': 'M50,50 L72,85 A40,40 0 0,1 28,85 Z'}, 
-                                        {'div': '3', 'path': 'M50,50 L28,85 A40,40 0 0,1 10,50 Z'}, 
-                                        {'div': '4', 'path': 'M50,50 L10,50 A40,40 0 0,1 50,10 Z'},
-                                        {'div': '5', 'path': 'M50,50 L50,10 A40,40 0 0,1 90,50 Z'}
-                                    ] %}
-                                    
-                                    {% for pos in positions %}
-                                        {% set div_num = pos.div %}
-                                        {% set winners = division_stats.get(div_num|int, 0) %}
-                                        {% set percentage = (winners / total_winners * 100)|round(1) if total_winners > 0 else 0 %}
-                                        {% set color = colors_map.get(div_num, '#6c757d') %}
-                                        
-                                        <path 
-                                            d="{{ pos.path }}" 
-                                            fill="{{ color }}" 
-                                            class="pie-segment" 
-                                            data-division="{{ div_num }}" 
-                                            data-winners="{{ winners }}"
-                                            data-percentage="{{ percentage }}"
-                                            data-bs-toggle="tooltip"
-                                            data-bs-title="Division {{ div_num }}: {{ winners|int }} winners ({{ percentage }}%)"
-                                        ></path>
-                                        
-                                        <!-- Add percentage label within segment if it's a significant portion -->
-                                        {% if percentage >= 15 %}
-                                            <!-- Calculate position for text based on segment position -->
-                                            {% set text_positions = {
-                                                '1': {'x': 70, 'y': 65},
-                                                '2': {'x': 50, 'y': 75},
-                                                '3': {'x': 30, 'y': 65},
-                                                '4': {'x': 35, 'y': 35},
-                                                '5': {'x': 65, 'y': 35}
-                                            } %}
-                                            
-                                            <text x="{{ text_positions[div_num]['x'] }}" 
-                                                 y="{{ text_positions[div_num]['y'] }}" 
-                                                 text-anchor="middle" 
-                                                 dominant-baseline="middle" 
-                                                 fill="white" 
-                                                 font-size="8"
-                                                 font-weight="bold"
-                                                 class="segment-text">
-                                                {{ percentage }}%
-                                            </text>
-                                        {% endif %}
+                    
+                    <!-- Hot & Cold Numbers Display -->
+                    <div class="hot-cold-container">
+                        <!-- Hot Numbers (Most Frequent) -->
+                        <div class="hot-numbers mb-4">
+                            <h6 class="fw-bold text-danger mb-2">
+                                <i class="fas fa-fire me-1"></i> Hot Numbers
+                                <small class="text-muted">(Most Frequent)</small>
+                            </h6>
+                            <div class="d-flex flex-wrap" id="hotNumbersContainer">
+                                {% if frequent_numbers and frequent_numbers|length > 0 %}
+                                    {% for number, frequency in frequent_numbers[:5] %}
+                                        {% set colors = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'] %}
+                                        <div class="hot-number-item me-2 mb-2">
+                                            <span class="lottery-ball lottery-ball-sm {{ colors[loop.index0] }}">
+                                                <span class="number">{{ number }}</span>
+                                            </span>
+                                            <small class="frequency-label d-block text-center mt-1">{{ frequency }}x</small>
+                                        </div>
                                     {% endfor %}
-                                    
-                                    <!-- Center circle with total count -->
-                                    <circle cx="50" cy="50" r="20" fill="white" stroke="#ddd" stroke-width="1" />
-                                    <text x="50" y="45" text-anchor="middle" dominant-baseline="middle" fill="#333" font-size="7" font-weight="bold">
-                                        Total Winners
-                                    </text>
-                                    <text x="50" y="55" text-anchor="middle" dominant-baseline="middle" fill="#333" font-size="9" font-weight="bold">
-                                        {{ total_winners|int }}
-                                    </text>
-                                </svg>
-                            {% else %}
-                                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                                    <circle cx="50" cy="50" r="40" fill="#f8f9fa" />
-                                    <text x="50" y="50" text-anchor="middle" dominant-baseline="middle" fill="#6c757d" font-size="6">No data</text>
-                                </svg>
-                            {% endif %}
+                                {% else %}
+                                    <div class="text-muted">No hot numbers data available</div>
+                                {% endif %}
+                            </div>
                         </div>
                         
-                        <!-- Enhanced legend with vertical layout and better visual indicators -->
-                        <div class="legend-container">
-                            {% if division_stats %}
-                                {% set total_winners = 0 %}
-                                {% for div_num, winners in division_stats.items() %}
-                                    {% set total_winners = total_winners + winners %}
-                                {% endfor %}
-                                
-                                {% set colors = {'1': 'legend-color-red', '2': 'legend-color-yellow', '3': 'legend-color-green', '4': 'legend-color-blue', '5': 'legend-color-default'} %}
-                                
-                                {% for div_num, winners in division_stats.items()|sort %}
-                                    {% set class_name = colors.get(div_num|string, 'legend-color-default') %}
-                                    {% set percentage = (winners / total_winners * 100)|round(1) if total_winners > 0 else 0 %}
-                                    
-                                    <div class="legend-item d-flex align-items-center" 
-                                         data-division="{{ div_num }}" 
-                                         data-winners="{{ winners }}"
-                                         data-percentage="{{ percentage }}"
-                                         data-bs-toggle="tooltip" 
-                                         data-bs-placement="right"
-                                         data-bs-title="Division {{ div_num }}: {{ winners|int }} winners ({{ percentage }}% of total)">
-                                        
-                                        <span class="legend-color {{ class_name }} me-2"></span>
-                                        <div class="d-flex flex-column">
-                                            <strong class="mb-0">Division {{ div_num }}</strong> 
-                                            <small class="text-muted">{{ winners|int }} winners ({{ percentage }}%)</small>
+                        <!-- Cold Numbers (Least Frequent) -->
+                        <div class="cold-numbers">
+                            <h6 class="fw-bold text-primary mb-2">
+                                <i class="fas fa-snowflake me-1"></i> Cold Numbers
+                                <small class="text-muted">(Least Frequent)</small>
+                            </h6>
+                            <div class="d-flex flex-wrap" id="coldNumbersContainer">
+                                {% if cold_numbers and cold_numbers|length > 0 %}
+                                    {% for number, frequency in cold_numbers[:5] %}
+                                        <div class="cold-number-item me-2 mb-2">
+                                            <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                                                <span class="number">{{ number }}</span>
+                                            </span>
+                                            <small class="frequency-label d-block text-center mt-1">{{ frequency }}x</small>
                                         </div>
-                                    </div>
-                                {% endfor %}
-                            {% else %}
-                                <!-- Fallback if no division data -->
-                                <div class="legend-item">No division data available</div>
-                            {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="text-muted">No cold numbers data available</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Number Not Drawn Recently -->
+                        <div class="absent-numbers mt-4">
+                            <h6 class="fw-bold text-success mb-2">
+                                <i class="fas fa-clock me-1"></i> Numbers Not Drawn Recently
+                                <small class="text-muted">(Due Numbers)</small>
+                            </h6>
+                            <div class="d-flex flex-wrap" id="absentNumbersContainer">
+                                {% if absent_numbers and absent_numbers|length > 0 %}
+                                    {% for number, days in absent_numbers[:5] %}
+                                        <div class="absent-number-item me-2 mb-2">
+                                            <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                                                <span class="number">{{ number }}</span>
+                                            </span>
+                                            <small class="frequency-label d-block text-center mt-1">{{ days }} days</small>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="text-muted">No absent numbers data available</div>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
