@@ -591,7 +591,7 @@
 
 /* Updated to use Bootstrap grid for equal width columns */
 .data-analytics-preview .chart-card {
-    height: 350px;
+    height: 360px; /* Match the other cards */
     margin-bottom: 20px;
     background-color: #fff;
     padding: 15px;
@@ -600,13 +600,19 @@
     overflow: hidden; /* Hide overflow content instead of scrolling */
 }
 
+/* Match hot-cold card height with chart card */
+.data-analytics-preview .card:not(.chart-card) {
+    height: 360px;
+    overflow: hidden;
+}
+
 .chart-card {
     background-color: #fff;
     padding: 8px;
     border-radius: 5px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     margin-bottom: 20px;
-    height: 365px; /* Increased to match the hot-cold container */
+    height: 360px; /* Fixed height to match both sides */
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -717,29 +723,15 @@
 
 /* Hot & Cold Numbers Styling */
 .hot-cold-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+    display: block;
     height: 100%;
-    max-height: none; /* Remove max-height constraint */
-    overflow: hidden;
-    justify-content: space-between; /* Distribute space to push last item to bottom */
+    overflow: auto; /* Allow scrolling if needed instead of hiding */
+    padding-bottom: 10px;
 }
 
-.hot-numbers {
+.hot-numbers, .cold-numbers, .absent-numbers {
     padding-bottom: 5px;
-    margin-bottom: 5px;
-}
-
-.cold-numbers {
-    padding-bottom: 5px;
-    margin-bottom: 15px;
-}
-
-.absent-numbers {
-    padding-bottom: 0;
-    margin-bottom: 0;
-    margin-top: auto; /* Push to bottom of flex container */
+    margin-bottom: 8px;
 }
 
 .hot-number-item, .cold-number-item, .absent-number-item {
