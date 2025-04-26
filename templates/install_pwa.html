@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Install Snap Lotto App{% endblock %}
+
+{% block meta_description %}Install Snap Lotto as a mobile app on your phone for faster access to lottery results and ticket scanning.{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h1 class="h4 mb-0">Install Snap Lotto as an App</h1>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('static', filename='icons/icon-192x192.png') }}" alt="Snap Lotto Logo" class="img-fluid" style="max-width: 120px;">
+                    </div>
+                    
+                    <p class="lead text-center mb-4">Enjoy faster access to South Africa's #1 Lottery Scanner App directly from your home screen!</p>
+                    
+                    <div class="alert alert-info" id="install-instructions">
+                        <p class="mb-0"><strong>How to install:</strong> Look for the "Add to Home Screen" option in your browser menu or tap the install banner when it appears.</p>
+                    </div>
+                    
+                    <div id="install-button-container" class="text-center mb-4">
+                        <button id="install-button" class="btn btn-primary btn-lg" style="display: none;">
+                            <i class="fas fa-download me-2"></i> Install App
+                        </button>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-bolt me-2"></i>Fast Access</h5>
+                                    <p class="card-text">Open Snap Lotto instantly from your home screen without navigating to a browser.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-wifi-slash me-2"></i>Works Offline</h5>
+                                    <p class="card-text">Basic features available even when you don't have an internet connection.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-mobile-alt me-2"></i>App-like Experience</h5>
+                                    <p class="card-text">Looks and feels like a native app with full-screen experience.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-bell me-2"></i>Notifications</h5>
+                                    <p class="card-text">Get the latest draw results right on your device (coming soon).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let deferredPrompt;
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        // Stash the event so it can be triggered later
+        deferredPrompt = e;
+        // Update UI to notify the user they can install the PWA
+        const installButton = document.getElementById('install-button');
+        if (installButton) {
+            installButton.style.display = 'inline-block';
+            
+            installButton.addEventListener('click', async () => {
+                // Show the install prompt
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    // Wait for the user to respond to the prompt
+                    const { outcome } = await deferredPrompt.userChoice;
+                    // We've used the prompt, and can't use it again, throw it away
+                    deferredPrompt = null;
+                    
+                    if (outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                        installButton.style.display = 'none';
+                        document.getElementById('install-instructions').innerHTML = 
+                            '<p class="mb-0"><strong>Thanks for installing!</strong> You can now access Snap Lotto directly from your home screen.</p>';
+                    } else {
+                        console.log('User dismissed the install prompt');
+                    }
+                }
+            });
+        }
+    });
+    
+    // Detect if already installed
+    window.addEventListener('appinstalled', () => {
+        // Hide the app-provided install promotion
+        const installButton = document.getElementById('install-button');
+        if (installButton) {
+            installButton.style.display = 'none';
+        }
+        document.getElementById('install-instructions').innerHTML = 
+            '<p class="mb-0"><strong>App installed!</strong> You can now access Snap Lotto directly from your home screen.</p>';
+        console.log('PWA was installed');
+    });
+    
+    // Detect if already running as installed PWA
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+        document.getElementById('install-instructions').innerHTML = 
+            '<p class="mb-0"><strong>You\'re already using the app version!</strong> Enjoy the full-screen experience.</p>';
+        const installButton = document.getElementById('install-button');
+        if (installButton) {
+            installButton.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

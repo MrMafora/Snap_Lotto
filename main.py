@@ -168,6 +168,25 @@ def init_lazy_modules():
 # Start lazy loading in background thread
 threading.Thread(target=init_lazy_modules, daemon=True).start()
 
+# Route for offline page used by service worker
+@app.route('/offline')
+def offline():
+    """Offline fallback page when no internet connection is available"""
+    return render_template('offline.html', title="Snap Lotto - Offline")
+
+@app.route('/install')
+def install_pwa():
+    """App installation page for PWA"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Install App", "url": url_for('install_pwa')}
+    ]
+    
+    return render_template('install_pwa.html', 
+                          title="Install Snap Lotto App | Add to Home Screen",
+                          breadcrumbs=breadcrumbs,
+                          meta_description="Install Snap Lotto as a mobile app on your phone for faster access to South African lottery results and ticket scanning.")
+
 # Additional routes and functionality would be defined here...
 # For the sake of brevity, only core routes are included
 

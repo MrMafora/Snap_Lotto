@@ -49,6 +49,27 @@
     <link rel="canonical" href="{{ request.url }}">
     {% endif %}
     
+    <!-- PWA Support -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#FFE11D">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Snap Lotto">
+    <meta name="application-name" content="Snap Lotto">
+    
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icons/favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch/apple-icon-180x180.png') }}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='apple-touch/apple-icon-152x152.png') }}">
+    <link rel="apple-touch-icon" sizes="120x120" href="{{ url_for('static', filename='apple-touch/apple-icon-120x120.png') }}">
+    
+    <!-- Apple Splash Screens -->
+    <link rel="apple-touch-startup-image" media="screen and (device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='apple-touch/apple-splash-640x1136.png') }}">
+    <link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="{{ url_for('static', filename='apple-touch/apple-splash-1125x2436.png') }}">
+    <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="{{ url_for('static', filename='apple-touch/apple-splash-828x1792.png') }}">
+    
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/lottery.css') }}">
@@ -191,6 +212,7 @@
                         <li><a href="/guides/how-to-play-lotto" class="text-decoration-none">How to Play Lotto</a></li>
                         <li><a href="/guides/how-to-play-powerball" class="text-decoration-none">How to Play PowerBall</a></li>
                         <li><a href="/guides/how-to-play-daily-lotto" class="text-decoration-none">How to Play Daily Lotto</a></li>
+                        <li><a href="/install" class="text-decoration-none fw-bold"><i class="fas fa-download me-1"></i> Install App</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2">
@@ -248,6 +270,19 @@
     {% block additional_scripts %}{% endblock %}
     <script src="{{ url_for('static', filename='js/ads.js') }}"></script>
     <script>
+        // Register Service Worker for PWA support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(err => {
+                        console.error('Service Worker registration failed:', err);
+                    });
+            });
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             // Force light theme on all tables and rows
             const tables = document.querySelectorAll('.table, .table-lottery');
