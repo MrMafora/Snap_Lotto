@@ -597,7 +597,7 @@
     padding: 15px;
     border-radius: 5px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    overflow: auto; /* Add scrolling if content overflows */
+    overflow: hidden; /* Hide overflow content instead of scrolling */
 }
 
 .chart-card {
@@ -607,7 +607,7 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     margin-bottom: 20px;
     height: 350px;
-    overflow: auto;
+    overflow: hidden;
 }
 
 /* Deprecated flex container - now using Bootstrap grid */
@@ -714,22 +714,22 @@
 .hot-cold-container {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     height: 100%;
     max-height: 300px;
-    overflow-y: auto;
+    overflow: hidden;
 }
 
 .hot-numbers, .cold-numbers, .absent-numbers {
-    padding-bottom: 10px;
+    padding-bottom: 5px;
 }
 
 .hot-number-item, .cold-number-item, .absent-number-item {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
-    margin-right: 8px;
-    margin-bottom: 8px;
+    margin-right: 6px;
+    margin-bottom: 6px;
 }
 
 .frequency-label {
