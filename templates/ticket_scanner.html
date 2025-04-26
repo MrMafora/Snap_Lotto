@@ -1071,11 +1071,19 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 
                 // Prepare the results container first
                 if (resultsContainer) {
+                    // Show the results container
                     resultsContainer.classList.remove('d-none');
+                    
+                    // Set a flag to indicate we're showing results now
+                    // This helps prevent leaving the results page accidentally
+                    window.resultsBeingDisplayed = true;
                     
                     // Scroll to the results container
                     setTimeout(() => {
+                        // Double-check that the results container is still visible
+                        resultsContainer.classList.remove('d-none');
                         resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        console.log('Scrolled to results container');
                     }, 100);
                 } else {
                     console.error('Results container not found!');

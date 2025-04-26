@@ -351,10 +351,25 @@ window.AdManager = window.AdManager || {
     hideInterstitialAd: function() {
         console.log('Hiding all interstitial ads');
         
+        // Make sure the results container is visible first to prevent "kicking out"
+        const resultsContainer = document.getElementById('results-container');
+        if (resultsContainer) {
+            resultsContainer.classList.remove('d-none');
+            console.log('Ensuring results container is visible');
+        }
+        
         // Find and remove all direct ad elements with interstitial in the ID
         document.querySelectorAll('[id^="direct-ad-interstitial-"]').forEach(element => {
             element.remove();
         });
+        
+        // Get the ad overlay element
+        const adOverlayResults = document.getElementById('ad-overlay-results');
+        if (adOverlayResults) {
+            // Just hide it without messing with other settings
+            adOverlayResults.style.display = 'none';
+            console.log('Ad overlay results hidden properly');
+        }
         
         // Force restore scrolling on all elements
         document.body.style.overflow = 'auto';
@@ -371,10 +386,19 @@ window.AdManager = window.AdManager || {
             viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         }
         
-        // Force update body and viewport
+        // After a short delay, ensure we stay on the results page by:
+        // 1. Making sure the results container is visible
+        // 2. Scrolling to the results container
         setTimeout(function() {
-            window.scrollTo(0, 0);
-            window.scrollTo(0, 1);
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                resultsContainer.classList.remove('d-none');
+                resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                console.log('Scrolled to results container after ad closed');
+            } else {
+                // If no results container, just scroll to top
+                window.scrollTo(0, 0);
+            }
         }, 100);
     },
     
