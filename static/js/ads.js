@@ -274,7 +274,18 @@ window.AdManager = window.AdManager || {
 
     // Show the interstitial ad (before showing results)
     showInterstitialAd: function(callback) {
-        console.log('AdManager: Showing interstitial ad');
+        console.log('AdManager: Showing interstitial ad at ' + new Date().toISOString());
+        
+        // Set a flag to track that we're showing an ad - this prevents autohide timers
+        window.currentlyShowingAd = true;
+        window.adStartTime = Date.now();
+        
+        // SAFETY CHECK: If we're already in results mode, don't show the ad again
+        if (window.inResultsMode || window.showingResultsAfterAd) {
+            console.log('SAFETY: Already showing results, skipping ad overlay');
+            if (callback) callback(false);
+            return;
+        }
         
         // Use the enhanced showOverlay utility function if available
         if (typeof showOverlay === 'function') {
@@ -295,6 +306,8 @@ window.AdManager = window.AdManager || {
                     console.log('AdManager: Results overlay shown via direct manipulation');
                 } else {
                     console.error('AdManager: Results overlay element not found!');
+                    if (callback) callback(false);
+                    return;
                 }
             }
         } else {
@@ -308,12 +321,38 @@ window.AdManager = window.AdManager || {
                 console.log('AdManager: Results overlay shown via cssText manipulation');
             } else {
                 console.error('AdManager: Results overlay element not found!');
+                if (callback) callback(false);
+                return;
             }
         }
         
         // Load ad in the container inside the overlay
         const adContainerId = 'ad-container-interstitial';
-        this.loadAd(adContainerId, callback);
+        this.loadAd(adContainerId, function(success) {
+            // First, call the original callback
+            if (callback) callback(success);
+            
+            // Add event listeners to the View Results button to ensure we handle clicks properly
+            const viewResultsBtn = document.getElementById('view-results-btn');
+            if (viewResultsBtn) {
+                // Add a small delay just to make sure no other code is overriding our listener
+                setTimeout(() => {
+                    console.log('Adding safety event listener to View Results button');
+                    // Add one-time listener that can't be overridden
+                    viewResultsBtn.addEventListener('click', function ensureAdOverlayClosed(e) {
+                        // Remove this listener after first use
+                        viewResultsBtn.removeEventListener('click', ensureAdOverlayClosed);
+                        
+                        console.log('View Results clicked in ad manager listener');
+                        
+                        // Set the special flags to prevent automated redirects
+                        window.inResultsMode = true;
+                        window.viewResultsBtnClicked = true;
+                        window.currentlyShowingAd = false;
+                    }, { once: true, capture: true });
+                }, 200);
+            }
+        });
     },
     
     // Hide the loading ad (when results are ready)
