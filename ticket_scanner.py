@@ -40,8 +40,8 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     extracted_draw_number = ticket_info.get('draw_number')
     extracted_draw_date = ticket_info.get('draw_date')
     plays_powerball_plus = ticket_info.get('plays_powerball_plus', False)
-    plays_lotto_plus_1 = ticket_info.get('plays_lotto_plus_1', False)
-    plays_lotto_plus_2 = ticket_info.get('plays_lotto_plus_2', False)
+    plays_lottery_plus_1 = ticket_info.get('plays_lottery_plus_1', False) or ticket_info.get('plays_lotto_plus_1', False)
+    plays_lottery_plus_2 = ticket_info.get('plays_lottery_plus_2', False) or ticket_info.get('plays_lotto_plus_2', False)
     
     # Get both the raw and processed ticket numbers
     raw_ticket_info = ticket_info.get('raw_selected_numbers', {})
@@ -60,7 +60,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
         draw_number = extracted_draw_number
     
     # Log the extracted information
-    logger.info(f"Extracted ticket info - Game: {lottery_type}, Draw: {draw_number}, Date: {extracted_draw_date}, Numbers: {ticket_numbers}, Plays Powerball Plus: {plays_powerball_plus}, Plays Lotto Plus 1: {plays_lotto_plus_1}, Plays Lotto Plus 2: {plays_lotto_plus_2}")
+    logger.info(f"Extracted ticket info - Game: {lottery_type}, Draw: {draw_number}, Date: {extracted_draw_date}, Numbers: {ticket_numbers}, Plays Powerball Plus: {plays_powerball_plus}, Plays Lottery Plus 1: {plays_lottery_plus_1}, Plays Lottery Plus 2: {plays_lottery_plus_2}")
     
     # Get the lottery result to compare against
     lottery_result = get_lottery_result(lottery_type, draw_number)
@@ -79,21 +79,21 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     elif lottery_type.lower() == "powerball":
         logger.info("This ticket is Powerball only - NOT checking Powerball Plus")
     
-    # Check for Lotto Plus 1 if applicable
-    # Only check if primary game is Lotto and ticket plays Lotto Plus 1
-    if lottery_type == "Lotto" and plays_lotto_plus_1:
-        logger.info("This ticket also plays Lotto Plus 1 - checking both games")
-        lotto_plus_1_result = get_lottery_result("Lotto Plus 1", draw_number)
-    elif lottery_type == "Lotto":
-        logger.info("This ticket doesn't play Lotto Plus 1 or it wasn't detected")
+    # Check for Lottery Plus 1 if applicable
+    # Only check if primary game is Lottery and ticket plays Lottery Plus 1
+    if lottery_type == "Lottery" and plays_lottery_plus_1:
+        logger.info("This ticket also plays Lottery Plus 1 - checking both games")
+        lotto_plus_1_result = get_lottery_result("Lottery Plus 1", draw_number)
+    elif lottery_type == "Lottery" or lottery_type == "Lotto":
+        logger.info("This ticket doesn't play Lottery Plus 1 or it wasn't detected")
     
-    # Check for Lotto Plus 2 if applicable
-    # Only check if primary game is Lotto and ticket plays Lotto Plus 2
-    if lottery_type == "Lotto" and plays_lotto_plus_2:
-        logger.info("This ticket also plays Lotto Plus 2 - checking both games")
-        lotto_plus_2_result = get_lottery_result("Lotto Plus 2", draw_number)
-    elif lottery_type == "Lotto":
-        logger.info("This ticket doesn't play Lotto Plus 2 or it wasn't detected")
+    # Check for Lottery Plus 2 if applicable
+    # Only check if primary game is Lottery and ticket plays Lottery Plus 2
+    if lottery_type == "Lottery" and plays_lottery_plus_2:
+        logger.info("This ticket also plays Lottery Plus 2 - checking both games")
+        lotto_plus_2_result = get_lottery_result("Lottery Plus 2", draw_number)
+    elif lottery_type == "Lottery" or lottery_type == "Lotto":
+        logger.info("This ticket doesn't play Lottery Plus 2 or it wasn't detected")
     
     if not lottery_result:
         # Enhanced error message with more helpful information
@@ -125,8 +125,8 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
                 "draw_date": extracted_draw_date,
                 "ticket_numbers": ticket_numbers,
                 "plays_powerball_plus": plays_powerball_plus,
-                "plays_lotto_plus_1": plays_lotto_plus_1,
-                "plays_lotto_plus_2": plays_lotto_plus_2
+                "plays_lottery_plus_1": plays_lottery_plus_1,
+                "plays_lottery_plus_2": plays_lottery_plus_2
             }
         }
     
@@ -198,8 +198,8 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             "detected_draw_date": extracted_draw_date,
             "selected_numbers": ticket_numbers,
             "plays_powerball_plus": plays_powerball_plus,
-            "plays_lotto_plus_1": plays_lotto_plus_1,
-            "plays_lotto_plus_2": plays_lotto_plus_2
+            "plays_lottery_plus_1": plays_lottery_plus_1,
+            "plays_lottery_plus_2": plays_lottery_plus_2
         },
         "ticket_numbers": ticket_numbers,
         "winning_numbers": winning_numbers,
@@ -298,9 +298,9 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
         if bool(pp_prize_info) and not bool(prize_info):
             result["has_prize"] = True
     
-    # For Lotto Plus 1 results
+    # For Lottery Plus 1 results
     if lotto_plus_1_result:
-        # Get Lotto Plus 1 winning numbers
+        # Get Lottery Plus 1 winning numbers
         lp1_winning_numbers = lotto_plus_1_result.get_numbers_list()
         lp1_winning_numbers = [int(num) for num in lp1_winning_numbers]
         
@@ -375,9 +375,9 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
         if bool(lp1_prize_info) and not bool(prize_info):
             result["has_prize"] = True
     
-    # For Lotto Plus 2 results
+    # For Lottery Plus 2 results
     if lotto_plus_2_result:
-        # Get Lotto Plus 2 winning numbers
+        # Get Lottery Plus 2 winning numbers
         lp2_winning_numbers = lotto_plus_2_result.get_numbers_list()
         lp2_winning_numbers = [int(num) for num in lp2_winning_numbers]
         
@@ -487,8 +487,8 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
         4. Selected numbers (the player's chosen numbers on the ticket)
         5. IMPORTANT: Check if the ticket has any of these indications:
            - "POWERBALL PLUS: YES" - means the ticket is valid for both Powerball and Powerball Plus draws
-           - "LOTTO PLUS 1: YES" - means the ticket is valid for both Lotto and Lotto Plus 1 draws
-           - "LOTTO PLUS 2: YES" - means the ticket is valid for both Lotto and Lotto Plus 2 draws
+           - "LOTTERY PLUS 1: YES" or "LOTTO PLUS 1: YES" - means the ticket is valid for both Lottery and Lottery Plus 1 draws
+           - "LOTTERY PLUS 2: YES" or "LOTTO PLUS 2: YES" - means the ticket is valid for both Lottery and Lottery Plus 2 draws
         
         CRITICAL REQUIREMENT: If the ticket has MULTIPLE ROWS or SETS of numbers (e.g., A01-F01 or multiple games),
         you MUST extract ALL ROWS and ALL NUMBERS from the ticket. Do not just extract the first row.
