@@ -4,6 +4,8 @@ Database models for the application
 from datetime import datetime
 import json
 import os
+import numpy as np
+import logging
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from flask_login import UserMixin
@@ -469,6 +471,140 @@ class ImportedRecord(db.Model):
     
     def __repr__(self):
         return f"<ImportedRecord {self.id}: {self.lottery_type} {self.draw_number}>"
+        
+class LotteryPrediction(db.Model):
+    """Model for storing lottery number predictions"""
+    __tablename__ = 'lottery_prediction'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    lottery_type = db.Column(db.String(50), nullable=False)
+    prediction_date = db.Column(db.DateTime, default=datetime.utcnow)
+    draw_date = db.Column(db.DateTime, nullable=True)  # The date this prediction is for
+    predicted_numbers = db.Column(db.Text, nullable=False)  # JSON string of predicted numbers
+    bonus_number = db.Column(db.Integer, nullable=True)  # For Powerball-type games
+    strategy = db.Column(db.String(50), nullable=False)  # Method used for prediction
+    confidence_score = db.Column(db.Float, nullable=True)  # 0.0 to 1.0 confidence in prediction
+    model_version = db.Column(db.String(20), nullable=True)  # Version of prediction model used
+    parameters = db.Column(db.Text, nullable=True)  # JSON string of parameters used
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    is_verified = db.Column(db.Boolean, default=False)  # Whether prediction has been verified against actual results
+    
+    # Relationships
+    user = db.relationship('User', backref='predictions')
+    
+    def __repr__(self):
+        return f"<LotteryPrediction {self.id}: {self.lottery_type} - {self.prediction_date.strftime('%Y-%m-%d')}, {self.strategy}>"
+    
+    def get_numbers_list(self):
+        """Return predicted numbers as a Python list"""
+        return json.loads(self.predicted_numbers)
+    
+    def get_parameters_dict(self):
+        """Return parameters as a Python dict, or empty dict if None"""
+        if self.parameters:
+            return json.loads(self.parameters)
+        return {}
+    
+    def to_dict(self):
+        """Convert model to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'lottery_type': self.lottery_type,
+            'prediction_date': self.prediction_date.isoformat(),
+            'draw_date': self.draw_date.isoformat() if self.draw_date else None,
+            'predicted_numbers': self.get_numbers_list(),
+            'bonus_number': self.bonus_number,
+            'strategy': self.strategy,
+            'confidence_score': self.confidence_score,
+            'model_version': self.model_version,
+            'parameters': self.get_parameters_dict(),
+            'is_verified': self.is_verified
+        }
+
+class PredictionResult(db.Model):
+    """Model for tracking results of predictions"""
+    __tablename__ = 'prediction_result'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    prediction_id = db.Column(db.Integer, db.ForeignKey('lottery_prediction.id'), nullable=False)
+    actual_draw_id = db.Column(db.Integer, db.ForeignKey('lottery_result.id'), nullable=True)
+    draw_date = db.Column(db.DateTime, nullable=True)
+    matched_numbers = db.Column(db.Integer, default=0)  # Number of correctly predicted main numbers
+    matched_bonus = db.Column(db.Boolean, default=False)  # Whether bonus number was correctly predicted
+    match_positions = db.Column(db.Text, nullable=True)  # JSON string of positions that matched
+    accuracy_score = db.Column(db.Float, default=0.0)  # Overall accuracy of prediction (0.0 to 1.0)
+    verification_date = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    prediction = db.relationship('LotteryPrediction', backref='results')
+    actual_draw = db.relationship('LotteryResult', backref='prediction_results')
+    
+    def __repr__(self):
+        return f"<PredictionResult {self.id}: {self.matched_numbers} matches, Score: {self.accuracy_score}>"
+    
+    def get_match_positions(self):
+        """Return match positions as a Python list"""
+        if self.match_positions:
+            return json.loads(self.match_positions)
+        return []
+    
+    def to_dict(self):
+        """Convert model to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'prediction_id': self.prediction_id,
+            'draw_date': self.draw_date.isoformat() if self.draw_date else None,
+            'matched_numbers': self.matched_numbers,
+            'matched_bonus': self.matched_bonus,
+            'match_positions': self.get_match_positions(),
+            'accuracy_score': self.accuracy_score,
+            'verification_date': self.verification_date.isoformat()
+        }
+
+class ModelTrainingHistory(db.Model):
+    """Model for tracking model training history and improvements"""
+    __tablename__ = 'model_training_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    lottery_type = db.Column(db.String(50), nullable=False)
+    model_version = db.Column(db.String(20), nullable=False)
+    training_date = db.Column(db.DateTime, default=datetime.utcnow)
+    training_data_size = db.Column(db.Integer, nullable=False)  # Number of draws used for training
+    accuracy_score = db.Column(db.Float, nullable=False)  # Model accuracy score
+    error_rate = db.Column(db.Float, nullable=False)  # Model error rate
+    features_used = db.Column(db.Text, nullable=True)  # JSON string of features used in training
+    hyperparameters = db.Column(db.Text, nullable=True)  # JSON string of hyperparameters
+    notes = db.Column(db.Text, nullable=True)  # Any notes about this training run
+    
+    def __repr__(self):
+        return f"<ModelTrainingHistory {self.id}: {self.lottery_type} v{self.model_version}, Accuracy: {self.accuracy_score}>"
+    
+    def get_features_list(self):
+        """Return features used as a Python list"""
+        if self.features_used:
+            return json.loads(self.features_used)
+        return []
+    
+    def get_hyperparameters_dict(self):
+        """Return hyperparameters as a Python dict"""
+        if self.hyperparameters:
+            return json.loads(self.hyperparameters)
+        return {}
+    
+    def to_dict(self):
+        """Convert model to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'lottery_type': self.lottery_type,
+            'model_version': self.model_version,
+            'training_date': self.training_date.isoformat(),
+            'training_data_size': self.training_data_size,
+            'accuracy_score': self.accuracy_score,
+            'error_rate': self.error_rate,
+            'features_used': self.get_features_list(),
+            'hyperparameters': self.get_hyperparameters_dict(),
+            'notes': self.notes
+        }
         
     @classmethod
     def get_records_for_import(cls, import_id):

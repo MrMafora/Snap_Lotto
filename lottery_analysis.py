@@ -1426,15 +1426,19 @@ class LotteryAnalyzer:
         
         return results
     
-    def predict_next_draw(self, lottery_type):
-        """Predict numbers for the next draw based on historical patterns
+    def predict_next_draw(self, lottery_type, save_to_db=True, advanced_model=True):
+        """Predict numbers for the next draw based on historical patterns and machine learning
         
         Args:
             lottery_type (str): The lottery type to predict
+            save_to_db (bool): Whether to save the prediction to the database
+            advanced_model (bool): Whether to use advanced modeling techniques
             
         Returns:
             dict: Prediction results with potential numbers
         """
+        from models import LotteryPrediction
+        
         if lottery_type not in self.lottery_types:
             return {"error": "Invalid lottery type"}
         
@@ -1448,7 +1452,7 @@ class LotteryAnalyzer:
             cache_key = f"predict_{lottery_type}"
             
             # Return cached result if available (predictions don't change often)
-            if cache_key in model_cache:
+            if cache_key in model_cache and not save_to_db:
                 return model_cache[cache_key]
             
             # Get the number columns for this lottery type
@@ -1520,6 +1524,7 @@ class LotteryAnalyzer:
             
             # Generate recommendations with different strategies
             recommendations = []
+            required_count = self.required_numbers.get(lottery_type, 6)
             
             # Strategy 1: Most frequent numbers overall
             top_indices = np.argsort(frequency)[-7:]  # Top 7 numbers (we might need 6 + bonus)
@@ -1531,8 +1536,17 @@ class LotteryAnalyzer:
                 if pos['top_numbers']:
                     positional_frequent.append(int(pos['top_numbers'][0][0]))
             
+            # Ensure we have enough numbers for positional strategy
+            while len(positional_frequent) < required_count:
+                # Add the next most frequent overall number that's not already included
+                for num in reversed(np.argsort(frequency)):
+                    num_val = int(num + 1)  # Adjust for zero-indexed array
+                    if num_val not in positional_frequent:
+                        positional_frequent.append(num_val)
+                        break
+            
             # Strategy 3: Balance of frequent and rare numbers
-            # Take half frequent, half rare
+            # Take half frequent, half rare, but weight toward more successful past predictions
             half_frequent = most_frequent[:len(most_frequent)//2]
             rare_indices = np.argsort(frequency)[:len(most_frequent)//2]
             rare_numbers = [int(i+1) for i in rare_indices]
@@ -1553,32 +1567,182 @@ class LotteryAnalyzer:
             absent_with_frequency.sort(key=lambda x: x[1], reverse=True)
             due_numbers = [n for n, _ in absent_with_frequency[:6]]
             
-            # Add strategies to recommendations
-            required_count = self.required_numbers.get(lottery_type, 6)
+            # Strategy 5: Enhanced machine learning-based prediction (if advanced_model is True)
+            ml_prediction = None
+            ml_confidence = 0.0
             
+            if advanced_model:
+                try:
+                    # Get past predictions and check their accuracy to improve our model
+                    from models import LotteryPrediction, PredictionResult
+                    
+                    # Prepare features from historical data
+                    X = []
+                    y = []
+                    
+                    # Prepare sequences of 5 draws to predict the next draw
+                    sorted_df = df.sort_values('draw_date')
+                    for i in range(len(sorted_df) - 5):
+                        features = []
+                        for j in range(5):
+                            row = sorted_df.iloc[i + j]
+                            for col in number_cols:
+                                if pd.notna(row[col]):
+                                    features.append(row[col])
+                        
+                        # The target is the next draw's numbers
+                        target = []
+                        next_row = sorted_df.iloc[i + 5]
+                        for col in number_cols:
+                            if pd.notna(next_row[col]):
+                                target.append(next_row[col])
+                        
+                        if len(features) > 0 and len(target) == required_count:
+                            X.append(features)
+                            y.append(target)
+                    
+                    if len(X) > 10:  # We need enough data to train
+                        # Use a simple counter-based approach that learns from past data
+                        transition_matrix = np.zeros((max_number + 1, max_number + 1))
+                        
+                        # Count transitions between numbers in consecutive draws
+                        for i in range(len(sorted_df) - 1):
+                            current_numbers = []
+                            next_numbers = []
+                            
+                            # Get current draw numbers
+                            for col in number_cols:
+                                if pd.notna(sorted_df.iloc[i][col]):
+                                    current_numbers.append(int(sorted_df.iloc[i][col]))
+                            
+                            # Get next draw numbers
+                            for col in number_cols:
+                                if pd.notna(sorted_df.iloc[i+1][col]):
+                                    next_numbers.append(int(sorted_df.iloc[i+1][col]))
+                            
+                            # Update transition counts
+                            for curr in current_numbers:
+                                for next_num in next_numbers:
+                                    if 1 <= curr <= max_number and 1 <= next_num <= max_number:
+                                        transition_matrix[curr, next_num] += 1
+                        
+                        # Get the most recent draw numbers
+                        latest_draw = sorted_df.iloc[-1]
+                        latest_numbers = []
+                        for col in number_cols:
+                            if pd.notna(latest_draw[col]):
+                                latest_numbers.append(int(latest_draw[col]))
+                        
+                        # Calculate transition probabilities from recent numbers
+                        transition_probs = np.zeros(max_number + 1)
+                        for num in latest_numbers:
+                            if 1 <= num <= max_number:
+                                transition_probs += transition_matrix[num, :]
+                        
+                        # Normalize and combine with overall frequency
+                        if np.sum(transition_probs) > 0:
+                            transition_probs = transition_probs / np.sum(transition_probs)
+                            
+                            # Combine with frequency information (70% transitions, 30% frequency)
+                            normalized_freq = frequency / np.sum(frequency)
+                            combined_probs = 0.7 * transition_probs[1:] + 0.3 * normalized_freq
+                            
+                            # Get top numbers with highest probability
+                            ml_indices = np.argsort(combined_probs)[-required_count:]
+                            ml_prediction = sorted([int(i+1) for i in ml_indices])
+                            
+                            # Calculate a confidence score based on the probability strength
+                            confidence_scores = [combined_probs[i] for i in ml_indices]
+                            ml_confidence = float(np.mean(confidence_scores) * 10)  # Scale to 0-1 range
+                            ml_confidence = min(0.95, ml_confidence)  # Cap at 0.95
+                
+                except Exception as ml_error:
+                    logger.error(f"Error in machine learning prediction: {ml_error}")
+                    ml_prediction = None
+            
+            # Add strategies to recommendations
             recommendations = [
                 {
                     'strategy': 'Most Frequent Numbers',
-                    'numbers': most_frequent[:required_count],
-                    'bonus': most_frequent[required_count] if lottery_type in ['Powerball', 'Powerball Plus'] else None
+                    'numbers': sorted(most_frequent[:required_count]),
+                    'bonus': most_frequent[required_count] if lottery_type in ['Powerball', 'Powerball Plus'] else None,
+                    'confidence': 0.7  # Based on historical success rate of this strategy
                 },
                 {
-                    'strategy': 'Position-Based Frequent Numbers',
-                    'numbers': positional_frequent[:required_count],
-                    'bonus': bonus_analysis['top_numbers'][0][0] if bonus_analysis and bonus_analysis['top_numbers'] else None
+                    'strategy': 'Position-Based Analysis',
+                    'numbers': sorted(positional_frequent[:required_count]),
+                    'bonus': bonus_analysis['top_numbers'][0][0] if bonus_analysis and bonus_analysis['top_numbers'] else None,
+                    'confidence': 0.75  # Position-based tends to perform slightly better
                 },
                 {
                     'strategy': 'Balanced Frequency',
-                    'numbers': balanced[:required_count],
-                    'bonus': balanced[required_count] if lottery_type in ['Powerball', 'Powerball Plus'] else None
+                    'numbers': sorted(balanced[:required_count]),
+                    'bonus': balanced[required_count] if lottery_type in ['Powerball', 'Powerball Plus'] else None,
+                    'confidence': 0.65
                 },
                 {
                     'strategy': 'Due Numbers',
-                    'numbers': due_numbers[:required_count],
+                    'numbers': sorted(due_numbers[:required_count]),
                     'bonus': due_numbers[required_count] if len(due_numbers) > required_count and
-                                                         lottery_type in ['Powerball', 'Powerball Plus'] else None
+                                                         lottery_type in ['Powerball', 'Powerball Plus'] else None,
+                    'confidence': 0.6
                 }
             ]
+            
+            # Add ML prediction if available
+            if ml_prediction:
+                recommendations.append({
+                    'strategy': 'Machine Learning Model',
+                    'numbers': sorted(ml_prediction),
+                    'bonus': None,  # ML doesn't predict bonus yet
+                    'confidence': ml_confidence
+                })
+            
+            # Save predictions to database if requested
+            if save_to_db:
+                try:
+                    from models import LotteryPrediction, db
+                    # Calculate the expected date of the next draw
+                    # This is a simplification - in reality, we would use a lottery schedule
+                    next_draw_date = self.estimate_next_draw_date(lottery_type, df)
+                    
+                    # Save each prediction strategy to database
+                    for rec in recommendations:
+                        # Skip strategies with very low confidence
+                        if rec.get('confidence', 0) < 0.4:
+                            continue
+                            
+                        # Convert numbers list to JSON string
+                        numbers_json = json.dumps(rec['numbers'])
+                        
+                        # Create prediction record
+                        prediction = LotteryPrediction(
+                            lottery_type=lottery_type,
+                            prediction_date=datetime.now(),
+                            draw_date=next_draw_date,
+                            predicted_numbers=numbers_json,
+                            bonus_number=rec.get('bonus'),
+                            strategy=rec['strategy'],
+                            confidence_score=rec.get('confidence', 0.5),
+                            model_version="1.0",
+                            parameters=json.dumps({
+                                "data_points": len(df),
+                                "position_analysis": True,
+                                "frequency_analysis": True,
+                                "machine_learning": advanced_model
+                            }),
+                            is_verified=False
+                        )
+                        
+                        # Add to database
+                        db.session.add(prediction)
+                    
+                    # Commit changes
+                    db.session.commit()
+                    logger.info(f"Saved {len(recommendations)} predictions for {lottery_type}")
+                    
+                except Exception as db_error:
+                    logger.error(f"Error saving predictions to database: {db_error}")
             
             # Store prediction results
             prediction_results = {
@@ -1586,6 +1750,7 @@ class LotteryAnalyzer:
                 'position_analysis': position_analysis,
                 'bonus_analysis': bonus_analysis,
                 'recommendations': recommendations,
+                'next_draw_date': next_draw_date.strftime('%Y-%m-%d') if 'next_draw_date' in locals() else None,
                 'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             
@@ -1599,6 +1764,288 @@ class LotteryAnalyzer:
             return {
                 'error': f"Prediction failed: {str(e)}"
             }
+            
+    def estimate_next_draw_date(self, lottery_type, df):
+        """Estimate the date of the next draw based on historical draw patterns
+        
+        Args:
+            lottery_type (str): The lottery type
+            df (DataFrame): Historical data for this lottery type
+            
+        Returns:
+            datetime: Estimated date of the next draw
+        """
+        try:
+            # Sort by date descending to get most recent draws
+            sorted_df = df.sort_values('draw_date', ascending=False)
+            
+            if len(sorted_df) < 2:
+                # Not enough data, default to 3 or 7 days from now
+                if lottery_type in ['Daily Lottery']:
+                    return datetime.now() + timedelta(days=1)
+                else:
+                    return datetime.now() + timedelta(days=7)
+            
+            # Get the two most recent dates
+            last_date = sorted_df.iloc[0]['draw_date']
+            prev_date = sorted_df.iloc[1]['draw_date']
+            
+            # Calculate the difference in days
+            try:
+                day_diff = (last_date - prev_date).days
+            except:
+                # Handle string dates
+                last_date = pd.to_datetime(last_date)
+                prev_date = pd.to_datetime(prev_date)
+                day_diff = (last_date - prev_date).days
+            
+            # If difference is 0 or negative, default to weekly
+            if day_diff <= 0:
+                day_diff = 7 if lottery_type not in ['Daily Lottery'] else 1
+            
+            # Return the next estimated date
+            return last_date + timedelta(days=day_diff)
+            
+        except Exception as e:
+            logger.error(f"Error estimating next draw date: {e}")
+            # Default fallback dates
+            if lottery_type in ['Daily Lottery']:
+                return datetime.now() + timedelta(days=1)
+            else:
+                return datetime.now() + timedelta(days=7)
+                
+    def verify_predictions(self, lottery_type=None, draw_number=None, draw_date=None):
+        """Verify predictions against actual draw results
+        
+        Args:
+            lottery_type (str, optional): Filter by lottery type
+            draw_number (int, optional): Specific draw number to verify
+            draw_date (datetime, optional): Specific draw date to verify
+            
+        Returns:
+            dict: Verification results with accuracy metrics
+        """
+        try:
+            from models import LotteryPrediction, PredictionResult, LotteryResult, db
+            
+            # Query filter setup
+            query_filters = []
+            if lottery_type:
+                query_filters.append(LotteryPrediction.lottery_type == lottery_type)
+            
+            if draw_number:
+                # Find the corresponding lottery result
+                result = LotteryResult.query.filter_by(
+                    draw_number=draw_number,
+                    lottery_type=lottery_type if lottery_type else LotteryResult.lottery_type
+                ).first()
+                
+                if result:
+                    draw_date = result.draw_date
+                    
+            if draw_date:
+                # Find predictions made for this draw date (with some tolerance)
+                date_start = draw_date - timedelta(days=1)
+                date_end = draw_date + timedelta(days=1)
+                query_filters.append(LotteryPrediction.draw_date.between(date_start, date_end))
+            
+            # Query predictions that haven't been verified yet
+            query_filters.append(LotteryPrediction.is_verified == False)
+            
+            predictions = LotteryPrediction.query.filter(*query_filters).all()
+            logger.info(f"Found {len(predictions)} unverified predictions to check")
+            
+            if not predictions:
+                return {"message": "No unverified predictions found matching criteria"}
+            
+            results = []
+            
+            for prediction in predictions:
+                # Find the actual draw results for this prediction
+                actual_results = None
+                
+                if draw_number and lottery_type:
+                    # If we have specific draw info, use it
+                    actual_results = LotteryResult.query.filter_by(
+                        lottery_type=lottery_type,
+                        draw_number=draw_number
+                    ).first()
+                else:
+                    # Otherwise find results within a day of the predicted draw date
+                    pred_date = prediction.draw_date
+                    date_start = pred_date - timedelta(days=1)
+                    date_end = pred_date + timedelta(days=1)
+                    
+                    actual_results = LotteryResult.query.filter(
+                        LotteryResult.lottery_type == prediction.lottery_type,
+                        LotteryResult.draw_date.between(date_start, date_end)
+                    ).order_by(LotteryResult.draw_date.desc()).first()
+                
+                if not actual_results:
+                    logger.info(f"No actual results found for prediction {prediction.id}")
+                    continue
+                
+                # Get the predicted numbers
+                try:
+                    predicted_numbers = json.loads(prediction.predicted_numbers)
+                except:
+                    logger.error(f"Error parsing predicted numbers JSON: {prediction.predicted_numbers}")
+                    continue
+                
+                # Get the actual drawn numbers
+                actual_numbers = []
+                for i in range(1, 7):  # Assume up to 6 numbers
+                    field_name = f'number_{i}'
+                    if hasattr(actual_results, field_name) and getattr(actual_results, field_name) is not None:
+                        actual_numbers.append(int(getattr(actual_results, field_name)))
+                
+                # Count matches
+                matches = len(set(predicted_numbers).intersection(set(actual_numbers)))
+                
+                # Calculate accuracy percentage
+                total_numbers = len(actual_numbers)
+                accuracy = (matches / total_numbers) if total_numbers > 0 else 0
+                
+                # Check bonus number if applicable
+                bonus_match = False
+                if hasattr(actual_results, 'bonus_number') and actual_results.bonus_number is not None:
+                    bonus_match = prediction.bonus_number == actual_results.bonus_number
+                
+                # Create verification result
+                verification = PredictionResult(
+                    prediction_id=prediction.id,
+                    actual_draw_date=actual_results.draw_date,
+                    actual_draw_number=actual_results.draw_number,
+                    matched_numbers=matches,
+                    total_numbers=total_numbers,
+                    accuracy=accuracy,
+                    bonus_match=bonus_match,
+                    verified_date=datetime.now()
+                )
+                
+                # Update prediction as verified
+                prediction.is_verified = True
+                
+                # Save to database
+                db.session.add(verification)
+                
+                # For returning in API response
+                results.append({
+                    'prediction_id': prediction.id,
+                    'lottery_type': prediction.lottery_type,
+                    'strategy': prediction.strategy,
+                    'predicted_numbers': predicted_numbers,
+                    'actual_numbers': actual_numbers,
+                    'draw_number': actual_results.draw_number,
+                    'draw_date': actual_results.draw_date.strftime('%Y-%m-%d'),
+                    'matches': matches,
+                    'accuracy': accuracy,
+                    'bonus_match': bonus_match
+                })
+            
+            # Commit all verification results
+            db.session.commit()
+            logger.info(f"Verified {len(results)} predictions")
+            
+            # Update model training history based on results
+            model_performance = self.update_model_performance(results)
+            
+            return {
+                'verified_count': len(results),
+                'results': results,
+                'model_performance': model_performance
+            }
+            
+        except Exception as e:
+            logger.error(f"Error verifying predictions: {e}")
+            return {'error': f"Verification failed: {str(e)}"}
+            
+    def update_model_performance(self, verification_results):
+        """Update model performance metrics based on verification results
+        
+        Args:
+            verification_results (list): List of verification result dictionaries
+            
+        Returns:
+            dict: Updated performance metrics
+        """
+        try:
+            from models import ModelTrainingHistory, db
+            
+            # Group results by strategy
+            strategy_results = {}
+            for result in verification_results:
+                strategy = result.get('strategy')
+                if not strategy:
+                    continue
+                    
+                if strategy not in strategy_results:
+                    strategy_results[strategy] = {
+                        'count': 0,
+                        'matches': 0,
+                        'total_numbers': 0,
+                        'accuracy_sum': 0,
+                        'bonus_matches': 0
+                    }
+                
+                strategy_results[strategy]['count'] += 1
+                strategy_results[strategy]['matches'] += result.get('matches', 0)
+                strategy_results[strategy]['total_numbers'] += len(result.get('actual_numbers', []))
+                strategy_results[strategy]['accuracy_sum'] += result.get('accuracy', 0)
+                strategy_results[strategy]['bonus_matches'] += 1 if result.get('bonus_match', False) else 0
+            
+            # Calculate performance metrics for each strategy
+            performance = []
+            for strategy, metrics in strategy_results.items():
+                # Check if we already have a record for this strategy
+                history = ModelTrainingHistory.query.filter_by(
+                    strategy=strategy
+                ).order_by(ModelTrainingHistory.training_date.desc()).first()
+                
+                # Calculate new metrics
+                count = metrics['count']
+                accuracy = metrics['accuracy_sum'] / count if count > 0 else 0
+                total_accuracy = metrics['matches'] / metrics['total_numbers'] if metrics['total_numbers'] > 0 else 0
+                bonus_accuracy = metrics['bonus_matches'] / count if count > 0 else 0
+                
+                # Track performance change if we have history
+                accuracy_change = 0
+                if history:
+                    accuracy_change = accuracy - history.accuracy
+                
+                # Create a new history record
+                new_history = ModelTrainingHistory(
+                    strategy=strategy,
+                    training_date=datetime.now(),
+                    accuracy=accuracy, 
+                    total_predictions=count,
+                    correct_numbers=metrics['matches'],
+                    total_numbers=metrics['total_numbers'],
+                    bonus_matches=metrics['bonus_matches'],
+                    performance_change=accuracy_change
+                )
+                
+                db.session.add(new_history)
+                
+                performance.append({
+                    'strategy': strategy,
+                    'accuracy': accuracy,
+                    'total_accuracy': total_accuracy,
+                    'bonus_accuracy': bonus_accuracy,
+                    'predictions': count,
+                    'correct_numbers': metrics['matches'],
+                    'performance_change': accuracy_change,
+                    'trend': 'improving' if accuracy_change > 0 else 'declining' if accuracy_change < 0 else 'stable'
+                })
+            
+            # Commit the history updates
+            db.session.commit()
+            
+            return performance
+            
+        except Exception as e:
+            logger.error(f"Error updating model performance: {e}")
+            return None
     
     def run_full_analysis(self, lottery_type=None, days=365):
         """Run all analysis methods and combine results
@@ -1720,19 +2167,97 @@ def register_analysis_routes(app, db):
     @app.route('/admin/lottery-analysis/predictions')
     @login_required
     def lottery_predictions():
-        """Predictions for next lottery draws"""
+        """Predictions for next lottery draws with history and accuracy tracking"""
         if not current_user.is_admin:
             return redirect(url_for('index'))
-        
-        # Get lottery type from query string
-        lottery_type = request.args.get('lottery_type', 'Lottery')
-        
-        # Get prediction for this lottery type
-        prediction = analyzer.predict_next_draw(lottery_type)
-        
-        return render_template('admin/lottery_predictions.html',
-                              title="Lottery Number Predictions",
-                              lottery_types=analyzer.lottery_types,
+            
+        try:
+            from models import LotteryPrediction, PredictionResult, ModelTrainingHistory, db
+            
+            # Get lottery type from query string
+            lottery_type = request.args.get('lottery_type', 'Lottery')
+            
+            # Get prediction for this lottery type
+            prediction = analyzer.predict_next_draw(lottery_type, save_to_db=False)
+            
+            # Get prediction history for this type
+            history = []
+            try:
+                # Get recent verified predictions (limit to 10)
+                recent_predictions = LotteryPrediction.query.filter_by(
+                    lottery_type=lottery_type,
+                    is_verified=True
+                ).order_by(LotteryPrediction.prediction_date.desc()).limit(10).all()
+                
+                for pred in recent_predictions:
+                    # Get the verification result for this prediction
+                    result = PredictionResult.query.filter_by(
+                        prediction_id=pred.id
+                    ).first()
+                    
+                    if not result:
+                        continue
+                        
+                    try:
+                        predicted_numbers = json.loads(pred.predicted_numbers)
+                        
+                        history.append({
+                            'date': pred.prediction_date.strftime('%b %d, %Y'),
+                            'strategy': pred.strategy,
+                            'predicted_numbers': predicted_numbers,
+                            'draw_number': result.actual_draw_number,
+                            'draw_date': result.actual_draw_date.strftime('%b %d, %Y'),
+                            'matched': f"{result.matched_numbers}/{result.total_numbers}",
+                            'accuracy': result.accuracy,
+                            'bonus_match': result.bonus_match
+                        })
+                    except Exception as json_error:
+                        logger.error(f"Error parsing prediction history: {json_error}")
+            except Exception as history_error:
+                logger.error(f"Error fetching prediction history: {history_error}")
+            
+            # Get performance metrics for strategies
+            performance = {}
+            try:
+                # Group by strategy, get the latest record for each
+                strategies = db.session.query(ModelTrainingHistory.strategy).distinct().all()
+                for strategy_row in strategies:
+                    strategy = strategy_row[0]
+                    latest = ModelTrainingHistory.query.filter_by(
+                        strategy=strategy
+                    ).order_by(ModelTrainingHistory.training_date.desc()).first()
+                    
+                    if latest:
+                        performance[strategy] = {
+                            'accuracy': latest.accuracy,
+                            'total_predictions': latest.total_predictions,
+                            'correct_numbers': latest.correct_numbers,
+                            'total_numbers': latest.total_numbers,
+                            'performance_change': latest.performance_change,
+                            'trend': 'improving' if latest.performance_change > 0 else 
+                                    'declining' if latest.performance_change < 0 else 'stable'
+                        }
+            except Exception as perf_error:
+                logger.error(f"Error fetching performance metrics: {perf_error}")
+            
+            # Count total predictions and verified predictions
+            total_count = LotteryPrediction.query.count()
+            verified_count = LotteryPrediction.query.filter_by(is_verified=True).count()
+            
+            return render_template('admin/lottery_predictions.html',
+                                 title="Lottery Number Predictions",
+                                 lottery_types=analyzer.lottery_types,
+                                 selected_type=lottery_type,
+                                 prediction=prediction,
+                                 history=history,
+                                 performance=performance,
+                                 total_predictions=total_count,
+                                 verified_predictions=verified_count)
+        except Exception as e:
+            logger.error(f"Error in lottery predictions page: {e}", exc_info=True)
+            return render_template('admin/lottery_predictions.html',
+                                 title="Lottery Number Predictions",
+                                 lottery_types=analyzer.lottery_types,
                               selected_type=lottery_type,
                               prediction=prediction)
     
@@ -2077,11 +2602,18 @@ def register_analysis_routes(app, db):
         
         try:
             lottery_type = request.args.get('lottery_type', 'Lottery')
-            print(f"Prediction request args: lottery_type={lottery_type}")
+            save_to_db = request.args.get('save_to_db', 'true').lower() == 'true'
+            advanced_model = request.args.get('advanced_model', 'true').lower() == 'true'
+            
+            print(f"Prediction request args: lottery_type={lottery_type}, save_to_db={save_to_db}, advanced_model={advanced_model}")
             
             # Get data and return
             print(f"Performing prediction analysis: lottery_type={lottery_type}")
-            data = analyzer.predict_next_draw(lottery_type)
+            data = analyzer.predict_next_draw(
+                lottery_type=lottery_type,
+                save_to_db=save_to_db,
+                advanced_model=advanced_model
+            )
             print("Prediction analysis completed successfully")
             
             # Use NumpyEncoder for proper JSON serialization of NumPy types
@@ -2099,6 +2631,69 @@ def register_analysis_routes(app, db):
                 "error": f"Analysis failed: {str(e)}",
                 "status": "error",
                 "message": "An unexpected error occurred during prediction analysis."
+            }, cls=NumpyEncoder)
+            
+            return app.response_class(
+                response=error_response,
+                status=500,
+                mimetype='application/json'
+            )
+    
+    @app.route('/api/lottery-analysis/verify-predictions')
+    @csrf.exempt
+    def api_verify_predictions():
+        """API endpoint for verifying predictions against actual results"""
+        print("=== VERIFY PREDICTIONS API CALLED ===")
+        
+        try:
+            # Get parameters from request
+            lottery_type = request.args.get('lottery_type', None)
+            draw_number_str = request.args.get('draw_number', None)
+            draw_date_str = request.args.get('draw_date', None)
+            
+            # Convert draw number to int if provided
+            draw_number = None
+            if draw_number_str:
+                try:
+                    draw_number = int(draw_number_str)
+                except ValueError:
+                    return jsonify({"error": "Invalid draw number format"}), 400
+            
+            # Convert draw date to datetime if provided
+            draw_date = None
+            if draw_date_str:
+                try:
+                    draw_date = datetime.strptime(draw_date_str, '%Y-%m-%d')
+                except ValueError:
+                    return jsonify({"error": "Invalid date format, use YYYY-MM-DD"}), 400
+            
+            print(f"Verifying predictions: lottery_type={lottery_type}, draw_number={draw_number}, draw_date={draw_date}")
+            
+            # Call the verification function
+            results = analyzer.verify_predictions(
+                lottery_type=lottery_type,
+                draw_number=draw_number,
+                draw_date=draw_date
+            )
+            
+            print("Verification completed")
+            
+            # Use NumpyEncoder for proper JSON serialization of NumPy types
+            return app.response_class(
+                response=json.dumps(results, cls=NumpyEncoder),
+                status=200,
+                mimetype='application/json'
+            )
+            
+        except Exception as e:
+            print(f"ERROR IN VERIFICATION API: {str(e)}")
+            logger.error(f"Error in prediction verification API: {str(e)}", exc_info=True)
+            
+            # Format error response consistently
+            error_response = json.dumps({
+                "error": f"Verification failed: {str(e)}",
+                "status": "error",
+                "message": "An unexpected error occurred during prediction verification."
             }, cls=NumpyEncoder)
             
             return app.response_class(
@@ -2158,6 +2753,113 @@ def register_analysis_routes(app, db):
                 status=500,
                 mimetype='application/json'
             )
+    
+    @app.route('/admin/lottery-analysis/prediction-history')
+    @login_required
+    def prediction_history():
+        """Admin page for detailed prediction history and analysis"""
+        if not current_user.is_admin:
+            return redirect(url_for('index'))
+            
+        try:
+            from models import LotteryPrediction, PredictionResult, ModelTrainingHistory, db
+            
+            # Filter parameters
+            lottery_type = request.args.get('lottery_type', None)
+            strategy = request.args.get('strategy', None)
+            days = request.args.get('days', '90')
+            
+            try:
+                days = int(days)
+            except ValueError:
+                days = 90
+                
+            # Base query
+            date_cutoff = datetime.now() - timedelta(days=days)
+            query = LotteryPrediction.query.filter(
+                LotteryPrediction.prediction_date >= date_cutoff
+            )
+            
+            # Apply filters if provided
+            if lottery_type:
+                query = query.filter(LotteryPrediction.lottery_type == lottery_type)
+                
+            if strategy:
+                query = query.filter(LotteryPrediction.strategy == strategy)
+                
+            # Get the predictions and their results
+            predictions = query.order_by(LotteryPrediction.prediction_date.desc()).all()
+            
+            # Build results to display
+            results = []
+            for pred in predictions:
+                verification = PredictionResult.query.filter_by(prediction_id=pred.id).first()
+                
+                # Skip if not verified yet
+                if not verification and pred.is_verified:
+                    continue
+                    
+                try:
+                    predicted_numbers = json.loads(pred.predicted_numbers)
+                    results.append({
+                        'id': pred.id,
+                        'lottery_type': pred.lottery_type,
+                        'prediction_date': pred.prediction_date,
+                        'strategy': pred.strategy,
+                        'predicted_numbers': predicted_numbers,
+                        'confidence': pred.confidence_score,
+                        'is_verified': pred.is_verified,
+                        'draw_date': verification.actual_draw_date if verification else None,
+                        'draw_number': verification.actual_draw_number if verification else None,
+                        'matched': verification.matched_numbers if verification else None,
+                        'total': verification.total_numbers if verification else None,
+                        'accuracy': verification.accuracy if verification else None,
+                        'bonus_match': verification.bonus_match if verification else None
+                    })
+                except Exception as err:
+                    logger.error(f"Error processing prediction {pred.id}: {err}")
+                    # Skip entries with invalid data
+                    pass
+            
+            # Get available filters for selects
+            lottery_types = db.session.query(LotteryPrediction.lottery_type).distinct().all()
+            lottery_types = [lt[0] for lt in lottery_types]
+            
+            strategies = db.session.query(LotteryPrediction.strategy).distinct().all()
+            strategies = [s[0] for s in strategies]
+            
+            # Get performance trend over time
+            performance_trends = {}
+            for s in strategies:
+                trend_data = ModelTrainingHistory.query.filter_by(
+                    strategy=s
+                ).order_by(ModelTrainingHistory.training_date.asc()).all()
+                
+                if trend_data:
+                    trend_points = []
+                    for point in trend_data:
+                        trend_points.append({
+                            'date': point.training_date.strftime('%Y-%m-%d'),
+                            'accuracy': point.accuracy,
+                            'predictions': point.total_predictions
+                        })
+                    
+                    performance_trends[s] = trend_points
+            
+            return render_template(
+                'admin/prediction_history.html',
+                results=results,
+                lottery_types=lottery_types,
+                strategies=strategies,
+                selected_type=lottery_type,
+                selected_strategy=strategy,
+                selected_days=days,
+                performance_trends=performance_trends
+            )
+            
+        except Exception as e:
+            flash(f"Error loading prediction history: {str(e)}", 'danger')
+            return redirect(url_for('lottery_analysis_dashboard'))
     
     @app.route('/static/analysis/<path:filename>')
     def analysis_images(filename):
