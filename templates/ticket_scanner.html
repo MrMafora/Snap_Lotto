@@ -821,13 +821,22 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         
                         if (adOverlay) {
                             adOverlay.classList.remove('closing');
+                            adOverlay.style.display = 'none'; // Ensure it's fully hidden
                         }
                         
                         // Make sure scrolling is enabled after animation
                         enableScrolling();
                         
+                        // Store a flag that we're in the results viewing mode
+                        // This prevents the page from resetting to upload mode
+                        window.inResultsMode = true;
+                        
                         // Display results after overlay is hidden
                         displayResults(data);
+                        
+                        // Also set a flag on the body to prevent accidental page resets
+                        document.body.classList.add('results-mode');
+                        
                         console.log('User clicked View Results, countdown state cleared');
                     }, 500); // Match this to CSS transition duration
                 };
@@ -1069,6 +1078,10 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 document.body.style.width = '';
                 document.documentElement.style.overflow = '';
                 
+                // Set global variables to track state
+                window.lastResultsData = data; // Save the results data
+                window.inResultsMode = true; // Flag that we're showing results
+                
                 // Prepare the results container first
                 if (resultsContainer) {
                     // Show the results container
@@ -1078,13 +1091,16 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // This helps prevent leaving the results page accidentally
                     window.resultsBeingDisplayed = true;
                     
+                    // Add a class to the body to indicate we're in results mode
+                    document.body.classList.add('showing-results');
+                    
                     // Scroll to the results container
                     setTimeout(() => {
                         // Double-check that the results container is still visible
                         resultsContainer.classList.remove('d-none');
                         resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         console.log('Scrolled to results container');
-                    }, 100);
+                    }, 200);
                 } else {
                     console.error('Results container not found!');
                     return;
