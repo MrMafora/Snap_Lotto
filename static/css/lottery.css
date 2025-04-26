@@ -383,6 +383,17 @@
     border-bottom: 2px solid var(--lottery-red);
 }
 
+/* New row layout styles */
+.numbers-row {
+    background-color: rgba(245, 245, 245, 0.5);
+}
+
+.numbers-row td {
+    padding-top: 0.5rem;
+    padding-bottom: 1rem;
+    border-top: none !important;
+}
+
 /* Divisions Display */
 .divisions-summary {
     font-size: 0.9rem;

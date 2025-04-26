@@ -1,16 +1,32 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#FFE11D" rx="100" ry="100"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="192px" height="192px" viewBox="0 0 192 192" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <!-- Scanner Icon -->
+  <circle cx="96" cy="96" r="96" fill="#ffe11d"/>
   
-  <!-- Camera/Scanner symbol -->
-  <g transform="translate(100, 100) scale(0.6)">
-    <path d="M256 128c-70.7 0-128 57.3-128 128s57.3 128 128 128s128-57.3 128-128s-57.3-128-128-128zm0 192c-35.3 0-64-28.7-64-64s28.7-64 64-64s64 28.7 64 64s-28.7 64-64 64z" fill="#111827"/>
-    <rect x="128" y="64" width="256" height="32" rx="16" ry="16" fill="#111827"/>
-    <rect x="128" y="416" width="256" height="32" rx="16" ry="16" fill="#111827"/>
-    <rect x="64" y="128" width="32" height="256" rx="16" ry="16" fill="#111827"/>
-    <rect x="416" y="128" width="32" height="256" rx="16" ry="16" fill="#111827"/>
-  </g>
+  <!-- Camera Body -->
+  <rect x="40" y="60" width="112" height="72" rx="8" ry="8" fill="#333333"/>
   
-  <!-- Text under the scanner -->
-  <text x="50%" y="420" fill="#111827" font-family="Arial, sans-serif" font-weight="bold" font-size="40" text-anchor="middle">SCAN TICKET</text>
+  <!-- Camera Lens -->
+  <circle cx="96" cy="96" r="30" fill="#1c1c1c" stroke="#555555" stroke-width="3"/>
+  <circle cx="96" cy="96" r="24" fill="#2c2c2c" stroke="#555555" stroke-width="1"/>
+  <circle cx="96" cy="96" r="18" fill="#3c3c3c" stroke="#555555" stroke-width="1"/>
+  
+  <!-- Camera Flash -->
+  <rect x="135" y="68" width="10" height="10" rx="2" ry="2" fill="#ffffff"/>
+  
+  <!-- Viewfinder -->
+  <line x1="76" y1="86" x2="76" y2="76" stroke="#ffffff" stroke-width="2"/>
+  <line x1="76" y1="76" x2="86" y2="76" stroke="#ffffff" stroke-width="2"/>
+  
+  <line x1="116" y1="86" x2="116" y2="76" stroke="#ffffff" stroke-width="2"/>
+  <line x1="116" y1="76" x2="106" y2="76" stroke="#ffffff" stroke-width="2"/>
+  
+  <line x1="76" y1="106" x2="76" y2="116" stroke="#ffffff" stroke-width="2"/>
+  <line x1="76" y1="116" x2="86" y2="116" stroke="#ffffff" stroke-width="2"/>
+  
+  <line x1="116" y1="106" x2="116" y2="116" stroke="#ffffff" stroke-width="2"/>
+  <line x1="116" y1="116" x2="106" y2="116" stroke="#ffffff" stroke-width="2"/>
+  
+  <!-- Ticket Outline -->
+  <rect x="65" y="90" width="62" height="12" rx="2" ry="2" fill="none" stroke="#ffffff" stroke-width="2" stroke-dasharray="4,2"/>
 </svg>

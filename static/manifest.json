@@ -13,61 +13,61 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/static/icons/favicon-16x16.png",
+      "src": "/static/icons/favicon-16x16.svg",
       "sizes": "16x16",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/favicon-32x32.png",
+      "src": "/static/icons/favicon-32x32.svg",
       "sizes": "32x32",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/android-chrome-192x192.png",
+      "src": "/static/icons/android-chrome-192x192.svg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/android-chrome-512x512.png",
+      "src": "/static/icons/android-chrome-512x512.svg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/maskable-icon-192x192.png",
+      "src": "/static/icons/maskable-icon-192x192.svg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "maskable"
     },
     {
-      "src": "/static/icons/maskable-icon-512x512.png",
+      "src": "/static/icons/maskable-icon-512x512.svg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "maskable"
     }
   ],
   "screenshots": [
     {
-      "src": "/static/screenshots/screen1.jpg",
+      "src": "/static/screenshots/screen1.svg",
       "sizes": "1080x1920",
-      "type": "image/jpeg",
+      "type": "image/svg+xml",
       "platform": "narrow",
       "label": "Homepage of Snap Lotto"
     },
     {
-      "src": "/static/screenshots/screen2.jpg",
+      "src": "/static/screenshots/screen2.svg",
       "sizes": "1080x1920",
-      "type": "image/jpeg",
+      "type": "image/svg+xml",
       "platform": "narrow",
       "label": "Ticket Scanner Interface"
     },
     {
-      "src": "/static/screenshots/screen3.jpg",
+      "src": "/static/screenshots/screen3.svg",
       "sizes": "1080x1920",
-      "type": "image/jpeg",
+      "type": "image/svg+xml",
       "platform": "narrow",
       "label": "Lottery Results"
     }
@@ -80,9 +80,9 @@
       "url": "/ticket-scanner",
       "icons": [
         {
-          "src": "/static/icons/scanner-192x192.png",
+          "src": "/static/icons/scanner-icon.svg",
           "sizes": "192x192",
-          "type": "image/png"
+          "type": "image/svg+xml"
         }
       ]
     },
@@ -93,9 +93,9 @@
       "url": "/results",
       "icons": [
         {
-          "src": "/static/icons/results-192x192.png",
+          "src": "/static/icons/results-icon.svg",
           "sizes": "192x192",
-          "type": "image/png"
+          "type": "image/svg+xml"
         }
       ]
     }

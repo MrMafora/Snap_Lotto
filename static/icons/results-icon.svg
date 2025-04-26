@@ -1,18 +1,32 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#FFE11D" rx="100" ry="100"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="192px" height="192px" viewBox="0 0 192 192" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <!-- Results Icon -->
+  <circle cx="96" cy="96" r="96" fill="#ffe11d"/>
   
-  <!-- Results/List symbol -->
-  <g transform="translate(120, 100) scale(0.55)">
-    <rect x="64" y="64" width="384" height="384" rx="20" ry="20" fill="#FFFFFF" stroke="#111827" stroke-width="16"/>
-    <circle cx="136" cy="152" r="32" fill="#111827"/>
-    <rect x="184" y="136" width="200" height="32" rx="16" ry="16" fill="#111827"/>
-    <circle cx="136" cy="256" r="32" fill="#111827"/>
-    <rect x="184" y="240" width="200" height="32" rx="16" ry="16" fill="#111827"/>
-    <circle cx="136" cy="360" r="32" fill="#111827"/>
-    <rect x="184" y="344" width="200" height="32" rx="16" ry="16" fill="#111827"/>
-  </g>
+  <!-- Clipboard Base -->
+  <rect x="46" y="40" width="100" height="130" rx="8" ry="8" fill="#ffffff" stroke="#333333" stroke-width="4"/>
+  <rect x="60" y="32" width="72" height="20" rx="4" ry="4" fill="#333333"/>
   
-  <!-- Text under the results list -->
-  <text x="50%" y="420" fill="#111827" font-family="Arial, sans-serif" font-weight="bold" font-size="40" text-anchor="middle">RESULTS</text>
+  <!-- Lines for text -->
+  <rect x="60" y="70" width="72" height="8" rx="4" ry="4" fill="#333333"/>
+  <rect x="60" y="90" width="36" height="8" rx="4" ry="4" fill="#333333"/>
+  
+  <!-- Numbers -->
+  <circle cx="70" cy="120" r="12" fill="#e63946"/>
+  <text x="70" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="14" fill="#ffffff">7</text>
+  
+  <circle cx="100" cy="120" r="12" fill="#e63946"/>
+  <text x="100" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="14" fill="#ffffff">12</text>
+  
+  <circle cx="130" cy="120" r="12" fill="#e63946"/>
+  <text x="130" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="14" fill="#ffffff">23</text>
+  
+  <circle cx="70" cy="150" r="12" fill="#e63946"/>
+  <text x="70" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="14" fill="#ffffff">31</text>
+  
+  <circle cx="100" cy="150" r="12" fill="#e63946"/>
+  <text x="100" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="14" fill="#ffffff">44</text>
+  
+  <circle cx="130" cy="150" r="12" fill="#e63946"/>
+  <text x="130" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="14" fill="#ffffff">49</text>
 </svg>
