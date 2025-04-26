@@ -19,7 +19,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     
     Args:
         image_data: The uploaded ticket image data
-        lottery_type: Type of lottery (Lotto, Powerball, etc.)
+        lottery_type: Type of lottery (Lottery, Powerball, etc.)
         draw_number: Optional specific draw number to check against
         file_extension: Extension of the uploaded file (e.g., '.jpeg', '.png')
         
@@ -84,7 +84,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     if lottery_type == "Lottery" and plays_lottery_plus_1:
         logger.info("This ticket also plays Lottery Plus 1 - checking both games")
         lottery_plus_1_result = get_lottery_result("Lottery Plus 1", draw_number)
-    elif lottery_type == "Lottery" or lottery_type == "Lotto":
+    elif lottery_type == "Lottery":
         logger.info("This ticket doesn't play Lottery Plus 1 or it wasn't detected")
     
     # Check for Lottery Plus 2 if applicable
@@ -92,7 +92,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     if lottery_type == "Lottery" and plays_lottery_plus_2:
         logger.info("This ticket also plays Lottery Plus 2 - checking both games")
         lottery_plus_2_result = get_lottery_result("Lottery Plus 2", draw_number)
-    elif lottery_type == "Lottery" or lottery_type == "Lotto":
+    elif lottery_type == "Lottery":
         logger.info("This ticket doesn't play Lottery Plus 2 or it wasn't detected")
     
     if not lottery_result:
@@ -309,12 +309,12 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             lp1_bonus_numbers = lottery_plus_1_result.get_bonus_numbers_list()
             lp1_bonus_numbers = [int(num) for num in lp1_bonus_numbers]
         
-        # Initialize best matches for Lotto Plus 1
+        # Initialize best matches for Lottery Plus 1
         lp1_best_matches = []
         lp1_best_bonus_matches = []
         lp1_rows_with_matches = []
         
-        # Check each row separately for Lotto Plus 1 matches
+        # Check each row separately for Lottery Plus 1 matches
         if raw_ticket_info and isinstance(raw_ticket_info, dict) and len(raw_ticket_info) > 0:
             for row_name, numbers in raw_ticket_info.items():
                 row_matches = [num for num in numbers if num in lp1_winning_numbers]
@@ -327,7 +327,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
                         "matched_numbers": row_matches,
                         "matched_bonus": row_bonus_matches,
                         "total_matched": len(row_matches) + len(row_bonus_matches),
-                        "game_type": "Lotto Plus 1"  # Add game type for clarity
+                        "game_type": "Lottery Plus 1"  # Add game type for clarity
                     })
                     
                     # Track best matches
@@ -378,12 +378,12 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
     # For Lottery Plus 2 results
     if lottery_plus_2_result:
         # Get Lottery Plus 2 winning numbers
-        lp2_winning_numbers = lotto_plus_2_result.get_numbers_list()
+        lp2_winning_numbers = lottery_plus_2_result.get_numbers_list()
         lp2_winning_numbers = [int(num) for num in lp2_winning_numbers]
         
         lp2_bonus_numbers = []
-        if lotto_plus_2_result.bonus_numbers:
-            lp2_bonus_numbers = lotto_plus_2_result.get_bonus_numbers_list()
+        if lottery_plus_2_result.bonus_numbers:
+            lp2_bonus_numbers = lottery_plus_2_result.get_bonus_numbers_list()
             lp2_bonus_numbers = [int(num) for num in lp2_bonus_numbers]
         
         # Initialize best matches for Lotto Plus 2
@@ -426,13 +426,13 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             lp2_matched_bonus = [num for num in ticket_numbers if num in lp2_bonus_numbers]
         
         # Check for prize in Lottery Plus 2
-        lp2_prize_info = get_prize_info("Lottery Plus 2", lp2_matched_numbers, lp2_matched_bonus, lotto_plus_2_result)
+        lp2_prize_info = get_prize_info("Lottery Plus 2", lp2_matched_numbers, lp2_matched_bonus, lottery_plus_2_result)
         
         # Include Lottery Plus 2 results in our response
         lp2_result_data = {
             "lottery_type": "Lottery Plus 2",
-            "draw_number": lotto_plus_2_result.draw_number,
-            "draw_date": lotto_plus_2_result.draw_date.strftime("%A, %d %B %Y"),
+            "draw_number": lottery_plus_2_result.draw_number,
+            "draw_date": lottery_plus_2_result.draw_date.strftime("%A, %d %B %Y"),
             "winning_numbers": lp2_winning_numbers,
             "bonus_numbers": lp2_bonus_numbers,
             "matched_numbers": lp2_matched_numbers,
@@ -451,7 +451,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
         # If Lottery Plus 2 has a prize but no other game has a prize, mark overall ticket as winning
         # First check if we have a Lottery Plus 1 result with a prize
         lp1_has_prize = False
-        if lotto_plus_1_result and result.get("lottery_plus_1_results", {}).get("has_prize", False):
+        if lottery_plus_1_result and result.get("lottery_plus_1_results", {}).get("has_prize", False):
             lp1_has_prize = True
                 
         # Now check if Lottery Plus 2 has a prize but no other game does
