@@ -685,6 +685,9 @@ function updateCharts(data) {
     // Update frequency chart
     updateFrequencyChart(data);
     
+    // Update hot and cold numbers section
+    updateHotColdNumbers(data);
+    
     // Update division statistics chart
     updateDivisionChart(data);
     
@@ -703,6 +706,115 @@ function updateCharts(data) {
         pieChartContainer.style.display = 'flex';
     } else {
         console.warn('pieChartContainer element not found');
+    }
+}
+
+// Function to update the Hot & Cold Numbers section with filtered data
+function updateHotColdNumbers(data) {
+    // Show loading indicator for hot/cold section
+    const hotColdLoading = document.getElementById('hotColdLoading');
+    if (hotColdLoading) {
+        hotColdLoading.classList.remove('d-none');
+    }
+    
+    // Find the lottery type with the most data (similar logic as updateFrequencyChart)
+    let selectedLotteryType = null;
+    let maxFrequencyData = [];
+    
+    // Find the lottery type with the most data
+    for (const lotteryType in data) {
+        if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
+            maxFrequencyData = data[lotteryType].frequency;
+            selectedLotteryType = lotteryType;
+        }
+    }
+    
+    // If we have no data, show error message
+    if (!selectedLotteryType) {
+        document.getElementById('hotNumbersContainer').innerHTML = '<div class="text-muted">No hot numbers data available for the selected filters</div>';
+        document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available for the selected filters</div>';
+        document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available for the selected filters</div>';
+        
+        // Hide loading indicator
+        if (hotColdLoading) {
+            hotColdLoading.classList.add('d-none');
+        }
+        return;
+    }
+    
+    // Get the top numbers for this lottery type (most frequent)
+    const topNumbers = data[selectedLotteryType].top_numbers;
+    
+    // Get the cold numbers (least frequent)
+    const coldNumbers = data[selectedLotteryType].cold_numbers;
+    
+    // Get numbers not drawn recently
+    const absentNumbers = data[selectedLotteryType].numbers_not_drawn;
+    
+    // Update Hot Numbers container
+    if (topNumbers && topNumbers.length > 0) {
+        let hotNumbersHTML = '';
+        const colors = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'];
+        
+        for (let i = 0; i < Math.min(5, topNumbers.length); i++) {
+            const [number, frequency] = topNumbers[i];
+            hotNumbersHTML += `
+                <div class="hot-number-item me-2 mb-2">
+                    <span class="lottery-ball lottery-ball-sm ${colors[i]}">
+                        <span class="number">${number}</span>
+                    </span>
+                    <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+                </div>
+            `;
+        }
+        document.getElementById('hotNumbersContainer').innerHTML = hotNumbersHTML;
+    } else {
+        document.getElementById('hotNumbersContainer').innerHTML = '<div class="text-muted">No hot numbers data available</div>';
+    }
+    
+    // Update Cold Numbers container
+    if (coldNumbers && coldNumbers.length > 0) {
+        let coldNumbersHTML = '';
+        
+        for (let i = 0; i < Math.min(5, coldNumbers.length); i++) {
+            const [number, frequency] = coldNumbers[i];
+            coldNumbersHTML += `
+                <div class="cold-number-item me-2 mb-2">
+                    <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                        <span class="number">${number}</span>
+                    </span>
+                    <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+                </div>
+            `;
+        }
+        document.getElementById('coldNumbersContainer').innerHTML = coldNumbersHTML;
+    } else {
+        document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available</div>';
+    }
+    
+    // Update Numbers Not Drawn Recently container
+    if (absentNumbers && absentNumbers.length > 0) {
+        let absentNumbersHTML = '';
+        
+        for (let i = 0; i < Math.min(5, absentNumbers.length); i++) {
+            const [number, days] = absentNumbers[i];
+            absentNumbersHTML += `
+                <div class="absent-number-item me-2 mb-2">
+                    <span class="lottery-ball lottery-ball-sm lottery-ball-green">
+                        <span class="number">${number}</span>
+                    </span>
+                    <small class="frequency-label d-block text-center mt-1">${days} days</small>
+                </div>
+            `;
+        }
+        document.getElementById('absentNumbersContainer').innerHTML = absentNumbersHTML;
+    } else {
+        document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available</div>';
+    }
+    
+    // Hide loading indicator
+    if (hotColdLoading) {
+        hotColdLoading.classList.add('d-none');
     }
 }
 
