@@ -235,9 +235,19 @@ def direct_excel_import(excel_path, app):
                                     }
                             
                             # Skip if missing essential data
-                            if not lottery_type or not draw_number or not numbers:
-                                logger.warning(f"Skipping row {index} - missing essential data")
+                            if not lottery_type or not draw_number:
+                                logger.warning(f"Skipping row {index} - missing lottery_type or draw_number")
                                 continue
+                                
+                            # For some data types, numbers might be missing but could be added later
+                            # Allow importing with empty numbers for PowerBall and Daily Lottery
+                            if not numbers and not (('powerball' in lottery_type.lower()) or ('daily' in lottery_type.lower())):
+                                logger.warning(f"Skipping row {index} - missing numbers for {lottery_type}")
+                                continue
+                                
+                            # If we got here, we have at least lottery_type and draw_number
+                            if not numbers:
+                                numbers = []  # Use empty list if no numbers found
                             
                             # Check if already exists
                             existing = LotteryResult.query.filter_by(
