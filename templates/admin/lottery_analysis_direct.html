@@ -573,27 +573,69 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } 
         else if (tabId === 'timeseries') {
-            if (data && data.time_series) {
-                Object.entries(data.time_series).forEach(([lottery_type, typeData]) => {
-                    html += `
-                        <div class="col-md-6 mb-4">
-                            <div class="card border-left-info shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                        ${lottery_type}
+            // Time series data is directly indexed by lottery type in the response
+            if (data) {
+                Object.entries(data).forEach(([lottery_type, typeData]) => {
+                    // Skip entries with errors or missing chart data
+                    if (typeData && !typeData.error && typeData.chart_base64) {
+                        html += `
+                            <div class="col-md-12 mb-4">
+                                <div class="card shadow mb-4">
+                                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                        <h6 class="m-0 font-weight-bold text-info">${lottery_type} Time Series Analysis</h6>
                                     </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                        Time Series Analysis
-                                    </div>
-                                    <div class="mt-2">
-                                        <img src="data:image/png;base64,${typeData.chart_base64}" 
-                                            alt="Time Series Analysis for ${lottery_type}" 
-                                            class="img-fluid">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <div class="text-center">
+                                                    <img src="data:image/png;base64,${typeData.chart_base64}" 
+                                                         alt="Time Series Analysis for ${lottery_type}" 
+                                                         class="img-fluid">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <h5 class="text-gray-800 mb-3">Key Statistics</h5>
+                                                <div class="card mb-3">
+                                                    <div class="card-header py-2 bg-light">
+                                                        <h6 class="m-0 font-weight-bold text-primary">Number Distribution</h6>
+                                                    </div>
+                                                    <div class="card-body p-2">
+                                                        ${typeData.statistics ? `
+                                                            <ul class="list-group list-group-flush">
+                                                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                                                    Average Sum
+                                                                    <span class="badge badge-info badge-pill">${Math.round(typeData.statistics.sum.mean)}</span>
+                                                                </li>
+                                                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                                                    Standard Deviation
+                                                                    <span class="badge badge-info badge-pill">${typeData.statistics.std.mean.toFixed(2)}</span>
+                                                                </li>
+                                                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                                                    Even Numbers
+                                                                    <span class="badge badge-info badge-pill">${typeData.statistics.even_count.most_common}</span>
+                                                                </li>
+                                                            </ul>
+                                                        ` : `<p class="text-muted small mb-0">No statistics available</p>`}
+                                                    </div>
+                                                </div>
+                                                
+                                                ${typeData.anomalies && typeData.anomalies.length > 0 ? `
+                                                    <div class="card">
+                                                        <div class="card-header py-2 bg-light">
+                                                            <h6 class="m-0 font-weight-bold text-warning">Anomalies Detected</h6>
+                                                        </div>
+                                                        <div class="card-body p-2">
+                                                            <p class="small">${typeData.anomaly_count} anomalous draws detected</p>
+                                                        </div>
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        `;
+                    }
                 });
             }
             
