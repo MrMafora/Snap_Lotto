@@ -447,6 +447,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         if (scanAnotherButton) {
             scanAnotherButton.addEventListener('click', function(e) {
                 e.preventDefault();
+                console.log('Scan Another Ticket button clicked');
                 
                 // Reset the file input
                 const fileInput = document.getElementById('ticket-image');
@@ -464,10 +465,48 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 const resultsContainer = document.getElementById('results-container');
                 if (resultsContainer) {
                     resultsContainer.classList.add('d-none');
+                    
+                    // Reset results display flags
+                    window.inResultsMode = false;
+                    window.lastResultsData = null;
+                    
+                    // Remove any results mode classes from the body
+                    document.body.classList.remove('showing-results');
+                    document.body.classList.remove('results-mode');
                 }
                 
-                // Ensure scrolling is enabled
+                // Ensure scrolling is fully enabled
                 enableScrolling();
+                
+                // Hide any ad overlays that might still be visible
+                const adOverlay = document.getElementById('ad-overlay');
+                if (adOverlay) {
+                    adOverlay.style.display = 'none';
+                }
+                
+                const adOverlayResults = document.getElementById('ad-overlay-results');
+                if (adOverlayResults) {
+                    adOverlayResults.style.display = 'none';
+                }
+                
+                // Update scan button status in case a file was already selected
+                const scanButton = document.getElementById('scan-button');
+                if (scanButton) {
+                    scanButton.disabled = true;
+                }
+                
+                // Clean up any running countdown or timer
+                if (window.countdownTimeout) {
+                    clearTimeout(window.countdownTimeout);
+                    window.countdownTimeout = null;
+                }
+                
+                if (window.countdownInterval) {
+                    clearInterval(window.countdownInterval);
+                    window.countdownInterval = null;
+                }
+                
+                window.countdownRunning = false;
                 
                 // Scroll to the upload form
                 const ticketForm = document.getElementById('ticket-form');
