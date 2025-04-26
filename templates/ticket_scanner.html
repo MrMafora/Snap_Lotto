@@ -256,17 +256,20 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <!-- Mobile lottery display fix -->
 <script>
     // This script ensures lottery balls display properly on mobile devices
+    // WITHOUT overriding any existing color classes
     document.addEventListener("DOMContentLoaded", function() {
         // Function to fix lottery ball display
         function fixLotteryDisplay() {
             if (window.innerWidth <= 576) { // Only apply on mobile screens
+                console.log("Applying mobile layout adjustments");
+                
                 // Add extra space for better scrolling
                 const resultsContainer = document.getElementById('results-container');
                 if (resultsContainer) {
                     resultsContainer.style.paddingBottom = '150px';
                 }
                 
-                // Improve row layout for ticket numbers
+                // Improve row layout for ticket numbers without affecting colors
                 const ticketNumbersContainer = document.getElementById('ticket-numbers');
                 if (ticketNumbersContainer) {
                     // Make sure each row has good spacing
@@ -285,30 +288,60 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         container.style.gap = '8px';
                     });
                     
-                    // Improve lottery ball display but preserve colors
-                    const lotteryBalls = document.querySelectorAll('.lottery-ball');
+                    // CRITICAL: Adjust lottery ball dimensions only, preserving their classes and colors
+                    const lotteryBalls = ticketNumbersContainer.querySelectorAll('.lottery-ball');
+                    console.log(`Found ${lotteryBalls.length} lottery balls`);
+                    
                     lotteryBalls.forEach(ball => {
-                        // Only adjust size and positioning, not color
+                        // Get all class names to ensure we keep color classes
+                        const classList = Array.from(ball.classList);
+                        
+                        // IMPORTANT: Log colors to debug
+                        let colorClass = classList.find(c => c.includes('lottery-ball-') && c !== 'lottery-ball');
+                        console.log(`Ball has color class: ${colorClass || 'NONE!'}`);
+                        
+                        // Only adjust size and positioning, never color
                         ball.style.width = '36px';
                         ball.style.height = '36px';
-                        ball.style.fontSize = '15px';
+                        ball.style.fontSize = '16px';
+                        ball.style.lineHeight = '36px';
                         ball.style.margin = '5px';
                         ball.style.display = 'inline-flex';
                         ball.style.alignItems = 'center';
                         ball.style.justifyContent = 'center';
-                        // Explicitly DO NOT set background-color
+                        
+                        // NEVER override the background color - this is critical
+                        // If we don't have a color class, explicitly DON'T set background color
                     });
+                    
+                    // Check winning numbers too
+                    const winningNumbersContainer = document.getElementById('winning-numbers');
+                    if (winningNumbersContainer) {
+                        const winningBalls = winningNumbersContainer.querySelectorAll('.lottery-ball');
+                        winningBalls.forEach(ball => {
+                            // Only adjust size and positioning, never color
+                            ball.style.width = '36px';
+                            ball.style.height = '36px';
+                            ball.style.fontSize = '16px';
+                            ball.style.lineHeight = '36px';
+                            ball.style.margin = '5px';
+                            ball.style.display = 'inline-flex';
+                            ball.style.alignItems = 'center';
+                            ball.style.justifyContent = 'center';
+                        });
+                    }
                 }
             }
         }
         
-        // Run once on load and also observe for dynamic content changes
-        setTimeout(fixLotteryDisplay, 500); // Initial delay to let the DOM load
+        // Run once on initial load
+        setTimeout(fixLotteryDisplay, 500); 
         
-        // Set up mutation observer to catch dynamically added content
+        // Set up mutation observer to catch when results are added
         const observer = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (mutation.addedNodes.length) {
+                    // Delay to ensure DOM is fully updated
                     setTimeout(fixLotteryDisplay, 100);
                 }
             });
