@@ -178,8 +178,8 @@ def standardize_lottery_type(lottery_type):
         # Only match if it's not "powerball plus"
         if 'plus' not in lt:
             return 'Powerball'
-    elif ('daily lottery' in lt or 'dailylottery' in lt or
-          lt == 'daily lottery' or lt == 'dailylottery'):
+    elif ('daily lottery' in lt or 'dailylottery' in lt or 'daily lotto' in lt or 'dailylotto' in lt or
+          lt == 'daily lottery' or lt == 'dailylottery' or lt == 'daily lotto' or lt == 'dailylotto'):
         return 'Daily Lottery'
     # Main Lotto/Lottery - match only if it contains "lotto" or "lottery" but NOT "plus" or "daily"
     elif ('lotto' in lt or 'lottery' in lt) and 'plus' not in lt and 'daily' not in lt:

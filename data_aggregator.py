@@ -310,8 +310,10 @@ def normalize_lottery_type(lottery_type):
         "daily lottery": "Daily Lottery",
         "dailylottery": "Daily Lottery",
         "daily-lottery": "Daily Lottery",
+        "daily lotto": "Daily Lottery",
+        "dailylotto": "Daily Lottery",
+        "daily-lotto": "Daily Lottery",
         "lotto": "Lottery",
-        "lottery": "Lottery",
         "lottery": "Lottery",
         "powerball": "Powerball"
     }
