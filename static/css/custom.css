@@ -54,6 +54,29 @@
         width: 90%;
         max-width: 320px;
     }
+    
+    /* Mobile-optimized result cards */
+    .result-card {
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        margin-bottom: 12px;
+    }
+    
+    .result-card .card-header {
+        padding: 8px 12px;
+        background-color: #f9f9f9;
+    }
+    
+    .result-card .card-body {
+        padding: 12px;
+    }
+    
+    .numbers-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        justify-content: flex-start;
+    }
 }
 
 /* Pulsing animation for the View Results button */
