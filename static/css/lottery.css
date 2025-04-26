@@ -574,26 +574,21 @@
 
 .lottery-balls-container {
     display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
     align-items: center;
-    justify-content: flex-start;
-    gap: 0.35rem;
-    width: 100%;
     padding: 0.25rem 0;
+    gap: 0.5rem;
 }
 
 .lottery-balls-container .lottery-ball {
-    margin: 0;
+    flex: 0 0 auto;
     width: 38px;
     height: 38px;
-    flex-shrink: 0;
+    margin: 0;
 }
 
 .lottery-balls-container .bonus-number-separator {
     margin: 0 0.25rem;
     font-weight: bold;
-    flex-shrink: 0;
 }
 
 /* Style bonus balls correctly */
@@ -653,8 +648,8 @@
     }
     
     .lottery-balls-container {
-        justify-content: center;
         gap: 0.25rem;
+        justify-content: flex-start;
     }
     
     .lottery-balls-container .lottery-ball {
