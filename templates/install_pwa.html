@@ -1,131 +1,193 @@
 {% extends "base.html" %}
 
-{% block title %}Install Snap Lotto App{% endblock %}
+{% block title %}Install Snap Lotto App | Lottery Scanner PWA{% endblock %}
 
-{% block meta_description %}Install Snap Lotto as a mobile app on your phone for faster access to lottery results and ticket scanning.{% endblock %}
+{% block meta_description %}Install the Snap Lotto app on your phone to scan lottery tickets offline, get instant results, and check your Powerball and Daily Lottery tickets anywhere in South Africa.{% endblock %}
+
+{% block meta_keywords %}install Snap Lotto, Lottery scanner app, PowerBall scanner, Daily Lottery app, offline lottery scanner, PWA app South Africa{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center mt-4">
-        <div class="col-lg-8">
+<div class="container py-3">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1 class="text-center mb-4">Install Snap Lotto App</h1>
+            <p class="lead text-center">Install our website as an app on your device for the best experience</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h1 class="h4 mb-0">Install Snap Lotto as an App</h1>
-                </div>
                 <div class="card-body">
-                    <div class="text-center mb-4">
-                        <img src="{{ url_for('static', filename='icons/icon-192x192.png') }}" alt="Snap Lotto Logo" class="img-fluid" style="max-width: 120px;">
+                    <h2 class="h4 mb-3">Benefits of Installing:</h2>
+                    <ul class="mb-4">
+                        <li>Works offline - check tickets even without internet</li>
+                        <li>Faster loading times and smoother performance</li>
+                        <li>Full-screen experience without browser interface</li>
+                        <li>Direct access from your home screen</li>
+                        <li>Automatic updates with the latest features</li>
+                    </ul>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <div class="card h-100 bg-light">
+                                <div class="card-body">
+                                    <h3 class="h5 mb-3"><i class="fab fa-apple me-2"></i> iPhone / iPad</h3>
+                                    <ol class="small">
+                                        <li>Open Safari browser</li>
+                                        <li>Navigate to <strong>snaplotto.co.za</strong></li>
+                                        <li>Tap the <strong>Share</strong> icon <i class="fas fa-share-square"></i> at the bottom of the screen</li>
+                                        <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                                        <li>Tap <strong>"Add"</strong> in the top-right corner</li>
+                                    </ol>
+                                    <div class="text-center mt-3">
+                                        <img src="{{ url_for('static', filename='img/ios-install-guide.png') }}" alt="iOS installation guide" class="img-fluid rounded" style="max-height: 180px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 bg-light">
+                                <div class="card-body">
+                                    <h3 class="h5 mb-3"><i class="fab fa-android me-2"></i> Android</h3>
+                                    <ol class="small">
+                                        <li>Open Chrome browser</li>
+                                        <li>Navigate to <strong>snaplotto.co.za</strong></li>
+                                        <li>Tap the menu icon <i class="fas fa-ellipsis-v"></i> in the top-right</li>
+                                        <li>Tap <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong></li>
+                                        <li>Tap <strong>"Add"</strong> or <strong>"Install"</strong> to confirm</li>
+                                    </ol>
+                                    <div class="text-center mt-3">
+                                        <img src="{{ url_for('static', filename='img/android-install-guide.png') }}" alt="Android installation guide" class="img-fluid rounded" style="max-height: 180px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <p class="lead text-center mb-4">Enjoy faster access to South Africa's #1 Lottery Scanner App directly from your home screen!</p>
-                    
-                    <div class="alert alert-info" id="install-instructions">
-                        <p class="mb-0"><strong>How to install:</strong> Look for the "Add to Home Screen" option in your browser menu or tap the install banner when it appears.</p>
+
+                    <div class="card mb-4 border-warning">
+                        <div class="card-header bg-warning bg-opacity-25">
+                            <h3 class="h5 mb-0"><i class="fas fa-desktop me-2"></i> Desktop / Laptop</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <h4 class="h6">Chrome:</h4>
+                                    <ol class="small">
+                                        <li>Navigate to <strong>snaplotto.co.za</strong></li>
+                                        <li>Look for the install icon <i class="fas fa-download"></i> in the address bar</li>
+                                        <li>Click <strong>"Install"</strong> when prompted</li>
+                                    </ol>
+                                </div>
+                                <div class="col-md-6">
+                                    <h4 class="h6">Edge:</h4>
+                                    <ol class="small">
+                                        <li>Navigate to <strong>snaplotto.co.za</strong></li>
+                                        <li>Click the menu <i class="fas fa-ellipsis-h"></i> in the top-right</li>
+                                        <li>Select <strong>"Apps"</strong> > <strong>"Install this site as an app"</strong></li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div id="install-button-container" class="text-center mb-4">
-                        <button id="install-button" class="btn btn-primary btn-lg" style="display: none;">
-                            <i class="fas fa-download me-2"></i> Install App
-                        </button>
-                    </div>
-                    
-                    <div class="row mt-4">
-                        <div class="col-md-6 mb-3">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title"><i class="fas fa-bolt me-2"></i>Fast Access</h5>
-                                    <p class="card-text">Open Snap Lotto instantly from your home screen without navigating to a browser.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title"><i class="fas fa-wifi-slash me-2"></i>Works Offline</h5>
-                                    <p class="card-text">Basic features available even when you don't have an internet connection.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title"><i class="fas fa-mobile-alt me-2"></i>App-like Experience</h5>
-                                    <p class="card-text">Looks and feels like a native app with full-screen experience.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title"><i class="fas fa-bell me-2"></i>Notifications</h5>
-                                    <p class="card-text">Get the latest draw results right on your device (coming soon).</p>
-                                </div>
-                            </div>
-                        </div>
+
+                    <div class="alert alert-info">
+                        <h4 class="h5"><i class="fas fa-info-circle me-2"></i> Need Help?</h4>
+                        <p class="small mb-0">If you're having trouble installing the app, try refreshing the page or clearing your browser cache. The installation banner should appear after visiting the site a few times.</p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8 text-center">
+            <h3 class="h5 mb-3">App Features</h3>
+            <div class="row">
+                <div class="col-6 col-md-3 mb-3">
+                    <div class="feature-icon mb-2">
+                        <i class="fas fa-mobile-alt fa-2x"></i>
+                    </div>
+                    <h4 class="h6">Mobile Optimized</h4>
+                </div>
+                <div class="col-6 col-md-3 mb-3">
+                    <div class="feature-icon mb-2">
+                        <i class="fas fa-wifi-slash fa-2x"></i>
+                    </div>
+                    <h4 class="h6">Works Offline</h4>
+                </div>
+                <div class="col-6 col-md-3 mb-3">
+                    <div class="feature-icon mb-2">
+                        <i class="fas fa-bolt fa-2x"></i>
+                    </div>
+                    <h4 class="h6">Fast Loading</h4>
+                </div>
+                <div class="col-6 col-md-3 mb-3">
+                    <div class="feature-icon mb-2">
+                        <i class="fas fa-camera fa-2x"></i>
+                    </div>
+                    <h4 class="h6">Camera Access</h4>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-home me-2"></i> Back to Homepage
+                </a>
+                <a href="/scanner-landing" class="btn btn-success ms-2">
+                    <i class="fas fa-ticket-alt me-2"></i> Go to Scanner
+                </a>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block additional_scripts %}
 <script>
-    let deferredPrompt;
-    
-    window.addEventListener('beforeinstallprompt', (e) => {
-        // Prevent the mini-infobar from appearing on mobile
-        e.preventDefault();
-        // Stash the event so it can be triggered later
-        deferredPrompt = e;
-        // Update UI to notify the user they can install the PWA
-        const installButton = document.getElementById('install-button');
-        if (installButton) {
-            installButton.style.display = 'inline-block';
-            
-            installButton.addEventListener('click', async () => {
-                // Show the install prompt
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    // Wait for the user to respond to the prompt
-                    const { outcome } = await deferredPrompt.userChoice;
-                    // We've used the prompt, and can't use it again, throw it away
-                    deferredPrompt = null;
-                    
-                    if (outcome === 'accepted') {
-                        console.log('User accepted the install prompt');
-                        installButton.style.display = 'none';
-                        document.getElementById('install-instructions').innerHTML = 
-                            '<p class="mb-0"><strong>Thanks for installing!</strong> You can now access Snap Lotto directly from your home screen.</p>';
-                    } else {
-                        console.log('User dismissed the install prompt');
-                    }
-                }
-            });
-        }
-    });
-    
-    // Detect if already installed
-    window.addEventListener('appinstalled', () => {
-        // Hide the app-provided install promotion
-        const installButton = document.getElementById('install-button');
-        if (installButton) {
-            installButton.style.display = 'none';
-        }
-        document.getElementById('install-instructions').innerHTML = 
-            '<p class="mb-0"><strong>App installed!</strong> You can now access Snap Lotto directly from your home screen.</p>';
-        console.log('PWA was installed');
-    });
-    
-    // Detect if already running as installed PWA
-    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-        document.getElementById('install-instructions').innerHTML = 
-            '<p class="mb-0"><strong>You\'re already using the app version!</strong> Enjoy the full-screen experience.</p>';
-        const installButton = document.getElementById('install-button');
-        if (installButton) {
-            installButton.style.display = 'none';
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if the app is already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        // Show a message to users who are already using the installed app
+        const container = document.querySelector('.container');
+        if (container) {
+            const alreadyInstalledAlert = document.createElement('div');
+            alreadyInstalledAlert.className = 'alert alert-success mb-4';
+            alreadyInstalledAlert.innerHTML = `
+                <h4 class="h5"><i class="fas fa-check-circle me-2"></i> App Already Installed!</h4>
+                <p class="mb-0">You're already using the installed app version. Enjoy the full experience!</p>
+            `;
+            container.insertBefore(alreadyInstalledAlert, container.firstChild);
         }
     }
+    
+    // Detect the user's platform and scroll to the relevant section
+    const ua = navigator.userAgent.toLowerCase();
+    const isIOS = /ipad|iphone|ipod/.test(ua);
+    const isAndroid = /android/.test(ua);
+    const isDesktop = !isIOS && !isAndroid;
+    
+    if (isIOS || isAndroid || isDesktop) {
+        setTimeout(() => {
+            const platformSection = document.querySelector(isIOS ? '.fab.fa-apple' : 
+                                                     isAndroid ? '.fab.fa-android' : 
+                                                     '.fas.fa-desktop');
+            if (platformSection) {
+                const element = platformSection.closest('.card');
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Highlight the relevant section
+                    element.classList.add('border-primary');
+                    element.classList.add('border-2');
+                    
+                    // Add a slight delay then remove the highlight
+                    setTimeout(() => {
+                        element.classList.remove('border-primary');
+                        element.classList.remove('border-2');
+                    }, 2000);
+                }
+            }
+        }, 500);
+    }
+});
 </script>
 {% endblock %}

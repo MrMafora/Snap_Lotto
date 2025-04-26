@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="300px" height="180px" viewBox="0 0 300 180" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <!-- Android Install Guide Illustration -->
+  <rect x="10" y="10" width="130" height="160" rx="10" ry="10" fill="#f4f4f4" stroke="#bdbdbd" stroke-width="2"/>
+  
+  <!-- Browser Bar -->
+  <rect x="10" y="10" width="130" height="25" rx="10" ry="10" fill="#4285F4"/>
+  <circle cx="125" cy="22" r="3" fill="white"/>
+  <circle cx="115" cy="22" r="3" fill="white"/>
+  <circle cx="105" cy="22" r="3" fill="white"/>
+  
+  <!-- Page Content -->
+  <rect x="20" y="45" width="110" height="20" rx="3" ry="3" fill="#ffe11d"/>
+  <rect x="20" y="75" width="110" height="10" rx="2" ry="2" fill="#e0e0e0"/>
+  <rect x="20" y="90" width="90" height="10" rx="2" ry="2" fill="#e0e0e0"/>
+  <rect x="20" y="105" width="70" height="10" rx="2" ry="2" fill="#e0e0e0"/>
+  
+  <!-- Menu Button -->
+  <circle cx="115" cy="140" r="15" fill="#4285F4"/>
+  <rect x="105" y="139" width="20" height="2" fill="white"/>
+  <rect x="105" y="143" width="20" height="2" fill="white"/>
+  <rect x="105" y="135" width="20" height="2" fill="white"/>
+
+  <!-- Phone 2 with Installation Dialog -->
+  <rect x="160" y="10" width="130" height="160" rx="10" ry="10" fill="#f4f4f4" stroke="#bdbdbd" stroke-width="2"/>
+  
+  <!-- Install Dialog -->
+  <rect x="170" y="40" width="110" height="110" rx="5" ry="5" fill="white" stroke="#bdbdbd" stroke-width="1"/>
+  <text x="225" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333333">Add to Home screen</text>
+  
+  <!-- App Icon -->
+  <rect x="195" y="70" width="40" height="40" rx="5" ry="5" fill="#ffe11d"/>
+  <path d="M215,75 L205,95 L210,97 L200,107 L205,109 L215,90 L210,88 Z" fill="#333333" transform="scale(0.8) translate(52, 20)"/>
+  
+  <!-- App Name -->
+  <text x="225" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#333333">Snap Lotto</text>
+  
+  <!-- Install Button -->
+  <rect x="190" y="135" width="70" height="25" rx="3" ry="3" fill="#4285F4"/>
+  <text x="225" y="152" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">INSTALL</text>
+</svg>

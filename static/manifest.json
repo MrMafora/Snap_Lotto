@@ -1,60 +1,46 @@
 {
-  "name": "Snap Lotto - South Africa's Lottery App",
+  "name": "Snap Lotto - South Africa Lottery Scanner",
   "short_name": "Snap Lotto",
-  "description": "South Africa's #1 Lottery, PowerBall & Daily Lottery Scanner App. Instantly check lottery results and scan your tickets.",
+  "description": "South Africa's #1 Lottery, PowerBall & Daily Lottery Scanner App. The ONLY app with official Ithuba data.",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#FFE11D",
   "theme_color": "#FFE11D",
-  "orientation": "portrait-primary",
+  "categories": ["utilities", "entertainment", "finance"],
+  "scope": "/",
+  "lang": "en-ZA",
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/static/icons/icon-72x72.png",
-      "sizes": "72x72",
+      "src": "/static/icons/favicon-16x16.png",
+      "sizes": "16x16",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/icon-96x96.png",
-      "sizes": "96x96",
+      "src": "/static/icons/favicon-32x32.png",
+      "sizes": "32x32",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/icon-128x128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icons/icon-144x144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icons/icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icons/icon-192x192.png",
+      "src": "/static/icons/android-chrome-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/icon-384x384.png",
-      "sizes": "384x384",
+      "src": "/static/icons/android-chrome-512x512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/icon-512x512.png",
-      "sizes": "512x512",
+      "src": "/static/icons/maskable-icon-192x192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "maskable"
     },
     {
       "src": "/static/icons/maskable-icon-512x512.png",
@@ -63,42 +49,78 @@
       "purpose": "maskable"
     }
   ],
+  "screenshots": [
+    {
+      "src": "/static/screenshots/screen1.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "platform": "narrow",
+      "label": "Homepage of Snap Lotto"
+    },
+    {
+      "src": "/static/screenshots/screen2.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "platform": "narrow",
+      "label": "Ticket Scanner Interface"
+    },
+    {
+      "src": "/static/screenshots/screen3.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "platform": "narrow",
+      "label": "Lottery Results"
+    }
+  ],
   "shortcuts": [
     {
-      "name": "Scan Lottery Ticket",
-      "short_name": "Scan Ticket",
-      "description": "Quickly scan your lottery ticket",
+      "name": "Scan Ticket",
+      "short_name": "Scan",
+      "description": "Scan your lottery ticket",
       "url": "/ticket-scanner",
       "icons": [
         {
-          "src": "/static/icons/scanner-icon.svg",
-          "sizes": "192x192"
+          "src": "/static/icons/scanner-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
     {
-      "name": "Latest Lottery Results",
+      "name": "Latest Results",
       "short_name": "Results",
-      "description": "View the latest lottery results",
+      "description": "View latest lottery results",
       "url": "/results",
       "icons": [
         {
-          "src": "/static/icons/results-icon.svg",
-          "sizes": "192x192"
+          "src": "/static/icons/results-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }
   ],
-  "screenshots": [
+  "related_applications": [
     {
-      "src": "/static/screenshots/home-screen.png",
-      "sizes": "1080x1920",
-      "type": "image/png"
-    },
-    {
-      "src": "/static/screenshots/scanner-screen.png",
-      "sizes": "1080x1920",
-      "type": "image/png"
+      "platform": "webapp",
+      "url": "https://www.snaplotto.co.za/manifest.json"
     }
-  ]
+  ],
+  "dir": "ltr",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "iarc_rating_id": "",
+  "permissions": ["camera"],
+  "share_target": {
+    "action": "/ticket-scanner",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "ticket_image",
+          "accept": ["image/*"]
+        }
+      ]
+    }
+  }
 }

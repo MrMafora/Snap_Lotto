@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1080px" height="1920px" viewBox="0 0 1080 1920" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <!-- Results Page Screenshot -->
+  <rect x="0" y="0" width="1080" height="1920" fill="#f8f9fa"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="1080" height="150" fill="#ffe11d"/>
+  <text x="200" y="95" font-family="Arial, sans-serif" font-weight="bold" font-size="48" fill="#333333">SNAP LOTTO</text>
+  <path d="M140,40 L100,90 L115,95 L85,125 L100,130 L140,80 L125,75 Z" fill="#333333"/>
+  
+  <!-- Page Title -->
+  <rect x="40" y="200" width="1000" height="80" fill="#333333"/>
+  <text x="80" y="250" font-family="Arial, sans-serif" font-size="32" fill="#ffffff">Lottery Results</text>
+  
+  <!-- Game Filter Tabs -->
+  <rect x="40" y="300" width="1000" height="70" rx="5" ry="5" fill="#ffffff" stroke="#e9ecef" stroke-width="2"/>
+  <rect x="40" y="300" width="200" height="70" rx="5" ry="5" fill="#ffe11d"/>
+  <text x="140" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#333333">Lottery</text>
+  <text x="340" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#666666">Powerball</text>
+  <text x="540" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#666666">Daily</text>
+  <text x="740" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#666666">Plus 1</text>
+  <text x="940" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#666666">Plus 2</text>
+  
+  <!-- Results Cards -->
+  <rect x="40" y="400" width="1000" height="250" rx="10" ry="10" fill="#ffffff" stroke="#e9ecef" stroke-width="2"/>
+  <rect x="40" y="400" width="1000" height="60" rx="10" ry="10" fill="#333333"/>
+  <text x="60" y="440" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#ffffff">Lottery - Draw #3750</text>
+  <text x="900" y="440" font-family="Arial, sans-serif" font-size="20" fill="#ffffff">2025-04-22</text>
+  
+  <!-- Draw Numbers -->
+  <circle cx="100" cy="520" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="100" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">07</text>
+  <circle cx="200" cy="520" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="200" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">12</text>
+  <circle cx="300" cy="520" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="300" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">23</text>
+  <circle cx="400" cy="520" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="400" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">31</text>
+  <circle cx="500" cy="520" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="500" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">44</text>
+  <circle cx="600" cy="520" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="600" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">49</text>
+  
+  <!-- Results Details -->
+  <rect x="700" y="490" width="300" height="35" rx="5" ry="5" fill="#f8f9fa"/>
+  <text x="720" y="515" font-family="Arial, sans-serif" font-size="20" fill="#333333">Jackpot: R15,000,000</text>
+  <rect x="700" y="535" width="300" height="35" rx="5" ry="5" fill="#f8f9fa"/>
+  <text x="720" y="560" font-family="Arial, sans-serif" font-size="20" fill="#333333">Winners: 0 (Division 1)</text>
+  
+  <!-- Divider -->
+  <line x1="40" y1="600" x2="1040" y2="600" stroke="#e9ecef" stroke-width="2"/>
+  
+  <!-- Next Draw Info -->
+  <text x="60" y="630" font-family="Arial, sans-serif" font-weight="bold" font-size="22" fill="#333333">Next Draw: 2025-04-26</text>
+  <text x="400" y="630" font-family="Arial, sans-serif" font-size="22" fill="#333333">Estimated Jackpot: R20,000,000</text>
+  
+  <!-- Second Result Card -->
+  <rect x="40" y="680" width="1000" height="250" rx="10" ry="10" fill="#ffffff" stroke="#e9ecef" stroke-width="2"/>
+  <rect x="40" y="680" width="1000" height="60" rx="10" ry="10" fill="#333333"/>
+  <text x="60" y="720" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#ffffff">Lottery - Draw #3749</text>
+  <text x="900" y="720" font-family="Arial, sans-serif" font-size="20" fill="#ffffff">2025-04-19</text>
+  
+  <!-- Draw Numbers -->
+  <circle cx="100" cy="800" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="100" y="810" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">03</text>
+  <circle cx="200" cy="800" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="200" y="810" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">15</text>
+  <circle cx="300" cy="800" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="300" y="810" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">22</text>
+  <circle cx="400" cy="800" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="400" y="810" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">37</text>
+  <circle cx="500" cy="800" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="500" y="810" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">39</text>
+  <circle cx="600" cy="800" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="600" y="810" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">48</text>
+  
+  <!-- Results Details -->
+  <rect x="700" y="770" width="300" height="35" rx="5" ry="5" fill="#f8f9fa"/>
+  <text x="720" y="795" font-family="Arial, sans-serif" font-size="20" fill="#333333">Jackpot: R12,500,000</text>
+  <rect x="700" y="815" width="300" height="35" rx="5" ry="5" fill="#f8f9fa"/>
+  <text x="720" y="840" font-family="Arial, sans-serif" font-size="20" fill="#333333">Winners: 1 (Division 1)</text>
+  
+  <!-- Divider -->
+  <line x1="40" y1="880" x2="1040" y2="880" stroke="#e9ecef" stroke-width="2"/>
+  
+  <!-- Draw Location Info -->
+  <text x="60" y="910" font-family="Arial, sans-serif" font-weight="bold" font-size="22" fill="#333333">Winning Ticket: Johannesburg</text>
+  <text x="400" y="910" font-family="Arial, sans-serif" font-size="22" fill="#333333">Prize: R12,546,275.20</text>
+  
+  <!-- Third Result Card -->
+  <rect x="40" y="960" width="1000" height="250" rx="10" ry="10" fill="#ffffff" stroke="#e9ecef" stroke-width="2"/>
+  <rect x="40" y="960" width="1000" height="60" rx="10" ry="10" fill="#333333"/>
+  <text x="60" y="1000" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#ffffff">Lottery - Draw #3748</text>
+  <text x="900" y="1000" font-family="Arial, sans-serif" font-size="20" fill="#ffffff">2025-04-16</text>
+  
+  <!-- Draw Numbers -->
+  <circle cx="100" cy="1080" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="100" y="1090" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">11</text>
+  <circle cx="200" cy="1080" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="200" y="1090" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">19</text>
+  <circle cx="300" cy="1080" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="300" y="1090" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">21</text>
+  <circle cx="400" cy="1080" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="400" y="1090" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">25</text>
+  <circle cx="500" cy="1080" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="500" y="1090" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">41</text>
+  <circle cx="600" cy="1080" r="40" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="600" y="1090" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">45</text>
+  
+  <!-- Results Details -->
+  <rect x="700" y="1050" width="300" height="35" rx="5" ry="5" fill="#f8f9fa"/>
+  <text x="720" y="1075" font-family="Arial, sans-serif" font-size="20" fill="#333333">Jackpot: R10,000,000</text>
+  <rect x="700" y="1095" width="300" height="35" rx="5" ry="5" fill="#f8f9fa"/>
+  <text x="720" y="1120" font-family="Arial, sans-serif" font-size="20" fill="#333333">Winners: 0 (Division 1)</text>
+  
+  <!-- Divider -->
+  <line x1="40" y1="1160" x2="1040" y2="1160" stroke="#e9ecef" stroke-width="2"/>
+  
+  <!-- Rollover Info -->
+  <text x="60" y="1190" font-family="Arial, sans-serif" font-weight="bold" font-size="22" fill="#333333">Status: Rolled Over</text>
+  <text x="400" y="1190" font-family="Arial, sans-serif" font-size="22" fill="#333333">Division 2 Winners: 5</text>
+  
+  <!-- Pagination -->
+  <rect x="40" y="1240" width="1000" height="60" rx="10" ry="10" fill="#ffffff" stroke="#e9ecef" stroke-width="2"/>
+  <rect x="440" y="1250" width="40" height="40" rx="20" ry="20" fill="#ffe11d"/>
+  <text x="460" y="1275" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="20" fill="#333333">1</text>
+  <rect x="490" y="1250" width="40" height="40" rx="20" ry="20" fill="#ffffff" stroke="#ffe11d" stroke-width="2"/>
+  <text x="510" y="1275" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#333333">2</text>
+  <rect x="540" y="1250" width="40" height="40" rx="20" ry="20" fill="#ffffff" stroke="#ffe11d" stroke-width="2"/>
+  <text x="560" y="1275" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#333333">3</text>
+  <text x="600" y="1275" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#333333">...</text>
+  
+  <!-- Scan Ticket Prompt -->
+  <rect x="40" y="1330" width="1000" height="150" rx="10" ry="10" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <text x="540" y="1390" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="32" fill="#333333">Check if your ticket is a winner!</text>
+  <rect x="400" y="1410" width="280" height="50" rx="25" ry="25" fill="#333333"/>
+  <text x="540" y="1445" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#ffffff">SCAN MY TICKET</text>
+  
+  <!-- Bottom Navigation -->
+  <rect x="0" y="1820" width="1080" height="100" fill="#333333"/>
+  <circle cx="180" cy="1870" r="30" fill="#333333"/>
+  <text x="180" y="1878" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#ffffff">🏠</text>
+  <circle cx="360" cy="1870" r="30" fill="#ffe11d"/>
+  <text x="360" y="1878" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#333333">📋</text>
+  <circle cx="540" cy="1870" r="30" fill="#333333"/>
+  <text x="540" y="1878" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#ffffff">📱</text>
+  <circle cx="720" cy="1870" r="30" fill="#333333"/>
+  <text x="720" y="1878" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#ffffff">📊</text>
+  <circle cx="900" cy="1870" r="30" fill="#333333"/>
+  <text x="900" y="1878" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#ffffff">📖</text>
+</svg>

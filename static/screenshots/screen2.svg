@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1080px" height="1920px" viewBox="0 0 1080 1920" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ticket Scanner Screenshot -->
+  <rect x="0" y="0" width="1080" height="1920" fill="#f8f9fa"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="1080" height="150" fill="#ffe11d"/>
+  <text x="200" y="95" font-family="Arial, sans-serif" font-weight="bold" font-size="48" fill="#333333">SNAP LOTTO</text>
+  <path d="M140,40 L100,90 L115,95 L85,125 L100,130 L140,80 L125,75 Z" fill="#333333"/>
+  
+  <!-- Scanner Interface -->
+  <rect x="40" y="200" width="1000" height="80" fill="#333333"/>
+  <text x="80" y="250" font-family="Arial, sans-serif" font-size="32" fill="#ffffff">Ticket Scanner</text>
+  
+  <!-- Camera Viewport -->
+  <rect x="40" y="300" width="1000" height="600" rx="10" ry="10" fill="#1c1c1c" stroke="#333333" stroke-width="4"/>
+  
+  <!-- Scanner Interface Elements -->
+  <rect x="40" y="320" width="1000" height="60" fill="#333333" fill-opacity="0.6"/>
+  <text x="540" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#ffffff">Position your lottery ticket in the frame</text>
+  
+  <!-- Scanning Area Overlay -->
+  <rect x="140" y="400" width="800" height="400" rx="20" ry="20" fill="none" stroke="#ffe11d" stroke-width="4" stroke-dasharray="20,10"/>
+  
+  <!-- Guidelines -->
+  <line x1="140" y1="600" x2="940" y2="600" stroke="#ffe11d" stroke-width="2" stroke-dasharray="10,5"/>
+  <line x1="540" y1="400" x2="540" y2="800" stroke="#ffe11d" stroke-width="2" stroke-dasharray="10,5"/>
+  
+  <!-- Camera Controls -->
+  <circle cx="540" cy="850" r="50" fill="#ffe11d" stroke="#333333" stroke-width="2"/>
+  <circle cx="540" cy="850" r="40" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  
+  <!-- Flash control -->
+  <circle cx="690" cy="850" r="30" fill="#333333"/>
+  <text x="690" y="858" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="20" fill="#ffffff">⚡</text>
+  
+  <!-- Gallery control -->
+  <circle cx="390" cy="850" r="30" fill="#333333"/>
+  <text x="390" y="858" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="20" fill="#ffffff">🖼️</text>
+  
+  <!-- Instructions -->
+  <rect x="40" y="920" width="1000" height="250" rx="10" ry="10" fill="#ffffff" stroke="#e9ecef" stroke-width="2"/>
+  <text x="60" y="960" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">How to Scan Your Ticket</text>
+  <text x="60" y="1010" font-family="Arial, sans-serif" font-size="24" fill="#666666">1. Hold your lottery ticket flat and well-lit</text>
+  <text x="60" y="1050" font-family="Arial, sans-serif" font-size="24" fill="#666666">2. Position all numbers clearly in the frame</text>
+  <text x="60" y="1090" font-family="Arial, sans-serif" font-size="24" fill="#666666">3. Keep the ticket steady while scanning</text>
+  <text x="60" y="1130" font-family="Arial, sans-serif" font-size="24" fill="#666666">4. Wait for the scan to complete</text>
+  
+  <!-- Results Information (placeholder) -->
+  <rect x="40" y="1200" width="1000" height="80" fill="#333333"/>
+  <text x="80" y="1250" font-family="Arial, sans-serif" font-size="32" fill="#ffffff">Scan Results</text>
+  
+  <!-- Results Area -->
+  <rect x="40" y="1300" width="1000" height="200" rx="10" ry="10" fill="#ffffff" stroke="#e9ecef" stroke-width="2"/>
+  <text x="60" y="1340" font-family="Arial, sans-serif" font-weight="bold" font-size="28" fill="#333333">Your scan results will appear here</text>
+  <text x="60" y="1380" font-family="Arial, sans-serif" font-size="24" fill="#666666">We'll check your numbers against all recent draws</text>
+  <text x="60" y="1420" font-family="Arial, sans-serif" font-size="24" fill="#666666">Instantly see if you've won a prize!</text>
+  
+  <!-- Processing Animation -->
+  <text x="540" y="1480" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="20" fill="#ffe11d">Ready to scan...</text>
+  
+  <!-- Bottom Navigation -->
+  <rect x="0" y="1820" width="1080" height="100" fill="#333333"/>
+  <circle cx="180" cy="1870" r="30" fill="#333333"/>
+  <text x="180" y="1878" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#ffffff">🏠</text>
+  <circle cx="360" cy="1870" r="30" fill="#333333"/>
+  <text x="360" y="1878" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#ffffff">📋</text>
+  <circle cx="540" cy="1870" r="30" fill="#ffe11d"/>
+  <text x="540" y="1878" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#333333">📱</text>
+  <circle cx="720" cy="1870" r="30" fill="#333333"/>
+  <text x="720" y="1878" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#ffffff">📊</text>
+  <circle cx="900" cy="1870" r="30" fill="#333333"/>
+  <text x="900" y="1878" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#ffffff">📖</text>
+</svg>

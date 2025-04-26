@@ -73,6 +73,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/lottery.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Chart.js included in specific pages that need it -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -92,6 +93,50 @@
     
     {% block additional_head %}{% endblock %}
     {% block head_content %}{% endblock %}
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(function(registration) {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+
+            // Handle offline detection
+            window.addEventListener('online', function() {
+                const offlineMsg = document.getElementById('offline-message');
+                if (offlineMsg) {
+                    offlineMsg.style.display = 'none';
+                }
+            });
+
+            window.addEventListener('offline', function() {
+                // Create offline message if it doesn't exist
+                if (!document.getElementById('offline-message')) {
+                    const offlineMsg = document.createElement('div');
+                    offlineMsg.id = 'offline-message';
+                    offlineMsg.className = 'alert alert-warning m-0 text-center';
+                    offlineMsg.innerHTML = '<i class="fas fa-wifi-slash me-2"></i> You are currently offline. Some features may be limited.';
+                    offlineMsg.style.position = 'sticky';
+                    offlineMsg.style.top = '0';
+                    offlineMsg.style.zIndex = '1050';
+                    document.body.prepend(offlineMsg);
+                } else {
+                    document.getElementById('offline-message').style.display = 'block';
+                }
+            });
+
+            // Check initial state
+            if (!navigator.onLine) {
+                window.dispatchEvent(new Event('offline'));
+            }
+        }
+    </script>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg mb-2 sticky-top">
@@ -333,5 +378,91 @@
     </script>
     
     {% block page_scripts %}{% endblock %}
+    
+    <!-- Mobile touch gestures and optimizations -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Only run on mobile devices
+            if (window.innerWidth < 768) {
+                // Add pull-to-refresh indicator
+                const container = document.createElement('div');
+                container.className = 'ptr-refresh';
+                container.innerHTML = '<div class="refresh-icon"><i class="fas fa-sync-alt"></i></div>';
+                document.body.insertBefore(container, document.body.firstChild);
+                
+                // Initialize Hammer.js for touch gestures if available
+                if (typeof Hammer !== 'undefined') {
+                    // Add swipe capability to card elements
+                    document.querySelectorAll('.card:not(.no-swipe)').forEach(card => {
+                        const hammer = new Hammer(card);
+                        hammer.on('swipeleft', function(e) {
+                            // Optional: Implement left swipe actions
+                            card.classList.add('swipe-left');
+                            setTimeout(() => card.classList.remove('swipe-left'), 300);
+                        });
+                        
+                        hammer.on('swiperight', function(e) {
+                            // Optional: Implement right swipe actions
+                            card.classList.add('swipe-right');
+                            setTimeout(() => card.classList.remove('swipe-right'), 300);
+                        });
+                    });
+                    
+                    // Make collapsible sections on mobile
+                    document.querySelectorAll('.mobile-collapse-header').forEach(header => {
+                        header.addEventListener('click', function() {
+                            this.classList.toggle('collapsed');
+                            const target = document.querySelector(this.dataset.target);
+                            if (target) {
+                                target.classList.toggle('show');
+                            }
+                        });
+                    });
+                }
+                
+                // Add touch-optimized hover states
+                document.querySelectorAll('a, button, .clickable').forEach(el => {
+                    el.addEventListener('touchstart', function() {
+                        this.classList.add('touch-active');
+                    }, { passive: true });
+                    
+                    el.addEventListener('touchend', function() {
+                        this.classList.remove('touch-active');
+                    }, { passive: true });
+                });
+                
+                // Optimize lottery balls display
+                document.querySelectorAll('.lottery-ball').forEach(ball => {
+                    if (ball.textContent.length > 2) {
+                        ball.classList.add('small-text');
+                    }
+                });
+                
+                // Auto-collapse tables in mobile view
+                document.querySelectorAll('.table-responsive').forEach(table => {
+                    if (table.scrollWidth > table.clientWidth) {
+                        const note = document.createElement('div');
+                        note.className = 'text-muted small mb-2 mobile-scroll-hint';
+                        note.innerHTML = '<i class="fas fa-arrows-alt-h me-1"></i> Swipe horizontally to see more';
+                        table.parentNode.insertBefore(note, table);
+                    }
+                });
+            }
+            
+            // Fix for iOS 100vh issue
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS) {
+                document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+                window.addEventListener('resize', () => {
+                    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+                });
+            }
+        });
+        
+        // Fix for mobile Safari momentum scrolling
+        document.addEventListener('touchmove', function(e) {
+            // Allow default scrolling
+        }, { passive: true });
+    </script>
 </body>
 </html>

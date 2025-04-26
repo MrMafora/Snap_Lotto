@@ -2895,6 +2895,18 @@ def api_tracking_dashboard():
         service_tokens=service_tokens
     )
 
+# Handle PWA manifest
+@app.route('/manifest.json')
+def manifest():
+    """Serve the PWA manifest file"""
+    return send_from_directory(app.static_folder, 'manifest.json')
+
+# Service worker route
+@app.route('/service-worker.js')
+def service_worker():
+    """Serve the service worker JavaScript file"""
+    return send_from_directory(app.static_folder, 'service-worker.js')
+
 # When running directly, not through gunicorn
 if __name__ == "__main__":
     # Extra logging to help diagnose startup issues

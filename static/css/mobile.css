@@ -1,0 +1,321 @@
+/**
+ * Mobile-specific styles for Snap Lotto
+ * Designed to enhance the mobile user experience with touch-optimized elements
+ */
+
+/* Basic mobile layout adjustments */
+@media (max-width: 767.98px) {
+    .container {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    
+    h1 {
+        font-size: 1.75rem;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+    
+    .lead {
+        font-size: 1.1rem;
+    }
+    
+    /* Fix for iOS 100vh issue */
+    .min-vh-100 {
+        min-height: calc(var(--vh, 1vh) * 100);
+    }
+    
+    /* Improve form elements for touch */
+    select.form-select, 
+    input.form-control, 
+    textarea.form-control {
+        font-size: 16px; /* Prevent iOS zoom */
+        height: auto;
+        padding: 12px;
+    }
+    
+    /* Enhance touch targets */
+    .btn:not(.btn-sm):not(.btn-xs) {
+        min-height: 44px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    
+    .nav-link, 
+    .dropdown-item {
+        padding: 12px 15px;
+    }
+    
+    /* Add touch feedback */
+    .touch-active {
+        transform: scale(0.98);
+        opacity: 0.9;
+        transition: transform 0.2s, opacity 0.2s;
+    }
+    
+    /* Fix spacing in mobile cards */
+    .card-body {
+        padding: 1rem;
+    }
+    
+    /* Better spacing for stacked elements */
+    .row > [class*="col-"] {
+        margin-bottom: 1rem;
+    }
+    
+    /* Make tables more readable on mobile */
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Fix for fixed elements and Safari bottom bar */
+    .fixed-bottom {
+        padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+}
+
+/* Ticket Scanner specific mobile enhancements */
+@media (max-width: 767.98px) {
+    /* Make ticket drop area more finger-friendly */
+    .ticket-drop-area {
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    
+    /* Make the preview image better sized for mobile */
+    .ticket-preview {
+        max-height: 250px;
+        width: auto;
+        margin: 0 auto;
+    }
+    
+    /* Optimize lottery balls display for mobile */
+    .lottery-ball {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+        margin: 2px;
+    }
+    
+    /* Make spacing more compact */
+    #results-container {
+        margin-top: 1rem;
+    }
+    
+    /* Improve number display */
+    #winning-numbers, 
+    #ticket-numbers,
+    #powerball-plus-numbers,
+    #lotto-plus-1-numbers,
+    #lotto-plus-2-numbers {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+    }
+    
+    /* More prominent prize display */
+    #prize-container .text-success {
+        font-size: 1.4rem;
+    }
+    
+    /* Make modals better for mobile */
+    .modal-dialog {
+        margin: 10px;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+    
+    /* Better handle countdown timer */
+    #countdown-container {
+        font-size: 1.1rem;
+        padding: 10px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    /* More visible ad close button */
+    .ad-close-btn {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    /* Fix iOS button touch */
+    button {
+        -webkit-appearance: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+/* Special fixes for very small screens */
+@media (max-width: 359.98px) {
+    .lottery-ball {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+        margin: 1px;
+    }
+    
+    .container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    .lottery-statistics .card-body {
+        padding: 10px;
+    }
+}
+
+/* Add safe area margin for modern mobile browsers */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: max(12px, env(safe-area-inset-left));
+        padding-right: max(12px, env(safe-area-inset-right));
+    }
+    
+    .fixed-bottom, 
+    .navbar-fixed-bottom {
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    }
+}
+
+/* Fix iOS scroll bounce effect for fixed elements */
+html.ios-device {
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+html.ios-device body {
+    width: 100%;
+    position: relative;
+}
+
+/* Optimize chart display on mobile */
+@media (max-width: 767.98px) {
+    .lottery-chart {
+        min-height: 250px;
+    }
+    
+    .chart-container {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Show numbers in a more compact way */
+    .hot-numbers-grid,
+    .cold-numbers-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 5px;
+        justify-content: center;
+        margin: 0 -5px;
+    }
+}
+
+/* Optimize keyboard experience */
+@media (max-width: 767.98px) {
+    /* Prevent fixed elements from jumping when virtual keyboard appears */
+    body.keyboard-visible {
+        height: auto !important;
+        position: relative !important;
+    }
+    
+    body.keyboard-visible .fixed-bottom {
+        position: relative;
+        bottom: auto;
+    }
+}
+
+/* Enhance lottery ball display on mobile */
+.lottery-ball {
+    transition: transform 0.2s;
+}
+
+.lottery-ball:active {
+    transform: scale(0.92);
+}
+
+/* Make the lottery statistics more mobile-friendly */
+@media (max-width: 767.98px) {
+    .hot-numbers-container h5,
+    .cold-numbers-container h5 {
+        font-size: 0.88rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .hot-numbers-container .small,
+    .cold-numbers-container .small {
+        font-size: 75%;
+        line-height: 0.9;
+    }
+    
+    /* Scale down number boxes for better fit */
+    .number-item {
+        transform: scale(0.85);
+        margin: -3px -2px;
+    }
+    
+    /* Better spacing for lottery info */
+    .lottery-info {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Make tables more compact on mobile */
+    .table td, .table th {
+        padding: 0.5rem;
+    }
+}
+
+/* Enhance camera permission messaging */
+.camera-permission-notice {
+    background-color: #fcf8e3;
+    border-left: 4px solid #f0ad4e;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+/* Hiding elements on very small screens for better UX */
+@media (max-width: 359.98px) {
+    .xs-hide {
+        display: none !important;
+    }
+    
+    .xs-smaller-text {
+        font-size: 90%;
+    }
+}
+
+/* Add haptic feedback on iOS devices */
+@media (hover: none) {
+    .btn:active::after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: inherit;
+        opacity: 0;
+        transition: opacity 0.1s;
+    }
+    
+    .btn:active::after {
+        opacity: 1;
+    }
+}
