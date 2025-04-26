@@ -70,9 +70,13 @@ def direct_excel_import(excel_path, app):
         try:
             # Create import history record
             import_history = ImportHistory(
-                filename=os.path.basename(excel_path),
-                timestamp=datetime.utcnow(),
-                status="processing"
+                import_date=datetime.utcnow(),
+                import_type="excel-import",
+                file_name=os.path.basename(excel_path),
+                records_added=0,
+                records_updated=0,
+                total_processed=0,
+                errors=0
             )
             db.session.add(import_history)
             db.session.commit()
@@ -246,7 +250,7 @@ def direct_excel_import(excel_path, app):
                                 
                                 # Create imported record
                                 imported_record = ImportedRecord(
-                                    import_history_id=import_history_id,
+                                    import_id=import_history_id,
                                     lottery_type=lottery_type,
                                     draw_number=draw_number,
                                     draw_date=draw_date,
