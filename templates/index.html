@@ -766,7 +766,7 @@ function updateFrequencyChart(data) {
     
     // Reset the container styles for a fresh implementation
     barChartContainer.style.position = 'relative';
-    barChartContainer.style.height = '300px';
+    barChartContainer.style.height = '250px'; // Match the height of Hot & Cold section
     barChartContainer.style.width = '100%';
     barChartContainer.style.overflow = 'hidden';
     
@@ -811,7 +811,7 @@ function updateFrequencyChart(data) {
     // Create the main chart container
     const chartWrapper = document.createElement('div');
     chartWrapper.style.position = 'relative';
-    chartWrapper.style.height = '250px';
+    chartWrapper.style.height = '220px'; // Slightly shorter to accommodate labels
     chartWrapper.style.marginBottom = '20px';
     barChartContainer.appendChild(chartWrapper);
     
@@ -1054,7 +1054,7 @@ function updateDivisionChart(data) {
     // Create the main chart container
     const chartContainer = document.createElement('div');
     chartContainer.className = 'hot-cold-chart-container';
-    chartContainer.style.height = '250px';
+    chartContainer.style.height = '220px'; // Match the height of frequency chart
     tempChartContainer.appendChild(chartContainer);
     
     // Collect the frequency data and sort by frequency
@@ -1097,7 +1097,7 @@ function updateDivisionChart(data) {
     // Hot numbers list
     const hotList = document.createElement('div');
     hotList.className = 'number-list';
-    hotList.style.height = '190px';
+    hotList.style.height = '160px'; // Adjusted to match the new container height
     hotList.style.overflowY = 'auto';
     hotSection.appendChild(hotList);
     
@@ -1147,7 +1147,7 @@ function updateDivisionChart(data) {
     // Cold numbers list
     const coldList = document.createElement('div');
     coldList.className = 'number-list';
-    coldList.style.height = '190px';
+    coldList.style.height = '160px'; // Adjusted to match the new container height
     coldList.style.overflowY = 'auto';
     coldSection.appendChild(coldList);
     
