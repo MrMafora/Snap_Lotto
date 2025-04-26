@@ -111,6 +111,9 @@ def import_powerball_daily_only(excel_path, app):
                         continue
                     
                     # Get draw number
+                    if pd.isna(row.get('Draw Number')):
+                        logger.warning(f"Skipping row {index} - missing draw number")
+                        continue
                     draw_number = str(row['Draw Number'])
                     
                     # Parse draw date
