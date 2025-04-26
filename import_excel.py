@@ -206,6 +206,11 @@ def import_excel_data(excel_file, flask_app=None):
         
         with ctx:
             logger.info(f"Starting import from {excel_file}...")
+            # Initialize counters and tracking lists at the beginning of the function
+            imported_count = 0
+            updated_count = 0
+            error_count = 0
+            imported_records = []
             
             # Read Excel file - try multiple sheets if needed
             try:
@@ -421,10 +426,8 @@ def import_excel_data(excel_file, flask_app=None):
             initial_count = LotteryResult.query.count()
             logger.info(f"Database has {initial_count} records before import")
             
-            # Track results
-            imported_count = 0
-            errors_count = 0
-            imported_records = []  # Track individual records for import history
+            # Using errors_count instead of error_count for consistency
+            errors_count = error_count
             
             # CRITICAL FIX: Skip the header row before processing like in import_snap_lotto_data.py
             logger.warning("⚠️ CRITICAL: Using iloc[1:] to skip only the header row and prevent data loss")
