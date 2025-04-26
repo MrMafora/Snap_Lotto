@@ -726,30 +726,30 @@
     display: block;
     height: 100%;
     overflow: hidden; /* Hide scrollbar and overflow content */
-    padding-bottom: 5px;
-    transform: scale(0.9); /* Shrink the entire container */
+    padding-bottom: 2px;
+    transform: scale(0.93); /* Slightly larger container */
     transform-origin: top center;
 }
 
 .hot-numbers, .cold-numbers, .absent-numbers {
-    padding-bottom: 0;
-    margin-bottom: 1px;
+    padding: 0;
+    margin-bottom: 0;
 }
 
 /* Smaller headings for hot/cold sections */
 .hot-numbers h5, .cold-numbers h5, .absent-numbers h5 {
-    font-size: 0.92rem;
-    margin-bottom: 1px;
-    margin-top: 0;
+    font-size: 0.88rem;
+    margin: 0 0 0 0;
+    padding: 0;
 }
 
 .hot-number-item, .cold-number-item, .absent-number-item {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
-    margin-right: 1px;
-    margin-bottom: 0;
-    transform: scale(0.82); /* Increased from 0.78 to 0.82 for better visibility */
+    margin: 0;
+    padding: 0;
+    transform: scale(0.85); /* Increased by 3 from 0.82 to 0.85 */
     transform-origin: center top;
 }
 
@@ -757,7 +757,8 @@
     font-size: 0.7rem;
     color: #6c757d;
     margin-top: 0;
-    line-height: 1;
+    padding: 0;
+    line-height: 0.9;
 }
 
 /* Make section headers more compact */
