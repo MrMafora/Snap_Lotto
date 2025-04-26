@@ -14,14 +14,14 @@ def create_template(output_path):
     # Create Excel writer
     writer = pd.ExcelWriter(output_path, engine='openpyxl')
     
-    # Create empty DataFrames for each lottery type
+    # Create empty DataFrames for each lottery type - using "Lottery" terminology
     lottery_types = [
-        'Lotto',
-        'Lotto Plus 1',
-        'Lotto Plus 2',
+        'Lottery',
+        'Lottery Plus 1',
+        'Lottery Plus 2',
         'Powerball',
         'Powerball Plus',
-        'Daily Lotto'
+        'Daily Lottery'
     ]
     
     # Create columns that match our expected format

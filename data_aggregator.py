@@ -243,11 +243,19 @@ def normalize_draw_number(draw_number):
     # Convert to uppercase for consistent matching
     upper_draw = draw_number.upper()
     
-    # Remove "DRAW" keyword and other prefixes
+    # Remove "DRAW" keyword and other prefixes - prioritize "Lottery" terminology
     prefixes_to_remove = [
-        "LOTTERY DRAW", "LOTTERY PLUS 1 DRAW", "LOTTERY PLUS 2 DRAW",
-        "LOTTO DRAW", "LOTTO PLUS 1 DRAW", "LOTTO PLUS 2 DRAW",
-        "POWERBALL DRAW", "POWERBALL PLUS DRAW", "DAILY LOTTERY DRAW", "DAILY LOTTO DRAW",
+        # Primary lottery terminology
+        "LOTTERY DRAW", "LOTTERY PLUS 1 DRAW", "LOTTERY PLUS 2 DRAW", "DAILY LOTTERY DRAW",
+        "LOTTERY", "LOTTERY PLUS 1", "LOTTERY PLUS 2", "DAILY LOTTERY",
+        
+        # Secondary lotto terminology
+        "LOTTO DRAW", "LOTTO PLUS 1 DRAW", "LOTTO PLUS 2 DRAW", "DAILY LOTTO DRAW",
+        "LOTTO", "LOTTO PLUS 1", "LOTTO PLUS 2", "DAILY LOTTO",
+        
+        # Powerball terminology (unchanged)
+        "POWERBALL DRAW", "POWERBALL PLUS DRAW",
+        "POWERBALL", "POWERBALL PLUS",
         "DRAW", "DRAW NUMBER", "DRAW NO", "DRAW NO.", "DRAW #"
     ]
     
@@ -288,34 +296,50 @@ def normalize_lottery_type(lottery_type):
     if lottery_type.endswith(" Results"):
         lottery_type = lottery_type[:-8]  # Remove " Results" suffix
     
-    # Handle common variations
+    # Handle common variations - prioritize "Lottery" terminology
     normalized_map = {
+        # Primary forms (Lottery)
+        "lottery": "Lottery",
         "lottery plus 1": "Lottery Plus 1",
         "lottery plus one": "Lottery Plus 1",
-        "lottery plus1": "Lottery Plus 1",
-        "lottoplus1": "Lottery Plus 1",
+        "lottery plus1": "Lottery Plus 1", 
+        "lottery + 1": "Lottery Plus 1",
+        "lottery+1": "Lottery Plus 1",
         "lotteryplus1": "Lottery Plus 1",
-        "lotto plus 2": "Lottery Plus 2",
         "lottery plus 2": "Lottery Plus 2",
-        "lotto plus two": "Lottery Plus 2",
-        "lottery plus two": "Lottery Plus 2",
-        "lotto plus2": "Lottery Plus 2",
+        "lottery plus two": "Lottery Plus 2", 
         "lottery plus2": "Lottery Plus 2",
-        "lottoplus2": "Lottery Plus 2",
+        "lottery + 2": "Lottery Plus 2", 
+        "lottery+2": "Lottery Plus 2",
         "lotteryplus2": "Lottery Plus 2",
-        "powerball plus": "Powerball Plus",
-        "power ball plus": "Powerball Plus",
-        "powerball+": "Powerball Plus",
-        "powerballplus": "Powerball Plus",
-        "daily lottery": "Daily Lottery",
+        "daily lottery": "Daily Lottery", 
         "dailylottery": "Daily Lottery",
         "daily-lottery": "Daily Lottery",
+        
+        # Secondary forms (Lotto)
+        "lotto": "Lottery",
+        "lotto plus 1": "Lottery Plus 1",
+        "lotto plus one": "Lottery Plus 1",
+        "lotto plus1": "Lottery Plus 1",
+        "lotto + 1": "Lottery Plus 1",
+        "lotto+1": "Lottery Plus 1",
+        "lottoplus1": "Lottery Plus 1",
+        "lotto plus 2": "Lottery Plus 2",
+        "lotto plus two": "Lottery Plus 2",
+        "lotto plus2": "Lottery Plus 2",
+        "lotto + 2": "Lottery Plus 2",
+        "lotto+2": "Lottery Plus 2",
+        "lottoplus2": "Lottery Plus 2",
         "daily lotto": "Daily Lottery",
         "dailylotto": "Daily Lottery",
         "daily-lotto": "Daily Lottery",
-        "lotto": "Lottery",
-        "lottery": "Lottery",
-        "powerball": "Powerball"
+        
+        # Powerball (unchanged)
+        "powerball": "Powerball",
+        "powerball plus": "Powerball Plus",
+        "power ball plus": "Powerball Plus",
+        "powerball+": "Powerball Plus",
+        "powerballplus": "Powerball Plus"
     }
     
     # Look for known variations and standardize
