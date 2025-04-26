@@ -597,6 +597,17 @@
     padding: 15px;
     border-radius: 5px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    overflow: auto; /* Add scrolling if content overflows */
+}
+
+.chart-card {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    height: 350px;
+    overflow: auto;
 }
 
 /* Deprecated flex container - now using Bootstrap grid */
@@ -699,11 +710,48 @@
     background-color: #adb5bd;
 }
 
+/* Hot & Cold Numbers Styling */
+.hot-cold-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    height: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.hot-numbers, .cold-numbers, .absent-numbers {
+    padding-bottom: 10px;
+}
+
+.hot-number-item, .cold-number-item, .absent-number-item {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
+
+.frequency-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
 /* Mobile styles for small screens only */
 @media (max-width: 576px) {
     .data-analytics-preview .chart-card {
         height: auto;
         min-height: 320px;
+    }
+    
+    .hot-cold-container {
+        max-height: none;
+        padding-bottom: 10px;
+    }
+    
+    .hot-number-item, .cold-number-item, .absent-number-item {
+        margin-right: 6px;
+        margin-bottom: 6px;
     }
     
     /* Deprecated flex container styles */
