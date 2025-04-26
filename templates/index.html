@@ -766,7 +766,7 @@ function updateFrequencyChart(data) {
     
     // Reset the container styles for a fresh implementation
     barChartContainer.style.position = 'relative';
-    barChartContainer.style.height = '250px'; // Match the height of Hot & Cold section
+    barChartContainer.style.height = '300px'; // Set to fixed height
     barChartContainer.style.width = '100%';
     barChartContainer.style.overflow = 'hidden';
     
@@ -1051,10 +1051,16 @@ function updateDivisionChart(data) {
         tempChartContainer.appendChild(newHeader);
     }
     
+    // Reset the chart container styles
+    tempChartContainer.style.position = 'relative';
+    tempChartContainer.style.height = '300px'; // Set to fixed height to match frequency chart
+    tempChartContainer.style.width = '100%';
+    tempChartContainer.style.overflow = 'hidden';
+    
     // Create the main chart container
     const chartContainer = document.createElement('div');
     chartContainer.className = 'hot-cold-chart-container';
-    chartContainer.style.height = '220px'; // Match the height of frequency chart
+    chartContainer.style.height = '220px'; // Match the height of frequency chart wrapper
     tempChartContainer.appendChild(chartContainer);
     
     // Collect the frequency data and sort by frequency
