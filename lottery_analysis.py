@@ -927,11 +927,13 @@ class LotteryAnalyzer:
         
         return results
     
-    def analyze_correlations(self, days=365):
+    def analyze_correlations(self, days=365, lottery_type_a=None, lottery_type_b=None):
         """Analyze correlations between different lottery types
         
         Args:
             days (int): Number of days of historical data
+            lottery_type_a (str, optional): First lottery type to compare
+            lottery_type_b (str, optional): Second lottery type to compare
             
         Returns:
             dict: Analysis results including correlation charts
@@ -1087,8 +1089,101 @@ class LotteryAnalyzer:
                 'error': f"Analysis failed: {str(e)}"
             }
         
+        # If specific lottery types were requested, filter the correlations for those types
+        if lottery_type_a and lottery_type_b:
+            filtered_correlations = []
+            pair_insights = {}
+            
+            # Extract lottery type-specific data
+            for i, row_name in enumerate(corr_matrix.index):
+                for j, col_name in enumerate(corr_matrix.columns):
+                    # Get lottery types from feature names
+                    row_lt = row_name.split('_')[0]
+                    col_lt = col_name.split('_')[0]
+                    
+                    # Check if this pair matches the requested types
+                    match_pair = (
+                        (row_lt == lottery_type_a and col_lt == lottery_type_b) or
+                        (row_lt == lottery_type_b and col_lt == lottery_type_a)
+                    )
+                    
+                    if match_pair:
+                        corr_value = corr_matrix.iloc[i, j]
+                        if pd.notnull(corr_value):
+                            filtered_correlations.append({
+                                'type_a': row_lt,
+                                'type_b': col_lt,
+                                'feature_a': row_name,
+                                'feature_b': col_name,
+                                'correlation': float(corr_value) if not pd.isna(corr_value) else 0
+                            })
+            
+            # Sort by absolute correlation
+            filtered_correlations.sort(key=lambda x: abs(x['correlation']), reverse=True)
+            
+            # Generate specific insights based on the correlation strength
+            if filtered_correlations:
+                strongest_corr = filtered_correlations[0]
+                corr_value = strongest_corr['correlation']
+                feature_a = strongest_corr['feature_a'].split('_', 1)[1]
+                feature_b = strongest_corr['feature_b'].split('_', 1)[1]
+                
+                if abs(corr_value) > 0.7:
+                    strength = 'strong'
+                    insight = f" Statistical analysis suggests a strong relationship between the {feature_a} of {lottery_type_a} and the {feature_b} of {lottery_type_b}."
+                elif abs(corr_value) > 0.4:
+                    strength = 'moderate'
+                    insight = f" There appears to be a moderate relationship between the {feature_a} of {lottery_type_a} and the {feature_b} of {lottery_type_b}."
+                else:
+                    strength = 'weak'
+                    insight = f" Analysis shows only a weak relationship between these lottery types."
+                
+                pair_insights[f"{lottery_type_a}_{lottery_type_b}"] = insight
+            
+            # Generate separate charts for each lottery type if available
+            lottery_charts = {}
+            
+            # Create individual charts for the requested lottery types
+            for lt in [lottery_type_a, lottery_type_b]:
+                if lt in lottery_features:
+                    # Get the features for this lottery type
+                    lt_df = lottery_features[lt]
+                    
+                    # Create a time series plot of key features
+                    plt.figure(figsize=(10, 6))
+                    plt.plot(lt_df.index, lt_df['sum'], label='Number Sum', marker='o', markersize=4)
+                    plt.plot(lt_df.index, lt_df['mean'] * 5, label='Number Mean (×5)', marker='s', markersize=4)
+                    plt.plot(lt_df.index, lt_df['even_count'], label='Even Numbers Count', marker='^', markersize=4)
+                    
+                    plt.title(f'{lt} - Key Number Patterns Over Time')
+                    plt.xlabel('Draw Date')
+                    plt.ylabel('Value')
+                    plt.legend()
+                    plt.grid(True, alpha=0.3)
+                    
+                    # Save as base64 for direct embedding
+                    img_buffer = io.BytesIO()
+                    plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight')
+                    plt.close()
+                    img_buffer.seek(0)
+                    img_base64 = base64.b64encode(img_buffer.read()).decode('utf-8')
+                    
+                    lottery_charts[lt] = f"data:image/png;base64,{img_base64}"
+            
+            # Update results for the specific pair
+            results = {
+                'correlations': filtered_correlations,
+                'lottery_types_analyzed': [lottery_type_a, lottery_type_b],
+                'charts': lottery_charts,
+                'insights': pair_insights
+            }
+        
         # Cache results
-        cache_key = f"correlations_{days}"
+        if lottery_type_a and lottery_type_b:
+            cache_key = f"correlations_{days}_{lottery_type_a}_{lottery_type_b}"
+        else:
+            cache_key = f"correlations_{days}"
+            
         chart_cache[cache_key] = results
         
         return results
@@ -1870,7 +1965,10 @@ def register_analysis_routes(app, db):
         
         try:
             days_str = request.args.get('days', '365')
-            print(f"Correlations request args: days={days_str}")
+            lottery_type = request.args.get('lottery_type', None)
+            second_type = request.args.get('second_type', None)
+            
+            print(f"Correlations request args: days={days_str}, lottery_type={lottery_type}, second_type={second_type}")
             
             # Convert days with validation
             try:
@@ -1882,8 +1980,14 @@ def register_analysis_routes(app, db):
                 print(f"Invalid days value: {days_str}, using default 365")
             
             # Get data and return
-            print(f"Performing correlation analysis: days={days}")
-            data = analyzer.analyze_correlations(days)
+            print(f"Performing correlation analysis: days={days}, lottery_type={lottery_type}, second_type={second_type}")
+            
+            # If we have specific lottery types to compare, use them
+            if lottery_type and second_type:
+                data = analyzer.analyze_correlations(days, lottery_type, second_type)
+            else:
+                data = analyzer.analyze_correlations(days)
+                
             print("Correlation analysis completed successfully")
             
             # Use NumpyEncoder for proper JSON serialization of NumPy types

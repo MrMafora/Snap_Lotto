@@ -272,8 +272,79 @@
                                 </button>
                             </div>
                             <hr>
+                            <!-- Correlation Selection Interface -->
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h5 class="m-0 font-weight-bold text-primary">
+                                        <i class="fas fa-exchange-alt mr-1"></i> Compare Lottery Types
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-5">
+                                            <div class="form-group">
+                                                <label for="lottery_type_a">First Lottery Type:</label>
+                                                <select class="form-control" id="lottery_type_a">
+                                                    {% for lt in lottery_types %}
+                                                        <option value="{{ lt }}">{{ lt }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 text-center d-flex align-items-center justify-content-center">
+                                            <div class="mt-4">
+                                                <i class="fas fa-arrows-alt-h fa-2x text-muted"></i>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <div class="form-group">
+                                                <label for="lottery_type_b">Second Lottery Type:</label>
+                                                <select class="form-control" id="lottery_type_b">
+                                                    {% for lt in lottery_types %}
+                                                        <option value="{{ lt }}" {% if loop.index == 1 %}selected{% endif %}>{{ lt }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-3">
+                                        <div class="col-12 text-center">
+                                            <button type="button" class="btn btn-primary" id="compare-pair-btn">
+                                                <i class="fas fa-chart-line mr-1"></i> Compare Selected Pair
+                                            </button>
+                                            <button type="button" class="btn btn-info ml-2" id="advanced-analysis-btn">
+                                                <i class="fas fa-project-diagram mr-1"></i> Advanced Multi-Type Analysis
+                                            </button>
+                                            <button type="button" class="btn btn-secondary ml-2" id="back-to-selection-btn" style="display: none;">
+                                                <i class="fas fa-arrow-left mr-1"></i> Back to Selection
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Pair Comparison View -->
+                    <div id="pair-comparison-view" style="display: none;">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card shadow mb-4">
+                                    <div class="card-header py-3">
+                                        <h6 class="m-0 font-weight-bold text-primary">
+                                            <i class="fas fa-link mr-1"></i> <span id="pair-comparison-title">Lottery Type Comparison</span>
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="pair-comparison-content" class="row">
+                                            <!-- Pair comparison content will be loaded here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Loading indicator -->
                     <div id="correlations-loading" class="text-center p-5">
                         <div class="spinner-border text-primary" role="status">
@@ -284,6 +355,7 @@
                             <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 75%"></div>
                         </div>
                     </div>
+
                     <!-- Content will be loaded here -->
                     <div id="correlations-content" class="row" style="display: none;"></div>
                 </div>
@@ -669,6 +741,196 @@ document.addEventListener('DOMContentLoaded', function() {
         if (contentEl) contentEl.innerHTML = '';
         loadTabData('correlations');
     });
+    
+    // Correlation pair selection interface
+    const compareBtn = document.getElementById('compare-pair-btn');
+    const advancedBtn = document.getElementById('advanced-analysis-btn');
+    const backBtn = document.getElementById('back-to-selection-btn');
+    const pairView = document.getElementById('pair-comparison-view');
+    const correlationsContent = document.getElementById('correlations-content');
+    const correlationsLoading = document.getElementById('correlations-loading');
+    const typeASelect = document.getElementById('lottery_type_a');
+    const typeBSelect = document.getElementById('lottery_type_b');
+    
+    if (compareBtn) {
+        compareBtn.addEventListener('click', () => {
+            const typeA = typeASelect.value;
+            const typeB = typeBSelect.value;
+            
+            if (typeA === typeB) {
+                alert('Please select two different lottery types to compare.');
+                return;
+            }
+            
+            // Update comparison title
+            const titleEl = document.getElementById('pair-comparison-title');
+            if (titleEl) {
+                titleEl.textContent = `${typeA} vs ${typeB} Correlation Analysis`;
+            }
+            
+            // Show pair view, hide others
+            pairView.style.display = 'block';
+            correlationsContent.style.display = 'none';
+            correlationsLoading.style.display = 'none';
+            backBtn.style.display = 'inline-block';
+            
+            // Load pair comparison data
+            loadPairComparisonData(typeA, typeB);
+        });
+    }
+    
+    if (advancedBtn) {
+        advancedBtn.addEventListener('click', () => {
+            // Hide pair view, show full correlations
+            pairView.style.display = 'none';
+            backBtn.style.display = 'inline-block';
+            
+            // Load the full correlations data
+            loadTabData('correlations');
+        });
+    }
+    
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            // Hide comparison views, show selection interface
+            pairView.style.display = 'none';
+            correlationsContent.style.display = 'none';
+            correlationsLoading.style.display = 'none';
+            backBtn.style.display = 'none';
+        });
+    }
+    
+    // Function to load pair comparison data
+    function loadPairComparisonData(typeA, typeB) {
+        const pairContent = document.getElementById('pair-comparison-content');
+        if (!pairContent) return;
+        
+        pairContent.innerHTML = '<div class="col-12 text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Loading comparison data...</p></div>';
+        
+        // Build the API endpoint with the selected pair
+        const endpoint = `/api/lottery-analysis/correlations?lottery_type=${typeA}&second_type=${typeB}&days=${days}`;
+        
+        fetch(endpoint)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Pair comparison data loaded:', data);
+                displayPairComparisonData(pairContent, data, typeA, typeB);
+            })
+            .catch(error => {
+                console.error('Error loading pair comparison data:', error);
+                pairContent.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle mr-1"></i> Error loading data: ${error.message}
+                            <button class="btn btn-outline-danger btn-sm ml-3" onclick="loadPairComparisonData('${typeA}', '${typeB}')">Try Again</button>
+                        </div>
+                    </div>
+                `;
+            });
+    }
+    
+    // Function to display pair comparison data
+    function displayPairComparisonData(container, data, typeA, typeB) {
+        let html = '';
+        
+        // Find the correlation between the specific pair, if available
+        let pairCorrelation = null;
+        if (data && data.correlations && data.correlations.length > 0) {
+            pairCorrelation = data.correlations.find(corr => 
+                (corr.type_a === typeA && corr.type_b === typeB) || 
+                (corr.type_a === typeB && corr.type_b === typeA)
+            );
+        }
+        
+        if (pairCorrelation) {
+            // Determine correlation strength
+            let strengthClass = 'text-muted';
+            let strength = 'Weak';
+            let strengthDesc = 'This indicates a weak relationship between the winning numbers of these lottery types.';
+            
+            if (Math.abs(pairCorrelation.correlation) > 0.7) {
+                strengthClass = 'text-danger font-weight-bold';
+                strength = 'Strong';
+                strengthDesc = 'This indicates a strong relationship between the winning numbers of these lottery types.';
+            } else if (Math.abs(pairCorrelation.correlation) > 0.4) {
+                strengthClass = 'text-warning';
+                strength = 'Moderate';
+                strengthDesc = 'This indicates a moderate relationship between the winning numbers of these lottery types.';
+            }
+            
+            // Correlation visualization
+            html += `
+                <div class="col-12 mb-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Correlation Coefficient</h5>
+                            <div class="display-4 ${strengthClass}">${pairCorrelation.correlation.toFixed(2)}</div>
+                            <p class="mt-2">Correlation Strength: <span class="${strengthClass}">${strength}</span></p>
+                            <p class="text-muted">${strengthDesc}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="m-0 font-weight-bold">${typeA} Characteristics</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="${typeA.replace(/\s+/g, '-').toLowerCase()}-chart" class="mt-3">
+                                <img src="${data.charts?.[typeA] || ''}" alt="${typeA} Statistics" class="img-fluid">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="m-0 font-weight-bold">${typeB} Characteristics</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="${typeB.replace(/\s+/g, '-').toLowerCase()}-chart" class="mt-3">
+                                <img src="${data.charts?.[typeB] || ''}" alt="${typeB} Statistics" class="img-fluid">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-12 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="m-0 font-weight-bold">Analysis Insights</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">
+                                <i class="fas fa-info-circle mr-1 text-info"></i>
+                                The correlation between ${typeA} and ${typeB} is ${pairCorrelation.correlation.toFixed(2)}, 
+                                indicating a ${strength.toLowerCase()} relationship between their winning numbers.
+                                ${data.insights?.[`${typeA}_${typeB}`] || ''}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            html = `
+                <div class="col-12">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        No correlation data available for ${typeA} and ${typeB}. This could be due to insufficient historical data.
+                    </div>
+                </div>
+            `;
+        }
+        
+        container.innerHTML = html;
+    }
     
     // Pre-load the Pattern Analysis tab data so users don't have to click it first
     const patternsTab = document.getElementById('patterns');
