@@ -223,8 +223,10 @@ def index():
                 # Generate a deduplication key using normalized type
                 key = f"{normalized_type}_{result.draw_number}"
                 if key not in seen_draws:
-                    # Store the normalized type for use in templates
-                    result.display_type = normalized_type
+                    # Store the normalized type directly in the lottery_type field
+                    # Instead of using custom attributes which can cause hasattr errors
+                    original_type = result.lottery_type
+                    result.lottery_type = normalized_type
                     results_list.append(result)
                     seen_draws[key] = True
             
