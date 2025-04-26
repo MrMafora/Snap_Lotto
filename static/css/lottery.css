@@ -573,24 +573,33 @@
 }
 
 .lottery-balls-container {
-    display: grid;
-    grid-template-columns: repeat(4, auto) auto auto;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: center;
-    justify-content: start;
-    grid-gap: 0.25rem;
+    justify-content: flex-start;
+    gap: 0.35rem;
     width: 100%;
     padding: 0.25rem 0;
 }
 
 .lottery-balls-container .lottery-ball {
-    margin: 0.25rem 0.2rem;
-    justify-self: center;
+    margin: 0;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
 }
 
 .lottery-balls-container .bonus-number-separator {
     margin: 0 0.25rem;
     font-weight: bold;
-    justify-self: center;
+    flex-shrink: 0;
+}
+
+/* Style bonus balls correctly */
+.lottery-balls-container .lottery-ball-bonus {
+    background-color: #ffe11d;
+    color: #000;
 }
 
 .lottery-ball-container {
@@ -644,12 +653,14 @@
     }
     
     .lottery-balls-container {
-        grid-template-columns: repeat(3, auto) auto auto;
         justify-content: center;
+        gap: 0.25rem;
     }
     
     .lottery-balls-container .lottery-ball {
-        margin: 0.15rem 0.3rem;
+        width: 34px;
+        height: 34px;
+        font-size: 0.9rem;
     }
     
     .lottery-ball-sm {
@@ -675,11 +686,14 @@
     
     .lottery-balls-container {
         padding: 0.15rem 0;
-        grid-template-columns: repeat(2, auto) auto auto; /* Even fewer columns for very small screens */
+        gap: 0.15rem;
+        overflow-x: auto;
     }
     
     .lottery-balls-container .lottery-ball {
-        margin: 0.1rem 0.2rem;
+        width: 30px;
+        height: 30px;
+        font-size: 0.8rem;
     }
     
     .lottery-ball-sm {
