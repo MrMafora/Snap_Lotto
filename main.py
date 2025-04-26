@@ -198,8 +198,16 @@ def index():
             
             # Convert dictionary of results to a list for iteration in the template
             results_list = []
+            
+            # Use a dictionary to track unique draw numbers per type to avoid duplicates
+            seen_draws = {}
+            
             for lottery_type, result in latest_results.items():
-                results_list.append(result)
+                # Only add the result if we haven't seen this draw number for this type of game
+                key = f"{result.lottery_type}_{result.draw_number}"
+                if key not in seen_draws:
+                    results_list.append(result)
+                    seen_draws[key] = True
             
             # Sort results by date (newest first)
             results_list.sort(key=lambda x: x.draw_date, reverse=True)
