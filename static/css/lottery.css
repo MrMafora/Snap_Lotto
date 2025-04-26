@@ -574,12 +574,13 @@
 
 .lottery-balls-container {
     display: grid;
-    grid-template-columns: repeat(6, minmax(30px, 1fr)) auto auto;
+    grid-template-columns: repeat(6, 1fr) auto auto;
     grid-gap: 4px 8px;
     padding: 0.25rem 0;
     width: 100%;
     align-items: center;
     overflow-x: visible;
+    justify-items: center;
 }
 
 .lottery-balls-container .lottery-ball {
@@ -655,9 +656,10 @@
     }
     
     .lottery-balls-container {
-        grid-template-columns: repeat(6, minmax(30px, 1fr)) auto auto;
+        grid-template-columns: repeat(6, 1fr) auto auto;
         grid-gap: 4px 6px;
         width: 100%;
+        justify-items: center;
     }
     
     .lottery-balls-container .lottery-ball {
@@ -689,9 +691,10 @@
     
     .lottery-balls-container {
         padding: 0.15rem 0;
-        grid-template-columns: repeat(6, minmax(28px, 1fr)) auto auto;
+        grid-template-columns: repeat(6, 1fr) auto auto;
         grid-gap: 2px 4px;
         overflow-x: visible;
+        justify-items: center;
     }
     
     .lottery-balls-container .lottery-ball {
