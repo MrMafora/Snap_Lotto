@@ -271,16 +271,16 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     # Parse numbers
                     winning_numbers = parse_numbers(row['winning_numbers'])
                     
-                    # Daily Lotto has no bonus balls - handle it differently
+                    # Daily Lottery has no bonus balls - handle it differently
                     bonus_ball = []
-                    # Ensure Daily Lotto has exactly 5 numbers
-                    if lottery_type == "Daily Lotto":
-                        # Limit Daily Lotto to exactly 5 numbers
+                    # Ensure Daily Lottery has exactly 5 numbers
+                    if lottery_type == "Daily Lottery":
+                        # Limit Daily Lottery to exactly 5 numbers
                         if len(winning_numbers) > 5:
-                            logger.warning(f"Daily Lotto draw {draw_number} has {len(winning_numbers)} numbers, limiting to first 5")
+                            logger.warning(f"Daily Lottery draw {draw_number} has {len(winning_numbers)} numbers, limiting to first 5")
                             winning_numbers = winning_numbers[:5]
                         elif len(winning_numbers) < 5:
-                            logger.warning(f"Daily Lotto draw {draw_number} has only {len(winning_numbers)} numbers, expected 5")
+                            logger.warning(f"Daily Lottery draw {draw_number} has only {len(winning_numbers)} numbers, expected 5")
                     else:
                         bonus_ball = parse_numbers(row['bonus_ball']) if 'bonus_ball' in row and not pd.isna(row['bonus_ball']) else []
                     
@@ -306,7 +306,7 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                                 # Check if the winners column actually contains a prize value (R prefix)
                                 if isinstance(row[winners_col], str) and row[winners_col].strip().startswith('R'):
                                     divisions[f"Division {i}"] = {
-                                        "winners": str(i), # For Daily Lotto, division number = number of matches
+                                        "winners": str(i), # For Daily Lottery, division number = number of matches
                                         "prize": format_prize(row[winners_col])
                                     }
                                 else:

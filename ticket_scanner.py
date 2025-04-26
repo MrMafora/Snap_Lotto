@@ -481,7 +481,7 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
         You are a specialized South African lottery ticket scanner. Your job is to extract all key information from 
         a lottery ticket image including:
         
-        1. Game type (which lottery game: Lotto, Lotto Plus 1, Lotto Plus 2, Powerball, Powerball Plus, Daily Lotto)
+        1. Game type (which lottery game: Lottery, Lottery Plus 1, Lottery Plus 2, Powerball, Powerball Plus, Daily Lottery)
         2. Draw date (in YYYY-MM-DD format if possible)
         3. Draw number (ID number of the specific draw) - CRITICAL: Extract the exact draw number as printed on the ticket
         4. Selected numbers (the player's chosen numbers on the ticket)
@@ -500,7 +500,7 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
         - Focus on the player's selected numbers (usually circled, marked, or otherwise highlighted)
         - For Lotto/Lotto Plus tickets, look for 6 selected numbers per row
         - For Powerball/Powerball Plus tickets, look for 5 main numbers + 1 Powerball number per row
-        - For Daily Lotto tickets, look for 5 selected numbers per row
+        - For Daily Lottery tickets, look for 5 selected numbers per row
         - CAREFULLY check for additional game participation (POWERBALL PLUS, LOTTO PLUS 1, LOTTO PLUS 2)
         - Return all information in a structured JSON format with no additional text or explanations
         - If you can't determine certain fields with confidence, use "unknown" as the value
@@ -701,7 +701,7 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
                         else:
                             ticket_info['game_type'] = "Powerball"
                     elif "daily" in extracted_type.lower():
-                        ticket_info['game_type'] = "Daily Lotto"
+                        ticket_info['game_type'] = "Daily Lottery"
                     elif "lotto" in extracted_type.lower():
                         if "plus 1" in extracted_type.lower():
                             ticket_info['game_type'] = "Lotto Plus 1"

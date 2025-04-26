@@ -491,10 +491,10 @@ def import_excel_data(excel_file, flask_app=None):
                     # Ensure Daily Lottery has exactly 5 numbers
                     if lottery_type == "Daily Lottery":
                         if len(numbers) > 5:
-                            logger.warning(f"Daily Lotto draw {draw_number} has {len(numbers)} numbers, limiting to first 5")
+                            logger.warning(f"Daily Lottery draw {draw_number} has {len(numbers)} numbers, limiting to first 5")
                             numbers = numbers[:5]
                         elif len(numbers) < 5:
-                            logger.warning(f"Daily Lotto draw {draw_number} has only {len(numbers)} numbers, expected 5")
+                            logger.warning(f"Daily Lottery draw {draw_number} has only {len(numbers)} numbers, expected 5")
                     
                     # Parse bonus numbers
                     bonus_numbers = parse_numbers(bonus_numbers_str) if bonus_numbers_str else []
@@ -669,7 +669,7 @@ def create_empty_template(output_path):
             
             # Add guidance text based on column type
             if col == "Game Name":
-                cell.value = "e.g., LOTTO, POWERBALL, DAILY LOTTO"
+                cell.value = "e.g., LOTTERY, POWERBALL, DAILY LOTTERY"
             elif col == "Draw Number":
                 cell.value = "e.g., 2533"
             elif col == "Draw Date":
