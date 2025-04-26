@@ -93,7 +93,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                                 <td colspan="3">
                                     <div class="d-flex flex-wrap align-items-center mt-2">
                                         <div class="me-3 mb-1"><strong>Winning Numbers:</strong></div>
-                                        <div class="numbers-container me-4">
+                                        <div class="lottery-balls-container">
                                             {% for num in result.get_numbers_list() %}
                                                 {% set ball_class = 'lottery-ball ' %}
                                                 
@@ -109,15 +109,14 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                                                 
                                                 <span class="{{ ball_class }}">{{ num }}</span>
                                             {% endfor %}
-                                        </div>
-                                        {% if result.bonus_numbers %}
-                                            <div class="me-3 mb-1"><strong>Bonus Numbers:</strong></div>
-                                            <div class="numbers-container">
+                                            
+                                            {% if result.bonus_numbers %}
+                                                <span class="bonus-number-separator">+</span>
                                                 {% for num in result.get_bonus_numbers_list() %}
-                                                    <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
+                                                    <span class="lottery-ball lottery-ball-yellow lottery-ball-bonus">{{ num }}</span>
                                                 {% endfor %}
-                                            </div>
-                                        {% endif %}
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -174,7 +173,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                             <!-- Winning Numbers -->
                             <div class="mb-2">
                                 <div class="small mb-1"><strong>Winning Numbers:</strong></div>
-                                <div class="numbers-container">
+                                <div class="lottery-balls-container">
                                     {% for num in result.get_numbers_list() %}
                                         {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
                                         
@@ -190,20 +189,15 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                                         
                                         <span class="{{ ball_class }}">{{ num }}</span>
                                     {% endfor %}
+                                    
+                                    {% if result.bonus_numbers %}
+                                        <span class="bonus-number-separator">+</span>
+                                        {% for num in result.get_bonus_numbers_list() %}
+                                            <span class="lottery-ball lottery-ball-sm lottery-ball-yellow lottery-ball-bonus">{{ num }}</span>
+                                        {% endfor %}
+                                    {% endif %}
                                 </div>
                             </div>
-                            
-                            <!-- Bonus Numbers (if any) -->
-                            {% if result.bonus_numbers %}
-                                <div>
-                                    <div class="small mb-1"><strong>Bonus Numbers:</strong></div>
-                                    <div class="numbers-container">
-                                        {% for num in result.get_bonus_numbers_list() %}
-                                            <span class="lottery-ball lottery-ball-sm lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            {% endif %}
                         </div>
                     </div>
                 {% endfor %}

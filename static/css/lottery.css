@@ -573,21 +573,24 @@
 }
 
 .lottery-balls-container {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(4, auto) auto auto;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: start;
+    grid-gap: 0.25rem;
     width: 100%;
     padding: 0.25rem 0;
 }
 
 .lottery-balls-container .lottery-ball {
-    margin: 0.25rem 0.5rem;
+    margin: 0.25rem 0.2rem;
+    justify-self: center;
 }
 
 .lottery-balls-container .bonus-number-separator {
-    margin: 0 0.5rem;
+    margin: 0 0.25rem;
     font-weight: bold;
+    justify-self: center;
 }
 
 .lottery-ball-container {
@@ -641,6 +644,7 @@
     }
     
     .lottery-balls-container {
+        grid-template-columns: repeat(3, auto) auto auto;
         justify-content: center;
     }
     
@@ -671,6 +675,7 @@
     
     .lottery-balls-container {
         padding: 0.15rem 0;
+        grid-template-columns: repeat(2, auto) auto auto; /* Even fewer columns for very small screens */
     }
     
     .lottery-balls-container .lottery-ball {
