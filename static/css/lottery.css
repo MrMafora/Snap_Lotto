@@ -727,25 +727,29 @@
     height: 100%;
     overflow: hidden; /* Hide scrollbar and overflow content */
     padding-bottom: 5px;
+    transform: scale(0.9); /* Shrink the entire container */
+    transform-origin: top center;
 }
 
 .hot-numbers, .cold-numbers, .absent-numbers {
     padding-bottom: 2px;
-    margin-bottom: 5px;
+    margin-bottom: 3px;
 }
 
 /* Smaller headings for hot/cold sections */
 .hot-numbers h5, .cold-numbers h5, .absent-numbers h5 {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
 }
 
 .hot-number-item, .cold-number-item, .absent-number-item {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
-    margin-right: 3px;
+    margin-right: 1px;
     margin-bottom: 0;
-    transform: scale(0.85); /* Make numbers even smaller */
+    transform: scale(0.72); /* Make numbers much smaller */
+    transform-origin: center top;
 }
 
 .frequency-label {
@@ -756,7 +760,7 @@
 }
 
 /* Make section headers more compact */
-.hot-numbers h5, .cold-numbers h5, .absent-numbers h5, .data-analytics-preview .chart-card h5 {
+.data-analytics-preview .chart-card h5 {
     margin-bottom: 5px;
     margin-top: 0;
 }
