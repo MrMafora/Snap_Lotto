@@ -201,11 +201,30 @@ def index():
             
             # Use a dictionary to track unique draw numbers per type to avoid duplicates
             seen_draws = {}
+            normalized_results = {}
             
+            # First pass: create a mapping of normalized game types
             for lottery_type, result in latest_results.items():
-                # Only add the result if we haven't seen this draw number for this type of game
-                key = f"{result.lottery_type}_{result.draw_number}"
+                # Normalize the lottery type
+                normalized_type = data_aggregator.normalize_lottery_type(lottery_type)
+                
+                # Use the normalized type as the key
+                if normalized_type not in normalized_results:
+                    normalized_results[normalized_type] = result
+                    # Save the normalized type back to the result for display
+                    result.normalized_type = normalized_type
+                # If we already have a result for this type, keep the newest one
+                elif result.draw_date > normalized_results[normalized_type].draw_date:
+                    normalized_results[normalized_type] = result
+                    result.normalized_type = normalized_type
+            
+            # Second pass: add results using normalized keys to avoid duplicates
+            for normalized_type, result in normalized_results.items():
+                # Generate a deduplication key using normalized type
+                key = f"{normalized_type}_{result.draw_number}"
                 if key not in seen_draws:
+                    # Store the normalized type for use in templates
+                    result.display_type = normalized_type
                     results_list.append(result)
                     seen_draws[key] = True
             

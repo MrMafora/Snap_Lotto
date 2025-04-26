@@ -75,8 +75,8 @@
       "position": {{ loop.index }},
       "item": {
         "@type": "Game",
-        "name": "{{ result.lottery_type }}",
-        "description": "{{ result.lottery_type }} draw {{ result.draw_number }} on {{ result.draw_date.strftime('%Y-%m-%d') }}",
+        "name": "{{ result.display_type if hasattr(result, 'display_type') else result.normalized_type if hasattr(result, 'normalized_type') else result.lottery_type }}",
+        "description": "{{ result.display_type if hasattr(result, 'display_type') else result.normalized_type if hasattr(result, 'normalized_type') else result.lottery_type }} draw {{ result.draw_number }} on {{ result.draw_date.strftime('%Y-%m-%d') }}",
         "playMode": "SinglePlayer",
         "applicationCategory": "Game",
         "genre": "Lottery"
@@ -221,14 +221,15 @@
                             {% for result in results %}
                             <tr>
                                 <td class="ps-2 py-1">
-                                    {% if 'Lottery Plus' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-lottery">{{ result.lottery_type }}</span>
-                                    {% elif 'Powerball' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-powerball">{{ result.lottery_type }}</span>
-                                    {% elif 'Daily' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-daily">{{ result.lottery_type }}</span>
+                                    {% set display_type = result.display_type if hasattr(result, 'display_type') else result.normalized_type if hasattr(result, 'normalized_type') else result.lottery_type %}
+                                    {% if 'Lottery Plus' in display_type %}
+                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
+                                    {% elif 'Powerball' in display_type %}
+                                        <span class="game-type-badge game-type-powerball">{{ display_type }}</span>
+                                    {% elif 'Daily' in display_type %}
+                                        <span class="game-type-badge game-type-daily">{{ display_type }}</span>
                                     {% else %}
-                                        <span class="game-type-badge game-type-lottery">{{ result.lottery_type }}</span>
+                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
                                     {% endif %}
                                 </td>
                                 <td class="py-1"><strong>{{ result.draw_number }}</strong></td>
