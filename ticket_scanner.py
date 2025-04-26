@@ -498,21 +498,21 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
         - For Powerball tickets, the draw number is EXTREMELY IMPORTANT - look for text like "Draw: 1603" or just "1603"
         - Powerball tickets may say "PowerBall" or "Power Ball" - treat these as the same game type
         - Focus on the player's selected numbers (usually circled, marked, or otherwise highlighted)
-        - For Lotto/Lotto Plus tickets, look for 6 selected numbers per row
+        - For Lottery/Lottery Plus tickets, look for 6 selected numbers per row
         - For Powerball/Powerball Plus tickets, look for 5 main numbers + 1 Powerball number per row
         - For Daily Lottery tickets, look for 5 selected numbers per row
-        - CAREFULLY check for additional game participation (POWERBALL PLUS, LOTTO PLUS 1, LOTTO PLUS 2)
+        - CAREFULLY check for additional game participation (POWERBALL PLUS, LOTTERY PLUS 1, LOTTERY PLUS 2)
         - Return all information in a structured JSON format with no additional text or explanations
         - If you can't determine certain fields with confidence, use "unknown" as the value
         
         Return the data in this JSON format:
         {
-            "game_type": "The detected game type (e.g., Lotto, Powerball)",
+            "game_type": "The detected game type (e.g., Lottery, Powerball)",
             "draw_date": "Draw date in YYYY-MM-DD format if possible",
             "draw_number": "Draw ID number as shown on ticket",
             "plays_powerball_plus": true/false,
-            "plays_lotto_plus_1": true/false,
-            "plays_lotto_plus_2": true/false,
+            "plays_lottery_plus_1": true/false,
+            "plays_lottery_plus_2": true/false,
             "selected_numbers": {
                 "A01": [first set of numbers],
                 "B01": [second set of numbers],
@@ -690,7 +690,7 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
             # Make sure we have a game type
             if not ticket_info.get('game_type') or ticket_info.get('game_type') == 'unknown':
                 # Extract game type from Claude response if possible
-                game_type_match = re.search(r'(lotto|powerball|daily\s*lotto)(?:\s*plus\s*[12])?', 
+                game_type_match = re.search(r'(lottery|powerball|daily\s*lottery)(?:\s*plus\s*[12])?', 
                                           raw_response, re.IGNORECASE)
                 if game_type_match:
                     extracted_type = game_type_match.group(0).strip()
@@ -702,13 +702,13 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
                             ticket_info['game_type'] = "Powerball"
                     elif "daily" in extracted_type.lower():
                         ticket_info['game_type'] = "Daily Lottery"
-                    elif "lotto" in extracted_type.lower():
+                    elif "lottery" in extracted_type.lower() or "lotto" in extracted_type.lower():
                         if "plus 1" in extracted_type.lower():
-                            ticket_info['game_type'] = "Lotto Plus 1"
+                            ticket_info['game_type'] = "Lottery Plus 1"
                         elif "plus 2" in extracted_type.lower():
-                            ticket_info['game_type'] = "Lotto Plus 2"
+                            ticket_info['game_type'] = "Lottery Plus 2"
                         else:
-                            ticket_info['game_type'] = "Lotto"
+                            ticket_info['game_type'] = "Lottery"
             
             # If we have game type but the user already specified it, prioritize user selection
             if lottery_type and lottery_type != "unknown":
@@ -727,7 +727,7 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
             ticket_numbers = [int(num) for num in numbers if 1 <= int(num) <= 50]
             
             # Limit to appropriate number of selections based on lottery type
-            if 'Lotto' in lottery_type and 'Powerball' not in lottery_type:
+            if ('Lottery' in lottery_type or 'Lotto' in lottery_type) and 'Powerball' not in lottery_type:
                 ticket_numbers = ticket_numbers[:6]
             elif 'Powerball' in lottery_type:
                 ticket_numbers = ticket_numbers[:6]  # 5 main + 1 powerball
@@ -745,7 +745,7 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
             # Try to extract game type if not provided
             extracted_game_type = lottery_type
             if not lottery_type or lottery_type == "unknown":
-                game_type_match = re.search(r'(lotto|powerball|daily\s*lotto)(?:\s*plus\s*[12])?', 
+                game_type_match = re.search(r'(lottery|powerball|daily\s*lottery)(?:\s*plus\s*[12])?', 
                                          raw_response, re.IGNORECASE)
                 if game_type_match:
                     extracted_type = game_type_match.group(0).strip()
@@ -756,14 +756,14 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
                         else:
                             extracted_game_type = "Powerball"
                     elif "daily" in extracted_type.lower():
-                        extracted_game_type = "Daily Lotto"
-                    elif "lotto" in extracted_type.lower():
+                        extracted_game_type = "Daily Lottery"
+                    elif "lottery" in extracted_type.lower():
                         if "plus 1" in extracted_type.lower():
-                            extracted_game_type = "Lotto Plus 1"
+                            extracted_game_type = "Lottery Plus 1"
                         elif "plus 2" in extracted_type.lower():
-                            extracted_game_type = "Lotto Plus 2"
+                            extracted_game_type = "Lottery Plus 2"
                         else:
-                            extracted_game_type = "Lotto"
+                            extracted_game_type = "Lottery"
             
             ticket_info = {
                 'game_type': extracted_game_type,
@@ -871,8 +871,8 @@ def get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result)
     division = None
     match_type = ""
     
-    if "Lotto" in lottery_type and "Powerball" not in lottery_type:
-        # Lotto/Lotto Plus prize structure
+    if ("Lottery" in lottery_type or "Lotto" in lottery_type) and "Powerball" not in lottery_type:
+        # Lottery/Lottery Plus prize structure
         if match_count == 6:
             division = "Division 1"
             match_type = "SIX CORRECT NUMBERS"
@@ -929,8 +929,8 @@ def get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result)
             division = "Division 9"
             match_type = "MATCH POWERBALL ONLY"
     
-    elif "Daily Lotto" in lottery_type:
-        # Daily Lotto structure
+    elif "Daily Lottery" in lottery_type:
+        # Daily Lottery structure
         if match_count == 5:
             division = "Division 1"
             match_type = "FIVE CORRECT NUMBERS"
