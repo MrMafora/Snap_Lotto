@@ -130,8 +130,10 @@ def import_daily_lottery_data(filepath):
                         # Add division data if both winners and prize data exist
                         if winners_col in row and prize_col in row and not pd.isna(row[winners_col]) and not pd.isna(row[prize_col]):
                             divisions[f"Division {div}"] = {
-                                "winners": str(row[winners_col]),
-                                "prize": str(row[prize_col]),
+                                "winners": str(row[winners_col]).replace("R", ""),
+                                "prize": str(row[prize_col])
+                                    if "R" in str(row[prize_col]) 
+                                    else f"R{row[prize_col]}" if not pd.isna(row[prize_col]) else "",
                                 "match": "" # We don't have match information in this spreadsheet
                             }
                     
