@@ -420,6 +420,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 
                         <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="show_results" id="show-results-flag" value="0">
                             <div class="mb-2">
                                 <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
                                 <select class="form-select form-select-sm" id="lottery-type" name="lottery_type">
@@ -929,10 +930,16 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 
                 // Auto-show the results after a short delay (simulate ad viewing)
                 const viewResultsBtn = document.getElementById('view-results-btn');
-                viewResultsBtn.onclick = function(e) {
+                viewResultsBtn.addEventListener('click', function(e) {
+                    console.log('View Results button clicked');
                     // Prevent default behavior and stop propagation
-                    e.preventDefault();
-                    e.stopPropagation();
+                    if (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                    
+                    // Set the hidden flag to indicate we should show results
+                    document.getElementById('show-results-flag').value = '1';
                     
                     // Hide the results ad overlay
                     adOverlayResults.style.display = 'none';
