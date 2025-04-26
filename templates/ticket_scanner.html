@@ -393,7 +393,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     </div>
     <!-- Countdown timer will be placed here above the button -->
     <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;"></div>
-    <button class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;">
+    <button type="button" class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;" onclick="return false;">
         <i class="fas fa-check-circle me-2"></i> View Results
     </button>
 </div>
@@ -929,7 +929,12 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 
                 // Auto-show the results after a short delay (simulate ad viewing)
                 const viewResultsBtn = document.getElementById('view-results-btn');
-                viewResultsBtn.onclick = function() {
+                viewResultsBtn.onclick = function(e) {
+                    // Prevent default behavior and stop propagation
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Hide the results ad overlay
                     adOverlayResults.style.display = 'none';
                     
                     // Clean up all timers and reset the state
@@ -956,6 +961,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         document.body.style.paddingBottom = '100px';
                     }
                     
+                    console.log('Displaying results for data:', data);
+                    
                     // Display the results now
                     displayResults(data);
                     
@@ -968,6 +975,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     }, 300);
                     
                     console.log('User clicked View Results, countdown state cleared');
+                    
+                    // Return false to prevent any default action
+                    return false;
                 };
                 
                 // FORCEFULLY disable the view results button for 15 seconds
