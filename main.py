@@ -174,6 +174,11 @@ def offline():
     """Offline fallback page when no internet connection is available"""
     return render_template('offline.html', title="Snap Lotto - Offline")
 
+@app.route('/test-scanner-layout')
+def test_scanner_layout():
+    """Test page to verify the scanner results layout works consistently across devices"""
+    return render_template('ticket_scanner.html')
+
 @app.route('/install')
 def install_pwa():
     """App installation page for PWA"""
