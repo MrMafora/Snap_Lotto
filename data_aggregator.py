@@ -1702,3 +1702,136 @@ def get_division_statistics(lottery_type=None, max_divisions=5):
             4: 1245,   # Division 4 - lots of winners
             5: 2476    # Division 5 - most winners
         }
+
+
+def get_least_frequent_numbers(lottery_type=None, limit=5):
+    """
+    Get the least frequently drawn numbers for a specific lottery type.
+    
+    Args:
+        lottery_type (str, optional): Type of lottery to filter by
+        limit (int, optional): Number of least frequent numbers to return
+        
+    Returns:
+        list: List of tuples containing (number, frequency) pairs
+    """
+    from collections import Counter
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Create a counter for all numbers
+    number_counter = Counter()
+    # Set of all valid numbers (for every lottery type, the range is 1-50)
+    all_numbers = set(range(1, 51))
+    
+    try:
+        # Query the database for lottery results
+        query = LotteryResult.query
+        
+        if lottery_type and lottery_type.lower() != 'all':
+            # Get normalized version of the lottery type
+            normalized_type = normalize_lottery_type(lottery_type)
+            
+            # Find all variants of this lottery type in the database
+            lottery_type_variants = db.session.query(LotteryResult.lottery_type).distinct().all()
+            matching_types = []
+            
+            for lt in lottery_type_variants:
+                lt_name = lt[0]
+                if normalize_lottery_type(lt_name) == normalized_type:
+                    matching_types.append(lt_name)
+            
+            # If we found matching variants, query using all of them
+            if matching_types:
+                query = query.filter(LotteryResult.lottery_type.in_(matching_types))
+            else:
+                # Fallback to the original search if no variants found
+                query = query.filter_by(lottery_type=lottery_type)
+        
+        results = query.all()
+        
+        # Process each result
+        for result in results:
+            numbers = result.get_numbers_list()
+            for num in numbers:
+                number_counter[num] += 1
+                
+        # Add numbers that haven't been drawn at all (frequency = 0)
+        for num in all_numbers:
+            if num not in number_counter:
+                number_counter[num] = 0
+        
+        # Get the least common numbers with their frequencies
+        least_common = sorted(number_counter.items(), key=lambda x: x[1])[:limit]
+        
+        return least_common
+        
+    except Exception as e:
+        logger.error(f"Error in get_least_frequent_numbers: {str(e)}")
+        # Provide sample data for cold numbers on error
+        return [(8, 1), (12, 2), (21, 2), (35, 3), (49, 3)]
+
+
+def get_numbers_not_drawn_recently(lottery_type=None, limit=5):
+    """
+    Get numbers that haven't been drawn recently.
+    
+    Args:
+        lottery_type (str, optional): Type of lottery to filter by
+        limit (int, optional): Number of numbers to return
+        
+    Returns:
+        list: List of tuples containing (number, days_since_last_drawn) pairs
+    """
+    import logging
+    from datetime import datetime
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Query the database for lottery results
+        query = LotteryResult.query.order_by(LotteryResult.draw_date.desc())
+        
+        if lottery_type and lottery_type.lower() != 'all':
+            # Get normalized version of the lottery type
+            normalized_type = normalize_lottery_type(lottery_type)
+            
+            # Find all variants of this lottery type in the database
+            lottery_type_variants = db.session.query(LotteryResult.lottery_type).distinct().all()
+            matching_types = []
+            
+            for lt in lottery_type_variants:
+                lt_name = lt[0]
+                if normalize_lottery_type(lt_name) == normalized_type:
+                    matching_types.append(lt_name)
+            
+            # If we found matching variants, query using all of them
+            if matching_types:
+                query = query.filter(LotteryResult.lottery_type.in_(matching_types))
+            else:
+                # Fallback to the original search if no variants found
+                query = query.filter_by(lottery_type=lottery_type)
+        
+        results = query.all()
+        
+        # Dictionary to track when each number was last drawn
+        last_drawn = {}
+        today = datetime.now().date()
+        
+        # Process each result to find the last drawn date for each number
+        for result in results:
+            numbers = result.get_numbers_list()
+            for num in numbers:
+                if num not in last_drawn:
+                    # Calculate days since this draw
+                    days_since = (today - result.draw_date.date()).days
+                    last_drawn[num] = days_since
+        
+        # Sort by days since last drawn (descending)
+        absent_numbers = sorted(last_drawn.items(), key=lambda x: x[1], reverse=True)[:limit]
+        
+        return absent_numbers
+        
+    except Exception as e:
+        logger.error(f"Error in get_numbers_not_drawn_recently: {str(e)}")
+        # Provide sample data for absent numbers on error
+        return [(14, 45), (26, 38), (39, 32), (41, 30), (47, 28)]

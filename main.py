@@ -266,6 +266,20 @@ def index():
         except Exception as e:
             logger.error(f"Error getting division statistics: {e}")
             division_stats = {}
+            
+        # Get cold numbers (least frequently drawn)
+        try:
+            cold_numbers = data_aggregator.get_least_frequent_numbers(limit=5)
+        except Exception as e:
+            logger.error(f"Error getting cold numbers: {e}")
+            cold_numbers = []
+            
+        # Get numbers not drawn recently
+        try:
+            absent_numbers = data_aggregator.get_numbers_not_drawn_recently(limit=5)
+        except Exception as e:
+            logger.error(f"Error getting absent numbers: {e}")
+            absent_numbers = []
         
         # Define rich meta description for SEO
         meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
@@ -277,6 +291,8 @@ def index():
                             latest_results=latest_results,
                             results=results_list,
                             frequent_numbers=frequent_numbers,
+                            cold_numbers=cold_numbers,
+                            absent_numbers=absent_numbers,
                             division_stats=division_stats,
                             title="South African Lottery Results | Latest Winning Numbers",
                             meta_description=meta_description,
@@ -293,6 +309,8 @@ def index():
                             latest_results={},
                             results=[],
                             frequent_numbers=[],
+                            cold_numbers=[],
+                            absent_numbers=[],
                             division_stats={},
                             title="South African Lottery Results | Latest Winning Numbers",
                             meta_description=meta_description,
