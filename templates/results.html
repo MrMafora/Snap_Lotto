@@ -39,12 +39,12 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                 <ul class="dropdown-menu" aria-labelledby="filterDropdown">
                     <li><a class="dropdown-item" href="{{ url_for('results') }}">All Types</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lotto') }}">Lotto</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lotto Plus 1') }}">Lotto Plus 1</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lotto Plus 2') }}">Lotto Plus 2</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lottery') }}">Lottery</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lottery Plus 1') }}">Lottery Plus 1</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lottery Plus 2') }}">Lottery Plus 2</a></li>
                     <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Powerball') }}">Powerball</a></li>
                     <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Powerball Plus') }}">Powerball Plus</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Daily Lotto') }}">Daily Lotto</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Daily Lottery') }}">Daily Lottery</a></li>
                 </ul>
             </div>
         </div>
@@ -66,7 +66,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                         {% for result in results.items %}
                             <tr>
                                 <td>
-                                    {% if 'Lotto Plus' in result.lottery_type %}
+                                    {% if 'Lottery Plus' in result.lottery_type or 'Lotto Plus' in result.lottery_type %}
                                         <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
                                     {% elif 'Powerball' in result.lottery_type %}
                                         <span class="game-type-badge game-type-powerball">{{ result.lottery_type }}</span>

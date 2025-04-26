@@ -20,7 +20,7 @@
                     <tr>
                         <th>Game Type:</th>
                         <td>
-                            {% if 'Lotto Plus' in result.lottery_type %}
+                            {% if 'Lottery Plus' in result.lottery_type or 'Lotto Plus' in result.lottery_type %}
                                 <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
                             {% elif 'Powerball' in result.lottery_type %}
                                 <span class="game-type-badge game-type-powerball">{{ result.lottery_type }}</span>
