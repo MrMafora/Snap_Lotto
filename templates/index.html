@@ -346,18 +346,18 @@
         </div>
         
         <div class="row">
-            <!-- Flex container that adjusts to mobile -->
-            <div class="flex-container">
+            <!-- Equal width two-column layout for the charts -->
+            <div class="col-md-6">
                 <!-- Left chart: Most Frequent Numbers -->
-                <div class="frequency-chart-container mb-5">
+                <div class="chart-card">
                     <h6 class="mb-3 d-flex justify-content-between">
                         <span>Most Frequent Numbers</span>
                         <span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>
                     </h6>
-                    <!-- SVG bar chart with perfect alignment between bars and numbers -->
-                    <div class="bar-chart-container" style="position: relative; width: 100%; height: 170px;">
-                        <!-- Y-axis labels with dynamic values based on data range -->
-                        <div class="y-axis-labels" style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px;">
+                        <!-- SVG bar chart with perfect alignment between bars and numbers -->
+                        <div class="bar-chart-container" style="position: relative; width: 100%; height: 170px;">
+                            <!-- Y-axis labels with dynamic values based on data range -->
+                            <div class="y-axis-labels" style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px;">
                             {% if frequent_numbers %}
                                 {% set max_frequency = frequent_numbers[0][1] if frequent_numbers|length > 0 else 1 %}
                                 {% set step = (max_frequency / 5)|round(0, 'ceil')|int %}
@@ -434,8 +434,10 @@
                     </div>
                 </div>
                 
-                <!-- Right chart: Hot & Cold Numbers -->
-                <div class="temperature-chart-container mt-5 pt-4" id="temperatureChartContainer">
+                            </div>
+            <!-- Right chart: Hot & Cold Numbers - Also 6 columns wide -->
+            <div class="col-md-6">
+                <div class="chart-card">
                     <h6 class="mb-3 d-flex justify-content-between">
                         <span>Hot & Cold Numbers</span>
                         <span class="chart-loading" id="pieChartLoading"><i class="fas fa-spinner fa-spin"></i></span>
