@@ -393,9 +393,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     </div>
     <!-- Countdown timer will be placed here above the button -->
     <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;"></div>
-    <a href="javascript:void(0);" class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px; text-decoration: none; display: inline-block;">
-        <i class="fas fa-check-circle me-2"></i> View Results
-    </a>
+    <form id="view-results-form" action="/ticket-results" method="get">
+        <button type="submit" class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px; text-decoration: none; display: inline-block;">
+            <i class="fas fa-check-circle me-2"></i> View Results
+        </button>
+    </form>
 </div>
 
 <div class="container py-3">

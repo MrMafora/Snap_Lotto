@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block meta_description %}{{ meta_description }}{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/lottery.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/scanner.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+    .results-page-container {
+        margin-top: 20px;
+        margin-bottom: 40px;
+        background-color: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 25px;
+    }
+    .lottery-ball {
+        width: 2.5rem;
+        height: 2.5rem;
+        line-height: 2.5rem;
+        font-size: 1.2rem;
+        margin: 0.2rem;
+    }
+    .matched {
+        position: relative;
+    }
+    .matched::after {
+        content: '✓';
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background-color: #28a745;
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 12px;
+        line-height: 18px;
+        text-align: center;
+    }
+    .prize-card {
+        border-left: 5px solid #28a745;
+        background: linear-gradient(to right, #f8fff8, #ffffff);
+    }
+    .no-prize-card {
+        border-left: 5px solid #dc3545;
+        background: linear-gradient(to right, #fff8f8, #ffffff);
+    }
+    .mobile-ticket-display {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+    }
+    
+    /* Mobile responsive fixes */
+    @media (max-width: 576px) {
+        .lottery-ball {
+            width: 2.2rem;
+            height: 2.2rem;
+            line-height: 2.2rem;
+            font-size: 1.1rem;
+            margin: 0.15rem;
+        }
+        .matched::after {
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+            line-height: 16px;
+        }
+    }
+
+    /* Safari iOS specific fix */
+    @supports (-webkit-touch-callout: none) {
+        /* Safari and iOS specific styles */
+        body {
+            padding-bottom: 70px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container results-page-container">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1 class="d-flex align-items-center">
+                <i class="fa fa-ticket-alt me-2"></i> Your Ticket Results
+            </h1>
+            <p class="lead mb-2">Check if your lottery ticket has won</p>
+            <p class="mb-3"><a href="/ticket-scanner" class="text-decoration-none"><i class="fas fa-arrow-left me-1"></i> Back to Ticket Scanner</a></p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            {% if ticket_data.error %}
+                <div class="alert alert-danger">
+                    <i class="fa fa-exclamation-triangle me-2"></i>
+                    {{ ticket_data.error }}
+                </div>
+                <p class="text-center">
+                    <a href="/ticket-scanner" class="btn btn-primary">Try Another Ticket</a>
+                </p>
+            {% else %}
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Your Ticket</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Lottery Type:</strong> {{ ticket_data.lottery_type }}</p>
+                                <p><strong>Draw Number:</strong> {{ ticket_data.draw_number }}</p>
+                                <p><strong>Draw Date:</strong> {{ ticket_data.draw_date }}</p>
+                                
+                                <div class="mt-3 small">
+                                    <p class="text-muted mb-1"><i class="fas fa-search-plus me-1"></i> <strong>OCR Detected Information:</strong></p>
+                                    <p class="mb-1"><strong>Game Type:</strong> {{ ticket_data.detected_game_type }}</p>
+                                    <p class="mb-1"><strong>Draw Number:</strong> {{ ticket_data.detected_draw_number }}</p>
+                                    <p class="mb-1"><strong>Draw Date:</strong> {{ ticket_data.detected_draw_date }}</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Your Numbers:</strong></p>
+                                <div class="mb-3">
+                                    {% for number in ticket_data.ticket_numbers %}
+                                        <div class="lottery-ball {{ ticket_data.lottery_type|lower|replace(' ', '-') }}-ball">{{ number }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Winning Numbers</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Primary game winning numbers -->
+                        <div class="mb-3">
+                            <p><strong id="primary-game-label">Main Numbers:</strong></p>
+                            <div class="d-inline-flex flex-wrap mb-3">
+                                {% for number in ticket_data.winning_numbers %}
+                                    <div class="lottery-ball {{ ticket_data.lottery_type|lower|replace(' ', '-') }}-ball {% if number in ticket_data.matched_numbers %}matched{% endif %}">{{ number }}</div>
+                                {% endfor %}
+                            </div>
+                            <!-- Display matches for PowerBall main game -->
+                            <div>
+                                <p><strong>Your Matches:</strong> <span class="badge bg-success">{{ ticket_data.matched_count }}</span></p>
+                                <div>
+                                    {% for number in ticket_data.matched_numbers %}
+                                        <div class="lottery-ball {{ ticket_data.lottery_type|lower|replace(' ', '-') }}-ball matched">{{ number }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- PowerBall Plus winning numbers displayed in main winning numbers card -->
+                        {% if ticket_data.lottery_type == 'Powerball Plus' %}
+                        <div class="mb-3">
+                            <hr>
+                            <p><strong>Powerball Plus Numbers:</strong></p>
+                            <div class="d-inline-flex flex-wrap mb-2">
+                                {% for number in ticket_data.powerball_plus_numbers %}
+                                    <div class="lottery-ball powerball-plus-ball {% if number in ticket_data.pp_matched_numbers %}matched{% endif %}">{{ number }}</div>
+                                {% endfor %}
+                            </div>
+                            <div>
+                                <p><strong>Your Matches:</strong> <span class="badge bg-success">{{ ticket_data.pp_matched_count }}</span></p>
+                                <div>
+                                    {% for number in ticket_data.pp_matched_numbers %}
+                                        <div class="lottery-ball powerball-plus-ball matched">{{ number }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Lotto Plus 1 winning numbers section -->
+                        {% if ticket_data.lottery_type == 'Lotto Plus 1' %}
+                        <div class="mb-3">
+                            <hr>
+                            <p><strong>Lotto Plus 1 Numbers:</strong></p>
+                            <div class="d-inline-flex flex-wrap mb-2">
+                                {% for number in ticket_data.lotto_plus_1_numbers %}
+                                    <div class="lottery-ball lotto-plus-1-ball {% if number in ticket_data.lp1_matched_numbers %}matched{% endif %}">{{ number }}</div>
+                                {% endfor %}
+                            </div>
+                            <div>
+                                <p><strong>Your Matches:</strong> <span class="badge bg-success">{{ ticket_data.lp1_matched_count }}</span></p>
+                                <div>
+                                    {% for number in ticket_data.lp1_matched_numbers %}
+                                        <div class="lottery-ball lotto-plus-1-ball matched">{{ number }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Lotto Plus 2 winning numbers section -->
+                        {% if ticket_data.lottery_type == 'Lotto Plus 2' %}
+                        <div class="mb-3">
+                            <hr>
+                            <p><strong>Lotto Plus 2 Numbers:</strong></p>
+                            <div class="d-inline-flex flex-wrap mb-2">
+                                {% for number in ticket_data.lotto_plus_2_numbers %}
+                                    <div class="lottery-ball lotto-plus-2-ball {% if number in ticket_data.lp2_matched_numbers %}matched{% endif %}">{{ number }}</div>
+                                {% endfor %}
+                            </div>
+                            <div>
+                                <p><strong>Your Matches:</strong> <span class="badge bg-success">{{ ticket_data.lp2_matched_count }}</span></p>
+                                <div>
+                                    {% for number in ticket_data.lp2_matched_numbers %}
+                                        <div class="lottery-ball lotto-plus-2-ball matched">{{ number }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if ticket_data.prize_info %}
+                <div>
+                    <div class="card prize-card">
+                        <div class="card-body">
+                            <h4 class="text-success mb-3"><i class="fa fa-trophy me-2"></i> Congratulations!</h4>
+                            <p class="lead">You've won a prize in {{ ticket_data.lottery_type }} Draw {{ ticket_data.draw_number }}!</p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Division:</strong> {{ ticket_data.prize_info.division }}</p>
+                                    <p><strong>Match Type:</strong> {{ ticket_data.prize_info.match_type }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h3 class="text-success">Prize: {{ ticket_data.prize_info.amount }}</h3>
+                                </div>
+                            </div>
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-info-circle me-2"></i> To claim your prize, visit an authorized Ithuba lottery retailer or visit an Ithuba office for larger amounts.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div>
+                    <div class="card no-prize-card">
+                        <div class="card-body">
+                            <h4 class="text-danger mb-3"><i class="fa fa-times-circle me-2"></i> No Prize</h4>
+                            <p>Unfortunately, you didn't win a prize in this draw.</p>
+                            <p>Better luck next time!</p>
+                            <div class="text-center mt-3">
+                                <a href="/ticket-scanner" class="btn btn-primary">Scan Another Ticket</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to handle correct ball coloring
+    function setupLotteryBalls() {
+        // Color lottery balls based on their type
+        const balls = document.querySelectorAll('.lottery-ball');
+        balls.forEach(ball => {
+            if (ball.classList.contains('matched')) {
+                // Matched balls have a special marker but keep their original color class
+                console.log("Found a matched ball");
+            }
+        });
+    }
+    
+    // Initialize lottery balls
+    setupLotteryBalls();
+});
+</script>
+{% endblock %}
