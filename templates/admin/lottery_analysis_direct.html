@@ -494,34 +494,65 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Generate appropriate HTML based on tab type and data
         if (tabId === 'patterns') {
-            if (data && data.patterns) {
-                Object.entries(data.patterns).forEach(([lottery_type, patterns]) => {
-                    if (patterns && patterns.length > 0) {
+            // Pattern analysis structure changed - data is directly indexed by lottery type
+            if (data) {
+                Object.entries(data).forEach(([lottery_type, patternData]) => {
+                    // Skip entries with errors or missing cluster details
+                    if (patternData && patternData.cluster_details) {
                         html += `
-                            <div class="col-md-6 mb-4">
-                                <div class="card border-left-primary shadow h-100 py-2">
+                            <div class="col-md-12 mb-4">
+                                <div class="card shadow mb-4">
+                                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                        <h6 class="m-0 font-weight-bold text-primary">${lottery_type} Pattern Analysis</h6>
+                                    </div>
                                     <div class="card-body">
-                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                            ${lottery_type}
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                            Pattern Analysis
-                                        </div>
-                                        <div class="mt-3">
-                                            <ul class="list-group">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="text-center">
+                                                    <img src="${patternData.chart_base64 ? 'data:image/png;base64,' + patternData.chart_base64 : patternData.chart_path}" 
+                                                         class="img-fluid mb-3" alt="${lottery_type} Pattern Analysis">
+                                                    <p class="text-muted small">
+                                                        PCA variance explained: ${Math.round((patternData.variance_explained[0] + patternData.variance_explained[1]) * 100)}%
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h5 class="text-gray-800 mb-3">Cluster Analysis Results</h5>
+                                                <div class="row">
                         `;
                         
-                        patterns.slice(0, 5).forEach(pattern => {
+                        // Process cluster details
+                        patternData.cluster_details.forEach((cluster, index) => {
+                            const clusterColors = ['primary', 'success', 'warning', 'danger', 'info'];
+                            const color = clusterColors[index % clusterColors.length];
+                            
                             html += `
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    ${pattern.description}
-                                    <span class="badge badge-primary badge-pill">${pattern.frequency}</span>
-                                </li>
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border-left-${color} shadow h-100 py-2">
+                                        <div class="card-body p-2">
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-2">
+                                                    <div class="text-xs font-weight-bold text-${color} text-uppercase mb-1">
+                                                        Cluster ${cluster.id}
+                                                    </div>
+                                                    <div class="small font-weight-bold mb-1">${cluster.size} draws</div>
+                                                    <div class="mt-2 small">
+                                                        <span class="font-weight-bold">Common numbers:</span><br>
+                                                        ${cluster.common_numbers.map(num => 
+                                                            `<span class="badge badge-${color} mr-1">${num}</span>`
+                                                        ).join('')}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             `;
                         });
                         
                         html += `
-                                            </ul>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
