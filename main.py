@@ -421,16 +421,22 @@ def ticket_scanner():
 @csrf.exempt
 def scan_ticket():
     """Process uploaded ticket image and return results"""
+    logger.info("Ticket scanning request received")
+    
     # Check if file is included in the request
     if 'ticket_image' not in request.files:
+        logger.warning("No ticket_image file in request")
         return jsonify({"error": "No ticket image provided"}), 400
         
     file = request.files['ticket_image']
     
     # If user does not select file, browser also submits an empty part without filename
     if file.filename == '':
+        logger.warning("Empty filename in ticket_image")
         return jsonify({"error": "No selected file"}), 400
         
+    logger.info(f"Processing ticket image: {file.filename}")
+    
     # Get the lottery type if specified (optional)
     lottery_type = request.form.get('lottery_type', '')
     
@@ -458,10 +464,15 @@ def scan_ticket():
         )
         
         # Return JSON response with results
+        logger.info("Ticket scanning completed successfully")
         return jsonify(result)
     except Exception as e:
         logger.exception(f"Error processing ticket: {str(e)}")
-        return jsonify({"error": f"Error processing ticket: {str(e)}"}), 500
+        # Important: Return an error response so the frontend knows what happened
+        return jsonify({
+            "error": f"Error processing ticket: {str(e)}",
+            "status": "error"
+        }), 500
 
 # Guides Routes
 @app.route('/guides')

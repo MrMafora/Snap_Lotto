@@ -880,13 +880,16 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             // Add CSRF token to headers
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
             
-            // Add CSRF token to request headers
+            // Add CSRF token both to headers and keep it in formData
+            // The formData already contains the token from the form, but we'll also add it to headers
+            // to ensure all bases are covered for CSRF protection
             fetch('/scan-ticket', {
                 method: 'POST',
                 body: formData,
                 headers: {
                     'X-CSRFToken': csrfToken
-                }
+                },
+                credentials: 'same-origin' // Important for cookies
             })
             .then(response => {
                 if (!response.ok) {
