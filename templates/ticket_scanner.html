@@ -854,8 +854,19 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Reset the countdown running flag
                     window.countdownRunning = false;
                     
+                    // Set a flag to indicate we're showing results before the timeout
+                    // This prevents other timers or callbacks from interfering
+                    window.inResultsMode = true;
+                    window.showingResultsAfterAd = true;
+                    
+                    // Save the data for reuse if needed
+                    window.lastTicketData = data;
+                    
                     // Hide the overlay after transition completes
                     setTimeout(() => {
+                        console.log('Ad overlay closing animation completed');
+                        
+                        // Hide ad overlays
                         adOverlayResults.style.display = 'none';
                         
                         if (adOverlay) {
@@ -866,17 +877,30 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         // Make sure scrolling is enabled after animation
                         enableScrolling();
                         
-                        // Store a flag that we're in the results viewing mode
-                        // This prevents the page from resetting to upload mode
-                        window.inResultsMode = true;
+                        // Add classes to body to preserve state
+                        document.body.classList.add('results-mode');
+                        document.body.classList.add('showing-results');
                         
                         // Display results after overlay is hidden
-                        displayResults(data);
+                        try {
+                            console.log('About to display results after ad closed');
+                            displayResults(data);
+                            
+                            // Immediately scroll to the results again after a short delay
+                            // This ensures we don't lose focus on the results
+                            setTimeout(() => {
+                                const resultsContainer = document.getElementById('results-container');
+                                if (resultsContainer) {
+                                    resultsContainer.classList.remove('d-none');
+                                    resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    console.log('Secondary scroll to results after displaying');
+                                }
+                            }, 200);
+                        } catch (error) {
+                            console.error('Error displaying results:', error);
+                        }
                         
-                        // Also set a flag on the body to prevent accidental page resets
-                        document.body.classList.add('results-mode');
-                        
-                        console.log('User clicked View Results, countdown state cleared');
+                        console.log('User clicked View Results, countdown state cleared, results displayed');
                     }, 500); // Match this to CSS transition duration
                 };
                 
@@ -1105,8 +1129,14 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         
         function displayResults(data) {
             try {
-                console.log('Displaying ticket scanning results');
+                console.log('Displaying ticket scanning results', new Date().toISOString());
 
+                // Store the scan data permanently in window object
+                window.lastResultsData = data;
+                window.inResultsMode = true; 
+                window.resultsBeingDisplayed = true;
+                window.hasCompletedAdFlow = true;
+                
                 // Make sure scrolling is fully enabled and restored when showing results
                 enableScrolling();
                 
@@ -1115,31 +1145,49 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 document.body.style.height = '';
                 document.body.style.position = '';
                 document.body.style.width = '';
+                document.body.style.touchAction = 'auto';
                 document.documentElement.style.overflow = '';
+                document.documentElement.style.height = '';
                 
-                // Set global variables to track state
-                window.lastResultsData = data; // Save the results data
-                window.inResultsMode = true; // Flag that we're showing results
+                // Close any ad overlays first to ensure clean state
+                const adOverlay = document.getElementById('ad-overlay');
+                if (adOverlay) {
+                    adOverlay.style.display = 'none';
+                }
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                if (adOverlayLoading) {
+                    adOverlayLoading.style.display = 'none';
+                }
+                const adOverlayResults = document.getElementById('ad-overlay-results');
+                if (adOverlayResults) {
+                    adOverlayResults.style.display = 'none';
+                }
+                
+                // Add all state classes to body
+                document.body.classList.add('showing-results');
+                document.body.classList.add('results-mode');
+                document.body.classList.add('ad-completed');
                 
                 // Prepare the results container first
                 if (resultsContainer) {
-                    // Show the results container
+                    // Show the results container - force it to be visible
                     resultsContainer.classList.remove('d-none');
+                    resultsContainer.style.display = 'block';
                     
-                    // Set a flag to indicate we're showing results now
-                    // This helps prevent leaving the results page accidentally
-                    window.resultsBeingDisplayed = true;
-                    
-                    // Add a class to the body to indicate we're in results mode
-                    document.body.classList.add('showing-results');
-                    
-                    // Scroll to the results container
+                    // Scroll to the results container with a delay to ensure it's rendered
                     setTimeout(() => {
                         // Double-check that the results container is still visible
                         resultsContainer.classList.remove('d-none');
-                        resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        console.log('Scrolled to results container');
-                    }, 200);
+                        resultsContainer.style.display = 'block';
+                        
+                        // Force scroll to it in case we lost position
+                        try {
+                            resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            console.log('Scrolled to results container');
+                        } catch (scrollError) {
+                            console.warn('Error scrolling to results:', scrollError);
+                        }
+                    }, 300);
                 } else {
                     console.error('Results container not found!');
                     return;
