@@ -253,6 +253,76 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% endblock %}
 
 {% block content %}
+<!-- Mobile lottery display fix -->
+<script>
+    // This script ensures lottery balls display properly on mobile devices
+    document.addEventListener("DOMContentLoaded", function() {
+        // Function to fix lottery ball display
+        function fixLotteryDisplay() {
+            if (window.innerWidth <= 576) { // Only apply on mobile screens
+                // Add extra space for better scrolling
+                const resultsContainer = document.getElementById('results-container');
+                if (resultsContainer) {
+                    resultsContainer.style.paddingBottom = '150px';
+                }
+                
+                // Improve row layout for ticket numbers
+                const ticketNumbersContainer = document.getElementById('ticket-numbers');
+                if (ticketNumbersContainer) {
+                    // Make sure each row has good spacing
+                    const rowContainers = ticketNumbersContainer.querySelectorAll('.mb-3');
+                    rowContainers.forEach(row => {
+                        row.style.marginBottom = '25px';
+                        row.style.paddingBottom = '15px';
+                        row.style.borderBottom = '1px solid #eee';
+                    });
+                    
+                    // Make flex containers wrap properly
+                    const flexContainers = ticketNumbersContainer.querySelectorAll('.d-flex');
+                    flexContainers.forEach(container => {
+                        container.style.display = 'flex';
+                        container.style.flexWrap = 'wrap';
+                        container.style.gap = '8px';
+                    });
+                    
+                    // Improve lottery ball display
+                    const lotteryBalls = document.querySelectorAll('.lottery-ball');
+                    lotteryBalls.forEach(ball => {
+                        ball.style.width = '36px';
+                        ball.style.height = '36px';
+                        ball.style.fontSize = '15px';
+                        ball.style.margin = '5px';
+                        ball.style.display = 'inline-flex';
+                        ball.style.alignItems = 'center';
+                        ball.style.justifyContent = 'center';
+                    });
+                }
+            }
+        }
+        
+        // Run once on load and also observe for dynamic content changes
+        setTimeout(fixLotteryDisplay, 500); // Initial delay to let the DOM load
+        
+        // Set up mutation observer to catch dynamically added content
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length) {
+                    setTimeout(fixLotteryDisplay, 100);
+                }
+            });
+        });
+        
+        // Start observing the results container for changes
+        const resultsContainer = document.getElementById('results-container');
+        if (resultsContainer) {
+            observer.observe(resultsContainer, {
+                childList: true,
+                subtree: true
+            });
+        }
+    });
+</script>
+
 <!-- Ad overlay - Loading screen -->
 <div id="ad-overlay-loading" class="interstitial-view">
     <h4 class="mb-4">Processing your ticket...</h4>
@@ -1247,6 +1317,13 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     const rowContainer = document.createElement('div');
                     rowContainer.classList.add('mb-3');
                     
+                    // Add enhanced mobile styling
+                    if (window.innerWidth <= 576) { 
+                        rowContainer.style.marginBottom = '25px';
+                        rowContainer.style.paddingBottom = '15px';
+                        rowContainer.style.borderBottom = '1px solid #eee';
+                    }
+                    
                     // Track if we should show Powerball/bonus number indicator
                     let isPowerball = false;
                     
@@ -1268,6 +1345,15 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Create a flex container for the balls to ensure proper wrapping on mobile
                     const ballsContainer = document.createElement('div');
                     ballsContainer.classList.add('d-flex', 'flex-wrap', 'align-items-center', 'mb-2');
+                    
+                    // Enhanced mobile styling for ball container
+                    if (window.innerWidth <= 576) {
+                        ballsContainer.style.display = 'flex';
+                        ballsContainer.style.flexWrap = 'wrap';
+                        ballsContainer.style.gap = '8px';
+                        ballsContainer.style.marginBottom = '15px';
+                        ballsContainer.style.width = '100%';
+                    }
                     
                     // On mobile, ensure adequate spacing for balls
                     if (window.innerWidth <= 576) {
@@ -1304,6 +1390,18 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         
                         const ball = document.createElement('span');
                         ball.classList.add('lottery-ball');
+                        
+                        // Add mobile-specific styles to make balls larger and more visible
+                        if (window.innerWidth <= 576) {
+                            ball.style.width = '38px';
+                            ball.style.height = '38px';
+                            ball.style.fontSize = '16px';
+                            ball.style.lineHeight = '38px';
+                            ball.style.margin = '5px';
+                            ball.style.display = 'inline-flex';
+                            ball.style.alignItems = 'center';
+                            ball.style.justifyContent = 'center';
+                        }
                         
                         // Check if this number is a match in the current game type
                         let isMatch = false;
@@ -1423,6 +1521,18 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             // Create the bonus ball in the same row
                             const bonusBall = document.createElement('span');
                             bonusBall.classList.add('lottery-ball', 'lottery-ball-bonus', 'lottery-ball-yellow');
+                            
+                            // Add mobile-specific styles to make bonus ball more visible
+                            if (window.innerWidth <= 576) {
+                                bonusBall.style.width = '38px';
+                                bonusBall.style.height = '38px';
+                                bonusBall.style.fontSize = '16px';
+                                bonusBall.style.lineHeight = '38px';
+                                bonusBall.style.margin = '5px';
+                                bonusBall.style.display = 'inline-flex';
+                                bonusBall.style.alignItems = 'center';
+                                bonusBall.style.justifyContent = 'center';
+                            }
                             
                             // Check if this bonus number is a match specific to this game
                             let isBonusMatch = false;
