@@ -1217,6 +1217,18 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // This displays the bonus balls on the same line as the main numbers
                     const allNumbers = combinedNumbers || numbers;
                     
+                    // Create a flex container for the balls to ensure proper wrapping on mobile
+                    const ballsContainer = document.createElement('div');
+                    ballsContainer.classList.add('d-flex', 'flex-wrap', 'align-items-center', 'mb-2');
+                    
+                    // On mobile, ensure adequate spacing for balls
+                    if (window.innerWidth <= 576) {
+                        ballsContainer.style.gap = '8px';
+                        ballsContainer.style.marginBottom = '15px';
+                    }
+                    
+                    rowContainer.appendChild(ballsContainer);
+                    
                     allNumbers.forEach((num, index) => {
                         // For all lottery tickets, add a plus sign before the last number (bonus ball)
                         // Check if this is the last number in the row
@@ -1226,7 +1238,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
                             plusSpan.textContent = '+';
                             plusSpan.style.color = '#FF5500'; // Orange for visibility
-                            rowContainer.appendChild(plusSpan);
+                            ballsContainer.appendChild(plusSpan);
                         }
                         
                         // For legacy compatibility - keep the old bonus handling code
@@ -1333,7 +1345,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         }
                         
                         ball.textContent = num;
-                        rowContainer.appendChild(ball);
+                        ballsContainer.appendChild(ball);
                     });
                     
                     ticketNumbersContainer.appendChild(rowContainer);
@@ -1355,7 +1367,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
                             plusSpan.textContent = '+';
                             plusSpan.style.color = '#FF5500'; // Orange for visibility
-                            rowContainer.appendChild(plusSpan);
+                            ballsContainer.appendChild(plusSpan);
                             
                             // Get the bonus number
                             const bonusNumber = data.ticket_info.raw_selected_numbers[nextRowName][0];
@@ -1404,7 +1416,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             }
                             
                             bonusBall.textContent = bonusNumber;
-                            rowContainer.appendChild(bonusBall);
+                            ballsContainer.appendChild(bonusBall);
                             
                             // Skip the next row since we've already added its number here
                             rowsToSkip.push(nextRowName);
