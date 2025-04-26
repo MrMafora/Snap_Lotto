@@ -335,22 +335,67 @@ window.AdManager = window.AdManager || {
             // Add event listeners to the View Results button to ensure we handle clicks properly
             const viewResultsBtn = document.getElementById('view-results-btn');
             if (viewResultsBtn) {
-                // Add a small delay just to make sure no other code is overriding our listener
-                setTimeout(() => {
-                    console.log('Adding safety event listener to View Results button');
-                    // Add one-time listener that can't be overridden
-                    viewResultsBtn.addEventListener('click', function ensureAdOverlayClosed(e) {
-                        // Remove this listener after first use
-                        viewResultsBtn.removeEventListener('click', ensureAdOverlayClosed);
-                        
-                        console.log('View Results clicked in ad manager listener');
-                        
-                        // Set the special flags to prevent automated redirects
-                        window.inResultsMode = true;
-                        window.viewResultsBtnClicked = true;
-                        window.currentlyShowingAd = false;
-                    }, { once: true, capture: true });
-                }, 200);
+                // Remove any existing click handlers
+                const newBtn = viewResultsBtn.cloneNode(true);
+                viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+                
+                // Add our definitive handler
+                newBtn.addEventListener('click', function forceKeepResults(e) {
+                    // Log the click with timestamp
+                    console.log('⭐ View Results button clicked at ' + new Date().toISOString());
+                    
+                    // Prevent any default behavior or event bubbling
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Set ALL the flags to guarantee we stay in results mode
+                    window.inResultsMode = true;
+                    window.viewResultsBtnClicked = true;
+                    window.currentlyShowingAd = false;
+                    window.resultsShown = true;
+                    window.hasCompletedAdFlow = true;
+                    window.permanentResultsMode = true;
+                    
+                    // Force-cancel any timers that might be redirecting
+                    try {
+                        for (let i = 1; i < 500; i++) {
+                            clearTimeout(i);
+                        }
+                    } catch (e) {}
+                    
+                    // Hide the ad overlay immediately
+                    const adOverlay = document.getElementById('ad-overlay-results');
+                    if (adOverlay) {
+                        adOverlay.style.display = 'none';
+                        adOverlay.style.visibility = 'hidden';
+                    }
+                    
+                    // Force show results container
+                    const resultsContainer = document.getElementById('results-container');
+                    if (resultsContainer) {
+                        resultsContainer.classList.remove('d-none');
+                        resultsContainer.style.display = 'block';
+                    }
+                    
+                    // Force hide scan form
+                    const scanForm = document.getElementById('scan-form-container');
+                    if (scanForm) {
+                        scanForm.classList.add('d-none');
+                        scanForm.style.display = 'none';
+                    }
+                    
+                    // Double-check with a delay
+                    setTimeout(() => {
+                        // Force show results again in case something tried to hide it
+                        if (resultsContainer) {
+                            resultsContainer.classList.remove('d-none');
+                            resultsContainer.style.display = 'block';
+                        }
+                    }, 100);
+                    
+                    // Return false to prevent any default action
+                    return false;
+                }, true); // Use capture phase to ensure our handler runs first
             }
         });
     },
@@ -388,12 +433,29 @@ window.AdManager = window.AdManager || {
 
     // Hide the interstitial ad (when viewing results)
     hideInterstitialAd: function() {
-        console.log('Hiding all interstitial ads');
+        console.log('🔄 Hiding all interstitial ads at ' + new Date().toISOString());
+        
+        // SET ALL THE FLAGS to remain in results mode
+        window.inResultsMode = true;
+        window.viewResultsBtnClicked = true;
+        window.currentlyShowingAd = false;
+        window.resultsShown = true;
+        window.hasCompletedAdFlow = true;
+        window.permanentResultsMode = true;
+        
+        // Find and hide any scan form container
+        const scanForm = document.getElementById('scan-form-container');
+        if (scanForm) {
+            scanForm.classList.add('d-none');
+            scanForm.style.display = 'none';
+            console.log('Hiding scan form container');
+        }
         
         // Make sure the results container is visible first to prevent "kicking out"
         const resultsContainer = document.getElementById('results-container');
         if (resultsContainer) {
             resultsContainer.classList.remove('d-none');
+            resultsContainer.style.display = 'block';
             console.log('Ensuring results container is visible');
         }
         
@@ -425,20 +487,39 @@ window.AdManager = window.AdManager || {
             viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
         }
         
+        // Force all ad overlays to be closed
+        document.querySelectorAll('[id^="ad-overlay"]').forEach(overlay => {
+            overlay.style.display = 'none';
+        });
+        
         // After a short delay, ensure we stay on the results page by:
         // 1. Making sure the results container is visible
         // 2. Scrolling to the results container
         setTimeout(function() {
-            const resultsContainer = document.getElementById('results-container');
-            if (resultsContainer) {
-                resultsContainer.classList.remove('d-none');
-                resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                console.log('Scrolled to results container after ad closed');
-            } else {
-                // If no results container, just scroll to top
-                window.scrollTo(0, 0);
+            // Check if we're in results mode
+            if (window.inResultsMode || window.resultsShown || window.permanentResultsMode) {
+                const resultsContainer = document.getElementById('results-container');
+                if (resultsContainer) {
+                    // Force the container visible (again)
+                    resultsContainer.classList.remove('d-none');
+                    resultsContainer.style.display = 'block';
+                    
+                    // Scroll to it
+                    resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    console.log('Scrolled to results container after ad closed');
+                } else {
+                    // If no results container, just scroll to top
+                    window.scrollTo(0, 0);
+                }
+                
+                // Once more force-hide the scan form
+                const scanForm = document.getElementById('scan-form-container');
+                if (scanForm) {
+                    scanForm.classList.add('d-none');
+                    scanForm.style.display = 'none';
+                }
             }
-        }, 100);
+        }, 200);
     },
     
     // Fetch available ads from the server API
