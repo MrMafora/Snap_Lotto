@@ -488,8 +488,8 @@ def import_excel_data(excel_file, flask_app=None):
                         logger.warning(f"Skipping row {idx+2} due to invalid numbers: {numbers_str}")
                         continue
                     
-                    # Ensure Daily Lotto has exactly 5 numbers
-                    if lottery_type == "Daily Lotto":
+                    # Ensure Daily Lottery has exactly 5 numbers
+                    if lottery_type == "Daily Lottery":
                         if len(numbers) > 5:
                             logger.warning(f"Daily Lotto draw {draw_number} has {len(numbers)} numbers, limiting to first 5")
                             numbers = numbers[:5]

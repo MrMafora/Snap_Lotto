@@ -262,9 +262,9 @@ def update_excel_data(excel_file, flask_app=None):
                         counters['skipped'] += 1
                         continue
                     
-                    # Special validation for Daily Lotto - must have exactly 5 numbers
-                    if lottery_type == 'Daily Lotto' and len(numbers) != 5:
-                        logger.warning(f"Skipping Daily Lotto draw {draw_number} - must have exactly 5 numbers, found {len(numbers)}")
+                    # Special validation for Daily Lottery - must have exactly 5 numbers
+                    if lottery_type == 'Daily Lottery' and len(numbers) != 5:
+                        logger.warning(f"Skipping Daily Lottery draw {draw_number} - must have exactly 5 numbers, found {len(numbers)}")
                         counters['skipped'] += 1
                         continue
                     

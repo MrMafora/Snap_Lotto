@@ -290,11 +290,8 @@ def normalize_lottery_type(lottery_type):
     
     # Handle common variations
     normalized_map = {
-        "lotto plus 1": "Lottery Plus 1",
         "lottery plus 1": "Lottery Plus 1",
-        "lotto plus one": "Lottery Plus 1",
         "lottery plus one": "Lottery Plus 1",
-        "lotto plus1": "Lottery Plus 1", 
         "lottery plus1": "Lottery Plus 1",
         "lottoplus1": "Lottery Plus 1",
         "lotteryplus1": "Lottery Plus 1",
@@ -310,11 +307,8 @@ def normalize_lottery_type(lottery_type):
         "power ball plus": "Powerball Plus",
         "powerball+": "Powerball Plus",
         "powerballplus": "Powerball Plus",
-        "daily lotto": "Daily Lottery",
         "daily lottery": "Daily Lottery",
-        "dailylotto": "Daily Lottery",
         "dailylottery": "Daily Lottery",
-        "daily-lotto": "Daily Lottery",
         "daily-lottery": "Daily Lottery",
         "lotto": "Lottery",
         "lottery": "Lottery",
