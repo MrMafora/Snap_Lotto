@@ -923,10 +923,25 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         
         // Enable body scrolling
         function enableScrolling() {
-            document.body.style.overflow = 'auto';
-            document.body.style.height = 'auto';
-            document.documentElement.style.overflow = 'auto';  // Fix for scroll wheel in Replit IDE
-            console.log('Scrolling enabled');
+            // Get the scroll position before removing fixed positioning
+            const scrollY = document.body.style.top ? 
+                parseInt(document.body.style.top || '0', 10) * -1 : 
+                window.scrollY;
+            
+            // Reset all styles
+            document.body.style.overflow = '';
+            document.body.style.height = '';
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.documentElement.style.overflow = '';
+            document.documentElement.style.height = '';
+            document.documentElement.style.position = '';
+            
+            // Restore scroll position
+            window.scrollTo(0, scrollY);
+            
+            console.log('Scrolling enabled, restored to position:', scrollY);
         }
         
         // Disable body scrolling
@@ -936,15 +951,33 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 console.log('Scrolling kept enabled for Replit IDE');
                 return;
             }
+            
+            // Store current scroll position
+            const scrollY = window.scrollY;
+            
             document.body.style.overflow = 'hidden';
-            document.body.style.height = '100vh';
+            document.body.style.height = '100%';
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.width = '100%';
+            
+            document.documentElement.style.overflow = 'hidden';
+            document.documentElement.style.height = '100%';
+            
             console.log('Scrolling disabled');
         }
         
         function displayResults(data) {
             try {
-                // Enable scrolling when showing results
+                // Make sure scrolling is fully enabled and restored when showing results
                 enableScrolling();
+                
+                // Make sure body and document are still properly reset to avoid mobile scrolling issues
+                document.body.style.overflow = '';
+                document.body.style.height = '';
+                document.body.style.position = '';
+                document.body.style.width = '';
+                document.documentElement.style.overflow = '';
                 
                 // Prepare the results container first
                 resultsContainer.classList.remove('d-none');
