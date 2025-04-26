@@ -139,20 +139,20 @@
         background-color: #6610f2; /* Purple for Powerball Plus bonus */
     }
     
-    .match-lotto-plus-1 {
-        background-color: #6f42c1; /* Purple for Lotto Plus 1 */
+    .match-lottery-plus-1 {
+        background-color: #6f42c1; /* Purple for Lottery Plus 1 */
     }
     
-    .match-lotto-plus-1-bonus {
-        background-color: #e83e8c; /* Pink for Lotto Plus 1 bonus */
+    .match-lottery-plus-1-bonus {
+        background-color: #e83e8c; /* Pink for Lottery Plus 1 bonus */
     }
     
-    .match-lotto-plus-2 {
-        background-color: #fd7e14; /* Orange for Lotto Plus 2 */
+    .match-lottery-plus-2 {
+        background-color: #fd7e14; /* Orange for Lottery Plus 2 */
     }
     
-    .match-lotto-plus-2-bonus {
-        background-color: #d63384; /* Dark pink for Lotto Plus 2 bonus */
+    .match-lottery-plus-2-bonus {
+        background-color: #d63384; /* Dark pink for Lottery Plus 2 bonus */
     }
     
     .ticket-drop-area {
@@ -1171,19 +1171,19 @@
                             } else if (data.lottery_type === "Lottery Plus 1") {
                                 // Lottery Plus 1 game
                                 if (isBonusMatch) {
-                                    matchIcon.classList.add('match-lotto-plus-1-bonus');
+                                    matchIcon.classList.add('match-lottery-plus-1-bonus');
                                     ball.setAttribute('title', 'Bonus match in Lottery Plus 1');
                                 } else {
-                                    matchIcon.classList.add('match-lotto-plus-1');
+                                    matchIcon.classList.add('match-lottery-plus-1');
                                     ball.setAttribute('title', 'Match in Lottery Plus 1');
                                 }
                             } else if (data.lottery_type === "Lottery Plus 2") {
                                 // Lottery Plus 2 game
                                 if (isBonusMatch) {
-                                    matchIcon.classList.add('match-lotto-plus-2-bonus');
+                                    matchIcon.classList.add('match-lottery-plus-2-bonus');
                                     ball.setAttribute('title', 'Bonus match in Lottery Plus 2');
                                 } else {
-                                    matchIcon.classList.add('match-lotto-plus-2');
+                                    matchIcon.classList.add('match-lottery-plus-2');
                                     ball.setAttribute('title', 'Match in Lottery Plus 2');
                                 }
                             } else {
@@ -1472,10 +1472,10 @@
                                     matchIcon.classList.add('match-powerball-plus');
                                     ball.setAttribute('title', 'Match in Powerball Plus');
                                 } else if (data.lottery_type === "Lotto Plus 1") {
-                                    matchIcon.classList.add('match-lotto-plus-1');
+                                    matchIcon.classList.add('match-lottery-plus-1');
                                     ball.setAttribute('title', 'Match in Lotto Plus 1');
                                 } else if (data.lottery_type === "Lotto Plus 2") {
-                                    matchIcon.classList.add('match-lotto-plus-2');
+                                    matchIcon.classList.add('match-lottery-plus-2');
                                     ball.setAttribute('title', 'Match in Lotto Plus 2');
                                 } else {
                                     matchIcon.classList.add('match-powerball'); // Default green
@@ -1504,10 +1504,10 @@
                                     bonusIcon.classList.add('match-powerball-plus-bonus');
                                     ball.setAttribute('title', 'Bonus match in Powerball Plus');
                                 } else if (data.lottery_type === "Lotto Plus 1") {
-                                    bonusIcon.classList.add('match-lotto-plus-1-bonus');
+                                    bonusIcon.classList.add('match-lottery-plus-1-bonus');
                                     ball.setAttribute('title', 'Bonus match in Lotto Plus 1');
                                 } else if (data.lottery_type === "Lotto Plus 2") {
-                                    bonusIcon.classList.add('match-lotto-plus-2-bonus');
+                                    bonusIcon.classList.add('match-lottery-plus-2-bonus');
                                     ball.setAttribute('title', 'Bonus match in Lotto Plus 2');
                                 } else {
                                     bonusIcon.classList.add('match-powerball-bonus'); // Default blue
@@ -1946,7 +1946,7 @@
                                         const matchIcon = document.createElement('div');
                                         matchIcon.classList.add('match-indicator');
                                         
-                                        matchIcon.classList.add('match-lotto-plus-1');
+                                        matchIcon.classList.add('match-lottery-plus-1');
                                         ball.setAttribute('title', 'Match in Lottery Plus 1');
                                         
                                         // Add the match indicator to the ball
@@ -1962,7 +1962,7 @@
                                         const bonusIcon = document.createElement('span');
                                         bonusIcon.classList.add('match-indicator');
                                         bonusIcon.innerHTML = '✓';
-                                        bonusIcon.classList.add('match-lotto-plus-1-bonus');
+                                        bonusIcon.classList.add('match-lottery-plus-1-bonus');
                                         ball.setAttribute('title', 'Bonus match in Lotto Plus 1');
                                         
                                         // Add the match indicator to the ball
@@ -2014,7 +2014,7 @@
                                 const matchIcon = document.createElement('div');
                                 matchIcon.classList.add('match-indicator');
                                 
-                                matchIcon.classList.add('match-lotto-plus-1');
+                                matchIcon.classList.add('match-lottery-plus-1');
                                 
                                 // Add the match indicator to the ball
                                 ball.appendChild(matchIcon);
@@ -2059,7 +2059,7 @@
                                 const bonusIcon = document.createElement('span');
                                 bonusIcon.classList.add('match-indicator');
                                 bonusIcon.innerHTML = '✓';
-                                bonusIcon.classList.add('match-lotto-plus-1-bonus');
+                                bonusIcon.classList.add('match-lottery-plus-1-bonus');
                                 
                                 // Add the match indicator to the ball
                                 ball.appendChild(bonusIcon);
