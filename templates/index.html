@@ -430,13 +430,13 @@
                 </div>
                 
                 <!-- Right chart: Hot & Cold Numbers -->
-                <div class="temperature-chart-container mt-5 pt-4">
+                <div class="temperature-chart-container mt-5 pt-4" id="temperatureChartContainer">
                     <h6 class="mb-3 d-flex justify-content-between">
                         <span>Hot & Cold Numbers</span>
-                        <span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>
+                        <span class="chart-loading" id="pieChartLoading"><i class="fas fa-spinner fa-spin"></i></span>
                     </h6>
                     <!-- Chart container with pie chart and legend side by side -->
-                    <div class="chart-legend-container">
+                    <div class="chart-legend-container" id="pieChartContainer" style="display: none;">
                         <!-- Pie chart with responsive width using dynamic data -->
                         <div class="pie-chart-container">
                             {% if division_stats %}
@@ -721,6 +721,10 @@ function updateCharts(data) {
     
     // Update division statistics chart
     updateDivisionChart(data);
+    
+    // Now that both charts are ready, show the pie chart container
+    document.getElementById('pieChartLoading').style.display = 'none';
+    document.getElementById('pieChartContainer').style.display = 'flex';
 }
 
 // Function to update the frequency chart
