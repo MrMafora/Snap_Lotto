@@ -153,22 +153,26 @@ def direct_excel_import(excel_path, app):
                             else:
                                 draw_date = datetime.utcnow()
                             
-                            # Parse winning numbers
+                            # Parse winning numbers - accommodate both "Winning Numbers" and "Winning Numbers (Numerical)" column names
                             numbers = []
-                            if not pd.isna(row.get('Winning Numbers')):
-                                nums_str = str(row['Winning Numbers'])
-                                for delimiter in [',', ' ', ';']:
-                                    if delimiter in nums_str:
-                                        try:
-                                            numbers = [int(n.strip()) for n in nums_str.split(delimiter) if n.strip().isdigit()]
-                                            if numbers:
-                                                break
-                                        except:
-                                            continue
-                                
-                                # If no delimiters worked, check if it's a single number
-                                if not numbers and nums_str.strip().isdigit():
-                                    numbers = [int(nums_str.strip())]
+                            for col_name in ['Winning Numbers', 'Winning Numbers (Numerical)']:
+                                if col_name in row and not pd.isna(row.get(col_name)):
+                                    nums_str = str(row[col_name])
+                                    for delimiter in [',', ' ', ';']:
+                                        if delimiter in nums_str:
+                                            try:
+                                                numbers = [int(n.strip()) for n in nums_str.split(delimiter) if n.strip().isdigit()]
+                                                if numbers:
+                                                    break
+                                            except:
+                                                continue
+                                    
+                                    # If no delimiters worked, check if it's a single number
+                                    if not numbers and nums_str.strip().isdigit():
+                                        numbers = [int(nums_str.strip())]
+                                    
+                                    if numbers:
+                                        break
                             
                             # Parse bonus ball
                             bonus_numbers = []
@@ -187,13 +191,37 @@ def direct_excel_import(excel_path, app):
                                             except:
                                                 continue
                             
-                            # Parse divisions
+                            # Parse divisions - check various column naming patterns
                             divisions = {}
                             for i in range(1, 9):
-                                winners_key = f'Division {i} Winners'
-                                payout_key = f'Division {i} Payout'
+                                # Check different possible column name formats
+                                possible_winners_keys = [
+                                    f'Division {i} Winners', 
+                                    f'Div {i} Winners',
+                                    f'Div{i} Winners'
+                                ]
+                                possible_payout_keys = [
+                                    f'Division {i} Payout', 
+                                    f'Div {i} Winnings',
+                                    f'Div{i} Winnings',
+                                    f'Division {i} Winnings'
+                                ]
                                 
-                                if not pd.isna(row.get(winners_key)) and not pd.isna(row.get(payout_key)):
+                                # Find matching keys that exist in the row
+                                winners_key = None
+                                for key in possible_winners_keys:
+                                    if key in row and not pd.isna(row.get(key)):
+                                        winners_key = key
+                                        break
+                                        
+                                payout_key = None
+                                for key in possible_payout_keys:
+                                    if key in row and not pd.isna(row.get(key)):
+                                        payout_key = key
+                                        break
+                                
+                                # If we found both keys, add the division
+                                if winners_key and payout_key:
                                     winners = str(row[winners_key])
                                     payout = str(row[payout_key])
                                     
@@ -283,7 +311,7 @@ def direct_excel_import(excel_path, app):
                                 
                                 # Create imported record
                                 imported_record = ImportedRecord(
-                                    import_history_id=import_history_id,
+                                    import_id=import_history_id,
                                     lottery_type=lottery_type,
                                     draw_number=draw_number,
                                     draw_date=draw_date,
@@ -322,13 +350,10 @@ def direct_excel_import(excel_path, app):
                     stats["errors"] += 1
             
             # Update import history
-            import_history.status = "completed"
-            import_history.imported_count = stats["new_records"]
-            import_history.updated_count = stats["updated_records"]
-            import_history.error_count = stats["errors"]
-            import_history.notes = (f"Processed {stats['total_processed']} records "
-                                  f"({stats['new_records']} new, {stats['updated_records']} updated) "
-                                  f"across {stats['sheets_processed']} sheets")
+            import_history.records_added = stats["new_records"]
+            import_history.records_updated = stats["updated_records"]
+            import_history.errors = stats["errors"]
+            import_history.total_processed = stats["total_processed"]
             db.session.commit()
             
             logger.info(f"Import completed: {stats}")
@@ -341,8 +366,7 @@ def direct_excel_import(excel_path, app):
             if 'import_history_id' in locals():
                 import_history = ImportHistory.query.get(import_history_id)
                 if import_history:
-                    import_history.status = "error"
-                    import_history.notes = f"Error during import: {str(e)}"
+                    import_history.errors += 1
                     db.session.commit()
             
             stats["errors"] += 1
