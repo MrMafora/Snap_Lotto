@@ -826,21 +826,23 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 // Get the ad container
                 const adContainer = document.getElementById('ad-container-interstitial');
                 
-                // Auto-show the results after a short delay (simulate ad viewing)
+                // View Results button handling
                 const viewResultsBtn = document.getElementById('view-results-btn');
-                viewResultsBtn.onclick = function() {
-                    // Get the ad overlay for transition effects
-                    const adOverlay = document.getElementById('ad-overlay');
+                viewResultsBtn.onclick = function(e) {
+                    // Prevent any default actions
+                    e.preventDefault();
+                    e.stopPropagation();
                     
-                    // Add transition class for smooth fade-out
-                    if (adOverlay) {
-                        adOverlay.classList.add('closing');
+                    console.log('View Results button clicked at ' + new Date().toISOString());
+                    
+                    // Clear ALL possible timers to prevent any conflicts
+                    // This is important to prevent any hidden callbacks from running later
+                    for (let i = 1; i < 10000; i++) {
+                        clearTimeout(i);
+                        clearInterval(i);
                     }
                     
-                    // Apply closing animation to ad overlay results
-                    adOverlayResults.classList.add('closing');
-                    
-                    // Clean up all timers and reset the state
+                    // Clear our named timers
                     if (window.countdownInterval) {
                         clearInterval(window.countdownInterval);
                         window.countdownInterval = null;
@@ -851,57 +853,75 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         window.countdownTimeout = null;
                     }
                     
-                    // Reset the countdown running flag
-                    window.countdownRunning = false;
+                    // Reset other possible timeout variables
+                    if (window.adDisplayTimeout) {
+                        clearTimeout(window.adDisplayTimeout);
+                        window.adDisplayTimeout = null;
+                    }
                     
-                    // Set a flag to indicate we're showing results before the timeout
-                    // This prevents other timers or callbacks from interfering
+                    if (window.resultDisplayTimeout) {
+                        clearTimeout(window.resultDisplayTimeout);
+                        window.resultDisplayTimeout = null;
+                    }
+                    
+                    // Set state flags immediately
+                    window.countdownRunning = false;
                     window.inResultsMode = true;
                     window.showingResultsAfterAd = true;
+                    window.adClosed = true;
+                    window.viewResultsBtnClicked = true; // New flag for tracking this specific click
+                    
+                    // Get the ad overlay for transition effects
+                    const adOverlay = document.getElementById('ad-overlay');
+                    if (adOverlay) {
+                        adOverlay.classList.add('closing');
+                    }
+                    
+                    // Apply closing animation to ad overlay results
+                    adOverlayResults.classList.add('closing');
                     
                     // Save the data for reuse if needed
                     window.lastTicketData = data;
                     
-                    // Hide the overlay after transition completes
-                    setTimeout(() => {
-                        console.log('Ad overlay closing animation completed');
-                        
-                        // Hide ad overlays
-                        adOverlayResults.style.display = 'none';
-                        
-                        if (adOverlay) {
-                            adOverlay.classList.remove('closing');
-                            adOverlay.style.display = 'none'; // Ensure it's fully hidden
-                        }
-                        
-                        // Make sure scrolling is enabled after animation
-                        enableScrolling();
-                        
-                        // Add classes to body to preserve state
-                        document.body.classList.add('results-mode');
-                        document.body.classList.add('showing-results');
-                        
-                        // Display results after overlay is hidden
-                        try {
-                            console.log('About to display results after ad closed');
-                            displayResults(data);
+                    console.log('Processing view results click, closing overlay');
+                    
+                    // Add the results-in-progress class to body immediately
+                    document.body.classList.add('results-mode');
+                    document.body.classList.add('showing-results');
+                    document.body.classList.add('ad-closed');
+                    
+                    // Force hide all overlays immediately (don't wait for animation)
+                    const allOverlays = document.querySelectorAll('[id^="ad-overlay"]');
+                    allOverlays.forEach(overlay => {
+                        overlay.style.display = 'none';
+                        overlay.style.opacity = '0';
+                        overlay.style.visibility = 'hidden';
+                    });
+                    
+                    // Make sure body scrolling is enabled
+                    enableScrolling();
+                    
+                    console.log('About to display results after clicked View Results');
+                    
+                    // Display the results immediately
+                    displayResults(data);
+                    
+                    // Create a persistent monitor to keep results visible
+                    // This ensures our results stay visible even if something tries to hide them
+                    window.resultsMonitorInterval = setInterval(() => {
+                        const resultsContainer = document.getElementById('results-container');
+                        if (resultsContainer && resultsContainer.classList.contains('d-none')) {
+                            console.log('Results container was hidden, making visible again');
+                            resultsContainer.classList.remove('d-none');
+                            resultsContainer.style.display = 'block';
                             
-                            // Immediately scroll to the results again after a short delay
-                            // This ensures we don't lose focus on the results
-                            setTimeout(() => {
-                                const resultsContainer = document.getElementById('results-container');
-                                if (resultsContainer) {
-                                    resultsContainer.classList.remove('d-none');
-                                    resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                    console.log('Secondary scroll to results after displaying');
-                                }
-                            }, 200);
-                        } catch (error) {
-                            console.error('Error displaying results:', error);
+                            // Force all ad overlays to stay hidden
+                            const allOverlays = document.querySelectorAll('[id^="ad-overlay"]');
+                            allOverlays.forEach(overlay => {
+                                overlay.style.display = 'none';
+                            });
                         }
-                        
-                        console.log('User clicked View Results, countdown state cleared, results displayed');
-                    }, 500); // Match this to CSS transition duration
+                    }, 1000); // Check every second
                 };
                 
                 // FORCEFULLY disable the view results button for 15 seconds
@@ -1000,6 +1020,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Set a single timeout for exactly 15 seconds from now
                     // This is a backup to ensure the button is enabled after 15 seconds
                     window.countdownTimeout = setTimeout(() => {
+                        console.log('15-second ad display timer completed at ' + new Date().toISOString());
+                        
                         // Clear any running interval
                         if (window.countdownInterval) {
                             clearInterval(window.countdownInterval);
@@ -1009,15 +1031,37 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         // Reset the running flag
                         window.countdownRunning = false;
                         
-                        console.log('15-second ad display timer completed via timeout');
+                        // Check if View Results was already clicked
+                        if (window.viewResultsBtnClicked) {
+                            console.log('Skipping auto-enable - View Results already clicked');
+                            return;
+                        }
                         
                         // Make sure the button is enabled
-                        if (adOverlayResults.style.display === 'flex') {
-                            viewResultsBtn.disabled = false;
-                            viewResultsBtn.style.opacity = '1';
-                            viewResultsBtn.style.cursor = 'pointer';
-                            viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                            viewResultsBtn.classList.add('btn-pulse');
+                        if (adOverlayResults && adOverlayResults.style.display === 'flex') {
+                            if (viewResultsBtn) {
+                                viewResultsBtn.disabled = false;
+                                viewResultsBtn.style.opacity = '1';
+                                viewResultsBtn.style.cursor = 'pointer';
+                                viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                viewResultsBtn.classList.add('btn-pulse');
+                                
+                                // Add a click event to make extra sure the result displays properly
+                                viewResultsBtn.addEventListener('click', function ensureResults() {
+                                    // Remove this specific listener after one use
+                                    viewResultsBtn.removeEventListener('click', ensureResults);
+                                    
+                                    // Add a secondary check to make sure results stay visible
+                                    setTimeout(() => {
+                                        const resultsContainer = document.getElementById('results-container');
+                                        if (resultsContainer) {
+                                            resultsContainer.classList.remove('d-none');
+                                            resultsContainer.style.display = 'block';
+                                            console.log('Extra check: Results container made visible again');
+                                        }
+                                    }, 1000);
+                                });
+                            }
                         }
                     }, window.countdownDuration);
                 } else {
@@ -1062,10 +1106,65 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             // Always prevent the default form submission
             e.preventDefault();
             
+            console.log('Form submitted at ' + new Date().toISOString());
+            
+            // Check if we're in results mode and prevent resetting unless explicitly requested
+            if (window.inResultsMode && !window.resetRequested) {
+                console.log('Already showing results, not processing new scan');
+                
+                // Show a confirmation dialog
+                if (confirm('You already have results displayed. Do you want to scan a new ticket?')) {
+                    console.log('User confirmed new scan');
+                    // Allow the form to proceed by setting reset flag
+                    window.resetRequested = true;
+                    
+                    // Reset state flags
+                    window.inResultsMode = false;
+                    window.showingResultsAfterAd = false;
+                    window.adClosed = false;
+                    window.viewResultsBtnClicked = false;
+                    
+                    // Clear monitor interval if it exists
+                    if (window.resultsMonitorInterval) {
+                        clearInterval(window.resultsMonitorInterval);
+                        window.resultsMonitorInterval = null;
+                    }
+                    
+                    // Clear all the body classes
+                    document.body.classList.remove('results-mode');
+                    document.body.classList.remove('showing-results');
+                    document.body.classList.remove('ad-completed');
+                    document.body.classList.remove('ad-closed');
+                    
+                    // Resubmit the form with the flag set
+                    setTimeout(() => {
+                        ticketForm.dispatchEvent(new Event('submit'));
+                        
+                        // Reset the flag after processing
+                        setTimeout(() => {
+                            window.resetRequested = false;
+                        }, 500);
+                    }, 100);
+                    
+                    return false;
+                } else {
+                    console.log('User cancelled new scan, keeping results visible');
+                    
+                    // Make sure results are still visible
+                    const resultsContainer = document.getElementById('results-container');
+                    if (resultsContainer) {
+                        resultsContainer.classList.remove('d-none');
+                        resultsContainer.style.display = 'block';
+                    }
+                    
+                    return false;
+                }
+            }
+            
             // Only check if a file is selected
             if (!fileInput.files.length) {
                 alert('Please select an image of your ticket');
-                return;
+                return false;
             }
             
             // Hide any currently displayed results
