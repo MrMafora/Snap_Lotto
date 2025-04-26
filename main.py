@@ -417,51 +417,20 @@ def ticket_scanner():
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
 
-@app.route('/ticket-results')
-def ticket_results():
-    """Display ticket scanning results on a dedicated page"""
-    # This route will be used to show results after "View Results" is clicked
-    breadcrumbs = [
-        {"name": "Lottery Ticket Scanner", "url": url_for('scanner_landing')},
-        {"name": "Scan Your Ticket", "url": url_for('ticket_scanner')},
-        {"name": "Ticket Results", "url": url_for('ticket_results')}
-    ]
-    
-    # Get data from session
-    ticket_data = session.get('ticket_data', {})
-    if not ticket_data:
-        flash('No ticket data found. Please scan your ticket first.', 'warning')
-        return redirect(url_for('ticket_scanner'))
-    
-    return render_template('ticket_results.html',
-                          title="Your Ticket Results",
-                          ticket_data=ticket_data,
-                          breadcrumbs=breadcrumbs)
-
 @app.route('/scan-ticket', methods=['POST'])
 @csrf.exempt
 def scan_ticket():
     """Process uploaded ticket image and return results"""
-    logger.info("Ticket scanning request received")
-    
-    # Check if we should show results directly
-    show_results = request.form.get('show_results', '0')
-    logger.info(f"Show results flag: {show_results}")
-    
     # Check if file is included in the request
     if 'ticket_image' not in request.files:
-        logger.warning("No ticket_image file in request")
         return jsonify({"error": "No ticket image provided"}), 400
         
     file = request.files['ticket_image']
     
     # If user does not select file, browser also submits an empty part without filename
     if file.filename == '':
-        logger.warning("Empty filename in ticket_image")
         return jsonify({"error": "No selected file"}), 400
         
-    logger.info(f"Processing ticket image: {file.filename}")
-    
     # Get the lottery type if specified (optional)
     lottery_type = request.form.get('lottery_type', '')
     
@@ -488,27 +457,11 @@ def scan_ticket():
             file_extension=file_extension
         )
         
-        # Check if we should redirect to results page
-        show_results = request.form.get('show_results', '0')
-        
-        # Store result in session for the results page
-        session['ticket_data'] = result
-        
-        # If show_results flag is set, redirect to the results page
-        if show_results == '1':
-            logger.info("Redirecting to ticket results page")
-            return redirect(url_for('ticket_results'))
-        
-        # Otherwise, return JSON response with results as usual
-        logger.info("Ticket scanning completed successfully")
+        # Return JSON response with results
         return jsonify(result)
     except Exception as e:
         logger.exception(f"Error processing ticket: {str(e)}")
-        # Important: Return an error response so the frontend knows what happened
-        return jsonify({
-            "error": f"Error processing ticket: {str(e)}",
-            "status": "error"
-        }), 500
+        return jsonify({"error": f"Error processing ticket: {str(e)}"}), 500
 
 # Guides Routes
 @app.route('/guides')

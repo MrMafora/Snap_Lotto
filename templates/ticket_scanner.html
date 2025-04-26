@@ -16,54 +16,6 @@ Daily Lotto data,
 Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you instant results for all lottery tickets.{% endblock %}
 
 {% block head_content %}
-<!-- Custom styles for mobile lottery balls -->
-<style>
-    /* Mobile-specific lottery ball styles for ticket scanner */
-    @media (max-width: 576px) {
-        /* Improve ball sizing and spacing for mobile view */
-        .lottery-ball {
-            width: 35px !important;
-            height: 35px !important;
-            line-height: 35px !important;
-            font-size: 15px !important;
-            margin: 4px !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-        
-        /* Make the lottery balls container wrap properly */
-        #ticket-numbers .d-flex,
-        #winning-numbers {
-            display: flex !important;
-            flex-wrap: wrap !important;
-            justify-content: flex-start !important;
-            gap: 8px !important;
-            margin-bottom: 15px !important;
-        }
-        
-        /* Make sure there's adequate spacing between rows */
-        #ticket-numbers > div {
-            margin-bottom: 20px !important;
-        }
-        
-        /* Ensure adequate spacing around plus signs */
-        .mx-2 {
-            margin: 0 6px !important;
-        }
-        
-        /* Add extra bottom padding to ensure content is visible */
-        #results-container {
-            padding-bottom: 100px !important;
-        }
-        
-        /* Make row labels more prominent */
-        #ticket-numbers strong {
-            font-size: 16px !important;
-        }
-    }
-</style>
-
 <!-- Structured Data for SEO -->
 <script type="application/ld+json">
 {
@@ -182,31 +134,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         display: none;
     }
     
-    /* Mobile-specific fixes for result display */
-    @media (max-width: 576px) {
-        .results-container {
-            margin-bottom: 100px; /* Add extra space at bottom for scrolling */
-            padding-bottom: 50px;
-        }
-        
-        /* Ensure lottery balls display properly */
-        .lottery-ball {
-            margin-bottom: 10px;
-        }
-        
-        /* Prevent row overlapping */
-        .row-item {
-            margin-bottom: 20px;
-            overflow: visible;
-        }
-        
-        /* Make sure scrolling works properly on iOS */
-        html, body {
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
-        }
-    }
-    
     /* Advertisement - Loading overlay */
     #ad-overlay-loading {
         position: fixed;
@@ -253,111 +180,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% endblock %}
 
 {% block content %}
-<!-- Mobile lottery display fix -->
-<script>
-    // This script ensures lottery balls display properly on mobile devices
-    // WITHOUT overriding any existing color classes
-    document.addEventListener("DOMContentLoaded", function() {
-        // Function to fix lottery ball display
-        function fixLotteryDisplay() {
-            if (window.innerWidth <= 576) { // Only apply on mobile screens
-                console.log("Applying mobile layout adjustments");
-                
-                // Add extra space for better scrolling
-                const resultsContainer = document.getElementById('results-container');
-                if (resultsContainer) {
-                    resultsContainer.style.paddingBottom = '150px';
-                }
-                
-                // Improve row layout for ticket numbers without affecting colors
-                const ticketNumbersContainer = document.getElementById('ticket-numbers');
-                if (ticketNumbersContainer) {
-                    // Make sure each row has good spacing
-                    const rowContainers = ticketNumbersContainer.querySelectorAll('.mb-3');
-                    rowContainers.forEach(row => {
-                        row.style.marginBottom = '25px';
-                        row.style.paddingBottom = '15px';
-                        row.style.borderBottom = '1px solid #eee';
-                    });
-                    
-                    // Make flex containers wrap properly
-                    const flexContainers = ticketNumbersContainer.querySelectorAll('.d-flex');
-                    flexContainers.forEach(container => {
-                        container.style.display = 'flex';
-                        container.style.flexWrap = 'wrap';
-                        container.style.gap = '8px';
-                    });
-                    
-                    // CRITICAL: Adjust lottery ball dimensions only, preserving their classes and colors
-                    const lotteryBalls = ticketNumbersContainer.querySelectorAll('.lottery-ball');
-                    console.log(`Found ${lotteryBalls.length} lottery balls`);
-                    
-                    lotteryBalls.forEach(ball => {
-                        // Get all class names to ensure we keep color classes
-                        const classList = Array.from(ball.classList);
-                        
-                        // IMPORTANT: Log colors to debug
-                        let colorClass = classList.find(c => c.includes('lottery-ball-') && c !== 'lottery-ball');
-                        console.log(`Ball has color class: ${colorClass || 'NONE!'}`);
-                        
-                        // Only adjust size and positioning, never color
-                        ball.style.width = '36px';
-                        ball.style.height = '36px';
-                        ball.style.fontSize = '16px';
-                        ball.style.lineHeight = '36px';
-                        ball.style.margin = '5px';
-                        ball.style.display = 'inline-flex';
-                        ball.style.alignItems = 'center';
-                        ball.style.justifyContent = 'center';
-                        
-                        // NEVER override the background color - this is critical
-                        // If we don't have a color class, explicitly DON'T set background color
-                    });
-                    
-                    // Check winning numbers too
-                    const winningNumbersContainer = document.getElementById('winning-numbers');
-                    if (winningNumbersContainer) {
-                        const winningBalls = winningNumbersContainer.querySelectorAll('.lottery-ball');
-                        winningBalls.forEach(ball => {
-                            // Only adjust size and positioning, never color
-                            ball.style.width = '36px';
-                            ball.style.height = '36px';
-                            ball.style.fontSize = '16px';
-                            ball.style.lineHeight = '36px';
-                            ball.style.margin = '5px';
-                            ball.style.display = 'inline-flex';
-                            ball.style.alignItems = 'center';
-                            ball.style.justifyContent = 'center';
-                        });
-                    }
-                }
-            }
-        }
-        
-        // Run once on initial load
-        setTimeout(fixLotteryDisplay, 500); 
-        
-        // Set up mutation observer to catch when results are added
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.addedNodes.length) {
-                    // Delay to ensure DOM is fully updated
-                    setTimeout(fixLotteryDisplay, 100);
-                }
-            });
-        });
-        
-        // Start observing the results container for changes
-        const resultsContainer = document.getElementById('results-container');
-        if (resultsContainer) {
-            observer.observe(resultsContainer, {
-                childList: true,
-                subtree: true
-            });
-        }
-    });
-</script>
-
 <!-- Ad overlay - Loading screen -->
 <div id="ad-overlay-loading" class="interstitial-view">
     <h4 class="mb-4">Processing your ticket...</h4>
@@ -393,11 +215,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     </div>
     <!-- Countdown timer will be placed here above the button -->
     <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;"></div>
-    <form id="view-results-form" action="/ticket-results" method="get">
-        <button type="submit" class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px; text-decoration: none; display: inline-block;">
-            <i class="fas fa-check-circle me-2"></i> View Results
-        </button>
-    </form>
+    <button class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;">
+        <i class="fas fa-check-circle me-2"></i> View Results
+    </button>
 </div>
 
 <div class="container py-3">
@@ -422,7 +242,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 
                         <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="show_results" id="show-results-flag" value="0">
                             <div class="mb-2">
                                 <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
                                 <select class="form-select form-select-sm" id="lottery-type" name="lottery_type">
@@ -883,16 +702,13 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             // Add CSRF token to headers
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
             
-            // Add CSRF token both to headers and keep it in formData
-            // The formData already contains the token from the form, but we'll also add it to headers
-            // to ensure all bases are covered for CSRF protection
+            // Add CSRF token to request headers
             fetch('/scan-ticket', {
                 method: 'POST',
                 body: formData,
                 headers: {
                     'X-CSRFToken': csrfToken
-                },
-                credentials: 'same-origin' // Important for cookies
+                }
             })
             .then(response => {
                 if (!response.ok) {
@@ -932,18 +748,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 
                 // Auto-show the results after a short delay (simulate ad viewing)
                 const viewResultsBtn = document.getElementById('view-results-btn');
-                viewResultsBtn.addEventListener('click', function(e) {
-                    console.log('View Results button clicked');
-                    // Prevent default behavior and stop propagation
-                    if (e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }
-                    
-                    // Set the hidden flag to indicate we should show results
-                    document.getElementById('show-results-flag').value = '1';
-                    
-                    // Hide the results ad overlay
+                viewResultsBtn.onclick = function() {
                     adOverlayResults.style.display = 'none';
                     
                     // Clean up all timers and reset the state
@@ -960,33 +765,10 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Reset the countdown running flag
                     window.countdownRunning = false;
                     
-                    // Make sure scrolling is properly enabled for mobile
+                    // Make sure scrolling is enabled
                     enableScrolling();
-                    
-                    // For mobile devices, ensure proper styles before showing results
-                    if (window.innerWidth <= 576) {
-                        document.body.style.height = 'auto';
-                        document.body.style.position = 'static';
-                        document.body.style.paddingBottom = '100px';
-                    }
-                    
-                    console.log('Displaying results for data:', data);
-                    
-                    // Display the results now
                     displayResults(data);
-                    
-                    // Make sure the results are visible by scrolling to them with a slight delay
-                    setTimeout(() => {
-                        const resultsContainer = document.getElementById('results-container');
-                        if (resultsContainer) {
-                            resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                    }, 300);
-                    
                     console.log('User clicked View Results, countdown state cleared');
-                    
-                    // Return false to prevent any default action
-                    return false;
                 };
                 
                 // FORCEFULLY disable the view results button for 15 seconds
@@ -997,8 +779,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Set global flag to prevent multiple timers
                     window.countdownRunning = true;
                     
-                    // Disable the View Results link (now an <a> tag)
-                    viewResultsBtn.style.pointerEvents = 'none';
+                    // Disable the View Results button
+                    viewResultsBtn.disabled = true;
                     viewResultsBtn.style.opacity = '0.5';
                     viewResultsBtn.style.cursor = 'not-allowed';
                     viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
@@ -1050,8 +832,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             window.countdownInterval = null;
                             window.countdownRunning = false;
                             
-                            // Enable the link after time is up
-                            viewResultsBtn.style.pointerEvents = 'auto';
+                            // Enable the button after time is up
+                            viewResultsBtn.disabled = false;
                             viewResultsBtn.style.opacity = '1';
                             viewResultsBtn.style.cursor = 'pointer';
                             viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
@@ -1077,9 +859,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         
                         console.log('15-second ad display timer completed via timeout');
                         
-                        // Make sure the link is enabled
+                        // Make sure the button is enabled
                         if (adOverlayResults.style.display === 'flex') {
-                            viewResultsBtn.style.pointerEvents = 'auto';
+                            viewResultsBtn.disabled = false;
                             viewResultsBtn.style.opacity = '1';
                             viewResultsBtn.style.cursor = 'pointer';
                             viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
@@ -1148,18 +930,13 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             
             // Reset all styles
             document.body.style.overflow = '';
-            document.body.style.height = 'auto';  // Set to auto instead of empty string
-            document.body.style.position = 'static'; // Set to static instead of empty string
+            document.body.style.height = '';
+            document.body.style.position = '';
             document.body.style.top = '';
-            document.body.style.width = '100%';  // Ensure full width
+            document.body.style.width = '';
             document.documentElement.style.overflow = '';
-            document.documentElement.style.height = 'auto';  // Set to auto instead of empty string
+            document.documentElement.style.height = '';
             document.documentElement.style.position = '';
-            
-            // Ensure the body has the padding-bottom needed for iOS Safari
-            if (window.innerWidth <= 576) {
-                document.body.style.paddingBottom = '100px';
-            }
             
             // Restore scroll position
             window.scrollTo(0, scrollY);
@@ -1195,26 +972,12 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 // Make sure scrolling is fully enabled and restored when showing results
                 enableScrolling();
                 
-                // Make sure body and document are properly set for mobile viewing
+                // Make sure body and document are still properly reset to avoid mobile scrolling issues
                 document.body.style.overflow = '';
-                document.body.style.height = 'auto';
-                document.body.style.position = 'static';
-                document.body.style.width = '100%';
+                document.body.style.height = '';
+                document.body.style.position = '';
+                document.body.style.width = '';
                 document.documentElement.style.overflow = '';
-                
-                // For mobile devices, ensure we have padding at the bottom for iOS Safari
-                if (window.innerWidth <= 576) {
-                    document.body.style.paddingBottom = '100px';
-                    
-                    // Scroll to the results container with a slight delay to ensure
-                    // the results are rendered first
-                    setTimeout(() => {
-                        const resultsContainer = document.getElementById('results-container');
-                        if (resultsContainer) {
-                            resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                    }, 200);
-                }
                 
                 // Prepare the results container first
                 resultsContainer.classList.remove('d-none');
@@ -1374,13 +1137,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     const rowContainer = document.createElement('div');
                     rowContainer.classList.add('mb-3');
                     
-                    // Add enhanced mobile styling
-                    if (window.innerWidth <= 576) { 
-                        rowContainer.style.marginBottom = '25px';
-                        rowContainer.style.paddingBottom = '15px';
-                        rowContainer.style.borderBottom = '1px solid #eee';
-                    }
-                    
                     // Track if we should show Powerball/bonus number indicator
                     let isPowerball = false;
                     
@@ -1399,27 +1155,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // This displays the bonus balls on the same line as the main numbers
                     const allNumbers = combinedNumbers || numbers;
                     
-                    // Create a flex container for the balls to ensure proper wrapping on mobile
-                    const ballsContainer = document.createElement('div');
-                    ballsContainer.classList.add('d-flex', 'flex-wrap', 'align-items-center', 'mb-2');
-                    
-                    // Enhanced mobile styling for ball container
-                    if (window.innerWidth <= 576) {
-                        ballsContainer.style.display = 'flex';
-                        ballsContainer.style.flexWrap = 'wrap';
-                        ballsContainer.style.gap = '8px';
-                        ballsContainer.style.marginBottom = '15px';
-                        ballsContainer.style.width = '100%';
-                    }
-                    
-                    // On mobile, ensure adequate spacing for balls
-                    if (window.innerWidth <= 576) {
-                        ballsContainer.style.gap = '8px';
-                        ballsContainer.style.marginBottom = '15px';
-                    }
-                    
-                    rowContainer.appendChild(ballsContainer);
-                    
                     allNumbers.forEach((num, index) => {
                         // For all lottery tickets, add a plus sign before the last number (bonus ball)
                         // Check if this is the last number in the row
@@ -1429,7 +1164,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
                             plusSpan.textContent = '+';
                             plusSpan.style.color = '#FF5500'; // Orange for visibility
-                            ballsContainer.appendChild(plusSpan);
+                            rowContainer.appendChild(plusSpan);
                         }
                         
                         // For legacy compatibility - keep the old bonus handling code
@@ -1447,20 +1182,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         
                         const ball = document.createElement('span');
                         ball.classList.add('lottery-ball');
-                        
-                        // Add mobile-specific styles to make balls larger and more visible
-                        // BUT don't override colors - just size and positioning
-                        if (window.innerWidth <= 576) {
-                            ball.style.width = '38px';
-                            ball.style.height = '38px';
-                            ball.style.fontSize = '16px';
-                            ball.style.lineHeight = '38px';
-                            ball.style.margin = '5px';
-                            ball.style.display = 'inline-flex';
-                            ball.style.alignItems = 'center';
-                            ball.style.justifyContent = 'center';
-                            // Don't set background-color here so the color classes work
-                        }
                         
                         // Check if this number is a match in the current game type
                         let isMatch = false;
@@ -1550,7 +1271,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         }
                         
                         ball.textContent = num;
-                        ballsContainer.appendChild(ball);
+                        rowContainer.appendChild(ball);
                     });
                     
                     ticketNumbersContainer.appendChild(rowContainer);
@@ -1572,7 +1293,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
                             plusSpan.textContent = '+';
                             plusSpan.style.color = '#FF5500'; // Orange for visibility
-                            ballsContainer.appendChild(plusSpan);
+                            rowContainer.appendChild(plusSpan);
                             
                             // Get the bonus number
                             const bonusNumber = data.ticket_info.raw_selected_numbers[nextRowName][0];
@@ -1580,20 +1301,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             // Create the bonus ball in the same row
                             const bonusBall = document.createElement('span');
                             bonusBall.classList.add('lottery-ball', 'lottery-ball-bonus', 'lottery-ball-yellow');
-                            
-                            // Add mobile-specific styles to make bonus ball more visible
-                            // BUT don't override colors - just size and positioning
-                            if (window.innerWidth <= 576) {
-                                bonusBall.style.width = '38px';
-                                bonusBall.style.height = '38px';
-                                bonusBall.style.fontSize = '16px';
-                                bonusBall.style.lineHeight = '38px';
-                                bonusBall.style.margin = '5px';
-                                bonusBall.style.display = 'inline-flex';
-                                bonusBall.style.alignItems = 'center';
-                                bonusBall.style.justifyContent = 'center';
-                                // Don't set background-color here
-                            }
                             
                             // Check if this bonus number is a match specific to this game
                             let isBonusMatch = false;
@@ -1635,7 +1342,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             }
                             
                             bonusBall.textContent = bonusNumber;
-                            ballsContainer.appendChild(bonusBall);
+                            rowContainer.appendChild(bonusBall);
                             
                             // Skip the next row since we've already added its number here
                             rowsToSkip.push(nextRowName);
