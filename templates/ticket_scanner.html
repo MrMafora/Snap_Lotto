@@ -285,9 +285,10 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         container.style.gap = '8px';
                     });
                     
-                    // Improve lottery ball display
+                    // Improve lottery ball display but preserve colors
                     const lotteryBalls = document.querySelectorAll('.lottery-ball');
                     lotteryBalls.forEach(ball => {
+                        // Only adjust size and positioning, not color
                         ball.style.width = '36px';
                         ball.style.height = '36px';
                         ball.style.fontSize = '15px';
@@ -295,6 +296,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         ball.style.display = 'inline-flex';
                         ball.style.alignItems = 'center';
                         ball.style.justifyContent = 'center';
+                        // Explicitly DO NOT set background-color
                     });
                 }
             }
@@ -1392,6 +1394,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         ball.classList.add('lottery-ball');
                         
                         // Add mobile-specific styles to make balls larger and more visible
+                        // BUT don't override colors - just size and positioning
                         if (window.innerWidth <= 576) {
                             ball.style.width = '38px';
                             ball.style.height = '38px';
@@ -1401,6 +1404,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             ball.style.display = 'inline-flex';
                             ball.style.alignItems = 'center';
                             ball.style.justifyContent = 'center';
+                            // Don't set background-color here so the color classes work
                         }
                         
                         // Check if this number is a match in the current game type
@@ -1523,6 +1527,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             bonusBall.classList.add('lottery-ball', 'lottery-ball-bonus', 'lottery-ball-yellow');
                             
                             // Add mobile-specific styles to make bonus ball more visible
+                            // BUT don't override colors - just size and positioning
                             if (window.innerWidth <= 576) {
                                 bonusBall.style.width = '38px';
                                 bonusBall.style.height = '38px';
@@ -1532,6 +1537,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 bonusBall.style.display = 'inline-flex';
                                 bonusBall.style.alignItems = 'center';
                                 bonusBall.style.justifyContent = 'center';
+                                // Don't set background-color here
                             }
                             
                             // Check if this bonus number is a match specific to this game
