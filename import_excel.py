@@ -195,7 +195,8 @@ def standardize_lottery_type(lottery_type):
 
 def import_excel_data(excel_file, flask_app=None):
     """
-    Import lottery data from Excel spreadsheet.
+    Import lottery data from Excel spreadsheet with improved robust handling.
+    Prioritizes "Lottery" terminology over "Lotto".
     
     Args:
         excel_file (str): Path to Excel file
@@ -213,12 +214,48 @@ def import_excel_data(excel_file, flask_app=None):
             error_count = 0
             imported_records = []
             
-            # Read Excel file - try multiple sheets if needed
+            # Get basic file information
+            import os
             try:
-                # First try reading with default sheet
-                df = pd.read_excel(excel_file)
+                file_size = os.path.getsize(excel_file)
+                logger.info(f"Excel file size: {file_size} bytes")
+            except Exception as e:
+                logger.error(f"Error checking file size: {str(e)}")
                 
-                # FIX for Row 1 (index 0) - Special direct processing of the FIRST ROW
+            # Try multiple Excel reading engines for maximum compatibility
+            df = None
+            excel_read_error = None
+            
+            # Try openpyxl first (most modern Excel files)
+            try:
+                logger.info("Trying to read Excel with openpyxl engine...")
+                df = pd.read_excel(excel_file, engine="openpyxl")
+                logger.info("Successfully read Excel with openpyxl engine")
+            except Exception as e:
+                logger.warning(f"Failed to read with openpyxl engine: {str(e)}")
+                excel_read_error = str(e)
+            
+            # If openpyxl failed, try xlrd (older Excel files)
+            if df is None:
+                try:
+                    logger.info("Trying to read Excel with xlrd engine...")
+                    df = pd.read_excel(excel_file, engine="xlrd")
+                    logger.info("Successfully read Excel with xlrd engine")
+                except Exception as e:
+                    logger.warning(f"Failed to read with xlrd engine: {str(e)}")
+                    excel_read_error = str(e)
+            
+            # Last resort: try the default engine
+            if df is None:
+                try:
+                    logger.info("Trying to read Excel with default engine...")
+                    df = pd.read_excel(excel_file)
+                    logger.info("Successfully read Excel with default engine")
+                except Exception as e:
+                    logger.error(f"ALL Excel engines failed. Final error: {str(e)}")
+                    return False
+            
+            # FIX for Row 1 (index 0) - Special direct processing of the FIRST ROW
                 # This ensures the data in row 1 is NEVER missed, regardless of any skipping
                 if not df.empty:
                     # Get raw row 1 data (index 0)
