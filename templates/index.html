@@ -221,14 +221,14 @@
                             {% for result in results %}
                             <tr>
                                 <td class="ps-2 py-1">
-                                    {% if 'Lotto Plus' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
+                                    {% if 'Lottery Plus' in result.lottery_type %}
+                                        <span class="game-type-badge game-type-lottery">{{ result.lottery_type }}</span>
                                     {% elif 'Powerball' in result.lottery_type %}
                                         <span class="game-type-badge game-type-powerball">{{ result.lottery_type }}</span>
                                     {% elif 'Daily' in result.lottery_type %}
                                         <span class="game-type-badge game-type-daily">{{ result.lottery_type }}</span>
                                     {% else %}
-                                        <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
+                                        <span class="game-type-badge game-type-lottery">{{ result.lottery_type }}</span>
                                     {% endif %}
                                 </td>
                                 <td class="py-1"><strong>{{ result.draw_number }}</strong></td>
