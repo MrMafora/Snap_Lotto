@@ -749,7 +749,16 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 // Auto-show the results after a short delay (simulate ad viewing)
                 const viewResultsBtn = document.getElementById('view-results-btn');
                 viewResultsBtn.onclick = function() {
-                    adOverlayResults.style.display = 'none';
+                    // Get the ad overlay for transition effects
+                    const adOverlay = document.getElementById('ad-overlay');
+                    
+                    // Add transition class for smooth fade-out
+                    if (adOverlay) {
+                        adOverlay.classList.add('closing');
+                    }
+                    
+                    // Apply closing animation to ad overlay results
+                    adOverlayResults.classList.add('closing');
                     
                     // Clean up all timers and reset the state
                     if (window.countdownInterval) {
@@ -765,10 +774,21 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Reset the countdown running flag
                     window.countdownRunning = false;
                     
-                    // Make sure scrolling is enabled
-                    enableScrolling();
-                    displayResults(data);
-                    console.log('User clicked View Results, countdown state cleared');
+                    // Hide the overlay after transition completes
+                    setTimeout(() => {
+                        adOverlayResults.style.display = 'none';
+                        
+                        if (adOverlay) {
+                            adOverlay.classList.remove('closing');
+                        }
+                        
+                        // Make sure scrolling is enabled after animation
+                        enableScrolling();
+                        
+                        // Display results after overlay is hidden
+                        displayResults(data);
+                        console.log('User clicked View Results, countdown state cleared');
+                    }, 500); // Match this to CSS transition duration
                 };
                 
                 // FORCEFULLY disable the view results button for 15 seconds
