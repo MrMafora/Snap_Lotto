@@ -26,8 +26,15 @@ def normalize_lottery_type(lottery_type):
     if not lottery_type:
         return "Unknown"
     
+    # First, handle exact matches for special cases
+    cleaned_type = str(lottery_type).strip()
+    if cleaned_type == 'PowerBall':
+        return 'Powerball'
+    elif cleaned_type == 'PowerBall PLUS':
+        return 'Powerball Plus'
+    
     # Convert to uppercase for case-insensitive matching
-    upper_type = str(lottery_type).upper()
+    upper_type = cleaned_type.upper()
     
     # Prioritize "Lottery" terminology
     if upper_type == 'LOTTO' or upper_type == 'LOTTERY':
@@ -36,7 +43,7 @@ def normalize_lottery_type(lottery_type):
         return 'Lottery Plus 1'
     elif 'LOTTERY PLUS 2' in upper_type or 'LOTTO PLUS 2' in upper_type:
         return 'Lottery Plus 2' 
-    elif 'POWERBALL PLUS' in upper_type:
+    elif 'POWERBALL PLUS' in upper_type or 'POWERBALL PLUS' in upper_type:
         return 'Powerball Plus'
     elif 'POWERBALL' in upper_type:
         return 'Powerball'
@@ -44,7 +51,7 @@ def normalize_lottery_type(lottery_type):
         return 'Daily Lottery'
         
     # If no match, return original with proper capitalization
-    return str(lottery_type).strip()
+    return cleaned_type
 
 def direct_excel_import(excel_path, app):
     """
