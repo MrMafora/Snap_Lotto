@@ -162,14 +162,14 @@ def standardize_lottery_type(lottery_type):
     # Enhanced logging for troubleshooting
     logger.debug(f"Standardizing lottery type: '{lottery_type}' (lowercase: '{lt}')")
     
-    # Normalize common variations with improved pattern matching
-    if ('lotto plus 1' in lt or 'lottery plus 1' in lt or 'lotto+1' in lt or 'lottery+1' in lt or
-        'lotto + 1' in lt or 'lottery + 1' in lt or 'lotto plus1' in lt or 'lottery plus1' in lt or
-        lt == 'lotto plus 1' or lt == 'lottery plus 1' or 'lottoplus1' in lt or 'lotteryplus1' in lt):
+    # Normalize common variations with improved pattern matching - prioritize "Lottery" over "Lotto"
+    if ('lottery plus 1' in lt or 'lotto plus 1' in lt or 'lottery+1' in lt or 'lotto+1' in lt or
+        'lottery + 1' in lt or 'lotto + 1' in lt or 'lottery plus1' in lt or 'lotto plus1' in lt or
+        lt == 'lottery plus 1' or lt == 'lotto plus 1' or 'lotteryplus1' in lt or 'lottoplus1' in lt):
         return 'Lottery Plus 1'
-    elif ('lotto plus 2' in lt or 'lottery plus 2' in lt or 'lotto+2' in lt or 'lottery+2' in lt or
-          'lotto + 2' in lt or 'lottery + 2' in lt or 'lotto plus2' in lt or 'lottery plus2' in lt or
-          lt == 'lotto plus 2' or lt == 'lottery plus 2' or 'lottoplus2' in lt or 'lotteryplus2' in lt):
+    elif ('lottery plus 2' in lt or 'lotto plus 2' in lt or 'lottery+2' in lt or 'lotto+2' in lt or
+          'lottery + 2' in lt or 'lotto + 2' in lt or 'lottery plus2' in lt or 'lotto plus2' in lt or
+          lt == 'lottery plus 2' or lt == 'lotto plus 2' or 'lotteryplus2' in lt or 'lottoplus2' in lt):
         return 'Lottery Plus 2'
     elif ('powerball plus' in lt or 'powerball+' in lt or 'power ball plus' in lt or 
           'powerballplus' in lt or lt == 'powerball plus'):
@@ -181,10 +181,11 @@ def standardize_lottery_type(lottery_type):
     elif ('daily lottery' in lt or 'dailylottery' in lt or 'daily lotto' in lt or 'dailylotto' in lt or
           lt == 'daily lottery' or lt == 'dailylottery' or lt == 'daily lotto' or lt == 'dailylotto'):
         return 'Daily Lottery'
-    # Main Lotto/Lottery - match only if it contains "lotto" or "lottery" but NOT "plus" or "daily"
-    elif ('lotto' in lt or 'lottery' in lt) and 'plus' not in lt and 'daily' not in lt:
-        # Log when we standardize LOTTO → Lottery for debugging
-        if lottery_type.upper() == 'LOTTO' or lottery_type.upper() == 'LOTTERY':
+    # Main Lottery/Lotto - match only if it contains "lottery" or "lotto" but NOT "plus" or "daily"
+    # Prioritize searching for "lottery" first
+    elif ('lottery' in lt or 'lotto' in lt) and 'plus' not in lt and 'daily' not in lt:
+        # Log when we standardize to "Lottery" for debugging
+        if lottery_type.upper() == 'LOTTERY' or lottery_type.upper() == 'LOTTO':
             logger.info(f"Standardizing '{lottery_type}' to 'Lottery'")
         return 'Lottery'
     
@@ -238,15 +239,15 @@ def import_excel_data(excel_file, flask_app=None):
                         lottery_type = str(game_name).strip()
                         if lottery_type.upper() == 'LOTTO' or lottery_type.upper() == 'LOTTERY':
                             lottery_type = 'Lottery'
-                        elif 'LOTTO PLUS 1' in lottery_type.upper() or 'LOTTERY PLUS 1' in lottery_type.upper():
+                        elif 'LOTTERY PLUS 1' in lottery_type.upper() or 'LOTTO PLUS 1' in lottery_type.upper():
                             lottery_type = 'Lottery Plus 1'
-                        elif 'LOTTO PLUS 2' in lottery_type.upper() or 'LOTTERY PLUS 2' in lottery_type.upper():
+                        elif 'LOTTERY PLUS 2' in lottery_type.upper() or 'LOTTO PLUS 2' in lottery_type.upper():
                             lottery_type = 'Lottery Plus 2'
                         elif 'POWERBALL PLUS' in lottery_type.upper():
                             lottery_type = 'Powerball Plus'
                         elif 'POWERBALL' in lottery_type.upper():
                             lottery_type = 'Powerball'
-                        elif 'DAILY LOTTO' in lottery_type.upper() or 'DAILY LOTTERY' in lottery_type.upper():
+                        elif 'DAILY LOTTERY' in lottery_type.upper() or 'DAILY LOTTO' in lottery_type.upper():
                             lottery_type = 'Daily Lottery'
                             
                         # Process numbers directly
@@ -355,7 +356,7 @@ def import_excel_data(excel_file, flask_app=None):
                         logger.warning("✗ DIRECT ROW 1: No valid Game Name found in first row")
                 
                 # If we got an empty dataframe or missing expected columns, try reading all sheets
-                if df.empty or not any(col for col in df.columns if 'lotto' in str(col).lower() or 'draw' in str(col).lower()):
+                if df.empty or not any(col for col in df.columns if 'lottery' in str(col).lower() or 'lotto' in str(col).lower() or 'draw' in str(col).lower()):
                     logger.info("Initial sheet appears empty or missing lottery data. Checking all sheets...")
                     xlsx = pd.ExcelFile(excel_file)
                     
@@ -364,7 +365,7 @@ def import_excel_data(excel_file, flask_app=None):
                         logger.info(f"Trying sheet: {sheet_name}")
                         df = pd.read_excel(excel_file, sheet_name=sheet_name)
                         # Check if this sheet has lottery data
-                        if any(col for col in df.columns if 'lotto' in str(col).lower() or 'draw' in str(col).lower() or 'game' in str(col).lower()):
+                        if any(col for col in df.columns if 'lottery' in str(col).lower() or 'lotto' in str(col).lower() or 'draw' in str(col).lower() or 'game' in str(col).lower()):
                             logger.info(f"Found lottery data in sheet: {sheet_name}")
                             break
             except Exception as e:
@@ -380,8 +381,8 @@ def import_excel_data(excel_file, flask_app=None):
             # Map standard column names to actual columns in the spreadsheet
             column_mapping = {}
             
-            # Check for common column name patterns in Snap Lotto format
-            game_name_variants = ['game name', 'game type', 'lottery type', 'lotto type']
+            # Check for common column name patterns in Snap Lottery format
+            game_name_variants = ['game name', 'game type', 'lottery type', 'lottery game', 'lottery', 'lotto type']
             draw_number_variants = ['draw number', 'draw no', 'draw id', 'number']
             draw_date_variants = ['draw date', 'game date', 'date']
             numbers_variants = ['winning numbers', 'main numbers', 'numbers']
