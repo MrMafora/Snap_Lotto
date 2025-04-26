@@ -393,9 +393,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     </div>
     <!-- Countdown timer will be placed here above the button -->
     <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;"></div>
-    <button type="button" class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;" onclick="return false;">
+    <a href="javascript:void(0);" class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px; text-decoration: none; display: inline-block;">
         <i class="fas fa-check-circle me-2"></i> View Results
-    </button>
+    </a>
 </div>
 
 <div class="container py-3">
@@ -988,8 +988,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Set global flag to prevent multiple timers
                     window.countdownRunning = true;
                     
-                    // Disable the View Results button
-                    viewResultsBtn.disabled = true;
+                    // Disable the View Results link (now an <a> tag)
+                    viewResultsBtn.style.pointerEvents = 'none';
                     viewResultsBtn.style.opacity = '0.5';
                     viewResultsBtn.style.cursor = 'not-allowed';
                     viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
@@ -1041,8 +1041,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             window.countdownInterval = null;
                             window.countdownRunning = false;
                             
-                            // Enable the button after time is up
-                            viewResultsBtn.disabled = false;
+                            // Enable the link after time is up
+                            viewResultsBtn.style.pointerEvents = 'auto';
                             viewResultsBtn.style.opacity = '1';
                             viewResultsBtn.style.cursor = 'pointer';
                             viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
@@ -1068,9 +1068,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         
                         console.log('15-second ad display timer completed via timeout');
                         
-                        // Make sure the button is enabled
+                        // Make sure the link is enabled
                         if (adOverlayResults.style.display === 'flex') {
-                            viewResultsBtn.disabled = false;
+                            viewResultsBtn.style.pointerEvents = 'auto';
                             viewResultsBtn.style.opacity = '1';
                             viewResultsBtn.style.cursor = 'pointer';
                             viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
