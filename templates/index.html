@@ -75,8 +75,8 @@
       "position": {{ loop.index }},
       "item": {
         "@type": "Game",
-        "name": "{{ result.display_type if hasattr(result, 'display_type') else result.normalized_type if hasattr(result, 'normalized_type') else result.lottery_type }}",
-        "description": "{{ result.display_type if hasattr(result, 'display_type') else result.normalized_type if hasattr(result, 'normalized_type') else result.lottery_type }} draw {{ result.draw_number }} on {{ result.draw_date.strftime('%Y-%m-%d') }}",
+        "name": "{{ result.lottery_type }}",
+        "description": "{{ result.lottery_type }} draw {{ result.draw_number }} on {{ result.draw_date.strftime('%Y-%m-%d') }}",
         "playMode": "SinglePlayer",
         "applicationCategory": "Game",
         "genre": "Lottery"
@@ -221,7 +221,7 @@
                             {% for result in results %}
                             <tr>
                                 <td class="ps-2 py-1">
-                                    {% set display_type = result.display_type if hasattr(result, 'display_type') else result.normalized_type if hasattr(result, 'normalized_type') else result.lottery_type %}
+                                    {% set display_type = result.lottery_type %}
                                     {% if 'Lottery Plus' in display_type %}
                                         <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
                                     {% elif 'Powerball' in display_type %}
@@ -793,15 +793,16 @@ function updateFrequencyChart(data) {
         return;
     }
     
-    // Clear the container for a fresh start
+    // Save the existing header before clearing the container
+    const existingHeader = barChartContainer.querySelector('h6');
+    
+    // Clear the container for a fresh start but don't duplicate the header
     barChartContainer.innerHTML = '';
     
-    // Create a header for the chart
-    const chartHeader = document.createElement('h6');
-    chartHeader.className = 'mb-3';
-    chartHeader.textContent = 'Most Frequent Numbers';
-    chartHeader.style.fontWeight = 'bold';
-    barChartContainer.appendChild(chartHeader);
+    // If we found a header, add it back, otherwise don't add any header
+    if (existingHeader) {
+        barChartContainer.appendChild(existingHeader.cloneNode(true));
+    }
     
     // Create the main chart container
     const chartWrapper = document.createElement('div');
