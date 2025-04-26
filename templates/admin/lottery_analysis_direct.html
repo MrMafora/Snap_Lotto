@@ -650,47 +650,89 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } 
         else if (tabId === 'winners') {
-            if (data && data.winners) {
-                Object.entries(data.winners).forEach(([lottery_type, winners]) => {
-                    html += `
-                        <div class="col-md-6 mb-4">
-                            <div class="card border-left-success shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                        ${lottery_type}
+            // Winner data is directly indexed by lottery type in the response
+            if (data) {
+                Object.entries(data).forEach(([lottery_type, winnerData]) => {
+                    // Skip entries with errors or missing division data
+                    if (winnerData && !winnerData.error && winnerData.division_data) {
+                        html += `
+                            <div class="col-md-12 mb-4">
+                                <div class="card shadow mb-4">
+                                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                        <h6 class="m-0 font-weight-bold text-success">${lottery_type} Winner Analysis</h6>
                                     </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                        Winner Analysis
-                                    </div>
-                                    <div class="mt-3">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-7">
+                                                ${winnerData.chart_base64 ? `
+                                                    <div class="text-center">
+                                                        <img src="data:image/png;base64,${winnerData.chart_base64}" 
+                                                             alt="Winner Analysis for ${lottery_type}" 
+                                                             class="img-fluid mb-3">
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                            <div class="col-md-5">
+                                                <h5 class="text-gray-800 mb-3">Division Statistics</h5>
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-sm">
+                                                        <thead class="bg-light">
+                                                            <tr>
+                                                                <th>Division</th>
+                                                                <th>Total Winners</th>
+                                                                <th>Avg. Per Draw</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
                     `;
                     
-                    if (winners && winners.divisions) {
-                        html += '<ul class="list-group">';
-                        Object.entries(winners.divisions).slice(0, 5).forEach(([division, stats]) => {
+                    // Process division data
+                    if (winnerData.division_data && winnerData.division_data.length > 0) {
+                        winnerData.division_data.forEach(division => {
                             html += `
-                                <li class="list-group-item">
-                                    <div class="d-flex justify-content-between">
-                                        <span>${division}</span>
-                                        <span>${stats.total_winners} winner(s)</span>
-                                    </div>
-                                    <div class="small text-muted">
-                                        Average prize: ${stats.average_prize || 'Not available'}
-                                    </div>
-                                </li>
+                                <tr>
+                                    <td>${division.division}</td>
+                                    <td class="text-right">${division.total_winners}</td>
+                                    <td class="text-right">${division.avg_winners.toFixed(2)}</td>
+                                </tr>
                             `;
                         });
-                        html += '</ul>';
                     } else {
-                        html += '<p>No winner data available</p>';
+                        html += `
+                            <tr>
+                                <td colspan="3" class="text-center">No division data available</td>
+                            </tr>
+                        `;
                     }
                     
                     html += `
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                
+                                                ${winnerData.prizes && winnerData.prizes.length > 0 ? `
+                                                    <div class="mt-3">
+                                                        <h6 class="font-weight-bold text-primary">Top Prizes</h6>
+                                                        <ul class="list-group list-group-flush">
+                                                            ${winnerData.prizes.slice(0, 3).map(prize => `
+                                                                <li class="list-group-item py-2">
+                                                                    <div class="small font-weight-bold">${prize.division}</div>
+                                                                    <div class="d-flex justify-content-between">
+                                                                        <span class="text-success">${prize.date}</span>
+                                                                        <span class="text-primary font-weight-bold">${prize.amount}</span>
+                                                                    </div>
+                                                                </li>
+                                                            `).join('')}
+                                                        </ul>
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        `;
+                    }
                 });
             }
             
