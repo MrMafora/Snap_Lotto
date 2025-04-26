@@ -793,7 +793,7 @@ def import_data():
     ]
     
     # Define SEO metadata
-    meta_description = "Import South African lottery data from Excel spreadsheets. Upload Lotto, PowerBall, and Daily Lotto results to maintain an up-to-date database of winning numbers and prize information."
+    meta_description = "Import South African lottery data from Excel spreadsheets. Upload Lottery, PowerBall, and Daily Lottery results to maintain an up-to-date database of winning numbers and prize information."
     
     # Initialize or reset progress tracking
     file_upload_progress[user_id] = {
@@ -838,57 +838,98 @@ def import_data():
                 'filename': filename
             }
             
-            # First, try standard format
             try:
-                import_stats = import_excel.import_excel_data(excel_path)
+                # First, check if this is a multi-sheet template (by looking at filename)
+                is_template_format = "template" in filename.lower()
                 
-                # If import was successful, track it in the import history
-                if isinstance(import_stats, dict) and import_stats.get('success'):
-                    # Create import history record
-                    import_history = ImportHistory(
-                        import_type='excel',
-                        file_name=filename,
-                        records_added=import_stats.get('added', 0),
-                        records_updated=import_stats.get('updated', 0),
-                        total_processed=import_stats.get('total', 0),
-                        errors=import_stats.get('errors', 0),
-                        user_id=current_user.id
-                    )
-                    db.session.add(import_history)
-                    db.session.commit()
-                    
-                    # Save individual imported records if available
-                    if 'imported_records' in import_stats and import_stats['imported_records']:
-                        for record_data in import_stats['imported_records']:
-                            imported_record = ImportedRecord(
-                                import_id=import_history.id,
-                                lottery_type=record_data['lottery_type'],
-                                draw_number=record_data['draw_number'],
-                                draw_date=record_data['draw_date'],
-                                is_new=record_data['is_new'],
-                                lottery_result_id=record_data['lottery_result_id']
-                            )
-                            db.session.add(imported_record)
-                        db.session.commit()
-                
-                # Check if import was unsuccessful (False) or if no records were imported
-                if import_stats is False or (isinstance(import_stats, dict) and import_stats.get('total', 0) == 0):
-                    # If standard import fails, try Snap Lotto format
+                if is_template_format:
                     try:
                         # Update progress
                         file_upload_progress[user_id] = {
-                            'percentage': 75,
-                            'status': 'processing',
+                            'percentage': 50,
+                            'status': 'processing template format',
                             'filename': filename
                         }
                         
-                        import_stats = import_snap_lotto_data.import_snap_lotto_data(excel_path, flask_app=app)
+                        # Import using the multi-sheet template processor
+                        import multi_sheet_import
+                        import_stats = multi_sheet_import.import_multisheet_excel(excel_path, flask_app=app)
                         
                         # If import was successful, track it in the import history
                         if isinstance(import_stats, dict) and import_stats.get('success'):
                             # Create import history record
                             import_history = ImportHistory(
-                                import_type='snap_lotto',
+                                import_type='multi_sheet_template',
+                                file_name=filename,
+                                records_added=import_stats.get('added', 0),
+                                records_updated=import_stats.get('updated', 0),
+                                total_processed=import_stats.get('total', 0),
+                                errors=import_stats.get('errors', 0),
+                                user_id=current_user.id
+                            )
+                            db.session.add(import_history)
+                            db.session.commit()
+                            
+                            # Save individual imported records if available
+                            if 'imported_records' in import_stats and import_stats['imported_records']:
+                                for record_data in import_stats['imported_records']:
+                                    imported_record = ImportedRecord(
+                                        import_id=import_history.id,
+                                        lottery_type=record_data['lottery_type'],
+                                        draw_number=record_data['draw_number'],
+                                        draw_date=record_data['draw_date'],
+                                        is_new=record_data['is_new'],
+                                        lottery_result_id=record_data['lottery_result_id']
+                                    )
+                                    db.session.add(imported_record)
+                                db.session.commit()
+                            
+                            # Display results
+                            added = import_stats.get('added', 0)
+                            total = import_stats.get('total', 0)
+                            errors = import_stats.get('errors', 0)
+                            updated = import_stats.get('updated', 0)
+                            
+                            if added > 0 and updated > 0:
+                                flash(f'Multi-sheet template import completed successfully. Added {added} new records, updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
+                            elif added > 0:
+                                flash(f'Multi-sheet template import completed successfully. Added {added} new records, processed {total} total records with {errors} errors.', 'success')
+                            elif updated > 0:
+                                flash(f'Multi-sheet template import completed successfully. Updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
+                            else:
+                                flash(f'Multi-sheet template import completed. No records were added or updated. Processed {total} records with {errors} errors.', 'info')
+                        else:
+                            error_msg = import_stats.get('error', 'Unknown error')
+                            flash(f'Error in multi-sheet template import: {error_msg}', 'danger')
+                        
+                        # Update progress to complete
+                        file_upload_progress[user_id] = {
+                            'percentage': 100,
+                            'status': 'complete',
+                            'filename': filename,
+                            'summary': import_stats if isinstance(import_stats, dict) else None
+                        }
+                    except Exception as e:
+                        logger.error(f"Multi-sheet template import error: {str(e)}")
+                        logger.error(traceback.format_exc())
+                        flash(f"Error in multi-sheet template import: {str(e)}", 'danger')
+                        
+                        # Update progress to error
+                        file_upload_progress[user_id] = {
+                            'percentage': 100,
+                            'status': 'error',
+                            'filename': filename
+                        }
+                else:
+                    # Try standard format for non-template files
+                    try:
+                        import_stats = import_excel.import_excel_data(excel_path)
+                        
+                        # If import was successful, track it in the import history
+                        if isinstance(import_stats, dict) and import_stats.get('success'):
+                            # Create import history record
+                            import_history = ImportHistory(
+                                import_type='excel',
                                 file_name=filename,
                                 records_added=import_stats.get('added', 0),
                                 records_updated=import_stats.get('updated', 0),
@@ -913,34 +954,112 @@ def import_data():
                                     db.session.add(imported_record)
                                 db.session.commit()
                         
-                        # Display results if available and successful
-                        if isinstance(import_stats, dict) and import_stats.get('success'):
-                            added = import_stats.get('added', 0)
-                            total = import_stats.get('total', 0)
-                            errors = import_stats.get('errors', 0)
-                            
-                            updated = import_stats.get('updated', 0)
-                            if added > 0 and updated > 0:
-                                flash(f'Snap Lotto import completed successfully. Added {added} new records, updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
-                            elif added > 0:
-                                flash(f'Snap Lotto import completed successfully. Added {added} new records, processed {total} total records with {errors} errors.', 'success')
-                            elif updated > 0:
-                                flash(f'Snap Lotto import completed successfully. Updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
-                            else:
-                                flash(f'Snap Lotto import completed. No records were added or updated. Processed {total} records with {errors} errors.', 'info')
+                        # Check if import was unsuccessful (False) or if no records were imported
+                        if import_stats is False or (isinstance(import_stats, dict) and import_stats.get('total', 0) == 0):
+                            # If standard import fails, try Snap Lotto format
+                            try:
+                                # Update progress
+                                file_upload_progress[user_id] = {
+                                    'percentage': 75,
+                                    'status': 'processing',
+                                    'filename': filename
+                                }
+                                
+                                import_stats = import_snap_lotto_data.import_snap_lotto_data(excel_path, flask_app=app)
+                                
+                                # If import was successful, track it in the import history
+                                if isinstance(import_stats, dict) and import_stats.get('success'):
+                                    # Create import history record
+                                    import_history = ImportHistory(
+                                        import_type='snap_lotto',
+                                        file_name=filename,
+                                        records_added=import_stats.get('added', 0),
+                                        records_updated=import_stats.get('updated', 0),
+                                        total_processed=import_stats.get('total', 0),
+                                        errors=import_stats.get('errors', 0),
+                                        user_id=current_user.id
+                                    )
+                                    db.session.add(import_history)
+                                    db.session.commit()
+                                    
+                                    # Save individual imported records if available
+                                    if 'imported_records' in import_stats and import_stats['imported_records']:
+                                        for record_data in import_stats['imported_records']:
+                                            imported_record = ImportedRecord(
+                                                import_id=import_history.id,
+                                                lottery_type=record_data['lottery_type'],
+                                                draw_number=record_data['draw_number'],
+                                                draw_date=record_data['draw_date'],
+                                                is_new=record_data['is_new'],
+                                                lottery_result_id=record_data['lottery_result_id']
+                                            )
+                                            db.session.add(imported_record)
+                                        db.session.commit()
+                                
+                                # Display results if available and successful
+                                if isinstance(import_stats, dict) and import_stats.get('success'):
+                                    added = import_stats.get('added', 0)
+                                    total = import_stats.get('total', 0)
+                                    errors = import_stats.get('errors', 0)
+                                    
+                                    updated = import_stats.get('updated', 0)
+                                    if added > 0 and updated > 0:
+                                        flash(f'Snap Lotto import completed successfully. Added {added} new records, updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
+                                    elif added > 0:
+                                        flash(f'Snap Lotto import completed successfully. Added {added} new records, processed {total} total records with {errors} errors.', 'success')
+                                    elif updated > 0:
+                                        flash(f'Snap Lotto import completed successfully. Updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
+                                    else:
+                                        flash(f'Snap Lotto import completed. No records were added or updated. Processed {total} records with {errors} errors.', 'info')
+                                else:
+                                    flash('Snap Lotto import completed', 'info')
+                                
+                                # Update progress to complete
+                                file_upload_progress[user_id] = {
+                                    'percentage': 100,
+                                    'status': 'complete',
+                                    'filename': filename,
+                                    'summary': import_stats if isinstance(import_stats, dict) else None
+                                }
+                            except Exception as e:
+                                logger.error(f"Snap Lotto import error: {str(e)}")
+                                flash(f"Error in Snap Lotto import: {str(e)}", 'danger')
+                                
+                                # Update progress to error
+                                file_upload_progress[user_id] = {
+                                    'percentage': 100,
+                                    'status': 'error',
+                                    'filename': filename
+                                }
                         else:
-                            flash('Snap Lotto import completed', 'info')
-                        
-                        # Update progress to complete
-                        file_upload_progress[user_id] = {
-                            'percentage': 100,
-                            'status': 'complete',
-                            'filename': filename,
-                            'summary': import_stats if isinstance(import_stats, dict) else None
-                        }
+                            # Display results for standard import
+                            if isinstance(import_stats, dict) and import_stats.get('success'):
+                                added = import_stats.get('added', 0)
+                                total = import_stats.get('total', 0)
+                                errors = import_stats.get('errors', 0)
+                                
+                                updated = import_stats.get('updated', 0)
+                                if added > 0 and updated > 0:
+                                    flash(f'Import completed successfully. Added {added} new records, updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
+                                elif added > 0:
+                                    flash(f'Import completed successfully. Added {added} new records, processed {total} total records with {errors} errors.', 'success')
+                                elif updated > 0:
+                                    flash(f'Import completed successfully. Updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
+                                else:
+                                    flash(f'Import completed. No records were added or updated. Processed {total} records with {errors} errors.', 'info')
+                            else:
+                                flash('Import completed', 'info')
+                            
+                            # Update progress to complete
+                            file_upload_progress[user_id] = {
+                                'percentage': 100,
+                                'status': 'complete',
+                                'filename': filename,
+                                'summary': import_stats if isinstance(import_stats, dict) else None
+                            }
                     except Exception as e:
-                        logger.error(f"Snap Lotto import error: {str(e)}")
-                        flash(f"Error in Snap Lotto import: {str(e)}", 'danger')
+                        logger.error(f"Excel import error: {str(e)}")
+                        flash(f"Error in import: {str(e)}", 'danger')
                         
                         # Update progress to error
                         file_upload_progress[user_id] = {
@@ -948,35 +1067,10 @@ def import_data():
                             'status': 'error',
                             'filename': filename
                         }
-                else:
-                    # Display results for standard import
-                    if isinstance(import_stats, dict) and import_stats.get('success'):
-                        added = import_stats.get('added', 0)
-                        total = import_stats.get('total', 0)
-                        errors = import_stats.get('errors', 0)
-                        
-                        updated = import_stats.get('updated', 0)
-                        if added > 0 and updated > 0:
-                            flash(f'Import completed successfully. Added {added} new records, updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
-                        elif added > 0:
-                            flash(f'Import completed successfully. Added {added} new records, processed {total} total records with {errors} errors.', 'success')
-                        elif updated > 0:
-                            flash(f'Import completed successfully. Updated {updated} existing records, processed {total} total records with {errors} errors.', 'success')
-                        else:
-                            flash(f'Import completed. No records were added or updated. Processed {total} records with {errors} errors.', 'info')
-                    else:
-                        flash('Import completed', 'info')
-                    
-                    # Update progress to complete
-                    file_upload_progress[user_id] = {
-                        'percentage': 100,
-                        'status': 'complete',
-                        'filename': filename,
-                        'summary': import_stats if isinstance(import_stats, dict) else None
-                    }
             except Exception as e:
-                logger.error(f"Excel import error: {str(e)}")
-                flash(f"Error in import: {str(e)}", 'danger')
+                logger.error(f"File processing error: {str(e)}")
+                logger.error(traceback.format_exc())
+                flash(f"File processing error: {str(e)}", 'danger')
                 
                 # Update progress to error
                 file_upload_progress[user_id] = {
