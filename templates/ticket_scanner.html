@@ -1226,15 +1226,91 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             console.log('Scrolling disabled');
         }
         
+        // Global flag to track deep redirects
+        window.REDIRECT_PROTECTION_ACTIVE = false;
+        
+        // CRITICAL FIX: This function prevents any redirect back to upload page
+        function activateRedirectProtection() {
+            // Set global flag
+            window.REDIRECT_PROTECTION_ACTIVE = true;
+            console.log('🔒 REDIRECT PROTECTION ACTIVATED 🔒', new Date().toISOString());
+            
+            // Create a MutationObserver to watch for any attempt to hide results
+            // or show upload forms again
+            const observer = new MutationObserver(function(mutations) {
+                if (window.REDIRECT_PROTECTION_ACTIVE) {
+                    const resultsContainer = document.getElementById('results-container');
+                    const scanFormContainer = document.getElementById('scan-form-container');
+                    
+                    // If results are hidden but protection is active, force show them again
+                    if (resultsContainer && 
+                        (resultsContainer.classList.contains('d-none') || 
+                         resultsContainer.style.display === 'none')) {
+                        console.log('🚨 PROTECTION TRIGGERED: Results were hidden, forcing visible');
+                        resultsContainer.classList.remove('d-none');
+                        resultsContainer.style.display = 'block';
+                        
+                        // Force hide scan form
+                        if (scanFormContainer) {
+                            scanFormContainer.classList.add('d-none');
+                            scanFormContainer.style.display = 'none';
+                        }
+                        
+                        // Force hide any overlays
+                        document.querySelectorAll('[id^="ad-overlay"]').forEach(overlay => {
+                            overlay.style.display = 'none';
+                        });
+                    }
+                }
+            });
+            
+            // Start observing the entire document for changes
+            observer.observe(document.body, { 
+                childList: true, 
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['class', 'style']
+            });
+            
+            // Also force check every 500ms as a fallback
+            const protectionInterval = setInterval(() => {
+                if (window.REDIRECT_PROTECTION_ACTIVE) {
+                    const resultsContainer = document.getElementById('results-container');
+                    const scanFormContainer = document.getElementById('scan-form-container');
+                    
+                    // If results should be showing but aren't, make them visible
+                    if (resultsContainer) {
+                        resultsContainer.classList.remove('d-none');
+                        resultsContainer.style.display = 'block';
+                        
+                        // Force hide scan form
+                        if (scanFormContainer) {
+                            scanFormContainer.classList.add('d-none');
+                        }
+                    }
+                } else {
+                    clearInterval(protectionInterval);
+                }
+            }, 500);
+        }
+        
         function displayResults(data) {
             try {
-                console.log('Displaying ticket scanning results', new Date().toISOString());
+                console.log('☢️ Displaying ticket scanning results ☢️', new Date().toISOString());
+                
+                // BRUTE FORCE METHOD: Clear all possible timers
+                // This ensures no previous timers can redirect us
+                for (let i = 1; i < 10000; i++) {
+                    clearTimeout(i);
+                    clearInterval(i);
+                }
 
                 // Store the scan data permanently in window object
                 window.lastResultsData = data;
                 window.inResultsMode = true; 
                 window.resultsBeingDisplayed = true;
                 window.hasCompletedAdFlow = true;
+                window.viewResultsMode = true;
                 
                 // Make sure scrolling is fully enabled and restored when showing results
                 enableScrolling();
@@ -1266,6 +1342,16 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 document.body.classList.add('showing-results');
                 document.body.classList.add('results-mode');
                 document.body.classList.add('ad-completed');
+                
+                // Hide scan form container
+                const scanFormContainer = document.getElementById('scan-form-container');
+                if (scanFormContainer) {
+                    scanFormContainer.classList.add('d-none');
+                    scanFormContainer.style.display = 'none';
+                }
+                
+                // CRITICAL: Activate redirect protection to prevent going back to upload
+                activateRedirectProtection();
                 
                 // Prepare the results container first
                 if (resultsContainer) {
