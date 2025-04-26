@@ -839,8 +839,33 @@ def import_data():
             }
             
             try:
-                # First, check if this is a multi-sheet template (by looking at filename)
-                is_template_format = "template" in filename.lower()
+                # Check if this is a multi-sheet template by trying to detect sheets
+                is_template_format = False
+                try:
+                    import pandas as pd
+                    # Load Excel file and check for template sheets
+                    xl = pd.ExcelFile(excel_path)
+                    sheet_names = xl.sheet_names
+                    
+                    # Check if the file has the expected sheet structure (multiple sheets with lottery type names)
+                    template_sheets = [
+                        "Lottery", "Lottery Plus 1", "Lottery Plus 2", 
+                        "Powerball", "Powerball Plus", "Daily Lottery"
+                    ]
+                    
+                    # If at least 3 of the expected template sheets are present, we consider it a template
+                    matches = sum(1 for sheet in template_sheets if sheet in sheet_names)
+                    is_template_format = matches >= 3
+                    
+                    # Also consider template if the name contains "template"
+                    if not is_template_format:
+                        is_template_format = "template" in filename.lower()
+                        
+                    logger.info(f"File format detection: {'multi-sheet template' if is_template_format else 'standard'}")
+                except Exception as e:
+                    logger.warning(f"Error detecting file format: {str(e)}")
+                    # Fall back to filename detection
+                    is_template_format = "template" in filename.lower()
                 
                 if is_template_format:
                     try:
