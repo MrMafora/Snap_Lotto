@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}South African Lottery Results History | Lotto, PowerBall & Daily Lotto | Snap Lotto{% endblock %}
+{% block title %}South African Lottery Results History | Lottery, PowerBall & Daily Lottery | Snap Lottery{% endblock %}
 
-{% block meta_description %}The ONLY app with official Ithuba Lotto,
+{% block meta_description %}The ONLY app with official Ithuba Lottery,
 PowerBall &
-Daily Lotto data,
+Daily Lottery data,
 Snap Scan and Win = Phanda Phusha Play. Comprehensive lottery results history with complete winning numbers and draw information.{% endblock %}
 
-{% block meta_keywords %}South African lottery history, Lotto results archive, PowerBall historical numbers, Daily Lotto results, lottery draw archive, winning numbers history{% endblock %}
+{% block meta_keywords %}South African lottery history, Lottery results archive, PowerBall historical numbers, Daily Lottery results, lottery draw archive, winning numbers history{% endblock %}
 
-{% block og_title %}Complete South African Lottery Results History | Snap Lotto{% endblock %}
-{% block og_description %}The ONLY app with official Ithuba Lotto,
+{% block og_title %}Complete South African Lottery Results History | Snap Lottery{% endblock %}
+{% block og_description %}The ONLY app with official Ithuba Lottery,
 PowerBall &
-Daily Lotto data,
+Daily Lottery data,
 Snap Scan and Win = Phanda Phusha Play. Search and filter historical results from the official database.{% endblock %}
 
 {% block head_content %}
@@ -22,7 +22,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
   "@context": "https://schema.org",
   "@type": "Table",
   "about": "South African Lottery Results",
-  "description": "The ONLY app with official Ithuba Lotto, PowerBall & Daily Lotto data, Snap Scan and Win = Phanda Phusha Play. Complete historical archive of lottery results."
+  "description": "The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Complete historical archive of lottery results."
 }
 </script>
 {% endblock %}
@@ -66,14 +66,20 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                         {% for result in results.items %}
                             <tr>
                                 <td>
-                                    {% if 'Lottery Plus' in result.lottery_type or 'Lotto Plus' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
-                                    {% elif 'Powerball' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-powerball">{{ result.lottery_type }}</span>
-                                    {% elif 'Daily' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-daily">{{ result.lottery_type }}</span>
+                                    {% if 'Lotto' in result.lottery_type %}
+                                        {% set display_type = result.lottery_type.replace('Lotto', 'Lottery') %}
                                     {% else %}
-                                        <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
+                                        {% set display_type = result.lottery_type %}
+                                    {% endif %}
+                                    
+                                    {% if 'Lottery Plus' in display_type %}
+                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
+                                    {% elif 'Powerball' in display_type %}
+                                        <span class="game-type-badge game-type-powerball">{{ display_type }}</span>
+                                    {% elif 'Daily' in display_type %}
+                                        <span class="game-type-badge game-type-daily">{{ display_type }}</span>
+                                    {% else %}
+                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
                                     {% endif %}
                                 </td>
                                 <td>

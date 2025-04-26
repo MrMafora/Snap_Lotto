@@ -222,6 +222,10 @@
                             <tr>
                                 <td class="ps-2 py-1">
                                     {% set display_type = result.lottery_type %}
+                                    {% if 'Lotto' in display_type %}
+                                        {% set display_type = display_type.replace('Lotto', 'Lottery') %}
+                                    {% endif %}
+                                    
                                     {% if 'Lottery Plus' in display_type %}
                                         <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
                                     {% elif 'Powerball' in display_type %}

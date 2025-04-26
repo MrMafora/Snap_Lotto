@@ -223,11 +223,24 @@ def index():
                 # Generate a deduplication key using normalized type
                 key = f"{normalized_type}_{result.draw_number}"
                 if key not in seen_draws:
-                    # Store the normalized type directly in the lottery_type field
-                    # Instead of using custom attributes which can cause hasattr errors
-                    original_type = result.lottery_type
-                    result.lottery_type = normalized_type
-                    results_list.append(result)
+                    # Clone the result to avoid modifying the database object directly
+                    # This prevents unique constraint violations when adding to results_list
+                    result_clone = LotteryResult(
+                        id=result.id,
+                        lottery_type=normalized_type,  # Use normalized type
+                        draw_number=result.draw_number,
+                        draw_date=result.draw_date,
+                        numbers=result.numbers,
+                        bonus_numbers=result.bonus_numbers,
+                        divisions=result.divisions,
+                        source_url=result.source_url,
+                        screenshot_id=result.screenshot_id,
+                        ocr_provider=result.ocr_provider,
+                        ocr_model=result.ocr_model,
+                        ocr_timestamp=result.ocr_timestamp,
+                        created_at=result.created_at
+                    )
+                    results_list.append(result_clone)
                     seen_draws[key] = True
             
             # Sort results by date (newest first)
