@@ -749,7 +749,7 @@
     align-items: center;
     margin-right: 1px;
     margin-bottom: 0;
-    transform: scale(0.78); /* Increased from 0.72 to 0.78 now that we've saved space */
+    transform: scale(0.82); /* Increased from 0.78 to 0.82 for better visibility */
     transform-origin: center top;
 }
 
