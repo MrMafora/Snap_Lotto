@@ -279,6 +279,36 @@
     margin-bottom: 1rem !important;
 }
 
+/* Scanner result containers */
+#results-container {
+    transition: opacity 0.5s ease;
+    margin-top: 1.5rem;
+}
+
+#ticket-numbers {
+    transition: opacity 0.3s ease;
+}
+
+/* Ensure the success content is visible */
+#success-content {
+    display: none;
+}
+
+#success-content.show,
+#success-content:not(.d-none) {
+    display: block;
+}
+
+/* Make rows wrap properly */
+.ticket-info-row {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.ticket-info-row .col-sm-4 {
+    margin-bottom: 0.5rem;
+}
+
 @media (max-width: 576px) {
     #ticket-numbers .mb-3 {
         justify-content: flex-start;
@@ -305,6 +335,15 @@
     /* Reduce overall padding in the scanner results */
     #results-container .card-body {
         padding: 1rem 0.75rem;
+    }
+    
+    /* Match indicator adjustments for mobile */
+    .match-indicator {
+        width: 16px;
+        height: 16px;
+        font-size: 10px;
+        top: -3px;
+        right: -3px;
     }
 }
 
@@ -580,6 +619,54 @@
     width: 100%;
     min-height: 250px;
     margin: 20px 0;
+}
+
+/* Advertisement overlay */
+#ad-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    transition: opacity 0.5s ease;
+}
+
+#ad-overlay.closing {
+    opacity: 0;
+}
+
+#ad-content {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    text-align: center;
+    position: relative;
+}
+
+#countdown-container {
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+#close-ad-btn {
+    margin-top: 15px;
+}
+
+/* Hide close button until countdown finishes */
+#close-ad-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* Data Analytics Preview - Mobile Responsive Fixes */
