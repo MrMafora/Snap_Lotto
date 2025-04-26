@@ -579,6 +579,39 @@
     margin: 0 2px 4px;
 }
 
+/* Mobile results display */
+.mobile-result-header {
+    padding-bottom: 0.5rem !important;
+}
+
+.mobile-result-row {
+    display: flex;
+    flex-wrap: nowrap;
+    margin: 0 -0.25rem;
+    align-items: center;
+}
+
+.mobile-result-col {
+    padding: 0 0.25rem;
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.mobile-result-col:first-child {
+    flex: 1.5;
+}
+
+.mobile-result-col:last-child {
+    flex: 0.8;
+    text-align: right;
+}
+
+.result-card {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
 @media (max-width: 576px) {
     .numbers-container {
         justify-content: center;
@@ -588,12 +621,36 @@
         width: 23px;
         margin: 0 1px 3px;
     }
+    
+    .mobile-result-col {
+        font-size: 0.9rem;
+    }
+    
+    .game-type-badge {
+        font-size: 0.75rem;
+        padding: 1px 4px;
+    }
 }
 
 @media (max-width: 400px) {
     .lottery-ball-container {
         width: 20px;
         margin: 0 1px 2px;
+    }
+    
+    .mobile-result-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .mobile-result-col {
+        width: 100%;
+        margin-bottom: 0.25rem;
+        text-align: left !important;
+    }
+    
+    .mobile-result-col:last-child {
+        text-align: left;
     }
 }
 

@@ -130,31 +130,48 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
             <div class="d-md-none">
                 {% for result in results.items %}
                     <div class="card mb-3 result-card">
-                        <div class="card-header py-2">
+                        <!-- Header with three items in a row: game type, draw number, and date -->
+                        <div class="card-header mobile-result-header">
                             {% if 'Lotto' in result.lottery_type %}
                                 {% set display_type = result.lottery_type.replace('Lotto', 'Lottery') %}
                             {% else %}
                                 {% set display_type = result.lottery_type %}
                             {% endif %}
                             
-                            <div class="d-flex align-items-center justify-content-between">
-                                {% if 'Lottery Plus' in display_type %}
-                                    <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
-                                {% elif 'Powerball' in display_type %}
-                                    <span class="game-type-badge game-type-powerball">{{ display_type }}</span>
-                                {% elif 'Daily' in display_type %}
-                                    <span class="game-type-badge game-type-daily">{{ display_type }}</span>
-                                {% else %}
-                                    <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
-                                {% endif %}
-                                <span class="small">{{ result.draw_date.strftime('%Y-%m-%d') }}</span>
-                            </div>
-                            <div class="mt-1">
-                                <strong>Draw {{ result.draw_number.replace('Draw', '').replace('DRAW', '').replace('Lotto', '').replace('Plus 1', '').replace('Plus 2', '').replace('Powerball', '').replace('Daily', '').strip() }}</strong>
-                                <a href="{{ url_for('draw_details', lottery_type=result.lottery_type, draw_number=result.draw_number) }}" class="btn btn-sm btn-outline-primary float-end">Details <i class="fa fa-info-circle"></i></a>
+                            <!-- Game Type -->
+                            <div class="mobile-result-row">
+                                <div class="mobile-result-col">
+                                    {% if 'Lottery Plus' in display_type %}
+                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
+                                    {% elif 'Powerball' in display_type %}
+                                        <span class="game-type-badge game-type-powerball">{{ display_type }}</span>
+                                    {% elif 'Daily' in display_type %}
+                                        <span class="game-type-badge game-type-daily">{{ display_type }}</span>
+                                    {% else %}
+                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Draw Number -->
+                                <div class="mobile-result-col">
+                                    <strong>Draw {{ result.draw_number.replace('Draw', '').replace('DRAW', '').replace('Lotto', '').replace('Plus 1', '').replace('Plus 2', '').replace('Powerball', '').replace('Daily', '').strip() }}</strong>
+                                </div>
+                                
+                                <!-- Date -->
+                                <div class="mobile-result-col text-end">
+                                    <span class="small">{{ result.draw_date.strftime('%Y-%m-%d') }}</span>
+                                </div>
                             </div>
                         </div>
+                        
+                        <!-- Body with numbers underneath -->
                         <div class="card-body p-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <div><small class="text-muted">Lottery results</small></div>
+                                <a href="{{ url_for('draw_details', lottery_type=result.lottery_type, draw_number=result.draw_number) }}" class="btn btn-sm btn-outline-primary">Details <i class="fa fa-info-circle"></i></a>
+                            </div>
+                            
+                            <!-- Winning Numbers -->
                             <div class="mb-2">
                                 <div class="small mb-1"><strong>Winning Numbers:</strong></div>
                                 <div class="numbers-container">
@@ -176,6 +193,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                                 </div>
                             </div>
                             
+                            <!-- Bonus Numbers (if any) -->
                             {% if result.bonus_numbers %}
                                 <div>
                                     <div class="small mb-1"><strong>Bonus Numbers:</strong></div>
