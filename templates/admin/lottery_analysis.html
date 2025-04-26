@@ -277,7 +277,87 @@
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="correlations-loading" class="text-center p-5">
+                    <!-- Lottery Types Selection Panel for Correlations -->
+                    <div id="correlation-selection-panel" class="mb-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle mr-2"></i> 
+                            <strong>Important:</strong> Please select two lottery types to analyze the correlation between them.
+                        </div>
+                        
+                        <div class="card card-body bg-light mb-3">
+                            <div class="row">
+                                <div class="col-md-5">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">First Lottery Type:</label>
+                                        <select class="form-control" id="correlation-type-1">
+                                            <option value="">-- Select First Type --</option>
+                                            {% for lt in lottery_types %}
+                                            <option value="{{ lt }}">{{ lt }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-2 d-flex align-items-center justify-content-center">
+                                    <div class="text-center pt-4">
+                                        <i class="fas fa-exchange-alt fa-2x text-primary"></i>
+                                        <p class="mt-2 mb-0 small">Correlation</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-5">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Second Lottery Type:</label>
+                                        <select class="form-control" id="correlation-type-2">
+                                            <option value="">-- Select Second Type --</option>
+                                            {% for lt in lottery_types %}
+                                            <option value="{{ lt }}">{{ lt }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <hr class="my-3">
+                            
+                            <div class="row">
+                                <div class="col-12">
+                                    <h6 class="mb-3">Advanced Selection (Optional)</h6>
+                                    <p class="text-muted small mb-2">You can also select multiple types for a more comprehensive analysis:</p>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                {% for lt in lottery_types %}
+                                <div class="col-md-4 col-sm-6 mb-2">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input correlation-type-checkbox" 
+                                               id="corr-{{ lt | replace(' ', '-') | lower }}" 
+                                               value="{{ lt }}">
+                                        <label class="custom-control-label" for="corr-{{ lt | replace(' ', '-') | lower }}">{{ lt }}</label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="mt-4">
+                                <div class="row">
+                                    <div class="col-md-6 mb-2 mb-md-0">
+                                        <button type="button" id="compare-pair-btn" class="btn btn-primary btn-block">
+                                            <i class="fas fa-random mr-1"></i> Compare Selected Pair
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <button type="button" id="update-correlation-btn" class="btn btn-secondary btn-block">
+                                            <i class="fas fa-chart-network mr-1"></i> Advanced Multi-Type Analysis
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="correlations-loading" class="text-center p-5" style="display: none;">
                         <div class="spinner-border text-primary" role="status">
                             <span class="sr-only">Loading...</span>
                         </div>
@@ -1499,7 +1579,161 @@
                     return;
                 }
             
-            // Always reload data for better reliability
+            // Check for the selection panel
+            const selectionPanel = correlationsTab.querySelector('#correlation-selection-panel');
+            if (selectionPanel) {
+                // Show the selection panel first
+                selectionPanel.style.display = 'block';
+                loading.style.display = 'none';
+                content.style.display = 'none';
+                
+                // Add event listeners for both buttons if not already done
+                const compareButton = selectionPanel.querySelector('#compare-pair-btn');
+                const advancedButton = selectionPanel.querySelector('#update-correlation-btn');
+                
+                // Setup event listener for comparison of a single pair
+                if (compareButton && !compareButton._hasListener) {
+                    compareButton.addEventListener('click', function() {
+                        // Get the selected lottery types from the dropdown menus
+                        const type1 = document.getElementById('correlation-type-1').value;
+                        const type2 = document.getElementById('correlation-type-2').value;
+                        
+                        // Validate selections
+                        if (!type1 || !type2) {
+                            // Show error message if one or both types are not selected
+                            content.innerHTML = `
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        <strong>Error:</strong> Please select both lottery types to compare.
+                                    </div>
+                                </div>
+                            `;
+                            loading.style.display = 'none';
+                            content.style.display = 'block';
+                            return;
+                        }
+                        
+                        if (type1 === type2) {
+                            // Show error if same type is selected twice
+                            content.innerHTML = `
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        <strong>Error:</strong> Please select two different lottery types to compare.
+                                    </div>
+                                </div>
+                            `;
+                            loading.style.display = 'none';
+                            content.style.display = 'block';
+                            return;
+                        }
+                        
+                        // Hide selection panel, show loading
+                        selectionPanel.style.display = 'none';
+                        loading.style.display = 'block';
+                        content.style.display = 'none';
+                        content.innerHTML = ''; // Clear existing content
+                        
+                        // Get days from filter
+                        const daysSelect = document.getElementById('days');
+                        const days = daysSelect ? daysSelect.value || '365' : '365';
+                        
+                        // Build URL with the two selected types
+                        const timestamp = new Date().getTime();
+                        const selectedTypes = [type1, type2];
+                        const typesParam = encodeURIComponent(selectedTypes.join(','));
+                        const url = `/api/lottery-analysis/correlations?lottery_types=${typesParam}&days=${days}&_ts=${timestamp}`;
+                        
+                        console.log("Loading correlations data for pair:", selectedTypes);
+                        
+                        // Update loading indicator for pair comparison
+                        loading.innerHTML = `
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                            <p class="mt-2">Analyzing correlation between ${type1} and ${type2}...</p>
+                            <p class="small text-muted">This may take a moment...</p>
+                            <div class="progress mt-3" style="height: 10px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                                     role="progressbar" style="width: 75%"></div>
+                            </div>
+                        `;
+                        
+                        // Fetch correlation data
+                        fetchCorrelationData(url);
+                    });
+                    compareButton._hasListener = true;
+                }
+                
+                // Setup event listener for advanced multi-type analysis
+                if (advancedButton && !advancedButton._hasListener) {
+                    advancedButton.addEventListener('click', function() {
+                        // Get all selected lottery types from checkboxes
+                        const selectedTypes = Array.from(
+                            document.querySelectorAll('.correlation-type-checkbox:checked')
+                        ).map(checkbox => checkbox.value);
+                        
+                        // Check if at least two types are selected
+                        if (selectedTypes.length < 2) {
+                            // Show error message in content area
+                            content.innerHTML = `
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        <strong>Error:</strong> Please select at least two lottery types for advanced analysis.
+                                    </div>
+                                </div>
+                            `;
+                            loading.style.display = 'none';
+                            content.style.display = 'block';
+                            return;
+                        }
+                        
+                        // Hide selection panel, show loading
+                        selectionPanel.style.display = 'none';
+                        loading.style.display = 'block';
+                        content.style.display = 'none';
+                        content.innerHTML = ''; // Clear existing content
+                        
+                        // Get days from filter
+                        const daysSelect = document.getElementById('days');
+                        const days = daysSelect ? daysSelect.value || '365' : '365';
+                        
+                        console.log("Loading correlations data for multiple types:", selectedTypes);
+                        
+                        // Build URL with selected types
+                        const timestamp = new Date().getTime();
+                        const typesParam = encodeURIComponent(selectedTypes.join(','));
+                        const url = `/api/lottery-analysis/correlations?lottery_types=${typesParam}&days=${days}&_ts=${timestamp}`;
+                        
+                        // Update loading indicator for multi-type analysis
+                        loading.innerHTML = `
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                            <p class="mt-2">Analyzing correlations across ${selectedTypes.length} lottery types...</p>
+                            <p class="small text-muted">This may take a moment as we process all combinations...</p>
+                            <div class="progress mt-3" style="height: 10px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                                     role="progressbar" style="width: 75%"></div>
+                            </div>
+                        `;
+                        
+                        // Fetch correlation data
+                        fetchCorrelationData(url);
+                    });
+                    
+                    // Mark the button as having a listener
+                    advancedButton._hasListener = true;
+                    console.log("Added event listener to correlation advanced button");
+                }
+                
+                // Since we're showing the selection panel, we can return early
+                return;
+            }
+            
+            // Legacy fallback for when selection panel doesn't exist
             loading.style.display = 'block';
             content.style.display = 'none';
             content.innerHTML = ''; // Clear existing content
@@ -1511,20 +1745,28 @@
             
             const days = daysSelect ? daysSelect.value || '365' : '365';
             
-            console.log("Loading correlations data...");
+            console.log("Loading correlations data (legacy mode)...");
             
             // Add timestamp to prevent caching
             const timestamp = new Date().getTime();
             const url = `/api/lottery-analysis/correlations?days=${days}&_ts=${timestamp}`;
             
             console.log(`Fetching from URL: ${url}`);
-            document.getElementById('correlations-loading').innerHTML = `
+            loading.innerHTML = `
                 <div class="spinner-border text-primary" role="status">
                     <span class="sr-only">Loading...</span>
                 </div>
                 <p class="mt-2">Loading correlation analysis data...</p>
-                <p class="small text-muted">Request URL: ${url}</p>
+                <p class="small text-muted">Note: For more detailed analysis, please use the type selection panel.</p>
             `;
+            
+            // Use shared fetch correlation data function
+            fetchCorrelationData(url);
+        }
+        
+        // Shared function to fetch correlation data and display results
+        function fetchCorrelationData(url) {
+            console.log(`Fetching correlation data from: ${url}`);
             
             // Use improved fetchWithCSRF with robust error handling
             fetchWithCSRF(url)
@@ -1544,8 +1786,8 @@
                     console.log("Correlations data received:", data);
                     
                     if (data && data.error) {
-                        // Show error message
-                        content.innerHTML = `
+                        // Show error message with back button
+                        content.innerHTML = backButtonHtml + `
                             <div class="col-12">
                                 <div class="alert alert-warning">
                                     <h5>Correlation Analysis Error</h5>
@@ -1554,6 +1796,15 @@
                             </div>
                         `;
                     } else if (data) {
+                        // Back to selection button HTML - define this first so we can use it everywhere
+                        const backButtonHtml = `
+                            <div class="col-12 mb-3">
+                                <button type="button" id="back-to-selection" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left mr-1"></i> Back to Selection
+                                </button>
+                            </div>
+                        `;
+                    
                         // Function to extract chart_base64 and strong_correlations from potentially nested data
                         const extractData = (responseData) => {
                             let chart = null;
@@ -1592,7 +1843,7 @@
                         
                         // Display the correlation heatmap if chart data is available
                         if (extractedData.chart) {
-                            content.innerHTML = `
+                            content.innerHTML = backButtonHtml + `
                                 <div class="col-12 mb-4">
                                     <div class="card border-left-primary shadow h-100 py-2">
                                         <div class="card-body">
@@ -1705,6 +1956,32 @@
                     
                     loading.style.display = 'none';
                     content.style.display = 'block';
+                    
+                    // Add event listener to back button
+                    const backButton = document.getElementById('back-to-selection');
+                    if (backButton) {
+                        backButton.addEventListener('click', function() {
+                            // Hide content and show selection panel
+                            const selectionPanel = document.getElementById('correlation-selection-panel');
+                            if (selectionPanel) {
+                                selectionPanel.style.display = 'block';
+                                content.style.display = 'none';
+                                
+                                // Reset dropdown selections
+                                const type1Select = document.getElementById('correlation-type-1');
+                                const type2Select = document.getElementById('correlation-type-2');
+                                if (type1Select) type1Select.selectedIndex = 0;
+                                if (type2Select) type2Select.selectedIndex = 0;
+                                
+                                // Clear any checked checkboxes in the advanced panel
+                                document.querySelectorAll('.correlation-type-checkbox:checked').forEach(checkbox => {
+                                    checkbox.checked = false;
+                                });
+                                
+                                console.log("Returned to correlation selection panel");
+                            }
+                        });
+                    }
                 })
                 .catch(error => {
                     console.error('Error loading correlation data:', error);
