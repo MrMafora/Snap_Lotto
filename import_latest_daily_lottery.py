@@ -63,11 +63,9 @@ def import_daily_lottery_data(filepath):
         
         # Create import history record
         import_history = ImportHistory(
-            filename=os.path.basename(filepath),
+            file_name=os.path.basename(filepath),
             import_date=datetime.now(),
-            import_type="daily_lottery_update",
-            user="system",
-            status="processing"
+            import_type="daily_lottery_update"
         )
         
         imported_count = 0
@@ -89,28 +87,52 @@ def import_daily_lottery_data(filepath):
                     if pd.isna(draw_number) or pd.isna(draw_date):
                         continue
                     
-                    # Extract the winning numbers
-                    numbers = []
-                    for i in range(1, 6):  # Daily Lottery has 5 numbers
-                        col_name = f'Number {i}'
-                        if col_name in row and not pd.isna(row[col_name]):
-                            numbers.append(int(row[col_name]))
-                    
-                    # Skip if we don't have all 5 numbers
-                    if len(numbers) != 5:
-                        errors.append(f"Draw {draw_number}: Incomplete winning numbers")
+                    # Extract the winning numbers from the "Winning Numbers (Numerical)" column
+                    winning_numbers_str = row['Winning Numbers (Numerical)']
+                    if pd.isna(winning_numbers_str):
+                        errors.append(f"Draw {draw_number}: Missing winning numbers")
+                        continue
+                        
+                    # Parse the numbers from the string
+                    try:
+                        # The winning numbers might be in different formats, try to handle them all
+                        numbers_str = str(winning_numbers_str).strip()
+                        
+                        # Check for comma-separated format
+                        if ',' in numbers_str:
+                            numbers = [int(n.strip()) for n in numbers_str.split(',')]
+                        # Check for space-separated format
+                        elif ' ' in numbers_str:
+                            numbers = [int(n.strip()) for n in numbers_str.split()]
+                        # Try to extract digits if it's a single string
+                        else:
+                            # Handle single string of digits like "12345" -> [1,2,3,4,5]
+                            numbers = [int(n) for n in numbers_str.replace(' ', '')]
+                    except Exception as e:
+                        logger.error(f"Error parsing winning numbers '{winning_numbers_str}': {e}")
+                        errors.append(f"Draw {draw_number}: Error parsing winning numbers '{winning_numbers_str}'")
                         continue
                     
-                    # Extract division data (prize information)
+                    # Daily Lottery should have 5 numbers
+                    if len(numbers) != 5:
+                        logger.error(f"Draw {draw_number}: Expected 5 numbers, got {len(numbers)}: {numbers}")
+                        errors.append(f"Draw {draw_number}: Expected 5 numbers, got {len(numbers)}: {numbers}")
+                        continue
+                    
+                    # Extract division data (prize information) using the correct column names
                     divisions = {}
-                    for div in range(1, 5):  # Daily Lottery has 4 divisions
-                        winners_col = f'Division {div} Winners'
-                        prize_col = f'Division {div} Prize'
+                    
+                    # Daily Lottery has 4 divisions
+                    for div in range(1, 5):
+                        winners_col = f'Div {div} Winners'
+                        prize_col = f'Div {div} Winnings'
                         
+                        # Add division data if both winners and prize data exist
                         if winners_col in row and prize_col in row and not pd.isna(row[winners_col]) and not pd.isna(row[prize_col]):
                             divisions[f"Division {div}"] = {
                                 "winners": str(row[winners_col]),
-                                "prize": str(row[prize_col])
+                                "prize": str(row[prize_col]),
+                                "match": "" # We don't have match information in this spreadsheet
                             }
                     
                     # Check if this draw already exists
@@ -148,11 +170,11 @@ def import_daily_lottery_data(filepath):
                     logger.error(error_msg)
                     errors.append(error_msg)
             
-            # Update import history status
-            import_history.status = "completed" if not errors else "completed_with_errors"
-            import_history.record_count = imported_count
-            import_history.error_count = len(errors)
-            import_history.error_details = json.dumps(errors)
+            # Update import history with results
+            import_history.records_added = imported_count
+            import_history.records_updated = 0
+            import_history.total_processed = imported_count
+            import_history.errors = len(errors)
             
             # Commit all changes
             db.session.commit()
