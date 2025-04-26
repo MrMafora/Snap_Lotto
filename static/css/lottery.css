@@ -572,6 +572,24 @@
     justify-content: flex-start;
 }
 
+.lottery-balls-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 0.25rem 0;
+}
+
+.lottery-balls-container .lottery-ball {
+    margin: 0.25rem 0.5rem;
+}
+
+.lottery-balls-container .bonus-number-separator {
+    margin: 0 0.5rem;
+    font-weight: bold;
+}
+
 .lottery-ball-container {
     width: 26px;
     text-align: center;
@@ -622,6 +640,19 @@
         margin: 0 1px 3px;
     }
     
+    .lottery-balls-container {
+        justify-content: center;
+    }
+    
+    .lottery-balls-container .lottery-ball {
+        margin: 0.15rem 0.3rem;
+    }
+    
+    .lottery-ball-sm {
+        width: 30px;
+        height: 30px;
+    }
+    
     .mobile-result-col {
         font-size: 0.9rem;
     }
@@ -636,6 +667,20 @@
     .lottery-ball-container {
         width: 20px;
         margin: 0 1px 2px;
+    }
+    
+    .lottery-balls-container {
+        padding: 0.15rem 0;
+    }
+    
+    .lottery-balls-container .lottery-ball {
+        margin: 0.1rem 0.2rem;
+    }
+    
+    .lottery-ball-sm {
+        width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
     }
     
     .mobile-result-row {

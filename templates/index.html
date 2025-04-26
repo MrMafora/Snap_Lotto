@@ -239,39 +239,30 @@
                                 <td class="py-1 text-nowrap">{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
                             </tr>
                             <tr class="numbers-row">
-                                <td colspan="3" class="py-2">
-                                    <div class="d-flex flex-wrap align-items-center">
-                                        <div class="numbers-container">
-                                            {% for num in result.get_numbers_list() %}
-                                                {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
-                                                
-                                                {% if loop.index0 % 4 == 0 %}
-                                                    {% set ball_class = ball_class + 'lottery-ball-red' %}
-                                                {% elif loop.index0 % 4 == 1 %}
-                                                    {% set ball_class = ball_class + 'lottery-ball-yellow' %}
-                                                {% elif loop.index0 % 4 == 2 %}
-                                                    {% set ball_class = ball_class + 'lottery-ball-green' %}
-                                                {% else %}
-                                                    {% set ball_class = ball_class + 'lottery-ball-blue' %}
-                                                {% endif %}
-                                                
-                                                <div class="lottery-ball-container">
-                                                    <span class="{{ ball_class }}">
-                                                        <span class="number">{{ num }}</span>
-                                                    </span>
-                                                </div>
-                                            {% endfor %}
-                                            {% if result.bonus_numbers %}
-                                                <div class="mx-1 d-flex align-items-center">+</div>
-                                                {% for num in result.get_bonus_numbers_list() %}
-                                                    <div class="lottery-ball-container">
-                                                        <span class="lottery-ball lottery-ball-sm lottery-ball-yellow lottery-ball-bonus">
-                                                            <span class="number">{{ num }}</span>
-                                                        </span>
-                                                    </div>
-                                                {% endfor %}
+                                <td class="py-1" colspan="3">
+                                    <div class="lottery-balls-container">
+                                        {% for num in result.get_numbers_list() %}
+                                            {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
+                                            
+                                            {% if loop.index0 % 4 == 0 %}
+                                                {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                            {% elif loop.index0 % 4 == 1 %}
+                                                {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                            {% elif loop.index0 % 4 == 2 %}
+                                                {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                            {% else %}
+                                                {% set ball_class = ball_class + 'lottery-ball-blue' %}
                                             {% endif %}
-                                        </div>
+                                            
+                                            <span class="{{ ball_class }}">{{ num }}</span>
+                                        {% endfor %}
+                                        
+                                        {% if result.bonus_numbers %}
+                                            <span class="bonus-number-separator">+</span>
+                                            {% for num in result.get_bonus_numbers_list() %}
+                                                <span class="lottery-ball lottery-ball-sm lottery-ball-yellow lottery-ball-bonus">{{ num }}</span>
+                                            {% endfor %}
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
