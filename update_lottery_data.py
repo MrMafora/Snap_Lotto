@@ -127,26 +127,32 @@ def standardize_lottery_type(lottery_type):
         
     lottery_type = str(lottery_type).strip()
     
-    # Map common variations to standard names
+    # Map common variations to standard names - prioritize "Lottery" terminology
     mapping = {
-        'lotto': 'Lottery',
         'lottery': 'Lottery',
-        'lotto plus 1': 'Lottery Plus 1',
+        'lotto': 'Lottery',
         'lottery plus 1': 'Lottery Plus 1',
-        'lotto plus1': 'Lottery Plus 1',
+        'lottery + 1': 'Lottery Plus 1',
+        'lottery+1': 'Lottery Plus 1',
         'lottery plus1': 'Lottery Plus 1',
-        'lotto plus 2': 'Lottery Plus 2',
+        'lotteryplus1': 'Lottery Plus 1',
+        'lotto plus 1': 'Lottery Plus 1',
+        'lotto plus1': 'Lottery Plus 1',
         'lottery plus 2': 'Lottery Plus 2',
-        'lotto plus2': 'Lottery Plus 2',
+        'lottery + 2': 'Lottery Plus 2',
+        'lottery+2': 'Lottery Plus 2',
         'lottery plus2': 'Lottery Plus 2',
+        'lotteryplus2': 'Lottery Plus 2',
+        'lotto plus 2': 'Lottery Plus 2',
+        'lotto plus2': 'Lottery Plus 2',
         'powerball': 'Powerball',
         'power ball': 'Powerball',
         'powerball plus': 'Powerball Plus',
         'power ball plus': 'Powerball Plus',
-        'daily lotto': 'Daily Lottery',
         'daily lottery': 'Daily Lottery',
-        'dailylotto': 'Daily Lottery',
-        'dailylottery': 'Daily Lottery'
+        'dailylottery': 'Daily Lottery',
+        'daily lotto': 'Daily Lottery',
+        'dailylotto': 'Daily Lottery'
     }
     
     # Standardize case for lookup

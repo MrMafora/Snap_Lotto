@@ -381,8 +381,8 @@ def import_excel_data(excel_file, flask_app=None):
             # Map standard column names to actual columns in the spreadsheet
             column_mapping = {}
             
-            # Check for common column name patterns in Snap Lottery format
-            game_name_variants = ['game name', 'game type', 'lottery type', 'lottery game', 'lottery', 'lotto type']
+            # Check for common column name patterns in Snap Lottery format - prioritize "lottery" terms
+            game_name_variants = ['game name', 'game type', 'lottery type', 'lottery game', 'lottery', 'lotto type', 'lotto game', 'lotto']
             draw_number_variants = ['draw number', 'draw no', 'draw id', 'number']
             draw_date_variants = ['draw date', 'game date', 'date']
             numbers_variants = ['winning numbers', 'main numbers', 'numbers']
