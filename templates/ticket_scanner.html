@@ -981,22 +981,36 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             const remainingMs = Math.max(0, window.countdownDuration - elapsedMs);
                             const remainingSeconds = Math.ceil(remainingMs / 1000);
                             
-                            // Get countdownNumber element
-                            const countdownNumber = document.getElementById('countdown-number');
-                            
-                            // Only update if the element exists
-                            if (countdownNumber) {
-                                countdownNumber.textContent = `Results available in ${remainingSeconds} seconds...`;
-                            }
-                            
-                            // Update button text
+                            // CRITICAL FIX: First check if time is up
                             if (remainingSeconds <= 0) {
-                                viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                                viewResultsBtn.disabled = false;
-                                viewResultsBtn.style.opacity = '1';
-                                viewResultsBtn.style.cursor = 'pointer';
+                                // Time's up - update both displays
+                                const countdownNumber = document.getElementById('countdown-number');
+                                if (countdownNumber) {
+                                    countdownNumber.textContent = 'Results available now!';
+                                }
+                                
+                                // Update button with results ready message
+                                if (viewResultsBtn) {
+                                    viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                    viewResultsBtn.disabled = false;
+                                    viewResultsBtn.style.opacity = '1';
+                                    viewResultsBtn.style.cursor = 'pointer';
+                                    viewResultsBtn.classList.add('btn-pulse');
+                                }
                             } else {
-                                viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${remainingSeconds}s)`;
+                                // Still counting down - update both displays
+                                const countdownNumber = document.getElementById('countdown-number');
+                                if (countdownNumber) {
+                                    countdownNumber.textContent = `Results available in ${remainingSeconds} seconds...`;
+                                }
+                                
+                                // Update button with wait message
+                                if (viewResultsBtn) {
+                                    viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${remainingSeconds}s)`;
+                                    viewResultsBtn.disabled = true;
+                                    viewResultsBtn.style.opacity = '0.7';
+                                    viewResultsBtn.style.cursor = 'not-allowed';
+                                }
                             }
                             
                             // Check if countdown is complete
@@ -1015,11 +1029,33 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 // Make the button pulse to draw attention
                                 viewResultsBtn.classList.add('btn-pulse');
                                 
-                                // CRITICAL: Force direct click handler to fix clickability issues
-                                // Remove any existing handlers first by cloning the button
-                                const newBtn = viewResultsBtn.cloneNode(true);
-                                viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
-                                viewResultsBtn = newBtn; // Update reference
+                                // CRITICAL FIX: Use a safer approach to reset event handlers
+                                try {
+                                    // Only try to replace if the button has a parent node
+                                    if (viewResultsBtn && viewResultsBtn.parentNode) {
+                                        // Clone and replace to remove existing handlers
+                                        const newBtn = viewResultsBtn.cloneNode(true);
+                                        viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+                                        viewResultsBtn = newBtn; // Update reference
+                                        console.log('Successfully replaced button with clone');
+                                    } else {
+                                        // Just make sure the button is truly enabled
+                                        console.log('Button replacement skipped - ensuring enabled state');
+                                        if (viewResultsBtn) {
+                                            viewResultsBtn.disabled = false;
+                                            viewResultsBtn.style.pointerEvents = 'auto';
+                                            viewResultsBtn.style.opacity = '1';
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.error('Error replacing button:', e);
+                                    // Fall back to just enabling the button
+                                    if (viewResultsBtn) {
+                                        viewResultsBtn.disabled = false;
+                                        viewResultsBtn.style.pointerEvents = 'auto';
+                                        viewResultsBtn.style.opacity = '1';
+                                    }
+                                }
                                 
                                 // Add simple direct click handler that just hides the overlay
                                 viewResultsBtn.addEventListener('click', function(e) {
@@ -1092,10 +1128,33 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 viewResultsBtn.classList.add('btn-pulse');
                                 viewResultsBtn.setAttribute('data-forced-enabled', 'true');
                                 
-                                // CRITICAL FIX: Replace the button with a clone to remove any event handlers that might prevent clicks
-                                const newBtn = viewResultsBtn.cloneNode(true);
-                                viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
-                                viewResultsBtn = newBtn;
+                                // CRITICAL FIX: Use a safer approach to reset event handlers
+                                try {
+                                    // Only try to replace if the button has a parent node
+                                    if (viewResultsBtn && viewResultsBtn.parentNode) {
+                                        // Clone and replace to remove existing handlers
+                                        const newBtn = viewResultsBtn.cloneNode(true);
+                                        viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+                                        viewResultsBtn = newBtn; // Update reference
+                                        console.log('Successfully replaced button with clone (backup timer)');
+                                    } else {
+                                        // Just make sure the button is truly enabled
+                                        console.log('Button replacement skipped in backup timer - ensuring enabled state');
+                                        if (viewResultsBtn) {
+                                            viewResultsBtn.disabled = false;
+                                            viewResultsBtn.style.pointerEvents = 'auto';
+                                            viewResultsBtn.style.opacity = '1';
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.error('Error replacing button in backup timer:', e);
+                                    // Fall back to just enabling the button
+                                    if (viewResultsBtn) {
+                                        viewResultsBtn.disabled = false;
+                                        viewResultsBtn.style.pointerEvents = 'auto';
+                                        viewResultsBtn.style.opacity = '1';
+                                    }
+                                }
                                 
                                 // Add a direct click handler that will ALWAYS fire
                                 viewResultsBtn.addEventListener('click', function directClickHandler(e) {
