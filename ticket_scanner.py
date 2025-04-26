@@ -369,7 +369,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
         if lp1_rows_with_matches:
             lp1_result_data["rows_with_matches"] = lp1_rows_with_matches
             
-        result["lotto_plus_1_results"] = lp1_result_data
+        result["lottery_plus_1_results"] = lp1_result_data
         
         # If Lotto Plus 1 has a prize but the main game doesn't, mark overall ticket as winning
         if bool(lp1_prize_info) and not bool(prize_info):
@@ -404,7 +404,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
                         "matched_numbers": row_matches,
                         "matched_bonus": row_bonus_matches,
                         "total_matched": len(row_matches) + len(row_bonus_matches),
-                        "game_type": "Lotto Plus 2"  # Add game type for clarity
+                        "game_type": "Lottery Plus 2"  # Add game type for clarity
                     })
                     
                     # Track best matches
@@ -425,12 +425,12 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             lp2_matched_numbers = [num for num in ticket_numbers if num in lp2_winning_numbers]
             lp2_matched_bonus = [num for num in ticket_numbers if num in lp2_bonus_numbers]
         
-        # Check for prize in Lotto Plus 2
-        lp2_prize_info = get_prize_info("Lotto Plus 2", lp2_matched_numbers, lp2_matched_bonus, lotto_plus_2_result)
+        # Check for prize in Lottery Plus 2
+        lp2_prize_info = get_prize_info("Lottery Plus 2", lp2_matched_numbers, lp2_matched_bonus, lotto_plus_2_result)
         
-        # Include Lotto Plus 2 results in our response
+        # Include Lottery Plus 2 results in our response
         lp2_result_data = {
-            "lottery_type": "Lotto Plus 2",
+            "lottery_type": "Lottery Plus 2",
             "draw_number": lotto_plus_2_result.draw_number,
             "draw_date": lotto_plus_2_result.draw_date.strftime("%A, %d %B %Y"),
             "winning_numbers": lp2_winning_numbers,
@@ -446,12 +446,12 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
         if lp2_rows_with_matches:
             lp2_result_data["rows_with_matches"] = lp2_rows_with_matches
             
-        result["lotto_plus_2_results"] = lp2_result_data
+        result["lottery_plus_2_results"] = lp2_result_data
         
-        # If Lotto Plus 2 has a prize but no other game has a prize, mark overall ticket as winning
-        # First check if we have a Lotto Plus 1 result with a prize
+        # If Lottery Plus 2 has a prize but no other game has a prize, mark overall ticket as winning
+        # First check if we have a Lottery Plus 1 result with a prize
         lp1_has_prize = False
-        if lotto_plus_1_result and result.get("lotto_plus_1_results", {}).get("has_prize", False):
+        if lotto_plus_1_result and result.get("lottery_plus_1_results", {}).get("has_prize", False):
             lp1_has_prize = True
                 
         # Now check if Lotto Plus 2 has a prize but no other game does
@@ -727,7 +727,7 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
             ticket_numbers = [int(num) for num in numbers if 1 <= int(num) <= 50]
             
             # Limit to appropriate number of selections based on lottery type
-            if ('Lottery' in lottery_type or 'Lotto' in lottery_type) and 'Powerball' not in lottery_type:
+            if 'Lottery' in lottery_type and 'Powerball' not in lottery_type:
                 ticket_numbers = ticket_numbers[:6]
             elif 'Powerball' in lottery_type:
                 ticket_numbers = ticket_numbers[:6]  # 5 main + 1 powerball
@@ -871,7 +871,7 @@ def get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result)
     division = None
     match_type = ""
     
-    if ("Lottery" in lottery_type or "Lotto" in lottery_type) and "Powerball" not in lottery_type:
+    if "Lottery" in lottery_type and "Powerball" not in lottery_type:
         # Lottery/Lottery Plus prize structure
         if match_count == 6:
             division = "Division 1"
