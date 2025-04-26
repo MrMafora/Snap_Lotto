@@ -602,7 +602,7 @@
 
 .chart-card {
     background-color: #fff;
-    padding: 15px;
+    padding: 10px;
     border-radius: 5px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     margin-bottom: 20px;
@@ -621,7 +621,8 @@
 
 .data-analytics-preview .frequency-chart-container {
     width: 100%;
-    height: 280px;
+    height: 310px;
+    margin-top: -10px;
 }
 
 .data-analytics-preview .temperature-chart-container {
@@ -740,9 +741,14 @@
 }
 
 /* Make section headers more compact */
-.hot-numbers h5, .cold-numbers h5, .absent-numbers h5 {
+.hot-numbers h5, .cold-numbers h5, .absent-numbers h5, .data-analytics-preview .chart-card h5 {
     margin-bottom: 5px;
     margin-top: 0;
+}
+
+/* Make the chart title more compact */
+.data-analytics-preview .chart-card h5 {
+    margin-bottom: 2px;
 }
 
 /* Mobile styles for small screens only */
