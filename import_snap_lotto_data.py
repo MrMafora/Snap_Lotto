@@ -72,18 +72,18 @@ def get_lottery_type(game_name):
         
     game_str = str(game_name).strip().upper()
     
-    if game_str == "LOTTO":
-        return "Lotto"
-    elif game_str == "LOTTO PLUS 1":
-        return "Lotto Plus 1"
-    elif game_str == "LOTTO PLUS 2":
-        return "Lotto Plus 2"
+    if game_str == "LOTTO" or game_str == "LOTTERY":
+        return "Lottery"
+    elif game_str == "LOTTO PLUS 1" or game_str == "LOTTERY PLUS 1":
+        return "Lottery Plus 1"
+    elif game_str == "LOTTO PLUS 2" or game_str == "LOTTERY PLUS 2":
+        return "Lottery Plus 2"
     elif game_str == "POWERBALL":
         return "Powerball"
     elif game_str == "POWERBALL PLUS":
         return "Powerball Plus"
-    elif game_str == "DAILY LOTTO":
-        return "Daily Lotto"
+    elif game_str == "DAILY LOTTO" or game_str == "DAILY LOTTERY":
+        return "Daily Lottery"
     
     # Default case: return the original but with proper capitalization
     return game_name.strip().title()
@@ -152,8 +152,8 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     flash(f"Unable to read the Excel file. The file might be corrupted or not a valid Excel file.", "danger")
                     return False
             
-            # Check if this is our template format (has lotto type sheets)
-            expected_sheets = ["Lotto", "Lotto Plus 1", "Lotto Plus 2", "Powerball", "Powerball Plus", "Daily Lotto"]
+            # Check if this is our template format (has lottery type sheets)
+            expected_sheets = ["Lottery", "Lottery Plus 1", "Lottery Plus 2", "Powerball", "Powerball Plus", "Daily Lottery"]
             
             # If this is our template format, check if there's data in at least one sheet
             if any(sheet in sheet_names for sheet in expected_sheets):
@@ -301,8 +301,8 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                                 # Skip adding this division entirely when data is not available
                                 continue
                             
-                            # Handle Daily Lotto differently due to different data format in the spreadsheet
-                            if lottery_type == "Daily Lotto":
+                            # Handle Daily Lottery differently due to different data format in the spreadsheet
+                            if lottery_type == "Daily Lottery":
                                 # Check if the winners column actually contains a prize value (R prefix)
                                 if isinstance(row[winners_col], str) and row[winners_col].strip().startswith('R'):
                                     divisions[f"Division {i}"] = {

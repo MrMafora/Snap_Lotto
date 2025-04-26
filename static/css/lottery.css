@@ -244,13 +244,13 @@
     background-color: #1a98c5;
 }
 
-/* Lotto Plus 1 matches - purple */
-.match-lotto-plus-1 {
+/* Lottery Plus 1 matches - purple */
+.match-lottery-plus-1 {
     background-color: #8a2be2;
 }
 
-/* Lotto Plus 2 matches - orange */
-.match-lotto-plus-2 {
+/* Lottery Plus 2 matches - orange */
+.match-lottery-plus-2 {
     background-color: #ff7f00;
 }
 
@@ -263,11 +263,11 @@
     background-color: #0070c0;
 }
 
-.match-lotto-plus-1-bonus {
+.match-lottery-plus-1-bonus {
     background-color: #6a1b9a;
 }
 
-.match-lotto-plus-2-bonus {
+.match-lottery-plus-2-bonus {
     background-color: #e65100;
 }
 
@@ -318,7 +318,7 @@
     color: white;
 }
 
-.game-type-lotto {
+.game-type-lottery {
     background-color: var(--lottery-red);
 }
 
