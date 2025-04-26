@@ -22,16 +22,14 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     @media (max-width: 576px) {
         /* Improve ball sizing and spacing for mobile view */
         .lottery-ball {
-            width: 38px !important;
-            height: 38px !important;
-            line-height: 38px !important;
-            font-size: 16px !important;
-            margin: 5px !important;
+            width: 35px !important;
+            height: 35px !important;
+            line-height: 35px !important;
+            font-size: 15px !important;
+            margin: 4px !important;
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
-            position: relative !important;
-            z-index: 1 !important;
         }
         
         /* Make the lottery balls container wrap properly */
@@ -40,62 +38,31 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             display: flex !important;
             flex-wrap: wrap !important;
             justify-content: flex-start !important;
-            gap: 10px !important;
-            margin-bottom: 20px !important;
-            width: 100% !important;
-            overflow: visible !important;
+            gap: 8px !important;
+            margin-bottom: 15px !important;
         }
         
         /* Make sure there's adequate spacing between rows */
         #ticket-numbers > div {
-            margin-bottom: 30px !important;
-            padding-bottom: 20px !important;
-            border-bottom: 1px solid #eee !important;
-            overflow: visible !important;
-            position: relative !important;
+            margin-bottom: 20px !important;
         }
         
         /* Ensure adequate spacing around plus signs */
         .mx-2 {
-            margin: 0 10px !important;
-            display: inline-block !important;
+            margin: 0 6px !important;
         }
         
         /* Add extra bottom padding to ensure content is visible */
         #results-container {
-            padding-bottom: 200px !important;
-        }
-        
-        /* Give the ticket numbers container ample space */
-        #ticket-numbers {
-            padding-bottom: 50px !important;
+            padding-bottom: 100px !important;
         }
         
         /* Make row labels more prominent */
         #ticket-numbers strong {
             font-size: 16px !important;
-            display: block !important;
-            margin-bottom: 10px !important;
-        }
-        
-        /* Ensure matched balls are visible */
-        .ball-matched {
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.8) !important;
-            border: 2px solid gold !important;
-            transform: scale(1.1) !important;
-            z-index: 2 !important;
-        }
-        
-        /* Make match indicators more visible */
-        .match-indicator {
-            font-size: 14px !important;
-            font-weight: bold !important;
         }
     }
 </style>
-
-<!-- Mobile display enhancer script -->
-<script src="{{ url_for('static', filename='js/mobile_ticket_display.js') }}"></script>
 
 <!-- Structured Data for SEO -->
 <script type="application/ld+json">
