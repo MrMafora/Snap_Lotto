@@ -365,7 +365,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             "prize_info": lp1_prize_info if lp1_prize_info else {}
         }
         
-        # Add rows with matches for Lotto Plus 1 if available
+        # Add rows with matches for Lottery Plus 1 if available
         if lp1_rows_with_matches:
             lp1_result_data["rows_with_matches"] = lp1_rows_with_matches
             
@@ -386,12 +386,12 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             lp2_bonus_numbers = lottery_plus_2_result.get_bonus_numbers_list()
             lp2_bonus_numbers = [int(num) for num in lp2_bonus_numbers]
         
-        # Initialize best matches for Lotto Plus 2
+        # Initialize best matches for Lottery Plus 2
         lp2_best_matches = []
         lp2_best_bonus_matches = []
         lp2_rows_with_matches = []
         
-        # Check each row separately for Lotto Plus 2 matches
+        # Check each row separately for Lottery Plus 2 matches
         if raw_ticket_info and isinstance(raw_ticket_info, dict) and len(raw_ticket_info) > 0:
             for row_name, numbers in raw_ticket_info.items():
                 row_matches = [num for num in numbers if num in lp2_winning_numbers]
@@ -442,7 +442,7 @@ def process_ticket_image(image_data, lottery_type, draw_number=None, file_extens
             "prize_info": lp2_prize_info if lp2_prize_info else {}
         }
         
-        # Add rows with matches for Lotto Plus 2 if available
+        # Add rows with matches for Lottery Plus 2 if available
         if lp2_rows_with_matches:
             lp2_result_data["rows_with_matches"] = lp2_rows_with_matches
             
