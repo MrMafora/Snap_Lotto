@@ -1,413 +1,261 @@
-#!/usr/bin/env python
-"""
-Script to import South African lottery data from Excel spreadsheet.
-This script purges existing data and imports new data from the provided Excel file.
-"""
-
-import os
-import sys
-import logging
-import json
 import pandas as pd
 import numpy as np
-import openpyxl
-from datetime import datetime, timedelta
+import json
+import logging
+from datetime import datetime
 from flask import current_app
-from models import db, LotteryResult, Screenshot
+from models import LotteryResult, ImportHistory, ImportedRecord
+from sqlalchemy import desc
+from sqlalchemy.exc import SQLAlchemyError
+from datetime import datetime, timedelta
+import os
+import re
+import traceback
+from excel_date_utils import parse_excel_date
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def parse_date(date_str):
-    """Parse date from string format to datetime object"""
-    try:
-        # Use our dedicated date parsing module
-        from excel_date_utils import parse_excel_date
-        
-        # Handle NaN values
-        if pd.isna(date_str):
-            return None
-            
-        # Use the utility function for consistent date parsing
-        result = parse_excel_date(date_str)
-        
-        # Log the result for debugging
-        logger.info(f"Using excel_date_utils to parse '{date_str}' → {result}")
-        
-        return result
-                
-        # Try various date formats in order of likelihood
-        for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d', '%m/%d/%Y']:
-            try:
-                return datetime.strptime(date_str, fmt)
-            except ValueError:
-                continue
-        
-        # Last resort - try to handle Excel date serial numbers
-        try:
-            if date_str.isdigit():
-                # Excel date serial number conversion
-                return datetime(1899, 12, 30) + timedelta(days=int(date_str))
-        except:
-            pass
-                
-        # If all formats fail, log the error but don't immediately fail
-        # Try to extract any date-like pattern from the string
-        import re
-        date_patterns = [
-            r'(\d{4})[/-](\d{1,2})[/-](\d{1,2})',  # YYYY-MM-DD
-            r'(\d{1,2})[/-](\d{1,2})[/-](\d{4})'   # DD-MM-YYYY or MM-DD-YYYY
-        ]
-        
-        for pattern in date_patterns:
-            match = re.search(pattern, date_str)
-            if match:
-                try:
-                    groups = match.groups()
-                    if len(groups[0]) == 4:  # YYYY-MM-DD
-                        return datetime(int(groups[0]), int(groups[1]), int(groups[2]))
-                    else:  # DD-MM-YYYY or MM-DD-YYYY (assume DD-MM-YYYY)
-                        return datetime(int(groups[2]), int(groups[1]), int(groups[0]))
-                except:
-                    continue
-                    
-        # If we still can't parse it, raise error
-        logger.error(f"All date parsing attempts failed for: {date_str}")
-        raise ValueError(f"Couldn't parse date: {date_str}")
-    except Exception as e:
-        logger.error(f"Error parsing date {date_str}: {str(e)}")
-        return None
-
-def parse_numbers(numbers_str):
-    """Parse numbers from string format to list of integers"""
-    try:
-        if pd.isna(numbers_str):
-            return []
-            
-        # Handle different formats
-        if isinstance(numbers_str, str):
-            # If numbers are comma-separated
-            if ',' in numbers_str:
-                numbers = [int(num.strip()) for num in numbers_str.split(',') if num.strip().isdigit()]
-                if numbers:
-                    return numbers
-                    
-            # If numbers are space-separated or have other delimiters
-            clean_str = ''.join(c if c.isdigit() or c.isspace() else ' ' for c in numbers_str)
-            numbers = [int(num) for num in clean_str.split() if num.strip().isdigit()]
-            return numbers
-        elif isinstance(numbers_str, (int, float)):
-            # Single number
-            return [int(numbers_str)]
-        else:
-            return []
-    except Exception as e:
-        logger.error(f"Error parsing numbers {numbers_str}: {str(e)}")
-        return []
-
-def parse_divisions(divisions_data):
-    """Parse divisions data from various formats to a structured dictionary"""
-    if pd.isna(divisions_data):
-        return {}
-        
-    divisions = {}
-    try:
-        # If it's already a string that looks like JSON
-        if isinstance(divisions_data, str) and ('{' in divisions_data or ':' in divisions_data):
-            try:
-                # Try to parse as JSON if it looks like a dictionary
-                if '{' in divisions_data:
-                    return json.loads(divisions_data)
-                
-                # Try to parse from semicolon-separated format
-                # Division 1: 0 winners, R0.00; Division 2: 5 winners, R100,563.40
-                if ';' in divisions_data:
-                    division_parts = divisions_data.split(';')
-                    for part in division_parts:
-                        if ':' in part:
-                            div_name, div_data = part.split(':', 1)
-                            div_name = div_name.strip()
-                            div_data = div_data.strip()
-                            if ',' in div_data:
-                                winners_part, prize_part = div_data.split(',', 1)
-                                # Clean up winners part to extract just the number
-                                winners = ''.join(c for c in winners_part if c.isdigit())
-                                # Keep the prize as is with R and commas
-                                prize = prize_part.strip()
-                                divisions[div_name] = {
-                                    "winners": winners,
-                                    "prize": prize
-                                }
-            except Exception as e:
-                logger.warning(f"Error parsing divisions string: {str(e)}")
-                
-        # For more complex division data that might be in columns
-        # We'll handle this in the main import function
-                
-    except Exception as e:
-        logger.error(f"Error parsing divisions: {str(e)}")
-        
-    return divisions
-
 def standardize_lottery_type(lottery_type):
-    """Standardize lottery type names for consistency"""
-    if pd.isna(lottery_type):
-        return ""
+    """
+    Standardize lottery type names to ensure consistency, prioritizing "Lottery" naming.
+    
+    Args:
+        lottery_type (str): Original lottery type name
         
-    # Convert to string, strip whitespace, and lowercase for comparison
-    lt = str(lottery_type).strip().lower()
+    Returns:
+        str: Standardized lottery type name
+    """
+    if not lottery_type:
+        return lottery_type
     
-    # Enhanced logging for troubleshooting
-    logger.debug(f"Standardizing lottery type: '{lottery_type}' (lowercase: '{lt}')")
+    # Convert to string if not already
+    if not isinstance(lottery_type, str):
+        lottery_type = str(lottery_type)
     
-    # Normalize common variations with improved pattern matching - prioritize "Lottery" over "Lotto"
-    if ('lottery plus 1' in lt or 'lotto plus 1' in lt or 'lottery+1' in lt or 'lotto+1' in lt or
-        'lottery + 1' in lt or 'lotto + 1' in lt or 'lottery plus1' in lt or 'lotto plus1' in lt or
-        lt == 'lottery plus 1' or lt == 'lotto plus 1' or 'lotteryplus1' in lt or 'lottoplus1' in lt):
+    # Normalize to lowercase for matching
+    lottery_lower = lottery_type.lower().strip()
+    
+    # Define standardized mappings - prioritize "Lottery" terminology
+    standard_mapping = {
+        # Primary forms with "Lottery"
+        'lottery': 'Lottery',
+        'lottery plus 1': 'Lottery Plus 1',
+        'lottery+1': 'Lottery Plus 1',
+        'lottery plus one': 'Lottery Plus 1',
+        'lottery plus1': 'Lottery Plus 1',
+        'lottery + 1': 'Lottery Plus 1',
+        'lottery plus 2': 'Lottery Plus 2',
+        'lottery+2': 'Lottery Plus 2',
+        'lottery plus two': 'Lottery Plus 2',
+        'lottery plus2': 'Lottery Plus 2',
+        'lottery + 2': 'Lottery Plus 2',
+        'daily lottery': 'Daily Lottery',
+        'dailylottery': 'Daily Lottery',
+        
+        # Legacy forms with "Lotto"
+        'lotto': 'Lottery',
+        'lotto plus 1': 'Lottery Plus 1',
+        'lotto+1': 'Lottery Plus 1',
+        'lotto plus one': 'Lottery Plus 1',
+        'lotto plus1': 'Lottery Plus 1',
+        'lotto + 1': 'Lottery Plus 1',
+        'lotto plus 2': 'Lottery Plus 2',
+        'lotto+2': 'Lottery Plus 2',
+        'lotto plus two': 'Lottery Plus 2',
+        'lotto plus2': 'Lottery Plus 2',
+        'lotto + 2': 'Lottery Plus 2',
+        'daily lotto': 'Daily Lottery',
+        'dailylotto': 'Daily Lottery',
+        
+        # Powerball forms (unchanged)
+        'powerball': 'Powerball',
+        'powerball+': 'Powerball Plus',
+        'powerball plus': 'Powerball Plus',
+    }
+    
+    # Check for direct match in mappings
+    if lottery_lower in standard_mapping:
+        return standard_mapping[lottery_lower]
+    
+    # Check for partial matches based on known prefixes/patterns
+    if lottery_lower.startswith('lottery plus 1') or lottery_lower.startswith('lotto plus 1'):
         return 'Lottery Plus 1'
-    elif ('lottery plus 2' in lt or 'lotto plus 2' in lt or 'lottery+2' in lt or 'lotto+2' in lt or
-          'lottery + 2' in lt or 'lotto + 2' in lt or 'lottery plus2' in lt or 'lotto plus2' in lt or
-          lt == 'lottery plus 2' or lt == 'lotto plus 2' or 'lotteryplus2' in lt or 'lottoplus2' in lt):
+    elif lottery_lower.startswith('lottery plus 2') or lottery_lower.startswith('lotto plus 2'):
         return 'Lottery Plus 2'
-    elif ('powerball plus' in lt or 'powerball+' in lt or 'power ball plus' in lt or 
-          'powerballplus' in lt or lt == 'powerball plus'):
+    elif lottery_lower.startswith('powerball plus'):
         return 'Powerball Plus'
-    elif ('powerball' in lt or 'power ball' in lt or lt == 'powerball'):
-        # Only match if it's not "powerball plus"
-        if 'plus' not in lt:
-            return 'Powerball'
-    elif ('daily lottery' in lt or 'dailylottery' in lt or 'daily lotto' in lt or 'dailylotto' in lt or
-          lt == 'daily lottery' or lt == 'dailylottery' or lt == 'daily lotto' or lt == 'dailylotto'):
+    elif lottery_lower.startswith('powerball'):
+        return 'Powerball'
+    elif lottery_lower.startswith('daily lottery') or lottery_lower.startswith('daily lotto'):
         return 'Daily Lottery'
-    # Main Lottery/Lotto - match only if it contains "lottery" or "lotto" but NOT "plus" or "daily"
-    # Prioritize searching for "lottery" first
-    elif ('lottery' in lt or 'lotto' in lt) and 'plus' not in lt and 'daily' not in lt:
-        # Log when we standardize to "Lottery" for debugging
-        if lottery_type.upper() == 'LOTTERY' or lottery_type.upper() == 'LOTTO':
-            logger.info(f"Standardizing '{lottery_type}' to 'Lottery'")
+    elif lottery_lower == 'lottery' or lottery_lower == 'lotto':
         return 'Lottery'
     
     # If no match, log a warning and return original with proper capitalization
     logger.warning(f"No standard match found for lottery type: '{lottery_type}'")
     return str(lottery_type).strip()
 
+def parse_numbers(numbers_str):
+    """
+    Parse lottery numbers from various string formats to a list of integers.
+    
+    Args:
+        numbers_str (str): String containing numbers
+        
+    Returns:
+        list: List of integers
+    """
+    if not numbers_str or pd.isna(numbers_str):
+        return []
+        
+    # Convert to string if it's not already
+    if not isinstance(numbers_str, str):
+        numbers_str = str(numbers_str)
+        
+    # Try different delimiters: comma, space, semicolon
+    for delimiter in [',', ' ', ';']:
+        # Try splitting by this delimiter
+        parts = numbers_str.split(delimiter)
+        # If we get multiple parts and they look like numbers, use this delimiter
+        if len(parts) > 1 and all(part.strip().isdigit() for part in parts if part.strip()):
+            return [int(part.strip()) for part in parts if part.strip().isdigit()]
+    
+    # If no delimiter worked, check if the string is just a single number
+    if numbers_str.strip().isdigit():
+        return [int(numbers_str.strip())]
+    
+    # If we got here, we couldn't parse the numbers
+    return []
+
+def parse_divisions(divisions_data):
+    """
+    Parse divisions data from various formats to a structured dictionary.
+    
+    Args:
+        divisions_data (dict): Dictionary of raw division data
+        
+    Returns:
+        dict: Structured divisions dictionary
+    """
+    if not divisions_data:
+        return {}
+        
+    divisions = {}
+    
+    # First check if we have division-like keys
+    division_pattern = re.compile(r'(division|div)\s*(\d+)', re.IGNORECASE)
+    
+    # Process each key in the divisions data
+    for key, value in divisions_data.items():
+        if not key or pd.isna(key):
+            continue
+            
+        # Check if this key relates to a division
+        match = division_pattern.search(str(key))
+        if match:
+            # This is a division key, extract the division number
+            division_num = match.group(2)
+            division_key = f"Division {division_num}"
+            
+            # Check if this is a winners or prize key
+            if 'winner' in str(key).lower():
+                if division_key not in divisions:
+                    divisions[division_key] = {}
+                divisions[division_key]['winners'] = value
+            elif any(prize_term in str(key).lower() for prize_term in ['prize', 'payout', 'winnings']):
+                if division_key not in divisions:
+                    divisions[division_key] = {}
+                
+                # Format prize value
+                if isinstance(value, str):
+                    if not value.startswith("R"):
+                        prize_value = f"R{value}"
+                    else:
+                        prize_value = value
+                else:
+                    prize_value = f"R{value}"
+                    
+                divisions[division_key]['prize'] = prize_value
+    
+    return divisions
+
 def import_excel_data(excel_file, flask_app=None):
     """
-    Import lottery data from Excel spreadsheet with improved robust handling.
-    Prioritizes "Lottery" terminology over "Lotto".
+    Import lottery data from Excel spreadsheet with enhanced error handling.
+    Prioritizes "Lottery" terminology over "Lotto" in all processing.
     
     Args:
         excel_file (str): Path to Excel file
         flask_app: Flask app object for context (optional)
     """
+    # Initialize counters
+    imported_count = 0
+    updated_count = 0
+    error_count = 0
+    imported_records = []
+    last_import_history_id = None
+    
     try:
         # Use current_app or provided app
         ctx = flask_app.app_context() if flask_app else current_app.app_context()
         
         with ctx:
-            logger.info(f"Starting import from {excel_file}...")
-            # Initialize counters and tracking lists at the beginning of the function
-            imported_count = 0
-            updated_count = 0
-            error_count = 0
-            imported_records = []
+            logger.info(f"Starting import from {excel_file}")
             
-            # Get basic file information
-            import os
-            try:
-                file_size = os.path.getsize(excel_file)
-                logger.info(f"Excel file size: {file_size} bytes")
-            except Exception as e:
-                logger.error(f"Error checking file size: {str(e)}")
-                
-            # Try multiple Excel reading engines for maximum compatibility
-            df = None
-            excel_read_error = None
+            # Log file information for debugging
+            file_size = os.path.getsize(excel_file)
+            logger.info(f"Excel file size: {file_size} bytes")
             
-            # Try openpyxl first (most modern Excel files)
+            # Try different engines for maximum compatibility
+            read_success = False
+            error_messages = []
+            
+            # Try with openpyxl engine first
             try:
-                logger.info("Trying to read Excel with openpyxl engine...")
+                logger.info("Reading Excel with openpyxl engine")
                 df = pd.read_excel(excel_file, engine="openpyxl")
-                logger.info("Successfully read Excel with openpyxl engine")
+                read_success = True
+                logger.info("Successfully read with openpyxl engine")
             except Exception as e:
-                logger.warning(f"Failed to read with openpyxl engine: {str(e)}")
-                excel_read_error = str(e)
+                error_msg = f"Error with openpyxl engine: {str(e)}"
+                logger.warning(error_msg)
+                error_messages.append(error_msg)
             
-            # If openpyxl failed, try xlrd (older Excel files)
-            if df is None:
+            # If openpyxl failed, try xlrd engine
+            if not read_success:
                 try:
-                    logger.info("Trying to read Excel with xlrd engine...")
+                    logger.info("Reading Excel with xlrd engine")
                     df = pd.read_excel(excel_file, engine="xlrd")
-                    logger.info("Successfully read Excel with xlrd engine")
+                    read_success = True
+                    logger.info("Successfully read with xlrd engine")
                 except Exception as e:
-                    logger.warning(f"Failed to read with xlrd engine: {str(e)}")
-                    excel_read_error = str(e)
+                    error_msg = f"Error with xlrd engine: {str(e)}"
+                    logger.warning(error_msg)
+                    error_messages.append(error_msg)
             
-            # Last resort: try the default engine
-            if df is None:
+            # Last resort: try default engine
+            if not read_success:
                 try:
-                    logger.info("Trying to read Excel with default engine...")
+                    logger.info("Reading Excel with default engine")
                     df = pd.read_excel(excel_file)
-                    logger.info("Successfully read Excel with default engine")
+                    read_success = True
+                    logger.info("Successfully read with default engine")
                 except Exception as e:
-                    logger.error(f"ALL Excel engines failed. Final error: {str(e)}")
+                    error_msg = f"Error with default engine: {str(e)}"
+                    logger.error(error_msg)
+                    error_messages.append(error_msg)
+                    # All engines failed, create ImportHistory entry with error
+                    import_history = ImportHistory(
+                        filename=os.path.basename(excel_file),
+                        timestamp=datetime.utcnow(),
+                        status="error",
+                        notes=f"Failed to read Excel file: {'; '.join(error_messages)}"
+                    )
+                    db.session.add(import_history)
+                    db.session.commit()
                     return False
-            
-            # FIX for Row 1 (index 0) - Special direct processing of the FIRST ROW
-                # This ensures the data in row 1 is NEVER missed, regardless of any skipping
-                if not df.empty:
-                    # Get raw row 1 data (index 0)
-                    logger.warning("🔍 DIRECT ROW 1 ACCESS: Processing first Excel row directly")
-                    row_1 = df.iloc[0]
-                    
-                    # Extract basic data directly
-                    game_name = row_1['Game Name'] if 'Game Name' in row_1 else None
-                    
-                    if game_name is not None and not pd.isna(game_name):
-                        logger.warning(f"🎯 DIRECT ROW 1: Found game {game_name}")
-                        draw_number = str(row_1['Draw Number']).strip() if 'Draw Number' in row_1 else None
-                        draw_date = row_1['Draw Date'] if 'Draw Date' in row_1 else None
-                        winning_numbers = row_1['Winning Numbers (Numerical)'] if 'Winning Numbers (Numerical)' in row_1 else None
-                        bonus_ball = row_1['Bonus Ball'] if 'Bonus Ball' in row_1 else None
-                        
-                        # Standardize lottery type directly
-                        lottery_type = str(game_name).strip()
-                        if lottery_type.upper() == 'LOTTO' or lottery_type.upper() == 'LOTTERY':
-                            lottery_type = 'Lottery'
-                        elif 'LOTTERY PLUS 1' in lottery_type.upper() or 'LOTTO PLUS 1' in lottery_type.upper():
-                            lottery_type = 'Lottery Plus 1'
-                        elif 'LOTTERY PLUS 2' in lottery_type.upper() or 'LOTTO PLUS 2' in lottery_type.upper():
-                            lottery_type = 'Lottery Plus 2'
-                        elif 'POWERBALL PLUS' in lottery_type.upper():
-                            lottery_type = 'Powerball Plus'
-                        elif 'POWERBALL' in lottery_type.upper():
-                            lottery_type = 'Powerball'
-                        elif 'DAILY LOTTERY' in lottery_type.upper() or 'DAILY LOTTO' in lottery_type.upper():
-                            lottery_type = 'Daily Lottery'
-                            
-                        # Process numbers directly
-                        if winning_numbers is not None and not pd.isna(winning_numbers):
-                            if isinstance(winning_numbers, str):
-                                numbers = [int(num.strip()) for num in winning_numbers.split() if num.strip().isdigit()]
-                            elif isinstance(winning_numbers, (int, float)):
-                                numbers = [int(winning_numbers)]
-                            else:
-                                numbers = []
-                                
-                            # Process bonus ball directly
-                            if bonus_ball is not None and not pd.isna(bonus_ball):
-                                if isinstance(bonus_ball, (int, float)):
-                                    bonus_numbers = [int(bonus_ball)]
-                                elif isinstance(bonus_ball, str):
-                                    bonus_numbers = [int(num.strip()) for num in bonus_ball.split() if num.strip().isdigit()]
-                                else:
-                                    bonus_numbers = []
-                            else:
-                                bonus_numbers = []
-                                
-                            # Build divisions directly
-                            divisions = {}
-                            for i in range(1, 9):
-                                winners_col = f'Div {i} Winners'
-                                prize_col = f'Div {i} Winnings'
-                                
-                                if winners_col in row_1 and prize_col in row_1 and not pd.isna(row_1[winners_col]) and not pd.isna(row_1[prize_col]):
-                                    winners_value = row_1[winners_col]
-                                    prize_value = row_1[prize_col]
-                                    
-                                    # Format winners
-                                    if isinstance(winners_value, (int, float)):
-                                        winners_value = str(int(winners_value))
-                                    else:
-                                        winners_value = str(winners_value)
-                                        
-                                    # Format prize
-                                    if isinstance(prize_value, str):
-                                        if not prize_value.startswith("R"):
-                                            prize_value = f"R{prize_value}"
-                                    else:
-                                        prize_value = f"R{prize_value}"
-                                        
-                                    divisions[f"Division {i}"] = {
-                                        "winners": winners_value,
-                                        "prize": prize_value
-                                    }
-                            
-                            # Check if this result already exists in the database
-                            if lottery_type and draw_number and draw_date and numbers:
-                                logger.warning(f"✓ ROW 1 DIRECT: Valid data for {lottery_type} Draw {draw_number}")
-                                
-                                existing = LotteryResult.query.filter_by(
-                                    lottery_type=lottery_type,
-                                    draw_number=draw_number
-                                ).first()
-                                
-                                if existing:
-                                    logger.warning(f"✓ ROW 1 DIRECT: Updating existing {lottery_type} Draw {draw_number}")
-                                    # Update existing record
-                                    existing.draw_date = draw_date
-                                    existing.numbers = json.dumps(numbers)
-                                    existing.bonus_numbers = json.dumps(bonus_numbers) if bonus_numbers else None
-                                    existing.divisions = json.dumps(divisions) if divisions else None
-                                    existing.source_url = "imported-from-excel"
-                                    existing.ocr_provider = "manual-import"
-                                    existing.ocr_model = "excel-spreadsheet"
-                                    existing.ocr_timestamp = datetime.utcnow().isoformat()
-                                    db.session.commit()
-                                    imported_count += 1
-                                else:
-                                    logger.warning(f"✓ ROW 1 DIRECT: Creating new entry for {lottery_type} Draw {draw_number}")
-                                    # Create new result
-                                    new_result = LotteryResult(
-                                        lottery_type=lottery_type,
-                                        draw_number=draw_number,
-                                        draw_date=draw_date,
-                                        numbers=json.dumps(numbers),
-                                        bonus_numbers=json.dumps(bonus_numbers) if bonus_numbers else None,
-                                        divisions=json.dumps(divisions) if divisions else None,
-                                        source_url="imported-from-excel",
-                                        ocr_provider="manual-import",
-                                        ocr_model="excel-spreadsheet",
-                                        ocr_timestamp=datetime.utcnow().isoformat()
-                                    )
-                                    db.session.add(new_result)
-                                    db.session.commit()
-                                    imported_count += 1
-                                
-                                # Store this record in imported_records for later reference
-                                imported_records.append({
-                                    'lottery_type': lottery_type,
-                                    'draw_number': draw_number,
-                                    'draw_date': draw_date,
-                                    'is_new': existing is None,
-                                    'lottery_result_id': (existing.id if existing else 
-                                        LotteryResult.query.filter_by(lottery_type=lottery_type, draw_number=draw_number).first().id)
-                                })
-                                
-                                logger.warning(f"✓ ROW 1 DIRECT: Successfully processed first Excel row")
-                            else:
-                                logger.warning("✗ ROW 1 DIRECT: Missing essential data")
-                    else:
-                        logger.warning("✗ DIRECT ROW 1: No valid Game Name found in first row")
-                
-                # If we got an empty dataframe or missing expected columns, try reading all sheets
-                if df.empty or not any(col for col in df.columns if 'lottery' in str(col).lower() or 'lotto' in str(col).lower() or 'draw' in str(col).lower()):
-                    logger.info("Initial sheet appears empty or missing lottery data. Checking all sheets...")
-                    xlsx = pd.ExcelFile(excel_file)
-                    
-                    # Try each sheet until we find one with lottery data
-                    for sheet_name in xlsx.sheet_names:
-                        logger.info(f"Trying sheet: {sheet_name}")
-                        df = pd.read_excel(excel_file, sheet_name=sheet_name)
-                        # Check if this sheet has lottery data
-                        if any(col for col in df.columns if 'lottery' in str(col).lower() or 'lotto' in str(col).lower() or 'draw' in str(col).lower() or 'game' in str(col).lower()):
-                            logger.info(f"Found lottery data in sheet: {sheet_name}")
-                            break
-            except Exception as e:
-                logger.error(f"Error reading Excel file: {str(e)}")
-                return False
             
             # Replace NaN values with None for cleaner processing
             df = df.replace({np.nan: None})
@@ -415,10 +263,20 @@ def import_excel_data(excel_file, flask_app=None):
             # Log column headers for debugging
             logger.info(f"Excel columns: {', '.join(str(col) for col in df.columns)}")
             
+            # Create import history record
+            import_history = ImportHistory(
+                filename=os.path.basename(excel_file),
+                timestamp=datetime.utcnow(),
+                status="processing"
+            )
+            db.session.add(import_history)
+            db.session.commit()
+            last_import_history_id = import_history.id
+            
             # Map standard column names to actual columns in the spreadsheet
             column_mapping = {}
             
-            # Check for common column name patterns in Snap Lottery format - prioritize "lottery" terms
+            # Check for common column name patterns
             game_name_variants = ['game name', 'game type', 'lottery type', 'lottery game', 'lottery', 'lotto type', 'lotto game', 'lotto']
             draw_number_variants = ['draw number', 'draw no', 'draw id', 'number']
             draw_date_variants = ['draw date', 'game date', 'date']
@@ -429,7 +287,7 @@ def import_excel_data(excel_file, flask_app=None):
                 col_str = str(col)
                 col_lower = col_str.lower()
                 
-                # Map standard fields to actual column names with more flexible matching
+                # Map standard fields to actual column names
                 if any(variant in col_lower for variant in game_name_variants):
                     column_mapping['lottery_type'] = col
                 
@@ -441,324 +299,272 @@ def import_excel_data(excel_file, flask_app=None):
                     column_mapping['draw_number'] = col
                 
                 if any(variant in col_lower for variant in draw_date_variants):
-                    # If we have multiple date columns, prefer "Draw Date" over others
-                    if 'draw_date' not in column_mapping or col_str == "Draw Date":
-                        column_mapping['draw_date'] = col
+                    column_mapping['draw_date'] = col
                 
                 if any(variant in col_lower for variant in numbers_variants) or 'numerical' in col_lower:
                     column_mapping['numbers'] = col
                 
                 if any(variant in col_lower for variant in bonus_variants):
-                    column_mapping['bonus_numbers'] = col
+                    column_mapping['bonus_ball'] = col
                 
-                # Division data handling - look for any columns related to divisions/winners/prizes
-                if 'div' in col_lower or 'division' in col_lower or 'winners' in col_lower or 'prize' in col_lower or 'winnings' in col_lower:
-                    # Note multiple division columns for later
-                    if 'divisions' not in column_mapping:
-                        column_mapping['divisions'] = []
-                    column_mapping['divisions'].append(col)
+                # Check for division data columns
+                for i in range(1, 9):  # Assuming up to 8 divisions
+                    # Check for different division column formats
+                    div_winners_patterns = [
+                        f'div {i} winners', 
+                        f'division {i} winners',
+                        f'div{i} winners'
+                    ]
+                    
+                    div_prize_patterns = [
+                        f'div {i} prize',
+                        f'div {i} payout',
+                        f'div {i} winning',
+                        f'division {i} prize',
+                        f'division {i} payout'
+                    ]
+                    
+                    if any(pattern in col_lower for pattern in div_winners_patterns):
+                        column_mapping[f'div{i}_winners'] = col
+                    
+                    if any(pattern in col_lower for pattern in div_prize_patterns):
+                        column_mapping[f'div{i}_prize'] = col
             
+            # Log the column mapping for debugging
             logger.info(f"Column mapping: {column_mapping}")
             
-            # Count records before import
-            initial_count = LotteryResult.query.count()
-            logger.info(f"Database has {initial_count} records before import")
+            # Check if we found essential columns
+            if 'lottery_type' not in column_mapping or 'draw_number' not in column_mapping:
+                logger.error("Could not find essential columns for lottery data import")
+                import_history.status = "error"
+                import_history.notes = "Could not find essential columns (Game Name and Draw Number)"
+                db.session.commit()
+                return False
             
-            # Using errors_count instead of error_count for consistency
-            errors_count = error_count
-            
-            # CRITICAL FIX: Skip the header row before processing like in import_snap_lotto_data.py
-            logger.warning("⚠️ CRITICAL: Using iloc[1:] to skip only the header row and prevent data loss")
-            logger.warning("⚠️ This ensures row 2 in the Excel file (idx 1) is properly processed")
-            # Skip only the first row (header) and reset the index
-            df = df.iloc[1:].reset_index(drop=True)
-            
-            # Process each row
-            for idx, row in df.iterrows():
+            # Process each row in the dataframe
+            for index, row in df.iterrows():
+                # Skip header-like rows (containing column names)
+                column_value_matches = 0
+                for col in df.columns:
+                    if row[col] == col:
+                        column_value_matches += 1
+                
+                # If more than half the values match column names, it's likely a header row
+                if column_value_matches > len(df.columns) / 2:
+                    logger.info(f"Skipping header-like row at index {index}")
+                    continue
+                
                 try:
-                    # LOG ROW DETAILS for debugging - especially for row idx=0 (Excel row 2)
-                    if idx == 0:
-                        logger.warning(f"⚠️ Processing CRITICAL Row 2 (idx=0): {row.to_dict()}")
-                    
-                    # RELAXED EMPTINESS CHECK: Only skip if row appears completely empty (75%+ of values are None/NaN)
-                    # This is a more forgiving check that will process partially filled rows
-                    if row.isna().sum() > len(row) * 0.75:
-                        logger.warning(f"Skipping row {idx+2} as it's very empty ({row.isna().sum()}/{len(row)} empty values)")
-                        continue
-                    
-                    # Extract data using our column mapping
-                    lottery_type = standardize_lottery_type(row.get(column_mapping.get('lottery_type', ''), None))
-                    
-                    # Enhanced draw number extraction with better normalization
-                    raw_draw_number = str(row.get(column_mapping.get('draw_number', ''), '')).strip()
-                    
-                    # Try to use the normalize_draw_number function from data_aggregator
-                    try:
-                        # Import here to avoid circular imports
-                        from data_aggregator import normalize_draw_number
-                        draw_number = normalize_draw_number(raw_draw_number)
-                        # Log the normalization if it changed
-                        if raw_draw_number != draw_number:
-                            logger.info(f"Normalized draw number from '{raw_draw_number}' to '{draw_number}'")
-                    except ImportError:
-                        # Fallback to basic cleaning if importing fails
-                        draw_number = raw_draw_number
-                        # Remove "Draw" prefix if present
-                        draw_number = draw_number.replace('Draw', '').replace('DRAW', '').strip()
-                        if raw_draw_number != draw_number:
-                            logger.info(f"Basic normalization of draw number from '{raw_draw_number}' to '{draw_number}'")
-                    
-                    draw_date_str = row.get(column_mapping.get('draw_date', ''), None)
-                    numbers_str = row.get(column_mapping.get('numbers', ''), None)
-                    bonus_numbers_str = row.get(column_mapping.get('bonus_numbers', ''), None)
+                    # Extract data from row using the column mapping
+                    raw_lottery_type = row[column_mapping['lottery_type']] if 'lottery_type' in column_mapping and column_mapping['lottery_type'] in row else None
+                    raw_draw_number = row[column_mapping['draw_number']] if 'draw_number' in column_mapping and column_mapping['draw_number'] in row else None
+                    raw_draw_date = row[column_mapping['draw_date']] if 'draw_date' in column_mapping and column_mapping['draw_date'] in row else None
+                    raw_numbers = row[column_mapping['numbers']] if 'numbers' in column_mapping and column_mapping['numbers'] in row else None
+                    raw_bonus_ball = row[column_mapping['bonus_ball']] if 'bonus_ball' in column_mapping and column_mapping['bonus_ball'] in row else None
                     
                     # Skip rows with missing essential data
-                    if not lottery_type or not draw_date_str or not numbers_str:
-                        logger.warning(f"Skipping row {idx+2} due to missing key data")
+                    if not raw_lottery_type or pd.isna(raw_lottery_type) or not raw_draw_number or pd.isna(raw_draw_number):
                         continue
                     
-                    # Parse date
-                    draw_date = parse_date(draw_date_str)
+                    # Standardize lottery type
+                    lottery_type = standardize_lottery_type(raw_lottery_type)
+                    
+                    # Format draw number as string
+                    if isinstance(raw_draw_number, (int, float)):
+                        draw_number = str(int(raw_draw_number))
+                    else:
+                        draw_number = str(raw_draw_number).strip()
+                    
+                    # Parse draw date
+                    draw_date = parse_excel_date(raw_draw_date)
                     if not draw_date:
-                        logger.warning(f"Skipping row {idx+2} due to invalid date: {draw_date_str}")
-                        continue
+                        logger.warning(f"Could not parse draw date: {raw_draw_date}")
+                        draw_date = datetime.utcnow()
                     
                     # Parse numbers
-                    numbers = parse_numbers(numbers_str)
-                    if not numbers:
-                        logger.warning(f"Skipping row {idx+2} due to invalid numbers: {numbers_str}")
-                        continue
-                    
-                    # Ensure Daily Lottery has exactly 5 numbers
-                    if lottery_type == "Daily Lottery":
-                        if len(numbers) > 5:
-                            logger.warning(f"Daily Lottery draw {draw_number} has {len(numbers)} numbers, limiting to first 5")
-                            numbers = numbers[:5]
-                        elif len(numbers) < 5:
-                            logger.warning(f"Daily Lottery draw {draw_number} has only {len(numbers)} numbers, expected 5")
+                    numbers = parse_numbers(raw_numbers)
                     
                     # Parse bonus numbers
-                    bonus_numbers = parse_numbers(bonus_numbers_str) if bonus_numbers_str else []
-                    
-                    # Handle divisions
-                    divisions = {}
-                    # First check if we have a dedicated divisions column
-                    if 'divisions' in column_mapping and isinstance(column_mapping['divisions'], list):
-                        # Check if we have division-specific columns (Div 1, Div 2, etc.)
-                        div_columns = column_mapping['divisions']
-                        
-                        for div_col in div_columns:
-                            div_value = row.get(div_col)
-                            if not pd.isna(div_value):
-                                # Try to extract division number from column name
-                                div_name = div_col
-                                if 'div' in str(div_col).lower():
-                                    div_match = ''.join(c for c in str(div_col) if c.isdigit())
-                                    if div_match:
-                                        div_name = f"Division {div_match}"
-                                
-                                # If the value contains winners and prize together
-                                if isinstance(div_value, str) and ',' in div_value:
-                                    winners_part, prize_part = div_value.split(',', 1)
-                                    # Extract just the number for winners
-                                    winners = ''.join(c for c in winners_part if c.isdigit())
-                                    # Keep the prize with formatting (R, commas)
-                                    prize = prize_part.strip()
-                                    divisions[div_name] = {
-                                        "winners": winners,
-                                        "prize": prize
-                                    }
-                                else:
-                                    # If it's just a raw value, assume it's the prize amount
-                                    divisions[div_name] = {
-                                        "winners": "1",  # Default to 1 winner if not specified
-                                        "prize": f"R{div_value}" if not str(div_value).startswith('R') else str(div_value)
-                                    }
-                    
-                    # Check if this result already exists
-                    existing = LotteryResult.query.filter_by(
-                        lottery_type=lottery_type,
-                        draw_number=draw_number
-                    ).first()
-                    
-                    is_new_record = False
-                    lottery_result = None
-
-                    if existing:
-                        # Update existing record
-                        logger.info(f"Updating existing result for {lottery_type} draw {draw_number}")
-                        existing.draw_date = draw_date
-                        existing.numbers = json.dumps(numbers)
-                        existing.bonus_numbers = json.dumps(bonus_numbers) if bonus_numbers else None
-                        existing.divisions = json.dumps(divisions) if divisions else None
-                        existing.source_url = "imported-from-excel"
-                        existing.ocr_provider = "manual-import"
-                        existing.ocr_model = "excel-spreadsheet"
-                        existing.ocr_timestamp = datetime.utcnow().isoformat()
-                        lottery_result = existing
+                    if raw_bonus_ball and not pd.isna(raw_bonus_ball):
+                        # For numeric values
+                        if isinstance(raw_bonus_ball, (int, float)):
+                            bonus_numbers = [int(raw_bonus_ball)]
+                        # For string values
+                        elif isinstance(raw_bonus_ball, str):
+                            bonus_numbers = parse_numbers(raw_bonus_ball)
+                        else:
+                            bonus_numbers = []
                     else:
-                        # Create new result
-                        is_new_record = True
-                        new_result = LotteryResult(
-                            lottery_type=lottery_type,
-                            draw_number=draw_number,
-                            draw_date=draw_date,
-                            numbers=json.dumps(numbers),
-                            bonus_numbers=json.dumps(bonus_numbers) if bonus_numbers else None,
-                            divisions=json.dumps(divisions) if divisions else None,
-                            source_url="imported-from-excel",
-                            ocr_provider="manual-import",
-                            ocr_model="excel-spreadsheet",
-                            ocr_timestamp=datetime.utcnow().isoformat()
-                        )
-                        db.session.add(new_result)
-                        lottery_result = new_result
+                        bonus_numbers = []
                     
-                    # Commit each result individually to avoid losing all data if one fails
+                    # Parse division data
+                    divisions = {}
+                    for i in range(1, 9):  # Assuming up to 8 divisions
+                        winners_key = f'div{i}_winners'
+                        prize_key = f'div{i}_prize'
+                        
+                        if winners_key in column_mapping and prize_key in column_mapping:
+                            winners_col = column_mapping[winners_key]
+                            prize_col = column_mapping[prize_key]
+                            
+                            raw_winners = row[winners_col] if winners_col in row else None
+                            raw_prize = row[prize_col] if prize_col in row else None
+                            
+                            if raw_winners is not None and not pd.isna(raw_winners) and raw_prize is not None and not pd.isna(raw_prize):
+                                # Format winners value
+                                if isinstance(raw_winners, (int, float)):
+                                    winners_value = str(int(raw_winners))
+                                else:
+                                    winners_value = str(raw_winners)
+                                
+                                # Format prize value
+                                if isinstance(raw_prize, str):
+                                    if not raw_prize.startswith("R"):
+                                        prize_value = f"R{raw_prize}"
+                                    else:
+                                        prize_value = raw_prize
+                                else:
+                                    prize_value = f"R{raw_prize}"
+                                
+                                divisions[f"Division {i}"] = {
+                                    "winners": winners_value,
+                                    "prize": prize_value
+                                }
+                    
+                    # Verify we have valid data
+                    if lottery_type and draw_number and numbers:
+                        # Check if result already exists in the database
+                        existing_result = LotteryResult.query.filter_by(
+                            lottery_type=lottery_type,
+                            draw_number=draw_number
+                        ).first()
+                        
+                        # Create JSON strings for database storage
+                        numbers_json = json.dumps(numbers)
+                        bonus_numbers_json = json.dumps(bonus_numbers) if bonus_numbers else None
+                        divisions_json = json.dumps(divisions) if divisions else None
+                        
+                        # Log what we're doing for debugging
+                        if existing_result:
+                            logger.info(f"Updating existing result: {lottery_type} Draw {draw_number}")
+                            
+                            # Update existing record
+                            existing_result.draw_date = draw_date
+                            existing_result.numbers = numbers_json
+                            existing_result.bonus_numbers = bonus_numbers_json
+                            existing_result.divisions = divisions_json
+                            existing_result.source_url = "imported-from-excel"
+                            existing_result.ocr_provider = "manual-import"
+                            existing_result.ocr_model = "excel-spreadsheet"
+                            existing_result.ocr_timestamp = datetime.utcnow().isoformat()
+                            
+                            db.session.commit()
+                            updated_count += 1
+                            
+                            # Track imported record
+                            imported_records.append({
+                                'lottery_type': lottery_type,
+                                'draw_number': draw_number,
+                                'draw_date': draw_date,
+                                'is_new': False,
+                                'lottery_result_id': existing_result.id
+                            })
+                        else:
+                            logger.info(f"Creating new result: {lottery_type} Draw {draw_number}")
+                            
+                            # Create new result
+                            new_result = LotteryResult(
+                                lottery_type=lottery_type,
+                                draw_number=draw_number,
+                                draw_date=draw_date,
+                                numbers=numbers_json,
+                                bonus_numbers=bonus_numbers_json,
+                                divisions=divisions_json,
+                                source_url="imported-from-excel",
+                                ocr_provider="manual-import",
+                                ocr_model="excel-spreadsheet",
+                                ocr_timestamp=datetime.utcnow().isoformat()
+                            )
+                            
+                            db.session.add(new_result)
+                            db.session.commit()
+                            imported_count += 1
+                            
+                            # Track imported record
+                            imported_records.append({
+                                'lottery_type': lottery_type,
+                                'draw_number': draw_number,
+                                'draw_date': draw_date,
+                                'is_new': True,
+                                'lottery_result_id': new_result.id
+                            })
+                    else:
+                        logger.warning(f"Skipping row {index} due to missing essential data")
+                        error_count += 1
+                except Exception as row_error:
+                    logger.error(f"Error processing row {index}: {str(row_error)}")
+                    error_count += 1
+            
+            # Update import history with results
+            if last_import_history_id:
+                import_history = ImportHistory.query.get(last_import_history_id)
+                if import_history:
+                    import_history.status = "completed"
+                    import_history.imported_count = imported_count
+                    import_history.updated_count = updated_count
+                    import_history.error_count = error_count
+                    import_history.notes = f"Imported {imported_count} new records, updated {updated_count} existing records, {error_count} errors"
                     db.session.commit()
                     
-                    # Store this record in import_tracking for later reference
-                    # Import history will be created in main.py after this function returns
-                    imported_records.append({
-                        'lottery_type': lottery_type,
-                        'draw_number': draw_number,
-                        'draw_date': draw_date,
-                        'is_new': is_new_record,
-                        'lottery_result_id': lottery_result.id
-                    })
+                    # Create ImportedRecord entries for each imported record
+                    for record in imported_records:
+                        imported_record = ImportedRecord(
+                            import_history_id=import_history.id,
+                            lottery_type=record['lottery_type'],
+                            draw_number=record['draw_number'],
+                            draw_date=record['draw_date'],
+                            is_new=record['is_new'],
+                            lottery_result_id=record['lottery_result_id']
+                        )
+                        db.session.add(imported_record)
                     
-                    imported_count += 1
-                    
-                    if imported_count % 10 == 0:
-                        logger.info(f"Imported {imported_count} records so far...")
-                    
-                except Exception as e:
-                    errors_count += 1
-                    logger.error(f"Error processing row {idx+2}: {str(e)}")
-                    # Rollback this row only
-                    db.session.rollback()
+                    db.session.commit()
             
-            # Count records after import
-            final_count = LotteryResult.query.count()
+            logger.info(f"Import completed: {imported_count} imported, {updated_count} updated, {error_count} errors")
+            return imported_count + updated_count > 0
             
-            logger.info("Import completed!")
-            logger.info(f"Records: {initial_count} -> {final_count} (added {final_count - initial_count})")
-            logger.info(f"Successfully imported/updated {imported_count} records")
-            logger.info(f"Encountered {errors_count} errors")
-            
-            # Return detailed import results
-            return {
-                'success': True,
-                'total': imported_count,
-                'initial_count': initial_count,
-                'final_count': final_count,
-                'added': final_count - initial_count,
-                'errors': errors_count,
-                'imported_records': imported_records  # Include records for import history
-            }
     except Exception as e:
-        logger.error(f"Error during import operation: {str(e)}")
+        logger.error(f"Error importing Excel data: {str(e)}")
+        logger.error(traceback.format_exc())
+        
+        # Update import history with error if it exists
+        if last_import_history_id:
+            try:
+                import_history = ImportHistory.query.get(last_import_history_id)
+                if import_history:
+                    import_history.status = "error"
+                    import_history.notes = f"Error during import: {str(e)}"
+                    db.session.commit()
+            except Exception as db_error:
+                logger.error(f"Could not update import history: {str(db_error)}")
+        
         return False
 
-def create_empty_template(output_path):
-    """
-    Create an empty Excel template for lottery data import.
-    Single sheet format with standardized columns that matches the actual spreadsheet format.
-    
-    Args:
-        output_path (str): Path to save the Excel file
-    
-    Returns:
-        bool: Success status
-    """
-    try:
-        # Define the columns based on observed format
-        columns = [
-            "Game Name", "Draw Number", "Draw Date", "Winning Numbers (Numerical)", "Bonus Ball",
-            "Div 1 Winners", "Div 1 Winnings", "Div 2 Winners", "Div 2 Winnings",
-            "Div 3 Winners", "Div 3 Winnings", "Div 4 Winners", "Div 4 Winnings",
-            "Div 5 Winners", "Div 5 Winnings", "Div 6 Winners", "Div 6 Winnings",
-            "Div 7 Winners", "Div 7 Winnings", "Div 8 Winners", "Div 8 Winnings",
-            "Rollover Amount", "Total Pool Size", "Total Sales", "Next Jackpot",
-            "Draw Machine", "Next Draw Date"
-        ]
-        
-        # Create an empty dataframe with the columns
-        df = pd.DataFrame(columns=columns)
-        
-        # Create Excel writer
-        writer = pd.ExcelWriter(output_path, engine='openpyxl')
-        
-        # Write to Excel without examples - completely empty
-        df.to_excel(writer, sheet_name='Lotto', index=False)
-        
-        # Auto-adjust column widths
-        workbook = writer.book
-        worksheet = writer.sheets['Lotto']
-        
-        # Make columns wider for data entry
-        from openpyxl.utils import get_column_letter
-        for i, col in enumerate(df.columns):
-            col_width = max(len(col) + 5, 20)  # Minimum width of 20 characters
-            col_letter = get_column_letter(i + 1)  # Convert number to Excel column letter (1=A, 27=AA, etc)
-            worksheet.column_dimensions[col_letter].width = col_width
-        
-        # Add column formatting guidelines in first row
-        # Get worksheet
-        for i, col in enumerate(df.columns):
-            cell = worksheet.cell(row=2, column=i+1)
-            
-            # Add guidance text based on column type
-            if col == "Game Name":
-                cell.value = "e.g., LOTTERY, POWERBALL, DAILY LOTTERY"
-            elif col == "Draw Number":
-                cell.value = "e.g., 2533"
-            elif col == "Draw Date":
-                cell.value = "YYYY-MM-DD format"
-            elif col == "Winning Numbers (Numerical)":
-                cell.value = "e.g., 01 02 03 04 05 06"
-            elif col == "Bonus Ball":
-                cell.value = "e.g., 07"
-            elif "Winners" in col:
-                cell.value = "Number of winners"
-            elif "Winnings" in col:
-                cell.value = "Prize amount (e.g., R1,000.00)"
-        
-        # Add light yellow background to guidance row
-        from openpyxl.styles import PatternFill
-        yellow_fill = PatternFill(start_color="FFFFE0", end_color="FFFFE0", fill_type="solid")
-        for i in range(len(df.columns)):
-            worksheet.cell(row=2, column=i+1).fill = yellow_fill
-        
-        # Save the file
-        writer.close()
-        
-        # Include timestamp in filename to avoid overwrites
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        print(f"Empty template created at {output_path}")
-        logger.info(f"Empty template created at {output_path}")
-        return True
-    
-    except Exception as e:
-        logger.error(f"Error creating empty template: {str(e)}")
-        print(f"Error creating empty template: {str(e)}")
-        return False
+from main import db  # Import at end to avoid circular import
 
+# If run directly, perform a test import
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python import_excel.py <excel_file>")
-        sys.exit(1)
+    from main import app
+    # Find the most recent Excel file
+    excel_files = []
+    for root, dirs, files in os.walk("uploads"):
+        for filename in files:
+            if filename.endswith(".xlsx"):
+                excel_files.append(os.path.join(root, filename))
     
-    excel_file = sys.argv[1]
-    if not os.path.exists(excel_file):
-        print(f"Error: Excel file {excel_file} not found")
-        sys.exit(1)
-    
-    # First purge existing data
-    from purge_data import purge_data
-    if purge_data():
-        # Then import from Excel
-        import_excel_data(excel_file)
+    if excel_files:
+        newest_file = max(excel_files, key=os.path.getmtime)
+        print(f"Importing from: {newest_file}")
+        import_excel_data(newest_file, app)
     else:
-        print("Error: Failed to purge existing data. Import aborted.")
-        sys.exit(1)
+        print("No Excel files found in uploads directory.")
