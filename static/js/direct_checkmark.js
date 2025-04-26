@@ -38,30 +38,30 @@
                             indicator.classList.add('match-powerball-bonus');
                         }
                     } 
-                    // Lotto Games
-                    else if (ball.title.includes('Lotto Plus 2')) {
-                        indicator.classList.add('match-lotto-plus-2');
+                    // Lottery Games
+                    else if (ball.title.includes('Lottery Plus 2') || ball.title.includes('Lotto Plus 2')) {
+                        indicator.classList.add('match-lottery-plus-2');
                         if (ball.title.includes('Bonus')) {
-                            indicator.classList.add('match-lotto-plus-2-bonus');
+                            indicator.classList.add('match-lottery-plus-2-bonus');
                         }
                     }
-                    else if (ball.title.includes('Lotto Plus 1')) {
-                        indicator.classList.add('match-lotto-plus-1');
+                    else if (ball.title.includes('Lottery Plus 1') || ball.title.includes('Lotto Plus 1')) {
+                        indicator.classList.add('match-lottery-plus-1');
                         if (ball.title.includes('Bonus')) {
-                            indicator.classList.add('match-lotto-plus-1-bonus');
+                            indicator.classList.add('match-lottery-plus-1-bonus');
                         }
                     }
-                    else if (ball.title.includes('Lotto') && !ball.title.includes('Daily')) {
-                        indicator.classList.add('match-lotto');
+                    else if ((ball.title.includes('Lottery') || ball.title.includes('Lotto')) && !ball.title.includes('Daily')) {
+                        indicator.classList.add('match-lottery');
                         if (ball.title.includes('Bonus')) {
-                            indicator.classList.add('match-lotto-bonus');
+                            indicator.classList.add('match-lottery-bonus');
                         }
                     }
-                    // Daily Lotto
-                    else if (ball.title.includes('Daily Lotto')) {
-                        indicator.classList.add('match-daily-lotto');
+                    // Daily Lottery
+                    else if (ball.title.includes('Daily Lottery') || ball.title.includes('Daily Lotto')) {
+                        indicator.classList.add('match-daily-lottery');
                         if (ball.title.includes('Bonus')) {
-                            indicator.classList.add('match-daily-lotto-bonus');
+                            indicator.classList.add('match-daily-lottery-bonus');
                         }
                     }
                     // Fallback based on nearby elements
@@ -73,14 +73,14 @@
                                 indicator.classList.add('match-powerball-plus');
                             } else if (gameText.includes('Powerball')) {
                                 indicator.classList.add('match-powerball');
-                            } else if (gameText.includes('Lotto Plus 2')) {
-                                indicator.classList.add('match-lotto-plus-2');
-                            } else if (gameText.includes('Lotto Plus 1')) {
-                                indicator.classList.add('match-lotto-plus-1');
-                            } else if (gameText.includes('Lotto') && !gameText.includes('Daily')) {
-                                indicator.classList.add('match-lotto');
-                            } else if (gameText.includes('Daily Lotto')) {
-                                indicator.classList.add('match-daily-lotto');
+                            } else if (gameText.includes('Lottery Plus 2') || gameText.includes('Lotto Plus 2')) {
+                                indicator.classList.add('match-lottery-plus-2');
+                            } else if (gameText.includes('Lottery Plus 1') || gameText.includes('Lotto Plus 1')) {
+                                indicator.classList.add('match-lottery-plus-1');
+                            } else if ((gameText.includes('Lottery') || gameText.includes('Lotto')) && !gameText.includes('Daily')) {
+                                indicator.classList.add('match-lottery');
+                            } else if (gameText.includes('Daily Lottery') || gameText.includes('Daily Lotto')) {
+                                indicator.classList.add('match-daily-lottery');
                             } else {
                                 // Default to Powerball styling
                                 indicator.classList.add('match-powerball');

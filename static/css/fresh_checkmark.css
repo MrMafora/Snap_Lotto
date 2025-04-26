@@ -42,16 +42,16 @@
     box-shadow: none; /* Remove shadow */
 }
 
-/* Main Lotto Games */
-.match-lotto { 
+/* Main Lottery Games */
+.match-lottery { 
     background-color: #28a745; /* Green (Default) */
 }
 
-.match-lotto-plus-1 { 
+.match-lottery-plus-1 { 
     background-color: #e74c3c; /* Bright Red */
 }
 
-.match-lotto-plus-2 { 
+.match-lottery-plus-2 { 
     background-color: #f1c40f; /* Bright Yellow */
     color: #333; /* Darker text on yellow for contrast */
     text-shadow: none;
@@ -66,18 +66,18 @@
     background-color: #9b59b6; /* Bright Purple */
 }
 
-/* Daily Lotto */
-.match-daily-lotto {
+/* Daily Lottery */
+.match-daily-lottery {
     background-color: #1abc9c; /* Bright Turquoise */
 }
 
 /* Bonus Ball Matches - Add a star or distinctive mark */
-.match-lotto-bonus::after,
-.match-lotto-plus-1-bonus::after,
-.match-lotto-plus-2-bonus::after,
+.match-lottery-bonus::after,
+.match-lottery-plus-1-bonus::after,
+.match-lottery-plus-2-bonus::after,
 .match-powerball-bonus::after,
 .match-powerball-plus-bonus::after,
-.match-daily-lotto-bonus::after {
+.match-daily-lottery-bonus::after {
     content: "*";
     position: absolute;
     top: -5px;
