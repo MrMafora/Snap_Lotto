@@ -946,6 +946,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         
         // Event listener for form submission
         ticketForm.addEventListener('submit', function(e) {
+            // Always prevent the default form submission
             e.preventDefault();
             
             // Only check if a file is selected
@@ -954,10 +955,17 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 return;
             }
             
+            // Hide any currently displayed results
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer && !resultsContainer.classList.contains('d-none')) {
+                resultsContainer.classList.add('d-none');
+            }
+            
             // Process the ticket with ads
             processTicketWithAds();
             
-            // No return false to prevent interfering with normal form submission
+            // Return false to ensure the form never submits to prevent page reloads
+            return false;
         });
         
         // Enable body scrolling
