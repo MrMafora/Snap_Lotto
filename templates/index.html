@@ -657,7 +657,20 @@ function fetchChartData(lotteryType, timePeriod) {
     
     // Only add lottery_type if it's not 'all'
     if (lotteryType && lotteryType !== 'all') {
-        params.append('lottery_type', lotteryType);
+        // Make sure to always use the normalized terminology
+        const normalizedType = normalizeLotteryType(lotteryType);
+        params.append('lottery_type', normalizedType);
+    }
+    
+    // Helper function to normalize lottery type names for consistency
+    function normalizeLotteryType(type) {
+        // If the type already uses "Lottery" terminology, return as is
+        if (type.includes("Lottery")) {
+            return type;
+        }
+        
+        // Otherwise, map "Lotto" to "Lottery" while preserving other parts of the name
+        return type.replace(/\bLotto\b/g, "Lottery");
     }
     
     // Add days parameter with default 365 for 'all'
@@ -724,8 +737,21 @@ function updateCharts(data) {
     updateDivisionChart(data);
     
     // Now that both charts are ready, show the pie chart container
-    document.getElementById('pieChartLoading').style.display = 'none';
-    document.getElementById('pieChartContainer').style.display = 'flex';
+    // Add error handling to verify elements exist before attempting to update them
+    const pieChartLoading = document.getElementById('pieChartLoading');
+    const pieChartContainer = document.getElementById('pieChartContainer');
+    
+    if (pieChartLoading) {
+        pieChartLoading.style.display = 'none';
+    } else {
+        console.warn('pieChartLoading element not found');
+    }
+    
+    if (pieChartContainer) {
+        pieChartContainer.style.display = 'flex';
+    } else {
+        console.warn('pieChartContainer element not found');
+    }
 }
 
 // Function to update the frequency chart
