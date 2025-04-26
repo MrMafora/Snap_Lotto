@@ -792,12 +792,20 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         existingCountdown.remove();
                     }
                     
-                    const counterElement = document.createElement('div');
-                    counterElement.id = 'ad-countdown';
-                    counterElement.style.cssText = 'font-size: 18px; color: #0d6efd; font-weight: bold;';
-                    counterElement.innerHTML = '<i class="fas fa-clock me-2"></i><span id="countdown-number"></span>';
-                    // Append to the countdown container above the button instead of the ad container
-                    adOverlayResults.querySelector('#countdown-container').appendChild(counterElement);
+                    // Get the countdown container
+                    const countdownContainer = adOverlayResults.querySelector('#countdown-container');
+                    
+                    // Only proceed if the countdown container exists
+                    if (countdownContainer) {
+                        const counterElement = document.createElement('div');
+                        counterElement.id = 'ad-countdown';
+                        counterElement.style.cssText = 'font-size: 18px; color: #0d6efd; font-weight: bold;';
+                        counterElement.innerHTML = '<i class="fas fa-clock me-2"></i><span id="countdown-number">Results available in 15 seconds...</span>';
+                        // Append to the countdown container above the button instead of the ad container
+                        countdownContainer.appendChild(counterElement);
+                    } else {
+                        console.warn('Countdown container not found in the DOM');
+                    }
                     
                     // Store timer start time to prevent deviations
                     window.countdownStartTime = Date.now();
@@ -814,34 +822,45 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     
                     // Update the counter every second based on elapsed time
                     window.countdownInterval = setInterval(() => {
-                        // Calculate remaining time based on actual elapsed time
-                        const elapsedMs = Date.now() - window.countdownStartTime;
-                        const remainingMs = Math.max(0, window.countdownDuration - elapsedMs);
-                        const remainingSeconds = Math.ceil(remainingMs / 1000);
-                        
-                        // Update display
-                        document.getElementById('countdown-number').textContent = `Results available in ${remainingSeconds} seconds...`;
-                        
-                        // Update button text
-                        viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${remainingSeconds}s)`;
-                        
-                        // Check if countdown is complete
-                        if (remainingSeconds <= 0) {
-                            // Clear interval and reset running flag
+                        try {
+                            // Calculate remaining time based on actual elapsed time
+                            const elapsedMs = Date.now() - window.countdownStartTime;
+                            const remainingMs = Math.max(0, window.countdownDuration - elapsedMs);
+                            const remainingSeconds = Math.ceil(remainingMs / 1000);
+                            
+                            // Get countdownNumber element
+                            const countdownNumber = document.getElementById('countdown-number');
+                            
+                            // Only update if the element exists
+                            if (countdownNumber) {
+                                countdownNumber.textContent = `Results available in ${remainingSeconds} seconds...`;
+                            }
+                            
+                            // Update button text
+                            viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${remainingSeconds}s)`;
+                            
+                            // Check if countdown is complete
+                            if (remainingSeconds <= 0) {
+                                // Clear interval and reset running flag
+                                clearInterval(window.countdownInterval);
+                                window.countdownInterval = null;
+                                window.countdownRunning = false;
+                                
+                                // Enable the button after time is up
+                                viewResultsBtn.disabled = false;
+                                viewResultsBtn.style.opacity = '1';
+                                viewResultsBtn.style.cursor = 'pointer';
+                                viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                
+                                // Make the button pulse to draw attention
+                                viewResultsBtn.classList.add('btn-pulse');
+                                
+                                console.log('Countdown completed naturally based on elapsed time');
+                            }
+                        } catch (e) {
+                            console.error('Error updating countdown:', e);
+                            // Clear the interval if there's an error
                             clearInterval(window.countdownInterval);
-                            window.countdownInterval = null;
-                            window.countdownRunning = false;
-                            
-                            // Enable the button after time is up
-                            viewResultsBtn.disabled = false;
-                            viewResultsBtn.style.opacity = '1';
-                            viewResultsBtn.style.cursor = 'pointer';
-                            viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                            
-                            // Make the button pulse to draw attention
-                            viewResultsBtn.classList.add('btn-pulse');
-                            
-                            console.log('Countdown completed naturally based on elapsed time');
                         }
                     }, 1000);
                     
@@ -969,6 +988,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         
         function displayResults(data) {
             try {
+                console.log('Displaying ticket scanning results');
+
                 // Make sure scrolling is fully enabled and restored when showing results
                 enableScrolling();
                 
@@ -980,10 +1001,23 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 document.documentElement.style.overflow = '';
                 
                 // Prepare the results container first
-                resultsContainer.classList.remove('d-none');
+                if (resultsContainer) {
+                    resultsContainer.classList.remove('d-none');
+                    
+                    // Scroll to the results container
+                    setTimeout(() => {
+                        resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                } else {
+                    console.error('Results container not found!');
+                    return;
+                }
                 
                 // Hide error message by default
-                document.getElementById('error-message').classList.add('d-none');
+                const errorMessage = document.getElementById('error-message');
+                if (errorMessage) {
+                    errorMessage.classList.add('d-none');
+                }
                 
                 if (data.error) {
                     showError(data.error);
@@ -992,20 +1026,44 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 
                 // Show success content
                 const successContent = document.getElementById('success-content');
-                successContent.classList.remove('d-none');
+                if (successContent) {
+                    successContent.classList.remove('d-none');
+                } else {
+                    console.error('Success content container not found!');
+                    return;
+                }
             
-            // Populate ticket info
-            document.getElementById('result-lottery-type').textContent = data.lottery_type;
-            document.getElementById('result-draw-number').textContent = data.draw_number;
-            document.getElementById('result-draw-date').textContent = data.draw_date;
+            // Populate ticket info - with null checks
+            const resultLotteryType = document.getElementById('result-lottery-type');
+            if (resultLotteryType) resultLotteryType.textContent = data.lottery_type || 'Unknown';
+            
+            const resultDrawNumber = document.getElementById('result-draw-number');
+            if (resultDrawNumber) resultDrawNumber.textContent = data.draw_number || 'Unknown';
+            
+            const resultDrawDate = document.getElementById('result-draw-date');
+            if (resultDrawDate) resultDrawDate.textContent = data.draw_date || 'Unknown';
             
             // Populate detected information from OCR if available
             if (data.ticket_info) {
-                document.getElementById('detected-game-type').textContent = data.ticket_info.detected_game_type || 'Unknown';
-                document.getElementById('detected-draw-number').textContent = data.ticket_info.detected_draw_number || 'Unknown';
-                document.getElementById('detected-draw-date').textContent = data.ticket_info.detected_draw_date || 'Unknown';
+                const detectedGameType = document.getElementById('detected-game-type');
+                if (detectedGameType) {
+                    detectedGameType.textContent = data.ticket_info.detected_game_type || 'Unknown';
+                }
+                
+                const detectedDrawNumber = document.getElementById('detected-draw-number');
+                if (detectedDrawNumber) {
+                    detectedDrawNumber.textContent = data.ticket_info.detected_draw_number || 'Unknown';
+                }
+                
+                const detectedDrawDate = document.getElementById('detected-draw-date');
+                if (detectedDrawDate) {
+                    detectedDrawDate.textContent = data.ticket_info.detected_draw_date || 'Unknown';
+                }
             } else {
-                document.getElementById('detected-info').classList.add('d-none');
+                const detectedInfo = document.getElementById('detected-info');
+                if (detectedInfo) {
+                    detectedInfo.classList.add('d-none');
+                }
             }
             
             // Display ticket numbers

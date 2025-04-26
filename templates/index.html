@@ -559,10 +559,9 @@ function highlightPieSegment(division) {
             tooltip.style.fontSize = '12px';
             tooltip.style.zIndex = '1000';
             
-            // Position tooltip near the center of the pie chart
-            const pieChart = document.querySelector('.interactive-pie');
-            const rect = pieChart.getBoundingClientRect();
-            tooltip.style.left = (rect.left + rect.width/2 - 60) + 'px';
+            // Position tooltip near center of screen instead of deprecated pie chart
+            const horizontalPos = window.innerWidth / 2 - 60;
+            tooltip.style.left = horizontalPos + 'px';
             tooltip.style.top = (rect.top + rect.height/2 - 40) + 'px';
             
             document.body.appendChild(tooltip);
@@ -691,22 +690,8 @@ function updateCharts(data) {
     // Update division statistics chart
     updateDivisionChart(data);
     
-    // Now that both charts are ready, show the pie chart container
-    // Add error handling to verify elements exist before attempting to update them
-    const pieChartLoading = document.getElementById('pieChartLoading');
-    const pieChartContainer = document.getElementById('pieChartContainer');
-    
-    if (pieChartLoading) {
-        pieChartLoading.style.display = 'none';
-    } else {
-        console.warn('pieChartLoading element not found');
-    }
-    
-    if (pieChartContainer) {
-        pieChartContainer.style.display = 'flex';
-    } else {
-        console.warn('pieChartContainer element not found');
-    }
+    // Charts are now ready - we no longer use the pie chart container
+    // Keep this section for future chart code but removed the pie chart references
 }
 
 // Function to update the Hot & Cold Numbers section with filtered data
