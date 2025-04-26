@@ -134,6 +134,31 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         display: none;
     }
     
+    /* Mobile-specific fixes for result display */
+    @media (max-width: 576px) {
+        .results-container {
+            margin-bottom: 100px; /* Add extra space at bottom for scrolling */
+            padding-bottom: 50px;
+        }
+        
+        /* Ensure lottery balls display properly */
+        .lottery-ball {
+            margin-bottom: 10px;
+        }
+        
+        /* Prevent row overlapping */
+        .row-item {
+            margin-bottom: 20px;
+            overflow: visible;
+        }
+        
+        /* Make sure scrolling works properly on iOS */
+        html, body {
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+    }
+    
     /* Advertisement - Loading overlay */
     #ad-overlay-loading {
         position: fixed;
@@ -765,9 +790,27 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Reset the countdown running flag
                     window.countdownRunning = false;
                     
-                    // Make sure scrolling is enabled
+                    // Make sure scrolling is properly enabled for mobile
                     enableScrolling();
+                    
+                    // For mobile devices, ensure proper styles before showing results
+                    if (window.innerWidth <= 576) {
+                        document.body.style.height = 'auto';
+                        document.body.style.position = 'static';
+                        document.body.style.paddingBottom = '100px';
+                    }
+                    
+                    // Display the results now
                     displayResults(data);
+                    
+                    // Make sure the results are visible by scrolling to them with a slight delay
+                    setTimeout(() => {
+                        const resultsContainer = document.getElementById('results-container');
+                        if (resultsContainer) {
+                            resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }, 300);
+                    
                     console.log('User clicked View Results, countdown state cleared');
                 };
                 
@@ -930,13 +973,18 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             
             // Reset all styles
             document.body.style.overflow = '';
-            document.body.style.height = '';
-            document.body.style.position = '';
+            document.body.style.height = 'auto';  // Set to auto instead of empty string
+            document.body.style.position = 'static'; // Set to static instead of empty string
             document.body.style.top = '';
-            document.body.style.width = '';
+            document.body.style.width = '100%';  // Ensure full width
             document.documentElement.style.overflow = '';
-            document.documentElement.style.height = '';
+            document.documentElement.style.height = 'auto';  // Set to auto instead of empty string
             document.documentElement.style.position = '';
+            
+            // Ensure the body has the padding-bottom needed for iOS Safari
+            if (window.innerWidth <= 576) {
+                document.body.style.paddingBottom = '100px';
+            }
             
             // Restore scroll position
             window.scrollTo(0, scrollY);
@@ -972,12 +1020,26 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 // Make sure scrolling is fully enabled and restored when showing results
                 enableScrolling();
                 
-                // Make sure body and document are still properly reset to avoid mobile scrolling issues
+                // Make sure body and document are properly set for mobile viewing
                 document.body.style.overflow = '';
-                document.body.style.height = '';
-                document.body.style.position = '';
-                document.body.style.width = '';
+                document.body.style.height = 'auto';
+                document.body.style.position = 'static';
+                document.body.style.width = '100%';
                 document.documentElement.style.overflow = '';
+                
+                // For mobile devices, ensure we have padding at the bottom for iOS Safari
+                if (window.innerWidth <= 576) {
+                    document.body.style.paddingBottom = '100px';
+                    
+                    // Scroll to the results container with a slight delay to ensure
+                    // the results are rendered first
+                    setTimeout(() => {
+                        const resultsContainer = document.getElementById('results-container');
+                        if (resultsContainer) {
+                            resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }, 200);
+                }
                 
                 // Prepare the results container first
                 resultsContainer.classList.remove('d-none');
