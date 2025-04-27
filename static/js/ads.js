@@ -280,12 +280,18 @@ window.AdManager = window.AdManager || {
         window.currentlyShowingAd = true;
         window.adStartTime = Date.now();
         
+        // Set the duration for displaying the ad (in seconds)
+        const adDisplayDuration = 15; // 15 seconds display time
+        
         // SAFETY CHECK: If we're already in results mode, don't show the ad again
         if (window.inResultsMode || window.showingResultsAfterAd) {
             console.log('SAFETY: Already showing results, skipping ad overlay');
             if (callback) callback(false);
             return;
         }
+        
+        // Start the countdown timer for the ad
+        this.startCountdownTimer(adDisplayDuration);
         
         // Use the enhanced showOverlay utility function if available
         if (typeof showOverlay === 'function') {
@@ -596,6 +602,52 @@ window.AdManager = window.AdManager || {
         
         // In production, send to server
         console.log('Ad click recorded:', impression);
+    },
+    
+    // Start countdown timer for advertisement viewing
+    startCountdownTimer: function(seconds) {
+        console.log('Starting countdown timer for ' + seconds + ' seconds');
+        
+        // Get the countdown container
+        const countdownContainer = document.getElementById('countdown-container');
+        if (!countdownContainer) {
+            console.error('Countdown container not found');
+            return;
+        }
+        
+        // Get the view results button
+        const viewResultsBtn = document.getElementById('view-results-btn');
+        if (!viewResultsBtn) {
+            console.error('View Results button not found');
+            return;
+        }
+        
+        // Disable the button at first
+        viewResultsBtn.disabled = true;
+        viewResultsBtn.classList.remove('btn-pulse');
+        
+        // Initialize the timer
+        let timeLeft = seconds;
+        countdownContainer.textContent = 'Please wait ' + timeLeft + ' seconds';
+        
+        // Create and start the interval
+        const countdownTimer = setInterval(function() {
+            timeLeft--;
+            
+            if (timeLeft <= 0) {
+                // Time's up - enable the button
+                clearInterval(countdownTimer);
+                countdownContainer.textContent = 'You can now view your results!';
+                viewResultsBtn.disabled = false;
+                viewResultsBtn.classList.add('btn-pulse');
+            } else {
+                // Update the countdown
+                countdownContainer.textContent = 'Please wait ' + timeLeft + ' seconds';
+            }
+        }, 1000);
+        
+        // Store the timer ID for potential clearing later
+        this.countdownTimerId = countdownTimer;
     }
 };
 
