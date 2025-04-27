@@ -291,13 +291,17 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 
 {% block content %}
 <!-- Ad overlay - Loading screen -->
-<div id="ad-overlay-loading" class="interstitial-view">
+<div id="ad-overlay-loading" class="interstitial-view" style="display: none;">
     <h4 class="mb-4">Processing your ticket...</h4>
-    <div id="ad-container-loader" class="ad-container">
-        <div class="ad-placeholder" style="padding: 25px; background-color: #f3f3f3; border-radius: 8px; text-align: center;">
-            <p><span class="badge" style="background-color: #ffde00; color: #000; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span></p>
-            <p style="font-size: 16px; color: #6c757d; margin: 15px 0;">Advertisement</p>
-            <p style="color: #6c757d; font-size: 14px; text-align: center;">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
+    <div class="ad-container-wrapper">
+        <div id="ad-container-loader" class="ad-container">
+            <!-- FIRST AD: Yellow badge -->
+            <div class="ad-placeholder" style="padding: 25px; background-color: #f3f3f3; border-radius: 8px; text-align: center;">
+                <p><span class="badge" style="background-color: #ffde00; color: #000; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span></p>
+                <p style="font-size: 16px; color: #6c757d; margin: 15px 0;">Advertisement</p>
+                <img src="/static/ads/standard-ad-1.svg" style="max-width: 100%; height: auto; margin: 15px 0;" alt="Advertisement">
+                <p style="color: #6c757d; font-size: 14px; text-align: center;">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
+            </div>
         </div>
     </div>
     <div class="mt-3">
@@ -310,17 +314,21 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 </div>
 
 <!-- Ad overlay - Results screen -->
-<div id="ad-overlay-results" class="interstitial-view">
+<div id="ad-overlay-results" class="interstitial-view" style="display: none;">
     <h3 class="mb-3 text-success">Results Ready! <i class="fas fa-check-circle"></i></h3>
     <div class="alert alert-info mb-3" style="max-width: 400px;">
         Please view this advertisement while we prepare your results
     </div>
-    <div id="ad-container-interstitial" class="ad-container">
-        <div class="ad-placeholder" style="padding: 25px; background-color: #f3f3f3; border-radius: 8px; text-align: center;">
-            <p><span class="badge" style="background-color: #0d6efd; color: #fff; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span></p>
-            <p style="font-size: 16px; color: #6c757d; margin: 15px 0;">Advertisement</p>
-            <p style="color: #6c757d; font-size: 14px; margin-bottom: 10px;">Your results are ready to view below</p>
-            <p style="color: #6c757d; font-size: 14px; text-align: center;">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
+    <div class="ad-container-wrapper">
+        <div id="ad-container-interstitial" class="ad-container">
+            <!-- SECOND AD: Blue badge -->
+            <div class="ad-placeholder" style="padding: 25px; background-color: #f3f3f3; border-radius: 8px; text-align: center;">
+                <p><span class="badge" style="background-color: #0d6efd; color: #fff; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span></p>
+                <p style="font-size: 16px; color: #6c757d; margin: 15px 0;">Advertisement</p>
+                <img src="/static/ads/standard-ad-2.svg" style="max-width: 100%; height: auto; margin: 15px 0;" alt="Advertisement">
+                <p style="color: #6c757d; font-size: 14px; margin-bottom: 10px;">Your results are ready to view below</p>
+                <p style="color: #6c757d; font-size: 14px; text-align: center;">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
+            </div>
         </div>
     </div>
     <!-- Countdown timer will be placed here above the button -->

@@ -99,13 +99,36 @@ function handleTicketSubmission(event) {
             console.log('Using AdManager to show ads sequence');
             
             // Ad overlay was already made visible at the beginning of this function
-            // No need to show it again here
             
-            // First, show a loading ad (1st advertisement) for 5 seconds
-            window.AdManager.showLoadingAd(5, function() {
+            // First, show a loading ad (1st advertisement) for exactly 5 seconds
+            console.log('Showing loading ad for 5 seconds');
+            
+            // Force hide the previous overlay if it exists to ensure clean state
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            if (adOverlayLoading) {
+                adOverlayLoading.style.display = 'flex';
+                adOverlayLoading.style.opacity = '1';
+                adOverlayLoading.style.visibility = 'visible';
+            }
+            
+            // Set a direct timeout instead of relying on the ad system
+            setTimeout(function() {
                 console.log('First loading ad (processing) completed');
                 
-                // After the first ad completes, show a "View Results" button
+                // Force hide the loading overlay
+                if (adOverlayLoading) {
+                    adOverlayLoading.style.display = 'none';
+                }
+                
+                // Force show the results overlay
+                const adOverlayResults = document.getElementById('ad-overlay-results');
+                if (adOverlayResults) {
+                    adOverlayResults.style.display = 'flex';
+                    adOverlayResults.style.opacity = '1';
+                    adOverlayResults.style.visibility = 'visible';
+                }
+                
+                // After the first ad completes, enable the "View Results" button
                 const viewResultsBtn = document.getElementById('view-results-btn');
                 if (viewResultsBtn) {
                     viewResultsBtn.disabled = false;
@@ -133,13 +156,19 @@ function handleTicketSubmission(event) {
                             // Hide the View Results button
                             viewResultsBtn.style.display = 'none';
                             
-                            // When the View Results button is clicked, show the interstitial ad
-                            window.AdManager.showInterstitialAd(function(adSuccess) {
-                                console.log('Second ad (interstitial) completed:', adSuccess ? 'success' : 'failed');
+                            // When the View Results button is clicked, show the interstitial ad for 15 seconds
+                            // Then automatically proceed to results
+                            setTimeout(function() {
+                                console.log('Second ad (interstitial) completed');
+                                
+                                // Hide the interstitial overlay
+                                if (adOverlayResults) {
+                                    adOverlayResults.style.display = 'none';
+                                }
                                 
                                 // After the interstitial ad completes, display the results
                                 displayTicketResults();
-                            });
+                            }, 15000); // 15 seconds for second ad
                         });
                     }
                 } else {
@@ -147,7 +176,7 @@ function handleTicketSubmission(event) {
                     // If no button is found, display results automatically
                     displayTicketResults();
                 }
-            });
+            }, 5000); // 5 seconds exactly for first ad
         } else {
             console.warn('AdManager not found, displaying results directly');
             // If AdManager isn't available, display results directly
