@@ -244,6 +244,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log("File is selected:", fileInput.files[0].name);
         
+        // Debug information about form elements
+        console.log("CSRF token input:", document.querySelector('input[name="csrf_token"]') ? "Found" : "Not found");
+        console.log("Form elements count:", document.querySelectorAll('form input, form select').length);
+        
         // Clear any previous results
         clearPreviousResults();
         
@@ -260,14 +264,21 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('ticket_image', fileInput.files[0]);
         formData.append('lottery_type', lotteryType);
         
-        // Add CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]');
-        if (csrfToken) {
-            formData.append('csrf_token', csrfToken.getAttribute('content'));
+        // Add CSRF token from the hidden input field
+        const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
+        if (csrfTokenInput) {
+            formData.append('csrf_token', csrfTokenInput.value);
         }
         
         // Submit the form data
         console.log("Submitting form data to /scan-ticket");
+        
+        // Log what's being submitted
+        console.log("FormData contents:");
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + (pair[0] === 'ticket_image' ? 'Image file' : pair[1]));
+        }
+        
         fetch('/scan-ticket', {
             method: 'POST',
             body: formData,
