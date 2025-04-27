@@ -347,7 +347,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
                                     <!-- Single file input with no capture attribute to support all devices -->
-                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none" onchange="handleFileSelect()">
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none" onchange="handleFileSelection()">
                                     
                                     <!-- Simple button with direct click handler -->
                                     <button type="button" id="file-select-btn" class="btn btn-primary btn-lg" onclick="document.getElementById('ticket-image').click();"><i class="fas fa-camera me-2"></i> Take Photo</button>
@@ -525,6 +525,55 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% block additional_scripts %}
 <script src="{{ url_for('static', filename='js/mobile-enhancements.js') }}"></script>
 <script>
+// Global function to handle file selection - must be in global scope to be called from inline handler
+function handleFileSelection() {
+    console.log("Global handleFileSelection function called");
+    const fileInput = document.getElementById('ticket-image');
+    const previewContainer = document.getElementById('preview-container');
+    const ticketPreview = document.getElementById('ticket-preview');
+    
+    console.log("File input element:", fileInput);
+    if (!fileInput) {
+        console.error("File input element not found!");
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    console.log("Selected file:", file);
+    
+    if (file) {
+        console.log("File details - Type:", file.type, "Size:", file.size, "bytes");
+        // Check if file is an image
+        if (!file.type.match('image.*')) {
+            alert('Please select an image file');
+            fileInput.value = ''; // Clear the file input
+            return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            console.log("FileReader onload event triggered");
+            ticketPreview.src = e.target.result;
+            previewContainer.classList.remove('d-none');
+            console.log("File loaded successfully and preview displayed");
+        }
+        
+        reader.onerror = function(e) {
+            console.error("FileReader error:", e);
+            alert('Error reading the image file. Please try a different image.');
+            fileInput.value = ''; // Clear the file input on error
+        }
+        
+        console.log("Starting FileReader.readAsDataURL");
+        reader.readAsDataURL(file);
+    } else {
+        console.log("No file selected");
+        previewContainer.classList.add('d-none');
+    }
+}
+</script>
+<script>
     document.addEventListener('DOMContentLoaded', function() {
         // Add event listener for "Scan Another Ticket" button
         const scanAnotherButton = document.getElementById('scan-another-ticket');
@@ -680,7 +729,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             
             if (files.length > 0) {
                 fileInput.files = files;
-                handleFileSelect();
+                handleFileSelection();
             }
         }
         
