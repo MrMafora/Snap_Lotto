@@ -101,20 +101,65 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 ticketPreview.onerror = function(e) {
                     console.error("Error loading preview image", e);
-                    // Show alert for image error
-                    alert('Error displaying the image. Please try another file.');
-                    fileInput.value = '';
-                    scanButton.disabled = true;
+                    
+                    // Instead of showing an error alert, try an alternative method
+                    // Use FileReader as fallback for better browser compatibility
+                    try {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            ticketPreview.src = e.target.result;
+                            console.log("Preview image loaded using FileReader fallback");
+                            
+                            // Make sure the image is visible and properly sized
+                            ticketPreview.style.maxWidth = '100%';
+                            ticketPreview.style.height = 'auto';
+                            ticketPreview.style.display = 'block';
+                            
+                            // Keep the scan button enabled
+                            scanButton.disabled = false;
+                            scanButton.removeAttribute('disabled');
+                        };
+                        reader.readAsDataURL(file);
+                    } catch (e2) {
+                        console.error("All image preview methods failed:", e2);
+                        alert('Error displaying the image. Please try another file.');
+                        fileInput.value = '';
+                        scanButton.disabled = true;
+                    }
                 };
                 
                 // Set the source to trigger the onload event
                 try {
+                    // Try to load the image using both approaches for maximum compatibility
                     ticketPreview.src = objectUrl;
+                    console.log("Set ticket preview source to:", objectUrl);
+                    
+                    // Also save a backup using FileReader for some browsers
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        // Only use this if the other method failed
+                        if (!ticketPreview.complete || ticketPreview.naturalWidth === 0) {
+                            console.log("Using FileReader result as fallback");
+                            ticketPreview.src = e.target.result;
+                        }
+                    };
+                    reader.readAsDataURL(file);
                 } catch (e) {
                     console.error("Error setting image source:", e);
-                    alert('Error processing the image file. Please try a different image.');
-                    fileInput.value = '';
-                    scanButton.disabled = true;
+                    // Try an alternative method with FileReader
+                    try {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            ticketPreview.src = e.target.result;
+                            console.log("Set preview using FileReader after object URL failed");
+                        };
+                        reader.readAsDataURL(file);
+                    } catch (e2) {
+                        console.error("All preview methods failed:", e2);
+                        alert('Error processing the image file. Please try a different image.');
+                        fileInput.value = '';
+                        scanButton.disabled = true;
+                    }
                 }
                 
             } catch (e) {
