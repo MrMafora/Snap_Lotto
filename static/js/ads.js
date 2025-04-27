@@ -191,28 +191,114 @@ window.AdManager = window.AdManager || {
                     return;
                 }
                 
+                // Determine the ad placement type
+                let placementType = 'scanner';  // Default placement type
+                if (containerId.includes('loader')) {
+                    placementType = 'scanner';
+                } else if (containerId.includes('interstitial')) {
+                    placementType = 'results';
+                } else if (containerId.includes('homepage')) {
+                    placementType = 'homepage';
+                }
+                
+                // Get available ads for this placement
+                let adToShow = null;
+                
+                // Check if we're in production mode (ad-server meta tag exists)
+                const isProduction = document.querySelector('meta[name="ad-server"]') !== null;
+                
+                console.log(`Loading ad for ${containerId} in ${isProduction ? 'production' : 'development'} mode`);
+                
+                if (isProduction) {
+                    // In production mode, use the ad management system
+                    if (typeof window.getAdsByPlacement === 'function') {
+                        // Get ads from the ad management system
+                        const availableAds = window.getAdsByPlacement(placementType);
+                        if (availableAds && availableAds.length > 0) {
+                            // Randomly select one ad from available ads
+                            adToShow = availableAds[Math.floor(Math.random() * availableAds.length)];
+                            console.log(`Selected ad from management system: ${adToShow?.name || 'unnamed ad'}`);
+                        }
+                    }
+                }
+                
                 // Create a new ad container
                 const adContainer = document.createElement('div');
                 adContainer.className = 'ad-container py-3';
                 
-                // In production, this would use real AdSense code
-                // Here, we're creating a placeholder for the ad
-                adContainer.innerHTML = `
-                    <div class="text-center">
-                        <div class="ad-placeholder">
-                            <p><i class="fas fa-ad mb-2"></i></p>
-                            <p class="mb-0">Advertisement</p>
+                // If we have an ad from the management system, use it
+                if (adToShow) {
+                    // Determine if this is a missing children ad or standard ad
+                    const isMissingChildrenAd = adToShow.type === 'missing_children';
+                    const badgeColor = isMissingChildrenAd ? '#FFD500' : '#0D6EFD';
+                    const badgeTextColor = isMissingChildrenAd ? '#000' : '#FFF';
+                    
+                    // Create ad HTML based on the ad type
+                    if (isMissingChildrenAd && adToShow.image_url) {
+                        // Missing children ad with image
+                        adContainer.innerHTML = `
+                            <div class="text-center">
+                                <div class="ad-placeholder" style="padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+                                    <p><span class="badge" style="background-color: ${badgeColor}; color: ${badgeTextColor}; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span></p>
+                                    <h5 class="mb-2">${adToShow.name || 'Help Find Missing Children'}</h5>
+                                    <img src="${adToShow.image_url}" class="img-fluid mb-2" style="max-width: 100%; border-radius: 4px;">
+                                    <p style="font-size: 14px; color: #6c757d;">${adToShow.custom_message || 'Please help us find missing children in South Africa'}</p>
+                                </div>
+                            </div>
+                        `;
+                    } else if (adToShow.file_url) {
+                        // Standard video ad
+                        adContainer.innerHTML = `
+                            <div class="text-center">
+                                <div class="ad-placeholder" style="padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+                                    <p><span class="badge" style="background-color: ${badgeColor}; color: ${badgeTextColor}; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span></p>
+                                    <p class="mb-2">${adToShow.name || 'Advertisement'}</p>
+                                    <video controls autoplay muted class="img-fluid" style="max-width: 100%; border-radius: 4px;">
+                                        <source src="${adToShow.file_url}" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // Generic ad (fallback)
+                        adContainer.innerHTML = `
+                            <div class="text-center">
+                                <div class="ad-placeholder" style="padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+                                    <p><span class="badge" style="background-color: ${badgeColor}; color: ${badgeTextColor}; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span></p>
+                                    <p class="mb-2">${adToShow.name || 'Advertisement'}</p>
+                                    <p style="font-size: 14px; color: #6c757d;">${adToShow.custom_message || 'Thank you for supporting our advertisers'}</p>
+                                    <p style="color: #6c757d; font-size: 12px; text-align: center;">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Default ad placeholder if no management system ad is available
+                    const badgeColor = containerId.includes('loader') ? '#FFD500' : '#0D6EFD'; 
+                    const badgeTextColor = containerId.includes('loader') ? '#000' : '#FFF';
+                    
+                    adContainer.innerHTML = `
+                        <div class="text-center">
+                            <div class="ad-placeholder" style="padding: 25px; background-color: #f3f3f3; border-radius: 8px; text-align: center;">
+                                <p><span class="badge" style="background-color: ${badgeColor}; color: ${badgeTextColor}; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span></p>
+                                <p style="font-size: 16px; color: #6c757d; margin: 15px 0;">Advertisement</p>
+                                <p style="color: #6c757d; font-size: 14px; text-align: center;">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
                 
                 targetContainer.appendChild(adContainer);
                 
-                // Simulate ad loading (would be handled by AdSense in production)
-                setTimeout(() => {
-                    console.log(`Ad loaded in ${containerId}`);
-                    if (callback) callback(true);
-                }, 2000); // 2 second delay to simulate ad loading
+                // Record impression for the ad
+                if (adToShow && adToShow.id) {
+                    this.recordAdImpression(adToShow.id);
+                }
+                
+                // Simulate ad loading completion
+                console.log(`Ad successfully loaded in ${containerId}`);
+                if (callback) callback(true);
             } catch (innerError) {
                 console.warn(`Error loading ad content into ${containerId}:`, innerError);
                 if (callback) callback(false);
