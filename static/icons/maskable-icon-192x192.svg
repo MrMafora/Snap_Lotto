@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="192px" height="192px" viewBox="0 0 192 192" version="1.1" xmlns="http://www.w3.org/2000/svg">
-  <!-- Maskable icon with safe zone for adaptive icons -->
-  <rect x="0" y="0" width="192" height="192" fill="#FFE11D"/>
-  <circle cx="96" cy="96" r="72" fill="#FFE11D" stroke="#333333" stroke-width="2"/>
-  <path d="M114,52 L76,102 L94,108 L64,140 L82,146 L114,96 L96,90 Z" fill="#333333"/>
-  <text x="96" y="170" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#333333">SNAP LOTTO</text>
-</svg>

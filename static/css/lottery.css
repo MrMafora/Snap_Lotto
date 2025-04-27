@@ -383,17 +383,6 @@
     border-bottom: 2px solid var(--lottery-red);
 }
 
-/* New row layout styles */
-.numbers-row {
-    background-color: rgba(245, 245, 245, 0.5);
-}
-
-.numbers-row td {
-    padding-top: 0.5rem;
-    padding-bottom: 1rem;
-    border-top: none !important;
-}
-
 /* Divisions Display */
 .divisions-summary {
     font-size: 0.9rem;
@@ -572,77 +561,11 @@
     justify-content: flex-start;
 }
 
-.lottery-balls-container {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr) auto auto;
-    grid-gap: 4px 8px;
-    padding: 0.25rem 0;
-    width: 100%;
-    align-items: center;
-    overflow-x: visible;
-    justify-items: center;
-}
-
-.lottery-balls-container .lottery-ball {
-    width: 36px;
-    height: 36px;
-    margin: 0;
-    justify-self: center;
-}
-
-.lottery-balls-container .bonus-number-separator {
-    margin: 0;
-    font-weight: bold;
-    justify-self: end;
-    padding-right: 4px;
-    text-align: center;
-}
-
-/* Style bonus balls correctly */
-.lottery-balls-container .lottery-ball-bonus {
-    background-color: #ffe11d;
-    color: #000;
-    justify-self: center;
-}
-
 .lottery-ball-container {
     width: 26px;
     text-align: center;
     display: inline-block;
     margin: 0 2px 4px;
-}
-
-/* Mobile results display */
-.mobile-result-header {
-    padding-bottom: 0.5rem !important;
-}
-
-.mobile-result-row {
-    display: flex;
-    flex-wrap: nowrap;
-    margin: 0 -0.25rem;
-    align-items: center;
-}
-
-.mobile-result-col {
-    padding: 0 0.25rem;
-    flex: 1 1 0;
-    min-width: 0;
-}
-
-.mobile-result-col:first-child {
-    flex: 1.5;
-}
-
-.mobile-result-col:last-child {
-    flex: 0.8;
-    text-align: right;
-}
-
-.result-card {
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
-    overflow: hidden;
 }
 
 @media (max-width: 576px) {
@@ -654,74 +577,12 @@
         width: 23px;
         margin: 0 1px 3px;
     }
-    
-    .lottery-balls-container {
-        grid-template-columns: repeat(6, 1fr) auto auto;
-        grid-gap: 4px 6px;
-        width: 100%;
-        justify-items: center;
-    }
-    
-    .lottery-balls-container .lottery-ball {
-        width: 34px;
-        height: 34px;
-        font-size: 0.9rem;
-    }
-    
-    .lottery-ball-sm {
-        width: 30px;
-        height: 30px;
-    }
-    
-    .mobile-result-col {
-        font-size: 0.9rem;
-    }
-    
-    .game-type-badge {
-        font-size: 0.75rem;
-        padding: 1px 4px;
-    }
 }
 
 @media (max-width: 400px) {
     .lottery-ball-container {
         width: 20px;
         margin: 0 1px 2px;
-    }
-    
-    .lottery-balls-container {
-        padding: 0.15rem 0;
-        grid-template-columns: repeat(6, 1fr) auto auto;
-        grid-gap: 2px 4px;
-        overflow-x: visible;
-        justify-items: center;
-    }
-    
-    .lottery-balls-container .lottery-ball {
-        width: 28px;
-        height: 28px;
-        font-size: 0.8rem;
-    }
-    
-    .lottery-ball-sm {
-        width: 28px;
-        height: 28px;
-        font-size: 0.75rem;
-    }
-    
-    .mobile-result-row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .mobile-result-col {
-        width: 100%;
-        margin-bottom: 0.25rem;
-        text-align: left !important;
-    }
-    
-    .mobile-result-col:last-child {
-        text-align: left;
     }
 }
 

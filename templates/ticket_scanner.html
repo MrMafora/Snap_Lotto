@@ -16,86 +16,6 @@ Daily Lotto data,
 Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you instant results for all lottery tickets.{% endblock %}
 
 {% block head_content %}
-<!-- CSS for optimized lottery balls display across all devices -->
-<style>
-    /* Lottery balls container styling for columnar layout */
-    .lottery-balls-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-        grid-gap: 8px;
-        margin-bottom: 1rem;
-        align-items: center;
-        justify-content: start;
-    }
-    
-    @media (min-width: 576px) {
-        .lottery-balls-container {
-            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-            grid-gap: 10px;
-        }
-    }
-    
-    /* Optimize for mobile screens */
-    @media (max-width: 575.98px) {
-        .lottery-ball {
-            width: 40px !important;
-            height: 40px !important;
-            line-height: 40px !important;
-            font-size: 16px !important;
-        }
-    }
-    
-    /* Ensure all lottery balls are responsive with fixed aspect ratio */
-    .lottery-ball {
-        width: 50px;
-        height: 50px;
-        line-height: 50px;
-        text-align: center;
-        border-radius: 50%;
-        font-weight: bold;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        display: inline-block;
-        margin: 2px;
-        color: #fff;
-        font-size: 18px;
-        position: relative;
-    }
-    
-    .ball-matched {
-        position: relative;
-    }
-    
-    .ball-matched:after {
-        content: "✓";
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background-color: #28a745;
-        color: white;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        font-size: 12px;
-        line-height: 20px;
-        text-align: center;
-    }
-    
-    /* Ensure bonus balls and matched balls stand out */
-    .lottery-ball-bonus {
-        position: relative;
-    }
-    
-    .lottery-ball-bonus:after {
-        content: "★";
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        color: gold;
-        font-size: 14px;
-        text-shadow: 0 0 2px rgba(0,0,0,0.5);
-    }
-</style>
-
 <!-- Structured Data for SEO -->
 <script type="application/ld+json">
 {
@@ -295,7 +215,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     </div>
     <!-- Countdown timer will be placed here above the button -->
     <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;"></div>
-    <button class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px; padding: 12px 24px; font-size: 18px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+    <button class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;">
         <i class="fas fa-check-circle me-2"></i> View Results
     </button>
 </div>
@@ -346,11 +266,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <i class="fa fa-upload fa-2x mb-2"></i>
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
-                                    <!-- Single file input with no capture attribute to support all devices -->
-                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none" onchange="handleFileSelect()">
-                                    
-                                    <!-- Simple button with direct click handler -->
-                                    <button type="button" id="file-select-btn" class="btn btn-primary btn-lg" onclick="document.getElementById('ticket-image').click();"><i class="fas fa-camera me-2"></i> Take Photo</button>
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
+                                    <button type="button" id="file-select-btn" class="btn btn-primary">Select Image</button>
                                 </div>
                             </div>
 
@@ -365,7 +282,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             </div>
 
                             <div class="text-center mt-4">
-                                <button type="submit" id="scan-button" class="btn btn-success btn-lg w-100" style="padding: 14px; font-size: 18px; border-radius: 8px; box-shadow: 0 4px 8px rgba(40,167,69,0.2);">
+                                <button type="submit" id="scan-button" class="btn btn-success btn-lg">
                                     <i class="fa fa-search me-2"></i> Scan Ticket
                                 </button>
                                 <div id="scanner-loading" class="mt-3">
@@ -407,7 +324,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                             </div>
                                             <div class="col-md-6">
                                                 <p><strong>Your Numbers:</strong></p>
-                                                <div id="ticket-numbers" class="lottery-balls-container mb-3"></div>
+                                                <div id="ticket-numbers" class="mb-3"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -422,7 +339,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                         <div class="mb-3">
                                             <p><strong id="primary-game-label">Main Numbers:</strong></p>
                                             <div id="winning-numbers-container">
-                                                <div id="winning-numbers" class="lottery-balls-container mb-3"></div>
+                                                <div id="winning-numbers" class="d-inline-flex flex-wrap mb-3"></div>
                                             </div>
                                             <!-- Display matches for PowerBall main game -->
                                             <div id="matched-numbers-section">
@@ -440,7 +357,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                         <div id="powerball-plus-numbers-container" class="mb-3 d-none">
                                             <hr>
                                             <p><strong>Powerball Plus Numbers:</strong></p>
-                                            <div id="powerball-plus-numbers" class="lottery-balls-container mb-2"></div>
+                                            <div id="powerball-plus-numbers" class="d-inline-flex flex-wrap mb-2"></div>
                                             <!-- Always show the Matches section for PowerBall Plus -->
                                             <div id="pp-matched-numbers-section">
                                                 <p><strong>Your Matches:</strong> <span id="pp-matched-count" class="badge bg-success">0</span></p>
@@ -452,7 +369,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                         <div id="lotto-plus-1-numbers-container" class="mb-3 d-none">
                                             <hr>
                                             <p><strong>Lotto Plus 1 Numbers:</strong></p>
-                                            <div id="lotto-plus-1-numbers" class="lottery-balls-container mb-2"></div>
+                                            <div id="lotto-plus-1-numbers" class="d-inline-flex flex-wrap mb-2"></div>
                                             <!-- Hidden but needed for JavaScript to work -->
                                             <div id="lp1-matched-numbers-section" class="d-none">
                                                 <p><strong>Your Matches:</strong> <span id="lp1-matched-count" class="badge bg-success">0</span></p>
@@ -464,7 +381,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                         <div id="lotto-plus-2-numbers-container" class="mb-3 d-none">
                                             <hr>
                                             <p><strong>Lotto Plus 2 Numbers:</strong></p>
-                                            <div id="lotto-plus-2-numbers" class="lottery-balls-container mb-2"></div>
+                                            <div id="lotto-plus-2-numbers" class="d-inline-flex flex-wrap mb-2"></div>
                                             <!-- Hidden but needed for JavaScript to work -->
                                             <div id="lp2-matched-numbers-section" class="d-none">
                                                 <p><strong>Your Matches:</strong> <span id="lp2-matched-count" class="badge bg-success">0</span></p>
@@ -508,7 +425,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 
                                 <!-- Scan Another Ticket button -->
                                 <div class="text-center mt-4 mb-3">
-                                    <button id="scan-another-ticket" class="btn btn-primary btn-lg w-100" style="padding: 14px; font-size: 18px; border-radius: 8px; box-shadow: 0 4px 8px rgba(13,110,253,0.2);">
+                                    <button id="scan-another-ticket" class="btn btn-primary btn-lg">
                                         <i class="fas fa-camera me-2"></i> Scan Another Ticket
                                     </button>
                                 </div>
@@ -523,7 +440,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% endblock %}
 
 {% block additional_scripts %}
-<script src="{{ url_for('static', filename='js/mobile-enhancements.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Add event listener for "Scan Another Ticket" button
@@ -543,23 +459,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 const previewContainer = document.getElementById('preview-container');
                 if (previewContainer) {
                     previewContainer.classList.add('d-none');
-                }
-                
-                // iOS-specific fixes for camera access
-                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-                if (isIOS) {
-                    console.log("iOS device detected, refreshing camera access");
-                    // Force refresh camera button to ensure it works on subsequent tries
-                    setTimeout(function() {
-                        const fileSelectBtn = document.getElementById('file-select-btn');
-                        if (fileSelectBtn) {
-                            // Refresh button state to trigger iOS to clear camera permissions
-                            fileSelectBtn.style.opacity = "0.99";
-                            setTimeout(() => {
-                                fileSelectBtn.style.opacity = "1";
-                            }, 50);
-                        }
-                    }, 100);
                 }
                 
                 // Hide results container
@@ -640,11 +539,13 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             console.log("Initial button state check on page load");
         }, 500);
         
-        // The button click handling is now fully managed by mobile-enhancements.js
-        // This prevents duplicate event listeners
+        // File selection via button
+        fileSelectBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
         
-        // File selection change is handled directly on the input element using inline onchange
-        // We don't need this event listener anymore as it might cause duplicate event handling
+        // File selection change
+        fileInput.addEventListener('change', handleFileSelect);
         
         // Drag and drop events
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -878,8 +779,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         
         // Function to process the ticket after ad is shown
         function processTicket(formData) {
-            // Process with the FormData created from the form
-            
             // Add CSRF token to headers
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
             
@@ -1033,32 +932,14 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Set global flag to prevent multiple timers
                     window.countdownRunning = true;
                     
-                    // COMPLETELY DISABLE the View Results button at start - including all click events and handlers
-                    // This creates a fresh button that will have zero accidental handlers
-                    if (viewResultsBtn && viewResultsBtn.parentNode) {
-                        // Create a new button from scratch to ensure it has no lingering handlers
-                        const newBtn = document.createElement('button');
-                        newBtn.id = 'view-results-btn';
-                        newBtn.className = viewResultsBtn.className;
-                        newBtn.type = 'button';
-                        newBtn.disabled = true;
-                        newBtn.style.opacity = '0.5';
-                        newBtn.style.cursor = 'not-allowed';
-                        newBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
-                        
-                        // Replace the old button
-                        viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
-                        viewResultsBtn = newBtn;
-                        console.log('Created fresh View Results button at countdown start');
-                    } else {
-                        // Fallback to just disabling the existing button
-                        viewResultsBtn.disabled = true;
-                        viewResultsBtn.style.opacity = '0.5';
-                        viewResultsBtn.style.cursor = 'not-allowed';
-                        viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
-                    }
+                    // Disable the View Results button
+                    viewResultsBtn.disabled = true;
+                    viewResultsBtn.style.opacity = '0.5';
+                    viewResultsBtn.style.cursor = 'not-allowed';
+                    viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
                     
-                    // Add a counter display to show remaining seconds - completely fresh element
+                    // Add a counter display to show remaining seconds
+                    // First, remove any existing countdown elements to prevent duplicates
                     const existingCountdown = document.getElementById('ad-countdown');
                     if (existingCountdown) {
                         existingCountdown.remove();
@@ -1067,43 +948,23 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Get the countdown container
                     const countdownContainer = adOverlayResults.querySelector('#countdown-container');
                     
-                    // Completely rebuild the countdown UI to avoid any stale state
+                    // Only proceed if the countdown container exists
                     if (countdownContainer) {
-                        // First clear out any existing content
-                        countdownContainer.innerHTML = '';
-                        
-                        // Create fresh counter element
                         const counterElement = document.createElement('div');
                         counterElement.id = 'ad-countdown';
                         counterElement.style.cssText = 'font-size: 18px; color: #0d6efd; font-weight: bold;';
                         counterElement.innerHTML = '<i class="fas fa-clock me-2"></i><span id="countdown-number">Results available in 15 seconds...</span>';
-                        
-                        // Append to the countdown container above the button
+                        // Append to the countdown container above the button instead of the ad container
                         countdownContainer.appendChild(counterElement);
-                        console.log('Created fresh countdown display');
                     } else {
                         console.warn('Countdown container not found in the DOM');
                     }
                     
-                    // SIMPLIFIED APPROACH: Use fixed seconds counting down
-                    window.countdownSeconds = 15;
+                    // Store timer start time to prevent deviations
+                    window.countdownStartTime = Date.now();
+                    window.countdownDuration = 15000; // 15 seconds in milliseconds
                     
-                    // Get UI elements
-                    const countdownNumber = document.getElementById('countdown-number');
-                    
-                    // Update the UI with starting state
-                    if (countdownNumber) {
-                        countdownNumber.textContent = `Results available in ${window.countdownSeconds} seconds...`;
-                    }
-                    
-                    if (viewResultsBtn) {
-                        viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${window.countdownSeconds}s)`;
-                        viewResultsBtn.disabled = true;
-                        viewResultsBtn.style.opacity = '0.7';
-                        viewResultsBtn.style.cursor = 'not-allowed';
-                    }
-                    
-                    // Clear any existing timers
+                    // Make sure to clear any existing timers first
                     if (window.countdownInterval) {
                         clearInterval(window.countdownInterval);
                     }
@@ -1112,107 +973,69 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         clearTimeout(window.countdownTimeout);
                     }
                     
-                    // Simple approach: Just count down whole seconds
+                    // Update the counter every second based on elapsed time
                     window.countdownInterval = setInterval(() => {
                         try {
-                            // Decrement the counter
-                            window.countdownSeconds--;
+                            // Calculate remaining time based on actual elapsed time
+                            const elapsedMs = Date.now() - window.countdownStartTime;
+                            const remainingMs = Math.max(0, window.countdownDuration - elapsedMs);
+                            const remainingSeconds = Math.ceil(remainingMs / 1000);
                             
-                            // Update display
-                            if (window.countdownSeconds <= 0) {
-                                // Time's up - show completion state
-                                if (countdownNumber) {
-                                    countdownNumber.textContent = 'Results available now!';
-                                }
-                                
-                                // Enable the button
-                                const viewResultsBtn = document.getElementById('view-results-btn');
-                                if (viewResultsBtn) {
-                                    viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                                    viewResultsBtn.disabled = false;
-                                    viewResultsBtn.style.opacity = '1';
-                                    viewResultsBtn.style.cursor = 'pointer';
-                                    viewResultsBtn.classList.add('btn-pulse');
-                                }
+                            // Get countdownNumber element
+                            const countdownNumber = document.getElementById('countdown-number');
+                            
+                            // Only update if the element exists
+                            if (countdownNumber) {
+                                countdownNumber.textContent = `Results available in ${remainingSeconds} seconds...`;
+                            }
+                            
+                            // Update button text
+                            if (remainingSeconds <= 0) {
+                                viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                viewResultsBtn.disabled = false;
+                                viewResultsBtn.style.opacity = '1';
+                                viewResultsBtn.style.cursor = 'pointer';
                             } else {
-                                // Still counting - update display
-                                if (countdownNumber) {
-                                    countdownNumber.textContent = `Results available in ${window.countdownSeconds} seconds...`;
-                                }
-                                
-                                const viewResultsBtn = document.getElementById('view-results-btn');
-                                if (viewResultsBtn) {
-                                    viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${window.countdownSeconds}s)`;
-                                }
+                                viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${remainingSeconds}s)`;
                             }
                             
                             // Check if countdown is complete
-                            if (window.countdownSeconds <= 0) {
+                            if (remainingSeconds <= 0) {
                                 // Clear interval and reset running flag
                                 clearInterval(window.countdownInterval);
                                 window.countdownInterval = null;
                                 window.countdownRunning = false;
                                 
-                                // Get the button element
-                                const viewResultsBtn = document.getElementById('view-results-btn');
-                                if (viewResultsBtn) {
-                                    // Enable the button after time is up
-                                    viewResultsBtn.disabled = false;
-                                    viewResultsBtn.style.opacity = '1';
-                                    viewResultsBtn.style.cursor = 'pointer';
-                                    viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                                    
-                                    // Make the button pulse to draw attention
-                                    viewResultsBtn.classList.add('btn-pulse');
-                                }
+                                // Enable the button after time is up
+                                viewResultsBtn.disabled = false;
+                                viewResultsBtn.style.opacity = '1';
+                                viewResultsBtn.style.cursor = 'pointer';
+                                viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
                                 
-                                // CRITICAL FIX: Use a safer approach to reset event handlers
-                                try {
-                                    // Only try to replace if the button has a parent node
-                                    if (viewResultsBtn && viewResultsBtn.parentNode) {
-                                        // Clone and replace to remove existing handlers
-                                        const newBtn = viewResultsBtn.cloneNode(true);
-                                        viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
-                                        viewResultsBtn = newBtn; // Update reference
-                                        console.log('Successfully replaced button with clone');
-                                    } else {
-                                        // Just make sure the button is truly enabled
-                                        console.log('Button replacement skipped - ensuring enabled state');
-                                        if (viewResultsBtn) {
-                                            viewResultsBtn.disabled = false;
-                                            viewResultsBtn.style.pointerEvents = 'auto';
-                                            viewResultsBtn.style.opacity = '1';
-                                        }
-                                    }
-                                } catch (e) {
-                                    console.error('Error replacing button:', e);
-                                    // Fall back to just enabling the button
-                                    if (viewResultsBtn) {
-                                        viewResultsBtn.disabled = false;
-                                        viewResultsBtn.style.pointerEvents = 'auto';
-                                        viewResultsBtn.style.opacity = '1';
-                                    }
-                                }
+                                // Make the button pulse to draw attention
+                                viewResultsBtn.classList.add('btn-pulse');
                                 
-                                // IMPORTANT: Add the inline onclick handler first - this is the most reliable method
-                                viewResultsBtn.setAttribute('onclick', 'this.disabled=false; document.querySelector("#results-container").style.display="block"; document.querySelector("#results-container").classList.remove("d-none"); document.querySelectorAll("[id^=ad-overlay]").forEach(o => o.style.display="none"); window.inResultsMode=true; window.viewResultsBtnClicked=true; window.hasCompletedAdFlow=true; window.resultsShown=true; return false;');
+                                // CRITICAL: Force direct click handler to fix clickability issues
+                                // Remove any existing handlers first by cloning the button
+                                const newBtn = viewResultsBtn.cloneNode(true);
+                                viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+                                viewResultsBtn = newBtn; // Update reference
                                 
-                                // BACKUP: Also add event listener using addEventListener
-                                viewResultsBtn.addEventListener('click', function directClickHandler(e) {
-                                    console.log('DIRECT CLICK from addEventListener: Button clicked at ' + new Date().toISOString());
+                                // Add simple direct click handler that just hides the overlay
+                                viewResultsBtn.addEventListener('click', function(e) {
+                                    console.log('DIRECT CLICK: View Results button clicked at ' + new Date().toISOString());
                                     
                                     // Set flags
                                     window.inResultsMode = true;
                                     window.viewResultsBtnClicked = true;
-                                    window.hasCompletedAdFlow = true;
-                                    window.resultsShown = true;
                                     
-                                    // Force hide overlays - any and all
-                                    document.querySelectorAll('[id^="ad-overlay"]').forEach(overlay => {
-                                        overlay.style.display = 'none';
-                                    });
+                                    // Hide ad overlay
+                                    const adOverlay = document.getElementById('ad-overlay-results');
+                                    if (adOverlay) {
+                                        adOverlay.style.display = 'none';
+                                    }
                                     
-                                    // Force show results
+                                    // Show results container
                                     const resultsContainer = document.getElementById('results-container');
                                     if (resultsContainer) {
                                         resultsContainer.classList.remove('d-none');
@@ -1223,14 +1046,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     const scanForm = document.getElementById('scan-form-container');
                                     if (scanForm) {
                                         scanForm.classList.add('d-none');
-                                        scanForm.style.display = 'none';
                                     }
                                     
-                                    // Stop propagation and prevent default
-                                    e.stopPropagation();
                                     e.preventDefault();
                                     return false;
-                                }, true); // Use capture phase to ensure this handler runs first
+                                });
                                 
                                 console.log('Countdown completed naturally based on elapsed time');
                             }
@@ -1241,14 +1061,10 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         }
                     }, 1000);
                     
-                    // Triple redundant backup system:
-                    
-                    // 1. PRIMARY TIMEOUT: Standard 15-second timeout
+                    // Set a single timeout for exactly 15 seconds from now
+                    // This is a backup to ensure the button is enabled after 15 seconds
                     window.countdownTimeout = setTimeout(() => {
-                        console.log('🔥 BACKUP TIMER #1: 15-second fixed duration completed');
-                        
-                        // Force the counter to 0 in case the interval is still running
-                        window.countdownSeconds = 0;
+                        console.log('15-second ad display timer completed at ' + new Date().toISOString());
                         
                         // Clear any running interval
                         if (window.countdownInterval) {
@@ -1259,108 +1075,27 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         // Reset the running flag
                         window.countdownRunning = false;
                         
-                        // Skip if button already clicked
+                        // Check if View Results was already clicked
                         if (window.viewResultsBtnClicked) {
-                            console.log('View Results already clicked, skipping backup timer actions');
+                            console.log('Skipping auto-enable - View Results already clicked');
                             return;
                         }
                         
-                        // Force update countdown text
-                        const countdownNumber = document.getElementById('countdown-number');
-                        if (countdownNumber) {
-                            countdownNumber.textContent = 'Results available now!';
-                        }
-                        
-                        // Get the button directly from the DOM to ensure we have the latest element
-                        const viewResultsBtn = document.getElementById('view-results-btn');
-                        
                         // Make sure the button is enabled
-                        if (viewResultsBtn) {
-                            // ABSOLUTELY FORCE the button to be enabled
-                            viewResultsBtn.disabled = false;
-                            viewResultsBtn.style.opacity = '1';
-                            viewResultsBtn.style.cursor = 'pointer';
-                            viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                            viewResultsBtn.classList.add('btn-pulse');
-                            
-                            // Add HTML onClick attribute as most reliable method
-                            viewResultsBtn.setAttribute('onclick', 'this.disabled=false; document.querySelector("#results-container").style.display="block"; document.querySelector("#results-container").classList.remove("d-none"); document.querySelectorAll("[id^=ad-overlay]").forEach(o => o.style.display="none"); window.inResultsMode=true; window.viewResultsBtnClicked=true; console.log("Inline handler executed"); return false;');
-                        }
-                    }, 15000); // Hardcoded 15 seconds
-                    
-                    // 2. SECONDARY TIMEOUT: 15.5 seconds as a redundant fallback
-                    window.countdownTimeout2 = setTimeout(() => {
-                        console.log('🔥🔥 BACKUP TIMER #2: 15.5-second redundant backup timer completed');
-                        
-                        // Get the button directly from the DOM
-                        const viewResultsBtn = document.getElementById('view-results-btn');
-                        
-                        // FORCE button to be enabled with no replacement - just direct property changes
-                        if (viewResultsBtn) {
-                            viewResultsBtn.disabled = false;
-                            viewResultsBtn.style.opacity = '1';
-                            viewResultsBtn.style.pointerEvents = 'auto';
-                            viewResultsBtn.style.cursor = 'pointer';
-                            
-                            // Add redundant onclick handler
-                            viewResultsBtn.setAttribute('onclick', 'this.disabled=false; document.querySelector("#results-container").style.display="block"; document.querySelector("#results-container").classList.remove("d-none"); document.querySelectorAll("[id^=ad-overlay]").forEach(o => o.style.display="none"); window.inResultsMode=true; window.viewResultsBtnClicked=true; return false;');
-                        }
-                    }, 15500); // 15.5 seconds as fallback
-                    
-                    // 3. EMERGENCY TIMEOUT: 16 seconds as final last-resort
-                    window.countdownTimeout3 = setTimeout(() => {
-                        console.log('⚠️⚠️⚠️ EMERGENCY BACKUP: 16-second last resort emergency timer');
-                        
-                        try {
-                            // Direct DOM manipulation to ensure the results are actually shown
-                            document.getElementById('results-container').style.display = 'block';
-                            document.getElementById('results-container').classList.remove('d-none');
-                            
-                            // Force hide all overlays
-                            document.querySelectorAll('[id^="ad-overlay"]').forEach(overlay => {
-                                overlay.style.display = 'none';
-                            });
-                            
-                            // Set global flags 
-                            window.inResultsMode = true;
-                            window.viewResultsBtnClicked = true;
-                            window.resultsShown = true;
-                            window.hasCompletedAdFlow = true;
-                            window.permanentResultsMode = true;
-                            
-                            console.log('Emergency backup completed - results should be visible');
-                        } catch (e) {
-                            console.error('Emergency backup failed:', e);
-                        }
-                    }, 16000); // 16 seconds as emergency fallback
+                        if (adOverlayResults && adOverlayResults.style.display === 'flex') {
+                            if (viewResultsBtn) {
+                                // ABSOLUTELY FORCE button to be enabled and clickable
+                                viewResultsBtn.disabled = false;
+                                viewResultsBtn.style.opacity = '1';
+                                viewResultsBtn.style.cursor = 'pointer';
+                                viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                viewResultsBtn.classList.add('btn-pulse');
+                                viewResultsBtn.setAttribute('data-forced-enabled', 'true');
                                 
-                                // CRITICAL FIX: Use a safer approach to reset event handlers
-                                try {
-                                    // Only try to replace if the button has a parent node
-                                    if (viewResultsBtn && viewResultsBtn.parentNode) {
-                                        // Clone and replace to remove existing handlers
-                                        const newBtn = viewResultsBtn.cloneNode(true);
-                                        viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
-                                        viewResultsBtn = newBtn; // Update reference
-                                        console.log('Successfully replaced button with clone (backup timer)');
-                                    } else {
-                                        // Just make sure the button is truly enabled
-                                        console.log('Button replacement skipped in backup timer - ensuring enabled state');
-                                        if (viewResultsBtn) {
-                                            viewResultsBtn.disabled = false;
-                                            viewResultsBtn.style.pointerEvents = 'auto';
-                                            viewResultsBtn.style.opacity = '1';
-                                        }
-                                    }
-                                } catch (e) {
-                                    console.error('Error replacing button in backup timer:', e);
-                                    // Fall back to just enabling the button
-                                    if (viewResultsBtn) {
-                                        viewResultsBtn.disabled = false;
-                                        viewResultsBtn.style.pointerEvents = 'auto';
-                                        viewResultsBtn.style.opacity = '1';
-                                    }
-                                }
+                                // CRITICAL FIX: Replace the button with a clone to remove any event handlers that might prevent clicks
+                                const newBtn = viewResultsBtn.cloneNode(true);
+                                viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+                                viewResultsBtn = newBtn;
                                 
                                 // Add a direct click handler that will ALWAYS fire
                                 viewResultsBtn.addEventListener('click', function directClickHandler(e) {
@@ -1399,7 +1134,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 }, true); // Capture phase to execute first
                             }
                         }
-                    }, 15000); // Hardcoded 15 seconds, don't rely on window variable
+                    }, window.countdownDuration);
                 } else {
                     console.log('Countdown already running, not starting a new one');
                 }
@@ -1407,30 +1142,15 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             .catch(error => {
                 console.error('Error:', error);
                 
-                // Clean up ALL running timers and intervals in case of error
+                // Clean up any running timers in case of error
                 if (window.countdownInterval) {
                     clearInterval(window.countdownInterval);
                     window.countdownInterval = null;
-                    console.log('Cleared countdown interval');
                 }
                 
-                // Clear all timeout objects
                 if (window.countdownTimeout) {
                     clearTimeout(window.countdownTimeout);
                     window.countdownTimeout = null;
-                    console.log('Cleared countdown primary timeout');
-                }
-                
-                if (window.countdownTimeout2) {
-                    clearTimeout(window.countdownTimeout2);
-                    window.countdownTimeout2 = null;
-                    console.log('Cleared countdown secondary timeout');
-                }
-                
-                if (window.countdownTimeout3) {
-                    clearTimeout(window.countdownTimeout3);
-                    window.countdownTimeout3 = null;
-                    console.log('Cleared countdown emergency timeout');
                 }
                 
                 // Reset the countdown running flag

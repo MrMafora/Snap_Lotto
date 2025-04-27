@@ -214,6 +214,7 @@
                                 <th class="ps-2 py-2">GAME TYPE</th>
                                 <th class="py-2">DRAW</th>
                                 <th class="py-2">DATE</th>
+                                <th class="py-2">NUMBERS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -237,10 +238,8 @@
                                 </td>
                                 <td class="py-1"><strong>{{ result.draw_number }}</strong></td>
                                 <td class="py-1 text-nowrap">{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
-                            </tr>
-                            <tr class="numbers-row">
-                                <td class="py-1" colspan="3">
-                                    <div class="lottery-balls-container">
+                                <td class="py-1">
+                                    <div class="numbers-container">
                                         {% for num in result.get_numbers_list() %}
                                             {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
                                             
@@ -254,13 +253,20 @@
                                                 {% set ball_class = ball_class + 'lottery-ball-blue' %}
                                             {% endif %}
                                             
-                                            <span class="{{ ball_class }}">{{ num }}</span>
+                                            <div class="lottery-ball-container">
+                                                <span class="{{ ball_class }}">
+                                                    <span class="number">{{ num }}</span>
+                                                </span>
+                                            </div>
                                         {% endfor %}
-                                        
                                         {% if result.bonus_numbers %}
-                                            <span class="bonus-number-separator">+</span>
+                                            <div class="mx-1 d-flex align-items-center">+</div>
                                             {% for num in result.get_bonus_numbers_list() %}
-                                                <span class="lottery-ball lottery-ball-sm lottery-ball-bonus">{{ num }}</span>
+                                                <div class="lottery-ball-container">
+                                                    <span class="lottery-ball lottery-ball-sm lottery-ball-yellow lottery-ball-bonus">
+                                                        <span class="number">{{ num }}</span>
+                                                    </span>
+                                                </div>
                                             {% endfor %}
                                         {% endif %}
                                     </div>
