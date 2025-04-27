@@ -1,0 +1,54 @@
+/**
+ * Smooth Scroll CSS for Snap Lotto
+ * Ensures smooth scrolling behavior throughout the application
+ */
+
+/* Enable smooth scrolling by default */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Special handling for elements that need to be scrolled to */
+#results-container {
+    scroll-margin-top: 20px;
+}
+
+/* Ensure hardware acceleration for smoother transitions */
+body, html {
+    -webkit-overflow-scrolling: touch;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    backface-visibility: hidden;
+    will-change: scroll-position;
+}
+
+/* Preserve scroll snapping for elements that need it */
+.scrolling-disabled {
+    overflow: hidden !important;
+}
+
+/* Add padding to bottom of page to ensure results are fully visible */
+body.showing-results {
+    padding-bottom: 50px;
+}
+
+/* Ensure proper behavior during scroll transitions */
+@media (prefers-reduced-motion: no-preference) {
+    .smooth-scroll-target {
+        scroll-margin-top: 20px;
+    }
+}
+
+/* Special handling for iOS devices which sometimes have scrolling issues */
+@supports (-webkit-touch-callout: none) {
+    html, body {
+        height: -webkit-fill-available;
+    }
+    
+    body.scrolling-disabled {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+}

@@ -16,6 +16,8 @@ Daily Lotto data,
 Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you instant results for all lottery tickets.{% endblock %}
 
 {% block head_content %}
+<!-- Smooth scrolling CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/smooth-scroll.css') }}">
 <!-- Structured Data for SEO -->
 <script type="application/ld+json">
 {
@@ -901,13 +903,37 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         overlay.style.visibility = 'hidden';
                     });
                     
-                    // Make sure body scrolling is enabled
-                    enableScrolling();
+                    // Make sure body scrolling is enabled using our improved function
+                    if (typeof enableScrolling === 'function') {
+                        enableScrolling();
+                    } else {
+                        // Fallback if function not available
+                        document.body.style.overflow = '';
+                        document.body.style.height = '';
+                        document.body.style.position = '';
+                    }
                     
                     console.log('About to display results after clicked View Results');
                     
                     // Display the results immediately
                     displayResults(data);
+                    
+                    // Make sure results are properly scrolled into view
+                    setTimeout(() => {
+                        // Use our dedicated scroll function if available
+                        if (typeof scrollToResults === 'function') {
+                            scrollToResults();
+                        } else {
+                            // Fallback scrolling
+                            const resultsContainer = document.getElementById('results-container');
+                            if (resultsContainer) {
+                                resultsContainer.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'start'
+                                });
+                            }
+                        }
+                    }, 500);
                     
                     // Create a persistent monitor to keep results visible
                     // This ensures our results stay visible even if something tries to hide them
@@ -2964,14 +2990,23 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 }
             }
             
-            // Scroll to results with a slight delay to ensure DOM is updated
+            // Scroll to results with our improved scrolling function
             setTimeout(() => {
-                window.scrollTo({
-                    top: resultsContainer.offsetTop,
-                    behavior: 'smooth'
-                });
-                // Make sure scrolling is fully enabled
-                enableScrolling();
+                // First make sure scrolling is fully enabled
+                if (typeof enableScrolling === 'function') {
+                    enableScrolling();
+                }
+                
+                // Then use our dedicated scroll to results function if available
+                if (typeof scrollToResults === 'function') {
+                    scrollToResults();
+                } else {
+                    // Fallback to basic scrolling if the function isn't available
+                    window.scrollTo({
+                        top: resultsContainer.offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
             }, 300);
         } catch (error) {
             console.error("Error displaying results:", error);
@@ -2998,4 +3033,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <script src="{{ url_for('static', filename='js/fresh_checkmark.js') }}"></script>
 <!-- Direct View Results button handler -->
 <script src="{{ url_for('static', filename='js/view-results-direct.js') }}"></script>
+<!-- Smooth scrolling fix -->
+<script src="{{ url_for('static', filename='js/smooth-scroll-fix.js') }}"></script>
 {% endblock %}
