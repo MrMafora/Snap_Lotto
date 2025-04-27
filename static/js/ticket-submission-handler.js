@@ -4,6 +4,62 @@
  * FIXED VERSION - April 2025
  */
 
+// Add a first countdown timer for the initial ad screen
+function initFirstCountdown(seconds) {
+    // Create container and add to the first ad overlay
+    const adContainer = document.querySelector('#ad-overlay-loading .ad-container-wrapper');
+    if (!adContainer) return;
+    
+    // Create timer element if it doesn't exist
+    if (!document.getElementById('first-countdown-container')) {
+        const countdownContainer = document.createElement('div');
+        countdownContainer.id = 'first-countdown-container';
+        countdownContainer.className = 'countdown-container text-center mt-3';
+        countdownContainer.style.cssText = 'font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin: 10px auto;';
+        countdownContainer.innerHTML = `
+            <div class="countdown-timer">
+                <span class="timer-value">${seconds}</span>
+                <span class="timer-text">seconds</span>
+            </div>
+        `;
+        
+        // Add after the ad container
+        adContainer.parentNode.insertBefore(countdownContainer, adContainer.nextSibling);
+    }
+    
+    // Get timer elements
+    const countdownContainer = document.getElementById('first-countdown-container');
+    const timerElement = countdownContainer.querySelector('.timer-value');
+    const timerTextElement = countdownContainer.querySelector('.timer-text');
+    
+    // Set initial value
+    let currentSeconds = seconds;
+    timerElement.textContent = currentSeconds;
+    timerTextElement.textContent = currentSeconds === 1 ? 'second' : 'seconds';
+    
+    // Start countdown
+    const intervalId = setInterval(() => {
+        currentSeconds--;
+        
+        // Update display
+        timerElement.textContent = currentSeconds;
+        timerTextElement.textContent = currentSeconds === 1 ? 'second' : 'seconds';
+        
+        // Apply pulse effect in last 3 seconds
+        if (currentSeconds <= 3) {
+            timerElement.classList.add('text-danger', 'fw-bold');
+            countdownContainer.classList.add('pulse-animation');
+        }
+        
+        // Stop when time is up
+        if (currentSeconds <= 0) {
+            clearInterval(intervalId);
+        }
+    }, 1000);
+    
+    return intervalId;
+}
+
 // Function to handle ticket form submission
 function handleTicketSubmission(event) {
     // Prevent the default form submission
@@ -52,6 +108,9 @@ function handleTicketSubmission(event) {
         adOverlayLoading.style.opacity = '1';
         adOverlayLoading.style.visibility = 'visible';
         console.log('FIRST ad overlay (yellow badge) is now visible');
+        
+        // Start the first countdown timer - 5 seconds
+        initFirstCountdown(5);
     }
     
     // For CSRF token safety
@@ -129,43 +188,99 @@ function handleTicketSubmission(event) {
                 adOverlayResults.style.visibility = 'visible';
                 console.log('SECOND ad overlay (blue badge) is now visible');
                 
-                // Show the View Results button
+                // Initially hide the View Results button until countdown completes
                 const viewResultsBtn = document.getElementById('view-results-btn');
                 if (viewResultsBtn) {
-                    viewResultsBtn.disabled = false;
-                    viewResultsBtn.style.display = 'block';
+                    viewResultsBtn.disabled = true;
+                    viewResultsBtn.style.display = 'none';
+                }
+                
+                // Show countdown timer in the second ad screen
+                const countdownContainer = document.getElementById('countdown-container');
+                if (countdownContainer) {
+                    // Initialize a 15-second countdown
+                    let seconds = 15;
+                    countdownContainer.innerHTML = `
+                        <div class="countdown-timer">
+                            <span class="timer-value">${seconds}</span>
+                            <span class="timer-text">seconds</span>
+                        </div>
+                    `;
                     
-                    // Make sure the event listener is only added once
-                    if (!viewResultsBtn._clickHandlerAdded) {
-                        viewResultsBtn._clickHandlerAdded = true;
+                    const timerElement = countdownContainer.querySelector('.timer-value');
+                    const timerTextElement = countdownContainer.querySelector('.timer-text');
+                    
+                    // Make countdown visible
+                    countdownContainer.style.display = 'block';
+                    
+                    // Start timer countdown
+                    const timerInterval = setInterval(() => {
+                        seconds--;
                         
-                        viewResultsBtn.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
+                        // Update display
+                        if (timerElement && timerTextElement) {
+                            timerElement.textContent = seconds;
+                            timerTextElement.textContent = seconds === 1 ? 'second' : 'seconds';
                             
-                            console.log('View Results button clicked');
+                            // Apply pulse effect in last 3 seconds
+                            if (seconds <= 3) {
+                                timerElement.classList.add('text-danger', 'fw-bold');
+                                countdownContainer.classList.add('pulse-animation');
+                            }
+                        }
+                        
+                        // When countdown completes
+                        if (seconds <= 0) {
+                            clearInterval(timerInterval);
                             
-                            // Hide the button
-                            viewResultsBtn.style.display = 'none';
+                            // Show completion message
+                            countdownContainer.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i> Ready to view results!</span>';
                             
-                            // After 15 seconds from clicking the button, hide overlay and show results
-                            setTimeout(function() {
-                                console.log('Second ad (blue badge) completed - 15 seconds elapsed');
+                            // Show the View Results button
+                            if (viewResultsBtn) {
+                                viewResultsBtn.disabled = false;
+                                viewResultsBtn.style.display = 'block'; 
+                                viewResultsBtn.classList.add('btn-pulse');
                                 
-                                // Hide the results overlay
-                                adOverlayResults.style.display = 'none';
-                                
-                                // Show the actual results
-                                displayTicketResults();
-                            }, 15000); // 15 seconds
-                        });
-                    }
+                                // Make sure the event listener is only added once
+                                if (!viewResultsBtn._clickHandlerAdded) {
+                                    viewResultsBtn._clickHandlerAdded = true;
+                                    
+                                    viewResultsBtn.addEventListener('click', function(e) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        
+                                        console.log('View Results button clicked');
+                                        
+                                        // Hide the overlay immediately when button is clicked
+                                        adOverlayResults.style.display = 'none';
+                                        
+                                        // Show the actual results
+                                        displayTicketResults();
+                                    });
+                                }
+                            }
+                        }
+                    }, 1000);
                 } else {
-                    console.error('View Results button not found!');
-                    // Fallback: display results after 15 seconds automatically
-                    setTimeout(function() {
-                        if (adOverlayResults) adOverlayResults.style.display = 'none';
-                        displayTicketResults();
+                    console.error('Countdown container not found!');
+                    // Fallback: Just show button after 15 seconds
+                    setTimeout(() => {
+                        if (viewResultsBtn) {
+                            viewResultsBtn.disabled = false;
+                            viewResultsBtn.style.display = 'block';
+                            viewResultsBtn.classList.add('btn-pulse');
+                            
+                            // Add click handler
+                            viewResultsBtn.addEventListener('click', function() {
+                                adOverlayResults.style.display = 'none';
+                                displayTicketResults();
+                            });
+                        } else {
+                            // Ultimate fallback if even button isn't found
+                            adOverlayResults.style.display = 'none';
+                            displayTicketResults();
+                        }
                     }, 15000);
                 }
             } else {
