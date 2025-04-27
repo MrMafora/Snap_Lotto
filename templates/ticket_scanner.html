@@ -354,9 +354,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 </div>
                             </div>
 
-                            <div id="preview-container" class="text-center mb-4" style="display: none;">
-                                <h6>Preview</h6>
-                                <img id="ticket-preview" class="ticket-preview img-fluid rounded" style="max-height: 300px; max-width: 100%; border: 1px solid #ddd;" src="">
+                            <div id="preview-container" class="text-center mb-4" style="display: none; margin-top: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
+                                <h6>Image Preview</h6>
+                                <img id="ticket-preview" class="ticket-preview img-fluid rounded" style="max-height: 300px; max-width: 100%; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" src="">
                                 <div class="mt-2">
                                     <button type="button" id="remove-image" class="btn btn-sm btn-outline-danger">
                                         <i class="fa fa-times"></i> Remove
@@ -779,88 +779,99 @@ function processTicketWithAds() {
 }
 }
 
-// Global function to handle file selection - must be in global scope to be called from inline handler
+// Simplified file handling function - completely rewritten
 function handleFileSelection() {
-    console.log("Global handleFileSelection function called");
+    console.log("SimpleFileSelect: Function called");
+    
+    // Get all required elements
     const fileInput = document.getElementById('ticket-image');
     const previewContainer = document.getElementById('preview-container');
     const ticketPreview = document.getElementById('ticket-preview');
     const scanButton = document.getElementById('scan-button');
     
-    console.log("File input element:", fileInput);
-    if (!fileInput) {
-        console.error("File input element not found!");
+    if (!fileInput || !previewContainer || !ticketPreview || !scanButton) {
+        console.error("SimpleFileSelect: One or more elements not found!");
+        alert("Error: Some page elements were not found. Please refresh the page.");
         return;
     }
     
+    // Get the selected file
     const file = fileInput.files[0];
-    console.log("Selected file:", file);
     
     if (file) {
-        console.log("File details - Type:", file.type, "Size:", file.size, "bytes");
-        // Check if file is an image
+        console.log("SimpleFileSelect: File selected - Name: " + file.name + ", Type: " + file.type + ", Size: " + file.size + " bytes");
+        
+        // Validate file type
         if (!file.type.match('image.*')) {
-            alert('Please select an image file');
-            fileInput.value = ''; // Clear the file input
+            alert('Please select an image file (JPG, PNG, etc.).');
+            fileInput.value = '';
+            scanButton.disabled = true;
             return;
         }
         
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-            console.log("FileReader onload event triggered");
-            // Set the image source
-            ticketPreview.src = e.target.result;
-            // Make sure the preview container is visible - using direct style
-            previewContainer.style.display = 'block';
-            console.log("File loaded successfully and preview displayed");
+        try {
+            // Create a direct object URL instead of using FileReader for better compatibility
+            const objectUrl = URL.createObjectURL(file);
+            console.log("SimpleFileSelect: Created object URL");
             
-            // Enable the scan button when an image is selected
-            if (scanButton) {
+            // Set the image source directly
+            ticketPreview.onload = function() {
+                console.log("SimpleFileSelect: Image loaded successfully");
+                
+                // Show the preview container - using multiple methods for maximum compatibility
+                previewContainer.style.display = 'block';
+                previewContainer.classList.remove('d-none');
+                
+                // Enable the scan button
                 scanButton.disabled = false;
-                console.log("Scan button enabled");
-            }
+                
+                console.log("SimpleFileSelect: Preview displayed and scan button enabled");
+            };
             
-            // Display a console alert for debugging
-            console.log("%c IMAGE PREVIEW SHOULD BE VISIBLE NOW", "background: green; color: white; font-size: 20px");
-        };
-        
-        reader.onerror = function(e) {
-            console.error("FileReader error:", e);
-            alert('Error reading the image file. Please try a different image.');
-            fileInput.value = ''; // Clear the file input on error
-            
-            // Disable scan button on error
-            if (scanButton) {
+            ticketPreview.onerror = function() {
+                console.error("SimpleFileSelect: Error loading image");
+                alert('Error displaying the image. Please try another file.');
+                fileInput.value = '';
                 scanButton.disabled = true;
-            }
-        };
-        
-        console.log("Starting FileReader.readAsDataURL");
-        reader.readAsDataURL(file);
-    } else {
-        console.log("No file selected");
-        previewContainer.style.display = 'none';
-        
-        // Disable scan button when no file is selected
-        if (scanButton) {
+            };
+            
+            // Set the source to trigger the onload event
+            ticketPreview.src = objectUrl;
+            
+        } catch (e) {
+            console.error("SimpleFileSelect: Error creating object URL:", e);
+            alert('Error processing the image file. Please try a different image.');
+            fileInput.value = '';
             scanButton.disabled = true;
         }
+    } else {
+        console.log("SimpleFileSelect: No file selected");
+        previewContainer.style.display = 'none';
+        scanButton.disabled = true;
     }
     
-    // Set up the remove button handler
+    // Set up remove button handler
     const removeImageBtn = document.getElementById('remove-image');
     if (removeImageBtn) {
         removeImageBtn.onclick = function() {
-            console.log("Remove button clicked");
-            fileInput.value = ''; // Clear the file input
-            previewContainer.style.display = 'none'; // Hide the preview using direct style
-            ticketPreview.src = ''; // Clear the image source
+            console.log("SimpleFileSelect: Remove button clicked");
             
-            // Disable scan button when image is removed
-            if (scanButton) {
-                scanButton.disabled = true;
+            // Clear the file input
+            fileInput.value = '';
+            
+            // Clear the image source and revoke the object URL to free memory
+            if (ticketPreview.src && ticketPreview.src.startsWith('blob:')) {
+                URL.revokeObjectURL(ticketPreview.src);
             }
+            ticketPreview.src = '';
+            
+            // Hide the preview container
+            previewContainer.style.display = 'none';
+            
+            // Disable the scan button
+            scanButton.disabled = true;
+            
+            console.log("SimpleFileSelect: Image removed and preview hidden");
         };
     }
 }
