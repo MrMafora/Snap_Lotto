@@ -379,16 +379,16 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             </div>
                         </form>
 
-                        <div id="results-container" class="results-container d-none">
+                        <div id="results-container" class="results-container {% if not show_results %}d-none{% endif %}">
                             <hr>
                             <h3 class="mb-3 text-center">Scanning Results</h3>
                             
-                            <div id="error-message" class="alert alert-danger d-none">
+                            <div id="error-message" class="alert alert-danger {% if not scan_results.error %}d-none{% endif %}">
                                 <i class="fa fa-exclamation-triangle me-2"></i>
-                                <span id="error-text"></span>
+                                <span id="error-text">{% if scan_results.error %}{{ scan_results.error }}{% endif %}</span>
                             </div>
                             
-                            <div id="success-content" class="d-none">
+                            <div id="success-content" class="{% if not scan_results or not scan_results.ticket_info %}d-none{% endif %}">
                                 <div class="card mb-4">
                                     <div class="card-header bg-light">
                                         <h5 class="mb-0" id="ticket-info-title">Your Ticket</h5>
@@ -527,6 +527,22 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% block additional_scripts %}
 <script src="{{ url_for('static', filename='js/ticket-scanner-fixed.js') }}"></script>
 <script>
+{% if scan_results and scan_results.ticket_info %}
+// Populate results from server-side rendered data
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Populating results from server-side data");
+    
+    // Get the scan results from the template
+    const scanResults = {{ scan_results|tojson }};
+    
+    // Display the results using the existing function
+    if (window.displayResults) {
+        window.displayResults(scanResults);
+    } else {
+        console.error("displayResults function not found");
+    }
+});
+{% endif %}
 // Keep these definitions for backward compatibility
 function processTicketWithAds() {
     console.log("processTicketWithAds called", new Date().toISOString());

@@ -447,13 +447,21 @@ def scan_ticket():
     """Process uploaded ticket image and return results"""
     # Check if file is included in the request
     if 'ticket_image' not in request.files:
-        return jsonify({"error": "No ticket image provided"}), 400
+        error_message = "No ticket image provided"
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"error": error_message}), 400
+        flash(error_message, "danger")
+        return redirect(url_for('ticket_scanner'))
         
     file = request.files['ticket_image']
     
     # If user does not select file, browser also submits an empty part without filename
     if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
+        error_message = "No selected file"
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"error": error_message}), 400
+        flash(error_message, "danger")
+        return redirect(url_for('ticket_scanner'))
         
     # Get the lottery type if specified (optional)
     lottery_type = request.form.get('lottery_type', '')
@@ -481,11 +489,26 @@ def scan_ticket():
             file_extension=file_extension
         )
         
-        # Return JSON response with results
-        return jsonify(result)
+        # For AJAX requests return JSON
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(result)
+        
+        # For regular form submissions, render the template with the results
+        return render_template('ticket_scanner.html', 
+                              title="Scan Lottery Ticket | Check If You've Won | Snap Lotto",
+                              scan_results=result,
+                              show_results=True)
     except Exception as e:
         logger.exception(f"Error processing ticket: {str(e)}")
-        return jsonify({"error": f"Error processing ticket: {str(e)}"}), 500
+        error_message = f"Error processing ticket: {str(e)}"
+        
+        # For AJAX requests return JSON
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"error": error_message}), 500
+            
+        # For regular form submissions, flash message and redirect
+        flash(error_message, "danger")
+        return redirect(url_for('ticket_scanner'))
 
 # Guides Routes
 @app.route('/guides')
