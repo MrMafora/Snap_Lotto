@@ -4,36 +4,6 @@
  * FIXED VERSION - April 2025
  */
 
-// Function to close all ad overlays and return to main scanner
-function closeAllAdOverlays() {
-    console.log('Emergency close button clicked, closing all overlays');
-    
-    // Hide all overlay containers
-    const adOverlayLoading = document.getElementById('ad-overlay-loading');
-    const adOverlayResults = document.getElementById('ad-overlay-results');
-    
-    if (adOverlayLoading) adOverlayLoading.style.display = 'none';
-    if (adOverlayResults) adOverlayResults.style.display = 'none';
-    
-    // If already processed results, show them
-    const resultsContainer = document.getElementById('results-container');
-    if (resultsContainer && !resultsContainer.classList.contains('d-none')) {
-        console.log('Showing existing results');
-    } else {
-        // Reset form otherwise
-        const ticketForm = document.getElementById('ticket-form');
-        if (ticketForm) ticketForm.reset();
-        
-        // Hide preview if visible
-        const previewContainer = document.getElementById('preview-container');
-        if (previewContainer) previewContainer.style.display = 'none';
-        
-        // Enable scan button
-        const scanButton = document.getElementById('scan-button');
-        if (scanButton) scanButton.disabled = true;
-    }
-}
-
 // Add a first countdown timer for the initial ad screen
 function initFirstCountdown(seconds) {
     // Create container and add to the first ad overlay
