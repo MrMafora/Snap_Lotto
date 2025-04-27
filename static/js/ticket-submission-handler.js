@@ -180,11 +180,17 @@ function handleTicketSubmission(event) {
                 adOverlayResults.classList.add('active');
                 console.log('SECOND ad overlay (blue badge) is now visible');
                 
-                // Initially hide the View Results button until countdown completes
+                // Initially hide the View Results button and the helper text until countdown completes
                 const viewResultsBtn = document.getElementById('view-results-btn');
+                const viewResultsHelper = document.querySelector('#ad-overlay-results .text-center.mt-4.mb-1');
+                
                 if (viewResultsBtn) {
                     viewResultsBtn.disabled = true;
                     viewResultsBtn.style.display = 'none';
+                }
+                
+                if (viewResultsHelper) {
+                    viewResultsHelper.style.display = 'none';
                 }
                 
                 // Show countdown timer in the second ad screen
@@ -228,11 +234,16 @@ function handleTicketSubmission(event) {
                             // Show completion message
                             countdownContainer.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i> Ready to view results!</span>';
                             
-                            // Show the View Results button
+                            // Show the View Results button and helper text
                             if (viewResultsBtn) {
                                 viewResultsBtn.disabled = false;
                                 viewResultsBtn.style.display = 'block'; 
                                 viewResultsBtn.classList.add('btn-pulse');
+                                
+                                // Also display the helper text with arrow pointing to the button
+                                if (viewResultsHelper) {
+                                    viewResultsHelper.style.display = 'block';
+                                }
                                 
                                 // Make sure the event listener is only added once
                                 if (!viewResultsBtn._clickHandlerAdded) {
@@ -262,6 +273,11 @@ function handleTicketSubmission(event) {
                             viewResultsBtn.disabled = false;
                             viewResultsBtn.style.display = 'block';
                             viewResultsBtn.classList.add('btn-pulse');
+                            
+                            // Also display the helper text in fallback case
+                            if (viewResultsHelper) {
+                                viewResultsHelper.style.display = 'block';
+                            }
                             
                             // Add click handler
                             viewResultsBtn.addEventListener('click', function() {
