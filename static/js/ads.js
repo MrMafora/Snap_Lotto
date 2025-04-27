@@ -341,12 +341,18 @@ window.AdManager = window.AdManager || {
             // Add event listeners to the View Results button to ensure we handle clicks properly
             const viewResultsBtn = document.getElementById('view-results-btn');
             if (viewResultsBtn) {
-                // Remove any existing click handlers
-                const newBtn = viewResultsBtn.cloneNode(true);
-                viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+                // Instead of replacing the button which can cause issues with the countdown timer
+                // Clear any existing click handlers by using only one definitive handler
+                // First, remove any existing click events (if possible)
+                if (viewResultsBtn._clickHandlerAdded) {
+                    return; // Skip adding another handler if we already added one
+                }
+                
+                // Mark that we're adding a handler to prevent duplicates
+                viewResultsBtn._clickHandlerAdded = true;
                 
                 // Add our definitive handler
-                newBtn.addEventListener('click', function forceKeepResults(e) {
+                viewResultsBtn.addEventListener('click', function forceKeepResults(e) {
                     // Log the click with timestamp
                     console.log('⭐ View Results button clicked at ' + new Date().toISOString());
                     
@@ -622,8 +628,9 @@ window.AdManager = window.AdManager || {
             return;
         }
         
-        // Disable the button at first
+        // Disable the button at first - both ways to ensure cross-browser compatibility
         viewResultsBtn.disabled = true;
+        viewResultsBtn.setAttribute('disabled', 'disabled');
         viewResultsBtn.classList.remove('btn-pulse');
         
         // Initialize the timer
@@ -633,13 +640,30 @@ window.AdManager = window.AdManager || {
         // Create and start the interval
         const countdownTimer = setInterval(function() {
             timeLeft--;
+            console.log('Countdown timer: ' + timeLeft + ' seconds remaining');
             
             if (timeLeft <= 0) {
                 // Time's up - enable the button
                 clearInterval(countdownTimer);
+                console.log('Countdown complete - enabling View Results button');
                 countdownContainer.textContent = 'You can now view your results!';
+                
+                // Enable the button - both ways to ensure it works across all browsers
                 viewResultsBtn.disabled = false;
+                viewResultsBtn.removeAttribute('disabled');
                 viewResultsBtn.classList.add('btn-pulse');
+                
+                // Force a button style update by modifying the DOM
+                viewResultsBtn.style.opacity = "0.99";
+                setTimeout(() => {
+                    viewResultsBtn.style.opacity = "1";
+                }, 10);
+                
+                // Add event listener to ensure the button works
+                viewResultsBtn.addEventListener('click', function(e) {
+                    console.log('View Results button clicked after countdown');
+                    window.AdManager.hideInterstitialAd();
+                });
             } else {
                 // Update the countdown
                 countdownContainer.textContent = 'Please wait ' + timeLeft + ' seconds';
