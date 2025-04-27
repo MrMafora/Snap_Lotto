@@ -1,10 +1,6 @@
 /**
  * Ticket Submission Handler
  * This script handles the ticket submission process with advertisement integration.
- * Original working version that always shows:
- * 1. First ad with yellow badge for 5 seconds
- * 2. Process Results button
- * 3. Second ad with blue badge for 15 seconds
  */
 
 // Add a first countdown timer for the initial ad screen
