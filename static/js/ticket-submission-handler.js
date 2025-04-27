@@ -100,6 +100,7 @@ function handleTicketSubmission(event) {
                     // Make the button green and prominent
                     viewResultsBtn.classList.add('btn-success');
                     viewResultsBtn.classList.remove('btn-secondary');
+                    viewResultsBtn.classList.add('animate-pulse');
                     viewResultsBtn.textContent = 'View Results';
                     
                     // Make sure the button is visible

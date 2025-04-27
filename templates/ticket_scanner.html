@@ -45,6 +45,26 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         }
     }
     
+    /* Animation for View Results button */
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 4px 8px rgba(40,167,69,0.2);
+        }
+        50% {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(40,167,69,0.4);
+        }
+        100% {
+            transform: scale(1);
+            box-shadow: 0 4px 8px rgba(40,167,69,0.2);
+        }
+    }
+    
+    .animate-pulse {
+        animation: pulse 1.5s infinite;
+    }
+    
     /* Ensure all lottery balls are responsive with fixed aspect ratio */
     .lottery-ball {
         width: 50px;

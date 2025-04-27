@@ -453,35 +453,51 @@ window.AdManager = window.AdManager || {
         });
     },
     
-    // Hide the loading ad (when results are ready)
+    // Hide the loading ad and show the View Results button
     hideLoadingAd: function() {
-        console.log('Hiding all loader ads');
+        console.log('Hiding loading ad and preparing View Results button');
         
         // Find and remove all direct ad elements with loader in the ID
         document.querySelectorAll('[id^="direct-ad-loader-"]').forEach(element => {
             element.remove();
         });
         
-        // Force restore scrolling on all elements
-        document.body.style.overflow = 'auto';
-        document.body.style.position = 'static'; // Reset to static instead of fixed
-        document.body.style.width = '';
-        document.body.style.height = '';
-        document.documentElement.style.overflow = 'auto';
-        document.documentElement.style.position = 'static';
-        document.body.style.touchAction = 'auto';
+        // Do NOT fully restore scrolling yet - we want to show the View Results button
+        // Keep overlay visible but update UI to show Results Ready
         
-        // Re-enable zooming
-        const viewportMeta = document.querySelector('meta[name="viewport"]');
-        if (viewportMeta) {
-            viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+        const adOverlayLoading = document.getElementById('ad-overlay-loading');
+        if (adOverlayLoading) {
+            // Change the title to "Results Ready"
+            const titleElements = adOverlayLoading.querySelectorAll('h4');
+            if (titleElements.length > 0) {
+                titleElements[0].innerHTML = 'Results Ready! <i class="fas fa-check-circle" style="color: green;"></i>';
+            }
+            
+            // Hide the spinner
+            const spinnerElements = adOverlayLoading.querySelectorAll('.spinner-border');
+            spinnerElements.forEach(spinner => {
+                spinner.style.display = 'none';
+            });
+            
+            // Change the loading message
+            const loadingMessages = adOverlayLoading.querySelectorAll('.loading-message');
+            if (loadingMessages.length > 0) {
+                loadingMessages[0].textContent = 'Your results are ready to view';
+            }
+            
+            // Show the View Results button
+            const viewResultsBtn = document.getElementById('view-results-btn');
+            if (viewResultsBtn) {
+                viewResultsBtn.style.display = 'block';
+                viewResultsBtn.disabled = false;
+                viewResultsBtn.classList.remove('btn-secondary');
+                viewResultsBtn.classList.add('btn-success');
+                viewResultsBtn.textContent = 'View Results';
+                
+                // Make the button blink to draw attention
+                viewResultsBtn.classList.add('animate-pulse');
+            }
         }
-        
-        // Force update body and viewport
-        setTimeout(function() {
-            window.scrollTo(0, 0);
-            window.scrollTo(0, 1);
-        }, 100);
     },
 
     // Hide the interstitial ad (when viewing results)
