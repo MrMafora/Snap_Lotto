@@ -886,7 +886,20 @@ function handleFileSelection() {
             console.log('Cleared previous results');
         }
         
-        function processTicketWithAds() {
+        // Define processTicketWithAds as a global function
+        window.processTicketWithAds = function() {
+            console.log("processTicketWithAds called", new Date().toISOString());
+            
+            // Verify we have a file
+            const fileInput = document.getElementById('ticket-image');
+            if (fileInput && fileInput.files.length > 0) {
+                console.log("File is selected:", fileInput.files[0].name);
+            } else {
+                console.error("No file selected!");
+                alert("Please select an image first");
+                return;
+            }
+            
             // Clear any previous results first
             clearPreviousResults();
             
@@ -901,11 +914,22 @@ function handleFileSelection() {
             
             // Create form data for later use
             const formData = new FormData(ticketForm);
+            console.log("FormData created with file:", fileInput.files[0].name);
             
             // Show the loading ad overlay first
             const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            adOverlayLoading.style.display = 'flex';
+            if (adOverlayLoading) {
+                adOverlayLoading.style.display = 'flex';
+                console.log("Ad overlay loading displayed");
+            } else {
+                console.error("Ad overlay loading element not found!");
+            }
             
+            // Process directly without ads for debugging
+            console.log("BYPASSING ADS FOR DEBUGGING - Processing ticket immediately");
+            processTicket(formData);
+            
+            /* Commented out for debugging
             // Ensure the ad overlay stays visible for at least 2 seconds before processing
             setTimeout(() => {
                 // Check if AdManager is available and use it to show ad, otherwise just process
@@ -930,16 +954,25 @@ function handleFileSelection() {
                     }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
                 }
             }, 2000); // Initial 2 seconds minimum display time
+            */
         }
         
         // Function to process the ticket after ad is shown
         function processTicket(formData) {
-            // Process with the FormData created from the form
+            console.log("processTicket called with formData", new Date().toISOString());
+            
+            // Log form data contents
+            console.log("FormData entries:");
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
             
             // Add CSRF token to headers
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+            console.log("CSRF token:", csrfToken);
             
             // Add CSRF token to request headers
+            console.log("Starting fetch to /scan-ticket");
             fetch('/scan-ticket', {
                 method: 'POST',
                 body: formData,
@@ -948,12 +981,38 @@ function handleFileSelection() {
                 }
             })
             .then(response => {
+                console.log("Received response:", response.status, response.statusText);
                 if (!response.ok) {
+                    console.error("Error response:", response.status, response.statusText);
                     throw new Error('Network response was not ok: ' + response.status);
                 }
+                console.log("Response OK, parsing JSON");
                 return response.json();
             })
+            .catch(error => {
+                console.error("Error in fetch:", error);
+                alert("Error processing ticket: " + error.message);
+                
+                // Hide loading overlay
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                if (adOverlayLoading) {
+                    adOverlayLoading.style.display = 'none';
+                }
+                
+                // Re-enable scrolling
+                enableScrolling();
+                
+                // Show error to user
+                const errorMessage = document.getElementById('error-message');
+                const errorText = document.getElementById('error-text');
+                if (errorMessage && errorText) {
+                    errorText.textContent = "Error processing your ticket: " + error.message;
+                    errorMessage.classList.remove('d-none');
+                    resultsContainer.classList.remove('d-none');
+                }
+            })
             .then(data => {
+                console.log("Received data from server:", data);
                 console.log('Success:', data);
                 
                 // Hide loading overlay
