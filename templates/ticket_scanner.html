@@ -354,9 +354,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 </div>
                             </div>
 
-                            <div id="preview-container" class="text-center d-none">
+                            <div id="preview-container" class="text-center mb-4" style="display: none;">
                                 <h6>Preview</h6>
-                                <img id="ticket-preview" class="ticket-preview img-fluid rounded" src="">
+                                <img id="ticket-preview" class="ticket-preview img-fluid rounded" style="max-height: 300px; max-width: 100%; border: 1px solid #ddd;" src="">
                                 <div class="mt-2">
                                     <button type="button" id="remove-image" class="btn btn-sm btn-outline-danger">
                                         <i class="fa fa-times"></i> Remove
@@ -811,8 +811,7 @@ function handleFileSelection() {
             console.log("FileReader onload event triggered");
             // Set the image source
             ticketPreview.src = e.target.result;
-            // Make sure the preview container is visible
-            previewContainer.classList.remove('d-none');
+            // Make sure the preview container is visible - using direct style
             previewContainer.style.display = 'block';
             console.log("File loaded successfully and preview displayed");
             
@@ -821,6 +820,9 @@ function handleFileSelection() {
                 scanButton.disabled = false;
                 console.log("Scan button enabled");
             }
+            
+            // Display a console alert for debugging
+            console.log("%c IMAGE PREVIEW SHOULD BE VISIBLE NOW", "background: green; color: white; font-size: 20px");
         };
         
         reader.onerror = function(e) {
@@ -838,7 +840,7 @@ function handleFileSelection() {
         reader.readAsDataURL(file);
     } else {
         console.log("No file selected");
-        previewContainer.classList.add('d-none');
+        previewContainer.style.display = 'none';
         
         // Disable scan button when no file is selected
         if (scanButton) {
@@ -852,7 +854,8 @@ function handleFileSelection() {
         removeImageBtn.onclick = function() {
             console.log("Remove button clicked");
             fileInput.value = ''; // Clear the file input
-            previewContainer.classList.add('d-none'); // Hide the preview
+            previewContainer.style.display = 'none'; // Hide the preview using direct style
+            ticketPreview.src = ''; // Clear the image source
             
             // Disable scan button when image is removed
             if (scanButton) {
@@ -1080,13 +1083,7 @@ function handleFileSelection() {
         
         lotteryTypeSelect.addEventListener('change', updateScanButton);
         
-        // Add a direct click handler for the scan button
-        scanButton.addEventListener('click', function(e) {
-            if (fileInput.files.length) {
-                e.preventDefault();
-                processTicketWithAds();
-            }
-        });
+        // Scan button has direct inline onclick handler now, removing to avoid duplicates
         
         function updateScanButton() {
             // Always keep the button enabled
@@ -1222,8 +1219,9 @@ function handleFileSelection() {
                 console.error("Ad overlay loading element not found!");
             }
             
-            // Use the ad display system
-            console.log("Using ad system for ticket processing");
+            // For quick testing, process the ticket directly
+            console.log("BYPASSING ADS FOR DEBUGGING - Processing ticket immediately");
+            processTicket(formData);
             // Ensure the ad overlay stays visible for at least 2 seconds before processing
             setTimeout(() => {
                 // Check if AdManager is available and use it to show ad, otherwise just process
