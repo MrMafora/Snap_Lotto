@@ -3817,216 +3817,43 @@ function handleFileSelection() {
 <script src="{{ url_for('static', filename='js/fresh_checkmark.js') }}"></script>
 <script src="{{ url_for('static', filename='js/getAdsByPlacement.js') }}"></script>
 <script src="{{ url_for('static', filename='js/countdown-timer.js') }}"></script>
-<script src="{{ url_for('static', filename='js/ticket-submission-handler-fixed.js') }}"></script>
+<!-- Use original implementation rather than fixed version which had dynamic timing -->
+<script src="{{ url_for('static', filename='js/ticket-submission-handler.js') }}"></script>
 
-<!-- Global function to ensure handleTicketSubmission is defined at global scope -->
+<!-- Add global displayResults function -->
 <script>
-// Expose a global version of handleTicketSubmission
-window.handleTicketSubmission = function(event) {
-    console.log('Global ticket submission handler called');
+// Display results function that works with both ad systems
+window.displayResults = function(data) {
+    console.log('Global displayResults called with:', data);
     
-    // Prevent the default form submission
-    event.preventDefault();
-    
-    // Get form elements
-    const form = document.getElementById('ticket-form');
-    const fileInput = document.getElementById('ticket-image');
-    
-    // Validate that an image is selected
-    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-        alert('Please select an image of your lottery ticket');
-        return false;
-    }
-    
-    // Start the ad flow process
-    // Show first ad overlay
-    const adOverlayLoading = document.getElementById('ad-overlay-loading');
-    if (adOverlayLoading) {
-        adOverlayLoading.classList.add('active');
-        console.log('First ad overlay (yellow badge) activated');
+    // Make sure results container is visible
+    const resultsContainer = document.getElementById('results-container');
+    if (resultsContainer) {
+        resultsContainer.classList.remove('d-none');
+        resultsContainer.style.display = 'block';
         
-        if (typeof initFirstCountdown === 'function') {
-            initFirstCountdown(5);
-        }
-    }
-    
-    // Create form data for submission
-    const formData = new FormData(form);
-    
-    // Submit ticket data to server
-    fetch('/scan-ticket', {
-        method: 'POST',
-        body: formData,
-        credentials: 'same-origin'
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Server error: ' + response.status);
-        }
-        // Check content type to ensure we're getting JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Expected JSON response but got ' + contentType);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Successfully received scan results:', data);
-        
-        // Verify data is valid before continuing
-        if (!data || typeof data !== 'object') {
-            throw new Error('Invalid data received from server');
-        }
-        
-        // Store results globally
-        window.ticketResults = data;
-        
-        // After 5 seconds, hide first ad and show "Process Results" button
-        setTimeout(function() {
-            if (adOverlayLoading) {
-                adOverlayLoading.classList.remove('active');
+        // Update result fields
+        if (data && data.ticket_info) {
+            const info = data.ticket_info;
+            
+            // Update lottery type
+            const lotType = document.getElementById('result-lottery-type');
+            if (lotType) lotType.textContent = info.game_type || 'Unknown';
+            
+            // Update draw number
+            const drawNum = document.getElementById('result-draw-number');
+            if (drawNum) drawNum.textContent = info.draw_number || 'Unknown';
+            
+            // Update draw date
+            const drawDate = document.getElementById('result-draw-date');
+            if (drawDate) drawDate.textContent = info.draw_date || 'Unknown';
+            
+            // Update ball highlighting if we have results
+            if (window.updateBallMatching && data) {
+                window.updateBallMatching(data);
             }
-            
-            // Create an overlay for the Process Results button
-            const processButtonOverlay = document.createElement('div');
-            processButtonOverlay.id = 'process-results-overlay';
-            processButtonOverlay.className = 'process-results-overlay';
-            
-            // Add content to the overlay
-            processButtonOverlay.innerHTML = `
-                <h3 class="mb-4">First Step Complete!</h3>
-                <p class="mb-4">Click the button below to process your ticket results</p>
-                <div class="text-center mb-3">
-                    <span class="d-inline-block" style="animation: bounce 1s infinite;">⬇️</span>
-                </div>
-                <button id="process-results-btn" class="btn btn-primary btn-lg">
-                    <i class="fas fa-cogs me-2"></i> Process Results
-                </button>
-            `;
-            
-            // Add to body
-            document.body.appendChild(processButtonOverlay);
-            
-            // Add click handler
-            const processButton = document.getElementById('process-results-btn');
-            if (processButton) {
-                processButton.addEventListener('click', function() {
-                    // Remove the process button overlay
-                    document.body.removeChild(processButtonOverlay);
-                    
-                    // Show the second ad overlay (blue badge)
-                    const adOverlayResults = document.getElementById('ad-overlay-results');
-                    if (adOverlayResults) {
-                        adOverlayResults.classList.add('active');
-                        console.log('Second ad overlay now visible');
-                        
-                        // Show countdown after 15 seconds
-                        const countdownContainer = document.getElementById('countdown-container');
-                        const viewResultsBtn = document.getElementById('view-results-btn');
-                        const viewResultsHelper = document.querySelector('#ad-overlay-results .text-center.mt-4.mb-1');
-                        
-                        if (viewResultsBtn) {
-                            viewResultsBtn.style.display = 'none';
-                        }
-                        
-                        if (viewResultsHelper) {
-                            viewResultsHelper.style.display = 'none';
-                        }
-                        
-                        // Start 15 second countdown
-                        if (countdownContainer) {
-                            let seconds = 15;
-                            countdownContainer.innerHTML = `
-                                <div class="countdown-timer">
-                                    <span class="timer-value">${seconds}</span>
-                                    <span class="timer-text">seconds</span>
-                                </div>
-                            `;
-                            
-                            const timerInterval = setInterval(() => {
-                                seconds--;
-                                
-                                const timerElement = countdownContainer.querySelector('.timer-value');
-                                const timerTextElement = countdownContainer.querySelector('.timer-text');
-                                
-                                if (timerElement && timerTextElement) {
-                                    timerElement.textContent = seconds;
-                                    timerTextElement.textContent = seconds === 1 ? 'second' : 'seconds';
-                                }
-                                
-                                if (seconds <= 0) {
-                                    clearInterval(timerInterval);
-                                    
-                                    // Show completion message
-                                    countdownContainer.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i> Ready to view results!</span>';
-                                    
-                                    // Show View Results button
-                                    if (viewResultsBtn) {
-                                        viewResultsBtn.style.display = 'block';
-                                        viewResultsBtn.disabled = false;
-                                        
-                                        if (viewResultsHelper) {
-                                            viewResultsHelper.style.display = 'block';
-                                        }
-                                        
-                                        // Add click handler for View Results
-                                        viewResultsBtn.addEventListener('click', function() {
-                                            adOverlayResults.classList.remove('active');
-                                            
-                                            // Display the actual results
-                                            if (window.displayResults && window.ticketResults) {
-                                                window.displayResults(window.ticketResults);
-                                            } else {
-                                                // Fallback using DOM manipulation if displayResults isn't available
-                                                const resultsContainer = document.getElementById('results-container');
-                                                if (resultsContainer) {
-                                                    resultsContainer.classList.remove('d-none');
-                                                    resultsContainer.style.display = 'block';
-                                                    
-                                                    // Populate result fields using ticketResults
-                                                    if (window.ticketResults && window.ticketResults.ticket_info) {
-                                                        const info = window.ticketResults.ticket_info;
-                                                        
-                                                        // Update lottery type
-                                                        const lotType = document.getElementById('result-lottery-type');
-                                                        if (lotType) lotType.textContent = info.game_type || 'Unknown';
-                                                        
-                                                        // Update draw number
-                                                        const drawNum = document.getElementById('result-draw-number');
-                                                        if (drawNum) drawNum.textContent = info.draw_number || 'Unknown';
-                                                        
-                                                        // Update draw date
-                                                        const drawDate = document.getElementById('result-draw-date');
-                                                        if (drawDate) drawDate.textContent = info.draw_date || 'Unknown';
-                                                    }
-                                                } else {
-                                                    console.error('Results container not found');
-                                                }
-                                            }
-                                        });
-                                    }
-                                }
-                            }, 1000);
-                        }
-                    }
-                });
-            }
-        }, 5000);
-    })
-    .catch(error => {
-        console.error('Error processing ticket', error);
-        
-        // Hide ad overlays
-        if (adOverlayLoading) adOverlayLoading.classList.remove('active');
-        
-        const adOverlayResults = document.getElementById('ad-overlay-results');
-        if (adOverlayResults) adOverlayResults.classList.remove('active');
-        
-        // Show error message
-        alert('Error processing ticket: ' + error.message);
-    });
-    
-    return false; // Prevent default form submission
-};
+        }
+    }
+}
 </script>
 {% endblock %}
