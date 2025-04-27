@@ -347,7 +347,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
                                     <!-- Single file input with no capture attribute to support all devices -->
-                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none" onchange="handleFileSelection()">
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none" onchange="previewImage(this)">
                                     
                                     <!-- Simple button with direct click handler -->
                                     <button type="button" id="file-select-btn" class="btn btn-primary btn-lg" onclick="document.getElementById('ticket-image').click();"><i class="fas fa-camera me-2"></i> Take Photo</button>
@@ -365,7 +365,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             </div>
 
                             <div class="text-center mt-4">
-                                <button type="button" id="scan-button" class="btn btn-success btn-lg w-100" style="padding: 14px; font-size: 18px; border-radius: 8px; box-shadow: 0 4px 8px rgba(40,167,69,0.2);" onclick="processTicketWithAds();">
+                                <button type="button" id="scan-button" class="btn btn-success btn-lg w-100" style="padding: 14px; font-size: 18px; border-radius: 8px; box-shadow: 0 4px 8px rgba(40,167,69,0.2);" onclick="processTicket();">
                                     <i class="fa fa-search me-2"></i> Scan Ticket
                                 </button>
                                 <div id="scanner-loading" class="mt-3">
@@ -525,6 +525,69 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% block additional_scripts %}
 <script>
 // Define global functions immediately available for inline handlers
+
+// Super-simple image preview function for direct inline handler use
+function previewImage(input) {
+    console.log("PREVIEW: Function called with input", input);
+    
+    const previewContainer = document.getElementById('preview-container');
+    const preview = document.getElementById('ticket-preview');
+    const scanButton = document.getElementById('scan-button');
+    
+    if (!input.files || !input.files[0]) {
+        console.log("PREVIEW: No file selected");
+        if (previewContainer) previewContainer.style.display = 'none';
+        if (scanButton) scanButton.disabled = true;
+        return;
+    }
+    
+    console.log("PREVIEW: File selected:", input.files[0].name);
+    
+    try {
+        const file = input.files[0];
+        const objectUrl = URL.createObjectURL(file);
+        console.log("PREVIEW: Created URL:", objectUrl);
+        
+        if (preview) {
+            preview.onload = function() {
+                console.log("PREVIEW: Image loaded successfully");
+                if (previewContainer) {
+                    console.log("PREVIEW: Showing container");
+                    previewContainer.style.display = 'block';
+                }
+                if (scanButton) scanButton.disabled = false;
+            };
+            
+            preview.onerror = function() {
+                console.error("PREVIEW: Error loading image");
+                URL.revokeObjectURL(objectUrl);
+                if (previewContainer) previewContainer.style.display = 'none';
+                alert("Error displaying the image. Please try another file.");
+            };
+            
+            preview.src = objectUrl;
+            console.log("PREVIEW: Set image src:", objectUrl);
+        } else {
+            console.error("PREVIEW: Preview element not found");
+        }
+    } catch (e) {
+        console.error("PREVIEW: Error:", e);
+        alert("Error processing the image. Please try another file.");
+    }
+}
+
+// Simple form submission function for scan button
+function processTicket() {
+    console.log("DIRECT PROCESS: Function called");
+    const form = document.getElementById('ticket-form');
+    if (form) {
+        console.log("DIRECT PROCESS: Submitting form");
+        form.submit();
+    } else {
+        console.error("DIRECT PROCESS: Form not found");
+        alert("Error: Form not found. Please refresh the page and try again.");
+    }
+}
 function processTicketWithAds() {
     console.log("processTicketWithAds called", new Date().toISOString());
     
