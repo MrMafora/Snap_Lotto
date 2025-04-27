@@ -3,6 +3,46 @@
  * This script handles the countdown timer display for ad viewing
  */
 
+// Add CSS for countdown timer
+(function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .countdown-timer {
+            font-size: 18px;
+            padding: 8px 15px;
+            background-color: rgba(0,0,0,0.05);
+            border-radius: 8px;
+            display: inline-block;
+            margin: 5px auto;
+        }
+        
+        .timer-value {
+            font-weight: bold;
+            font-size: 22px;
+            margin-right: 5px;
+        }
+        
+        .pulse-animation {
+            animation: timer-pulse 1s infinite;
+        }
+        
+        @keyframes timer-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); background-color: rgba(255,235,59,0.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .completed {
+            background-color: rgba(40,167,69,0.1);
+            color: #28a745;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 8px;
+        }
+    `;
+    document.head.appendChild(style);
+})();
+
 // Initialize countdown timer
 function initCountdownTimer(containerID, seconds, onComplete = null) {
     const container = document.getElementById(containerID);
