@@ -128,8 +128,14 @@ def extract_lottery_data(file_path: str, sheet_name: Optional[str] = None) -> Tu
     # If we found a header row, reset the dataframe to use this as header
     if start_row > 0:
         header_row = df.iloc[start_row]
+        # Start from the FIRST data row (don't skip row 2)
         df = df.iloc[start_row+1:].reset_index(drop=True)
         df.columns = header_row
+        
+        # Debug log to verify data is being read
+        logger.info(f"Processing {len(df)} data rows starting with row 2")
+        if len(df) > 0:
+            logger.info(f"First row data: {df.iloc[0].to_dict()}")
     
     # Identify columns
     column_mapping = {}
@@ -244,11 +250,15 @@ def import_excel_file(file_path: str, sheet_name: Optional[str] = None) -> List[
         try:
             processed_row = process_row(row, column_mapping)
             
-            # Skip rows with no game name or draw number
+            # Skip rows with no game name or draw number, but log them first
             if (processed_row.get('game_name') is None or 
                 processed_row.get('draw_number') is None or 
                 processed_row.get('draw_date') is None):
+                logger.warning(f"Skipping row with incomplete data: {processed_row}")
                 continue
+                
+            # Make sure we log successful rows with their key data
+            logger.info(f"Processing valid row: {processed_row.get('game_name')} {processed_row.get('draw_number')}")
                 
             results.append(processed_row)
         except Exception as e:

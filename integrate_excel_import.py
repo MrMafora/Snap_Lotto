@@ -228,21 +228,33 @@ def normalize_lottery_type(game_name: str) -> str:
     Returns:
         Normalized lottery type
     """
+    if game_name is None:
+        return "Unknown"
+        
+    # Handle special case for "Lottery 2536" format (where draw number is included in the name)
+    # Extract just the lottery type without the draw number
+    import re
+    match = re.match(r'(lottery|lotto)\s+\d+', str(game_name).strip().lower())
+    if match:
+        logger.info(f"Found lottery name with embedded draw number: {game_name}, extracting 'Lottery'")
+        return 'Lottery'
+    
     game_name = str(game_name).strip().lower()
     
     if 'lotto plus 1' in game_name or 'lotto+1' in game_name:
-        return 'Lotto Plus 1'
+        return 'Lottery Plus 1'  # Use "Lottery" instead of "Lotto"
     elif 'lotto plus 2' in game_name or 'lotto+2' in game_name:
-        return 'Lotto Plus 2'
+        return 'Lottery Plus 2'  # Use "Lottery" instead of "Lotto"
     elif 'powerball plus' in game_name or 'powerball+' in game_name:
         return 'Powerball Plus'
     elif 'powerball' in game_name:
         return 'Powerball'
     elif 'daily lotto' in game_name or 'daily lottery' in game_name:
-        return 'Daily Lotto'
+        return 'Daily Lottery'  # Use "Lottery" instead of "Lotto"
     elif 'lotto' in game_name or 'lottery' in game_name:
         return 'Lottery'
     else:
+        logger.warning(f"Unknown lottery type format: {game_name}")
         return game_name.title()  # Fallback - capitalize each word
 
 def run_import(file_path: str, sheet_name: Optional[str] = None) -> Tuple[int, int, List[str]]:
