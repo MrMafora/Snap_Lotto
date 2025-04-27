@@ -101,13 +101,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 ticketPreview.onerror = function(e) {
                     console.error("Error loading preview image", e);
-                    // Don't show alert, just log the error
-                    // Instead of clearing, just use a placeholder
-                    ticketPreview.src = '/static/images/ticket-placeholder.png';
-                    
-                    // Keep the scan button enabled
-                    scanButton.disabled = false;
-                    scanButton.removeAttribute('disabled');
+                    // Show alert for image error
+                    alert('Error displaying the image. Please try another file.');
+                    fileInput.value = '';
+                    scanButton.disabled = true;
                 };
                 
                 // Set the source to trigger the onload event
@@ -115,8 +112,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     ticketPreview.src = objectUrl;
                 } catch (e) {
                     console.error("Error setting image source:", e);
-                    // Use a placeholder if we can't set the source
-                    ticketPreview.src = '/static/images/ticket-placeholder.png';
+                    alert('Error processing the image file. Please try a different image.');
+                    fileInput.value = '';
+                    scanButton.disabled = true;
                 }
                 
             } catch (e) {
