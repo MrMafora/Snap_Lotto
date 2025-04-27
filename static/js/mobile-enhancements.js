@@ -146,14 +146,28 @@ function enhanceTicketScanner() {
     // Make file input more mobile-friendly
     const fileInput = document.getElementById('ticket-image');
     if (fileInput) {
-        // Modern mobile browsers have good file pickers, enhance the experience
-        fileInput.setAttribute('capture', 'environment');  // Use camera directly
+        // Detect iOS devices
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        
+        if (isIOS) {
+            // iOS works better without forced capture mode
+            fileInput.removeAttribute('capture');
+        } else {
+            // For Android and other devices, use environment camera by default
+            fileInput.setAttribute('capture', 'environment');
+        }
         
         // Enhance file select button
         const fileSelectBtn = document.getElementById('file-select-btn');
         if (fileSelectBtn) {
             fileSelectBtn.innerHTML = '<i class="fas fa-camera me-2"></i> Take Photo';
             fileSelectBtn.classList.add('btn-lg');
+            
+            // Ensure click event properly triggers file input
+            fileSelectBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                fileInput.click();
+            });
         }
     }
     

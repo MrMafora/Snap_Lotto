@@ -346,7 +346,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <i class="fa fa-upload fa-2x mb-2"></i>
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
-                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" capture="environment" class="d-none">
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
                                     <button type="button" id="file-select-btn" class="btn btn-primary btn-lg"><i class="fas fa-camera me-2"></i> Take Photo</button>
                                 </div>
                             </div>
@@ -542,6 +542,23 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     previewContainer.classList.add('d-none');
                 }
                 
+                // iOS-specific fixes for camera access
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                if (isIOS) {
+                    console.log("iOS device detected, refreshing camera access");
+                    // Force refresh camera button to ensure it works on subsequent tries
+                    setTimeout(function() {
+                        const fileSelectBtn = document.getElementById('file-select-btn');
+                        if (fileSelectBtn) {
+                            // Refresh button state to trigger iOS to clear camera permissions
+                            fileSelectBtn.style.opacity = "0.99";
+                            setTimeout(() => {
+                                fileSelectBtn.style.opacity = "1";
+                            }, 50);
+                        }
+                    }, 100);
+                }
+                
                 // Hide results container
                 const resultsContainer = document.getElementById('results-container');
                 if (resultsContainer) {
@@ -620,9 +637,15 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             console.log("Initial button state check on page load");
         }, 500);
         
-        // File selection via button
-        fileSelectBtn.addEventListener('click', () => {
-            fileInput.click();
+        // File selection via button with improved event handling
+        fileSelectBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Slight delay to ensure iOS respects the click
+            setTimeout(function() {
+                fileInput.click();
+            }, 10);
         });
         
         // File selection change
