@@ -526,7 +526,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <script>
 // Define global functions immediately available for inline handlers
 function processTicketWithAds() {
-    console.log("Global processTicketWithAds called", new Date().toISOString());
+    console.log("processTicketWithAds called", new Date().toISOString());
     
     // Verify we have a file
     const fileInput = document.getElementById('ticket-image');
@@ -538,54 +538,245 @@ function processTicketWithAds() {
         return;
     }
     
+    // Clear any previous results first
+    const clearPreviousResults = window.clearPreviousResults || function() {
+        console.log("Using inline clearPreviousResults function");
+        // Hide results container
+        const resultsContainer = document.getElementById('results-container');
+        if (resultsContainer) {
+            resultsContainer.classList.add('d-none');
+        }
+        
+        // Hide error message
+        const errorMessage = document.getElementById('error-message');
+        if (errorMessage) {
+            errorMessage.classList.add('d-none');
+        }
+    };
+    
+    clearPreviousResults();
+    
+    // Disable scrolling during processing
+    const disableScrolling = window.disableScrolling || function() {
+        document.body.style.overflow = 'hidden';
+    };
+    
+    // Enable scrolling
+    const enableScrolling = window.enableScrolling || function() {
+        document.body.style.overflow = '';
+    };
+    
+    // Scroll to top and disable scrolling during processing
+    window.scrollTo(0, 0);
+    disableScrolling();
+    
     // Get required elements
     const ticketForm = document.getElementById('ticket-form');
     const loadingIndicator = document.getElementById('scanner-loading');
+    const scanButton = document.getElementById('scan-button');
     
     if (!ticketForm) {
         console.error("Ticket form not found!");
         return;
     }
     
-    // Create form data for later use
-    const formData = new FormData(ticketForm);
-    console.log("FormData created with file:", fileInput.files[0].name);
-    
     // Show loading indicator
     if (loadingIndicator) {
         loadingIndicator.style.display = 'block';
     }
     
-    // Add CSRF token to headers
-    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-    console.log("CSRF token:", csrfToken);
+    // Never disable the scan button
+    if (scanButton) {
+        scanButton.disabled = false;
+    }
     
-    // Make direct fetch request
-    console.log("Starting fetch to /scan-ticket");
-    fetch('/scan-ticket', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': csrfToken
+    // Create form data for later use
+    const formData = new FormData(ticketForm);
+    console.log("FormData created with file:", fileInput.files[0].name);
+    
+    // Show the loading ad overlay first
+    const adOverlayLoading = document.getElementById('ad-overlay-loading');
+    if (adOverlayLoading) {
+        adOverlayLoading.style.display = 'flex';
+        console.log("Ad overlay loading displayed");
+    } else {
+        console.error("Ad overlay loading element not found!");
+    }
+    
+    // Process using the ad display system
+    // Ensure the ad overlay stays visible for at least 2 seconds before processing
+    setTimeout(() => {
+        // Check if AdManager is available and use it to show ad, otherwise just process
+        if (window.AdManager && typeof window.AdManager.showLoadingAd === 'function') {
+            console.log('Using AdManager to show loading ad');
+            window.AdManager.showLoadingAd(function(adShown) {
+                // Keep ad visible for at least 5 seconds total
+                setTimeout(() => {
+                    // After ad is displayed for minimum time, process the ticket
+                    console.log('Ad loading callback returned after minimum display time:', adShown);
+                    processTicket(formData);
+                }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
+            });
+        } else {
+            // Fallback - Ad overlay is already shown manually
+            console.log('AdManager not available, showing overlay manually');
+            
+            // Process the ticket after a minimum viewing time
+            setTimeout(() => {
+                console.log('Processing ticket without AdManager after minimum ad view time');
+                processTicket(formData);
+            }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
         }
-    })
-    .then(response => {
-        console.log("Received response:", response.status, response.statusText);
-        if (!response.ok) {
-            console.error("Error response:", response.status, response.statusText);
-            throw new Error('Network response was not ok: ' + response.status);
-        }
-        console.log("Response OK, parsing JSON");
-        return response.json();
-    })
-    .then(data => {
-        console.log("Received data from server:", data);
-        alert("Success! Check the console for data");
-    })
-    .catch(error => {
-        console.error("Error in fetch:", error);
-        alert("Error processing ticket: " + error.message);
-    });
+    }, 2000); // Initial 2 seconds minimum display time
+    
+    // Function to process the ticket after ad is shown
+    function processTicket(formData) {
+        console.log("processTicket called with formData", new Date().toISOString());
+        
+        // Add CSRF token to headers
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        console.log("CSRF token:", csrfToken);
+        
+        // Make fetch request
+        console.log("Starting fetch to /scan-ticket");
+        fetch('/scan-ticket', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => {
+            console.log("Received response:", response.status, response.statusText);
+            if (!response.ok) {
+                console.error("Error response:", response.status, response.statusText);
+                throw new Error('Network response was not ok: ' + response.status);
+            }
+            console.log("Response OK, parsing JSON");
+            return response.json();
+        })
+        .then(data => {
+            console.log("Received data from server:", data);
+            
+            // Hide loading overlay
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            if (adOverlayLoading) {
+                adOverlayLoading.style.display = 'none';
+            }
+            
+            // Ensure the results overlay is shown
+            const adOverlayResults = document.getElementById('ad-overlay-results');
+            if (adOverlayResults) {
+                // Always make sure the results overlay is displayed
+                adOverlayResults.style.display = 'flex';
+                
+                // Try to use AdManager for tracking, but we'll show the overlay manually either way
+                if (window.AdManager && typeof window.AdManager.showInterstitialAd === 'function') {
+                    console.log('Using AdManager to show interstitial ad');
+                    window.AdManager.showInterstitialAd(function(adShown) {
+                        console.log('Interstitial ad shown:', adShown);
+                        // Make sure the overlay is displayed even if AdManager fails
+                        adOverlayResults.style.display = 'flex';
+                    });
+                } else {
+                    console.log('AdManager not available, showing results overlay manually');
+                }
+                
+                console.log('Showing results interstitial ad');
+                
+                // Display results when the "View Results" button is clicked
+                const displayResults = window.displayResults || function(data) {
+                    console.log("Using inline displayResults function");
+                    console.log("Would display results for:", data);
+                    
+                    // Show the results container
+                    const resultsContainer = document.getElementById('results-container');
+                    if (resultsContainer) {
+                        resultsContainer.classList.remove('d-none');
+                    }
+                    
+                    // Add core results display
+                    const ticketInfo = document.getElementById('ticket-info');
+                    if (ticketInfo) {
+                        let infoHTML = `
+                            <div class="alert alert-info">
+                                <h4>${data.ticket_info.game_type} Draw #${data.ticket_info.draw_number}</h4>
+                                <p>Draw Date: ${data.ticket_info.draw_date}</p>
+                            </div>
+                        `;
+                        ticketInfo.innerHTML = infoHTML;
+                    }
+                };
+                
+                // View Results button handling
+                const viewResultsBtn = document.getElementById('view-results-btn');
+                if (viewResultsBtn) {
+                    viewResultsBtn.onclick = function(e) {
+                        // Prevent any default actions
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        console.log('View Results button clicked at ' + new Date().toISOString());
+                        
+                        // Force hide all overlays immediately
+                        const allOverlays = document.querySelectorAll('[id^="ad-overlay"]');
+                        allOverlays.forEach(overlay => {
+                            overlay.style.display = 'none';
+                        });
+                        
+                        // Make sure body scrolling is enabled
+                        enableScrolling();
+                        
+                        console.log('About to display results after clicked View Results');
+                        
+                        // Display the results immediately
+                        displayResults(data);
+                    };
+                    
+                    // FORCEFULLY disable the view results button for 15 seconds
+                    viewResultsBtn.disabled = true;
+                    viewResultsBtn.style.opacity = '0.5';
+                    viewResultsBtn.style.cursor = 'not-allowed';
+                    viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
+                    
+                    // Set a timer to enable the button after 15 seconds
+                    setTimeout(() => {
+                        viewResultsBtn.disabled = false;
+                        viewResultsBtn.style.opacity = '1';
+                        viewResultsBtn.style.cursor = 'pointer';
+                        viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now';
+                    }, 15000); // 15 seconds
+                }
+            }
+        })
+        .catch(error => {
+            console.error("Error in fetch:", error);
+            
+            // Hide loading overlay
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            if (adOverlayLoading) {
+                adOverlayLoading.style.display = 'none';
+            }
+            
+            // Re-enable scrolling
+            enableScrolling();
+            
+            // Show error to user
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            if (errorMessage && errorText) {
+                errorText.textContent = "Error processing your ticket: " + error.message;
+                errorMessage.classList.remove('d-none');
+            }
+            
+            // Show the results container for error display
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                resultsContainer.classList.remove('d-none');
+            }
+        });
+    }
+}
 }
 
 // Global function to handle file selection - must be in global scope to be called from inline handler
