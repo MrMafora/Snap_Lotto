@@ -143,32 +143,95 @@ function enhanceTicketScanner() {
     const ticketForm = document.getElementById('ticket-form');
     if (!ticketForm) return;
     
-    // Make file input more mobile-friendly
+    // Get all file input elements
     const fileInput = document.getElementById('ticket-image');
-    if (fileInput) {
-        // Detect iOS devices
+    const fileInputIOS = document.getElementById('ticket-image-ios');
+    const fileInputAndroid = document.getElementById('ticket-image-android');
+    
+    if (fileInput && fileInputIOS && fileInputAndroid) {
+        // Detect device type
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isAndroid = /Android/.test(navigator.userAgent);
         
-        if (isIOS) {
-            // iOS works better without forced capture mode
-            fileInput.removeAttribute('capture');
-        } else {
-            // For Android and other devices, use environment camera by default
-            fileInput.setAttribute('capture', 'environment');
-        }
-        
-        // Enhance file select button
+        // Set up the file select button
         const fileSelectBtn = document.getElementById('file-select-btn');
         if (fileSelectBtn) {
             fileSelectBtn.innerHTML = '<i class="fas fa-camera me-2"></i> Take Photo';
             fileSelectBtn.classList.add('btn-lg');
             
-            // Ensure click event properly triggers file input
+            // Ensure click event properly triggers the appropriate file input
             fileSelectBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                fileInput.click();
+                e.stopPropagation();
+                
+                console.log('File select button clicked, device detection:', { isIOS, isAndroid });
+                
+                // Use the appropriate input based on device type
+                if (isIOS) {
+                    console.log('Using iOS-specific file input');
+                    fileInputIOS.click();
+                } else if (isAndroid) {
+                    console.log('Using Android-specific file input');
+                    fileInputAndroid.click();
+                } else {
+                    console.log('Using default file input');
+                    fileInput.click();
+                }
             });
         }
+        
+        // Set up change event listeners for all file inputs
+        [fileInput, fileInputIOS, fileInputAndroid].forEach(input => {
+            if (input) {
+                input.addEventListener('change', function() {
+                    console.log('File selected from input:', input.id);
+                    // This will trigger the main file change handler in the page
+                    if (fileInput !== input) {
+                        // Copy files from the device-specific input to the main input
+                        // This ensures the form submission works correctly
+                        try {
+                            // Modern way (might not work in all browsers)
+                            const dataTransfer = new DataTransfer();
+                            if (input.files.length > 0) {
+                                dataTransfer.items.add(input.files[0]);
+                                fileInput.files = dataTransfer.files;
+                            }
+                        } catch (e) {
+                            console.error('DataTransfer not supported, using direct file handling fallback', e);
+                            // Show file preview manually if DataTransfer fails
+                            if (input.files.length > 0) {
+                                const file = input.files[0];
+                                const reader = new FileReader();
+                                reader.onload = function(e) {
+                                    const previewContainer = document.getElementById('preview-container');
+                                    const ticketPreview = document.getElementById('ticket-preview');
+                                    if (previewContainer && ticketPreview) {
+                                        ticketPreview.src = e.target.result;
+                                        previewContainer.classList.remove('d-none');
+                                    }
+                                };
+                                reader.readAsDataURL(file);
+                                
+                                // Manually submit the selected file
+                                const ticketForm = document.getElementById('ticket-form');
+                                if (ticketForm) {
+                                    const formData = new FormData(ticketForm);
+                                    // Re-add the file to the form data since we couldn't copy it to the main input
+                                    formData.set('ticket_image', file);
+                                    
+                                    // Store it in a global variable for the form submission to use
+                                    window.manuallySelectedFile = file;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Trigger the file select handler in the main page
+                    const event = new Event('change');
+                    fileInput.dispatchEvent(event);
+                });
+            }
+        });
     }
     
     // Improve the scan button
