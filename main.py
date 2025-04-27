@@ -439,7 +439,9 @@ def ticket_scanner():
     return render_template('ticket_scanner.html', 
                           title="Lottery Ticket Scanner | Check If You've Won",
                           breadcrumbs=breadcrumbs,
-                          meta_description=meta_description)
+                          meta_description=meta_description,
+                          scan_results=None,
+                          show_results=False)
 
 @app.route('/scan-ticket', methods=['POST'])
 @csrf.exempt

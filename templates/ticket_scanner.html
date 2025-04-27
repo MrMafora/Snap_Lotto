@@ -383,9 +383,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             <hr>
                             <h3 class="mb-3 text-center">Scanning Results</h3>
                             
-                            <div id="error-message" class="alert alert-danger {% if not scan_results.error %}d-none{% endif %}">
+                            <div id="error-message" class="alert alert-danger {% if not scan_results or not scan_results.error %}d-none{% endif %}">
                                 <i class="fa fa-exclamation-triangle me-2"></i>
-                                <span id="error-text">{% if scan_results.error %}{{ scan_results.error }}{% endif %}</span>
+                                <span id="error-text">{% if scan_results and scan_results.error %}{{ scan_results.error }}{% endif %}</span>
                             </div>
                             
                             <div id="success-content" class="{% if not scan_results or not scan_results.ticket_info %}d-none{% endif %}">
