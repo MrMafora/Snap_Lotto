@@ -955,4 +955,30 @@ def get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result)
             "winners": prize_data.get("winners", "0")
         }
     
+    # For Powerball, we want to return a prize even if division data is missing
+    # This ensures players who match 3 or fewer numbers still see they've won
+    if division and "Powerball" in lottery_type:
+        # Fallback prize information for common Powerball divisions
+        fallback_prizes = {
+            "Division 1": "Jackpot",
+            "Division 2": "Share of Prize Pool",
+            "Division 3": "Approx. R10,000",
+            "Division 4": "Approx. R1,000",
+            "Division 5": "Approx. R500",
+            "Division 6": "Approx. R100",
+            "Division 7": "Approx. R50",
+            "Division 8": "Approx. R20",
+            "Division 9": "Approx. R15"
+        }
+        
+        if division in fallback_prizes:
+            return {
+                "division": division,
+                "match_type": match_type,
+                "prize_amount": fallback_prizes[division],
+                "winners": "N/A",
+                "note": "Exact prize amount unavailable - showing estimate"
+            }
+            
+    # No prize found
     return None
