@@ -799,6 +799,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             .then(data => {
                 console.log('Success:', data);
                 
+                // CRITICAL FIX: Store the data immediately in the global object for later reference
+                window.lastResultsData = data;
+                
                 // Hide loading overlay
                 const adOverlayLoading = document.getElementById('ad-overlay-loading');
                 adOverlayLoading.style.display = 'none';
@@ -1049,10 +1052,22 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 }, 500);
                                 
                                 // CRITICAL: Force direct click handler to fix clickability issues
-                                // Remove any existing handlers first by cloning the button
-                                const newBtn = viewResultsBtn.cloneNode(true);
-                                viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
-                                viewResultsBtn = newBtn; // Update reference
+                                // Check if viewResultsBtn exists and has a parent before trying to replace it
+                                if (viewResultsBtn && viewResultsBtn.parentNode) {
+                                    try {
+                                        // Remove any existing handlers first by cloning the button
+                                        const newBtn = viewResultsBtn.cloneNode(true);
+                                        viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+                                        viewResultsBtn = newBtn; // Update reference
+                                    } catch (e) {
+                                        console.error('Error replacing button:', e);
+                                        // Just continue with the existing button if replacement fails
+                                    }
+                                } else {
+                                    console.error('Button or its parent is null, cannot replace');
+                                    // Try to find the button again
+                                    viewResultsBtn = document.getElementById('view-results-btn');
+                                }
                                 
                                 // Add simple direct click handler that just hides the overlay
                                 viewResultsBtn.addEventListener('click', function(e) {
@@ -1073,6 +1088,14 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     if (resultsContainer) {
                                         resultsContainer.classList.remove('d-none');
                                         resultsContainer.style.display = 'block';
+                                        
+                                        // CRITICAL FIX: If we have the last results data stored, redisplay it
+                                        if (window.lastResultsData) {
+                                            console.log('Redisplaying stored results data from first click handler');
+                                            displayResults(window.lastResultsData);
+                                        } else {
+                                            console.error('No results data found to display from first click handler');
+                                        }
                                     }
                                     
                                     // Hide scan form
@@ -1126,9 +1149,20 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 viewResultsBtn.setAttribute('data-forced-enabled', 'true');
                                 
                                 // CRITICAL FIX: Replace the button with a clone to remove any event handlers that might prevent clicks
-                                const newBtn = viewResultsBtn.cloneNode(true);
-                                viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
-                                viewResultsBtn = newBtn;
+                                if (viewResultsBtn && viewResultsBtn.parentNode) {
+                                    try {
+                                        const newBtn = viewResultsBtn.cloneNode(true);
+                                        viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+                                        viewResultsBtn = newBtn;
+                                    } catch (e) {
+                                        console.error('Error replacing button in backup timer:', e);
+                                        // Just continue with the existing button if replacement fails
+                                    }
+                                } else {
+                                    console.error('Button or its parent is null in backup timer, cannot replace');
+                                    // Try to find the button again
+                                    viewResultsBtn = document.getElementById('view-results-btn');
+                                }
                                 
                                 // Add a direct click handler that will ALWAYS fire
                                 viewResultsBtn.addEventListener('click', function directClickHandler(e) {
@@ -1151,6 +1185,14 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     if (resultsContainer) {
                                         resultsContainer.classList.remove('d-none');
                                         resultsContainer.style.display = 'block';
+                                        
+                                        // CRITICAL FIX: If we have the last results data stored, redisplay it
+                                        if (window.lastResultsData) {
+                                            console.log('Redisplaying stored results data');
+                                            displayResults(window.lastResultsData);
+                                        } else {
+                                            console.error('No results data found to display');
+                                        }
                                     }
                                     
                                     // Hide scan form
