@@ -523,8 +523,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% endblock %}
 
 {% block additional_scripts %}
+<script src="{{ url_for('static', filename='js/ticket-scanner-fixed.js') }}"></script>
 <script>
-// Define global functions immediately available for inline handlers
+// Keep these definitions for backward compatibility
 function processTicketWithAds() {
     console.log("processTicketWithAds called", new Date().toISOString());
     
@@ -822,8 +823,9 @@ function handleFileSelection() {
                 previewContainer.style.display = 'block';
                 previewContainer.classList.remove('d-none');
                 
-                // Enable the scan button
+                // Enable the scan button - MUST do this both ways for cross-browser compatibility
                 scanButton.disabled = false;
+                scanButton.removeAttribute('disabled');
                 
                 console.log("SimpleFileSelect: Preview displayed and scan button enabled");
             };
@@ -1191,22 +1193,8 @@ function handleFileSelection() {
             console.log('Cleared previous results');
         }
         
-        // Define processTicketWithAds as a global function
-        window.processTicketWithAds = function() {
-            console.log("processTicketWithAds called", new Date().toISOString());
-            
-            // Verify we have a file
-            const fileInput = document.getElementById('ticket-image');
-            if (fileInput && fileInput.files.length > 0) {
-                console.log("File is selected:", fileInput.files[0].name);
-            } else {
-                console.error("No file selected!");
-                alert("Please select an image first");
-                return;
-            }
-            
-            // Clear any previous results first
-            clearPreviousResults();
+        // Using the globally defined processTicketWithAds function
+        // Do not redefine it here to avoid conflicts
             
             // Scroll to top and disable scrolling during processing
             window.scrollTo(0, 0);
