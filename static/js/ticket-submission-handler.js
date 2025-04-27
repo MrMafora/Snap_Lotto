@@ -16,13 +16,18 @@ function handleTicketSubmission(event) {
     const formData = new FormData(form);
     const scannerLoading = document.getElementById('scanner-loading');
     
-    // Show loading spinner only if we don't have the AdManager
-    if (scannerLoading) {
-        // Only show the spinner if AdManager is not available
-        if (!window.AdManager) {
+    // IMMEDIATELY show the ad overlay before anything else
+    if (window.AdManager) {
+        // Show ad overlay immediately
+        const adOverlayLoading = document.getElementById('ad-overlay-loading');
+        if (adOverlayLoading) {
+            adOverlayLoading.style.display = 'flex';
+            console.log('Ad overlay displayed IMMEDIATELY');
+        }
+    } else {
+        // Fallback to regular spinner if AdManager isn't available
+        if (scannerLoading) {
             scannerLoading.style.display = 'block';
-        } else {
-            scannerLoading.style.display = 'none';
         }
     }
     
@@ -93,12 +98,8 @@ function handleTicketSubmission(event) {
         if (window.AdManager) {
             console.log('Using AdManager to show ads sequence');
             
-            // Show the ad overlay immediately
-            const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            if (adOverlayLoading) {
-                adOverlayLoading.style.display = 'flex';
-                console.log('Ad overlay made visible immediately');
-            }
+            // Ad overlay was already made visible at the beginning of this function
+            // No need to show it again here
             
             // First, show a loading ad (1st advertisement) for 5 seconds
             window.AdManager.showLoadingAd(5, function() {
