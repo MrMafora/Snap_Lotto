@@ -402,6 +402,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                                 <div class="col-md-6">
                                                     <p><strong>Division:</strong> <span id="prize-division"></span></p>
                                                     <p><strong>Match Type:</strong> <span id="prize-match-type"></span></p>
+                                                    <p id="prize-description-container" class="d-none"><strong>Description:</strong> <span id="prize-description"></span></p>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <h3 class="text-success">Prize: <span id="prize-amount"></span></h3>
@@ -2175,6 +2176,16 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 document.getElementById('prize-division').textContent = data.prize_info.division;
                 document.getElementById('prize-match-type').textContent = data.prize_info.match_type;
                 document.getElementById('prize-amount').textContent = data.prize_info.prize_amount;
+                
+                // Check if we have a description to display
+                const descriptionContainer = document.getElementById('prize-description-container');
+                const descriptionElement = document.getElementById('prize-description');
+                if (data.prize_info.description) {
+                    descriptionElement.textContent = data.prize_info.description;
+                    descriptionContainer.classList.remove('d-none');
+                } else {
+                    descriptionContainer.classList.add('d-none');
+                }
             } else {
                 prizeContainer.classList.add('d-none');
                 noPrizeContainer.classList.remove('d-none');
@@ -2505,12 +2516,23 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         // Prize information
                         const ppPrizeSection = document.createElement('div');
                         ppPrizeSection.classList.add('alert', 'alert-success', 'mt-3');
-                        ppPrizeSection.innerHTML = `
+                        
+                        // Build HTML content for prize info
+                        let prizeHtml = `
                             <h6 class="alert-heading">Congratulations! You won a prize in Powerball Plus:</h6>
                             <p>Division: ${data.powerball_plus_results.prize_info.division}</p>
                             <p>Match Type: ${data.powerball_plus_results.prize_info.match_type}</p>
-                            <p>Prize Amount: ${data.powerball_plus_results.prize_info.prize_amount}</p>
                         `;
+                        
+                        // Add description if available
+                        if (data.powerball_plus_results.prize_info.description) {
+                            prizeHtml += `<p>Description: ${data.powerball_plus_results.prize_info.description}</p>`;
+                        }
+                        
+                        // Add prize amount
+                        prizeHtml += `<p>Prize Amount: ${data.powerball_plus_results.prize_info.prize_amount}</p>`;
+                        
+                        ppPrizeSection.innerHTML = prizeHtml;
                         ppCardBody.appendChild(ppPrizeSection);
                         
                         ppPrizeCard.appendChild(ppCardBody);

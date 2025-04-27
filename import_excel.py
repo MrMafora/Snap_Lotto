@@ -308,7 +308,7 @@ def import_excel_data(excel_file, flask_app=None):
                     column_mapping['bonus_ball'] = col
                 
                 # Check for division data columns
-                for i in range(1, 9):  # Assuming up to 8 divisions
+                for i in range(1, 10):  # Supporting up to 9 divisions (for Powerball)
                     # Check for different division column formats
                     div_winners_patterns = [
                         f'div {i} winners', 
@@ -324,11 +324,26 @@ def import_excel_data(excel_file, flask_app=None):
                         f'division {i} payout'
                     ]
                     
+                    div_description_patterns = [
+                        f'div {i} description',
+                        f'division {i} description',
+                        f'div{i} description',
+                        f'div {i} desc',
+                        f'division {i} desc',
+                        f'div{i} desc',
+                        f'div {i} match',
+                        f'division {i} match',
+                        f'div{i} match'
+                    ]
+                    
                     if any(pattern in col_lower for pattern in div_winners_patterns):
                         column_mapping[f'div{i}_winners'] = col
                     
                     if any(pattern in col_lower for pattern in div_prize_patterns):
                         column_mapping[f'div{i}_prize'] = col
+                        
+                    if any(pattern in col_lower for pattern in div_description_patterns):
+                        column_mapping[f'div{i}_description'] = col
             
             # Log the column mapping for debugging
             logger.info(f"Column mapping: {column_mapping}")
@@ -399,16 +414,25 @@ def import_excel_data(excel_file, flask_app=None):
                     
                     # Parse division data
                     divisions = {}
-                    for i in range(1, 9):  # Assuming up to 8 divisions
+                    division_descriptions = {}
+                    for i in range(1, 10):  # Support up to 9 divisions (for Powerball)
                         winners_key = f'div{i}_winners'
                         prize_key = f'div{i}_prize'
+                        description_key = f'div{i}_description'
                         
+                        # Only proceed if we have winners and prize columns
                         if winners_key in column_mapping and prize_key in column_mapping:
                             winners_col = column_mapping[winners_key]
                             prize_col = column_mapping[prize_key]
                             
                             raw_winners = row[winners_col] if winners_col in row else None
                             raw_prize = row[prize_col] if prize_col in row else None
+                            
+                            # Get description if available
+                            raw_description = None
+                            if description_key in column_mapping:
+                                description_col = column_mapping[description_key]
+                                raw_description = row[description_col] if description_col in row else None
                             
                             if raw_winners is not None and not pd.isna(raw_winners) and raw_prize is not None and not pd.isna(raw_prize):
                                 # Format winners value
@@ -426,10 +450,18 @@ def import_excel_data(excel_file, flask_app=None):
                                 else:
                                     prize_value = f"R{raw_prize}"
                                 
+                                # Create division entry
                                 divisions[f"Division {i}"] = {
                                     "winners": winners_value,
                                     "prize": prize_value
                                 }
+                                
+                                # If we have a description, add it
+                                if raw_description is not None and not pd.isna(raw_description):
+                                    division_descriptions[f"Division {i}"] = str(raw_description).strip()
+                                    
+                                    # Also add the description to the divisions data
+                                    divisions[f"Division {i}"]["description"] = str(raw_description).strip()
                     
                     # Verify we have valid data
                     if lottery_type and draw_number and numbers:

@@ -948,12 +948,19 @@ def get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result)
     if division and division in divisions:
         prize_data = divisions[division]
         
-        return {
+        # Format return data with description if available
+        result = {
             "division": division,
             "match_type": match_type,
             "prize_amount": prize_data.get("prize", "R0.00"),
             "winners": prize_data.get("winners", "0")
         }
+        
+        # Add description if available in the division data
+        if "description" in prize_data:
+            result["description"] = prize_data["description"]
+            
+        return result
     
     # For Powerball, we want to return a prize even if division data is missing
     # This ensures players who match 3 or fewer numbers still see they've won
@@ -971,14 +978,33 @@ def get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result)
             "Division 9": "Approx. R15"
         }
         
+        # Fallback division descriptions for Powerball
+        fallback_descriptions = {
+            "Division 1": "Match 5 numbers + Powerball",
+            "Division 2": "Match 5 numbers",
+            "Division 3": "Match 4 numbers + Powerball",
+            "Division 4": "Match 4 numbers",
+            "Division 5": "Match 3 numbers + Powerball",
+            "Division 6": "Match 3 numbers",
+            "Division 7": "Match 2 numbers + Powerball",
+            "Division 8": "Match 1 number + Powerball",
+            "Division 9": "Match Powerball only"
+        }
+        
         if division in fallback_prizes:
-            return {
+            result = {
                 "division": division,
                 "match_type": match_type,
                 "prize_amount": fallback_prizes[division],
                 "winners": "N/A",
                 "note": "Exact prize amount unavailable - showing estimate"
             }
+            
+            # Add description if available
+            if division in fallback_descriptions:
+                result["description"] = fallback_descriptions[division]
+                
+            return result
             
     # No prize found
     return None
