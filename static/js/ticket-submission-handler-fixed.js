@@ -105,14 +105,20 @@ function handleTicketSubmission(event) {
     const adOverlayLoading = document.getElementById('ad-overlay-loading');
     const adOverlayResults = document.getElementById('ad-overlay-results');
     
+    // Track when we showed the first ad to ensure exactly 5 seconds
+    const adStartTime = Date.now();
+    
     // IMMEDIATELY show the first ad overlay with yellow badge
     if (adOverlayLoading) {
         // Add active class instead of setting inline styles
         adOverlayLoading.classList.add('active');
-        console.log('FIRST ad overlay (yellow badge) is now visible');
+        console.log('FIRST ad overlay (yellow badge) is now visible at:', adStartTime);
         
         // Start the first countdown timer - 5 seconds
         initFirstCountdown(5);
+        
+        // Store the start time as a data attribute for tracking
+        adOverlayLoading.dataset.adStartTime = adStartTime;
     }
     
     // For CSRF token safety
@@ -168,10 +174,19 @@ function handleTicketSubmission(event) {
             }
         }
         
-        // First ad was displayed when form was submitted
-        // After exactly 5 seconds, transition to second ad
-        const firstAdDuration = 5000; // exactly 5 seconds
+        // Calculate how long the first ad has already been shown
+        const currentTime = Date.now();
+        const adStartTime = parseInt(adOverlayLoading.dataset.adStartTime || currentTime);
+        const elapsedTime = currentTime - adStartTime;
         
+        // Calculate remaining time to reach exactly 5 seconds total display time
+        // If more than 5 seconds already passed, move on immediately
+        const remainingTime = Math.max(0, 5000 - elapsedTime);
+        
+        console.log('Server response received, ad already shown for:', elapsedTime, 'ms');
+        console.log('Will show first ad for', remainingTime, 'more ms to equal exactly 5 seconds total');
+        
+        // Use the calculated remaining time
         setTimeout(function() {
             console.log('First ad completed - exactly 5 seconds elapsed');
             
@@ -336,7 +351,7 @@ function handleTicketSubmission(event) {
                 // Fallback display results directly
                 displayTicketResults();
             }
-        }, firstAdDuration); // Exactly 5 seconds for first ad
+        }, remainingTime); // Use exactly the remaining time to complete 5 seconds
     })
     .catch(error => {
         console.error('Error processing ticket:', error);
