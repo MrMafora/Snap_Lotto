@@ -523,8 +523,71 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% endblock %}
 
 {% block additional_scripts %}
-<script src="{{ url_for('static', filename='js/mobile-enhancements.js') }}"></script>
 <script>
+// Define global functions immediately available for inline handlers
+function processTicketWithAds() {
+    console.log("Global processTicketWithAds called", new Date().toISOString());
+    
+    // Verify we have a file
+    const fileInput = document.getElementById('ticket-image');
+    if (fileInput && fileInput.files.length > 0) {
+        console.log("File is selected:", fileInput.files[0].name);
+    } else {
+        console.error("No file selected!");
+        alert("Please select an image first");
+        return;
+    }
+    
+    // Get required elements
+    const ticketForm = document.getElementById('ticket-form');
+    const loadingIndicator = document.getElementById('scanner-loading');
+    
+    if (!ticketForm) {
+        console.error("Ticket form not found!");
+        return;
+    }
+    
+    // Create form data for later use
+    const formData = new FormData(ticketForm);
+    console.log("FormData created with file:", fileInput.files[0].name);
+    
+    // Show loading indicator
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'block';
+    }
+    
+    // Add CSRF token to headers
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    console.log("CSRF token:", csrfToken);
+    
+    // Make direct fetch request
+    console.log("Starting fetch to /scan-ticket");
+    fetch('/scan-ticket', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => {
+        console.log("Received response:", response.status, response.statusText);
+        if (!response.ok) {
+            console.error("Error response:", response.status, response.statusText);
+            throw new Error('Network response was not ok: ' + response.status);
+        }
+        console.log("Response OK, parsing JSON");
+        return response.json();
+    })
+    .then(data => {
+        console.log("Received data from server:", data);
+        alert("Success! Check the console for data");
+    })
+    .catch(error => {
+        console.error("Error in fetch:", error);
+        alert("Error processing ticket: " + error.message);
+    });
+}
+
 // Global function to handle file selection - must be in global scope to be called from inline handler
 function handleFileSelection() {
     console.log("Global handleFileSelection function called");
