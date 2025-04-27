@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}Simple Ticket Scanner{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="text-center mb-0">Simple Lottery Ticket Scanner</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead text-center">Upload a photo of your lottery ticket to see if you've won</p>
+                    
+                    <form id="simple-form" action="/scan-ticket" method="post" enctype="multipart/form-data" class="mt-4">
+                        {{ form.csrf_token }}
+                        
+                        <div class="form-group mb-4">
+                            <label for="lottery-type">Select Lottery Type:</label>
+                            <select name="lottery_type" id="lottery-type" class="form-control">
+                                <option value="Lottery">Lottery</option>
+                                <option value="Lottery Plus 1">Lottery Plus 1</option>
+                                <option value="Lottery Plus 2">Lottery Plus 2</option>
+                                <option value="PowerBall">PowerBall</option>
+                                <option value="PowerBall Plus">PowerBall Plus</option>
+                                <option value="Daily Lottery">Daily Lottery</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group mb-4">
+                            <label for="ticket-image">Upload Ticket Image:</label>
+                            <input type="file" id="ticket-image" name="ticket_image" class="form-control" accept="image/*" onchange="showPreview(this)">
+                        </div>
+                        
+                        <div id="preview-box" style="display: none; margin-top: 20px; text-align: center;">
+                            <h5>Image Preview</h5>
+                            <img id="preview-img" src="#" alt="Ticket Preview" style="max-width: 100%; max-height: 300px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fa fa-search me-2"></i> Scan Ticket
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Extremely simple preview function
+function showPreview(input) {
+    var previewBox = document.getElementById('preview-box');
+    var previewImg = document.getElementById('preview-img');
+    
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            previewBox.style.display = 'block';
+        }
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+{% endblock %}
