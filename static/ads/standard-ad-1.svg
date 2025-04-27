@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <!-- Background -->
+  <rect width="400" height="300" fill="#f5f5f5" />
+  
+  <!-- Gradient Background -->
+  <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" style="stop-color:#4a90e2;stop-opacity:1" />
+    <stop offset="100%" style="stop-color:#8e44ad;stop-opacity:1" />
+  </linearGradient>
+  <rect x="10" y="10" width="380" height="280" rx="10" fill="url(#grad1)" />
+  
+  <!-- Ad Content -->
+  <rect x="30" y="40" width="340" height="180" rx="5" fill="#ffffff" opacity="0.9" />
+  
+  <!-- Ad Copy -->
+  <text x="200" y="90" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#333333" text-anchor="middle">WIN BIG WITH POWERBALL</text>
+  <text x="200" y="130" font-family="Arial, sans-serif" font-size="16" fill="#555555" text-anchor="middle">R80 Million Jackpot This Week!</text>
+  <text x="200" y="170" font-family="Arial, sans-serif" font-size="14" fill="#555555" text-anchor="middle">Play Today at Your Local Retailer</text>
+  
+  <!-- CTA Button -->
+  <rect x="125" y="190" width="150" height="40" rx="20" fill="#27ae60" />
+  <text x="200" y="217" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ffffff" text-anchor="middle">PLAY NOW</text>
+  
+  <!-- Logo -->
+  <circle cx="200" cy="250" r="20" fill="#ffffff" />
+  <text x="200" y="257" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#4a90e2" text-anchor="middle">PB</text>
+  
+  <!-- Ad Disclaimer -->
+  <text x="200" y="285" font-family="Arial, sans-serif" font-size="8" fill="#ffffff" text-anchor="middle">Play Responsibly. National Lottery games. 18+ only.</text>
+</svg>

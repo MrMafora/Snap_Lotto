@@ -729,7 +729,35 @@ window.AdManager = window.AdManager || {
                 
                 // Add event listener to ensure the button works
                 viewResultsBtn.addEventListener('click', function(e) {
-                    console.log('View Results button clicked after countdown');
+                    console.log('⭐ View Results button clicked at ' + new Date().toISOString());
+                    
+                    // Hide the ad overlay
+                    const adOverlay = document.getElementById('ad-overlay-results');
+                    if (adOverlay) {
+                        adOverlay.style.display = 'none';
+                        adOverlay.style.visibility = 'hidden';
+                    }
+                    
+                    // Make sure results container is shown
+                    const resultsContainer = document.getElementById('results-container');
+                    if (resultsContainer) {
+                        resultsContainer.classList.remove('d-none');
+                        resultsContainer.style.display = 'block';
+                        
+                        // If we have stored results content, display it
+                        if (window.parsedResultsContent) {
+                            resultsContainer.innerHTML = window.parsedResultsContent;
+                        }
+                    }
+                    
+                    // Hide scan form
+                    const scanForm = document.getElementById('scan-form-container');
+                    if (scanForm) {
+                        scanForm.classList.add('d-none');
+                        scanForm.style.display = 'none';
+                    }
+                    
+                    // Then call the original hideInterstitialAd function
                     window.AdManager.hideInterstitialAd();
                 });
             } else {

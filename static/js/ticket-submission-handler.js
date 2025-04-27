@@ -71,15 +71,39 @@ function handleTicketSubmission(event) {
                     scannerLoading.style.display = 'none';
                 }
                 
+                // Store the HTML content for later display after ad is closed
+                window.ticketResults = data;
+                
+                // If we have HTML content from a non-JSON response, store it for later
+                if (data.html_content) {
+                    // Create a temporary div to parse the HTML
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = data.html_content;
+                    
+                    // Try to extract the results content from the HTML
+                    const resultsContent = tempDiv.querySelector('#results-container');
+                    if (resultsContent) {
+                        window.parsedResultsContent = resultsContent.innerHTML;
+                    } else {
+                        // Fallback to using the full HTML
+                        window.parsedResultsContent = data.html_content;
+                    }
+                }
+                
                 // Process and display the scan results
                 if (typeof window.displayResults === 'function') {
                     window.displayResults(data);
                 } else {
-                    console.error('displayResults function not found');
+                    console.log('Displaying results:', data);
                     // Fallback logic for displaying results
                     const resultsContainer = document.getElementById('results-container');
                     if (resultsContainer) {
                         resultsContainer.classList.remove('d-none');
+                        
+                        // If we have parsedResultsContent, add it to the container
+                        if (window.parsedResultsContent) {
+                            resultsContainer.innerHTML = window.parsedResultsContent;
+                        }
                     }
                 }
             })
@@ -138,15 +162,39 @@ function handleTicketSubmission(event) {
                 scannerLoading.style.display = 'none';
             }
             
+            // Store the HTML content for later display after ad is closed
+            window.ticketResults = data;
+            
+            // If we have HTML content from a non-JSON response, store it for later
+            if (data.html_content) {
+                // Create a temporary div to parse the HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = data.html_content;
+                
+                // Try to extract the results content from the HTML
+                const resultsContent = tempDiv.querySelector('#results-container');
+                if (resultsContent) {
+                    window.parsedResultsContent = resultsContent.innerHTML;
+                } else {
+                    // Fallback to using the full HTML
+                    window.parsedResultsContent = data.html_content;
+                }
+            }
+            
             // Process the results
             if (typeof window.displayResults === 'function') {
                 window.displayResults(data);
             } else {
-                console.error('displayResults function not found');
+                console.log('Displaying results:', data);
                 // Fallback logic
                 const resultsContainer = document.getElementById('results-container');
                 if (resultsContainer) {
                     resultsContainer.classList.remove('d-none');
+                    
+                    // If we have parsedResultsContent, add it to the container
+                    if (window.parsedResultsContent) {
+                        resultsContainer.innerHTML = window.parsedResultsContent;
+                    }
                 }
             }
         })
