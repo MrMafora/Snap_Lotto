@@ -244,8 +244,8 @@ function handleTicketSubmission(event) {
                                         
                                         console.log('View Results button clicked');
                                         
-                                        // Hide the overlay immediately when button is clicked
-                                        adOverlayResults.style.display = 'none';
+                                        // Hide the overlay immediately when button is clicked using class
+                                        adOverlayResults.classList.remove('active');
                                         
                                         // Show the actual results
                                         displayTicketResults();
@@ -265,12 +265,12 @@ function handleTicketSubmission(event) {
                             
                             // Add click handler
                             viewResultsBtn.addEventListener('click', function() {
-                                adOverlayResults.style.display = 'none';
+                                adOverlayResults.classList.remove('active');
                                 displayTicketResults();
                             });
                         } else {
                             // Ultimate fallback if even button isn't found
-                            adOverlayResults.style.display = 'none';
+                            adOverlayResults.classList.remove('active');
                             displayTicketResults();
                         }
                     }, 15000);
@@ -285,10 +285,10 @@ function handleTicketSubmission(event) {
     .catch(error => {
         console.error('Error processing ticket:', error);
         
-        // Hide the ad overlays
-        if (adOverlayLoading) adOverlayLoading.style.display = 'none';
+        // Hide the ad overlays using classes
+        if (adOverlayLoading) adOverlayLoading.classList.remove('active');
         const adOverlayResults = document.getElementById('ad-overlay-results');
-        if (adOverlayResults) adOverlayResults.style.display = 'none';
+        if (adOverlayResults) adOverlayResults.classList.remove('active');
         
         // Show error message
         const errorMessage = document.getElementById('error-message');
@@ -364,17 +364,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const adOverlayLoading = document.getElementById('ad-overlay-loading');
     const adOverlayResults = document.getElementById('ad-overlay-results');
     
-    // Make sure overlays are completely hidden when page loads
+    // Make sure overlays are completely hidden when page loads by ensuring they don't have the 'active' class
     if (adOverlayLoading) {
-        adOverlayLoading.style.display = 'none';
-        adOverlayLoading.style.opacity = '0';
-        adOverlayLoading.style.visibility = 'hidden';
+        adOverlayLoading.classList.remove('active');
+        // Extra safety - explicit reset of inline styles that might be cached by the browser
+        adOverlayLoading.style.display = '';
+        adOverlayLoading.style.opacity = '';
+        adOverlayLoading.style.visibility = '';
     }
     
     if (adOverlayResults) {
-        adOverlayResults.style.display = 'none';
-        adOverlayResults.style.opacity = '0';
-        adOverlayResults.style.visibility = 'hidden';
+        adOverlayResults.classList.remove('active');
+        // Extra safety - explicit reset of inline styles that might be cached by the browser
+        adOverlayResults.style.display = '';
+        adOverlayResults.style.opacity = '';
+        adOverlayResults.style.visibility = '';
     }
     
     const removeBtn = document.getElementById('remove-image');
