@@ -377,10 +377,14 @@ function displayTicketResults() {
     // Display the results on the page
     console.log('Displaying results:', globalTicketData);
     
+    // Store the results in window object for the template's handleTicketSubmission function
+    window.ticketResults = globalTicketData;
+    
     const resultsContainer = document.getElementById('results-container');
     if (resultsContainer) {
-        // Show the results container
+        // Make sure results container is visible
         resultsContainer.classList.remove('d-none');
+        resultsContainer.style.display = 'block';
         
         // If we have parsed HTML content, use it
         if (globalTicketData.parsedResultsContent) {
@@ -388,33 +392,68 @@ function displayTicketResults() {
         }
         // Otherwise use standard JSON display if we have ticket data
         else if (globalTicketData.ticket_info) {
-            // Use window.displayResults if it exists (external function)
+            // Use window.displayResults if it exists (external function from template)
             if (typeof window.displayResults === 'function') {
-                window.displayResults(globalTicketData);
+                try {
+                    window.displayResults(globalTicketData);
+                    console.log('Called window.displayResults successfully');
+                } catch (e) {
+                    console.error('Error in window.displayResults:', e);
+                }
             } else {
+                console.log('No window.displayResults function - using fallback');
+                
                 // Basic display of ticket info
                 const successContent = document.getElementById('success-content');
                 if (successContent) {
                     successContent.classList.remove('d-none');
+                    successContent.style.display = 'block';
                 
                     // Display ticket info
-                    document.getElementById('result-lottery-type').textContent = globalTicketData.ticket_info.game_type || '';
-                    document.getElementById('result-draw-number').textContent = globalTicketData.ticket_info.draw_number || '';
-                    document.getElementById('result-draw-date').textContent = globalTicketData.ticket_info.draw_date || '';
+                    const resultLotteryType = document.getElementById('result-lottery-type');
+                    if (resultLotteryType) resultLotteryType.textContent = globalTicketData.ticket_info.game_type || '';
+                    
+                    const resultDrawNumber = document.getElementById('result-draw-number');
+                    if (resultDrawNumber) resultDrawNumber.textContent = globalTicketData.ticket_info.draw_number || '';
+                    
+                    const resultDrawDate = document.getElementById('result-draw-date');
+                    if (resultDrawDate) resultDrawDate.textContent = globalTicketData.ticket_info.draw_date || '';
                 
                     // Display detected info
-                    document.getElementById('detected-game-type').textContent = globalTicketData.ticket_info.game_type || '';
-                    document.getElementById('detected-draw-number').textContent = globalTicketData.ticket_info.draw_number || '';
-                    document.getElementById('detected-draw-date').textContent = globalTicketData.ticket_info.draw_date || '';
+                    const detectedGameType = document.getElementById('detected-game-type');
+                    if (detectedGameType) detectedGameType.textContent = globalTicketData.ticket_info.game_type || '';
+                    
+                    const detectedDrawNumber = document.getElementById('detected-draw-number');
+                    if (detectedDrawNumber) detectedDrawNumber.textContent = globalTicketData.ticket_info.draw_number || '';
+                    
+                    const detectedDrawDate = document.getElementById('detected-draw-date');
+                    if (detectedDrawDate) detectedDrawDate.textContent = globalTicketData.ticket_info.draw_date || '';
                 }
             }
         }
+        
+        // Directly call the update ball matching function if it exists
+        if (window.updateBallMatching && globalTicketData) {
+            try {
+                window.updateBallMatching(globalTicketData);
+            } catch (e) {
+                console.error('Error updating ball matches:', e);
+            }
+        }
+    } else {
+        console.error('Results container not found - cannot display results');
     }
     
     // Re-enable the scan button
     const scanButton = document.getElementById('scan-button');
     if (scanButton) {
         scanButton.disabled = false;
+    }
+    
+    // Clean up any remaining overlays
+    const processResultsOverlay = document.getElementById('process-results-overlay');
+    if (processResultsOverlay) {
+        document.body.removeChild(processResultsOverlay);
     }
 }
 

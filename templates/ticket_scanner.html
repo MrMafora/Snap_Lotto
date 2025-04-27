@@ -16,6 +16,53 @@ Daily Lotto data,
 Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you instant results for all lottery tickets.{% endblock %}
 
 {% block head_content %}
+<!-- Global JavaScript that ensures our core functions are defined at page load -->
+<script>
+    // Global ticket results storage
+    window.ticketResults = null;
+    
+    /**
+     * Global displayResults function that is called from both:
+     * 1. The template's inline handler for regular form submission
+     * 2. The ticket-submission-handler-fixed.js after ad display
+     */
+    window.displayResults = function(results) {
+        console.log('Global displayResults called with:', results);
+        
+        // Make sure results container is visible
+        const resultsContainer = document.getElementById('results-container');
+        if (resultsContainer) {
+            resultsContainer.classList.remove('d-none');
+            resultsContainer.style.display = 'block';
+            
+            // Update result fields
+            if (results && results.ticket_info) {
+                const info = results.ticket_info;
+                
+                // Update lottery type
+                const lotType = document.getElementById('result-lottery-type');
+                if (lotType) lotType.textContent = info.game_type || 'Unknown';
+                
+                // Update draw number
+                const drawNum = document.getElementById('result-draw-number');
+                if (drawNum) drawNum.textContent = info.draw_number || 'Unknown';
+                
+                // Update draw date
+                const drawDate = document.getElementById('result-draw-date');
+                if (drawDate) drawDate.textContent = info.draw_date || 'Unknown';
+                
+                // Update ball highlighting if we have results
+                if (window.updateBallMatching && results) {
+                    window.updateBallMatching(results);
+                }
+            }
+        }
+    };
+    
+    // Log that our global functions are ready
+    console.log('Global displayResults function is ready');
+</script>
+
 <!-- CSS for optimized lottery balls display across all devices -->
 <style>
     /* Lottery balls container styling for columnar layout */
