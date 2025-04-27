@@ -1,6 +1,62 @@
 // Ticket scanner main JavaScript functionality with improved reliability
 // This version fixes the issues with image uploads and scanning
 
+// Add first countdown timer function similar to ticket-submission-handler.js
+function initFirstCountdown(seconds) {
+    // Create container and add to the first ad overlay
+    const adContainer = document.querySelector('#ad-overlay-loading .ad-container-wrapper');
+    if (!adContainer) return;
+    
+    // Create timer element if it doesn't exist
+    if (!document.getElementById('first-countdown-container')) {
+        const countdownContainer = document.createElement('div');
+        countdownContainer.id = 'first-countdown-container';
+        countdownContainer.className = 'countdown-container text-center mt-3';
+        countdownContainer.style.cssText = 'font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin: 10px auto;';
+        countdownContainer.innerHTML = `
+            <div class="countdown-timer">
+                <span class="timer-value">${seconds}</span>
+                <span class="timer-text">seconds</span>
+            </div>
+        `;
+        
+        // Add after the ad container
+        adContainer.parentNode.insertBefore(countdownContainer, adContainer.nextSibling);
+    }
+    
+    // Get timer elements
+    const countdownContainer = document.getElementById('first-countdown-container');
+    const timerElement = countdownContainer.querySelector('.timer-value');
+    const timerTextElement = countdownContainer.querySelector('.timer-text');
+    
+    // Set initial value
+    let currentSeconds = seconds;
+    timerElement.textContent = currentSeconds;
+    timerTextElement.textContent = currentSeconds === 1 ? 'second' : 'seconds';
+    
+    // Start countdown
+    const intervalId = setInterval(() => {
+        currentSeconds--;
+        
+        // Update display
+        timerElement.textContent = currentSeconds;
+        timerTextElement.textContent = currentSeconds === 1 ? 'second' : 'seconds';
+        
+        // Apply pulse effect in last 3 seconds
+        if (currentSeconds <= 3) {
+            timerElement.classList.add('text-danger', 'fw-bold');
+            countdownContainer.classList.add('pulse-animation');
+        }
+        
+        // Stop when time is up
+        if (currentSeconds <= 0) {
+            clearInterval(intervalId);
+        }
+    }, 1000);
+    
+    return intervalId;
+}
+
 // Initialize necessary elements once the document is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Get all required DOM elements
@@ -231,7 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Previous results cleared");
     };
     
-    // Main ticket processing function
+    // Main ticket processing function with ad display
     window.processTicketWithAds = function() {
         console.log("Processing ticket with ads:", new Date().toISOString());
         
@@ -239,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
             console.error("No file selected!");
             alert("Please select an image first");
-            return;
+            return false;
         }
         
         console.log("File is selected:", fileInput.files[0].name);
@@ -251,9 +307,56 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear any previous results
         clearPreviousResults();
         
-        // Make scanner loading visible
+        // Disable the scan button
+        const scanButton = document.getElementById('scan-button');
+        if (scanButton) {
+            scanButton.disabled = true;
+        }
+        
+        // Hide the normal loading indicator 
         if (loadingIndicator) {
-            loadingIndicator.style.display = 'block';
+            loadingIndicator.style.display = 'none';
+        }
+        
+        // IMMEDIATELY show the first ad overlay with yellow badge
+        const adOverlayLoading = document.getElementById('ad-overlay-loading');
+        if (adOverlayLoading) {
+            // Add active class to make it visible
+            adOverlayLoading.classList.add('active');
+            console.log('FIRST ad overlay (yellow badge) is now visible');
+            
+            // Start the first countdown timer - 5 seconds
+            if (typeof initFirstCountdown === 'function') {
+                initFirstCountdown(5);
+            } else {
+                console.log("initFirstCountdown function not found, using fallback timer");
+                // Simple fallback countdown
+                let countdownContainer = document.createElement('div');
+                countdownContainer.id = 'first-countdown-container';
+                countdownContainer.className = 'countdown-container text-center mt-3';
+                countdownContainer.style.cssText = 'font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin: 10px auto;';
+                countdownContainer.innerHTML = '<div class="countdown-timer"><span class="timer-value">5</span> <span class="timer-text">seconds</span></div>';
+                
+                // Add after the ad container
+                const adContainer = document.querySelector('#ad-overlay-loading .ad-container-wrapper');
+                if (adContainer) {
+                    adContainer.parentNode.insertBefore(countdownContainer, adContainer.nextSibling);
+                    
+                    // Simple countdown
+                    let seconds = 5;
+                    const timerInterval = setInterval(() => {
+                        seconds--;
+                        const timerValue = countdownContainer.querySelector('.timer-value');
+                        const timerText = countdownContainer.querySelector('.timer-text');
+                        if (timerValue) timerValue.textContent = seconds;
+                        if (timerText) timerText.textContent = seconds === 1 ? 'second' : 'seconds';
+                        
+                        if (seconds <= 0) {
+                            clearInterval(timerInterval);
+                        }
+                    }, 1000);
+                }
+            }
         }
         
         // Get lottery type
@@ -294,27 +397,167 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             console.log("Received scan result:", data);
             
-            // Hide loading indicator
-            if (loadingIndicator) {
-                loadingIndicator.style.display = 'none';
-            }
+            // Store the results for later display
+            window.ticketResults = data;
             
-            // Display the results
-            displayResults(data);
+            // First ad was displayed when form was submitted
+            // After 5 seconds, transition to second ad
+            setTimeout(function() {
+                console.log('First ad (yellow badge) completed - 5 seconds elapsed');
+                
+                // Hide the first ad overlay
+                if (adOverlayLoading) {
+                    adOverlayLoading.classList.remove('active');
+                    console.log('First ad overlay hidden');
+                }
+                
+                // Show the second ad overlay (blue badge)
+                const adOverlayResults = document.getElementById('ad-overlay-results');
+                if (adOverlayResults) {
+                    // Add active class to make it visible
+                    adOverlayResults.classList.add('active');
+                    console.log('SECOND ad overlay (blue badge) is now visible');
+                    
+                    // Initially hide the View Results button and the helper text until countdown completes
+                    const viewResultsBtn = document.getElementById('view-results-btn');
+                    const viewResultsHelper = document.querySelector('#ad-overlay-results .text-center.mt-4.mb-1');
+                    
+                    if (viewResultsBtn) {
+                        viewResultsBtn.disabled = true;
+                        viewResultsBtn.style.display = 'none';
+                    }
+                    
+                    if (viewResultsHelper) {
+                        viewResultsHelper.style.display = 'none';
+                    }
+                    
+                    // Show countdown timer in the second ad screen
+                    const countdownContainer = document.getElementById('countdown-container');
+                    if (countdownContainer) {
+                        // Initialize a 15-second countdown
+                        let seconds = 15;
+                        countdownContainer.innerHTML = `
+                            <div class="countdown-timer">
+                                <span class="timer-value">${seconds}</span>
+                                <span class="timer-text">seconds</span>
+                            </div>
+                        `;
+                        
+                        const timerElement = countdownContainer.querySelector('.timer-value');
+                        const timerTextElement = countdownContainer.querySelector('.timer-text');
+                        
+                        // Make countdown visible
+                        countdownContainer.style.display = 'block';
+                        
+                        // Start timer countdown
+                        const timerInterval = setInterval(() => {
+                            seconds--;
+                            
+                            // Update display
+                            if (timerElement && timerTextElement) {
+                                timerElement.textContent = seconds;
+                                timerTextElement.textContent = seconds === 1 ? 'second' : 'seconds';
+                                
+                                // Apply pulse effect in last 3 seconds
+                                if (seconds <= 3) {
+                                    timerElement.classList.add('text-danger', 'fw-bold');
+                                    countdownContainer.classList.add('pulse-animation');
+                                }
+                            }
+                            
+                            // When countdown completes
+                            if (seconds <= 0) {
+                                clearInterval(timerInterval);
+                                
+                                // Show completion message
+                                countdownContainer.innerHTML = '<span class="text-success"><i class="fas fa-check-circle me-1"></i> Ready to view results!</span>';
+                                
+                                // Show the View Results button and helper text
+                                if (viewResultsBtn) {
+                                    viewResultsBtn.disabled = false;
+                                    viewResultsBtn.style.display = 'block'; 
+                                    viewResultsBtn.classList.add('btn-pulse');
+                                    
+                                    // Also display the helper text with arrow pointing to the button
+                                    if (viewResultsHelper) {
+                                        viewResultsHelper.style.display = 'block';
+                                    }
+                                    
+                                    // Make sure the event listener is only added once
+                                    if (!viewResultsBtn._clickHandlerAdded) {
+                                        viewResultsBtn._clickHandlerAdded = true;
+                                        
+                                        viewResultsBtn.addEventListener('click', function(e) {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            
+                                            console.log('View Results button clicked');
+                                            
+                                            // Hide the overlay immediately when button is clicked using class
+                                            adOverlayResults.classList.remove('active');
+                                            
+                                            // Show the actual results
+                                            displayResults(window.ticketResults);
+                                        });
+                                    }
+                                }
+                            }
+                        }, 1000);
+                    } else {
+                        console.error('Countdown container not found!');
+                        // Fallback: Just show button after 15 seconds
+                        setTimeout(() => {
+                            if (viewResultsBtn) {
+                                viewResultsBtn.disabled = false;
+                                viewResultsBtn.style.display = 'block';
+                                viewResultsBtn.classList.add('btn-pulse');
+                                
+                                // Also display the helper text in fallback case
+                                if (viewResultsHelper) {
+                                    viewResultsHelper.style.display = 'block';
+                                }
+                                
+                                // Add click handler
+                                viewResultsBtn.addEventListener('click', function() {
+                                    adOverlayResults.classList.remove('active');
+                                    displayResults(window.ticketResults);
+                                });
+                            } else {
+                                // Ultimate fallback if even button isn't found
+                                adOverlayResults.classList.remove('active');
+                                displayResults(window.ticketResults);
+                            }
+                        }, 15000);
+                    }
+                } else {
+                    console.error('Second ad overlay not found!');
+                    // Fallback display results directly
+                    displayResults(window.ticketResults);
+                }
+            }, 5000); // 5 seconds for first ad
         })
         .catch(error => {
             console.error("Error processing ticket:", error);
             
-            // Hide loading indicator
-            if (loadingIndicator) {
-                loadingIndicator.style.display = 'none';
-            }
+            // Hide the ad overlays using classes
+            if (adOverlayLoading) adOverlayLoading.classList.remove('active');
+            const adOverlayResults = document.getElementById('ad-overlay-results');
+            if (adOverlayResults) adOverlayResults.classList.remove('active');
             
             // Show error message
-            alert("Error processing ticket: " + error.message);
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            if (errorMessage && errorText) {
+                errorText.textContent = 'Error processing your ticket: ' + error.message;
+                errorMessage.classList.remove('d-none');
+            } else {
+                alert('Error processing your ticket: ' + error.message);
+            }
             
-            // Re-enable scan button
-            scanButton.disabled = false;
+            // Re-enable the scan button
+            if (scanButton) {
+                scanButton.disabled = false;
+            }
         });
     };
     
