@@ -16,9 +16,14 @@ function handleTicketSubmission(event) {
     const formData = new FormData(form);
     const scannerLoading = document.getElementById('scanner-loading');
     
-    // Show loading spinner
+    // Show loading spinner only if we don't have the AdManager
     if (scannerLoading) {
-        scannerLoading.style.display = 'block';
+        // Only show the spinner if AdManager is not available
+        if (!window.AdManager) {
+            scannerLoading.style.display = 'block';
+        } else {
+            scannerLoading.style.display = 'none';
+        }
     }
     
     // For local development and improved reliability
