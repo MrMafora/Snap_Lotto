@@ -280,8 +280,40 @@ window.AdManager = window.AdManager || {
         window.currentlyShowingAd = true;
         window.adStartTime = Date.now();
         
-        // Set the duration for displaying the ad (in seconds)
-        const adDisplayDuration = 15; // 15 seconds display time
+        // Get available ads for scanner placement
+        let availableAds = [];
+        
+        // Try to use getAdsByPlacement helper if available
+        if (typeof window.getAdsByPlacement === 'function') {
+            availableAds = window.getAdsByPlacement('scanner');
+        } else if (this.ads && this.ads.scanner) {
+            // Fallback to direct access
+            if (Array.isArray(this.ads.scanner)) {
+                availableAds = this.ads.scanner;
+            } else {
+                availableAds = [this.ads.scanner];
+            }
+        }
+        
+        console.log('Available ads:', availableAds);
+        
+        // Randomly select ad type (standard 15s or missing children 5s)
+        // For demo purposes, alternate between missing children and standard ads
+        const showMissingChildrenAd = Math.random() < 0.5; // 50% chance
+        
+        // Find the selected ad type or default to first ad
+        let selectedAd = null;
+        if (availableAds && availableAds.length > 0) {
+            if (showMissingChildrenAd) {
+                selectedAd = availableAds.find(ad => ad.type === 'missing_children') || availableAds[0];
+            } else {
+                selectedAd = availableAds.find(ad => ad.type === 'standard') || availableAds[0];
+            }
+        }
+        
+        // Set the ad display duration based on the selected ad or default to 15 seconds
+        const adDisplayDuration = (selectedAd && selectedAd.duration) ? selectedAd.duration : 15;
+        console.log('Selected ad duration:', adDisplayDuration, 'seconds');
         
         // SAFETY CHECK: If we're already in results mode, don't show the ad again
         if (window.inResultsMode || window.showingResultsAfterAd) {
@@ -290,7 +322,7 @@ window.AdManager = window.AdManager || {
             return;
         }
         
-        // Start the countdown timer for the ad
+        // Start the countdown timer for the ad with the appropriate duration
         this.startCountdownTimer(adDisplayDuration);
         
         // Use the enhanced showOverlay utility function if available
