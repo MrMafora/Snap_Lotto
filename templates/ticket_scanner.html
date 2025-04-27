@@ -320,7 +320,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             <i class="fa fa-info-circle me-1"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
                         </div>
 
-                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
+                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data" onsubmit="return handleTicketSubmission(event)">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-2">
                                 <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
@@ -3625,4 +3625,5 @@ function handleFileSelection() {
 </script>
 <!-- Fresh checkmark system - clean slate approach -->
 <script src="{{ url_for('static', filename='js/fresh_checkmark.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ticket-submission-handler.js') }}"></script>
 {% endblock %}
