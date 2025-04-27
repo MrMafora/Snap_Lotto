@@ -85,30 +85,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 const objectUrl = URL.createObjectURL(file);
                 console.log("Created object URL for preview");
                 
-                // Set the image source directly
+                // Set the image source directly - with improved error handling
+                // Show the preview container immediately
+                previewContainer.style.display = 'block';
+                previewContainer.classList.remove('d-none');
+                
+                // Enable the scan button - do this both ways for cross-browser compatibility
+                scanButton.disabled = false;
+                scanButton.removeAttribute('disabled');
+                
                 ticketPreview.onload = function() {
                     console.log("Preview image loaded successfully");
-                    
-                    // Show the preview container
-                    previewContainer.style.display = 'block';
-                    previewContainer.classList.remove('d-none');
-                    
-                    // Enable the scan button - do this both ways for cross-browser compatibility
-                    scanButton.disabled = false;
-                    scanButton.removeAttribute('disabled');
-                    
                     console.log("Preview displayed and scan button enabled");
                 };
                 
-                ticketPreview.onerror = function() {
-                    console.error("Error loading preview image");
-                    alert('Error displaying the image. Please try another file.');
-                    fileInput.value = '';
-                    scanButton.disabled = true;
+                ticketPreview.onerror = function(e) {
+                    console.error("Error loading preview image", e);
+                    // Don't show alert, just log the error
+                    // Instead of clearing, just use a placeholder
+                    ticketPreview.src = '/static/images/ticket-placeholder.png';
+                    
+                    // Keep the scan button enabled
+                    scanButton.disabled = false;
+                    scanButton.removeAttribute('disabled');
                 };
                 
                 // Set the source to trigger the onload event
-                ticketPreview.src = objectUrl;
+                try {
+                    ticketPreview.src = objectUrl;
+                } catch (e) {
+                    console.error("Error setting image source:", e);
+                    // Use a placeholder if we can't set the source
+                    ticketPreview.src = '/static/images/ticket-placeholder.png';
+                }
                 
             } catch (e) {
                 console.error("Error creating preview:", e);
