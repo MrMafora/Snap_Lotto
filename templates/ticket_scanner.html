@@ -347,7 +347,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
                                     <!-- Single file input with no capture attribute to support all devices -->
-                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none" onchange="handleFileSelect()">
                                     
                                     <!-- Simple button with direct click handler -->
                                     <button type="button" id="file-select-btn" class="btn btn-primary btn-lg" onclick="document.getElementById('ticket-image').click();"><i class="fas fa-camera me-2"></i> Take Photo</button>
@@ -643,8 +643,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         // The button click handling is now fully managed by mobile-enhancements.js
         // This prevents duplicate event listeners
         
-        // File selection change
-        fileInput.addEventListener('change', handleFileSelect);
+        // File selection change is handled directly on the input element using inline onchange
+        // We don't need this event listener anymore as it might cause duplicate event handling
         
         // Drag and drop events
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
