@@ -481,6 +481,19 @@ window.AdManager = window.AdManager || {
             element.remove();
         });
         
+        // Hide the loading overlay and show the results overlay
+        const loadingOverlay = document.getElementById('ad-overlay-loading');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+        
+        // Show the results overlay
+        const resultsOverlay = document.getElementById('ad-overlay-results');
+        if (resultsOverlay) {
+            resultsOverlay.style.display = 'flex';
+            console.log('Results overlay displayed, showing View Results button');
+        }
+        
         // Force restore scrolling on all elements
         document.body.style.overflow = 'auto';
         document.body.style.position = 'static'; // Reset to static instead of fixed
