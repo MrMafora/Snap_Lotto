@@ -114,13 +114,14 @@ def format_prize(prize_value):
         # Default to returning as string
         return str(prize_value)
 
-def import_snap_lotto_data(excel_file, flask_app=None):
+def import_snap_lotto_data(excel_file, flask_app=None, sheet_name=None):
     """
     Import lottery data from the Snap Lotto Excel spreadsheet.
     
     Args:
         excel_file (str): Path to Excel file
         flask_app: Flask app object for context
+        sheet_name (str, optional): Specific sheet to import. If None, imports all sheets or default.
     """
     try:
         # Use the provided Flask app context or create a dummy context if running as script
@@ -196,9 +197,19 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                             flash("How to add data: 1) Open the template, 2) Add lottery information to each sheet, 3) Save the file, 4) Upload again", "info")
                     return True  # Special case for empty template
                 
-            # Try to read the expected sheet for the standard Snap Lotto format
+            # Try to read the specified sheet, Sheet1, or first available sheet
             try:
-                df = pd.read_excel(excel_file, sheet_name="Sheet1", engine='openpyxl')
+                # If a specific sheet was requested, use it
+                if sheet_name:
+                    if sheet_name in sheet_names:
+                        logger.info(f"Reading specified sheet: {sheet_name}")
+                        df = pd.read_excel(excel_file, sheet_name=sheet_name, engine='openpyxl')
+                    else:
+                        logger.error(f"Specified sheet '{sheet_name}' not found. Available sheets: {sheet_names}")
+                        return False
+                else:
+                    # Otherwise try the default Sheet1
+                    df = pd.read_excel(excel_file, sheet_name="Sheet1", engine='openpyxl')
             except ValueError as e:
                 logger.error(f"Worksheet named 'Sheet1' not found. Available sheets: {sheet_names}")
                 # Try to read the first available sheet instead
