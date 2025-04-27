@@ -1,369 +1,522 @@
 /**
- * Chart Rendering Module
- * Handles rendering of frequency charts and number visualizations
+ * Chart Renderer for Snap Lotto
+ * Responsible for creating and updating chart visualizations with data from the API
  */
 
-/**
- * Update all chart visualizations with new data
- * @param {Object} data - Chart data from API
- */
-function updateCharts(data) {
-    // Check if we have valid data
-    if (!data || typeof data !== 'object') {
-        console.error('Invalid chart data received');
+// Function to render the frequency chart with the provided data
+function renderFrequencyChart(frequencyData) {
+    if (!frequencyData || !Array.isArray(frequencyData) || frequencyData.length === 0) {
+        console.warn('No frequency data to render');
         return;
     }
     
-    // Update frequency chart
-    updateFrequencyChart(data);
-    
-    // Update hot and cold numbers section
-    updateHotColdNumbers(data);
-    
-    // Update division statistics (if available)
-    if (typeof updateDivisionChart === 'function') {
-        updateDivisionChart(data);
-    }
-}
-
-/**
- * Update the frequency chart visualization
- * @param {Object} data - Chart data from API
- */
-function updateFrequencyChart(data) {
-    console.log("Updating frequency chart");
-    
-    // Get the bar chart container
-    const barChartContainer = document.querySelector('.bar-chart-container');
-    if (!barChartContainer) {
-        console.error('Bar chart container not found');
-        return;
-    }
-    
-    // Reset the container styles for a fresh implementation
-    barChartContainer.style.position = 'relative';
-    barChartContainer.style.height = '300px';
-    barChartContainer.style.width = '100%';
-    barChartContainer.style.overflow = 'hidden';
-    
-    // Find the lottery type with the most data
-    let selectedLotteryType = null;
-    let maxFrequencyData = [];
-    
-    for (const lotteryType in data) {
-        if (data[lotteryType] && 
-            data[lotteryType].frequency && 
-            data[lotteryType].frequency.length > maxFrequencyData.length) {
-            maxFrequencyData = data[lotteryType].frequency;
-            selectedLotteryType = lotteryType;
+    try {
+        // Get chart container
+        const barChartContainer = document.querySelector('.bar-chart-container');
+        if (!barChartContainer) {
+            console.error('Bar chart container not found');
+            return;
         }
-    }
-    
-    // If we have no data, show a message and return
-    if (!selectedLotteryType) {
-        barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
-        return;
-    }
-    
-    // Get the frequency and top numbers data
-    const frequencyData = data[selectedLotteryType].frequency || [];
-    const topNumbers = data[selectedLotteryType].top_numbers || [];
-    
-    // If no frequency data or top numbers, show a message and return
-    if (!frequencyData.length || !topNumbers.length) {
-        barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
-        return;
-    }
-    
-    // Clear the container
-    barChartContainer.innerHTML = '';
-    
-    // Create the chart header
-    const header = document.createElement('h6');
-    header.className = 'mb-3';
-    header.innerHTML = 'Most Frequent Numbers <small class="text-muted">(' + selectedLotteryType + ')</small>';
-    barChartContainer.appendChild(header);
-    
-    // Create the main chart container
-    const chartWrapper = document.createElement('div');
-    chartWrapper.style.position = 'relative';
-    chartWrapper.style.height = '220px';
-    chartWrapper.style.marginBottom = '20px';
-    barChartContainer.appendChild(chartWrapper);
-    
-    // Calculate max frequency for scaling
-    let maxFrequency = 0;
-    topNumbers.forEach(item => {
-        if (Array.isArray(item) && item.length >= 2) {
-            maxFrequency = Math.max(maxFrequency, item[1]);
-        }
-    });
-    
-    // Y-axis setup
-    const yAxis = document.createElement('div');
-    yAxis.style.position = 'absolute';
-    yAxis.style.left = '0';
-    yAxis.style.top = '0';
-    yAxis.style.bottom = '30px';
-    yAxis.style.width = '30px';
-    chartWrapper.appendChild(yAxis);
-    
-    // Calculate appropriate step size
-    const stepSize = maxFrequency <= 10 ? 2 : 
-                  maxFrequency <= 20 ? 4 : 
-                  maxFrequency <= 32 ? 5 : 8;
-    
-    // Round max Y value to next multiple of step size
-    const maxYValue = Math.ceil(maxFrequency / stepSize) * stepSize;
-    
-    // Create Y-axis labels
-    for (let i = 0; i <= 4; i++) {
-        const value = Math.round((4-i) * maxYValue / 4);
-        const label = document.createElement('div');
-        label.textContent = value;
-        label.style.position = 'absolute';
-        label.style.right = '7px';
-        label.style.top = `${i * 25}%`;
-        label.style.fontSize = '12px';
-        label.style.color = '#666';
-        yAxis.appendChild(label);
-    }
-    
-    // Create chart area
-    const chartArea = document.createElement('div');
-    chartArea.style.position = 'absolute';
-    chartArea.style.left = '30px';
-    chartArea.style.right = '0';
-    chartArea.style.top = '0';
-    chartArea.style.bottom = '30px';
-    chartArea.style.borderLeft = '1px solid #ddd';
-    chartArea.style.borderBottom = '1px solid #ddd';
-    chartWrapper.appendChild(chartArea);
-    
-    // Add grid lines
-    for (let i = 1; i <= 4; i++) {
-        const gridLine = document.createElement('div');
-        gridLine.style.position = 'absolute';
-        gridLine.style.left = '0';
-        gridLine.style.right = '0';
-        gridLine.style.top = `${i * 25}%`;
-        gridLine.style.height = '1px';
-        gridLine.style.backgroundColor = '#eee';
-        chartArea.appendChild(gridLine);
-    }
-    
-    // Create bars container
-    const barsContainer = document.createElement('div');
-    barsContainer.style.display = 'flex';
-    barsContainer.style.justifyContent = 'space-around';
-    barsContainer.style.height = '100%';
-    barsContainer.style.padding = '0 20px';
-    chartArea.appendChild(barsContainer);
-    
-    // Fixed bar colors from most to least
-    const barColors = [
-        '#e03237',  // Red - 1st place
-        '#ffe11d',  // Yellow - 2nd place
-        '#19a03a',  // Green - 3rd place
-        '#67c6ed',  // Blue - others
-        '#67c6ed'   // Blue - others
-    ];
-    
-    // Create bars for top 5 numbers
-    const displayNumbers = topNumbers.slice(0, 5);
-    displayNumbers.forEach((item, index) => {
-        if (!Array.isArray(item) || item.length < 2) return;
         
-        const [number, frequency] = item;
+        // Clear previous chart
+        barChartContainer.innerHTML = '';
         
-        // Create bar column
-        const barColumn = document.createElement('div');
-        barColumn.className = 'bar-column';
-        barColumn.style.display = 'flex';
-        barColumn.style.flexDirection = 'column-reverse';
-        barColumn.style.alignItems = 'center';
-        barColumn.style.width = '18%';
-        barColumn.style.height = '100%';
-        barColumn.dataset.number = number;
-        barColumn.dataset.frequency = frequency;
-        barsContainer.appendChild(barColumn);
+        // Create a container for the number frequency chart
+        const frequencyChart = document.createElement('div');
+        frequencyChart.className = 'frequency-chart d-flex align-items-end justify-content-between pb-2';
+        frequencyChart.style.height = '200px';
         
-        // Calculate bar height as percentage of max
-        const heightPercent = (frequency / maxYValue) * 100;
+        // Sort data by frequency (descending)
+        const sortedData = [...frequencyData].sort((a, b) => b.frequency - a.frequency);
         
-        // Create bar with container for better styling
-        const barContainer = document.createElement('div');
-        barContainer.style.position = 'relative';
-        barContainer.style.width = '80%';
-        barContainer.style.height = `${heightPercent}%`;
-        barColumn.appendChild(barContainer);
+        // Get the maximum frequency for scaling
+        const maxFrequency = sortedData[0]?.frequency || 1;
         
-        // Create the actual bar
-        const bar = document.createElement('div');
-        bar.className = 'bar';
-        bar.style.position = 'absolute';
-        bar.style.bottom = '0';
-        bar.style.left = '0';
-        bar.style.right = '0';
-        bar.style.height = '100%';
-        bar.style.backgroundColor = barColors[Math.min(index, barColors.length - 1)];
-        bar.style.borderTopLeftRadius = '3px';
-        bar.style.borderTopRightRadius = '3px';
-        bar.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-        barContainer.appendChild(bar);
+        // Variables for color coding top numbers
+        const colorClasses = [
+            'bg-danger',    // 1st place (red)
+            'bg-warning',   // 2nd place (yellow)
+            'bg-success'    // 3rd place (green)
+        ];
         
-        // Add frequency label
-        const freqLabel = document.createElement('span');
-        freqLabel.style.position = 'absolute';
-        freqLabel.style.top = '-15px';
-        freqLabel.style.left = '50%';
-        freqLabel.style.transform = 'translateX(-50%)';
-        freqLabel.style.fontSize = '10px';
-        freqLabel.style.color = '#666';
-        freqLabel.textContent = frequency;
-        barContainer.appendChild(freqLabel);
-    });
-    
-    // Add X-axis labels
-    const xAxis = document.createElement('div');
-    xAxis.style.position = 'absolute';
-    xAxis.style.left = '30px';
-    xAxis.style.right = '0';
-    xAxis.style.bottom = '0';
-    xAxis.style.height = '30px';
-    xAxis.style.display = 'flex';
-    xAxis.style.justifyContent = 'space-around';
-    xAxis.style.padding = '5px 20px';
-    chartWrapper.appendChild(xAxis);
-    
-    // Add number labels
-    displayNumbers.forEach(item => {
-        if (!Array.isArray(item) || item.length < 2) return;
-        
-        const [number] = item;
-        const label = document.createElement('div');
-        label.style.fontSize = '12px';
-        label.style.fontWeight = 'bold';
-        label.style.textAlign = 'center';
-        label.style.width = '18%';
-        label.style.color = '#333';
-        label.textContent = number;
-        xAxis.appendChild(label);
-    });
-}
-
-/**
- * Update hot and cold numbers display
- * @param {Object} data - Chart data from API
- */
-function updateHotColdNumbers(data) {
-    // Get best available data from the API response
-    let selectedLotteryType = null;
-    let maxFrequencyData = [];
-    
-    // Find the lottery type with the most data
-    for (const lotteryType in data) {
-        if (data[lotteryType] && 
-            data[lotteryType].frequency && 
-            data[lotteryType].frequency.length > maxFrequencyData.length) {
-            maxFrequencyData = data[lotteryType].frequency;
-            selectedLotteryType = lotteryType;
-        }
-    }
-    
-    // If no data, display empty message
-    if (!selectedLotteryType) {
-        document.getElementById('hotNumbersContainer').innerHTML = '<div class="text-muted">No hot numbers data available for the selected filters</div>';
-        document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available for the selected filters</div>';
-        document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available for the selected filters</div>';
-        return;
-    }
-    
-    // Get top numbers (hot numbers)
-    const topNumbers = data[selectedLotteryType].top_numbers || [];
-    
-    // Update hot numbers display
-    if (topNumbers.length > 0) {
-        let hotNumbersHTML = '';
-        for (let i = 0; i < Math.min(5, topNumbers.length); i++) {
-            const [number, frequency] = topNumbers[i];
-            const colorClass = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'][i % 5];
+        // Create bar for each number
+        sortedData.forEach((item, index) => {
+            const { number, frequency } = item;
             
-            hotNumbersHTML += `
-                <div class="hot-number-item me-2 mb-2">
-                    <span class="lottery-ball lottery-ball-sm ${colorClass}">
-                        <span class="number">${number}</span>
-                    </span>
-                    <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
+            // Calculate height percentage (with 10% minimum for visibility)
+            const heightPercentage = 10 + ((frequency / maxFrequency) * 90);
+            
+            // Create column for this number
+            const barColumn = document.createElement('div');
+            barColumn.className = 'bar-column text-center position-relative';
+            barColumn.setAttribute('data-bs-title', `Number ${number} appeared ${frequency} times`);
+            barColumn.setAttribute('data-bs-toggle', 'tooltip');
+            barColumn.setAttribute('data-bs-placement', 'top');
+            
+            // Create interactive bar container with proper height
+            const barContainer = document.createElement('div');
+            barContainer.className = 'interactive-bar-container';
+            barContainer.style.height = '170px';
+            
+            // Create the actual bar with appropriate height and color
+            const bar = document.createElement('div');
+            bar.className = `interactive-bar ${index < 3 ? colorClasses[index] : 'bg-primary'}`;
+            bar.style.height = `${heightPercentage}%`;
+            bar.style.width = '100%';
+            bar.style.borderRadius = '4px';
+            bar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            bar.style.transition = 'transform 0.2s';
+            bar.setAttribute('data-number', number);
+            bar.setAttribute('data-frequency', frequency);
+            
+            // Add the number label below
+            const numberLabel = document.createElement('div');
+            numberLabel.className = 'number-label mt-1';
+            numberLabel.textContent = number;
+            
+            // Add hover effects for bar
+            bar.addEventListener('mouseover', function() {
+                // Scale up the bar slightly on hover
+                this.style.transform = 'scaleY(1.05)';
+                this.style.transition = 'transform 0.2s';
+                
+                // Create a tooltip
+                const tooltip = document.createElement('div');
+                tooltip.className = 'chart-tooltip';
+                tooltip.innerHTML = `Number ${number}<br>Appeared ${frequency} times`;
+                tooltip.style.position = 'absolute';
+                tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                tooltip.style.color = 'white';
+                tooltip.style.padding = '5px 10px';
+                tooltip.style.borderRadius = '4px';
+                tooltip.style.fontSize = '12px';
+                tooltip.style.zIndex = '1000';
+                
+                // Position tooltip above the bar
+                const rect = this.getBoundingClientRect();
+                tooltip.style.left = rect.left + 'px';
+                tooltip.style.top = (rect.top - 40) + 'px';
+                
+                document.body.appendChild(tooltip);
+                this.setAttribute('data-tooltip-id', Date.now());
+            });
+            
+            bar.addEventListener('mouseout', function() {
+                // Return to normal size
+                this.style.transform = 'scaleY(1)';
+                
+                // Remove any tooltips
+                const tooltipId = this.getAttribute('data-tooltip-id');
+                if (tooltipId) {
+                    const tooltips = document.querySelectorAll('.chart-tooltip');
+                    tooltips.forEach(tooltip => tooltip.remove());
+                }
+            });
+            
+            // Assemble the components
+            barContainer.appendChild(bar);
+            barColumn.appendChild(barContainer);
+            barColumn.appendChild(numberLabel);
+            frequencyChart.appendChild(barColumn);
+        });
+        
+        // Add the frequency chart to the container
+        barChartContainer.appendChild(frequencyChart);
+        
+        // Add a legend for color coding
+        const legend = document.createElement('div');
+        legend.className = 'frequency-legend d-flex justify-content-center mt-3 small text-muted';
+        legend.innerHTML = `
+            <div class="me-3"><span class="badge bg-danger">&nbsp;</span> Most frequent</div>
+            <div class="me-3"><span class="badge bg-warning">&nbsp;</span> 2nd most frequent</div>
+            <div><span class="badge bg-success">&nbsp;</span> 3rd most frequent</div>
+        `;
+        barChartContainer.appendChild(legend);
+        
+    } catch (error) {
+        console.error('Error rendering frequency chart:', error);
+        // Show error in container
+        const barChartContainer = document.querySelector('.bar-chart-container');
+        if (barChartContainer) {
+            barChartContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error rendering chart. Please try again later.
                 </div>
             `;
         }
-        document.getElementById('hotNumbersContainer').innerHTML = hotNumbersHTML;
-    } else {
-        document.getElementById('hotNumbersContainer').innerHTML = '<div class="text-muted">No hot numbers data available</div>';
+    }
+}
+
+// Function to render division statistics chart
+function renderDivisionChart(divisionData) {
+    if (!divisionData || !Array.isArray(divisionData) || divisionData.length === 0) {
+        console.warn('No division data to render');
+        return;
     }
     
-    // Create cold numbers from frequency data
-    const frequencyData = data[selectedLotteryType].frequency || [];
-    if (frequencyData.length > 0) {
-        // Create array of [number, frequency] pairs
-        const numberFrequencies = [];
-        for (let i = 0; i < frequencyData.length; i++) {
-            if (frequencyData[i] > 0) { // Skip zeroes
-                numberFrequencies.push({
-                    number: i + 1,
-                    frequency: frequencyData[i]
+    try {
+        // Get chart container
+        const divisionChartContainer = document.querySelector('.division-chart-container');
+        if (!divisionChartContainer) {
+            console.error('Division chart container not found');
+            return;
+        }
+        
+        // Clear previous chart
+        divisionChartContainer.innerHTML = '';
+        
+        // Create a container for the chart and legend
+        const chartRow = document.createElement('div');
+        chartRow.className = 'row';
+        
+        // Create pie chart container
+        const pieContainer = document.createElement('div');
+        pieContainer.className = 'col-md-6 d-flex justify-content-center align-items-center';
+        
+        // Create SVG for pie chart
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '200');
+        svg.setAttribute('height', '200');
+        svg.setAttribute('viewBox', '0 0 100 100');
+        
+        // Colors for pie segments
+        const colors = [
+            '#dc3545', // Division 1 (red)
+            '#fd7e14', // Division 2 (orange)
+            '#ffc107', // Division 3 (yellow)
+            '#198754', // Division 4 (green)
+            '#0d6efd', // Division 5 (blue)
+            '#6f42c1', // Division 6 (purple)
+            '#6c757d'  // Division 7+ (gray)
+        ];
+        
+        // Calculate total winners
+        const totalWinners = divisionData.reduce((sum, item) => sum + item.winners, 0);
+        
+        // Track the starting angle for each segment
+        let startAngle = 0;
+        
+        // Create pie segments
+        divisionData.forEach((item, index) => {
+            const { division, winners } = item;
+            
+            // Calculate percentage and angles for this segment
+            const percentage = (winners / totalWinners) * 100;
+            const angle = (percentage / 100) * 360;
+            const endAngle = startAngle + angle;
+            
+            // Convert angles to radians for calculation
+            const startRad = (startAngle - 90) * Math.PI / 180;
+            const endRad = (endAngle - 90) * Math.PI / 180;
+            
+            // Calculate coordinates
+            const x1 = 50 + 50 * Math.cos(startRad);
+            const y1 = 50 + 50 * Math.sin(startRad);
+            const x2 = 50 + 50 * Math.cos(endRad);
+            const y2 = 50 + 50 * Math.sin(endRad);
+            
+            // Determine if this segment is large (> 180 degrees)
+            const largeArcFlag = angle > 180 ? 1 : 0;
+            
+            // Create pie segment path
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArcFlag} 1 ${x2} ${y2} Z`);
+            path.setAttribute('fill', colors[index % colors.length]);
+            path.setAttribute('class', 'pie-segment');
+            path.setAttribute('data-division', division);
+            path.setAttribute('data-winners', winners);
+            path.setAttribute('data-percentage', percentage.toFixed(1));
+            
+            // Add hover interactivity
+            path.addEventListener('mouseover', function() {
+                // Highlight this segment
+                this.style.opacity = '1';
+                this.style.transform = 'scale(1.03)';
+                this.style.transformOrigin = 'center';
+                this.style.transition = 'all 0.2s ease';
+                
+                // Create tooltip with data
+                const tooltip = document.createElement('div');
+                tooltip.className = 'chart-tooltip pie-tooltip';
+                tooltip.innerHTML = `Division ${division}<br>${winners} winners<br>${percentage.toFixed(1)}% of total`;
+                tooltip.style.position = 'absolute';
+                tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                tooltip.style.color = 'white';
+                tooltip.style.padding = '5px 10px';
+                tooltip.style.borderRadius = '4px';
+                tooltip.style.fontSize = '12px';
+                tooltip.style.zIndex = '1000';
+                
+                // Position tooltip near segment
+                const rect = this.getBoundingClientRect();
+                tooltip.style.left = (rect.left + rect.width/2) + 'px';
+                tooltip.style.top = (rect.top + rect.height/2 - 40) + 'px';
+                
+                document.body.appendChild(tooltip);
+            });
+            
+            path.addEventListener('mouseout', function() {
+                // Reset styling
+                this.style.opacity = '1';
+                this.style.transform = 'scale(1)';
+                
+                // Remove tooltip
+                const tooltips = document.querySelectorAll('.pie-tooltip');
+                tooltips.forEach(tooltip => tooltip.remove());
+            });
+            
+            svg.appendChild(path);
+            
+            // Update start angle for next segment
+            startAngle = endAngle;
+        });
+        
+        pieContainer.appendChild(svg);
+        
+        // Create legend container
+        const legendContainer = document.createElement('div');
+        legendContainer.className = 'col-md-6';
+        
+        // Create legend list
+        const legend = document.createElement('div');
+        legend.className = 'division-legend';
+        
+        divisionData.forEach((item, index) => {
+            const { division, winners } = item;
+            const percentage = (winners / totalWinners) * 100;
+            
+            // Create legend item
+            const legendItem = document.createElement('div');
+            legendItem.className = 'legend-item mb-1 d-flex align-items-center px-2 py-1 rounded';
+            legendItem.setAttribute('data-division', division);
+            
+            legendItem.innerHTML = `
+                <span class="color-dot me-2" style="background-color: ${colors[index % colors.length]}; width: 12px; height: 12px; display: inline-block; border-radius: 50%;"></span>
+                <span>Division ${division}: ${winners} winners (${percentage.toFixed(1)}%)</span>
+            `;
+            
+            // Add hover interactivity to legend items
+            legendItem.addEventListener('mouseover', function() {
+                this.style.fontWeight = 'bold';
+                this.style.backgroundColor = 'rgba(0,0,0,0.05)';
+                
+                // Highlight corresponding pie segment
+                const pieSegments = document.querySelectorAll('.pie-segment');
+                pieSegments.forEach(segment => {
+                    if (segment.getAttribute('data-division') === division) {
+                        segment.style.opacity = '1';
+                        segment.style.transform = 'scale(1.03)';
+                        segment.style.transformOrigin = 'center';
+                    } else {
+                        segment.style.opacity = '0.7';
+                    }
                 });
-            }
-        }
+            });
+            
+            legendItem.addEventListener('mouseout', function() {
+                this.style.fontWeight = 'normal';
+                this.style.backgroundColor = 'transparent';
+                
+                // Reset all pie segments
+                const pieSegments = document.querySelectorAll('.pie-segment');
+                pieSegments.forEach(segment => {
+                    segment.style.opacity = '1';
+                    segment.style.transform = 'scale(1)';
+                });
+            });
+            
+            legend.appendChild(legendItem);
+        });
         
-        // Sort by frequency (ascending)
-        const coldNumbers = numberFrequencies
-            .sort((a, b) => a.frequency - b.frequency)
-            .slice(0, 5)
-            .map(item => [item.number, item.frequency]);
+        legendContainer.appendChild(legend);
         
-        // Update cold numbers display
-        if (coldNumbers.length > 0) {
-            let coldNumbersHTML = '';
-            for (let i = 0; i < coldNumbers.length; i++) {
-                const [number, frequency] = coldNumbers[i];
-                coldNumbersHTML += `
-                    <div class="cold-number-item me-2 mb-2">
-                        <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
-                            <span class="number">${number}</span>
-                        </span>
-                        <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
-                    </div>
-                `;
-            }
-            document.getElementById('coldNumbersContainer').innerHTML = coldNumbersHTML;
-        } else {
-            document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available</div>';
-        }
-    } else {
-        document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available</div>';
-    }
-    
-    // Update absent numbers (if available)
-    const absentNumbers = data[selectedLotteryType].absent_numbers || 
-                        data[selectedLotteryType].not_drawn_recently;
-    
-    if (absentNumbers && absentNumbers.length > 0) {
-        let absentNumbersHTML = '';
-        for (let i = 0; i < Math.min(5, absentNumbers.length); i++) {
-            const [number, days] = absentNumbers[i];
-            absentNumbersHTML += `
-                <div class="absent-number-item me-2 mb-2">
-                    <span class="lottery-ball lottery-ball-sm lottery-ball-green">
-                        <span class="number">${number}</span>
-                    </span>
-                    <small class="frequency-label d-block text-center mt-1">${days} days</small>
+        // Assemble the chart
+        chartRow.appendChild(pieContainer);
+        chartRow.appendChild(legendContainer);
+        divisionChartContainer.appendChild(chartRow);
+        
+    } catch (error) {
+        console.error('Error rendering division chart:', error);
+        // Show error in container
+        const divisionChartContainer = document.querySelector('.division-chart-container');
+        if (divisionChartContainer) {
+            divisionChartContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error rendering division chart. Please try again later.
                 </div>
             `;
         }
-        document.getElementById('absentNumbersContainer').innerHTML = absentNumbersHTML;
-    } else {
-        document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available</div>';
+    }
+}
+
+// Function to highlight a specific pie segment
+function highlightPieSegment(division) {
+    const pieSegments = document.querySelectorAll('.pie-segment');
+    pieSegments.forEach(segment => {
+        if (segment.getAttribute('data-division') === division) {
+            segment.style.opacity = '1';
+            segment.style.transform = 'scale(1.03)';
+            segment.style.transformOrigin = 'center';
+            segment.style.transition = 'all 0.2s ease';
+            
+            // Create tooltip with data
+            const winners = segment.getAttribute('data-winners');
+            const percentage = segment.getAttribute('data-percentage');
+            
+            const tooltip = document.createElement('div');
+            tooltip.className = 'chart-tooltip pie-tooltip';
+            tooltip.innerHTML = `Division ${division}<br>${winners} winners<br>${percentage}% of total`;
+            tooltip.style.position = 'absolute';
+            tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '5px 10px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '12px';
+            tooltip.style.zIndex = '1000';
+            
+            // Position tooltip near segment
+            const rect = segment.getBoundingClientRect();
+            tooltip.style.left = (rect.left + rect.width/2) + 'px';
+            tooltip.style.top = (rect.top - 40) + 'px';
+            
+            document.body.appendChild(tooltip);
+        } else {
+            segment.style.opacity = '0.7';
+        }
+    });
+}
+
+// Function to reset all pie segments to normal
+function resetPieSegments() {
+    const pieSegments = document.querySelectorAll('.pie-segment');
+    pieSegments.forEach(segment => {
+        segment.style.opacity = '1';
+        segment.style.transform = 'scale(1)';
+    });
+    
+    // Remove any tooltips
+    const tooltips = document.querySelectorAll('.pie-tooltip');
+    tooltips.forEach(tooltip => tooltip.remove());
+}
+
+// Function to update lottery type selector based on available data
+function renderLotteryTypeSelector(lotteryTypes) {
+    if (!lotteryTypes || !Array.isArray(lotteryTypes)) {
+        console.warn('No lottery types data available');
+        return;
+    }
+    
+    // Find lottery type dropdown container
+    const lotteryTypeDropdown = document.querySelector('.lottery-type-dropdown');
+    if (!lotteryTypeDropdown) {
+        console.warn('Lottery type dropdown not found');
+        return;
+    }
+    
+    try {
+        // Update available lottery types in the dropdown
+        const items = lotteryTypeDropdown.querySelectorAll('.dropdown-item[data-lottery-type]');
+        
+        // First add the "All" option
+        if (items.length === 0) {
+            const allItem = document.createElement('a');
+            allItem.className = 'dropdown-item active';
+            allItem.href = '#';
+            allItem.textContent = 'All Lottery Types';
+            allItem.setAttribute('data-lottery-type', 'all');
+            lotteryTypeDropdown.appendChild(allItem);
+            
+            // Add event listener
+            allItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Update active state
+                document.querySelectorAll('[data-lottery-type]').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update displayed filter
+                document.querySelector('.current-lottery-type').textContent = this.textContent;
+                
+                // Fetch data
+                fetchChartData('all', document.querySelector('.current-time-period').textContent === 'All Time' ? 'all' : '365');
+            });
+        }
+        
+        // Then add each lottery type
+        lotteryTypes.forEach(type => {
+            // Skip if this type already exists in the dropdown
+            const existing = Array.from(items).find(item => item.textContent === type);
+            if (existing) return;
+            
+            // Create new dropdown item
+            const item = document.createElement('a');
+            item.className = 'dropdown-item';
+            item.href = '#';
+            item.textContent = type;
+            item.setAttribute('data-lottery-type', type);
+            lotteryTypeDropdown.appendChild(item);
+            
+            // Add event listener
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Update active state
+                document.querySelectorAll('[data-lottery-type]').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update displayed filter
+                document.querySelector('.current-lottery-type').textContent = this.textContent;
+                
+                // Fetch data
+                fetchChartData(type, document.querySelector('.current-time-period').textContent === 'All Time' ? 'all' : '365');
+            });
+        });
+    } catch (error) {
+        console.error('Error updating lottery type selector:', error);
+    }
+}
+
+// Function to update stats summary with latest data
+function updateStatsSummary(stats) {
+    if (!stats) {
+        console.warn('No stats data available');
+        return;
+    }
+    
+    try {
+        // Find the stats container
+        const statsContainer = document.querySelector('.stats-summary');
+        if (!statsContainer) {
+            console.warn('Stats summary container not found');
+            return;
+        }
+        
+        // Update total draws
+        const totalDraws = statsContainer.querySelector('.total-draws');
+        if (totalDraws && stats.totalDraws) {
+            totalDraws.textContent = stats.totalDraws.toLocaleString();
+        }
+        
+        // Update total prize money
+        const totalPrizeMoney = statsContainer.querySelector('.total-prize-money');
+        if (totalPrizeMoney && stats.totalPrizeMoney) {
+            totalPrizeMoney.textContent = `R${stats.totalPrizeMoney.toLocaleString()}`;
+        }
+        
+        // Update total winners
+        const totalWinners = statsContainer.querySelector('.total-winners');
+        if (totalWinners && stats.totalWinners) {
+            totalWinners.textContent = stats.totalWinners.toLocaleString();
+        }
+        
+        // Update largest jackpot
+        const largestJackpot = statsContainer.querySelector('.largest-jackpot');
+        if (largestJackpot && stats.largestJackpot) {
+            largestJackpot.textContent = `R${stats.largestJackpot.toLocaleString()}`;
+        }
+    } catch (error) {
+        console.error('Error updating stats summary:', error);
     }
 }

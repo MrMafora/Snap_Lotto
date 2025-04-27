@@ -989,14 +989,32 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 countdownNumber.textContent = `Results available in ${remainingSeconds} seconds...`;
                             }
                             
-                            // Update button text
+                            // Update button text with more robust handling
                             if (remainingSeconds <= 0) {
+                                // Store original button text to check if it actually changes
+                                const originalText = viewResultsBtn.innerHTML;
+                                
+                                // Update the button text and properties
                                 viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
                                 viewResultsBtn.disabled = false;
                                 viewResultsBtn.style.opacity = '1';
                                 viewResultsBtn.style.cursor = 'pointer';
+                                
+                                // Log if the button text didn't change (potential DOM update issue)
+                                if (viewResultsBtn.innerHTML === originalText) {
+                                    console.error('CRITICAL: Button text did not update - forcing DOM update');
+                                    // Force a DOM update by using textContent first, then innerHTML
+                                    viewResultsBtn.textContent = '';
+                                    setTimeout(() => {
+                                        viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                    }, 10);
+                                }
+                                
+                                // Set a data attribute to indicate the button should be active
+                                viewResultsBtn.setAttribute('data-countdown-complete', 'true');
                             } else {
                                 viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${remainingSeconds}s)`;
+                                viewResultsBtn.setAttribute('data-countdown-complete', 'false');
                             }
                             
                             // Check if countdown is complete
@@ -1014,6 +1032,21 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 
                                 // Make the button pulse to draw attention
                                 viewResultsBtn.classList.add('btn-pulse');
+                                
+                                // Add a timeout to ensure button is updated properly
+                                setTimeout(() => {
+                                    // Double-check that button is still enabled and properly styled
+                                    const currentBtn = document.querySelector('#view-results-btn');
+                                    if (currentBtn) {
+                                        if (currentBtn.disabled || currentBtn.innerHTML.includes('Wait')) {
+                                            console.log('SAFETY: Button still showing wait state after countdown completed, forcing update');
+                                            currentBtn.disabled = false;
+                                            currentBtn.style.opacity = '1';
+                                            currentBtn.style.cursor = 'pointer';
+                                            currentBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                        }
+                                    }
+                                }, 500);
                                 
                                 // CRITICAL: Force direct click handler to fix clickability issues
                                 // Remove any existing handlers first by cloning the button

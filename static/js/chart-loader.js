@@ -1,17 +1,10 @@
 /**
- * Enhanced Chart Loading and Rendering Module
- * This module handles fetching lottery frequency data and rendering charts
+ * Chart Loader for Snap Lotto
+ * Handles loading chart data from API endpoints and prepares data for rendering
  */
 
-// Cache for chart data to prevent unnecessary API calls
-let chartDataCache = null;
-let currentLotteryType = 'all';
-let currentTimePeriod = 'all';
-
-/**
- * Initialize event listeners for chart interaction
- */
-function initChartControls() {
+// Initialize variables when document is loaded
+document.addEventListener('DOMContentLoaded', function() {
     // Add event listeners to lottery type filters
     document.querySelectorAll('[data-lottery-type]').forEach(item => {
         item.addEventListener('click', (e) => {
@@ -23,13 +16,12 @@ function initChartControls() {
             
             // Get the selected lottery type
             const lotteryType = e.target.getAttribute('data-lottery-type');
-            currentLotteryType = lotteryType;
             
             // Update the displayed filter
             document.querySelector('.current-lottery-type').textContent = e.target.textContent;
             
             // Fetch new data with the selected filter
-            fetchChartData(lotteryType, currentTimePeriod);
+            fetchChartData(lotteryType, document.querySelector('.current-time-period').textContent === 'All Time' ? 'all' : '365');
         });
     });
     
@@ -44,13 +36,12 @@ function initChartControls() {
             
             // Get the selected time period
             const timePeriod = e.target.getAttribute('data-time-period');
-            currentTimePeriod = timePeriod;
             
             // Update the displayed filter
             document.querySelector('.current-time-period').textContent = e.target.textContent;
             
             // Fetch new data with the selected filter
-            fetchChartData(currentLotteryType, timePeriod);
+            fetchChartData(document.querySelector('.current-lottery-type').textContent === 'All Lottery Types' ? 'all' : 'Lottery', timePeriod);
         });
     });
     
@@ -77,122 +68,114 @@ function initChartControls() {
         document.querySelector('.current-lottery-type').textContent = 'All Lottery Types';
         document.querySelector('.current-time-period').textContent = 'All Time';
         
-        // Reset globals
-        currentLotteryType = 'all';
-        currentTimePeriod = 'all';
-        
         // Fetch data with reset filters
         fetchChartData('all', 'all');
     });
-    
-    // Initial data load
-    fetchChartData('all', 'all');
-}
 
-/**
- * Fetch chart data from API
- * @param {string} lotteryType - Type of lottery to fetch data for
- * @param {string} timePeriod - Time period to fetch data for
- */
+    // Initial load data
+    fetchChartData('all', 'all');
+});
+
+// Function to fetch chart data via AJAX
 function fetchChartData(lotteryType, timePeriod) {
-    // Show loading indicators
+    // Show loading state for charts
     document.querySelectorAll('.chart-loading').forEach(indicator => {
         indicator.classList.remove('d-none');
     });
     
-    // Clear any existing charts while loading
+    // Get the bar chart container for showing loading/error states
     const barChartContainer = document.querySelector('.bar-chart-container');
     if (barChartContainer) {
-        // Save any header element present
-        const header = barChartContainer.querySelector('h6');
         barChartContainer.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center" style="height: 150px;">
-                <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;"></div>
+            <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
                 <span class="ms-2">Loading chart data...</span>
             </div>
         `;
-        // Restore header if it existed
-        if (header) {
-            barChartContainer.prepend(header);
-        }
     }
     
-    // Build the API URL with query parameters - properly handle the lottery type parameter
-    // We need to keep the empty string if it's 'all' or not specified
-    const params = new URLSearchParams();
-    
-    // Only add lottery_type if it's not 'all'
-    if (lotteryType && lotteryType !== 'all') {
-        // Make sure to always use the normalized terminology
-        const normalizedType = normalizeLotteryType(lotteryType);
-        params.append('lottery_type', normalizedType);
+    // Get the division chart container for showing loading state
+    const divisionChartContainer = document.querySelector('.division-chart-container');
+    if (divisionChartContainer) {
+        divisionChartContainer.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <span class="ms-2">Loading division data...</span>
+            </div>
+        `;
     }
     
-    // Helper function to normalize lottery type names for consistency
-    function normalizeLotteryType(type) {
-        // If the type already uses "Lottery" terminology, return as is
-        if (type.includes("Lottery")) {
-            return type;
-        }
-        
-        // Otherwise, map "Lotto" to "Lottery" while preserving other parts of the name
-        return type.replace(/\bLotto\b/g, "Lottery");
-    }
+    // Convert string parameters to API-compatible format
+    const apiLotteryType = lotteryType === 'all' ? null : lotteryType;
+    const apiDays = timePeriod === 'all' ? null : timePeriod;
     
-    // Add days parameter with default 365 for 'all'
-    params.append('days', timePeriod === 'all' ? '365' : timePeriod);
+    // Log what we're fetching
+    console.log(`Fetching data from: /api/lottery-analysis/frequency?days=${apiDays || '365'}`);
     
-    const apiUrl = `/api/lottery-analysis/frequency?${params.toString()}`;
-    
-    console.log("Fetching data from: " + apiUrl);
-    
-    // Fetch data from the API
-    fetch(apiUrl)
+    // Fetch the data from the API
+    fetch(`/api/lottery-analysis/frequency?${apiLotteryType ? 'lottery_type=' + encodeURIComponent(apiLotteryType) + '&' : ''}days=${apiDays || '365'}`)
         .then(response => {
             if (!response.ok) {
-                throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
+                throw new Error(`HTTP error ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
-            console.log("Chart data received:", Object.keys(data));
+            // Pass data to chart renderer functions
+            console.log("Chart data received:", data.lotteryTypes);
+            renderCharts(data);
+        })
+        .catch(error => {
+            console.error("Error fetching chart data:", error);
+            // Show error in chart containers
+            if (barChartContainer) {
+                barChartContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error loading chart data. Please try again later.
+                    </div>
+                `;
+            }
             
-            // Cache the chart data
-            chartDataCache = data;
-            
-            // Update the charts with the new data
-            updateCharts(data);
-            
+            if (divisionChartContainer) {
+                divisionChartContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error loading division data. Please try again later.
+                    </div>
+                `;
+            }
+        })
+        .finally(() => {
             // Hide loading indicators
             document.querySelectorAll('.chart-loading').forEach(indicator => {
                 indicator.classList.add('d-none');
             });
-        })
-        .catch(error => {
-            console.error('Error fetching chart data:', error);
-            
-            // Hide loading indicators even on error
-            document.querySelectorAll('.chart-loading').forEach(indicator => {
-                indicator.classList.add('d-none');
-            });
-            
-            // Show a more user-friendly error message in the chart container
-            const barChartContainer = document.querySelector('.bar-chart-container');
-            if (barChartContainer) {
-                barChartContainer.innerHTML = `
-                    <div class="alert alert-danger text-center my-5">
-                        <p>Error loading chart data. Please try again later.</p>
-                        <button class="btn btn-sm btn-outline-danger mt-2" onclick="fetchChartData('${lotteryType}', '${timePeriod}')">
-                            Retry
-                        </button>
-                    </div>
-                `;
-            }
         });
 }
 
-// Initialize on DOM content loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize chart controls
-    initChartControls();
-});
+// Process data for rendering
+function renderCharts(data) {
+    console.log("Updating frequency chart");
+    
+    // Use the chart-renderer functions to render each chart
+    if (typeof renderFrequencyChart === 'function') {
+        renderFrequencyChart(data.frequencyData);
+    }
+    
+    if (typeof renderDivisionChart === 'function') {
+        renderDivisionChart(data.divisionData);
+    }
+    
+    if (typeof renderLotteryTypeSelector === 'function') {
+        renderLotteryTypeSelector(data.lotteryTypes);
+    }
+    
+    if (typeof updateStatsSummary === 'function') {
+        updateStatsSummary(data.stats);
+    }
+}
