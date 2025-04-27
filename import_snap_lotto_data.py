@@ -123,13 +123,18 @@ def import_snap_lotto_data(excel_file, flask_app=None):
         flask_app: Flask app object for context
     """
     try:
-        # Use the provided Flask app context or try to import the app if in script mode
+        # Use the provided Flask app context or create a dummy context if running as script
         if flask_app:
             ctx = flask_app.app_context()
         else:
-            # For standalone script usage, we need to import the app
-            from app import app as flask_app
-            ctx = flask_app.app_context()
+            # Create a class with a context manager for standalone script usage
+            class DummyContext:
+                def __enter__(self):
+                    logger.info("Using standalone script mode without Flask context")
+                    return self
+                def __exit__(self, exc_type, exc_val, exc_tb):
+                    pass
+            ctx = DummyContext()
             
         with ctx:
             logger.info(f"Starting import from {excel_file}...")
@@ -148,8 +153,13 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     logger.info(f"Found sheets using alternative engine: {sheet_names}")
                 except Exception as e2:
                     logger.error(f"Error reading Excel file with alternative engine: {str(e2)}")
-                    from flask import flash
-                    flash(f"Unable to read the Excel file. The file might be corrupted or not a valid Excel file.", "danger")
+                    # Don't try to use Flask features in standalone mode
+                    if flask_app:
+                        try:
+                            from flask import flash
+                            flash(f"Unable to read the Excel file. The file might be corrupted or not a valid Excel file.", "danger")
+                        except ImportError:
+                            pass
                     return False
             
             # Check if this is our template format (has lottery type sheets)
@@ -219,12 +229,20 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                 df.columns[4]: 'bonus_ball'
             }
             
-            # Add division columns
+            # Add division columns - with index bounds checking
             for i in range(1, 9):
-                column_names[df.columns[4 + (i*2) - 1]] = f'div_{i}_winners'
-                column_names[df.columns[4 + (i*2)]] = f'div_{i}_prize'
+                # Calculate indices with bounds checking
+                winners_idx = min(4 + (i*2) - 1, len(df.columns) - 1)
+                prize_idx = min(4 + (i*2), len(df.columns) - 1)
+                
+                # Only add if the indices are valid and unique
+                if winners_idx < len(df.columns) and winners_idx not in [v for k, v in column_names.items()]:
+                    column_names[df.columns[winners_idx]] = f'div_{i}_winners'
+                
+                if prize_idx < len(df.columns) and prize_idx not in [v for k, v in column_names.items()]:
+                    column_names[df.columns[prize_idx]] = f'div_{i}_prize'
             
-            # Add rollover column
+            # Add rollover column with bounds checking
             if len(df.columns) > 20:
                 column_names[df.columns[20]] = 'rollover_amount'
             
@@ -289,16 +307,26 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                         logger.warning(f"Skipping row {idx+1} due to missing winning numbers")
                         continue
                     
-                    # Process divisions data
+                    # Process divisions data with enhanced error handling
                     divisions = {}
                     for i in range(1, 9):
                         winners_col = f'div_{i}_winners'
                         prize_col = f'div_{i}_prize'
                         
-                        if winners_col in row and prize_col in row and not pd.isna(row[winners_col]) and not pd.isna(row[prize_col]):
+                        # Skip if columns don't exist in the DataFrame or contain NaN values
+                        if not (winners_col in row and prize_col in row):
+                            logger.debug(f"Skipping division {i} - columns not in DataFrame")
+                            continue
+                        
+                        if pd.isna(row[winners_col]) and pd.isna(row[prize_col]):
+                            logger.debug(f"Skipping division {i} - both values are NaN")
+                            continue
+                            
+                        try:
                             # Check for "Data N/A" or similar placeholders
                             if isinstance(row[winners_col], str) and "N/A" in row[winners_col]:
                                 # Skip adding this division entirely when data is not available
+                                logger.debug(f"Skipping division {i} - contains N/A")
                                 continue
                             
                             # Handle Daily Lottery differently due to different data format in the spreadsheet
@@ -310,15 +338,36 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                                         "prize": format_prize(row[winners_col])
                                     }
                                 else:
+                                    # Check if winners value can be converted to a number
+                                    if isinstance(row[winners_col], (int, float)):
+                                        winners_value = str(int(row[winners_col]))
+                                    elif isinstance(row[winners_col], str) and row[winners_col].strip().isdigit():
+                                        winners_value = row[winners_col].strip()
+                                    else:
+                                        winners_value = str(row[winners_col])
+                                        
                                     divisions[f"Division {i}"] = {
-                                        "winners": str(int(row[winners_col]) if isinstance(row[winners_col], (int, float)) else row[winners_col]),
-                                        "prize": format_prize(row[prize_col])
+                                        "winners": winners_value,
+                                        "prize": format_prize(row[prize_col]) if not pd.isna(row[prize_col]) else "N/A"
                                     }
                             else:
+                                # Standard lottery types
+                                # Check if winners value can be converted to a number
+                                if isinstance(row[winners_col], (int, float)):
+                                    winners_value = str(int(row[winners_col]))
+                                elif isinstance(row[winners_col], str) and row[winners_col].strip().isdigit():
+                                    winners_value = row[winners_col].strip()
+                                else:
+                                    winners_value = str(row[winners_col])
+                                
                                 divisions[f"Division {i}"] = {
-                                    "winners": str(int(row[winners_col]) if isinstance(row[winners_col], (int, float)) else row[winners_col]),
-                                    "prize": format_prize(row[prize_col])
+                                    "winners": winners_value,
+                                    "prize": format_prize(row[prize_col]) if not pd.isna(row[prize_col]) else "N/A"
                                 }
+                        except Exception as div_error:
+                            # Log division processing errors but continue with other divisions
+                            logger.warning(f"Error processing division {i}: {str(div_error)}")
+                            continue
                     
                     # Check if this result already exists
                     existing = LotteryResult.query.filter_by(
