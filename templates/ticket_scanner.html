@@ -346,13 +346,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <i class="fa fa-upload fa-2x mb-2"></i>
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
-                                    <!-- Hidden file inputs for different device types -->
+                                    <!-- Single file input with no capture attribute to support all devices -->
                                     <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
-                                    <input type="file" id="ticket-image-ios" name="ticket_image" accept="image/*" capture="camera" class="d-none">
-                                    <input type="file" id="ticket-image-android" name="ticket_image" accept="image/*" capture="environment" class="d-none">
                                     
-                                    <!-- Combined button that will trigger the appropriate input -->
-                                    <button type="button" id="file-select-btn" class="btn btn-primary btn-lg"><i class="fas fa-camera me-2"></i> Take Photo</button>
+                                    <!-- Simple button with direct click handler -->
+                                    <button type="button" id="file-select-btn" class="btn btn-primary btn-lg" onclick="document.getElementById('ticket-image').click();"><i class="fas fa-camera me-2"></i> Take Photo</button>
                                 </div>
                             </div>
 
@@ -848,12 +846,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             // Create form data for later use
             const formData = new FormData(ticketForm);
             
-            // Check if we have a manually selected file from iOS or Android specific inputs
-            if (window.manuallySelectedFile) {
-                console.log('Using manually selected file from iOS/Android input');
-                formData.set('ticket_image', window.manuallySelectedFile);
-            }
-            
             // Show the loading ad overlay first
             const adOverlayLoading = document.getElementById('ad-overlay-loading');
             adOverlayLoading.style.display = 'flex';
@@ -886,12 +878,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         
         // Function to process the ticket after ad is shown
         function processTicket(formData) {
-            // Clear any manual file after adding it to form data
-            if (window.manuallySelectedFile) {
-                console.log('Clearing manually selected file reference after form data creation');
-                // After using the manual file, we can clear it to free memory
-                window.manuallySelectedFile = null;
-            }
+            // Process with the FormData created from the form
             
             // Add CSRF token to headers
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
