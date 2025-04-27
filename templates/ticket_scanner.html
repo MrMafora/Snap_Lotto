@@ -280,6 +280,20 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     .btn-pulse {
         animation: btn-pulse 1.5s infinite;
     }
+    
+    /* Interstitial view controls */
+    .interstitial-view {
+        display: none !important; /* Force hidden by default */
+        opacity: 0 !important;
+        visibility: hidden !important;
+    }
+    
+    /* This class will be added by JavaScript when showing is needed */
+    .interstitial-view.active {
+        display: flex !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
 </style>
 {% endblock %}
 

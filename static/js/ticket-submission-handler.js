@@ -101,12 +101,8 @@ function handleTicketSubmission(event) {
     // IMMEDIATELY show the first ad overlay with yellow badge
     const adOverlayLoading = document.getElementById('ad-overlay-loading');
     if (adOverlayLoading) {
-        // Clear any previous inline styles
-        adOverlayLoading.removeAttribute('style');
-        // Apply our display style
-        adOverlayLoading.style.display = 'flex';
-        adOverlayLoading.style.opacity = '1';
-        adOverlayLoading.style.visibility = 'visible';
+        // Add active class instead of setting inline styles
+        adOverlayLoading.classList.add('active');
         console.log('FIRST ad overlay (yellow badge) is now visible');
         
         // Start the first countdown timer - 5 seconds
@@ -173,19 +169,15 @@ function handleTicketSubmission(event) {
             
             // Hide the first ad overlay
             if (adOverlayLoading) {
-                adOverlayLoading.style.display = 'none';
+                adOverlayLoading.classList.remove('active');
                 console.log('First ad overlay hidden');
             }
             
             // Show the second ad overlay (blue badge)
             const adOverlayResults = document.getElementById('ad-overlay-results');
             if (adOverlayResults) {
-                // Clear any previous inline styles
-                adOverlayResults.removeAttribute('style');
-                // Apply our display style
-                adOverlayResults.style.display = 'flex';
-                adOverlayResults.style.opacity = '1';
-                adOverlayResults.style.visibility = 'visible';
+                // Add active class to make it visible
+                adOverlayResults.classList.add('active');
                 console.log('SECOND ad overlay (blue badge) is now visible');
                 
                 // Initially hide the View Results button until countdown completes
@@ -366,8 +358,25 @@ function handleFileSelection() {
     }
 }
 
-// Add remove image handler
+// Add remove image handler and ensure ad overlays are hidden on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Hide the ad overlays on page load to prevent them appearing when entering page
+    const adOverlayLoading = document.getElementById('ad-overlay-loading');
+    const adOverlayResults = document.getElementById('ad-overlay-results');
+    
+    // Make sure overlays are completely hidden when page loads
+    if (adOverlayLoading) {
+        adOverlayLoading.style.display = 'none';
+        adOverlayLoading.style.opacity = '0';
+        adOverlayLoading.style.visibility = 'hidden';
+    }
+    
+    if (adOverlayResults) {
+        adOverlayResults.style.display = 'none';
+        adOverlayResults.style.opacity = '0';
+        adOverlayResults.style.visibility = 'hidden';
+    }
+    
     const removeBtn = document.getElementById('remove-image');
     if (removeBtn) {
         removeBtn.addEventListener('click', function() {
