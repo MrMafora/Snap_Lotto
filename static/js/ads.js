@@ -205,14 +205,23 @@ window.AdManager = window.AdManager || {
     },
 
     // Show the loading ad (before scan results are ready)
-    showLoadingAd: function(callback) {
+    showLoadingAd: function(seconds, callback) {
         console.log('AdManager: Showing loading ad');
+        
+        // If seconds is a function, it's the callback (old usage)
+        if (typeof seconds === 'function') {
+            callback = seconds;
+            seconds = undefined;
+        }
         
         // Get the ad for scanner placement to access its loading_duration
         const ad = this.ads['scanner'] || { loading_duration: 10 }; // Default to 10 seconds if no ad found
-        const loadingDuration = ad.loading_duration * 1000; // Convert to milliseconds
         
-        console.log(`AdManager: Using loading duration of ${ad.loading_duration} seconds`);
+        // Use provided seconds parameter if available, otherwise use ad's loading_duration
+        const displaySeconds = seconds || ad.loading_duration;
+        const loadingDuration = displaySeconds * 1000; // Convert to milliseconds
+        
+        console.log(`AdManager: Showing first loading ad for ${displaySeconds} seconds`);
         
         // Use the enhanced showOverlay utility function if available
         if (typeof showOverlay === 'function') {
@@ -264,7 +273,7 @@ window.AdManager = window.AdManager || {
             // Only auto-hide if it hasn't been closed by the ticket scanning process
             const adOverlayLoading = document.getElementById('ad-overlay-loading');
             if (adOverlayLoading && adOverlayLoading.style.display !== 'none') {
-                console.log(`AdManager: Auto-hiding loading overlay after ${ad.loading_duration} seconds`);
+                console.log(`AdManager: Auto-hiding loading overlay after ${displaySeconds} seconds`);
                 this.hideLoadingAd();
                 // If there was a callback, call it again to ensure the ticket processing continues
                 if (callback) callback(true);

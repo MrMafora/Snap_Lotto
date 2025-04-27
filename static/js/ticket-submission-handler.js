@@ -29,10 +29,14 @@ function handleTicketSubmission(event) {
     
     // Check if we have the AdManager for showing interstitial ads
     if (window.AdManager) {
-        console.log('Using AdManager to show interstitial ad with countdown');
+        console.log('Using AdManager to show ads sequence');
         
-        // Show interstitial ad with countdown
-        window.AdManager.showInterstitialAd(function(adSuccess) {
+        // First, show a loading ad (1st advertisement)
+        window.AdManager.showLoadingAd(3, function() {
+            console.log('First loading ad completed, now showing interstitial ad');
+            
+            // Then show interstitial ad with countdown (2nd advertisement)
+            window.AdManager.showInterstitialAd(function(adSuccess) {
             console.log('Ad display status:', adSuccess ? 'success' : 'failed');
             
             // Submit the form via AJAX to process the ticket
@@ -125,6 +129,7 @@ function handleTicketSubmission(event) {
                     alert('Error processing your ticket: ' + error.message);
                 }
             });
+        });
         });
     } else {
         console.warn('AdManager not found, using direct submission method');
