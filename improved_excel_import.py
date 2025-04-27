@@ -193,6 +193,16 @@ def process_row(row: pd.Series, column_mapping: Dict[str, str]) -> Dict[str, Any
         else:
             result[std_key] = None
             
+    # Handle special case where draw number is embedded in game name (like "Lottery 2536")
+    if 'game_name' in result and result['game_name'] is not None:
+        import re
+        match = re.match(r'(lottery|lotto)\s+(\d+)', str(result['game_name']).strip().lower())
+        if match and ('draw_number' not in result or result['draw_number'] is None):
+            # Extract the draw number from the game name
+            draw_number = match.group(2)
+            logger.info(f"Extracted draw number {draw_number} from game name '{result['game_name']}'")
+            result['draw_number'] = draw_number
+            
     # Special handling for winning numbers
     if 'winning_numbers' in result and result['winning_numbers'] is not None:
         # Try to convert winning numbers to a list of integers

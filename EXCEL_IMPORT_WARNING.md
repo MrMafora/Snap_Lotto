@@ -1,38 +1,55 @@
-# ⚠️ CRITICAL EXCEL IMPORT WARNING ⚠️
+# Excel Import Special Case Handling
 
-## Important Notice for All Developers
+## Issue Description
 
-### Excel Import Data Loss Prevention
+When importing Excel lottery data files, there's a special case for row entries like "Lottery 2536" where:
+1. The lottery type and draw number are combined into a single cell
+2. The lottery type needs to be normalized to just "Lottery"
+3. The draw number (2536) needs to be extracted and used as the actual draw number
 
-A critical bug was identified and fixed on April 25, 2025 related to importing lottery data from Excel spreadsheets. The issue caused the first 4 rows of valuable lottery data to be skipped during import, resulting in missing records in the database.
+## Changes Made
 
-### Root Cause:
-- Excel import code was skipping multiple rows (first 4 rows) during spreadsheet processing
-- This caused recent lottery results to be missed entirely
-- The issue was revealed when data from the spreadsheet couldn't be found in the database
+We've updated the Excel import functionality to handle this special case:
 
-### The Fix:
-1. Modified `import_excel.py` to only skip the header row (row 0) during import
-2. Added explicit warning messages in logs to prevent future regressions
-3. Enhanced `import_latest_spreadsheet.py` with additional error checking and validation
-4. Updated `import_snap_lotto_data.py` with consistent row handling approach
-5. Added warning comments in all relevant code sections to prevent reintroduction of the bug
+1. Added regex pattern matching to detect formats like "Lottery 2536" or "Lotto 2536" 
+2. Added extraction logic to separate the lottery type and draw number
+3. Improved logging to track what's happening during the import process
+4. Ensured row 2 data (the first data row) is properly imported without being skipped
+5. Updated the normalize_lottery_type function to correctly handle "Lottery 2536" format
 
-### CRITICAL GUIDELINE FOR ALL DEVELOPERS:
-- **NEVER SKIP MORE THAN 1 ROW** when importing lottery data from Excel
-- The first row (row 0) is the header, all subsequent rows contain valuable lottery data
-- Rows 1-4 typically contain the most recent lottery results, which are critical
-- Always verify import results with explicit logging of before/after record counts
+## How to Test
 
-### Affected Files:
-- `import_excel.py`
-- `import_snap_lotto_data.py`
-- `import_latest_spreadsheet.py`
+We've created a special test script, `fix_row2.py`, to verify the fix:
 
-### Testing:
-Always verify a successful import by:
-1. Checking the first row of data in the Excel file
-2. Confirming that data exists in the database after import
-3. Checking the logs for accurate record counts
+```bash
+# Run the test script on your Excel file
+./fix_row2.py path/to/excel_file.xlsx
+```
 
-**Remember: Data integrity is critical to our application's value proposition. Never compromise on complete data import.**
+The script specifically checks for the "Lottery 2536" pattern and verifies:
+- That it correctly extracts "Lottery" as the game type
+- That it correctly extracts "2536" as the draw number
+- That all the data from row 2 is properly processed
+
+## Understanding the Code Changes
+
+The key changes were made in two files:
+
+1. **improved_excel_import.py**:
+   - Added detection and extraction in the `process_row` function
+   - Improved logging for debugging row data issues
+   - Fixed issue with skipping row 2 data
+
+2. **integrate_excel_import.py**:
+   - Updated `normalize_lottery_type` to handle the embedded draw number case
+   - Ensured consistent naming convention (using "Lottery" instead of "Lotto")
+
+## Avoiding Future Issues
+
+To ensure consistent data importing:
+1. Try to use a consistent format in Excel spreadsheets
+2. Use separate columns for lottery type and draw number
+3. Always include headers in the Excel file
+4. Use the standard lottery type names: "Lottery", "Lottery Plus 1", etc.
+
+If you see missing data after an import, you can use the `fix_row2.py` script to diagnose the issue.
