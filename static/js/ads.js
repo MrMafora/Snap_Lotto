@@ -562,19 +562,55 @@ window.AdManager = window.AdManager || {
     // Create a mock video ad
     createMockVideoAd: function(placement) {
         // Create a mock ad object
-        this.ads[placement] = {
-            id: Math.floor(Math.random() * 1000),
-            name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Ad Example`,
-            file_url: '/static/ads/sample_video.mp4', // This should be a real sample video in production
-            duration: 15,
-            loading_duration: 10, // Default loading overlay duration in seconds
-            custom_message: 'Processing your lottery ticket...', // Default custom message
-            custom_image_path: null, // No custom image in mock data
-            placement: placement,
-            active: true
-        };
-        
-        console.log(`Created mock video ad for ${placement}:`, this.ads[placement].name);
+        // For 'scanner' placement, create two types of ads - regular and missing children
+        if (placement === 'scanner') {
+            // This creates both ad types for scanner placement
+            this.ads[placement] = [
+                {
+                    id: Math.floor(Math.random() * 1000),
+                    name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Standard Ad`,
+                    file_url: '/static/ads/sample_video.mp4', // This should be a real sample video in production
+                    duration: 15,
+                    loading_duration: 10, // Default loading overlay duration in seconds
+                    custom_message: 'Processing your lottery ticket...', // Default custom message
+                    custom_image_path: null, // No custom image in mock data
+                    placement: placement,
+                    active: true,
+                    type: 'standard'
+                },
+                {
+                    id: Math.floor(Math.random() * 1000),
+                    name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Missing Children Ad`,
+                    file_url: null, // No video for this ad type
+                    image_url: '/static/ads/missing_children.jpg', // Image ad for missing children
+                    duration: 5, // Shorter duration (5 seconds) for missing children ads
+                    loading_duration: 5,
+                    custom_message: 'Help find missing children in South Africa',
+                    custom_image_path: '/static/ads/missing_children.jpg',
+                    placement: placement,
+                    active: true,
+                    type: 'missing_children'
+                }
+            ];
+            
+            console.log(`Created ${this.ads[placement].length} ads for ${placement} placement`);
+        } else {
+            // For other placements, create a standard ad
+            this.ads[placement] = [{
+                id: Math.floor(Math.random() * 1000),
+                name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Ad Example`,
+                file_url: '/static/ads/sample_video.mp4',
+                duration: 15,
+                loading_duration: 10,
+                custom_message: 'Processing your lottery ticket...',
+                custom_image_path: null,
+                placement: placement,
+                active: true,
+                type: 'standard'
+            }];
+            
+            console.log(`Created standard ad for ${placement} placement`);
+        }
     },
 
     // Record ad impression

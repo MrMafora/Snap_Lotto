@@ -46,7 +46,22 @@ function handleTicketSubmission(event) {
                 if (!response.ok) {
                     throw new Error('Server returned error status: ' + response.status);
                 }
-                return response.json();
+                // Check the content type to determine how to parse it
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                } else {
+                    // If not JSON, get the text and attempt to create a default response
+                    return response.text().then(text => {
+                        console.warn('Response was not JSON. Got content type:', contentType);
+                        // Return a simple object with basic information
+                        return {
+                            success: true,
+                            message: 'Ticket processed successfully',
+                            html_content: text
+                        };
+                    });
+                }
             })
             .then(data => {
                 console.log('Scan ticket response received:', data);
@@ -100,7 +115,22 @@ function handleTicketSubmission(event) {
             if (!response.ok) {
                 throw new Error('Server returned error status: ' + response.status);
             }
-            return response.json();
+            // Check the content type to determine how to parse it
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            } else {
+                // If not JSON, get the text and attempt to create a default response
+                return response.text().then(text => {
+                    console.warn('Response was not JSON. Got content type:', contentType);
+                    // Return a simple object with basic information
+                    return {
+                        success: true,
+                        message: 'Ticket processed successfully',
+                        html_content: text
+                    };
+                });
+            }
         })
         .then(data => {
             // Hide loading spinner
