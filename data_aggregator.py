@@ -620,13 +620,13 @@ def aggregate_data(extracted_data, lottery_type, source_url):
 
 def get_all_results_by_lottery_type(lottery_type):
     """
-    Get all lottery results for a specific lottery type, deduplicated by draw number.
+    Get all lottery results for a specific lottery type.
     
     Args:
         lottery_type (str): Type of lottery
         
     Returns:
-        list: List of LotteryResult objects with unique draw numbers
+        list: List of LotteryResult objects
     """
     # Get normalized version of the lottery type
     normalized_type = normalize_lottery_type(lottery_type)
@@ -642,31 +642,12 @@ def get_all_results_by_lottery_type(lottery_type):
     
     # If we found matching variants, query using all of them
     if matching_types:
-        all_results = LotteryResult.query.filter(
+        return LotteryResult.query.filter(
             LotteryResult.lottery_type.in_(matching_types)
         ).order_by(LotteryResult.draw_date.desc()).all()
     else:
         # Fallback to the original search if no variants found
-        all_results = LotteryResult.query.filter_by(
-            lottery_type=lottery_type
-        ).order_by(LotteryResult.draw_date.desc()).all()
-    
-    # Now deduplicate the results by draw number
-    # Keep only the first occurrence of each draw number
-    seen_draw_numbers = set()
-    deduplicated_results = []
-    
-    for result in all_results:
-        # Skip if we've already seen this draw number
-        if result.draw_number in seen_draw_numbers:
-            logger.debug(f"Skipping duplicate draw {result.lottery_type} #{result.draw_number}")
-            continue
-            
-        # Otherwise, add it to our deduplicated results
-        seen_draw_numbers.add(result.draw_number)
-        deduplicated_results.append(result)
-    
-    return deduplicated_results
+        return LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).all()
 
 def get_latest_results():
     """
@@ -706,7 +687,6 @@ def get_latest_results():
 def export_results_to_json(lottery_type=None, limit=None):
     """
     Export lottery results to JSON format for API integration.
-    Results are deduplicated by draw number.
     
     Args:
         lottery_type (str, optional): Filter by lottery type
@@ -715,45 +695,36 @@ def export_results_to_json(lottery_type=None, limit=None):
     Returns:
         str: JSON string of results
     """
-    # If lottery_type is specified, use the deduplicated function
-    if lottery_type:
-        all_results = get_all_results_by_lottery_type(lottery_type)
-        
-        # Apply limit if specified
-        if limit and limit > 0:
-            all_results = all_results[:limit]
-            
-        return json.dumps([result.to_dict() for result in all_results])
+    query = LotteryResult.query
     
-    # For all lottery types, we need to query and deduplicate
-    query = LotteryResult.query.order_by(LotteryResult.draw_date.desc())
+    if lottery_type:
+        # Get normalized version of the lottery type
+        normalized_type = normalize_lottery_type(lottery_type)
+        
+        # Find all variants of this lottery type in the database
+        lottery_type_variants = db.session.query(LotteryResult.lottery_type).distinct().all()
+        matching_types = []
+        
+        for lt in lottery_type_variants:
+            lt_name = lt[0]
+            if normalize_lottery_type(lt_name) == normalized_type:
+                matching_types.append(lt_name)
+        
+        # If we found matching variants, query using all of them
+        if matching_types:
+            query = query.filter(LotteryResult.lottery_type.in_(matching_types))
+        else:
+            # Fallback to the original search if no variants found
+            query = query.filter_by(lottery_type=lottery_type)
+    
+    query = query.order_by(LotteryResult.draw_date.desc())
     
     if limit:
-        # Get more than we need to account for duplicates that will be removed
-        query = query.limit(limit * 2)
+        query = query.limit(limit)
     
-    all_results = query.all()
+    results = query.all()
     
-    # Deduplicate by lottery type + draw number
-    seen_keys = set()
-    deduplicated_results = []
-    
-    for result in all_results:
-        key = (result.lottery_type, result.draw_number)
-        
-        # Skip if we've already seen this lottery type + draw number
-        if key in seen_keys:
-            continue
-            
-        # Otherwise, add it to our deduplicated results
-        seen_keys.add(key)
-        deduplicated_results.append(result)
-        
-        # Stop if we've reached the limit
-        if limit and len(deduplicated_results) >= limit:
-            break
-    
-    return json.dumps([result.to_dict() for result in deduplicated_results])
+    return json.dumps([result.to_dict() for result in results])
 
 # Dictionary of known correct draws
 # Format: {lottery_type: {draw_number: {data}}}

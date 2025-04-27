@@ -114,28 +114,22 @@ def format_prize(prize_value):
         # Default to returning as string
         return str(prize_value)
 
-def import_snap_lotto_data(excel_file, flask_app=None, sheet_name=None):
+def import_snap_lotto_data(excel_file, flask_app=None):
     """
     Import lottery data from the Snap Lotto Excel spreadsheet.
     
     Args:
         excel_file (str): Path to Excel file
         flask_app: Flask app object for context
-        sheet_name (str, optional): Specific sheet to import. If None, imports all sheets or default.
     """
     try:
-        # Use the provided Flask app context or create a dummy context if running as script
+        # Use the provided Flask app context or try to import the app if in script mode
         if flask_app:
             ctx = flask_app.app_context()
         else:
-            # Create a class with a context manager for standalone script usage
-            class DummyContext:
-                def __enter__(self):
-                    logger.info("Using standalone script mode without Flask context")
-                    return self
-                def __exit__(self, exc_type, exc_val, exc_tb):
-                    pass
-            ctx = DummyContext()
+            # For standalone script usage, we need to import the app
+            from app import app as flask_app
+            ctx = flask_app.app_context()
             
         with ctx:
             logger.info(f"Starting import from {excel_file}...")
@@ -154,13 +148,8 @@ def import_snap_lotto_data(excel_file, flask_app=None, sheet_name=None):
                     logger.info(f"Found sheets using alternative engine: {sheet_names}")
                 except Exception as e2:
                     logger.error(f"Error reading Excel file with alternative engine: {str(e2)}")
-                    # Don't try to use Flask features in standalone mode
-                    if flask_app:
-                        try:
-                            from flask import flash
-                            flash(f"Unable to read the Excel file. The file might be corrupted or not a valid Excel file.", "danger")
-                        except ImportError:
-                            pass
+                    from flask import flash
+                    flash(f"Unable to read the Excel file. The file might be corrupted or not a valid Excel file.", "danger")
                     return False
             
             # Check if this is our template format (has lottery type sheets)
@@ -197,19 +186,9 @@ def import_snap_lotto_data(excel_file, flask_app=None, sheet_name=None):
                             flash("How to add data: 1) Open the template, 2) Add lottery information to each sheet, 3) Save the file, 4) Upload again", "info")
                     return True  # Special case for empty template
                 
-            # Try to read the specified sheet, Sheet1, or first available sheet
+            # Try to read the expected sheet for the standard Snap Lotto format
             try:
-                # If a specific sheet was requested, use it
-                if sheet_name:
-                    if sheet_name in sheet_names:
-                        logger.info(f"Reading specified sheet: {sheet_name}")
-                        df = pd.read_excel(excel_file, sheet_name=sheet_name, engine='openpyxl')
-                    else:
-                        logger.error(f"Specified sheet '{sheet_name}' not found. Available sheets: {sheet_names}")
-                        return False
-                else:
-                    # Otherwise try the default Sheet1
-                    df = pd.read_excel(excel_file, sheet_name="Sheet1", engine='openpyxl')
+                df = pd.read_excel(excel_file, sheet_name="Sheet1", engine='openpyxl')
             except ValueError as e:
                 logger.error(f"Worksheet named 'Sheet1' not found. Available sheets: {sheet_names}")
                 # Try to read the first available sheet instead
@@ -240,20 +219,12 @@ def import_snap_lotto_data(excel_file, flask_app=None, sheet_name=None):
                 df.columns[4]: 'bonus_ball'
             }
             
-            # Add division columns - with index bounds checking
+            # Add division columns
             for i in range(1, 9):
-                # Calculate indices with bounds checking
-                winners_idx = min(4 + (i*2) - 1, len(df.columns) - 1)
-                prize_idx = min(4 + (i*2), len(df.columns) - 1)
-                
-                # Only add if the indices are valid and unique
-                if winners_idx < len(df.columns) and winners_idx not in [v for k, v in column_names.items()]:
-                    column_names[df.columns[winners_idx]] = f'div_{i}_winners'
-                
-                if prize_idx < len(df.columns) and prize_idx not in [v for k, v in column_names.items()]:
-                    column_names[df.columns[prize_idx]] = f'div_{i}_prize'
+                column_names[df.columns[4 + (i*2) - 1]] = f'div_{i}_winners'
+                column_names[df.columns[4 + (i*2)]] = f'div_{i}_prize'
             
-            # Add rollover column with bounds checking
+            # Add rollover column
             if len(df.columns) > 20:
                 column_names[df.columns[20]] = 'rollover_amount'
             
@@ -263,16 +234,9 @@ def import_snap_lotto_data(excel_file, flask_app=None, sheet_name=None):
             # Drop rows where game_name is missing or NaN
             df = df.dropna(subset=['game_name'])
             
-            # Count records before import (if we're in a Flask app context)
-            initial_count = 0
-            if flask_app:
-                try:
-                    initial_count = LotteryResult.query.count()
-                    logger.info(f"Database has {initial_count} records before import")
-                except Exception as count_error:
-                    logger.error(f"Error counting initial records: {str(count_error)}")
-            else:
-                logger.info("Running in standalone mode, skipping database operations")
+            # Count records before import
+            initial_count = LotteryResult.query.count()
+            logger.info(f"Database has {initial_count} records before import")
             
             # Track results
             imported_count = 0
@@ -325,26 +289,16 @@ def import_snap_lotto_data(excel_file, flask_app=None, sheet_name=None):
                         logger.warning(f"Skipping row {idx+1} due to missing winning numbers")
                         continue
                     
-                    # Process divisions data with enhanced error handling
+                    # Process divisions data
                     divisions = {}
                     for i in range(1, 9):
                         winners_col = f'div_{i}_winners'
                         prize_col = f'div_{i}_prize'
                         
-                        # Skip if columns don't exist in the DataFrame or contain NaN values
-                        if not (winners_col in row and prize_col in row):
-                            logger.debug(f"Skipping division {i} - columns not in DataFrame")
-                            continue
-                        
-                        if pd.isna(row[winners_col]) and pd.isna(row[prize_col]):
-                            logger.debug(f"Skipping division {i} - both values are NaN")
-                            continue
-                            
-                        try:
+                        if winners_col in row and prize_col in row and not pd.isna(row[winners_col]) and not pd.isna(row[prize_col]):
                             # Check for "Data N/A" or similar placeholders
                             if isinstance(row[winners_col], str) and "N/A" in row[winners_col]:
                                 # Skip adding this division entirely when data is not available
-                                logger.debug(f"Skipping division {i} - contains N/A")
                                 continue
                             
                             # Handle Daily Lottery differently due to different data format in the spreadsheet
@@ -356,107 +310,66 @@ def import_snap_lotto_data(excel_file, flask_app=None, sheet_name=None):
                                         "prize": format_prize(row[winners_col])
                                     }
                                 else:
-                                    # Check if winners value can be converted to a number
-                                    if isinstance(row[winners_col], (int, float)):
-                                        winners_value = str(int(row[winners_col]))
-                                    elif isinstance(row[winners_col], str) and row[winners_col].strip().isdigit():
-                                        winners_value = row[winners_col].strip()
-                                    else:
-                                        winners_value = str(row[winners_col])
-                                        
                                     divisions[f"Division {i}"] = {
-                                        "winners": winners_value,
-                                        "prize": format_prize(row[prize_col]) if not pd.isna(row[prize_col]) else "N/A"
+                                        "winners": str(int(row[winners_col]) if isinstance(row[winners_col], (int, float)) else row[winners_col]),
+                                        "prize": format_prize(row[prize_col])
                                     }
                             else:
-                                # Standard lottery types
-                                # Check if winners value can be converted to a number
-                                if isinstance(row[winners_col], (int, float)):
-                                    winners_value = str(int(row[winners_col]))
-                                elif isinstance(row[winners_col], str) and row[winners_col].strip().isdigit():
-                                    winners_value = row[winners_col].strip()
-                                else:
-                                    winners_value = str(row[winners_col])
-                                
                                 divisions[f"Division {i}"] = {
-                                    "winners": winners_value,
-                                    "prize": format_prize(row[prize_col]) if not pd.isna(row[prize_col]) else "N/A"
+                                    "winners": str(int(row[winners_col]) if isinstance(row[winners_col], (int, float)) else row[winners_col]),
+                                    "prize": format_prize(row[prize_col])
                                 }
-                        except Exception as div_error:
-                            # Log division processing errors but continue with other divisions
-                            logger.warning(f"Error processing division {i}: {str(div_error)}")
-                            continue
                     
-                    # Only try database operations if we're in a proper Flask app context
-                    if flask_app:
-                        try:
-                            # Check if this result already exists
-                            existing = LotteryResult.query.filter_by(
-                                lottery_type=lottery_type,
-                                draw_number=draw_number
-                            ).first()
-                            
-                            if existing:
-                                logger.info(f"Updating existing result for {lottery_type} draw {draw_number}")
-                                existing.draw_date = draw_date
-                                existing.numbers = json.dumps(winning_numbers)
-                                existing.bonus_numbers = json.dumps(bonus_ball) if bonus_ball else None
-                                existing.divisions = json.dumps(divisions) if divisions else None
-                                existing.source_url = "imported-from-excel"
-                                existing.ocr_provider = "manual-import"
-                                existing.ocr_model = "excel-spreadsheet"
-                                existing.ocr_timestamp = datetime.utcnow().isoformat()
-                            else:
-                                # Create new result
-                                new_result = LotteryResult(
-                                    lottery_type=lottery_type,
-                                    draw_number=draw_number,
-                                    draw_date=draw_date,
-                                    numbers=json.dumps(winning_numbers),
-                                    bonus_numbers=json.dumps(bonus_ball) if bonus_ball else None,
-                                    divisions=json.dumps(divisions) if divisions else None,
-                                    source_url="imported-from-excel",
-                                    ocr_provider="manual-import",
-                                    ocr_model="excel-spreadsheet",
-                                    ocr_timestamp=datetime.utcnow().isoformat()
-                                )
-                                db.session.add(new_result)
-                            
-                            # Commit each result individually to avoid losing all data if one fails
-                            db.session.commit()
-                        except Exception as db_error:
-                            logger.error(f"Database error: {str(db_error)}")
-                            db.session.rollback()
+                    # Check if this result already exists
+                    existing = LotteryResult.query.filter_by(
+                        lottery_type=lottery_type,
+                        draw_number=draw_number
+                    ).first()
+                    
+                    if existing:
+                        logger.info(f"Updating existing result for {lottery_type} draw {draw_number}")
+                        existing.draw_date = draw_date
+                        existing.numbers = json.dumps(winning_numbers)
+                        existing.bonus_numbers = json.dumps(bonus_ball) if bonus_ball else None
+                        existing.divisions = json.dumps(divisions) if divisions else None
+                        existing.source_url = "imported-from-excel"
+                        existing.ocr_provider = "manual-import"
+                        existing.ocr_model = "excel-spreadsheet"
+                        existing.ocr_timestamp = datetime.utcnow().isoformat()
                     else:
-                        # In standalone mode, just log that we would have imported this
-                        logger.info(f"Would import: {lottery_type} draw {draw_number} from {draw_date} - {winning_numbers} + {bonus_ball}")
-                    
-                    # Store this record in import_tracking for later reference (if we're in a Flask app context)
-                    if flask_app:
-                        # Record if this was a new record or an update
-                        is_new_record = existing is None
-                        lottery_result = existing if existing else db.session.query(LotteryResult).filter_by(
+                        # Create new result
+                        new_result = LotteryResult(
                             lottery_type=lottery_type,
-                            draw_number=draw_number
-                        ).first()
-                        
-                        if lottery_result:
-                            imported_records.append({
-                                'lottery_type': lottery_type,
-                                'draw_number': draw_number,
-                                'draw_date': draw_date,
-                                'is_new': is_new_record,
-                                'lottery_result_id': lottery_result.id
-                            })
-                    else:
-                        # In standalone mode, just add basic info without DB references
-                        imported_records.append({
-                            'lottery_type': lottery_type,
-                            'draw_number': draw_number,
-                            'draw_date': str(draw_date),
-                            'is_new': True,  # Assume it would be new
-                            'lottery_result_id': None  # No DB ID in standalone mode
-                        })
+                            draw_number=draw_number,
+                            draw_date=draw_date,
+                            numbers=json.dumps(winning_numbers),
+                            bonus_numbers=json.dumps(bonus_ball) if bonus_ball else None,
+                            divisions=json.dumps(divisions) if divisions else None,
+                            source_url="imported-from-excel",
+                            ocr_provider="manual-import",
+                            ocr_model="excel-spreadsheet",
+                            ocr_timestamp=datetime.utcnow().isoformat()
+                        )
+                        db.session.add(new_result)
+                    
+                    # Commit each result individually to avoid losing all data if one fails
+                    db.session.commit()
+                    
+                    # Store this record in import_tracking for later reference
+                    # Record if this was a new record or an update
+                    is_new_record = existing is None
+                    lottery_result = existing if existing else db.session.query(LotteryResult).filter_by(
+                        lottery_type=lottery_type,
+                        draw_number=draw_number
+                    ).first()
+                    
+                    imported_records.append({
+                        'lottery_type': lottery_type,
+                        'draw_number': draw_number,
+                        'draw_date': draw_date,
+                        'is_new': is_new_record,
+                        'lottery_result_id': lottery_result.id
+                    })
                     
                     imported_count += 1
                     
@@ -469,26 +382,11 @@ def import_snap_lotto_data(excel_file, flask_app=None, sheet_name=None):
                     # Rollback this row only
                     db.session.rollback()
             
-            # Count records after import (if we're in a Flask app context)
-            final_count = 0
-            if flask_app:
-                try:
-                    final_count = LotteryResult.query.count()
-                    logger.info(f"Records: {initial_count} -> {final_count} (added {final_count - initial_count})")
-                    added_count = final_count - initial_count
-                    updated_count = imported_count - added_count
-                except Exception as count_error:
-                    logger.error(f"Error counting final records: {str(count_error)}")
-                    # Set reasonable defaults if we can't count
-                    added_count = imported_count
-                    updated_count = 0
-            else:
-                # In standalone mode, assume all records would be new
-                logger.info(f"Would have imported {imported_count} records in total")
-                added_count = imported_count
-                updated_count = 0
+            # Count records after import
+            final_count = LotteryResult.query.count()
             
             logger.info("Import completed!")
+            logger.info(f"Records: {initial_count} -> {final_count} (added {final_count - initial_count})")
             logger.info(f"Successfully imported/updated {imported_count} records")
             logger.info(f"Encountered {errors_count} errors")
             
@@ -499,8 +397,8 @@ def import_snap_lotto_data(excel_file, flask_app=None, sheet_name=None):
                 "final_count": final_count,
                 "total": imported_count,
                 "errors": errors_count,
-                "added": added_count,
-                "updated": updated_count,
+                "added": final_count - initial_count,
+                "updated": imported_count - (final_count - initial_count),
                 "imported_records": imported_records  # Include records for import history
             }
     except Exception as e:

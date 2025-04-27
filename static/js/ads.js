@@ -75,44 +75,25 @@ window.AdManager = window.AdManager || {
                 return;
             }
             
-            // Determine if this is the first ad (processing) or second ad (results)
-            const isFirstAd = containerId === 'ad-container-loader';
-            
-            // Create a visual placeholder exactly matching the screenshots
-            if (isFirstAd) {
-                // First ad (yellow badge for Processing)
-                targetContainer.innerHTML = `
-                    <div style="width: 100%; background-color: #f3f3f3; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px 15px; text-align: center;">
-                        <div style="margin-bottom: 15px;">
-                            <span style="background-color: #ffde00; color: #000; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span>
-                        </div>
-                        <div style="font-size: 16px; color: #6c757d; margin-bottom: 15px; width: 100%; text-align: center;">
-                            Advertisement
-                        </div>
-                        <div style="color: #6c757d; font-size: 14px; text-align: center; width: 100%; margin-top: 10px;">
-                            To advertise here please contact us on:<br>+27 (61) 544-8311
-                        </div>
+            // Create a visible mock ad with bright colors and border
+            targetContainer.innerHTML = `
+                <div style="width: 300px; height: 250px; background-color: #f8f9fa; border: 3px solid #0d6efd; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                    <div style="font-size: 24px; margin-bottom: 10px; color: #0d6efd;">
+                        <i class="fas fa-ad"></i>
                     </div>
-                `;
-            } else {
-                // Second ad (blue badge for Results Ready)
-                targetContainer.innerHTML = `
-                    <div style="width: 100%; background-color: #f3f3f3; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px 15px; text-align: center;">
-                        <div style="margin-bottom: 15px;">
-                            <span style="background-color: #0d6efd; color: #fff; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span>
-                        </div>
-                        <div style="font-size: 16px; color: #6c757d; margin-bottom: 10px; width: 100%; text-align: center;">
-                            Advertisement
-                        </div>
-                        <div style="color: #6c757d; font-size: 14px; text-align: center; width: 100%; margin-bottom: 10px;">
-                            Your results are ready to view below
-                        </div>
-                        <div style="color: #6c757d; font-size: 14px; text-align: center; width: 100%;">
-                            To advertise here please contact us on:<br>+27 (61) 544-8311
-                        </div>
+                    <div style="font-weight: bold; font-size: 18px; color: #212529; margin-bottom: 5px;">
+                        Advertisement
                     </div>
-                `;
-            }
+                    <div style="color: #6c757d; font-size: 14px; text-align: center; padding: 0 20px;">
+                        This placeholder helps keep the service free
+                    </div>
+                    <div style="margin-top: 20px; display: flex; gap: 10px;">
+                        <div style="width: 12px; height: 12px; background-color: #dc3545; border-radius: 50%;"></div>
+                        <div style="width: 12px; height: 12px; background-color: #ffc107; border-radius: 50%;"></div>
+                        <div style="width: 12px; height: 12px; background-color: #198754; border-radius: 50%;"></div>
+                    </div>
+                </div>
+            `;
             
             console.log(`Mock ad created in ${containerId}`);
         } catch (e) {
@@ -191,114 +172,28 @@ window.AdManager = window.AdManager || {
                     return;
                 }
                 
-                // Determine the ad placement type
-                let placementType = 'scanner';  // Default placement type
-                if (containerId.includes('loader')) {
-                    placementType = 'scanner';
-                } else if (containerId.includes('interstitial')) {
-                    placementType = 'results';
-                } else if (containerId.includes('homepage')) {
-                    placementType = 'homepage';
-                }
-                
-                // Get available ads for this placement
-                let adToShow = null;
-                
-                // Check if we're in production mode (ad-server meta tag exists)
-                const isProduction = document.querySelector('meta[name="ad-server"]') !== null;
-                
-                console.log(`Loading ad for ${containerId} in ${isProduction ? 'production' : 'development'} mode`);
-                
-                if (isProduction) {
-                    // In production mode, use the ad management system
-                    if (typeof window.getAdsByPlacement === 'function') {
-                        // Get ads from the ad management system
-                        const availableAds = window.getAdsByPlacement(placementType);
-                        if (availableAds && availableAds.length > 0) {
-                            // Randomly select one ad from available ads
-                            adToShow = availableAds[Math.floor(Math.random() * availableAds.length)];
-                            console.log(`Selected ad from management system: ${adToShow?.name || 'unnamed ad'}`);
-                        }
-                    }
-                }
-                
                 // Create a new ad container
                 const adContainer = document.createElement('div');
                 adContainer.className = 'ad-container py-3';
                 
-                // If we have an ad from the management system, use it
-                if (adToShow) {
-                    // Determine if this is a missing children ad or standard ad
-                    const isMissingChildrenAd = adToShow.type === 'missing_children';
-                    const badgeColor = isMissingChildrenAd ? '#FFD500' : '#0D6EFD';
-                    const badgeTextColor = isMissingChildrenAd ? '#000' : '#FFF';
-                    
-                    // Create ad HTML based on the ad type
-                    if (isMissingChildrenAd && adToShow.image_url) {
-                        // Missing children ad with image
-                        adContainer.innerHTML = `
-                            <div class="text-center">
-                                <div class="ad-placeholder" style="padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
-                                    <p><span class="badge" style="background-color: ${badgeColor}; color: ${badgeTextColor}; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span></p>
-                                    <h5 class="mb-2">${adToShow.name || 'Help Find Missing Children'}</h5>
-                                    <img src="${adToShow.image_url}" class="img-fluid mb-2" style="max-width: 100%; border-radius: 4px;">
-                                    <p style="font-size: 14px; color: #6c757d;">${adToShow.custom_message || 'Please help us find missing children in South Africa'}</p>
-                                </div>
-                            </div>
-                        `;
-                    } else if (adToShow.file_url) {
-                        // Standard video ad
-                        adContainer.innerHTML = `
-                            <div class="text-center">
-                                <div class="ad-placeholder" style="padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
-                                    <p><span class="badge" style="background-color: ${badgeColor}; color: ${badgeTextColor}; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span></p>
-                                    <p class="mb-2">${adToShow.name || 'Advertisement'}</p>
-                                    <video controls autoplay muted class="img-fluid" style="max-width: 100%; border-radius: 4px;">
-                                        <source src="${adToShow.file_url}" type="video/mp4">
-                                        Your browser does not support the video tag.
-                                    </video>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        // Generic ad (fallback)
-                        adContainer.innerHTML = `
-                            <div class="text-center">
-                                <div class="ad-placeholder" style="padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
-                                    <p><span class="badge" style="background-color: ${badgeColor}; color: ${badgeTextColor}; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span></p>
-                                    <p class="mb-2">${adToShow.name || 'Advertisement'}</p>
-                                    <p style="font-size: 14px; color: #6c757d;">${adToShow.custom_message || 'Thank you for supporting our advertisers'}</p>
-                                    <p style="color: #6c757d; font-size: 12px; text-align: center;">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
-                                </div>
-                            </div>
-                        `;
-                    }
-                } else {
-                    // Default ad placeholder if no management system ad is available
-                    const badgeColor = containerId.includes('loader') ? '#FFD500' : '#0D6EFD'; 
-                    const badgeTextColor = containerId.includes('loader') ? '#000' : '#FFF';
-                    
-                    adContainer.innerHTML = `
-                        <div class="text-center">
-                            <div class="ad-placeholder" style="padding: 25px; background-color: #f3f3f3; border-radius: 8px; text-align: center;">
-                                <p><span class="badge" style="background-color: ${badgeColor}; color: ${badgeTextColor}; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px;">Ad</span></p>
-                                <p style="font-size: 16px; color: #6c757d; margin: 15px 0;">Advertisement</p>
-                                <p style="color: #6c757d; font-size: 14px; text-align: center;">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
-                            </div>
+                // In production, this would use real AdSense code
+                // Here, we're creating a placeholder for the ad
+                adContainer.innerHTML = `
+                    <div class="text-center">
+                        <div class="ad-placeholder">
+                            <p><i class="fas fa-ad mb-2"></i></p>
+                            <p class="mb-0">Advertisement</p>
                         </div>
-                    `;
-                }
+                    </div>
+                `;
                 
                 targetContainer.appendChild(adContainer);
                 
-                // Record impression for the ad
-                if (adToShow && adToShow.id) {
-                    this.recordAdImpression(adToShow.id);
-                }
-                
-                // Simulate ad loading completion
-                console.log(`Ad successfully loaded in ${containerId}`);
-                if (callback) callback(true);
+                // Simulate ad loading (would be handled by AdSense in production)
+                setTimeout(() => {
+                    console.log(`Ad loaded in ${containerId}`);
+                    if (callback) callback(true);
+                }, 2000); // 2 second delay to simulate ad loading
             } catch (innerError) {
                 console.warn(`Error loading ad content into ${containerId}:`, innerError);
                 if (callback) callback(false);
@@ -310,23 +205,14 @@ window.AdManager = window.AdManager || {
     },
 
     // Show the loading ad (before scan results are ready)
-    showLoadingAd: function(seconds, callback) {
+    showLoadingAd: function(callback) {
         console.log('AdManager: Showing loading ad');
-        
-        // If seconds is a function, it's the callback (old usage)
-        if (typeof seconds === 'function') {
-            callback = seconds;
-            seconds = undefined;
-        }
         
         // Get the ad for scanner placement to access its loading_duration
         const ad = this.ads['scanner'] || { loading_duration: 10 }; // Default to 10 seconds if no ad found
+        const loadingDuration = ad.loading_duration * 1000; // Convert to milliseconds
         
-        // Use provided seconds parameter if available, otherwise use ad's loading_duration
-        const displaySeconds = seconds || ad.loading_duration;
-        const loadingDuration = displaySeconds * 1000; // Convert to milliseconds
-        
-        console.log(`AdManager: Showing first loading ad for ${displaySeconds} seconds`);
+        console.log(`AdManager: Using loading duration of ${ad.loading_duration} seconds`);
         
         // Use the enhanced showOverlay utility function if available
         if (typeof showOverlay === 'function') {
@@ -378,7 +264,7 @@ window.AdManager = window.AdManager || {
             // Only auto-hide if it hasn't been closed by the ticket scanning process
             const adOverlayLoading = document.getElementById('ad-overlay-loading');
             if (adOverlayLoading && adOverlayLoading.style.display !== 'none') {
-                console.log(`AdManager: Auto-hiding loading overlay after ${displaySeconds} seconds`);
+                console.log(`AdManager: Auto-hiding loading overlay after ${ad.loading_duration} seconds`);
                 this.hideLoadingAd();
                 // If there was a callback, call it again to ensure the ticket processing continues
                 if (callback) callback(true);
@@ -394,50 +280,12 @@ window.AdManager = window.AdManager || {
         window.currentlyShowingAd = true;
         window.adStartTime = Date.now();
         
-        // Get available ads for scanner placement
-        let availableAds = [];
-        
-        // Try to use getAdsByPlacement helper if available
-        if (typeof window.getAdsByPlacement === 'function') {
-            availableAds = window.getAdsByPlacement('scanner');
-        } else if (this.ads && this.ads.scanner) {
-            // Fallback to direct access
-            if (Array.isArray(this.ads.scanner)) {
-                availableAds = this.ads.scanner;
-            } else {
-                availableAds = [this.ads.scanner];
-            }
-        }
-        
-        console.log('Available ads:', availableAds);
-        
-        // Randomly select ad type (standard 15s or missing children 5s)
-        // For demo purposes, alternate between missing children and standard ads
-        const showMissingChildrenAd = Math.random() < 0.5; // 50% chance
-        
-        // Find the selected ad type or default to first ad
-        let selectedAd = null;
-        if (availableAds && availableAds.length > 0) {
-            if (showMissingChildrenAd) {
-                selectedAd = availableAds.find(ad => ad.type === 'missing_children') || availableAds[0];
-            } else {
-                selectedAd = availableAds.find(ad => ad.type === 'standard') || availableAds[0];
-            }
-        }
-        
-        // Set the ad display duration based on the selected ad or default to 15 seconds
-        const adDisplayDuration = (selectedAd && selectedAd.duration) ? selectedAd.duration : 15;
-        console.log('Selected ad duration:', adDisplayDuration, 'seconds');
-        
         // SAFETY CHECK: If we're already in results mode, don't show the ad again
         if (window.inResultsMode || window.showingResultsAfterAd) {
             console.log('SAFETY: Already showing results, skipping ad overlay');
             if (callback) callback(false);
             return;
         }
-        
-        // Start the countdown timer for the ad with the appropriate duration
-        this.startCountdownTimer(adDisplayDuration);
         
         // Use the enhanced showOverlay utility function if available
         if (typeof showOverlay === 'function') {
@@ -487,18 +335,12 @@ window.AdManager = window.AdManager || {
             // Add event listeners to the View Results button to ensure we handle clicks properly
             const viewResultsBtn = document.getElementById('view-results-btn');
             if (viewResultsBtn) {
-                // Instead of replacing the button which can cause issues with the countdown timer
-                // Clear any existing click handlers by using only one definitive handler
-                // First, remove any existing click events (if possible)
-                if (viewResultsBtn._clickHandlerAdded) {
-                    return; // Skip adding another handler if we already added one
-                }
-                
-                // Mark that we're adding a handler to prevent duplicates
-                viewResultsBtn._clickHandlerAdded = true;
+                // Remove any existing click handlers
+                const newBtn = viewResultsBtn.cloneNode(true);
+                viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
                 
                 // Add our definitive handler
-                viewResultsBtn.addEventListener('click', function forceKeepResults(e) {
+                newBtn.addEventListener('click', function forceKeepResults(e) {
                     // Log the click with timestamp
                     console.log('⭐ View Results button clicked at ' + new Date().toISOString());
                     
@@ -566,19 +408,6 @@ window.AdManager = window.AdManager || {
         document.querySelectorAll('[id^="direct-ad-loader-"]').forEach(element => {
             element.remove();
         });
-        
-        // Hide the loading overlay and show the results overlay
-        const loadingOverlay = document.getElementById('ad-overlay-loading');
-        if (loadingOverlay) {
-            loadingOverlay.style.display = 'none';
-        }
-        
-        // Show the results overlay
-        const resultsOverlay = document.getElementById('ad-overlay-results');
-        if (resultsOverlay) {
-            resultsOverlay.style.display = 'flex';
-            console.log('Results overlay displayed, showing View Results button');
-        }
         
         // Force restore scrolling on all elements
         document.body.style.overflow = 'auto';
@@ -721,55 +550,19 @@ window.AdManager = window.AdManager || {
     // Create a mock video ad
     createMockVideoAd: function(placement) {
         // Create a mock ad object
-        // For 'scanner' placement, create two types of ads - regular and missing children
-        if (placement === 'scanner') {
-            // This creates both ad types for scanner placement
-            this.ads[placement] = [
-                {
-                    id: Math.floor(Math.random() * 1000),
-                    name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Standard Ad`,
-                    file_url: '/static/ads/sample_video.mp4', // This should be a real sample video in production
-                    duration: 15,
-                    loading_duration: 10, // Default loading overlay duration in seconds
-                    custom_message: 'Processing your lottery ticket...', // Default custom message
-                    custom_image_path: null, // No custom image in mock data
-                    placement: placement,
-                    active: true,
-                    type: 'standard'
-                },
-                {
-                    id: Math.floor(Math.random() * 1000),
-                    name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Missing Children Ad`,
-                    file_url: null, // No video for this ad type
-                    image_url: '/static/ads/missing_children.jpg', // Image ad for missing children
-                    duration: 5, // Shorter duration (5 seconds) for missing children ads
-                    loading_duration: 5,
-                    custom_message: 'Help find missing children in South Africa',
-                    custom_image_path: '/static/ads/missing_children.jpg',
-                    placement: placement,
-                    active: true,
-                    type: 'missing_children'
-                }
-            ];
-            
-            console.log(`Created ${this.ads[placement].length} ads for ${placement} placement`);
-        } else {
-            // For other placements, create a standard ad
-            this.ads[placement] = [{
-                id: Math.floor(Math.random() * 1000),
-                name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Ad Example`,
-                file_url: '/static/ads/sample_video.mp4',
-                duration: 15,
-                loading_duration: 10,
-                custom_message: 'Processing your lottery ticket...',
-                custom_image_path: null,
-                placement: placement,
-                active: true,
-                type: 'standard'
-            }];
-            
-            console.log(`Created standard ad for ${placement} placement`);
-        }
+        this.ads[placement] = {
+            id: Math.floor(Math.random() * 1000),
+            name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Ad Example`,
+            file_url: '/static/ads/sample_video.mp4', // This should be a real sample video in production
+            duration: 15,
+            loading_duration: 10, // Default loading overlay duration in seconds
+            custom_message: 'Processing your lottery ticket...', // Default custom message
+            custom_image_path: null, // No custom image in mock data
+            placement: placement,
+            active: true
+        };
+        
+        console.log(`Created mock video ad for ${placement}:`, this.ads[placement].name);
     },
 
     // Record ad impression
@@ -803,98 +596,6 @@ window.AdManager = window.AdManager || {
         
         // In production, send to server
         console.log('Ad click recorded:', impression);
-    },
-    
-    // Start countdown timer for advertisement viewing
-    startCountdownTimer: function(seconds) {
-        console.log('Starting countdown timer for ' + seconds + ' seconds');
-        
-        // Get the countdown container
-        const countdownContainer = document.getElementById('countdown-container');
-        if (!countdownContainer) {
-            console.error('Countdown container not found');
-            return;
-        }
-        
-        // Get the view results button
-        const viewResultsBtn = document.getElementById('view-results-btn');
-        if (!viewResultsBtn) {
-            console.error('View Results button not found');
-            return;
-        }
-        
-        // Disable the button at first - both ways to ensure cross-browser compatibility
-        viewResultsBtn.disabled = true;
-        viewResultsBtn.setAttribute('disabled', 'disabled');
-        viewResultsBtn.classList.remove('btn-pulse');
-        
-        // Initialize the timer
-        let timeLeft = seconds;
-        countdownContainer.textContent = 'Please wait ' + timeLeft + ' seconds';
-        
-        // Create and start the interval
-        const countdownTimer = setInterval(function() {
-            timeLeft--;
-            console.log('Countdown timer: ' + timeLeft + ' seconds remaining');
-            
-            if (timeLeft <= 0) {
-                // Time's up - enable the button
-                clearInterval(countdownTimer);
-                console.log('Countdown complete - enabling View Results button');
-                countdownContainer.textContent = 'You can now view your results!';
-                
-                // Enable the button - both ways to ensure it works across all browsers
-                viewResultsBtn.disabled = false;
-                viewResultsBtn.removeAttribute('disabled');
-                viewResultsBtn.classList.add('btn-pulse');
-                
-                // Force a button style update by modifying the DOM
-                viewResultsBtn.style.opacity = "0.99";
-                setTimeout(() => {
-                    viewResultsBtn.style.opacity = "1";
-                }, 10);
-                
-                // Add event listener to ensure the button works
-                viewResultsBtn.addEventListener('click', function(e) {
-                    console.log('⭐ View Results button clicked at ' + new Date().toISOString());
-                    
-                    // Hide the ad overlay
-                    const adOverlay = document.getElementById('ad-overlay-results');
-                    if (adOverlay) {
-                        adOverlay.style.display = 'none';
-                        adOverlay.style.visibility = 'hidden';
-                    }
-                    
-                    // Make sure results container is shown
-                    const resultsContainer = document.getElementById('results-container');
-                    if (resultsContainer) {
-                        resultsContainer.classList.remove('d-none');
-                        resultsContainer.style.display = 'block';
-                        
-                        // If we have stored results content, display it
-                        if (window.parsedResultsContent) {
-                            resultsContainer.innerHTML = window.parsedResultsContent;
-                        }
-                    }
-                    
-                    // Hide scan form
-                    const scanForm = document.getElementById('scan-form-container');
-                    if (scanForm) {
-                        scanForm.classList.add('d-none');
-                        scanForm.style.display = 'none';
-                    }
-                    
-                    // Then call the original hideInterstitialAd function
-                    window.AdManager.hideInterstitialAd();
-                });
-            } else {
-                // Update the countdown
-                countdownContainer.textContent = 'Please wait ' + timeLeft + ' seconds';
-            }
-        }, 1000);
-        
-        // Store the timer ID for potential clearing later
-        this.countdownTimerId = countdownTimer;
     }
 };
 

@@ -16,53 +16,6 @@ Daily Lotto data,
 Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you instant results for all lottery tickets.{% endblock %}
 
 {% block head_content %}
-<!-- Global JavaScript that ensures our core functions are defined at page load -->
-<script>
-    // Global ticket results storage
-    window.ticketResults = null;
-    
-    /**
-     * Global displayResults function that is called from both:
-     * 1. The template's inline handler for regular form submission
-     * 2. The ticket-submission-handler-fixed.js after ad display
-     */
-    window.displayResults = function(results) {
-        console.log('Global displayResults called with:', results);
-        
-        // Make sure results container is visible
-        const resultsContainer = document.getElementById('results-container');
-        if (resultsContainer) {
-            resultsContainer.classList.remove('d-none');
-            resultsContainer.style.display = 'block';
-            
-            // Update result fields
-            if (results && results.ticket_info) {
-                const info = results.ticket_info;
-                
-                // Update lottery type
-                const lotType = document.getElementById('result-lottery-type');
-                if (lotType) lotType.textContent = info.game_type || 'Unknown';
-                
-                // Update draw number
-                const drawNum = document.getElementById('result-draw-number');
-                if (drawNum) drawNum.textContent = info.draw_number || 'Unknown';
-                
-                // Update draw date
-                const drawDate = document.getElementById('result-draw-date');
-                if (drawDate) drawDate.textContent = info.draw_date || 'Unknown';
-                
-                // Update ball highlighting if we have results
-                if (window.updateBallMatching && results) {
-                    window.updateBallMatching(results);
-                }
-            }
-        }
-    };
-    
-    // Log that our global functions are ready
-    console.log('Global displayResults function is ready');
-</script>
-
 <!-- CSS for optimized lottery balls display across all devices -->
 <style>
     /* Lottery balls container styling for columnar layout */
@@ -90,26 +43,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             line-height: 40px !important;
             font-size: 16px !important;
         }
-    }
-    
-    /* Animation for View Results button */
-    @keyframes pulse {
-        0% {
-            transform: scale(1);
-            box-shadow: 0 4px 8px rgba(40,167,69,0.2);
-        }
-        50% {
-            transform: scale(1.05);
-            box-shadow: 0 6px 12px rgba(40,167,69,0.4);
-        }
-        100% {
-            transform: scale(1);
-            box-shadow: 0 4px 8px rgba(40,167,69,0.2);
-        }
-    }
-    
-    .animate-pulse {
-        animation: pulse 1.5s infinite;
     }
     
     /* Ensure all lottery balls are responsive with fixed aspect ratio */
@@ -281,40 +214,36 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         display: none;
     }
     
-    /* Advertisement - Fixed Style for All Ad Overlays */
-    #ad-overlay-loading, #ad-overlay-results, .interstitial-view {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        background-color: rgba(255, 255, 255, 0.98) !important;
-        z-index: 999999 !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 20px !important;
-        overflow-y: auto !important;
+    /* Advertisement - Loading overlay */
+    #ad-overlay-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.95);
+        z-index: 9999;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
     }
     
-    /* Fixed additional styles */
-    .ad-container-wrapper {
-        width: 100% !important;
-        max-width: 350px !important;
-        margin: 15px auto !important;
-    }
-    
-    .ad-container {
-        width: 100% !important;
-        margin: 0 auto !important;
-    }
-    
-    .ad-placeholder {
-        border: 1px solid #ddd !important;
-        border-radius: 8px !important;
-        padding: 15px !important;
-        background-color: #f8f9fa !important;
-        text-align: center !important;
+    /* Advertisement - Results overlay */
+    #ad-overlay-results {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.95);
+        z-index: 9999;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
     }
     
     /* Button pulse animation */
@@ -327,38 +256,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     .btn-pulse {
         animation: btn-pulse 1.5s infinite;
     }
-    
-    /* Interstitial view controls */
-    .interstitial-view {
-        display: none !important; /* Force hidden by default */
-        opacity: 0 !important;
-        visibility: hidden !important;
-        transition: opacity 0.3s ease-in-out !important;
-    }
-    
-    /* This class will be added by JavaScript when showing is needed */
-    .interstitial-view.active {
-        display: flex !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-    }
-    
-    /* Make the View Results button more prominent */
-    #view-results-btn {
-        min-width: 220px !important;
-        padding: 15px 30px !important;
-        font-size: 20px !important;
-        font-weight: bold !important;
-        border-radius: 10px !important;
-        box-shadow: 0 6px 10px rgba(40,167,69,0.3) !important;
-        margin-top: 15px !important;
-        transition: all 0.2s ease !important;
-    }
-    
-    #view-results-btn:hover {
-        transform: translateY(-3px) !important;
-        box-shadow: 0 8px 15px rgba(40,167,69,0.4) !important;
-    }
 </style>
 {% endblock %}
 
@@ -366,15 +263,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <!-- Ad overlay - Loading screen -->
 <div id="ad-overlay-loading" class="interstitial-view">
     <h4 class="mb-4">Processing your ticket...</h4>
-    <div class="ad-container-wrapper">
-        <div id="ad-container-loader" class="ad-container">
-            <!-- FIRST AD: Yellow badge -->
-            <div class="ad-placeholder" style="padding: 25px; background-color: #f3f3f3; border-radius: 8px; text-align: center; box-shadow: 0 0 15px rgba(0,0,0,0.2); width: 100%; max-width: 500px; margin: 0 auto; border: 1px solid #ddd;">
-                <p><span class="badge" style="background-color: #ffde00; color: #000; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px; display: inline-block;">Ad</span></p>
-                <p style="font-size: 16px; color: #6c757d; margin: 15px 0; font-weight: bold;">Advertisement</p>
-                <img src="/static/ads/standard-ad-1.svg" style="max-width: 100%; height: auto; margin: 15px 0; display: block;" alt="Advertisement">
-                <p style="color: #6c757d; font-size: 14px; text-align: center; margin-top: 15px; padding: 5px; background-color: #f9f9f9; border-radius: 5px;">To advertise here please contact us on:<br><strong>+27 (61) 544-8311</strong></p>
-            </div>
+    <div id="ad-container-loader" class="ad-container">
+        <div class="ad-placeholder">
+            <p><i class="fas fa-ad mb-2"></i></p>
+            <p class="mb-1">Advertisement</p>
+            <p class="small text-muted mt-2">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
         </div>
     </div>
     <div class="mt-3">
@@ -392,102 +285,19 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     <div class="alert alert-info mb-3" style="max-width: 400px;">
         Please view this advertisement while we prepare your results
     </div>
-    <div class="ad-container-wrapper">
-        <div id="ad-container-interstitial" class="ad-container">
-            <!-- SECOND AD: Blue badge -->
-            <div class="ad-placeholder" style="padding: 25px; background-color: #f3f3f3; border-radius: 8px; text-align: center; box-shadow: 0 0 15px rgba(0,0,0,0.2); width: 100%; max-width: 500px; margin: 0 auto; border: 1px solid #ddd;">
-                <p><span class="badge" style="background-color: #0d6efd; color: #fff; font-weight: bold; padding: 3px 10px; border-radius: 4px; font-size: 14px; display: inline-block;">Ad</span></p>
-                <p style="font-size: 16px; color: #6c757d; margin: 15px 0; font-weight: bold;">Advertisement</p>
-                <img src="/static/ads/standard-ad-2.svg" style="max-width: 100%; height: auto; margin: 15px 0; display: block;" alt="Advertisement">
-                <p style="color: #6c757d; font-size: 14px; margin-bottom: 10px; font-weight: 500;">Your results are ready to view below</p>
-                <p style="color: #6c757d; font-size: 14px; text-align: center; margin-top: 15px; padding: 5px; background-color: #f9f9f9; border-radius: 5px;">To advertise here please contact us on:<br><strong>+27 (61) 544-8311</strong></p>
-            </div>
+    <div id="ad-container-interstitial" class="ad-container" style="padding: 15px; background-color: #f8f9fa; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.1);">
+        <div class="ad-placeholder">
+            <p><i class="fas fa-ad mb-2 fa-2x text-primary"></i></p>
+            <p class="mb-1 fw-bold">Advertisement</p>
+            <small class="text-muted">Your results are ready to view below</small>
+            <p class="small text-muted mt-2">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
         </div>
     </div>
     <!-- Countdown timer will be placed here above the button -->
     <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;"></div>
-    <div class="text-center mt-4 mb-1">
-        <p class="text-muted mb-2">Click the button below when ready</p>
-        <span class="d-inline-block" style="animation: bounce 1s infinite;">⬇️</span>
-    </div>
-    <button class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 220px; padding: 15px 30px; font-size: 20px; font-weight: bold; border-radius: 10px; box-shadow: 0 6px 10px rgba(40,167,69,0.3);">
+    <button class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px; padding: 12px 24px; font-size: 18px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
         <i class="fas fa-check-circle me-2"></i> View Results
     </button>
-    <style>
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        
-        .btn-pulse {
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
-            }
-            
-            70% {
-                transform: scale(1.05);
-                box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
-            }
-            
-            100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
-            }
-        }
-        
-        /* Make the .active class properly show for our ad overlays */
-        .interstitial-view {
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background-color: rgba(255, 255, 255, 0.98); 
-            z-index: 10000; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            text-align: center; 
-            overflow-y: auto; 
-            padding: 20px;
-            display: none !important;
-        }
-        
-        .interstitial-view.active {
-            display: flex !important;
-        }
-        
-        .process-results-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.98);
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 20px;
-        }
-        
-        #process-results-btn {
-            min-width: 220px;
-            padding: 15px 30px;
-            font-size: 20px;
-            font-weight: bold;
-            border-radius: 10px;
-            box-shadow: 0 6px 10px rgba(0, 123, 255, 0.3);
-            animation: pulse 1.5s infinite;
-        }
-    </style>
 </div>
 
 <div class="container py-3">
@@ -510,7 +320,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             <i class="fa fa-info-circle me-1"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
                         </div>
 
-                        <form id="ticket-form" action="javascript:void(0)" method="post" enctype="multipart/form-data" onsubmit="return handleTicketSubmission(event)">
+                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data" onsubmit="event.preventDefault(); processTicketWithAds(); return false;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-2">
                                 <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
@@ -537,18 +347,16 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
                                     <!-- Single file input with no capture attribute to support all devices -->
-                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none" onchange="handleFileSelection()">
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none" onchange="handleFileSelect()">
                                     
                                     <!-- Simple button with direct click handler -->
                                     <button type="button" id="file-select-btn" class="btn btn-primary btn-lg" onclick="document.getElementById('ticket-image').click();"><i class="fas fa-camera me-2"></i> Take Photo</button>
                                 </div>
                             </div>
 
-                            <div id="preview-container" class="text-center mb-4" style="display: none; margin-top: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
-                                <h6>Image Preview</h6>
-                                <div style="display: flex; justify-content: center; align-items: center; min-height: 200px;">
-                                    <img id="ticket-preview" class="ticket-preview img-fluid rounded" style="max-height: 300px; max-width: 100%; object-fit: contain; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" src="">
-                                </div>
+                            <div id="preview-container" class="text-center d-none">
+                                <h6>Preview</h6>
+                                <img id="ticket-preview" class="ticket-preview img-fluid rounded" src="">
                                 <div class="mt-2">
                                     <button type="button" id="remove-image" class="btn btn-sm btn-outline-danger">
                                         <i class="fa fa-times"></i> Remove
@@ -557,7 +365,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             </div>
 
                             <div class="text-center mt-4">
-                                <button type="submit" id="scan-button" class="btn btn-success btn-lg w-100" style="padding: 14px; font-size: 18px; border-radius: 8px; box-shadow: 0 4px 8px rgba(40,167,69,0.2);" disabled>
+                                <button type="submit" id="scan-button" class="btn btn-success btn-lg w-100" style="padding: 14px; font-size: 18px; border-radius: 8px; box-shadow: 0 4px 8px rgba(40,167,69,0.2);">
                                     <i class="fa fa-search me-2"></i> Scan Ticket
                                 </button>
                                 <div id="scanner-loading" class="mt-3">
@@ -569,16 +377,16 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             </div>
                         </form>
 
-                        <div id="results-container" class="results-container {% if not show_results %}d-none{% endif %}">
+                        <div id="results-container" class="results-container d-none">
                             <hr>
                             <h3 class="mb-3 text-center">Scanning Results</h3>
                             
-                            <div id="error-message" class="alert alert-danger {% if not scan_results or not scan_results.error %}d-none{% endif %}">
+                            <div id="error-message" class="alert alert-danger d-none">
                                 <i class="fa fa-exclamation-triangle me-2"></i>
-                                <span id="error-text">{% if scan_results and scan_results.error %}{{ scan_results.error }}{% endif %}</span>
+                                <span id="error-text"></span>
                             </div>
                             
-                            <div id="success-content" class="{% if not scan_results or not scan_results.ticket_info %}d-none{% endif %}">
+                            <div id="success-content" class="d-none">
                                 <div class="card mb-4">
                                     <div class="card-header bg-light">
                                         <h5 class="mb-0" id="ticket-info-title">Your Ticket</h5>
@@ -715,377 +523,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% endblock %}
 
 {% block additional_scripts %}
-<script src="{{ url_for('static', filename='js/ticket-scanner-fixed.js') }}"></script>
-<script>
-{% if scan_results and scan_results.ticket_info %}
-// Populate results from server-side rendered data
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("Populating results from server-side data");
-    
-    // Get the scan results from the template
-    const scanResults = {{ scan_results|tojson }};
-    
-    // Display the results using the existing function
-    if (window.displayResults) {
-        window.displayResults(scanResults);
-    } else {
-        console.error("displayResults function not found");
-    }
-});
-{% endif %}
-// Keep these definitions for backward compatibility
-function processTicketWithAds() {
-    console.log("processTicketWithAds called", new Date().toISOString());
-    
-    // Verify we have a file
-    const fileInput = document.getElementById('ticket-image');
-    if (fileInput && fileInput.files.length > 0) {
-        console.log("File is selected:", fileInput.files[0].name);
-    } else {
-        console.error("No file selected!");
-        alert("Please select an image first");
-        return;
-    }
-    
-    // Clear any previous results first
-    const clearPreviousResults = window.clearPreviousResults || function() {
-        console.log("Using inline clearPreviousResults function");
-        // Hide results container
-        const resultsContainer = document.getElementById('results-container');
-        if (resultsContainer) {
-            resultsContainer.classList.add('d-none');
-        }
-        
-        // Hide error message
-        const errorMessage = document.getElementById('error-message');
-        if (errorMessage) {
-            errorMessage.classList.add('d-none');
-        }
-    };
-    
-    clearPreviousResults();
-    
-    // Disable scrolling during processing
-    const disableScrolling = window.disableScrolling || function() {
-        document.body.style.overflow = 'hidden';
-    };
-    
-    // Enable scrolling
-    const enableScrolling = window.enableScrolling || function() {
-        document.body.style.overflow = '';
-    };
-    
-    // Scroll to top and disable scrolling during processing
-    window.scrollTo(0, 0);
-    disableScrolling();
-    
-    // Get required elements
-    const ticketForm = document.getElementById('ticket-form');
-    const loadingIndicator = document.getElementById('scanner-loading');
-    const scanButton = document.getElementById('scan-button');
-    
-    if (!ticketForm) {
-        console.error("Ticket form not found!");
-        return;
-    }
-    
-    // Show loading indicator
-    if (loadingIndicator) {
-        loadingIndicator.style.display = 'block';
-    }
-    
-    // Never disable the scan button
-    if (scanButton) {
-        scanButton.disabled = false;
-    }
-    
-    // Create form data for later use
-    const formData = new FormData(ticketForm);
-    console.log("FormData created with file:", fileInput.files[0].name);
-    
-    // Show the loading ad overlay first
-    const adOverlayLoading = document.getElementById('ad-overlay-loading');
-    if (adOverlayLoading) {
-        adOverlayLoading.style.display = 'flex';
-        console.log("Ad overlay loading displayed");
-    } else {
-        console.error("Ad overlay loading element not found!");
-    }
-    
-    // Process using the ad display system
-    // Ensure the ad overlay stays visible for at least 2 seconds before processing
-    setTimeout(() => {
-        // Check if AdManager is available and use it to show ad, otherwise just process
-        if (window.AdManager && typeof window.AdManager.showLoadingAd === 'function') {
-            console.log('Using AdManager to show loading ad');
-            window.AdManager.showLoadingAd(function(adShown) {
-                // Keep ad visible for at least 5 seconds total
-                setTimeout(() => {
-                    // After ad is displayed for minimum time, process the ticket
-                    console.log('Ad loading callback returned after minimum display time:', adShown);
-                    processTicket(formData);
-                }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
-            });
-        } else {
-            // Fallback - Ad overlay is already shown manually
-            console.log('AdManager not available, showing overlay manually');
-            
-            // Process the ticket after a minimum viewing time
-            setTimeout(() => {
-                console.log('Processing ticket without AdManager after minimum ad view time');
-                processTicket(formData);
-            }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
-        }
-    }, 2000); // Initial 2 seconds minimum display time
-    
-    // Function to process the ticket after ad is shown
-    function processTicket(formData) {
-        console.log("processTicket called with formData", new Date().toISOString());
-        
-        // Add CSRF token to headers
-        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-        console.log("CSRF token:", csrfToken);
-        
-        // Make fetch request
-        console.log("Starting fetch to /scan-ticket");
-        fetch('/scan-ticket', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': csrfToken
-            }
-        })
-        .then(response => {
-            console.log("Received response:", response.status, response.statusText);
-            if (!response.ok) {
-                console.error("Error response:", response.status, response.statusText);
-                throw new Error('Network response was not ok: ' + response.status);
-            }
-            console.log("Response OK, parsing JSON");
-            return response.json();
-        })
-        .then(data => {
-            console.log("Received data from server:", data);
-            
-            // Hide loading overlay
-            const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            if (adOverlayLoading) {
-                adOverlayLoading.style.display = 'none';
-            }
-            
-            // Ensure the results overlay is shown
-            const adOverlayResults = document.getElementById('ad-overlay-results');
-            if (adOverlayResults) {
-                // Always make sure the results overlay is displayed
-                adOverlayResults.style.display = 'flex';
-                
-                // Try to use AdManager for tracking, but we'll show the overlay manually either way
-                if (window.AdManager && typeof window.AdManager.showInterstitialAd === 'function') {
-                    console.log('Using AdManager to show interstitial ad');
-                    window.AdManager.showInterstitialAd(function(adShown) {
-                        console.log('Interstitial ad shown:', adShown);
-                        // Make sure the overlay is displayed even if AdManager fails
-                        adOverlayResults.style.display = 'flex';
-                    });
-                } else {
-                    console.log('AdManager not available, showing results overlay manually');
-                }
-                
-                console.log('Showing results interstitial ad');
-                
-                // Display results when the "View Results" button is clicked
-                const displayResults = window.displayResults || function(data) {
-                    console.log("Using inline displayResults function");
-                    console.log("Would display results for:", data);
-                    
-                    // Show the results container
-                    const resultsContainer = document.getElementById('results-container');
-                    if (resultsContainer) {
-                        resultsContainer.classList.remove('d-none');
-                    }
-                    
-                    // Add core results display
-                    const ticketInfo = document.getElementById('ticket-info');
-                    if (ticketInfo) {
-                        let infoHTML = `
-                            <div class="alert alert-info">
-                                <h4>${data.ticket_info.game_type} Draw #${data.ticket_info.draw_number}</h4>
-                                <p>Draw Date: ${data.ticket_info.draw_date}</p>
-                            </div>
-                        `;
-                        ticketInfo.innerHTML = infoHTML;
-                    }
-                };
-                
-                // View Results button handling
-                const viewResultsBtn = document.getElementById('view-results-btn');
-                if (viewResultsBtn) {
-                    viewResultsBtn.onclick = function(e) {
-                        // Prevent any default actions
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        console.log('View Results button clicked at ' + new Date().toISOString());
-                        
-                        // Force hide all overlays immediately
-                        const allOverlays = document.querySelectorAll('[id^="ad-overlay"]');
-                        allOverlays.forEach(overlay => {
-                            overlay.style.display = 'none';
-                        });
-                        
-                        // Make sure body scrolling is enabled
-                        enableScrolling();
-                        
-                        console.log('About to display results after clicked View Results');
-                        
-                        // Display the results immediately
-                        displayResults(data);
-                    };
-                    
-                    // FORCEFULLY disable the view results button for 15 seconds
-                    viewResultsBtn.disabled = true;
-                    viewResultsBtn.style.opacity = '0.5';
-                    viewResultsBtn.style.cursor = 'not-allowed';
-                    viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
-                    
-                    // Set a timer to enable the button after 15 seconds
-                    setTimeout(() => {
-                        viewResultsBtn.disabled = false;
-                        viewResultsBtn.style.opacity = '1';
-                        viewResultsBtn.style.cursor = 'pointer';
-                        viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now';
-                    }, 15000); // 15 seconds
-                }
-            }
-        })
-        .catch(error => {
-            console.error("Error in fetch:", error);
-            
-            // Hide loading overlay
-            const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            if (adOverlayLoading) {
-                adOverlayLoading.style.display = 'none';
-            }
-            
-            // Re-enable scrolling
-            enableScrolling();
-            
-            // Show error to user
-            const errorMessage = document.getElementById('error-message');
-            const errorText = document.getElementById('error-text');
-            if (errorMessage && errorText) {
-                errorText.textContent = "Error processing your ticket: " + error.message;
-                errorMessage.classList.remove('d-none');
-            }
-            
-            // Show the results container for error display
-            const resultsContainer = document.getElementById('results-container');
-            if (resultsContainer) {
-                resultsContainer.classList.remove('d-none');
-            }
-        });
-    }
-}
-}
-
-// Simplified file handling function - completely rewritten
-function handleFileSelection() {
-    console.log("SimpleFileSelect: Function called");
-    
-    // Get all required elements
-    const fileInput = document.getElementById('ticket-image');
-    const previewContainer = document.getElementById('preview-container');
-    const ticketPreview = document.getElementById('ticket-preview');
-    const scanButton = document.getElementById('scan-button');
-    
-    if (!fileInput || !previewContainer || !ticketPreview || !scanButton) {
-        console.error("SimpleFileSelect: One or more elements not found!");
-        alert("Error: Some page elements were not found. Please refresh the page.");
-        return;
-    }
-    
-    // Get the selected file
-    const file = fileInput.files[0];
-    
-    if (file) {
-        console.log("SimpleFileSelect: File selected - Name: " + file.name + ", Type: " + file.type + ", Size: " + file.size + " bytes");
-        
-        // Validate file type
-        if (!file.type.match('image.*')) {
-            alert('Please select an image file (JPG, PNG, etc.).');
-            fileInput.value = '';
-            scanButton.disabled = true;
-            return;
-        }
-        
-        try {
-            // Create a direct object URL instead of using FileReader for better compatibility
-            const objectUrl = URL.createObjectURL(file);
-            console.log("SimpleFileSelect: Created object URL");
-            
-            // Set the image source directly
-            ticketPreview.onload = function() {
-                console.log("SimpleFileSelect: Image loaded successfully");
-                
-                // Show the preview container - using multiple methods for maximum compatibility
-                previewContainer.style.display = 'block';
-                previewContainer.classList.remove('d-none');
-                
-                // Enable the scan button - MUST do this both ways for cross-browser compatibility
-                scanButton.disabled = false;
-                scanButton.removeAttribute('disabled');
-                
-                console.log("SimpleFileSelect: Preview displayed and scan button enabled");
-            };
-            
-            ticketPreview.onerror = function() {
-                console.error("SimpleFileSelect: Error loading image");
-                alert('Error displaying the image. Please try another file.');
-                fileInput.value = '';
-                scanButton.disabled = true;
-            };
-            
-            // Set the source to trigger the onload event
-            ticketPreview.src = objectUrl;
-            
-        } catch (e) {
-            console.error("SimpleFileSelect: Error creating object URL:", e);
-            alert('Error processing the image file. Please try a different image.');
-            fileInput.value = '';
-            scanButton.disabled = true;
-        }
-    } else {
-        console.log("SimpleFileSelect: No file selected");
-        previewContainer.style.display = 'none';
-        scanButton.disabled = true;
-    }
-    
-    // Set up remove button handler
-    const removeImageBtn = document.getElementById('remove-image');
-    if (removeImageBtn) {
-        removeImageBtn.onclick = function() {
-            console.log("SimpleFileSelect: Remove button clicked");
-            
-            // Clear the file input
-            fileInput.value = '';
-            
-            // Clear the image source and revoke the object URL to free memory
-            if (ticketPreview.src && ticketPreview.src.startsWith('blob:')) {
-                URL.revokeObjectURL(ticketPreview.src);
-            }
-            ticketPreview.src = '';
-            
-            // Hide the preview container
-            previewContainer.style.display = 'none';
-            
-            // Disable the scan button
-            scanButton.disabled = true;
-            
-            console.log("SimpleFileSelect: Image removed and preview hidden");
-        };
-    }
-}
-</script>
+<script src="{{ url_for('static', filename='js/mobile-enhancements.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Add event listener for "Scan Another Ticket" button
@@ -1198,19 +636,11 @@ function handleFileSelection() {
         
         // Initialize scan button state after a short delay
         setTimeout(() => {
-            // Disable scan button by default
-            if (scanButton) {
-                scanButton.disabled = !fileInput || !fileInput.files || fileInput.files.length === 0;
-                console.log("Initial scan button state set:", !scanButton.disabled);
-            }
+            updateScanButton();
+            console.log("Initial button state check on page load");
         }, 500);
         
-        // Make sure scanner loading is hidden initially
-        if (loadingIndicator) {
-            loadingIndicator.style.display = 'none';
-        }
-        
-        // The button click handling is now fully managed by the inline handlers
+        // The button click handling is now fully managed by mobile-enhancements.js
         // This prevents duplicate event listeners
         
         // File selection change is handled directly on the input element using inline onchange
@@ -1250,17 +680,14 @@ function handleFileSelection() {
             
             if (files.length > 0) {
                 fileInput.files = files;
-                handleFileSelection();
+                handleFileSelect();
             }
         }
         
         function handleFileSelect() {
-            console.log("handleFileSelect called with fileInput:", fileInput);
             const file = fileInput.files[0];
-            console.log("Selected file:", file);
             
             if (file) {
-                console.log("File details - Type:", file.type, "Size:", file.size, "bytes");
                 // Check if file is an image
                 if (!file.type.match('image.*')) {
                     alert('Please select an image file');
@@ -1271,25 +698,21 @@ function handleFileSelection() {
                 const reader = new FileReader();
                 
                 reader.onload = function(e) {
-                    console.log("FileReader onload event triggered");
                     ticketPreview.src = e.target.result;
                     previewContainer.classList.remove('d-none');
                     // Update scan button state
                     updateScanButton();
-                    console.log("File loaded successfully and preview displayed");
+                    console.log("File loaded successfully");
                 }
                 
-                reader.onerror = function(e) {
-                    console.error("FileReader error:", e);
+                reader.onerror = function() {
                     alert('Error reading the image file. Please try a different image.');
                     fileInput.value = ''; // Clear the file input on error
                     updateScanButton();
                 }
                 
-                console.log("Starting FileReader.readAsDataURL");
                 reader.readAsDataURL(file);
             } else {
-                console.log("No file selected");
                 previewContainer.classList.add('d-none');
                 updateScanButton();
             }
@@ -1304,7 +727,13 @@ function handleFileSelection() {
         
         lotteryTypeSelect.addEventListener('change', updateScanButton);
         
-        // Scan button has direct inline onclick handler now, removing to avoid duplicates
+        // Add a direct click handler for the scan button
+        scanButton.addEventListener('click', function(e) {
+            if (fileInput.files.length) {
+                e.preventDefault();
+                processTicketWithAds();
+            }
+        });
         
         function updateScanButton() {
             // Always keep the button enabled
@@ -1401,8 +830,9 @@ function handleFileSelection() {
             console.log('Cleared previous results');
         }
         
-        // Using the globally defined processTicketWithAds function
-        // Do not redefine it here to avoid conflicts
+        function processTicketWithAds() {
+            // Clear any previous results first
+            clearPreviousResults();
             
             // Scroll to top and disable scrolling during processing
             window.scrollTo(0, 0);
@@ -1415,20 +845,11 @@ function handleFileSelection() {
             
             // Create form data for later use
             const formData = new FormData(ticketForm);
-            console.log("FormData created with file:", fileInput.files[0].name);
             
             // Show the loading ad overlay first
             const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            if (adOverlayLoading) {
-                adOverlayLoading.style.display = 'flex';
-                console.log("Ad overlay loading displayed");
-            } else {
-                console.error("Ad overlay loading element not found!");
-            }
+            adOverlayLoading.style.display = 'flex';
             
-            // For quick testing, process the ticket directly
-            console.log("BYPASSING ADS FOR DEBUGGING - Processing ticket immediately");
-            processTicket(formData);
             // Ensure the ad overlay stays visible for at least 2 seconds before processing
             setTimeout(() => {
                 // Check if AdManager is available and use it to show ad, otherwise just process
@@ -1453,25 +874,16 @@ function handleFileSelection() {
                     }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
                 }
             }, 2000); // Initial 2 seconds minimum display time
-            */
         }
         
         // Function to process the ticket after ad is shown
         function processTicket(formData) {
-            console.log("processTicket called with formData", new Date().toISOString());
-            
-            // Log form data contents
-            console.log("FormData entries:");
-            for (let pair of formData.entries()) {
-                console.log(pair[0] + ': ' + pair[1]);
-            }
+            // Process with the FormData created from the form
             
             // Add CSRF token to headers
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-            console.log("CSRF token:", csrfToken);
             
             // Add CSRF token to request headers
-            console.log("Starting fetch to /scan-ticket");
             fetch('/scan-ticket', {
                 method: 'POST',
                 body: formData,
@@ -1480,38 +892,12 @@ function handleFileSelection() {
                 }
             })
             .then(response => {
-                console.log("Received response:", response.status, response.statusText);
                 if (!response.ok) {
-                    console.error("Error response:", response.status, response.statusText);
                     throw new Error('Network response was not ok: ' + response.status);
                 }
-                console.log("Response OK, parsing JSON");
                 return response.json();
             })
-            .catch(error => {
-                console.error("Error in fetch:", error);
-                alert("Error processing ticket: " + error.message);
-                
-                // Hide loading overlay
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                if (adOverlayLoading) {
-                    adOverlayLoading.style.display = 'none';
-                }
-                
-                // Re-enable scrolling
-                enableScrolling();
-                
-                // Show error to user
-                const errorMessage = document.getElementById('error-message');
-                const errorText = document.getElementById('error-text');
-                if (errorMessage && errorText) {
-                    errorText.textContent = "Error processing your ticket: " + error.message;
-                    errorMessage.classList.remove('d-none');
-                    resultsContainer.classList.remove('d-none');
-                }
-            })
             .then(data => {
-                console.log("Received data from server:", data);
                 console.log('Success:', data);
                 
                 // Hide loading overlay
@@ -3815,7 +3201,4 @@ function handleFileSelection() {
 </script>
 <!-- Fresh checkmark system - clean slate approach -->
 <script src="{{ url_for('static', filename='js/fresh_checkmark.js') }}"></script>
-<script src="{{ url_for('static', filename='js/getAdsByPlacement.js') }}"></script>
-<script src="{{ url_for('static', filename='js/countdown-timer.js') }}"></script>
-<script src="{{ url_for('static', filename='js/ticket-submission-handler.js') }}"></script>
 {% endblock %}

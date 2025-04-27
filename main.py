@@ -439,9 +439,7 @@ def ticket_scanner():
     return render_template('ticket_scanner.html', 
                           title="Lottery Ticket Scanner | Check If You've Won",
                           breadcrumbs=breadcrumbs,
-                          meta_description=meta_description,
-                          scan_results=None,
-                          show_results=False)
+                          meta_description=meta_description)
 
 @app.route('/scan-ticket', methods=['POST'])
 @csrf.exempt
@@ -449,21 +447,13 @@ def scan_ticket():
     """Process uploaded ticket image and return results"""
     # Check if file is included in the request
     if 'ticket_image' not in request.files:
-        error_message = "No ticket image provided"
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({"error": error_message}), 400
-        flash(error_message, "danger")
-        return redirect(url_for('ticket_scanner'))
+        return jsonify({"error": "No ticket image provided"}), 400
         
     file = request.files['ticket_image']
     
     # If user does not select file, browser also submits an empty part without filename
     if file.filename == '':
-        error_message = "No selected file"
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({"error": error_message}), 400
-        flash(error_message, "danger")
-        return redirect(url_for('ticket_scanner'))
+        return jsonify({"error": "No selected file"}), 400
         
     # Get the lottery type if specified (optional)
     lottery_type = request.form.get('lottery_type', '')
@@ -491,46 +481,11 @@ def scan_ticket():
             file_extension=file_extension
         )
         
-        # Add proper content type header
-        response = jsonify(result)
-        response.headers['Content-Type'] = 'application/json'
-        
-        # Return JSON for all requests from the ticket scanner form
-        # This ensures proper handling through fetch API
-        if request.referrer and ('/ticket-scanner' in request.referrer or 
-                               '/scan-ticket' in request.referrer):
-            return response
-            
-        # For AJAX requests return JSON
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return response
-        
-        # For other regular form submissions, render the template with the results
-        return render_template('ticket_scanner.html', 
-                              title="Scan Lottery Ticket | Check If You've Won | Snap Lotto",
-                              scan_results=result,
-                              show_results=True)
+        # Return JSON response with results
+        return jsonify(result)
     except Exception as e:
         logger.exception(f"Error processing ticket: {str(e)}")
-        error_message = f"Error processing ticket: {str(e)}"
-        
-        # Create JSON response for error
-        error_response = jsonify({"error": error_message})
-        error_response.headers['Content-Type'] = 'application/json'
-        error_response.status_code = 500
-        
-        # Return JSON for requests from the ticket scanner form
-        if request.referrer and ('/ticket-scanner' in request.referrer or 
-                              '/scan-ticket' in request.referrer):
-            return error_response
-            
-        # For AJAX requests return JSON
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return error_response
-            
-        # For regular form submissions, flash message and redirect
-        flash(error_message, "danger")
-        return redirect(url_for('ticket_scanner'))
+        return jsonify({"error": f"Error processing ticket: {str(e)}"}), 500
 
 # Guides Routes
 @app.route('/guides')
