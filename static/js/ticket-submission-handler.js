@@ -88,6 +88,13 @@ function handleTicketSubmission(event) {
         if (window.AdManager) {
             console.log('Using AdManager to show ads sequence');
             
+            // Show the ad overlay immediately
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            if (adOverlayLoading) {
+                adOverlayLoading.style.display = 'flex';
+                console.log('Ad overlay made visible immediately');
+            }
+            
             // First, show a loading ad (1st advertisement) for 5 seconds
             window.AdManager.showLoadingAd(5, function() {
                 console.log('First loading ad (processing) completed');
