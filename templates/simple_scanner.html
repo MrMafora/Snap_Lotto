@@ -14,7 +14,7 @@
                     <p class="lead text-center">Upload a photo of your lottery ticket to see if you've won</p>
                     
                     <form id="simple-form" action="/scan-ticket" method="post" enctype="multipart/form-data" class="mt-4">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        {{ form.csrf_token }}
                         
                         <div class="form-group mb-4">
                             <label for="lottery-type">Select Lottery Type:</label>
