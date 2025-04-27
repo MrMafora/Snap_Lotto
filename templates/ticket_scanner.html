@@ -829,8 +829,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 // Get the ad container
                 const adContainer = document.getElementById('ad-container-interstitial');
                 
-                // View Results button handling
-                const viewResultsBtn = document.getElementById('view-results-btn');
+                // View Results button handling - CRITICAL: Changed from const to let to allow reassignment
+                let viewResultsBtn = document.getElementById('view-results-btn');
                 viewResultsBtn.onclick = function(e) {
                     // Prevent any default actions
                     e.preventDefault();
@@ -2996,4 +2996,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 </script>
 <!-- Fresh checkmark system - clean slate approach -->
 <script src="{{ url_for('static', filename='js/fresh_checkmark.js') }}"></script>
+<!-- Direct View Results button handler -->
+<script src="{{ url_for('static', filename='js/view-results-direct.js') }}"></script>
 {% endblock %}
