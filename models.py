@@ -10,41 +10,10 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import inspect
-from sqlalchemy.exc import IntegrityError
 
 # Initialize SQLAlchemy base
 class Base(DeclarativeBase):
     pass
-
-class DuplicateCheckMixin:
-    """Mixin to provide duplicate checking functionality"""
-    
-    @classmethod
-    def exists(cls, **kwargs):
-        """Check if an item exists with the given attributes"""
-        return db.session.query(cls).filter_by(**kwargs).first() is not None
-    
-    @classmethod
-    def get_or_create(cls, defaults=None, **kwargs):
-        """Get existing item or create new one if it doesn't exist"""
-        instance = db.session.query(cls).filter_by(**kwargs).first()
-        if instance:
-            return instance, False
-        
-        params = dict((k, v) for k, v in kwargs.items())
-        if defaults:
-            params.update(defaults)
-        
-        instance = cls(**params)
-        try:
-            db.session.add(instance)
-            db.session.commit()
-            return instance, True
-        except IntegrityError:
-            db.session.rollback()
-            instance = db.session.query(cls).filter_by(**kwargs).first()
-            return instance, False
 
 # Initialize database
 db = SQLAlchemy(model_class=Base)
@@ -155,7 +124,7 @@ class ScheduleConfig(db.Model):
     def __repr__(self):
         return f"<ScheduleConfig {self.lottery_type}: {self.frequency} at {self.hour}:{self.minute}>"
 
-class Campaign(DuplicateCheckMixin, db.Model):
+class Campaign(db.Model):
     """Model for grouping advertisements into campaigns"""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -283,7 +252,7 @@ class AdVariation(db.Model):
             'created_at': self.created_at.isoformat()
         }
 
-class Advertisement(DuplicateCheckMixin, db.Model):
+class Advertisement(db.Model):
     """Model for managing video advertisements"""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
