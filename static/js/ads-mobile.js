@@ -1,230 +1,185 @@
 /**
- * Mobile-optimized Ads Script
- * Streamlined version of ads.js for faster mobile loading
+ * Mobile-optimized Advertisement Manager Script
+ * This is a lighter version of ads.js specifically for mobile devices
+ * Reduces script size from ~28KB to ~5KB for faster loading
  */
-
-// State tracking for the ad system
-window.adLoadingActive = false;
-window.adResultsActive = false;
-
-// Create simpler AdManager for mobile
-class AdManager {
-    constructor() {
-        console.log('Mobile AdManager initializing');
-        this.adDisplayTime = 15; // seconds
-        this.initialized = false;
-        
-        // Delayed initialization to ensure DOM is ready
-        setTimeout(() => this.initialize(), 500);
-    }
+(function() {
+    'use strict';
     
-    initialize() {
-        if (this.initialized) return;
+    // Global variables
+    let adDisplayActive = false;
+    let adLoadingActive = false;
+    window.adLoadingActive = false;
+    
+    // Mock ads in development environment
+    const isDevelopment = window.location.hostname.includes('replit.dev') || 
+                          window.location.hostname.includes('localhost') ||
+                          window.location.hostname.includes('127.0.0.1');
+    
+    // Initialize advertisement manager
+    function initAdManager() {
+        console.log("AdManager initialized from ads-mobile.js");
         
-        // Get ad containers
-        this.loaderAdContainer = document.getElementById('ad-container-loader');
-        this.interstitialAdContainer = document.getElementById('ad-container-interstitial');
-        
-        // Prepare ad content (simplified for mobile)
-        if (this.loaderAdContainer) {
-            this.loaderAdContainer.innerHTML = '<div class="ad-placeholder"><p><i class="fas fa-ad mb-2"></i></p><p class="mb-1">Advertisement</p></div>';
+        if (isDevelopment) {
+            console.log("Development mode detected, using mock ads");
+            createMockAds();
         }
         
-        if (this.interstitialAdContainer) {
-            this.interstitialAdContainer.innerHTML = '<div class="ad-placeholder"><p><i class="fas fa-ad mb-2 fa-2x text-primary"></i></p><p class="mb-1 fw-bold">Advertisement</p></div>';
-        }
-        
-        this.initialized = true;
-        console.log('Mobile AdManager initialized');
+        // Set up event handlers for the scanner page
+        setupScanButtonHandlers();
     }
     
-    // Display the loading ad
-    showLoadingAd() {
-        const adOverlayLoading = document.getElementById('ad-overlay-loading');
-        if (adOverlayLoading) {
-            adOverlayLoading.style.display = 'flex';
+    // Create mock advertisements for development
+    function createMockAds() {
+        const loaderContainer = document.getElementById('ad-container-loader');
+        const interstitialContainer = document.getElementById('ad-container-interstitial');
+        
+        if (loaderContainer) {
+            loaderContainer.innerHTML = createMockAdHTML('Loading Advertisement');
+            console.log("Mock ad created in ad-container-loader");
+        }
+        
+        if (interstitialContainer) {
+            interstitialContainer.innerHTML = createMockAdHTML('Results Advertisement');
+            console.log("Mock ad created in ad-container-interstitial");
+        }
+    }
+    
+    // Generate mock ad HTML
+    function createMockAdHTML(text) {
+        return `
+            <div class="mock-ad" style="width:100%; height:250px; background:#f0f0f0; 
+                border:1px solid #ddd; border-radius:4px; display:flex; justify-content:center; 
+                align-items:center; color:#333; text-align:center; padding:15px;">
+                <div>
+                    <h4 style="margin-bottom:10px;">${text}</h4>
+                    <p style="margin-bottom:5px;">This is a mock advertisement shown during development.</p>
+                    <small>In production, a real advertisement would be displayed here.</small>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Set up scan button handlers
+    function setupScanButtonHandlers() {
+        const scanBtn = document.getElementById('scan-ticket-btn');
+        
+        if (scanBtn) {
+            scanBtn.addEventListener('click', function(e) {
+                // Only if we have a file selected
+                const fileInput = document.getElementById('ticket-file');
+                if (fileInput && fileInput.files.length > 0) {
+                    showLoadingAdOverlay();
+                }
+            });
+        }
+    }
+    
+    // Loading ad overlay display
+    function showLoadingAdOverlay() {
+        const adOverlay = document.getElementById('ad-overlay-loading');
+        if (adOverlay) {
+            adOverlay.style.display = 'block';
+            adLoadingActive = true;
             window.adLoadingActive = true;
+            
+            // Start countdown (shortened to 15 seconds for mobile)
+            startCountdown(15, function() {
+                enableViewResultsButton();
+            });
         }
     }
     
-    // Display the results ad with countdown
-    showResultsAd() {
-        // Hide the loading ad first
-        const adOverlayLoading = document.getElementById('ad-overlay-loading');
-        if (adOverlayLoading) {
-            adOverlayLoading.style.display = 'none';
+    // Results ad overlay display
+    function showResultsAdOverlay() {
+        const resultsOverlay = document.getElementById('ad-overlay-results');
+        if (resultsOverlay) {
+            resultsOverlay.style.display = 'block';
+            adDisplayActive = true;
+        }
+    }
+    
+    // Enable "View Results" button after countdown
+    function enableViewResultsButton() {
+        const viewBtn = document.getElementById('view-results-btn');
+        if (viewBtn) {
+            viewBtn.disabled = false;
+            viewBtn.classList.add('btn-pulse');
+            
+            // Set up event listener for button
+            viewBtn.addEventListener('click', function() {
+                hideLoadingAdOverlay();
+                showResultsAdOverlay();
+                
+                // Start second countdown for results ad
+                startCountdown(15, function() {
+                    enableContinueButton();
+                });
+            });
+        }
+    }
+    
+    // Enable "Continue" button after second countdown
+    function enableContinueButton() {
+        const continueBtn = document.getElementById('continue-btn');
+        if (continueBtn) {
+            continueBtn.disabled = false;
+            continueBtn.classList.add('btn-pulse');
+            
+            // Set up event listener for continue button
+            continueBtn.addEventListener('click', function() {
+                hideResultsAdOverlay();
+            });
+        }
+    }
+    
+    // Hide loading ad overlay
+    function hideLoadingAdOverlay() {
+        const adOverlay = document.getElementById('ad-overlay-loading');
+        if (adOverlay) {
+            adOverlay.style.display = 'none';
+            adLoadingActive = false;
             window.adLoadingActive = false;
         }
-        
-        // Show the results ad
-        const adOverlayResults = document.getElementById('ad-overlay-results');
-        if (adOverlayResults) {
-            adOverlayResults.style.display = 'flex';
-            window.adResultsActive = true;
-            
-            // Set up countdown
-            this.setupCountdown();
+    }
+    
+    // Hide results ad overlay
+    function hideResultsAdOverlay() {
+        const resultsOverlay = document.getElementById('ad-overlay-results');
+        if (resultsOverlay) {
+            resultsOverlay.style.display = 'none';
+            adDisplayActive = false;
         }
     }
     
-    // Setup countdown timer
-    setupCountdown() {
+    // Countdown timer for ads
+    function startCountdown(seconds, callback) {
+        const countdownEl = document.getElementById('countdown');
         const countdownContainer = document.getElementById('countdown-container');
-        const viewResultsBtn = document.getElementById('view-results-btn');
         
-        if (!countdownContainer || !viewResultsBtn) return;
-        
-        // Disable button during countdown
-        viewResultsBtn.disabled = true;
-        const originalBtnText = viewResultsBtn.innerText;
-        viewResultsBtn.setAttribute('data-original-text', originalBtnText);
-        
-        // Set initial countdown
-        let timeLeft = this.adDisplayTime;
-        countdownContainer.textContent = `Please wait ${timeLeft} seconds`;
-        viewResultsBtn.textContent = `Wait ${timeLeft}s`;
-        
-        // Start countdown
-        const countdownInterval = setInterval(() => {
-            timeLeft--;
+        if (countdownEl && countdownContainer) {
+            countdownContainer.style.display = 'block';
             
-            // Update countdown text
-            if (timeLeft > 0) {
-                countdownContainer.textContent = `Please wait ${timeLeft} seconds`;
-                viewResultsBtn.textContent = `Wait ${timeLeft}s`;
-            } else {
-                // Enable the button when countdown is complete
-                clearInterval(countdownInterval);
-                countdownContainer.textContent = 'You can now view your results!';
-                viewResultsBtn.textContent = originalBtnText;
-                viewResultsBtn.disabled = false;
-                viewResultsBtn.classList.add('btn-pulse');
+            let timeLeft = seconds;
+            countdownEl.textContent = timeLeft;
+            
+            const countdownInterval = setInterval(function() {
+                timeLeft--;
+                countdownEl.textContent = timeLeft;
                 
-                // Log completion for debugging
-                console.log('Countdown completed, button enabled');
-            }
-        }, 1000);
-        
-        // Set up button click handler
-        viewResultsBtn.onclick = () => {
-            adOverlayResults.style.display = 'none';
-            window.adResultsActive = false;
-            
-            // For immediate scrolling to results
-            setTimeout(() => {
-                const resultsContainer = document.getElementById('results-container');
-                if (resultsContainer) {
-                    resultsContainer.scrollIntoView({ behavior: 'smooth' });
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownContainer.style.display = 'none';
+                    if (callback) callback();
                 }
-            }, 100);
-        };
-    }
-}
-
-// Initialize the ad manager when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    window.adManager = new AdManager();
-    console.log('Mobile ads system ready');
-});
-
-// Function to process the ticket with ads (mobile optimized)
-function processTicketWithAds() {
-    try {
-        console.log('Processing ticket with ads (mobile optimized)');
-        
-        // Get form and elements
-        const ticketForm = document.getElementById('ticket-form');
-        const ticketImageInput = document.getElementById('ticket-image');
-        const scanButton = document.getElementById('scan-button');
-        
-        // Check if image is selected
-        if (!ticketImageInput.files || ticketImageInput.files.length === 0) {
-            alert('Please select a ticket image first');
-            return;
-        }
-        
-        // Show loading overlay with ad
-        if (window.adManager) {
-            window.adManager.showLoadingAd();
+            }, 1000);
         } else {
-            console.error('Ad manager not initialized');
-            
-            // Fallback if ad manager isn't ready
-            const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            if (adOverlayLoading) {
-                adOverlayLoading.style.display = 'flex';
-                window.adLoadingActive = true;
-            }
+            // If countdown element not found, still execute callback after delay
+            setTimeout(callback, seconds * 1000);
         }
-        
-        // Prepare form data
-        const formData = new FormData(ticketForm);
-        
-        // Send form data
-        fetch('/scan-ticket', {
-            method: 'POST',
-            body: formData,
-            credentials: 'same-origin'
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Show the results ad with countdown
-            if (window.adManager) {
-                window.adManager.showResultsAd();
-            } else {
-                // Fallback if ad manager isn't ready
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                const adOverlayResults = document.getElementById('ad-overlay-results');
-                
-                if (adOverlayLoading) {
-                    adOverlayLoading.style.display = 'none';
-                    window.adLoadingActive = false;
-                }
-                
-                if (adOverlayResults) {
-                    adOverlayResults.style.display = 'flex';
-                    window.adResultsActive = true;
-                }
-            }
-            
-            // Save the data for later display
-            window.scanResults = data;
-        })
-        .catch(error => {
-            console.error('Error during scan:', error);
-            
-            // Hide all ad overlays
-            const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            const adOverlayResults = document.getElementById('ad-overlay-results');
-            
-            if (adOverlayLoading) {
-                adOverlayLoading.style.display = 'none';
-                window.adLoadingActive = false;
-            }
-            
-            if (adOverlayResults) {
-                adOverlayResults.style.display = 'none';
-                window.adResultsActive = false;
-            }
-            
-            // Show error
-            const errorContainer = document.getElementById('error-message');
-            const errorText = document.getElementById('error-text');
-            
-            if (errorContainer && errorText) {
-                errorText.textContent = 'Failed to scan ticket. Please try again.';
-                errorContainer.classList.remove('d-none');
-            } else {
-                alert('Failed to scan ticket. Please try again.');
-            }
-        });
-    } catch (error) {
-        console.error('Error in processTicketWithAds:', error);
-        alert('An error occurred. Please try again.');
     }
-}
+    
+    // Initialize with delay to avoid blocking initial page render
+    setTimeout(initAdManager, 1000);
+    console.log("Delayed AdManager initialization after 1000ms");
+})();

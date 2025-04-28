@@ -14,6 +14,39 @@
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     
+    // Function to fix Font Awesome icons
+    function fixFontAwesomeIcons() {
+        // Add a specific CSS rule to ensure Font Awesome icons work
+        const style = document.createElement('style');
+        style.textContent = `
+            .fa, .fas, .far, .fab, [class*="fa-"] {
+                font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", FontAwesome !important;
+                display: inline-block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Apply an immediate fix for icons in the title and navbar
+        setTimeout(() => {
+            const icons = document.querySelectorAll('.fa, .fas, .far, .fab, [class*="fa-"]');
+            if (icons.length > 0) {
+                console.log(`Fixing ${icons.length} Font Awesome icons`);
+                icons.forEach(icon => {
+                    // Force redraw of the icon
+                    const originalDisplay = window.getComputedStyle(icon).display;
+                    icon.style.display = 'none';
+                    setTimeout(() => {
+                        icon.style.display = originalDisplay || 'inline-block';
+                    }, 10);
+                });
+            } else {
+                console.log('No Font Awesome icons found on page');
+            }
+        }, 100);
+    }
+    
     // Immediately add optimization classes to the body
     document.addEventListener('DOMContentLoaded', function() {
         if (isMobile) {
@@ -21,6 +54,9 @@
             if (isIOS) {
                 document.body.classList.add('ios-device');
             }
+            
+            // Fix for Font Awesome icons - ensure they're displayed correctly
+            fixFontAwesomeIcons();
         }
         
         // Optimize images by setting loading="lazy" on non-critical images

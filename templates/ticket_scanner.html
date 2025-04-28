@@ -9,6 +9,23 @@
 <script src="{{ url_for('static', filename='js/ios-countdown-fix.js') }}" data-critical="true"></script>
 <!-- Critical fix for scan advancement to prevent getting stuck in ad loops -->
 <script src="{{ url_for('static', filename='js/ios-early-fix.js') }}" data-critical="true"></script>
+
+<!-- Inline critical Font Awesome fix - immediate execution before DOM loads -->
+<style>
+  /* Critical Font Awesome icon fix */
+  .fa, .fas, .far, .fab, [class*="fa-"] {
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", FontAwesome !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: inline-block !important;
+  }
+  .fas, .fa-solid, i.fa {
+    font-weight: 900 !important;
+  }
+</style>
+
+<!-- Special Font Awesome icon fix for scanner page -->
+<script src="{{ url_for('static', filename='js/scanner-icon-fix.js') }}" data-critical="true"></script>
 {% endblock %}
 
 {% block meta_description %}The ONLY app with official Ithuba Lotto,
@@ -28,6 +45,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <!-- PERFORMANCE: Preload critical resources for faster mobile loading -->
 <link rel="preload" href="{{ url_for('static', filename='css/optimized-mobile.css') }}" as="style">
 <link rel="preload" href="{{ url_for('static', filename='js/mobile-optimization.js') }}" as="script">
+<link rel="preload" href="{{ url_for('static', filename='js/scanner-icon-fix.js') }}" as="script">
 
 <!-- Mobile-optimized CSS loads first -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/optimized-mobile.css') }}">
