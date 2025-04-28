@@ -3,10 +3,12 @@
 {% block title %}South Africa's ONLY Lottery Ticket Scanner | Check If You've Won Instantly | Snap Lotto{% endblock %}
 
 {% block extra_meta %}
+<!-- PERFORMANCE: Mobile optimization script loads first to improve performance -->
+<script src="{{ url_for('static', filename='js/mobile-optimization.js') }}" data-critical="true"></script>
 <!-- Highest priority iOS fix script - loads before anything else -->
-<script src="{{ url_for('static', filename='js/ios-countdown-fix.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ios-countdown-fix.js') }}" data-critical="true"></script>
 <!-- Critical fix for scan advancement to prevent getting stuck in ad loops -->
-<script src="{{ url_for('static', filename='js/ios-early-fix.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ios-early-fix.js') }}" data-critical="true"></script>
 {% endblock %}
 
 {% block meta_description %}The ONLY app with official Ithuba Lotto,
@@ -23,6 +25,12 @@ Daily Lotto data,
 Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you instant results for all lottery tickets.{% endblock %}
 
 {% block head_content %}
+<!-- PERFORMANCE: Preload critical resources for faster mobile loading -->
+<link rel="preload" href="{{ url_for('static', filename='css/optimized-mobile.css') }}" as="style">
+<link rel="preload" href="{{ url_for('static', filename='js/mobile-optimization.js') }}" as="script">
+
+<!-- Mobile-optimized CSS loads first -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/optimized-mobile.css') }}">
 <!-- Smooth scrolling CSS -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/smooth-scroll.css') }}">
 <!-- Structured Data for SEO -->
@@ -3183,24 +3191,45 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         }
     });
 </script>
-<!-- Fresh checkmark system - clean slate approach -->
-<script src="{{ url_for('static', filename='js/fresh_checkmark.js') }}"></script>
-<!-- Direct View Results button handler -->
-<script src="{{ url_for('static', filename='js/view-results-direct.js') }}"></script>
-<!-- Mobile-specific button state fix -->
-<script src="{{ url_for('static', filename='js/mobile-button-fix.js') }}"></script>
-<!-- iOS-specific button format fix -->
-<script src="{{ url_for('static', filename='js/ios-specific-fix.js') }}"></script>
-<!-- Immediate fix for rounded-pill button format -->
-<script src="{{ url_for('static', filename='js/rounded-pill-fix.js') }}"></script>
-<!-- Fix for button flashing during countdown -->
-<script src="{{ url_for('static', filename='js/countdown-stability-fix.js') }}"></script>
-<!-- Smooth scrolling fix -->
-<script src="{{ url_for('static', filename='js/smooth-scroll-fix.js') }}"></script>
-<!-- Scan process advancement fix for mobile -->
-<script src="{{ url_for('static', filename='js/scan-advancement-fix.js') }}"></script>
-<!-- Watchdog to prevent scanning from getting stuck -->
-<script src="{{ url_for('static', filename='js/scan-process-watchdog.js') }}"></script>
-<!-- Critical fix for transition between first and second ad -->
-<script src="{{ url_for('static', filename='js/critical-transition-fix.js') }}"></script>
+<!-- CRITICAL SCRIPTS: Core functionality that must load immediately -->
+<script src="{{ url_for('static', filename='js/critical-transition-fix.js') }}" data-critical="true"></script>
+<script src="{{ url_for('static', filename='js/scan-process-watchdog.js') }}" data-critical="true"></script>
+
+<!-- DEFERRED SCRIPTS: Non-critical scripts that can load after page render -->
+<script src="{{ url_for('static', filename='js/fresh_checkmark.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/view-results-direct.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/mobile-button-fix.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/ios-specific-fix.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/rounded-pill-fix.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/countdown-stability-fix.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/smooth-scroll-fix.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/scan-advancement-fix.js') }}" defer></script>
+
+<!-- PERFORMANCE: Inline script to boost initial render speed on mobile -->
+<script>
+(function() {
+    // Immediately optimize page rendering
+    document.documentElement.classList.add('optimized-loading');
+    
+    // Detect mobile and immediately optimize
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        // Set viewport optimization
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        if (viewportMeta) {
+            viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+        }
+        
+        // Initialize critical UI elements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Touch optimization for buttons
+            document.querySelectorAll('button, a, .btn').forEach(function(el) {
+                el.addEventListener('touchstart', function(){}, {passive: true});
+            });
+            
+            // Optimize loading state
+            console.log('Mobile optimization complete');
+        });
+    }
+})();
+</script>
 {% endblock %}
