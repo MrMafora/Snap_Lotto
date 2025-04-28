@@ -178,12 +178,24 @@
             state.activeCountdown = null;
         }
         
-        // Find the countdown element
-        const countdownSpan = document.getElementById('countdown');
+        // Find the appropriate countdown elements based on phase
+        let countdownSpan;
+        
+        if (phase === 'first') {
+            countdownSpan = document.getElementById('first-countdown');
+        } else {
+            countdownSpan = document.getElementById('countdown');
+        }
+        
         const viewResultsBtn = document.getElementById('view-results-btn');
         
-        if (!countdownSpan || !viewResultsBtn) {
-            console.error('Transition fix: Could not find countdown or button elements');
+        if (!countdownSpan) {
+            console.error('Transition fix: Could not find countdown element for phase ' + phase);
+            return;
+        }
+        
+        if (!viewResultsBtn && phase === 'second') {
+            console.error('Transition fix: Could not find view results button');
             return;
         }
         
