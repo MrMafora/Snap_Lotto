@@ -1006,5 +1006,38 @@ def get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result)
                 
             return result
             
+    # Always return prize for minimum matches in Powerball or Powerball Plus
+    # This ensures even minimal matches show appropriate feedback
+    if "Powerball" in lottery_type:
+        if match_count >= 1 or bonus_match:
+            # Create new fallback for matches that don't fit standard divisions
+            fallback_descriptions = {
+                "Match 1": "Match 1 number",
+                "Match 2": "Match 2 numbers",
+                "Match 3": "Match 3 numbers",
+                "Bonus Match": "Match Powerball only"
+            }
+            
+            # Determine the appropriate description
+            if match_count >= 1 and bonus_match:
+                match_key = f"Match {match_count}"
+                match_description = f"Match {match_count} number{'s' if match_count > 1 else ''} + Powerball"
+            elif match_count >= 1:
+                match_key = f"Match {match_count}"
+                match_description = f"Match {match_count} number{'s' if match_count > 1 else ''}"
+            else:
+                match_key = "Bonus Match"
+                match_description = "Match Powerball only"
+            
+            # Return appropriate information
+            return {
+                "division": match_key,
+                "match_type": match_description.upper(),
+                "prize_amount": "See prize table",
+                "winners": "N/A",
+                "note": "Matched numbers may qualify for a prize - check official results",
+                "description": match_description
+            }
+    
     # No prize found
     return None
