@@ -195,30 +195,23 @@
             
             console.log("First ad shown at: " + new Date().toISOString());
             
-            // CRITICAL: Force minimum display time for the first ad
-            const startTime = Date.now();
-            const countdownTimeout = setTimeout(function() {
-                // Only enable the button if minimum time has actually passed
-                const elapsedTime = Date.now() - startTime;
-                console.log("First ad timeout reached after: " + elapsedTime + "ms");
-                
-                if (elapsedTime >= window.SnapLottoAds.adMinimumTime) {
-                    window.SnapLottoAds.firstAdComplete = true;
-                    enableViewResultsButton();
-                    console.log("First ad completed at: " + new Date().toISOString());
-                } else {
-                    // If somehow the timer fired too early, set another one
-                    console.log("Timer fired too early, resetting...");
-                    setTimeout(function() {
-                        window.SnapLottoAds.firstAdComplete = true;
-                        enableViewResultsButton();
-                        console.log("First ad completed after reset at: " + new Date().toISOString());
-                    }, window.SnapLottoAds.adMinimumTime - elapsedTime);
-                }
-            }, window.SnapLottoAds.adMinimumTime);
+            // COMPLETELY REMOVED original timer system
+            // Delegate to critical-transition-fix.js for countdown handling
+            
+            // Trigger the centralized countdown system
+            document.dispatchEvent(new CustomEvent('trigger-countdown', {
+                detail: { phase: 'first', seconds: 15 }
+            }));
+            
+            // Safety timeout as a fallback if central timer fails
+            const safetyTimeout = setTimeout(function() {
+                console.log("SAFETY: First ad fallback timeout reached - only used if central timer failed");
+                window.SnapLottoAds.firstAdComplete = true;
+                enableViewResultsButton();
+            }, window.SnapLottoAds.adMinimumTime + 2000); // 2 second buffer
             
             // Store the timeout for cleanup
-            window.SnapLottoAds.adTimeouts.push(countdownTimeout);
+            window.SnapLottoAds.adTimeouts.push(safetyTimeout);
             
             // DEFERRED COUNTDOWN: We now defer to critical-transition-fix.js
             // which handles all countdown functionality to prevent conflicts
@@ -250,30 +243,24 @@
             
             console.log("Second ad shown at: " + new Date().toISOString());
             
-            // CRITICAL: Force minimum display time for the second ad
-            const startTime = Date.now();
-            const countdownTimeout = setTimeout(function() {
-                // Only enable the button if minimum time has actually passed
-                const elapsedTime = Date.now() - startTime;
-                console.log("Second ad timeout reached after: " + elapsedTime + "ms");
-                
-                if (elapsedTime >= window.SnapLottoAds.adMinimumTime) {
-                    window.SnapLottoAds.secondAdComplete = true;
-                    enableContinueToResultsButton();
-                    console.log("Second ad completed at: " + new Date().toISOString());
-                } else {
-                    // If somehow the timer fired too early, set another one
-                    console.log("Second ad timer fired too early, resetting...");
-                    setTimeout(function() {
-                        window.SnapLottoAds.secondAdComplete = true;
-                        enableContinueToResultsButton();
-                        console.log("Second ad completed after reset at: " + new Date().toISOString());
-                    }, window.SnapLottoAds.adMinimumTime - elapsedTime);
-                }
-            }, window.SnapLottoAds.adMinimumTime);
+            // COMPLETELY REMOVED original timeout system
+            // We now delegate to critical-transition-fix.js and just 
+            // keep a basic safety timeout as a fallback
+            
+            // Trigger the centralized countdown system
+            document.dispatchEvent(new CustomEvent('trigger-countdown', {
+                detail: { phase: 'second', seconds: 15 }
+            }));
+            
+            // Safety timeout that will ONLY run if the central timer system fails
+            const safetyTimeout = setTimeout(function() {
+                console.log("SAFETY: Second ad fallback timeout reached - only used if central timer failed");
+                window.SnapLottoAds.secondAdComplete = true;
+                enableContinueToResultsButton();
+            }, window.SnapLottoAds.adMinimumTime + 2000); // 2 second buffer
             
             // Store the timeout for cleanup
-            window.SnapLottoAds.adTimeouts.push(countdownTimeout);
+            window.SnapLottoAds.adTimeouts.push(safetyTimeout);
             
             // DEFERRED COUNTDOWN: We now defer to critical-transition-fix.js
             // which handles all countdown functionality to prevent conflicts
