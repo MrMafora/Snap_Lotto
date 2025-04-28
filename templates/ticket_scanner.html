@@ -1097,11 +1097,18 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         console.warn('Countdown container not found in the DOM');
                     }
                     
-                    // Store timer start time to prevent deviations
+                    // DEFERRED COUNTDOWN: We now defer to critical-transition-fix.js
+                    // which handles all countdown functionality to prevent conflicts
+                    console.log("Inline countdown deferred to critical-transition-fix.js (single source of truth)");
+                    
+                    // Signal to the central timer system by setting a flag
+                    window.needsSecondAdCountdown = true;
+                    
+                    // Keep these for backward compatibility
                     window.countdownStartTime = Date.now();
                     window.countdownDuration = 15000; // 15 seconds in milliseconds
                     
-                    // Make sure to clear any existing timers first
+                    // Clear any existing timers to prevent conflicts
                     if (window.countdownInterval) {
                         clearInterval(window.countdownInterval);
                     }
@@ -1110,174 +1117,15 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         clearTimeout(window.countdownTimeout);
                     }
                     
-                    // Update the counter every second based on elapsed time
-                    window.countdownInterval = setInterval(() => {
-                        try {
-                            // Calculate remaining time based on actual elapsed time
-                            const elapsedMs = Date.now() - window.countdownStartTime;
-                            const remainingMs = Math.max(0, window.countdownDuration - elapsedMs);
-                            const remainingSeconds = Math.ceil(remainingMs / 1000);
-                            
-                            // Get countdownNumber element
-                            const countdownNumber = document.getElementById('countdown-number');
-                            
-                            // Only update if the element exists
-                            if (countdownNumber) {
-                                // Don't update with countdown text - use consistent countdown from ads-mobile.js
-                                countdownNumber.textContent = "Please wait for your results";
-                            }
-                            
-                            // Update button text with more robust handling
-                            if (remainingSeconds <= 0) {
-                                // Store original button text to check if it actually changes
-                                const originalText = viewResultsBtn.innerHTML;
-                                
-                                // Update the button text and properties with enhanced mobile support
-                                viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                                viewResultsBtn.disabled = false;
-                                viewResultsBtn.style.opacity = '1';
-                                viewResultsBtn.style.cursor = 'pointer';
-                                
-                                // Remove the countdown class and add active class
-                                viewResultsBtn.classList.remove('btn-secondary');
-                                viewResultsBtn.classList.add('btn-success');
-                                
-                                // Also clear the Mobile wait message if it exists (fix for mobile devices)
-                                const mobileTimerSpan = viewResultsBtn.querySelector('span');
-                                if (mobileTimerSpan) {
-                                    mobileTimerSpan.textContent = 'View Results Now!';
-                                }
-                                
-                                // Log if the button text didn't change (potential DOM update issue)
-                                if (viewResultsBtn.innerHTML === originalText) {
-                                    console.error('CRITICAL: Button text did not update - forcing DOM update');
-                                    // Force a DOM update by using textContent first, then innerHTML
-                                    viewResultsBtn.textContent = '';
-                                    setTimeout(() => {
-                                        viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                                        // Also apply styles directly to ensure mobile compatibility
-                                        viewResultsBtn.classList.add('btn-success');
-                                        viewResultsBtn.classList.remove('btn-secondary');
-                                    }, 10);
-                                }
-                                
-                                // Set a data attribute to indicate the button should be active
-                                viewResultsBtn.setAttribute('data-countdown-complete', 'true');
-                            } else {
-                                viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${remainingSeconds}s)`;
-                                viewResultsBtn.setAttribute('data-countdown-complete', 'false');
-                            }
-                            
-                            // Check if countdown is complete
-                            if (remainingSeconds <= 0) {
-                                // Clear interval and reset running flag
-                                clearInterval(window.countdownInterval);
-                                window.countdownInterval = null;
-                                window.countdownRunning = false;
-                                
-                                // Enable the button after time is up
-                                viewResultsBtn.disabled = false;
-                                viewResultsBtn.style.opacity = '1';
-                                viewResultsBtn.style.cursor = 'pointer';
-                                viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                                
-                                // Mobile-specific fix: ensure button appearance changes
-                                viewResultsBtn.classList.remove('btn-secondary');
-                                viewResultsBtn.classList.add('btn-success');
-                                
-                                // Mobile-specific: Handle the timer text in the span element
-                                const mobileSpans = viewResultsBtn.querySelectorAll('span');
-                                if (mobileSpans.length > 0) {
-                                    mobileSpans.forEach(span => {
-                                        if (span.textContent.includes('Wait')) {
-                                            span.textContent = 'View Results Now!';
-                                        }
-                                    });
-                                }
-                                
-                                // Make the button pulse to draw attention
-                                viewResultsBtn.classList.add('btn-pulse');
-                                
-                                // Add a timeout to ensure button is updated properly
-                                setTimeout(() => {
-                                    // Double-check that button is still enabled and properly styled
-                                    const currentBtn = document.querySelector('#view-results-btn');
-                                    if (currentBtn) {
-                                        if (currentBtn.disabled || currentBtn.innerHTML.includes('Wait')) {
-                                            console.log('SAFETY: Button still showing wait state after countdown completed, forcing update');
-                                            currentBtn.disabled = false;
-                                            currentBtn.style.opacity = '1';
-                                            currentBtn.style.cursor = 'pointer';
-                                            currentBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                                        }
-                                    }
-                                }, 500);
-                                
-                                // CRITICAL: Force direct click handler to fix clickability issues
-                                // Check if viewResultsBtn exists and has a parent before trying to replace it
-                                if (viewResultsBtn && viewResultsBtn.parentNode) {
-                                    try {
-                                        // Remove any existing handlers first by cloning the button
-                                        const newBtn = viewResultsBtn.cloneNode(true);
-                                        viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
-                                        viewResultsBtn = newBtn; // Update reference
-                                    } catch (e) {
-                                        console.error('Error replacing button:', e);
-                                        // Just continue with the existing button if replacement fails
-                                    }
-                                } else {
-                                    console.error('Button or its parent is null, cannot replace');
-                                    // Try to find the button again
-                                    viewResultsBtn = document.getElementById('view-results-btn');
-                                }
-                                
-                                // Add simple direct click handler that just hides the overlay
-                                viewResultsBtn.addEventListener('click', function(e) {
-                                    console.log('DIRECT CLICK: View Results button clicked at ' + new Date().toISOString());
-                                    
-                                    // Set flags
-                                    window.inResultsMode = true;
-                                    window.viewResultsBtnClicked = true;
-                                    
-                                    // Hide ad overlay
-                                    const adOverlay = document.getElementById('ad-overlay-results');
-                                    if (adOverlay) {
-                                        adOverlay.style.display = 'none';
-                                    }
-                                    
-                                    // Show results container
-                                    const resultsContainer = document.getElementById('results-container');
-                                    if (resultsContainer) {
-                                        resultsContainer.classList.remove('d-none');
-                                        resultsContainer.style.display = 'block';
-                                        
-                                        // CRITICAL FIX: If we have the last results data stored, redisplay it
-                                        if (window.lastResultsData) {
-                                            console.log('Redisplaying stored results data from first click handler');
-                                            displayResults(window.lastResultsData);
-                                        } else {
-                                            console.error('No results data found to display from first click handler');
-                                        }
-                                    }
-                                    
-                                    // Hide scan form
-                                    const scanForm = document.getElementById('scan-form-container');
-                                    if (scanForm) {
-                                        scanForm.classList.add('d-none');
-                                    }
-                                    
-                                    e.preventDefault();
-                                    return false;
-                                });
-                                
-                                console.log('Countdown completed naturally based on elapsed time');
-                            }
-                        } catch (e) {
-                            console.error('Error updating countdown:', e);
-                            // Clear the interval if there's an error
-                            clearInterval(window.countdownInterval);
-                        }
-                    }, 1000);
+                    // COMPLETELY REMOVED: No countdown interval or countdown functionality in this file
+                    // We now defer ALL countdown functionality to critical-transition-fix.js
+                    
+                    // Just let critical-transition-fix.js know we have a button that needs countdown
+                    document.dispatchEvent(new CustomEvent('trigger-countdown', {
+                        detail: { buttonId: 'view-results-btn', phase: 'second' }
+                    }));
+                    
+                    console.log('Notified central timer system to handle countdown');
                     
                     // Fix iOS-specific button format issue (class="rounded-pill") 
                     // Create a separate backup to specifically handle mobile lock icon

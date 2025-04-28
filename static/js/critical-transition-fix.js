@@ -36,6 +36,18 @@
         setTimeout(initializeTransitionFix, 100);
     }
     
+    // Listen for direct countdown trigger events from other scripts
+    document.addEventListener('trigger-countdown', function(e) {
+        console.log('Received trigger-countdown event:', e.detail);
+        
+        // Extract button ID and phase from event detail
+        const buttonId = e.detail.buttonId || 'view-results-btn';
+        const phase = e.detail.phase || 'second';
+        
+        // Set up countdown based on the requested phase
+        setupCountdown(phase);
+    });
+    
     // Initialize the transition fix
     function initializeTransitionFix() {
         // Set up state monitoring interval
@@ -246,6 +258,11 @@
                         window.SnapLottoAds.secondAdComplete = true;
                     }
                 }
+                
+                // Dispatch event to notify other scripts that countdown is complete
+                document.dispatchEvent(new CustomEvent('countdown-complete', {
+                    detail: { phase: phase, timeElapsed: Date.now() - startTime }
+                }));
             }
         }, config.countdownInterval);
     }

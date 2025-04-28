@@ -388,79 +388,23 @@
         }
     }
     
-    // Countdown timer with stronger enforcement and proper state tracking
+    // COMPLETELY REMOVED original countdown implementation
+    // Now we use a placeholder function that delegates to critical-transition-fix.js
     function startCountdown(seconds, counterId, callback) {
-        // Determine which button to control based on ad phase
-        const viewResultsBtn = document.getElementById('view-results-btn');
+        console.log("ads-mobile.js: Not starting countdown - deferring to critical-transition-fix.js");
         
-        // Keep button disabled until countdown completes
-        if (viewResultsBtn) {
-            viewResultsBtn.disabled = true;
-            
-            // Add countdown indicator to button text
-            if (counterId === 'first-ad') {
-                viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${seconds}s)`;
-            } else {
-                viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> Continue to Results (Wait ${seconds}s)`;
-            }
-        }
+        // Trigger event for critical-transition-fix.js to handle
+        const phase = counterId === 'first-ad' ? 'first' : 'second';
+        document.dispatchEvent(new CustomEvent('trigger-countdown', {
+            detail: { phase: phase, seconds: seconds }
+        }));
         
-        // Get countdown elements - support multiple counter IDs
-        const countdownEl = document.getElementById('countdown');
-        const countdownContainer = document.getElementById('countdown-container');
-        
-        if (countdownContainer) {
-            countdownContainer.style.display = 'block';
-        }
-        
-        if (countdownEl) {
-            countdownEl.textContent = seconds;
-        }
-        
-        // Store the expected completion time
-        const startTime = Date.now();
-        const expectedEndTime = startTime + (seconds * 1000);
-        
-        // Create countdown interval
-        const countdownInterval = setInterval(function() {
-            // Calculate remaining time based on actual elapsed time to prevent manipulation
-            const remainingSeconds = Math.max(0, Math.ceil((expectedEndTime - Date.now()) / 1000));
-            
-            // Update countdown display
-            if (countdownEl) {
-                countdownEl.textContent = remainingSeconds;
-            }
-            
-            // Update button text during countdown
-            if (viewResultsBtn) {
-                if (counterId === 'first-ad') {
-                    viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${remainingSeconds}s)`;
-                } else {
-                    viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> Continue to Results (Wait ${remainingSeconds}s)`;
-                }
-            }
-            
-            // Only complete when we've genuinely reached zero
-            if (remainingSeconds <= 0) {
-                clearInterval(countdownInterval);
-                
-                // When finished, execute callback
-                if (callback) callback();
-            }
-        }, 250); // Check more frequently for accurate countdown
-        
-        // Store interval reference for cleanup
-        window.SnapLottoAds.adIntervals.push(countdownInterval);
-        
-        // Safety timeout to ensure callback runs even if interval fails
+        // Safety timeout to ensure callback runs after the expected time
+        // This is just a fallback in case the central system fails
         const safetyTimeout = setTimeout(function() {
-            const elapsedTime = Date.now() - startTime;
-            
-            // Only execute if minimum time truly passed
-            if (elapsedTime >= seconds * 1000) {
-                if (callback) callback();
-            }
-        }, seconds * 1000 + 500); // Add a small buffer to ensure interval completes first
+            console.log(`ads-mobile.js: Safety callback executed after ${seconds} seconds`);
+            if (callback) callback();
+        }, seconds * 1000 + 1000);
         
         // Store timeout reference for cleanup
         window.SnapLottoAds.adTimeouts.push(safetyTimeout);
