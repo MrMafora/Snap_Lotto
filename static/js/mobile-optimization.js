@@ -1,144 +1,169 @@
 /**
- * Mobile Optimization - Improves loading speed on mobile devices
- * This script consolidates critical performance optimizations and defers non-essential operations
+ * Mobile Optimization Script
+ * This script runs very early in the page load cycle to optimize performance
+ * for mobile devices, especially iOS.
  */
 
-// Self-executing function to avoid polluting global scope
 (function() {
-    // Flag to indicate if we're on a mobile device
+    console.log('Mobile optimization script initializing');
+    
+    // Track the page load performance
+    const startTime = performance.now();
+    
+    // Define the mobile device detection
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     
-    // Set initial flags
-    window.pageOptimized = false;
-    window.criticalResourcesLoaded = false;
-    
-    // Only apply optimizations on mobile devices
-    if (isMobile) {
-        console.log('Mobile device detected, applying performance optimizations');
+    // Immediately add optimization classes to the body
+    document.addEventListener('DOMContentLoaded', function() {
+        if (isMobile) {
+            document.body.classList.add('mobile-optimized');
+            if (isIOS) {
+                document.body.classList.add('ios-device');
+            }
+        }
         
-        // Apply initial optimizations immediately
-        applyInitialOptimizations();
-        
-        // Set up load event handlers
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, applying critical performance optimizations');
-            
-            // Mark critical resources as loaded
-            window.criticalResourcesLoaded = true;
-            
-            // Apply the most important optimizations first
-            applyDOMLoadedOptimizations();
-            
-            // Defer non-essential operations
-            setTimeout(applyDeferredOptimizations, 100);
+        // Optimize images by setting loading="lazy" on non-critical images
+        const images = document.querySelectorAll('img:not([loading])');
+        images.forEach(img => {
+            if (!img.classList.contains('ticket-preview')) {
+                img.setAttribute('loading', 'lazy');
+            }
         });
         
-        // Apply final optimizations after window load
+        // Apply passive event listeners for touch events to improve scrolling performance
+        const touchTargets = document.querySelectorAll('button, a, .btn, .ticket-drop-area');
+        touchTargets.forEach(el => {
+            el.addEventListener('touchstart', function(){}, {passive: true});
+            el.addEventListener('touchmove', function(){}, {passive: true});
+        });
+        
+        // Reduce animation duration on mobile
+        if (isMobile) {
+            const style = document.createElement('style');
+            style.textContent = `
+                @media (max-width: 576px) {
+                    * {
+                        animation-duration: 50% !important;
+                        transition-duration: 50% !important;
+                    }
+                    
+                    .btn-pulse {
+                        animation-duration: 1s !important;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Detect and fix viewport issues on mobile
+        if (isMobile) {
+            const viewportMeta = document.querySelector('meta[name="viewport"]');
+            if (viewportMeta) {
+                // Ensure proper mobile rendering with maximum-scale for accessibility
+                viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+            }
+        }
+        
+        // Special iOS optimizations
+        if (isIOS) {
+            // Fix for iOS button display issues
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                btn.style.webkitAppearance = 'none';
+                btn.style.transform = 'translateZ(0)'; // Hardware acceleration
+            });
+            
+            // Disable hover effects on iOS since they can cause performance issues
+            const style = document.createElement('style');
+            style.textContent = `
+                @media (hover: none) {
+                    a:hover, button:hover, .btn:hover {
+                        transition: none !important;
+                        transform: none !important;
+                        box-shadow: none !important;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // iOS specific scrolling optimization
+            document.body.style.webkitOverflowScrolling = 'touch';
+        }
+        
+        // Track and log performance
         window.addEventListener('load', function() {
-            console.log('Window loaded, applying final performance optimizations');
+            const loadTime = performance.now() - startTime;
+            console.log(`Page fully loaded in ${Math.round(loadTime)}ms`);
             
-            // Mark page as fully optimized
-            window.pageOptimized = true;
+            // If page load is taking too long, simplify rendering
+            if (loadTime > 3000 && isMobile) {
+                console.log('Applying emergency performance optimizations');
+                
+                // Disable most animations
+                const style = document.createElement('style');
+                style.textContent = `
+                    @media (max-width: 576px) {
+                        * {
+                            animation: none !important;
+                            transition: none !important;
+                        }
+                        
+                        .btn-pulse {
+                            animation: none !important;
+                            box-shadow: none !important;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                // Simplify shadows and effects
+                document.querySelectorAll('.card, .btn, .ad-container').forEach(el => {
+                    el.style.boxShadow = 'none';
+                });
+            }
         });
-    }
+    });
     
-    // Step 1: Apply immediate optimizations
-    function applyInitialOptimizations() {
-        // Disable animations initially to improve first paint
+    // Create a global helper for checking if we're on mobile
+    window.isMobileDevice = isMobile;
+    window.isIOSDevice = isIOS;
+    
+    // Provide a global function for emergency optimization if needed
+    window.applyEmergencyMobileOptimization = function() {
+        console.log('Applying emergency mobile optimizations');
+        
+        // Remove all animations immediately
         const style = document.createElement('style');
         style.textContent = `
             * {
-                animation-duration: 0.001s !important;
-                transition-duration: 0.001s !important;
-            }
-            
-            body, html {
-                scroll-behavior: auto !important;
-            }
-            
-            .ticket-drop-area {
+                animation: none !important;
                 transition: none !important;
+                box-shadow: none !important;
             }
         `;
         document.head.appendChild(style);
         
-        // Prevent render-blocking by deferring unnecessary scripts
-        document.querySelectorAll('script:not([data-critical="true"])').forEach(script => {
-            if (!script.hasAttribute('defer') && !script.hasAttribute('async')) {
-                script.setAttribute('defer', '');
-            }
-        });
-    }
-    
-    // Step 2: Apply DOM-loaded optimizations
-    function applyDOMLoadedOptimizations() {
-        // Optimize for touch events
-        document.documentElement.style.touchAction = 'manipulation';
-        
-        // Initialize any visible UI elements first
-        initializeVisibleElements();
-        
-        // Enable hardware acceleration for smoother animations
-        document.body.style.transform = 'translateZ(0)';
-        document.body.style.backfaceVisibility = 'hidden';
-        document.body.style.perspective = '1000px';
-        
-        // Enable smoother scrolling now that critical content is loaded
-        document.documentElement.style.scrollBehavior = 'smooth';
-    }
-    
-    // Step 3: Apply deferred optimizations
-    function applyDeferredOptimizations() {
-        // Remove initial animation/transition block after a short delay
-        const styleElements = document.querySelectorAll('style');
-        styleElements.forEach(style => {
-            if (style.textContent.includes('animation-duration: 0.001s')) {
-                setTimeout(() => {
-                    style.textContent = '';
-                }, 300);
-            }
+        // Simplify rendering
+        document.querySelectorAll('.card, .btn, .ad-container').forEach(el => {
+            el.style.boxShadow = 'none';
         });
         
-        // Optimize images that are off-screen
-        optimizeOffscreenImages();
-    }
-    
-    // Helper function to initialize visible UI elements first
-    function initializeVisibleElements() {
-        // Focus on visible form elements
-        const dropArea = document.getElementById('drop-area');
-        if (dropArea && isElementInViewport(dropArea)) {
-            dropArea.classList.add('ready');
-        }
-        
-        // Pre-initialize the file input system
-        const fileInput = document.getElementById('ticket-image');
-        if (fileInput) {
-            // Create an empty touch event listener to make the input more responsive
-            fileInput.addEventListener('touchstart', function() {}, { passive: true });
-        }
-    }
-    
-    // Helper function to check if element is in viewport
-    function isElementInViewport(el) {
-        if (!el || !el.getBoundingClientRect) return false;
-        
-        const rect = el.getBoundingClientRect();
-        return (
-            rect.top >= 0 &&
-            rect.left >= 0 &&
-            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-        );
-    }
-    
-    // Helper function to optimize offscreen images
-    function optimizeOffscreenImages() {
-        // Set loading="lazy" for images that are offscreen
+        // Reduce image quality for faster rendering
         document.querySelectorAll('img').forEach(img => {
-            if (!isElementInViewport(img) && !img.getAttribute('loading')) {
-                img.setAttribute('loading', 'lazy');
+            if (!img.classList.contains('ticket-preview')) {
+                img.style.display = 'none';
             }
         });
-    }
+        
+        // Disable all non-critical background images
+        document.querySelectorAll('[style*="background-image"]').forEach(el => {
+            el.style.backgroundImage = 'none';
+        });
+        
+        return 'Emergency optimizations applied';
+    };
+    
+    // Log completion of the initialization
+    console.log('Mobile optimization script loaded');
 })();

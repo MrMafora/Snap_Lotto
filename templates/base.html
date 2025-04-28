@@ -249,7 +249,17 @@
 
     {% block scripts %}{% endblock %}
     {% block additional_scripts %}{% endblock %}
-    <script src="{{ url_for('static', filename='js/ads.js') }}"></script>
+    <!-- PERFORMANCE: Conditionally load optimized or full ad scripts based on device -->
+    <script>
+        // Check if this is a mobile device
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            // Load the mobile-optimized version
+            document.write('<script src="{{ url_for('static', filename='js/ads-mobile.js') }}" defer><\/script>');
+        } else {
+            // Load the full version for desktop
+            document.write('<script src="{{ url_for('static', filename='js/ads.js') }}"><\/script>');
+        }
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Force light theme on all tables and rows

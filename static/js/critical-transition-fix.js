@@ -1,118 +1,188 @@
 /**
- * Critical Transition Fix - Ensures proper transition from first ad to second ad
- * This script specifically targets the issue where scanning gets stuck after the first ad
- * and doesn't show the second ad with results.
+ * Critical Ad Transition Fix
+ * Ensures smooth transitions between the first and second ads
+ * Optimized for mobile performance and reliability
  */
 
-// Self-executing function to avoid polluting global scope
 (function() {
-    // Set up detection for when first ad closes
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('Critical transition fix loaded');
+    console.log('Critical transition fix loading');
+    
+    // Global state tracking variables
+    let firstAdShown = false;
+    let secondAdShown = false;
+    let transitionInProgress = false;
+    
+    // Log state changes to help debug
+    function logTransitionState(message) {
+        console.log(`TRANSITION: ${message} (first: ${firstAdShown}, second: ${secondAdShown})`);
+    }
+    
+    // Function to ensure the transition between ads happens correctly
+    function ensureAdTransition() {
+        if (transitionInProgress) {
+            return; // Don't interrupt an active transition
+        }
         
-        // We need to ensure the transition from first ad to second ad happens properly
-        // This function will directly monitor when the first ad closes
-        function monitorFirstAdClosure() {
-            const loadingOverlay = document.getElementById('ad-overlay-loading');
+        const adOverlayLoading = document.getElementById('ad-overlay-loading');
+        const adOverlayResults = document.getElementById('ad-overlay-results');
+        
+        // If first ad is shown but second isn't yet
+        if (firstAdShown && !secondAdShown && adOverlayLoading && adOverlayLoading.style.display === 'flex') {
+            logTransitionState('First ad detected, preparing transition to second ad');
             
-            // Create a mutation observer to detect when the first ad closes
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'attributes' && 
-                        mutation.attributeName === 'style' && 
-                        mutation.target.style.display === 'none') {
+            transitionInProgress = true;
+            
+            // Force transition to second ad
+            setTimeout(() => {
+                logTransitionState('Forcing transition to second ad');
+                
+                // Hide the first ad overlay
+                adOverlayLoading.style.display = 'none';
+                
+                // Show the second ad overlay
+                if (adOverlayResults) {
+                    adOverlayResults.style.display = 'flex';
+                    secondAdShown = true;
+                    
+                    // Make sure countdown is shown and running
+                    ensureCountdownVisible();
+                }
+                
+                transitionInProgress = false;
+            }, 500);
+        }
+    }
+    
+    // Function to ensure countdown is visible and working
+    function ensureCountdownVisible() {
+        const countdownContainer = document.getElementById('countdown-container');
+        const viewResultsBtn = document.getElementById('view-results-btn');
+        
+        if (countdownContainer && viewResultsBtn) {
+            // If the countdown container is empty, initialize it
+            if (!countdownContainer.innerText || countdownContainer.innerText.trim() === '') {
+                countdownContainer.innerText = 'Wait 15s';
+                
+                // Also update button text to match
+                if (!viewResultsBtn.innerText.includes('Wait')) {
+                    const originalText = viewResultsBtn.innerText;
+                    viewResultsBtn.innerText = 'Wait 15s';
+                    viewResultsBtn.setAttribute('data-original-text', originalText);
+                }
+                
+                // Ensure button is disabled during countdown
+                viewResultsBtn.disabled = true;
+                
+                logTransitionState('Countdown initialized');
+            }
+        }
+    }
+    
+    // Watch for the first ad being shown
+    function watchFirstAdDisplay() {
+        const adOverlayLoading = document.getElementById('ad-overlay-loading');
+        
+        if (adOverlayLoading) {
+            // Create a mutation observer to watch for the first ad display changes
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        const displayStyle = adOverlayLoading.style.display;
                         
-                        console.log('⚠️ Critical transition fix: First ad closed, ensuring second ad shows');
-                        
-                        // Force short delay to ensure proper sequencing
-                        setTimeout(function() {
-                            // Only proceed if we have results data
-                            if (window.lastResultsData) {
-                                const resultsOverlay = document.getElementById('ad-overlay-results');
-                                if (resultsOverlay) {
-                                    // Force the second ad to display
-                                    resultsOverlay.style.display = 'flex';
-                                    console.log('⚠️ Critical transition fix: Forced second ad to show');
-                                    
-                                    // Use AdManager if available
-                                    if (window.AdManager && typeof window.AdManager.showInterstitialAd === 'function') {
-                                        window.AdManager.showInterstitialAd(function() {
-                                            console.log('⚠️ Critical transition fix: Called AdManager.showInterstitialAd');
-                                        });
-                                    }
+                        if (displayStyle === 'flex' && !firstAdShown) {
+                            firstAdShown = true;
+                            logTransitionState('First ad now displayed');
+                            
+                            // Set a backup timer to ensure transition happens
+                            setTimeout(() => {
+                                if (!secondAdShown) {
+                                    logTransitionState('Backup timer triggering transition');
+                                    ensureAdTransition();
                                 }
-                            }
-                        }, 200);
+                            }, 15000); // 15 second backup
+                        }
                     }
                 });
             });
             
-            // Start observing the loading overlay for style changes
-            if (loadingOverlay) {
-                observer.observe(loadingOverlay, { attributes: true });
-                console.log('⚠️ Critical transition fix: Now monitoring first ad for closure');
-            }
+            // Start observing
+            observer.observe(adOverlayLoading, { attributes: true });
+            logTransitionState('First ad observer started');
         }
-        
-        // Start monitoring first ad immediately
-        monitorFirstAdClosure();
-        
-        // Also add a backup check that runs after ticket scanning starts
-        const scanButton = document.getElementById('scan-button');
-        if (scanButton) {
-            scanButton.addEventListener('click', function() {
-                console.log('⚠️ Critical transition fix: Scan button clicked, adding backup check');
+    }
+    
+    // Watch for scanning process to complete
+    function watchScanProcess() {
+        // If the processTicketWithAds function exists, enhance it
+        if (window.processTicketWithAds) {
+            const originalFunction = window.processTicketWithAds;
+            
+            window.processTicketWithAds = function() {
+                // Reset the ad display tracking
+                firstAdShown = false;
+                secondAdShown = false;
+                transitionInProgress = false;
+                logTransitionState('Ad state reset for new scan');
                 
-                // Add a backup timer to ensure second ad shows after first ad
-                setTimeout(function() {
-                    const loadingOverlay = document.getElementById('ad-overlay-loading');
-                    const resultsOverlay = document.getElementById('ad-overlay-results');
-                    
-                    if (loadingOverlay && loadingOverlay.style.display === 'none' && 
-                        resultsOverlay && resultsOverlay.style.display !== 'flex' && 
-                        window.lastResultsData) {
-                        
-                        console.log('⚠️ Critical transition fix: BACKUP - First ad closed but second ad not shown');
-                        
-                        // Force show second ad
-                        resultsOverlay.style.display = 'flex';
-                        
-                        // Use AdManager if available
-                        if (window.AdManager && typeof window.AdManager.showInterstitialAd === 'function') {
-                            window.AdManager.showInterstitialAd(function() {
-                                console.log('⚠️ Critical transition fix: BACKUP - Called AdManager.showInterstitialAd');
-                            });
-                        }
-                    }
-                }, 8000); // Check 8 seconds after scan button clicked
-            });
+                // Call the original function
+                originalFunction.apply(this, arguments);
+            };
+            
+            logTransitionState('Scan process function enhanced');
         }
+    }
+    
+    // Initialize everything when the DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Start watching for the first ad display
+        watchFirstAdDisplay();
         
-        // Add a DOM-wide catch for first-to-second ad transition
-        // This is the most aggressive approach for ensuring the transition works
-        setInterval(function() {
-            // Only check if we have scan results
-            if (window.lastResultsData) {
-                const loadingOverlay = document.getElementById('ad-overlay-loading');
-                const resultsOverlay = document.getElementById('ad-overlay-results');
-                
-                // If loading ad is hidden but results ad is not showing, force it
-                if (loadingOverlay && loadingOverlay.style.display === 'none' && 
-                    resultsOverlay && resultsOverlay.style.display !== 'flex') {
-                    
-                    console.log('⚠️ Critical transition fix: INTERVAL - Detected missing second ad');
-                    
-                    // Force show second ad
-                    resultsOverlay.style.display = 'flex';
-                    
-                    // Use AdManager if available
-                    if (window.AdManager && typeof window.AdManager.showInterstitialAd === 'function') {
-                        window.AdManager.showInterstitialAd(function() {
-                            console.log('⚠️ Critical transition fix: INTERVAL - Called AdManager.showInterstitialAd');
-                        });
-                    }
-                }
-            }
-        }, 1000); // Check every second
+        // Enhance the scan process
+        watchScanProcess();
+        
+        // Set up periodic transition check
+        setInterval(ensureAdTransition, 2000);
+        
+        logTransitionState('Transition monitoring initialized');
     });
+    
+    // Emergency transition function that can be called from console for debugging
+    window.forceAdTransition = function() {
+        const adOverlayLoading = document.getElementById('ad-overlay-loading');
+        const adOverlayResults = document.getElementById('ad-overlay-results');
+        
+        if (adOverlayLoading) {
+            adOverlayLoading.style.display = 'none';
+        }
+        
+        if (adOverlayResults) {
+            adOverlayResults.style.display = 'flex';
+            ensureCountdownVisible();
+        }
+        
+        logTransitionState('EMERGENCY transition force-triggered');
+        return 'Ad transition forced';
+    };
+    
+    // Emergency function to fix a stuck button
+    window.fixStuckButton = function() {
+        const viewResultsBtn = document.getElementById('view-results-btn');
+        
+        if (viewResultsBtn) {
+            // Read the original text or use a default
+            const originalText = viewResultsBtn.getAttribute('data-original-text') || 'View Results';
+            
+            // Reset the button
+            viewResultsBtn.innerText = originalText;
+            viewResultsBtn.disabled = false;
+            viewResultsBtn.classList.add('btn-pulse');
+            
+            logTransitionState('EMERGENCY button reset triggered');
+            return 'Button has been reset';
+        }
+        
+        return 'Button not found';
+    };
+    
+    console.log('Critical transition fix loaded');
 })();
