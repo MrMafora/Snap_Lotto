@@ -96,9 +96,9 @@
                 }
                 
                 // Check if the minimum time has elapsed
-                const elapsed = now - state.countdownStartTime;
-                if (elapsed < config.adMinimumDisplayTime) {
-                    console.log(`Button clicked too early (${elapsed}ms). Need ${config.adMinimumDisplayTime}ms minimum.`);
+                const timeElapsed = now - state.countdownStartTime;
+                if (timeElapsed < config.adMinimumDisplayTime) {
+                    console.log(`Button clicked too early (${timeElapsed}ms). Need ${config.adMinimumDisplayTime}ms minimum.`);
                     e.preventDefault();
                     e.stopPropagation();
                     return false;

@@ -1143,6 +1143,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     window.countdownStartTime = Date.now();
                     window.countdownDuration = 15000; // 15 seconds in milliseconds
                     
+                    // Ensure the countdown is triggered properly
+                    document.dispatchEvent(new CustomEvent('trigger-countdown', {
+                        detail: { phase: 'second', seconds: 15 }
+                    }));
+                    
                     // Clear any existing timers to prevent conflicts
                     if (window.countdownInterval) {
                         clearInterval(window.countdownInterval);

@@ -244,7 +244,7 @@
                 viewBtn.classList.remove('btn-pulse');
                 viewBtn.classList.remove('btn-success');
                 viewBtn.classList.add('btn-secondary');
-                viewBtn.innerHTML = '<i class="fas fa-lock me-2"></i> Continue to Results (Wait 15s)';
+                viewBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
             }
             
             console.log("Second ad shown at: " + new Date().toISOString());
@@ -327,7 +327,7 @@
             viewBtn.classList.add('btn-success');
             
             // Update inner text to indicate it's ready
-            viewBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> Continue to Results!';
+            viewBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
             
             // Clear any existing event listeners by cloning the button
             const newViewBtn = viewBtn.cloneNode(true);
