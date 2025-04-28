@@ -225,6 +225,12 @@
         if (resultsOverlay) {
             resultsOverlay.style.display = 'flex';
             
+            // Hide all other overlays to ensure no conflicts
+            const loadingOverlay = document.getElementById('ad-overlay-loading');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+            
             // Update state and ensure previous ad state is reset
             window.SnapLottoAds.adDisplayActive = true;
             window.SnapLottoAds.secondAdShown = true;

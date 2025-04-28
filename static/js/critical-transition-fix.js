@@ -16,7 +16,8 @@
         adDisplayTime: 15,         // Seconds to display each ad
         countdownInterval: 1000,   // Update countdown every 1 second
         checkInterval: 500,        // Check ad state every 500ms
-        maxChecks: 60             // Maximum number of state checks (30 seconds)
+        maxChecks: 60,            // Maximum number of state checks (30 seconds)
+        adMinimumDisplayTime: 15000 // Minimum time in ms before ad can be closed
     };
     
     // State tracking
@@ -25,7 +26,8 @@
         activeCountdown: null,
         adPhase: 'none',           // 'none', 'first', or 'second'
         checkCount: 0,
-        transitionInProgress: false
+        transitionInProgress: false,
+        countdownStartTime: 0      // When the countdown started (timestamp)
     };
     
     // Initialize when DOM is ready
@@ -81,10 +83,21 @@
     function connectViewResultsButtons() {
         const viewResultsBtn = document.getElementById('view-results-btn');
         if (viewResultsBtn) {
-            viewResultsBtn.addEventListener('click', function() {
+            viewResultsBtn.addEventListener('click', function(e) {
+                const now = Date.now();
+                const elapsed = now - state.countdownStartTime;
+                
+                // Check if minimum display time has elapsed before allowing button click
+                if (elapsed < config.adMinimumDisplayTime && state.countdownRunning) {
+                    console.log(`Button clicked too early (${elapsed}ms). Minimum required: ${config.adMinimumDisplayTime}ms`);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                
                 // Identify which phase we're in based on which overlay is visible
                 if (isFirstAdVisible()) {
-                    // Transition from first ad to second ad
+                    // Transition from first ad to second ad 
                     state.adPhase = 'second';
                     state.checkCount = 0;
                     
@@ -216,6 +229,7 @@
         
         // Set the start time to ensure consistent countdown
         const startTime = Date.now();
+        state.countdownStartTime = startTime;  // Save it in state for button check
         const duration = config.adDisplayTime * 1000;
         
         // Start the consolidated countdown
