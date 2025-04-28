@@ -1,8 +1,11 @@
 /**
- * Countdown Button Stability Fix
+ * Countdown Button Stability Fix - MAJOR UPDATE FOR MOBILE
  * 
  * This script prevents the View Results button from flashing on/off during countdown 
  * by intercepting any modifications to its visibility, opacity, or display properties.
+ * 
+ * Updated version adds multiple safeguards for mobile devices and includes
+ * a complete independent countdown implementation to ensure reliability.
  */
 
 (function() {
@@ -69,6 +72,106 @@
         button.style.transition = 'none';
     }
     
+    // Independent countdown implementation - completely separate from any other countdown
+    let backupCountdownActive = false;
+    let backupCountdownStartTime = 0;
+    let backupCountdownTotal = 15; // Default 15 seconds
+    let backupCountdownInterval = null;
+    
+    function startBackupCountdown(button, container) {
+        if (backupCountdownActive) {
+            return; // Don't start if already running
+        }
+        
+        console.log('Starting backup countdown system');
+        
+        // Store original button text
+        const originalBtnText = button.getAttribute('data-original-text') || button.innerText.replace(/Wait.*/, 'View Results');
+        button.setAttribute('data-original-text', originalBtnText);
+        
+        // Disable the button during countdown
+        button.disabled = true;
+        
+        // Set initial values
+        backupCountdownActive = true;
+        backupCountdownStartTime = Date.now();
+        
+        // Stop any existing interval
+        if (backupCountdownInterval) {
+            clearInterval(backupCountdownInterval);
+        }
+        
+        // Function to update countdown display
+        function updateCountdown() {
+            // Calculate remaining time
+            const elapsedMs = Date.now() - backupCountdownStartTime;
+            const elapsedSeconds = Math.floor(elapsedMs / 1000);
+            const remainingSeconds = Math.max(0, backupCountdownTotal - elapsedSeconds);
+            
+            // Log for debugging
+            console.log(`Backup countdown: ${remainingSeconds}s remaining`);
+            
+            // Update display
+            if (remainingSeconds > 0) {
+                // Update container text
+                if (container) {
+                    container.textContent = `Please wait ${remainingSeconds} seconds`;
+                }
+                
+                // Update button text with multiple methods to ensure it works
+                button.textContent = `Wait ${remainingSeconds}s`;
+                button.innerText = `Wait ${remainingSeconds}s`;
+                
+                // Force disabled state
+                button.disabled = true;
+            } else {
+                // Time's up! Enable the button
+                if (container) {
+                    container.textContent = 'You can now view your results!';
+                }
+                
+                // Update button with multiple methods
+                button.textContent = originalBtnText;
+                button.innerText = originalBtnText;
+                
+                // Enable the button using multiple methods to ensure it works
+                button.disabled = false;
+                button.removeAttribute('disabled');
+                
+                // Add visual cue
+                button.classList.add('btn-pulse');
+                
+                // Stop the countdown
+                clearInterval(backupCountdownInterval);
+                backupCountdownActive = false;
+                console.log('Backup countdown completed!');
+            }
+        }
+        
+        // Start the interval
+        backupCountdownInterval = setInterval(updateCountdown, 1000);
+        
+        // Run immediately
+        updateCountdown();
+    }
+    
+    // Function to detect and take over countdown 
+    function detectAndFixCountdown() {
+        const viewResultsBtn = document.getElementById('view-results-btn');
+        const countdownContainer = document.getElementById('countdown-container');
+        
+        if (viewResultsBtn && viewResultsBtn.innerText.includes('Wait') && !backupCountdownActive) {
+            // Extract the total countdown time if possible
+            const timeMatch = viewResultsBtn.innerText.match(/Wait\s+(\d+)s/);
+            if (timeMatch && timeMatch[1]) {
+                backupCountdownTotal = parseInt(timeMatch[1], 10);
+            }
+            
+            console.log(`Found stuck countdown button with ${backupCountdownTotal}s, taking over...`);
+            startBackupCountdown(viewResultsBtn, countdownContainer);
+        }
+    }
+    
     // Run on page load
     function initStabilization() {
         console.log('Initializing button stabilization');
@@ -80,30 +183,78 @@
             if (button.textContent.includes('Wait')) {
                 console.log('Stabilizing button:', button.textContent);
                 stabilizeButton(button);
+                
+                // Check if this is a countdown that needs takeover
+                detectAndFixCountdown();
             }
         });
         
-        // Set up a periodic check for new buttons
+        // Enhanced periodic check for new buttons and countdown issues
         setInterval(function() {
             const buttons = document.querySelectorAll('button');
             
+            // Check for new buttons to stabilize
             buttons.forEach(function(button) {
                 if (button.textContent.includes('Wait') && !button.hasAttribute('data-stabilized')) {
                     console.log('Found new countdown button:', button.textContent);
                     stabilizeButton(button);
                 }
             });
+            
+            // Look for a specific pattern that indicates a frozen countdown
+            const viewResultsBtn = document.getElementById('view-results-btn');
+            if (viewResultsBtn && viewResultsBtn.innerText.includes('Wait') && 
+                !backupCountdownActive && viewResultsBtn.disabled) {
+                
+                // If the button text hasn't changed for 3 seconds, assume countdown is stuck
+                const currentText = viewResultsBtn.innerText;
+                viewResultsBtn.setAttribute('data-last-text', currentText);
+                
+                setTimeout(() => {
+                    if (viewResultsBtn.innerText === currentText && 
+                        currentText === viewResultsBtn.getAttribute('data-last-text')) {
+                        console.log('Detected frozen countdown, taking over');
+                        detectAndFixCountdown();
+                    }
+                }, 3000);
+            }
         }, 500); // Check every 500ms
+        
+        // Watch for ad overlay becoming visible
+        const adOverlayResults = document.getElementById('ad-overlay-results');
+        if (adOverlayResults) {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        if (adOverlayResults.style.display === 'flex') {
+                            console.log('Ad overlay results became visible, checking countdown');
+                            
+                            // Wait a bit for the DOM to update
+                            setTimeout(() => {
+                                detectAndFixCountdown();
+                            }, 500);
+                        }
+                    }
+                });
+            });
+            
+            // Start observing
+            observer.observe(adOverlayResults, { attributes: true });
+        }
         
         // Override any timers or animations that might affect the button
         const originalSetInterval = window.setInterval;
         window.setInterval = function(callback, time, ...args) {
             // Wrap the callback to check button state after each interval
             const wrappedCallback = function() {
-                // Run original callback
-                callback();
+                try {
+                    // Run original callback
+                    callback();
+                } catch (e) {
+                    console.error('Error in countdown interval:', e);
+                }
                 
-                // Then check for countdown buttons
+                // Check for countdown buttons
                 const countdownButtons = document.querySelectorAll('button');
                 countdownButtons.forEach(function(button) {
                     if (button.textContent.includes('Wait')) {

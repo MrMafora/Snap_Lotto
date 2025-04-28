@@ -67,57 +67,226 @@ class AdManager {
         }
     }
     
-    // Setup countdown timer
+    // Setup countdown timer - improved reliability
     setupCountdown() {
         const countdownContainer = document.getElementById('countdown-container');
         const viewResultsBtn = document.getElementById('view-results-btn');
         
-        if (!countdownContainer || !viewResultsBtn) return;
+        if (!countdownContainer || !viewResultsBtn) {
+            console.error('Missing countdown elements!');
+            return;
+        }
         
-        // Disable button during countdown
+        // Store original button text and disable button
         viewResultsBtn.disabled = true;
-        const originalBtnText = viewResultsBtn.innerText;
+        const originalBtnText = viewResultsBtn.innerText || 'View Results';
         viewResultsBtn.setAttribute('data-original-text', originalBtnText);
+        
+        // Clear any existing countdown interval
+        if (window.countdownTimerInterval) {
+            clearInterval(window.countdownTimerInterval);
+        }
         
         // Set initial countdown
         let timeLeft = this.adDisplayTime;
+        
+        // Update text immediately for the first time
         countdownContainer.textContent = `Please wait ${timeLeft} seconds`;
         viewResultsBtn.textContent = `Wait ${timeLeft}s`;
         
-        // Start countdown
-        const countdownInterval = setInterval(() => {
+        console.log('Found countdown button: ', viewResultsBtn.textContent);
+        
+        // Start the countdown
+        window.countdownTimerInterval = setInterval(() => {
             timeLeft--;
             
-            // Update countdown text
+            // Log every tick for debugging
+            console.log(`Countdown: ${timeLeft} seconds left`);
+            
             if (timeLeft > 0) {
+                // Update countdown text on each tick
                 countdownContainer.textContent = `Please wait ${timeLeft} seconds`;
                 viewResultsBtn.textContent = `Wait ${timeLeft}s`;
+                
+                // Set a backup direct text update in case the normal update fails
+                setTimeout(() => {
+                    if (viewResultsBtn.textContent !== `Wait ${timeLeft}s`) {
+                        console.log('Using backup text update method');
+                        viewResultsBtn.innerText = `Wait ${timeLeft}s`;
+                    }
+                }, 50);
             } else {
-                // Enable the button when countdown is complete
-                clearInterval(countdownInterval);
+                // COUNTDOWN COMPLETE - enable the button
+                clearInterval(window.countdownTimerInterval);
+                window.countdownTimerInterval = null;
+                
+                // Clear countdown container and update button text/state
                 countdownContainer.textContent = 'You can now view your results!';
                 viewResultsBtn.textContent = originalBtnText;
                 viewResultsBtn.disabled = false;
                 viewResultsBtn.classList.add('btn-pulse');
                 
+                // Force-enable the button after a small delay to be extra safe
+                setTimeout(() => {
+                    viewResultsBtn.disabled = false;
+                    if (viewResultsBtn.textContent !== originalBtnText) {
+                        viewResultsBtn.textContent = originalBtnText;
+                    }
+                }, 100);
+                
                 // Log completion for debugging
-                console.log('Countdown completed, button enabled');
+                console.log('Countdown completed! Button enabled.');
             }
         }, 1000);
         
-        // Set up button click handler
-        viewResultsBtn.onclick = () => {
-            adOverlayResults.style.display = 'none';
-            window.adResultsActive = false;
-            
-            // For immediate scrolling to results
-            setTimeout(() => {
+        // Set up button click handler with enhanced error handling
+        viewResultsBtn.onclick = (event) => {
+            try {
+                console.log('View Results button clicked');
+                
+                // Prevent default button behavior
+                event.preventDefault();
+                
+                // Hide the ad overlay
+                adOverlayResults.style.display = 'none';
+                window.adResultsActive = false;
+                
+                // Show the results container if it's hidden
                 const resultsContainer = document.getElementById('results-container');
                 if (resultsContainer) {
-                    resultsContainer.scrollIntoView({ behavior: 'smooth' });
+                    resultsContainer.classList.remove('d-none');
+                    console.log('Results container found and displayed');
+                    
+                    // For immediate scrolling to results
+                    setTimeout(() => {
+                        try {
+                            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+                            console.log('Scrolled to results container');
+                        } catch (scrollError) {
+                            console.error('Error scrolling to results:', scrollError);
+                        }
+                    }, 100);
+                } else {
+                    console.error('Results container not found!');
                 }
-            }, 100);
+                
+                // Display the results based on the cached data
+                if (window.scanResults) {
+                    console.log('Using cached scan results');
+                    displayResults(window.scanResults);
+                } else {
+                    console.error('No scan results found in cache');
+                }
+            } catch (error) {
+                console.error('Error in view results button handler:', error);
+                alert('There was an error displaying your results. Please try again.');
+            }
+            
+            // Return false to prevent any default actions
+            return false;
         };
+        
+        // Helper function to display results
+        function displayResults(results) {
+            try {
+                console.log('Displaying results:', results);
+                
+                // Find the results container
+                const resultsContainer = document.getElementById('results-container');
+                if (!resultsContainer) {
+                    console.error('Results container not found');
+                    return;
+                }
+                
+                // Make sure it's visible
+                resultsContainer.classList.remove('d-none');
+                
+                // Update the UI with the results
+                const successContent = document.getElementById('success-content');
+                const errorMessage = document.getElementById('error-message');
+                const errorText = document.getElementById('error-text');
+                
+                if (results.error) {
+                    // Show error message
+                    if (successContent) successContent.classList.add('d-none');
+                    if (errorMessage && errorText) {
+                        errorText.textContent = results.error;
+                        errorMessage.classList.remove('d-none');
+                    }
+                    return;
+                }
+                
+                // Show success content
+                if (errorMessage) errorMessage.classList.add('d-none');
+                if (successContent) successContent.classList.remove('d-none');
+                
+                // Update lottery info
+                document.getElementById('result-lottery-type').textContent = results.lottery_type || 'Unknown';
+                document.getElementById('result-draw-number').textContent = results.draw_number || 'Latest';
+                document.getElementById('result-draw-date').textContent = results.draw_date || 'Unknown';
+                
+                // Update detected info
+                document.getElementById('detected-game-type').textContent = results.detected_type || 'Auto-detected';
+                document.getElementById('detected-draw-number').textContent = results.detected_draw || 'Not detected';
+                document.getElementById('detected-draw-date').textContent = results.detected_date || 'Not detected';
+                
+                // Update winning numbers display
+                const winningNumbersContainer = document.getElementById('winning-numbers');
+                if (winningNumbersContainer && results.winning_numbers) {
+                    winningNumbersContainer.innerHTML = '';
+                    results.winning_numbers.forEach(number => {
+                        const numberBall = document.createElement('div');
+                        numberBall.className = 'lottery-ball';
+                        numberBall.textContent = number;
+                        winningNumbersContainer.appendChild(numberBall);
+                    });
+                }
+                
+                // Update ticket numbers display
+                const ticketNumbersContainer = document.getElementById('ticket-numbers');
+                if (ticketNumbersContainer && results.ticket_numbers) {
+                    ticketNumbersContainer.innerHTML = '';
+                    results.ticket_numbers.forEach(number => {
+                        const numberBall = document.createElement('div');
+                        numberBall.className = 'lottery-ball ticket-ball';
+                        numberBall.textContent = number;
+                        ticketNumbersContainer.appendChild(numberBall);
+                    });
+                }
+                
+                // Update matched count
+                const matchedCount = document.getElementById('matched-count');
+                if (matchedCount && results.matched_count !== undefined) {
+                    matchedCount.textContent = results.matched_count;
+                }
+                
+                // Update matched numbers
+                const matchedNumbersContainer = document.getElementById('matched-numbers');
+                if (matchedNumbersContainer && results.matched_numbers) {
+                    matchedNumbersContainer.innerHTML = '';
+                    results.matched_numbers.forEach(number => {
+                        const numberBall = document.createElement('div');
+                        numberBall.className = 'lottery-ball match-ball';
+                        numberBall.textContent = number;
+                        matchedNumbersContainer.appendChild(numberBall);
+                    });
+                }
+                
+                // Update win status
+                const winStatusElement = document.getElementById('win-status');
+                if (winStatusElement) {
+                    if (results.is_winner) {
+                        winStatusElement.innerHTML = '<div class="alert alert-success"><i class="fas fa-trophy me-2"></i> Congratulations! You have a winning ticket!</div>';
+                    } else {
+                        winStatusElement.innerHTML = '<div class="alert alert-warning"><i class="fas fa-times-circle me-2"></i> Sorry, this is not a winning ticket.</div>';
+                    }
+                }
+                
+                console.log('Results displayed successfully');
+            } catch (error) {
+                console.error('Error displaying results:', error);
+            }
+        }
     }
 }
 

@@ -235,10 +235,149 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         </div>
     </div>
     <!-- Countdown timer will be placed here above the button -->
-    <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;"></div>
-    <button class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;">
-        <i class="fas fa-check-circle me-2"></i> View Results
+    <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;">Please wait 15 seconds</div>
+    <button class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;" disabled>
+        <i class="fas fa-check-circle me-2"></i> Wait 15s
     </button>
+    
+    <!-- EMERGENCY COUNTDOWN: Inline script to ensure countdown works even if other scripts fail -->
+    <script>
+        (function() {
+            console.log('Enhanced emergency countdown initializing');
+            
+            // Important variables
+            let startTime = null;
+            const totalTime = 15; // seconds
+            const countdownContainer = document.getElementById('countdown-container');
+            const viewResultsBtn = document.getElementById('view-results-btn');
+            let emergencyInterval = null;
+            
+            if (!countdownContainer || !viewResultsBtn) {
+                console.error('Critical elements missing!');
+                return;
+            }
+            
+            // Store original text
+            const originalBtnText = viewResultsBtn.innerText.replace(/Wait.*/, 'View Results');
+            viewResultsBtn.setAttribute('data-original-text', originalBtnText);
+            
+            // Function to start the countdown process
+            function startCountdown() {
+                // Only start if not already running
+                if (emergencyInterval) {
+                    return;
+                }
+                
+                console.log('Starting emergency countdown');
+                
+                // Set starting time
+                startTime = Date.now();
+                
+                // Ensure button is initially disabled
+                viewResultsBtn.disabled = true;
+                
+                // Create emergency interval
+                emergencyInterval = setInterval(function() {
+                    const elapsedTime = (Date.now() - startTime) / 1000;
+                    const remainingTime = Math.max(0, Math.ceil(totalTime - elapsedTime));
+                    
+                    // Update display
+                    if (remainingTime > 0) {
+                        countdownContainer.textContent = `Please wait ${remainingTime} seconds`;
+                        viewResultsBtn.textContent = `Wait ${remainingTime}s`;
+                    } else {
+                        // Enable button
+                        viewResultsBtn.disabled = false;
+                        viewResultsBtn.textContent = originalBtnText;
+                        countdownContainer.textContent = 'You can now view your results!';
+                        
+                        // Add animation
+                        viewResultsBtn.classList.add('btn-pulse');
+                        
+                        // Clear interval
+                        clearInterval(emergencyInterval);
+                        emergencyInterval = null;
+                    }
+                }, 1000);
+            }
+            
+            // Monitor for results overlay becoming visible
+            function monitorResultsOverlay() {
+                const adOverlayResults = document.getElementById('ad-overlay-results');
+                if (!adOverlayResults) return;
+                
+                // Create an observer instance
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                            // Check if overlay is now visible
+                            if (adOverlayResults.style.display === 'flex' || adOverlayResults.style.display === 'block') {
+                                console.log('Results overlay is now visible, starting emergency countdown');
+                                startCountdown();
+                            }
+                        }
+                    });
+                });
+                
+                // Start observing
+                observer.observe(adOverlayResults, { attributes: true });
+            }
+            
+            // Set up click handler in case the main handler fails
+            viewResultsBtn.addEventListener('click', function(event) {
+                if (viewResultsBtn.disabled) {
+                    console.log('Button is disabled, ignoring click');
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return false;
+                }
+                
+                console.log('Emergency click handler activated');
+                
+                // Hide overlay
+                const adOverlay = document.getElementById('ad-overlay-results');
+                if (adOverlay) {
+                    adOverlay.style.display = 'none';
+                }
+                
+                // Show results
+                const resultsContainer = document.getElementById('results-container');
+                if (resultsContainer) {
+                    resultsContainer.classList.remove('d-none');
+                    
+                    // Scroll to results
+                    setTimeout(function() {
+                        resultsContainer.scrollIntoView({behavior: 'smooth'});
+                    }, 100);
+                }
+                
+                // If we have scan results in window storage, use them
+                if (window.scanResults) {
+                    console.log('Using cached scan results from emergency handler');
+                    try {
+                        // This function should be defined in ads-mobile.js
+                        if (typeof displayResults === 'function') {
+                            displayResults(window.scanResults);
+                        }
+                    } catch (e) {
+                        console.error('Error displaying results in emergency handler:', e);
+                    }
+                }
+                
+                return false;
+            });
+            
+            // Start monitoring for the results overlay
+            setTimeout(monitorResultsOverlay, 500);
+            
+            // If results are already visible, start countdown now
+            const adOverlayResults = document.getElementById('ad-overlay-results');
+            if (adOverlayResults && (adOverlayResults.style.display === 'flex' || adOverlayResults.style.display === 'block')) {
+                console.log('Results overlay is already visible, starting emergency countdown immediately');
+                startCountdown();
+            }
+        })();
+    </script>
 </div>
 
 <div class="container py-3">
