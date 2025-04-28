@@ -10,6 +10,13 @@
 <!-- Critical fix for scan advancement to prevent getting stuck in ad loops -->
 <script src="{{ url_for('static', filename='js/ios-early-fix.js') }}" data-critical="true"></script>
 
+<!-- Mobile-optimized advertisement system with enhanced timing enforcement -->
+<script src="{{ url_for('static', filename='js/ads-mobile.js') }}" data-critical="true"></script>
+<!-- Critical fix for transitions between first and second ads -->
+<script src="{{ url_for('static', filename='js/critical-transition-fix.js') }}" data-critical="true"></script>
+<!-- Scan process watchdog to prevent getting stuck -->
+<script src="{{ url_for('static', filename='js/scan-process-watchdog.js') }}" data-critical="true"></script>
+
 <!-- Inline critical Font Awesome fix - immediate execution before DOM loads -->
 <style>
   /* Critical Font Awesome icon fix */
@@ -21,6 +28,25 @@
   }
   .fas, .fa-solid, i.fa {
     font-weight: 900 !important;
+  }
+  
+  /* Ensure View Results button is always visible and properly styled */
+  #view-results-btn {
+    font-weight: bold !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition: all 0.3s ease-in-out !important;
+  }
+  
+  /* Add pulse animation for buttons when active */
+  .btn-pulse {
+    animation: button-pulse 2s infinite;
+  }
+  
+  @keyframes button-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
   }
 </style>
 
@@ -46,6 +72,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <link rel="preload" href="{{ url_for('static', filename='css/optimized-mobile.css') }}" as="style">
 <link rel="preload" href="{{ url_for('static', filename='js/mobile-optimization.js') }}" as="script">
 <link rel="preload" href="{{ url_for('static', filename='js/scanner-icon-fix.js') }}" as="script">
+<link rel="preload" href="{{ url_for('static', filename='js/ads-mobile.js') }}" as="script">
+<link rel="preload" href="{{ url_for('static', filename='js/critical-transition-fix.js') }}" as="script">
+<link rel="preload" href="{{ url_for('static', filename='js/scan-process-watchdog.js') }}" as="script">
 
 <!-- Mobile-optimized CSS loads first -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/optimized-mobile.css') }}">
@@ -253,8 +282,10 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         </div>
     </div>
     <!-- Countdown timer will be placed here above the button -->
-    <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;"></div>
-    <button class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;">
+    <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;">
+        Please wait <span id="countdown">15</span> seconds to view your results
+    </div>
+    <button class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;" disabled>
         <i class="fas fa-check-circle me-2"></i> View Results
     </button>
 </div>

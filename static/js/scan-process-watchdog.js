@@ -1,219 +1,316 @@
 /**
  * Scan Process Watchdog
- * Ensures the ticket scanning process doesn't get stuck
- * and advances if needed
+ * 
+ * This script monitors the scanning process and ensures it advances properly,
+ * preventing the system from getting stuck in any state.
+ * 
+ * Features:
+ * - Detects stalled scanning processes
+ * - Forces advancement if stuck in loading ad
+ * - Ensures results are always shown after processing
+ * - Prevents infinite loops in the scan process
  */
 
 (function() {
+    'use strict';
+    
     console.log('Scan process watchdog initializing');
     
-    // Global variables to track the scan process
-    let scanStarted = false;
-    let scanCompleted = false;
-    let processingTimeout = null;
-    let scanStartTime = null;
+    // Watchdog configuration
+    const WATCHDOG_CONFIG = {
+        checkInterval: 2000,         // How often to check status (milliseconds)
+        maxLoadingTime: 30000,       // Maximum time allowed in loading state (30 seconds)
+        maxProcessingTime: 60000,    // Maximum time for entire scan process (60 seconds)
+        maxAdDisplayTime: 20000      // Maximum time for any ad to display (20 seconds)
+    };
     
-    // Constants for timeout values
-    const MAX_SCAN_TIME = 45000; // 45 seconds
-    const CHECK_INTERVAL = 3000; // 3 seconds
-    const WATCHDOG_CHECK_INTERVAL = 5000; // 5 seconds
+    // State tracking
+    let watchdogState = {
+        scanStarted: false,
+        scanStartTime: null,
+        adDisplayStartTime: null,
+        resultsDisplayed: false,
+        stuckDetected: false,
+        recoveryAttempts: 0,
+        maxRecoveryAttempts: 3
+    };
     
-    // Function to check and advance stuck processes
-    function checkScanProgress() {
-        if (!scanStarted) {
-            return; // Nothing to check yet
+    // Start the watchdog monitoring
+    function startWatchdog() {
+        console.log('Scan process watchdog started');
+        
+        // Reset state when starting
+        resetWatchdogState();
+        
+        // Set up interval to check scan process
+        const watchdogInterval = setInterval(monitorScanProcess, WATCHDOG_CONFIG.checkInterval);
+        
+        // Store interval reference
+        watchdogState.interval = watchdogInterval;
+    }
+    
+    // Reset watchdog state 
+    function resetWatchdogState() {
+        watchdogState = {
+            scanStarted: false,
+            scanStartTime: null,
+            adDisplayStartTime: null,
+            resultsDisplayed: false,
+            stuckDetected: false,
+            recoveryAttempts: 0,
+            maxRecoveryAttempts: 3,
+            interval: null
+        };
+    }
+    
+    // Monitor scan process and detect issues
+    function monitorScanProcess() {
+        // Check if a scan is in progress
+        const scanInProgress = detectScanInProgress();
+        
+        if (scanInProgress && !watchdogState.scanStarted) {
+            // Scan just started
+            watchdogState.scanStarted = true;
+            watchdogState.scanStartTime = Date.now();
+            watchdogState.adDisplayStartTime = Date.now();
+            console.log('Watchdog detected scan start at:', new Date().toISOString());
         }
         
-        // Get relevant elements
-        const adOverlayLoading = document.getElementById('ad-overlay-loading');
-        const adOverlayResults = document.getElementById('ad-overlay-results');
+        // Don't proceed with checks if no scan is happening
+        if (!watchdogState.scanStarted) {
+            return;
+        }
+        
+        // Check for stuck loading ad
+        if (isLoadingAdStuck()) {
+            handleStuckLoadingAd();
+        }
+        
+        // Check for stuck results ad
+        if (isResultsAdStuck()) {
+            handleStuckResultsAd();
+        }
+        
+        // Check if the entire process is taking too long
+        if (isEntireProcessStuck()) {
+            handleStuckProcess();
+        }
+        
+        // Check if we should be showing results but aren't
+        if (shouldShowResults() && !watchdogState.resultsDisplayed) {
+            forceShowResults();
+        }
+    }
+    
+    // Detect if a scan is in progress
+    function detectScanInProgress() {
+        // Check for visible ad overlays
+        const loadingAdVisible = document.getElementById('ad-overlay-loading') && 
+                                 document.getElementById('ad-overlay-loading').style.display !== 'none';
+        
+        const resultsAdVisible = document.getElementById('ad-overlay-results') && 
+                                 document.getElementById('ad-overlay-results').style.display !== 'none';
+        
+        // Also check for results container having content
+        const hasResults = document.getElementById('results-container') && 
+                          !document.getElementById('results-container').classList.contains('d-none');
+        
+        return loadingAdVisible || resultsAdVisible || hasResults;
+    }
+    
+    // Check if loading ad is stuck
+    function isLoadingAdStuck() {
+        const loadingAdVisible = document.getElementById('ad-overlay-loading') && 
+                               document.getElementById('ad-overlay-loading').style.display !== 'none';
+        
+        if (!loadingAdVisible) {
+            return false;
+        }
+        
+        // Check time in this state
+        const timeInState = Date.now() - watchdogState.adDisplayStartTime;
+        return timeInState > WATCHDOG_CONFIG.maxAdDisplayTime;
+    }
+    
+    // Check if results ad is stuck
+    function isResultsAdStuck() {
+        const resultsAdVisible = document.getElementById('ad-overlay-results') && 
+                               document.getElementById('ad-overlay-results').style.display !== 'none';
+        
+        if (!resultsAdVisible) {
+            return false;
+        }
+        
+        // Check time in this state
+        const timeInState = Date.now() - watchdogState.adDisplayStartTime;
+        return timeInState > WATCHDOG_CONFIG.maxAdDisplayTime;
+    }
+    
+    // Check if entire process is stuck
+    function isEntireProcessStuck() {
+        if (!watchdogState.scanStartTime) {
+            return false;
+        }
+        
+        const totalProcessTime = Date.now() - watchdogState.scanStartTime;
+        return totalProcessTime > WATCHDOG_CONFIG.maxProcessingTime;
+    }
+    
+    // Determine if results should be showing
+    function shouldShowResults() {
+        // If we have results populated, we should display them
         const resultsContainer = document.getElementById('results-container');
         
-        // Calculate elapsed time
-        const elapsedTime = Date.now() - scanStartTime;
+        if (!resultsContainer) {
+            return false;
+        }
         
-        // If the scan has been running for too long, force completion
-        if (elapsedTime > MAX_SCAN_TIME && !scanCompleted) {
-            console.log(`WATCHDOG: Scan running for ${Math.round(elapsedTime/1000)}s, force advancing`);
+        // Check if we have ticket numbers displayed
+        const hasTicketNumbers = document.getElementById('ticket-numbers') && 
+                               document.getElementById('ticket-numbers').children.length > 0;
+        
+        // Check if we have winning numbers displayed
+        const hasWinningNumbers = document.getElementById('winning-numbers') && 
+                               document.getElementById('winning-numbers').children.length > 0;
+        
+        return hasTicketNumbers || hasWinningNumbers;
+    }
+    
+    // Handle stuck loading ad
+    function handleStuckLoadingAd() {
+        if (watchdogState.recoveryAttempts >= watchdogState.maxRecoveryAttempts) {
+            console.warn('Watchdog: Maximum recovery attempts reached for loading ad, forcing process reset');
+            forceResetScanProcess();
+            return;
+        }
+        
+        console.warn('Watchdog: Loading ad appears stuck, attempting recovery');
+        watchdogState.recoveryAttempts++;
+        watchdogState.stuckDetected = true;
+        
+        // Force hide the loading overlay
+        const loadingOverlay = document.getElementById('ad-overlay-loading');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+        
+        // Force show the results overlay
+        const resultsOverlay = document.getElementById('ad-overlay-results');
+        if (resultsOverlay) {
+            resultsOverlay.style.display = 'flex';
+            watchdogState.adDisplayStartTime = Date.now(); // Reset timer for next stage
+        }
+        
+        console.log('Watchdog: Forced transition from loading ad to results ad');
+    }
+    
+    // Handle stuck results ad
+    function handleStuckResultsAd() {
+        if (watchdogState.recoveryAttempts >= watchdogState.maxRecoveryAttempts) {
+            console.warn('Watchdog: Maximum recovery attempts reached for results ad, forcing process reset');
+            forceResetScanProcess();
+            return;
+        }
+        
+        console.warn('Watchdog: Results ad appears stuck, attempting recovery');
+        watchdogState.recoveryAttempts++;
+        watchdogState.stuckDetected = true;
+        
+        // Force hide the results overlay
+        const resultsOverlay = document.getElementById('ad-overlay-results');
+        if (resultsOverlay) {
+            resultsOverlay.style.display = 'none';
+        }
+        
+        // Ensure the results container is visible
+        forceShowResults();
+        
+        console.log('Watchdog: Forced transition from results ad to results display');
+    }
+    
+    // Handle stuck entire process
+    function handleStuckProcess() {
+        console.warn('Watchdog: Entire scan process appears stuck, forcing reset');
+        forceResetScanProcess();
+    }
+    
+    // Force results to show
+    function forceShowResults() {
+        const resultsContainer = document.getElementById('results-container');
+        if (resultsContainer) {
+            resultsContainer.classList.remove('d-none');
+            resultsContainer.style.display = 'block';
             
-            // Hide loading overlay
-            if (adOverlayLoading && adOverlayLoading.style.display === 'flex') {
-                adOverlayLoading.style.display = 'none';
-                
-                // Force show the results overlay to at least show an ad
-                if (adOverlayResults) {
-                    adOverlayResults.style.display = 'flex';
-                    console.log('WATCHDOG: Forced transition to results ad');
-                    
-                    // Try to initialize the countdown if needed
-                    const countdownContainer = document.getElementById('countdown-container');
-                    const viewResultsBtn = document.getElementById('view-results-btn');
-                    
-                    if (countdownContainer && viewResultsBtn) {
-                        if (!countdownContainer.innerText || countdownContainer.innerText.trim() === '') {
-                            countdownContainer.innerText = 'Wait 15s';
-                            viewResultsBtn.innerText = 'Wait 15s';
-                            viewResultsBtn.disabled = true;
-                            console.log('WATCHDOG: Initialized countdown');
-                        }
-                    }
-                }
-            }
+            // Hide all possible ad overlays
+            const adOverlays = document.querySelectorAll('[id^="ad-overlay"]');
+            adOverlays.forEach(overlay => {
+                overlay.style.display = 'none';
+            });
             
-            // Mark as completed to avoid repeated force completions
-            scanCompleted = true;
+            watchdogState.resultsDisplayed = true;
+            console.log('Watchdog: Forced results to display');
+            
+            // Ensure body scrolling is enabled
+            document.body.style.overflow = '';
         }
     }
     
-    // Watch for scan process to start
-    function watchForScanStart() {
+    // Force reset of entire scan process
+    function forceResetScanProcess() {
+        // Hide all overlays
+        const adOverlays = document.querySelectorAll('[id^="ad-overlay"]');
+        adOverlays.forEach(overlay => {
+            overlay.style.display = 'none';
+        });
+        
+        // Reset the form if possible
         const ticketForm = document.getElementById('ticket-form');
+        if (ticketForm) {
+            ticketForm.reset();
+        }
+        
+        // Show the drop area
+        const dropArea = document.getElementById('drop-area');
+        if (dropArea) {
+            dropArea.classList.remove('d-none');
+        }
+        
+        // Hide the preview container
+        const previewContainer = document.getElementById('preview-container');
+        if (previewContainer) {
+            previewContainer.classList.add('d-none');
+        }
+        
+        // Ensure body scrolling is enabled
+        document.body.style.overflow = '';
+        
+        // Reset watchdog state
+        resetWatchdogState();
+        
+        console.log('Watchdog: Forced complete scan process reset');
+    }
+    
+    // Attach to scan button
+    function attachToScanButton() {
         const scanButton = document.getElementById('scan-button');
-        
-        if (ticketForm && scanButton) {
-            // Watch for form submission
-            ticketForm.addEventListener('submit', function() {
-                scanStarted = true;
-                scanCompleted = false;
-                scanStartTime = Date.now();
-                console.log('WATCHDOG: Scan process started');
-                
-                // Set a timeout to check for scan completion
-                processingTimeout = setTimeout(() => {
-                    if (!scanCompleted) {
-                        console.log('WATCHDOG: Initial scan timeout reached, checking status');
-                        checkScanProgress();
-                    }
-                }, MAX_SCAN_TIME / 2); // Check halfway through max time
-            });
-            
-            // Also watch for direct button click
+        if (scanButton) {
             scanButton.addEventListener('click', function() {
-                // Only set if not already tracking
-                if (!scanStarted) {
-                    scanStarted = true;
-                    scanCompleted = false;
-                    scanStartTime = Date.now();
-                    console.log('WATCHDOG: Scan button clicked, tracking started');
-                }
+                // Reset watchdog state when starting new scan
+                resetWatchdogState();
+                startWatchdog();
             });
             
-            console.log('WATCHDOG: Scan start monitoring initialized');
+            console.log('Watchdog: Attached to scan button');
         }
     }
     
-    // Watch for scan process completion
-    function watchForScanCompletion() {
-        const viewResultsBtn = document.getElementById('view-results-btn');
-        
-        if (viewResultsBtn) {
-            // Watch for "View Results" button click
-            viewResultsBtn.addEventListener('click', function() {
-                scanCompleted = true;
-                console.log('WATCHDOG: Scan process marked as completed via button click');
-                
-                // Clear any existing timeout
-                if (processingTimeout) {
-                    clearTimeout(processingTimeout);
-                    processingTimeout = null;
-                }
-            });
-            
-            console.log('WATCHDOG: Scan completion monitoring initialized');
-        }
-    }
-    
-    // Watch for ad overlay changes
-    function watchAdOverlays() {
-        const adOverlayLoading = document.getElementById('ad-overlay-loading');
-        const adOverlayResults = document.getElementById('ad-overlay-results');
-        
-        if (adOverlayLoading && adOverlayResults) {
-            // Create observers for each overlay
-            const loadingObserver = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                        if (adOverlayLoading.style.display === 'none' && adOverlayResults.style.display === 'flex') {
-                            // This indicates we've transitioned from first ad to second ad
-                            console.log('WATCHDOG: Observed transition to second ad');
-                        }
-                    }
-                });
-            });
-            
-            const resultsObserver = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                        if (adOverlayResults.style.display === 'none') {
-                            // This indicates the second ad was closed
-                            scanCompleted = true;
-                            console.log('WATCHDOG: Observed second ad closing, marking scan as complete');
-                        }
-                    }
-                });
-            });
-            
-            // Start observing
-            loadingObserver.observe(adOverlayLoading, { attributes: true });
-            resultsObserver.observe(adOverlayResults, { attributes: true });
-            console.log('WATCHDOG: Ad overlay observers initialized');
-        }
-    }
-    
-    // Start the watchdog periodic check
-    function startWatchdogTimer() {
-        // Set up periodic check
-        setInterval(checkScanProgress, WATCHDOG_CHECK_INTERVAL);
-        console.log('WATCHDOG: Timer started');
-    }
-    
-    // Initialize everything when the DOM is loaded
+    // Initialize watchdog on page load
     document.addEventListener('DOMContentLoaded', function() {
-        // Set up all the watchers
-        watchForScanStart();
-        watchForScanCompletion();
-        watchAdOverlays();
-        startWatchdogTimer();
+        attachToScanButton();
+        console.log('Scan process watchdog initialized');
         
-        console.log('WATCHDOG: Scan process monitoring fully initialized');
+        // Expose emergency functions to console for manual recovery
+        window.emergencyResetScan = forceResetScanProcess;
+        window.emergencyShowResults = forceShowResults;
     });
-    
-    // Provide global debugging tools
-    window.debugScanWatchdog = function() {
-        return {
-            scanStarted,
-            scanCompleted,
-            scanStartTime,
-            elapsedTime: scanStartTime ? Date.now() - scanStartTime : 0,
-            maxScanTime: MAX_SCAN_TIME
-        };
-    };
-    
-    // Provide global function to force scan completion for stuck scans
-    window.forceScanCompletion = function() {
-        scanCompleted = true;
-        
-        // Force hiding of all overlays
-        const adOverlayLoading = document.getElementById('ad-overlay-loading');
-        const adOverlayResults = document.getElementById('ad-overlay-results');
-        
-        if (adOverlayLoading) {
-            adOverlayLoading.style.display = 'none';
-        }
-        
-        if (adOverlayResults) {
-            adOverlayResults.style.display = 'none';
-        }
-        
-        // Clear any existing timeout
-        if (processingTimeout) {
-            clearTimeout(processingTimeout);
-            processingTimeout = null;
-        }
-        
-        console.log('WATCHDOG: Manually forced scan completion');
-        return 'Scan process forcefully completed';
-    };
-    
-    console.log('Scan process watchdog loaded');
 })();
