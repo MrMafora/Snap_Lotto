@@ -220,12 +220,9 @@
             // Store the timeout for cleanup
             window.SnapLottoAds.adTimeouts.push(countdownTimeout);
             
-            // Start countdown display update
-            startCountdown(15, 'first-ad', function() {
-                // The visual countdown has completed, but we don't enable 
-                // the button until the minimum time has truly passed
-                console.log("Visual countdown completed for first ad");
-            });
+            // DEFERRED COUNTDOWN: We now defer to critical-transition-fix.js
+            // which handles all countdown functionality to prevent conflicts
+            console.log("First ad countdown deferred to critical-transition-fix.js");
         }
     }
     
