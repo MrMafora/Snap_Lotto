@@ -46,6 +46,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% block additional_head %}
 <!-- Fresh checkmark system - clean slate approach -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fresh_checkmark.css') }}">
+<!-- Mobile-specific button fix for iOS devices -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-button-fix.css') }}">
 <style>
     .ticket-scanner-container {
         max-width: 800px;
@@ -1171,10 +1173,46 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         }
                     }, 1000);
                     
+                    // Fix iOS-specific button format issue (class="rounded-pill") 
+                    // Create a separate backup to specifically handle mobile lock icon
+                    setTimeout(() => {
+                        console.log('Mobile button format check at 5 seconds');
+                        
+                        // Find all view results buttons including ones with specific iOS format
+                        const allButtons = document.querySelectorAll('button');
+                        allButtons.forEach(btn => {
+                            // Check for any button containing "View Results" and "Wait"
+                            if (btn.innerText && btn.innerText.includes('View Results') && btn.innerText.includes('Wait')) {
+                                console.log('Found iOS-format View Results button with Wait text, fixing it');
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                btn.classList.remove('btn-secondary'); 
+                                btn.classList.add('btn-success');
+                                btn.style.opacity = '1';
+                                btn.style.cursor = 'pointer';
+                            }
+                        });
+                    }, 5000);
+                    
                     // Set a single timeout for exactly 15 seconds from now
                     // This is a backup to ensure the button is enabled after 15 seconds
                     window.countdownTimeout = setTimeout(() => {
                         console.log('15-second ad display timer completed at ' + new Date().toISOString());
+                        
+                        // Also run a specific fix for mobile/iOS button format
+                        const allButtons = document.querySelectorAll('button');
+                        allButtons.forEach(btn => {
+                            // Check for any button with "Wait" text
+                            if (btn.innerText && btn.innerText.includes('Wait')) {
+                                console.log('CRITICAL: Found iOS button still in wait state after 15s, fixing');
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                btn.classList.remove('btn-secondary');
+                                btn.classList.add('btn-success');
+                                btn.style.opacity = '1';
+                                btn.style.cursor = 'pointer';
+                            }
+                        });
                         
                         // Clear any running interval
                         if (window.countdownInterval) {
@@ -3094,6 +3132,12 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <script src="{{ url_for('static', filename='js/fresh_checkmark.js') }}"></script>
 <!-- Direct View Results button handler -->
 <script src="{{ url_for('static', filename='js/view-results-direct.js') }}"></script>
+<!-- Mobile-specific button state fix -->
+<script src="{{ url_for('static', filename='js/mobile-button-fix.js') }}"></script>
+<!-- iOS-specific button format fix -->
+<script src="{{ url_for('static', filename='js/ios-specific-fix.js') }}"></script>
+<!-- Immediate fix for rounded-pill button format -->
+<script src="{{ url_for('static', filename='js/rounded-pill-fix.js') }}"></script>
 <!-- Smooth scrolling fix -->
 <script src="{{ url_for('static', filename='js/smooth-scroll-fix.js') }}"></script>
 {% endblock %}

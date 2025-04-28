@@ -1,0 +1,51 @@
+/**
+ * Mobile Button and Wait State Fix for iOS
+ * 
+ * This CSS file specifically targets the iOS button format issue where buttons
+ * remain in a waiting state even after the countdown completes.
+ */
+
+/* Style for active View Results buttons - overrides any "waiting" styles */
+.ios-detected #view-results-btn:not(:disabled),
+.ios-detected button:not(:disabled) {
+    cursor: pointer !important;
+    opacity: 1 !important;
+}
+
+/* Timer-specific rules for iOS buttons */
+@media (max-width: 768px) {
+    /* When 15s has elapsed and the window variable is set, make sure all buttons are enabled */
+    html[data-countdown-completed="true"] #view-results-btn,
+    html[data-countdown-completed="true"] button[id*="view-results"] {
+        cursor: pointer !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        background-color: #28a745 !important; /* Green success button */
+        border-color: #28a745 !important;
+        color: white !important;
+    }
+    
+    /* Target the specific button format from the screenshot */
+    button.rounded-pill:has(i.fa-lock) {
+        transition: all 0.3s ease-in-out;
+    }
+    
+    /* After timer completes, change the button appearance */
+    html[data-countdown-completed="true"] button.rounded-pill:has(i.fa-lock) i.fa-lock {
+        display: none;
+    }
+    
+    html[data-countdown-completed="true"] button.rounded-pill:has(i.fa-lock)::before {
+        content: "\f058"; /* fa-check-circle */
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+        margin-right: 0.5rem;
+    }
+}
+
+/* Fix for iOS button focus states */
+button:focus,
+#view-results-btn:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.5) !important;
+}

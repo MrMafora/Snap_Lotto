@@ -58,6 +58,18 @@ function directViewResultsHandler(e) {
     e.stopPropagation();
     e.preventDefault();
     
+    // Mobile specific fix - Force the button text to update
+    const viewResultsBtn = document.getElementById('view-results-btn');
+    if (viewResultsBtn) {
+        // Check if button text still contains "Wait" on mobile
+        if (viewResultsBtn.innerText.includes('Wait')) {
+            console.log('Mobile button still showing wait state, forcing update');
+            viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+            viewResultsBtn.classList.remove('btn-secondary');
+            viewResultsBtn.classList.add('btn-success');
+        }
+    }
+    
     // Clear all possible timers
     for (let i = 1; i < 10000; i++) {
         clearTimeout(i);
