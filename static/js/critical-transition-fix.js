@@ -95,6 +95,23 @@
                     return false;
                 }
                 
+                // Check if the minimum time has elapsed
+                const elapsed = now - state.countdownStartTime;
+                if (elapsed < config.adMinimumDisplayTime) {
+                    console.log(`Button clicked too early (${elapsed}ms). Need ${config.adMinimumDisplayTime}ms minimum.`);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                // Only proceed if the countdown has completed
+                if (state.countdownRunning) {
+                    console.log('Countdown still running, button should be disabled');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                
                 // Identify which phase we're in based on which overlay is visible
                 if (isFirstAdVisible()) {
                     // Transition from first ad to second ad 

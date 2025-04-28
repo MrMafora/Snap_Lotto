@@ -836,6 +836,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             const adOverlayLoading = document.getElementById('ad-overlay-loading');
             adOverlayLoading.style.display = 'flex';
             
+            // Immediately trigger the first countdown
+            document.dispatchEvent(new CustomEvent('trigger-countdown', {
+                detail: { phase: 'first', seconds: 15 }
+            }));
+            
             // Ensure the ad overlay stays visible for at least 2 seconds before processing
             setTimeout(() => {
                 // Check if AdManager is available and use it to show ad, otherwise just process
@@ -969,6 +974,15 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     
                     console.log('View Results button clicked at ' + new Date().toISOString());
                     
+                    // Make sure we have the last results data before continuing
+                    if (!window.lastResultsData && !data) {
+                        console.error('No results data available!');
+                        return false;
+                    }
+                    
+                    // Store locally to ensure we have it for display
+                    const resultsToShow = window.lastResultsData || data;
+                    
                     // Clear ALL possible timers to prevent any conflicts
                     // This is important to prevent any hidden callbacks from running later
                     for (let i = 1; i < 10000; i++) {
@@ -1045,7 +1059,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     console.log('About to display results after clicked View Results');
                     
                     // Display the results immediately
-                    displayResults(data);
+                    displayResults(resultsToShow || data);
                     
                     // Make sure results are properly scrolled into view
                     setTimeout(() => {
@@ -1455,6 +1469,18 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         window.resultsShown = false;
         
         function displayResults(data) {
+            // Make sure we have valid data, using lastResultsData as a fallback
+            if (!data && window.lastResultsData) {
+                console.log('No data provided to displayResults, using lastResultsData instead');
+                data = window.lastResultsData;
+            }
+            
+            // Safety check to ensure we have valid data
+            if (!data) {
+                console.error('No results data available in displayResults function!');
+                showError('An error occurred while processing your ticket results. Please try again.');
+                return;
+            }
             try {
                 console.log('Displaying ticket scanning results', new Date().toISOString());
                 
