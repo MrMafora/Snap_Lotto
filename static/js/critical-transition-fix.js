@@ -202,15 +202,13 @@
         // Reset the countdown display
         countdownSpan.textContent = config.adDisplayTime.toString();
         
-        // Disable the button
-        viewResultsBtn.disabled = true;
-        
-        // Update button text based on phase
-        if (phase === 'first') {
-            viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
-            viewResultsBtn.classList.remove('btn-success');
-            viewResultsBtn.classList.add('btn-secondary');
-        } else {
+        // Only update button if it exists and we're in the second phase
+        // (first phase doesn't have a view results button)
+        if (viewResultsBtn && phase === 'second') {
+            // Disable the button
+            viewResultsBtn.disabled = true;
+            
+            // Update button text
             viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> Continue to Results (Wait 15s)';
             viewResultsBtn.classList.remove('btn-success');
             viewResultsBtn.classList.add('btn-secondary');
@@ -232,11 +230,8 @@
             // Update the display
             countdownSpan.textContent = secondsRemaining.toString();
             
-            // Check if button text should change
-            if (phase === 'first') {
-                viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${secondsRemaining}s)`;
-                console.log('Found countdown button: ' + viewResultsBtn.innerHTML);
-            } else {
+            // Update button text only if button exists
+            if (viewResultsBtn && phase === 'second') {
                 viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> Continue to Results (Wait ${secondsRemaining}s)`;
             }
             
@@ -247,16 +242,15 @@
                 state.activeCountdown = null;
                 state.countdownRunning = false;
                 
-                // Enable the button
-                viewResultsBtn.disabled = false;
-                viewResultsBtn.classList.remove('btn-secondary');
-                viewResultsBtn.classList.add('btn-success');
-                viewResultsBtn.classList.add('btn-pulse');
-                
-                // Update button text
-                if (phase === 'first') {
-                    viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                } else {
+                // Only update button if it exists (only in second phase)
+                if (viewResultsBtn && phase === 'second') {
+                    // Enable the button
+                    viewResultsBtn.disabled = false;
+                    viewResultsBtn.classList.remove('btn-secondary');
+                    viewResultsBtn.classList.add('btn-success');
+                    viewResultsBtn.classList.add('btn-pulse');
+                    
+                    // Update button text
                     viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> Continue to Results!';
                 }
                 
