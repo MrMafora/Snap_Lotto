@@ -245,18 +245,32 @@
                 viewBtn.classList.remove('btn-success');
                 viewBtn.classList.add('btn-secondary');
                 viewBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
+                
+                // Clone to remove any lingering event handlers
+                const newBtn = viewBtn.cloneNode(true);
+                if (viewBtn.parentNode) {
+                    viewBtn.parentNode.replaceChild(newBtn, viewBtn);
+                }
             }
             
             console.log("Second ad shown at: " + new Date().toISOString());
             
-            // COMPLETELY REMOVED original timeout system
-            // We now delegate to critical-transition-fix.js and just 
-            // keep a basic safety timeout as a fallback
+            // Clear any existing countdown state
+            if (window.countdownInterval) {
+                clearInterval(window.countdownInterval);
+                window.countdownInterval = null;
+            }
             
-            // Trigger the centralized countdown system
-            document.dispatchEvent(new CustomEvent('trigger-countdown', {
-                detail: { phase: 'second', seconds: 15 }
-            }));
+            // Force reset of any countdown state
+            document.dispatchEvent(new CustomEvent('reset-countdown', {}));
+            
+            // Trigger the centralized countdown system - must be called AFTER display is set
+            setTimeout(function() {
+                console.log("Starting second ad countdown immediately");
+                document.dispatchEvent(new CustomEvent('trigger-countdown', {
+                    detail: { phase: 'second', seconds: 15, force: true }
+                }));
+            }, 50); // Short delay to ensure DOM is ready
             
             // Safety timeout that will ONLY run if the central timer system fails
             const safetyTimeout = setTimeout(function() {

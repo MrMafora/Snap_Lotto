@@ -45,19 +45,35 @@
         // Extract button ID and phase from event detail
         const buttonId = e.detail.buttonId || 'view-results-btn';
         const phase = e.detail.phase || 'second';
+        const forceReset = e.detail.force === true;
         
-        // Update the ad phase state
+        // Always update the ad phase state
         state.adPhase = phase;
         
         // Reset any ongoing countdown to avoid conflicts
         if (state.activeCountdown) {
             clearInterval(state.activeCountdown);
             state.activeCountdown = null;
+            state.countdownRunning = false;
         }
         
         // Set up countdown based on the requested phase
-        console.log('Setting up countdown for phase:', phase);
+        console.log('Setting up countdown for phase:', phase, forceReset ? '(forced)' : '');
         setupCountdown(phase);
+    });
+    
+    // Listen for reset countdown events to force a clean state
+    document.addEventListener('reset-countdown', function() {
+        console.log('Received reset-countdown event, clearing all countdown state');
+        
+        // Reset all countdown state
+        if (state.activeCountdown) {
+            clearInterval(state.activeCountdown);
+            state.activeCountdown = null;
+        }
+        
+        state.countdownRunning = false;
+        state.countdownStartTime = 0;
     });
     
     // Initialize the transition fix
@@ -212,11 +228,22 @@
     
     // Set up a consolidated countdown for the specified ad phase
     function setupCountdown(phase) {
+        console.log(`Setting up ${phase} ad countdown`);
+        
+        // Prevent multiple countdowns by checking if we're already running one for this phase
+        if (state.activeCountdown && state.countdownRunning && state.adPhase === phase) {
+            console.log(`Countdown for ${phase} phase already running, not starting a new one`);
+            return;
+        }
+        
         // Clear any existing countdown
         if (state.activeCountdown) {
             clearInterval(state.activeCountdown);
             state.activeCountdown = null;
         }
+        
+        // Clear running state
+        state.countdownRunning = false;
         
         // Find the appropriate countdown elements based on phase
         let countdownSpan;
@@ -243,15 +270,19 @@
         countdownSpan.textContent = config.adDisplayTime.toString();
         
         // Only update button if it exists and we're in the second phase
-        // (first phase doesn't have a view results button)
         if (viewResultsBtn && phase === 'second') {
             // Disable the button
             viewResultsBtn.disabled = true;
             
-            // Update button text
+            // Update button text and appearance
             viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
-            viewResultsBtn.classList.remove('btn-success');
+            viewResultsBtn.classList.remove('btn-success', 'btn-pulse');
             viewResultsBtn.classList.add('btn-secondary');
+            
+            // Remove any previous event listeners by cloning
+            const oldBtn = viewResultsBtn;
+            const newBtn = oldBtn.cloneNode(true);
+            oldBtn.parentNode.replaceChild(newBtn, oldBtn);
         }
         
         // Set the start time to ensure consistent countdown
@@ -293,6 +324,39 @@
                     
                     // Update button text
                     viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                    
+                    // Add working click handler
+                    const newBtn = viewResultsBtn.cloneNode(true);
+                    if (viewResultsBtn.parentNode) {
+                        viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+                        
+                        // Add a new, reliable event listener
+                        newBtn.addEventListener('click', function(e) {
+                            console.log('View Results button clicked after countdown completion');
+                            
+                            // Hide the results overlay
+                            const resultsOverlay = document.getElementById('ad-overlay-results');
+                            if (resultsOverlay) {
+                                resultsOverlay.style.display = 'none';
+                            }
+                            
+                            // Show results container
+                            const resultsContainer = document.getElementById('results-container');
+                            if (resultsContainer) {
+                                resultsContainer.style.display = 'block';
+                                resultsContainer.classList.remove('d-none');
+                            }
+                            
+                            // Set global flags for other scripts to detect
+                            window.resultsShown = true;
+                            window.inResultsMode = true;
+                            window.hasCompletedAdFlow = true;
+                            
+                            // Prevent default and stop propagation
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }, true); // Using capture phase to ensure this runs first
+                    }
                 }
                 
                 console.log('Transition fix: Countdown complete for ' + phase + ' ad');
