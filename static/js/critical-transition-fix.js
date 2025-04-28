@@ -1,188 +1,367 @@
 /**
  * Critical Ad Transition Fix
- * Ensures smooth transitions between the first and second ads
- * Optimized for mobile performance and reliability
+ * 
+ * This script fixes issues with transitions between the first and second
+ * advertisement displays, ensuring both ads show for exactly 15 seconds each
+ * and that the process advances correctly.
+ * 
+ * Key fixes:
+ * 1. Ensures smooth transition between first and second ad
+ * 2. Prevents "View Results" button from activating prematurely
+ * 3. Forces strict 15 second display time for both ads
+ * 4. Adds safety checks to prevent skipping ads
  */
 
 (function() {
-    console.log('Critical transition fix loading');
+    'use strict';
     
-    // Global state tracking variables
-    let firstAdShown = false;
-    let secondAdShown = false;
-    let transitionInProgress = false;
+    console.log('Critical ad transition fix initializing');
     
-    // Log state changes to help debug
-    function logTransitionState(message) {
-        console.log(`TRANSITION: ${message} (first: ${firstAdShown}, second: ${secondAdShown})`);
+    // Configuration for ad transitions
+    const config = {
+        firstAdMinTime: 15000,  // 15 seconds in milliseconds
+        secondAdMinTime: 15000, // 15 seconds in milliseconds
+        transitionDelay: 250,   // Short delay to ensure smooth transition (ms)
+        checkInterval: 1000,    // How often to check for transition issues (ms)
+        buttonDisabledClass: 'btn-secondary',
+        buttonEnabledClass: 'btn-success'
+    };
+    
+    // State tracking
+    let state = {
+        firstAdStarted: false,
+        firstAdStartTime: null,
+        firstAdCompleted: false,
+        secondAdStarted: false,
+        secondAdStartTime: null,
+        secondAdCompleted: false,
+        transitionInProgress: false,
+        intervalId: null
+    };
+    
+    // DOM element references
+    let elements = {
+        firstAdOverlay: null,
+        secondAdOverlay: null,
+        viewResultsButton: null,
+        countdownElement: null
+    };
+    
+    // Initialize the transition fix
+    function initialize() {
+        // Cache DOM elements
+        elements.firstAdOverlay = document.getElementById('ad-overlay-loading');
+        elements.secondAdOverlay = document.getElementById('ad-overlay-results');
+        elements.viewResultsButton = document.getElementById('view-results-btn');
+        elements.countdownElement = document.getElementById('countdown');
+        
+        // Set up monitoring interval
+        state.intervalId = setInterval(monitorAdTransitions, config.checkInterval);
+        
+        // Attach to the existing ad system
+        attachToExistingAdSystem();
+        
+        console.log('Critical ad transition fix initialized');
     }
     
-    // Function to ensure the transition between ads happens correctly
-    function ensureAdTransition() {
-        if (transitionInProgress) {
-            return; // Don't interrupt an active transition
+    // Monitor ad transitions to catch and fix any issues
+    function monitorAdTransitions() {
+        // Check if first ad is active
+        if (isFirstAdActive() && !state.firstAdStarted) {
+            // First ad just started
+            state.firstAdStarted = true;
+            state.firstAdStartTime = Date.now();
+            state.firstAdCompleted = false;
+            
+            console.log('Transition fix: First ad detected as started');
+            
+            // Ensure view results button is disabled
+            disableViewResultsButton();
+            
+            // Schedule enabling the button after minimum time
+            scheduleFirstAdCompletion();
         }
         
-        const adOverlayLoading = document.getElementById('ad-overlay-loading');
-        const adOverlayResults = document.getElementById('ad-overlay-results');
+        // Check if second ad is active
+        if (isSecondAdActive() && !state.secondAdStarted) {
+            // Second ad just started
+            state.secondAdStarted = true;
+            state.secondAdStartTime = Date.now();
+            state.secondAdCompleted = false;
+            state.firstAdCompleted = true;  // First ad must be complete if second is showing
+            
+            console.log('Transition fix: Second ad detected as started');
+            
+            // Ensure view results button is disabled for second ad
+            disableViewResultsButton('Continue to Results (Wait 15s)');
+            
+            // Schedule enabling the button after minimum time
+            scheduleSecondAdCompletion();
+        }
         
-        // If first ad is shown but second isn't yet
-        if (firstAdShown && !secondAdShown && adOverlayLoading && adOverlayLoading.style.display === 'flex') {
-            logTransitionState('First ad detected, preparing transition to second ad');
+        // Check for improper button state
+        checkAndFixButtonState();
+    }
+    
+    // Attach our logic to the existing ad system
+    function attachToExistingAdSystem() {
+        // If the ad system is already initialized, hook into its events
+        if (window.SnapLottoAds) {
+            console.log('Transition fix: Attaching to existing ad system');
             
-            transitionInProgress = true;
+            // Store original functions to extend them
+            const originalShowLoadingAd = window.SnapLottoAds.showLoadingAdOverlay;
+            const originalShowResultsAd = window.SnapLottoAds.showResultsAdOverlay;
+            const originalEnableViewResults = window.SnapLottoAds.enableViewResultsButton;
+            const originalEnableContinueResults = window.SnapLottoAds.enableContinueToResultsButton;
             
-            // Force transition to second ad
-            setTimeout(() => {
-                logTransitionState('Forcing transition to second ad');
-                
-                // Hide the first ad overlay
-                adOverlayLoading.style.display = 'none';
-                
-                // Show the second ad overlay
-                if (adOverlayResults) {
-                    adOverlayResults.style.display = 'flex';
-                    secondAdShown = true;
+            // Extend the first ad display function
+            if (typeof originalShowLoadingAd === 'function') {
+                window.SnapLottoAds.showLoadingAdOverlay = function() {
+                    // Reset our state
+                    resetState();
                     
-                    // Make sure countdown is shown and running
-                    ensureCountdownVisible();
-                }
-                
-                transitionInProgress = false;
-            }, 500);
-        }
-    }
-    
-    // Function to ensure countdown is visible and working
-    function ensureCountdownVisible() {
-        const countdownContainer = document.getElementById('countdown-container');
-        const viewResultsBtn = document.getElementById('view-results-btn');
-        
-        if (countdownContainer && viewResultsBtn) {
-            // If the countdown container is empty, initialize it
-            if (!countdownContainer.innerText || countdownContainer.innerText.trim() === '') {
-                countdownContainer.innerText = 'Wait 15s';
-                
-                // Also update button text to match
-                if (!viewResultsBtn.innerText.includes('Wait')) {
-                    const originalText = viewResultsBtn.innerText;
-                    viewResultsBtn.innerText = 'Wait 15s';
-                    viewResultsBtn.setAttribute('data-original-text', originalText);
-                }
-                
-                // Ensure button is disabled during countdown
-                viewResultsBtn.disabled = true;
-                
-                logTransitionState('Countdown initialized');
+                    // Mark first ad as started
+                    state.firstAdStarted = true;
+                    state.firstAdStartTime = Date.now();
+                    
+                    // Call original function
+                    originalShowLoadingAd.apply(this, arguments);
+                    
+                    // Double-check button is disabled
+                    disableViewResultsButton();
+                    
+                    // Schedule enabling the button after minimum time
+                    scheduleFirstAdCompletion();
+                };
+            }
+            
+            // Extend the second ad display function
+            if (typeof originalShowResultsAd === 'function') {
+                window.SnapLottoAds.showResultsAdOverlay = function() {
+                    // Mark second ad as started
+                    state.secondAdStarted = true;
+                    state.secondAdStartTime = Date.now();
+                    state.firstAdCompleted = true;
+                    
+                    // Call original function
+                    originalShowResultsAd.apply(this, arguments);
+                    
+                    // Double-check button is disabled 
+                    disableViewResultsButton('Continue to Results (Wait 15s)');
+                    
+                    // Schedule enabling the button after minimum time
+                    scheduleSecondAdCompletion();
+                };
+            }
+            
+            // Extend the enable view results button function
+            if (typeof originalEnableViewResults === 'function') {
+                window.SnapLottoAds.enableViewResultsButton = function() {
+                    // Only enable if minimum time has truly passed
+                    const elapsedTime = Date.now() - state.firstAdStartTime;
+                    
+                    if (elapsedTime >= config.firstAdMinTime) {
+                        // OK to enable button
+                        state.firstAdCompleted = true;
+                        originalEnableViewResults.apply(this, arguments);
+                    } else {
+                        // Too early! Schedule for later
+                        console.log('Transition fix: Prevented premature button activation, rescheduling');
+                        setTimeout(function() {
+                            originalEnableViewResults.apply(window.SnapLottoAds);
+                        }, config.firstAdMinTime - elapsedTime + 50);
+                    }
+                };
+            }
+            
+            // Extend the enable continue to results button function
+            if (typeof originalEnableContinueResults === 'function') {
+                window.SnapLottoAds.enableContinueToResultsButton = function() {
+                    // Only enable if minimum time has truly passed
+                    const elapsedTime = Date.now() - state.secondAdStartTime;
+                    
+                    if (elapsedTime >= config.secondAdMinTime) {
+                        // OK to enable button
+                        state.secondAdCompleted = true;
+                        originalEnableContinueResults.apply(this, arguments);
+                    } else {
+                        // Too early! Schedule for later
+                        console.log('Transition fix: Prevented premature button activation, rescheduling');
+                        setTimeout(function() {
+                            originalEnableContinueResults.apply(window.SnapLottoAds);
+                        }, config.secondAdMinTime - elapsedTime + 50);
+                    }
+                };
             }
         }
     }
     
-    // Watch for the first ad being shown
-    function watchFirstAdDisplay() {
-        const adOverlayLoading = document.getElementById('ad-overlay-loading');
-        
-        if (adOverlayLoading) {
-            // Create a mutation observer to watch for the first ad display changes
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                        const displayStyle = adOverlayLoading.style.display;
-                        
-                        if (displayStyle === 'flex' && !firstAdShown) {
-                            firstAdShown = true;
-                            logTransitionState('First ad now displayed');
-                            
-                            // Set a backup timer to ensure transition happens
-                            setTimeout(() => {
-                                if (!secondAdShown) {
-                                    logTransitionState('Backup timer triggering transition');
-                                    ensureAdTransition();
-                                }
-                            }, 15000); // 15 second backup
-                        }
-                    }
-                });
-            });
+    // Check if first ad is active
+    function isFirstAdActive() {
+        return elements.firstAdOverlay && 
+               elements.firstAdOverlay.style.display !== 'none';
+    }
+    
+    // Check if second ad is active
+    function isSecondAdActive() {
+        return elements.secondAdOverlay && 
+               elements.secondAdOverlay.style.display !== 'none';
+    }
+    
+    // Ensure view results button is disabled
+    function disableViewResultsButton(buttonText) {
+        if (elements.viewResultsButton) {
+            // Disable the button
+            elements.viewResultsButton.disabled = true;
             
-            // Start observing
-            observer.observe(adOverlayLoading, { attributes: true });
-            logTransitionState('First ad observer started');
+            // Update styling
+            elements.viewResultsButton.classList.remove('btn-pulse');
+            elements.viewResultsButton.classList.remove(config.buttonEnabledClass);
+            elements.viewResultsButton.classList.add(config.buttonDisabledClass);
+            
+            // Update text if provided
+            if (buttonText) {
+                elements.viewResultsButton.innerHTML = '<i class="fas fa-lock me-2"></i> ' + buttonText;
+            }
         }
     }
     
-    // Watch for scanning process to complete
-    function watchScanProcess() {
-        // If the processTicketWithAds function exists, enhance it
-        if (window.processTicketWithAds) {
-            const originalFunction = window.processTicketWithAds;
+    // Check and fix button state if needed
+    function checkAndFixButtonState() {
+        // If first ad active but hasn't shown long enough, ensure button disabled
+        if (isFirstAdActive() && state.firstAdStarted) {
+            const elapsedTime = Date.now() - state.firstAdStartTime;
             
-            window.processTicketWithAds = function() {
-                // Reset the ad display tracking
-                firstAdShown = false;
-                secondAdShown = false;
-                transitionInProgress = false;
-                logTransitionState('Ad state reset for new scan');
+            if (elapsedTime < config.firstAdMinTime && elements.viewResultsButton && !elements.viewResultsButton.disabled) {
+                console.log('Transition fix: Fixing button state for first ad');
+                disableViewResultsButton();
                 
-                // Call the original function
-                originalFunction.apply(this, arguments);
-            };
+                // Update countdown element if possible
+                if (elements.countdownElement) {
+                    const remainingSeconds = Math.ceil((config.firstAdMinTime - elapsedTime) / 1000);
+                    elements.countdownElement.textContent = remainingSeconds;
+                }
+            }
+        }
+        
+        // If second ad active but hasn't shown long enough, ensure button disabled
+        if (isSecondAdActive() && state.secondAdStarted) {
+            const elapsedTime = Date.now() - state.secondAdStartTime;
             
-            logTransitionState('Scan process function enhanced');
+            if (elapsedTime < config.secondAdMinTime && elements.viewResultsButton && !elements.viewResultsButton.disabled) {
+                console.log('Transition fix: Fixing button state for second ad');
+                disableViewResultsButton('Continue to Results (Wait 15s)');
+                
+                // Update countdown element if possible
+                if (elements.countdownElement) {
+                    const remainingSeconds = Math.ceil((config.secondAdMinTime - elapsedTime) / 1000);
+                    elements.countdownElement.textContent = remainingSeconds;
+                }
+            }
         }
     }
     
-    // Initialize everything when the DOM is loaded
+    // Schedule first ad completion
+    function scheduleFirstAdCompletion() {
+        setTimeout(function() {
+            const elapsedTime = Date.now() - state.firstAdStartTime;
+            
+            if (isFirstAdActive() && elapsedTime >= config.firstAdMinTime && !state.firstAdCompleted) {
+                console.log('Transition fix: First ad completed by scheduler');
+                state.firstAdCompleted = true;
+                
+                // Enable button through ad system if available
+                if (window.SnapLottoAds && typeof window.SnapLottoAds.enableViewResultsButton === 'function') {
+                    window.SnapLottoAds.enableViewResultsButton();
+                }
+            }
+        }, config.firstAdMinTime + config.transitionDelay);
+    }
+    
+    // Schedule second ad completion
+    function scheduleSecondAdCompletion() {
+        setTimeout(function() {
+            const elapsedTime = Date.now() - state.secondAdStartTime;
+            
+            if (isSecondAdActive() && elapsedTime >= config.secondAdMinTime && !state.secondAdCompleted) {
+                console.log('Transition fix: Second ad completed by scheduler');
+                state.secondAdCompleted = true;
+                
+                // Enable button through ad system if available
+                if (window.SnapLottoAds && typeof window.SnapLottoAds.enableContinueToResultsButton === 'function') {
+                    window.SnapLottoAds.enableContinueToResultsButton();
+                }
+            }
+        }, config.secondAdMinTime + config.transitionDelay);
+    }
+    
+    // Reset state completely
+    function resetState() {
+        state = {
+            firstAdStarted: false,
+            firstAdStartTime: null,
+            firstAdCompleted: false,
+            secondAdStarted: false,
+            secondAdStartTime: null,
+            secondAdCompleted: false,
+            transitionInProgress: false,
+            intervalId: state.intervalId
+        };
+    }
+    
+    // Emergency force transition to second ad (for console debug)
+    function emergencyForceCompleteFirstAd() {
+        if (isFirstAdActive()) {
+            console.log('Transition fix: Emergency first ad completion forced');
+            state.firstAdCompleted = true;
+            
+            // Enable button through ad system if available
+            if (window.SnapLottoAds && typeof window.SnapLottoAds.enableViewResultsButton === 'function') {
+                window.SnapLottoAds.enableViewResultsButton();
+            } else if (elements.viewResultsButton) {
+                // Direct button enable
+                elements.viewResultsButton.disabled = false;
+                elements.viewResultsButton.classList.add('btn-pulse');
+                elements.viewResultsButton.classList.remove(config.buttonDisabledClass);
+                elements.viewResultsButton.classList.add(config.buttonEnabledClass);
+                elements.viewResultsButton.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+            }
+        }
+    }
+    
+    // Emergency force transition to results (for console debug)
+    function emergencyForceCompleteSecondAd() {
+        if (isSecondAdActive()) {
+            console.log('Transition fix: Emergency second ad completion forced');
+            state.secondAdCompleted = true;
+            
+            // Enable button through ad system if available
+            if (window.SnapLottoAds && typeof window.SnapLottoAds.enableContinueToResultsButton === 'function') {
+                window.SnapLottoAds.enableContinueToResultsButton();
+            } else if (elements.viewResultsButton) {
+                // Direct button enable
+                elements.viewResultsButton.disabled = false;
+                elements.viewResultsButton.classList.add('btn-pulse');
+                elements.viewResultsButton.classList.remove(config.buttonDisabledClass);
+                elements.viewResultsButton.classList.add(config.buttonEnabledClass);
+                elements.viewResultsButton.innerHTML = '<i class="fas fa-check-circle me-2"></i> Continue to Results!';
+            }
+        }
+    }
+    
+    // Initialize on page load - delay slightly to let ad system initialize first
     document.addEventListener('DOMContentLoaded', function() {
-        // Start watching for the first ad display
-        watchFirstAdDisplay();
+        setTimeout(initialize, 100);
         
-        // Enhance the scan process
-        watchScanProcess();
-        
-        // Set up periodic transition check
-        setInterval(ensureAdTransition, 2000);
-        
-        logTransitionState('Transition monitoring initialized');
+        // Add emergency functions to window for debugging
+        window.emergencyForceCompleteFirstAd = emergencyForceCompleteFirstAd;
+        window.emergencyForceCompleteSecondAd = emergencyForceCompleteSecondAd;
     });
     
-    // Emergency transition function that can be called from console for debugging
-    window.forceAdTransition = function() {
-        const adOverlayLoading = document.getElementById('ad-overlay-loading');
-        const adOverlayResults = document.getElementById('ad-overlay-results');
-        
-        if (adOverlayLoading) {
-            adOverlayLoading.style.display = 'none';
-        }
-        
-        if (adOverlayResults) {
-            adOverlayResults.style.display = 'flex';
-            ensureCountdownVisible();
-        }
-        
-        logTransitionState('EMERGENCY transition force-triggered');
-        return 'Ad transition forced';
-    };
+    // Also initialize immediately in case DOMContentLoaded already fired
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(initialize, 100);
+    }
     
-    // Emergency function to fix a stuck button
-    window.fixStuckButton = function() {
-        const viewResultsBtn = document.getElementById('view-results-btn');
-        
-        if (viewResultsBtn) {
-            // Read the original text or use a default
-            const originalText = viewResultsBtn.getAttribute('data-original-text') || 'View Results';
-            
-            // Reset the button
-            viewResultsBtn.innerText = originalText;
-            viewResultsBtn.disabled = false;
-            viewResultsBtn.classList.add('btn-pulse');
-            
-            logTransitionState('EMERGENCY button reset triggered');
-            return 'Button has been reset';
-        }
-        
-        return 'Button not found';
-    };
-    
-    console.log('Critical transition fix loaded');
 })();

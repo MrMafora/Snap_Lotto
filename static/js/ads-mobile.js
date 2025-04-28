@@ -176,19 +176,55 @@
         if (adOverlay) {
             adOverlay.style.display = 'flex';
             
-            // Update state
+            // Update state and ensure any previous ads are reset
+            resetAdTimers();
             window.SnapLottoAds.adLoadingActive = true;
             window.SnapLottoAds.firstAdShown = true;
+            window.SnapLottoAds.firstAdComplete = false;
             window.SnapLottoAds.adStartTime = Date.now();
+            
+            // Force-disable the view results button
+            const viewBtn = document.getElementById('view-results-btn');
+            if (viewBtn) {
+                viewBtn.disabled = true;
+                viewBtn.classList.remove('btn-pulse');
+                viewBtn.classList.remove('btn-success');
+                viewBtn.classList.add('btn-secondary');
+                viewBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
+            }
             
             console.log("First ad shown at: " + new Date().toISOString());
             
-            // Start countdown for first ad
-            startCountdown(15, 'first-ad', function() {
-                window.SnapLottoAds.firstAdComplete = true;
-                enableViewResultsButton();
+            // CRITICAL: Force minimum display time for the first ad
+            const startTime = Date.now();
+            const countdownTimeout = setTimeout(function() {
+                // Only enable the button if minimum time has actually passed
+                const elapsedTime = Date.now() - startTime;
+                console.log("First ad timeout reached after: " + elapsedTime + "ms");
                 
-                console.log("First ad completed at: " + new Date().toISOString());
+                if (elapsedTime >= window.SnapLottoAds.adMinimumTime) {
+                    window.SnapLottoAds.firstAdComplete = true;
+                    enableViewResultsButton();
+                    console.log("First ad completed at: " + new Date().toISOString());
+                } else {
+                    // If somehow the timer fired too early, set another one
+                    console.log("Timer fired too early, resetting...");
+                    setTimeout(function() {
+                        window.SnapLottoAds.firstAdComplete = true;
+                        enableViewResultsButton();
+                        console.log("First ad completed after reset at: " + new Date().toISOString());
+                    }, window.SnapLottoAds.adMinimumTime - elapsedTime);
+                }
+            }, window.SnapLottoAds.adMinimumTime);
+            
+            // Store the timeout for cleanup
+            window.SnapLottoAds.adTimeouts.push(countdownTimeout);
+            
+            // Start countdown display update
+            startCountdown(15, 'first-ad', function() {
+                // The visual countdown has completed, but we don't enable 
+                // the button until the minimum time has truly passed
+                console.log("Visual countdown completed for first ad");
             });
         }
     }
@@ -199,19 +235,54 @@
         if (resultsOverlay) {
             resultsOverlay.style.display = 'flex';
             
-            // Update state
+            // Update state and ensure previous ad state is reset
             window.SnapLottoAds.adDisplayActive = true;
             window.SnapLottoAds.secondAdShown = true;
+            window.SnapLottoAds.secondAdComplete = false;
             window.SnapLottoAds.adStartTime = Date.now();
+            
+            // Force-disable the view results button for second ad
+            const viewBtn = document.getElementById('view-results-btn');
+            if (viewBtn) {
+                viewBtn.disabled = true;
+                viewBtn.classList.remove('btn-pulse');
+                viewBtn.classList.remove('btn-success');
+                viewBtn.classList.add('btn-secondary');
+                viewBtn.innerHTML = '<i class="fas fa-lock me-2"></i> Continue to Results (Wait 15s)';
+            }
             
             console.log("Second ad shown at: " + new Date().toISOString());
             
-            // Start countdown for second ad
-            startCountdown(15, 'second-ad', function() {
-                window.SnapLottoAds.secondAdComplete = true;
-                enableContinueToResultsButton();
+            // CRITICAL: Force minimum display time for the second ad
+            const startTime = Date.now();
+            const countdownTimeout = setTimeout(function() {
+                // Only enable the button if minimum time has actually passed
+                const elapsedTime = Date.now() - startTime;
+                console.log("Second ad timeout reached after: " + elapsedTime + "ms");
                 
-                console.log("Second ad completed at: " + new Date().toISOString());
+                if (elapsedTime >= window.SnapLottoAds.adMinimumTime) {
+                    window.SnapLottoAds.secondAdComplete = true;
+                    enableContinueToResultsButton();
+                    console.log("Second ad completed at: " + new Date().toISOString());
+                } else {
+                    // If somehow the timer fired too early, set another one
+                    console.log("Second ad timer fired too early, resetting...");
+                    setTimeout(function() {
+                        window.SnapLottoAds.secondAdComplete = true;
+                        enableContinueToResultsButton();
+                        console.log("Second ad completed after reset at: " + new Date().toISOString());
+                    }, window.SnapLottoAds.adMinimumTime - elapsedTime);
+                }
+            }, window.SnapLottoAds.adMinimumTime);
+            
+            // Store the timeout for cleanup
+            window.SnapLottoAds.adTimeouts.push(countdownTimeout);
+            
+            // Start countdown display update
+            startCountdown(15, 'second-ad', function() {
+                // The visual countdown has completed, but we don't enable 
+                // the button until the minimum time has truly passed
+                console.log("Visual countdown completed for second ad");
             });
         }
     }
