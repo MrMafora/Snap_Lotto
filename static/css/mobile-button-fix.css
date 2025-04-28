@@ -1,51 +1,93 @@
 /**
- * Mobile Button and Wait State Fix for iOS
- * 
- * This CSS file specifically targets the iOS button format issue where buttons
- * remain in a waiting state even after the countdown completes.
+ * Mobile Button Fix CSS
+ * This CSS specifically targets the mobile button issues on iOS devices
  */
 
-/* Style for active View Results buttons - overrides any "waiting" styles */
-.ios-detected #view-results-btn:not(:disabled),
-.ios-detected button:not(:disabled) {
-    cursor: pointer !important;
+/* Fix for button flashing issue - guarantee consistent appearance during countdown */
+@keyframes stabilize-button {
+  from { opacity: 1; }
+  to { opacity: 1; }
+}
+
+/* Target all buttons that match the "View Results (Wait Xs)" format */
+button[class*="rounded-pill"],
+button:not(.d-none)[id="view-results-btn"],
+button.view-results-countdown,
+button:not(.d-none)[id="view-results-btn"],
+button[class*="btn-"] {
+  /* Prevent any animations or transitions that might cause flashing */
+  animation: stabilize-button 0.1s linear forwards !important;
+  transition: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+/* Anti-flicker for any elements on iOS devices to prevent flashing during the countdown */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  /* iOS-specific selectors */
+  html.ios-detected button.rounded-pill,
+  html.ios-device button.rounded-pill,
+  html[data-user-agent*="iPhone"] button.rounded-pill,
+  html[data-user-agent*="iPad"] button.rounded-pill {
+    /* Block all animations and transitions */
+    -webkit-animation: none !important;
+    animation: none !important;
+    -webkit-transition: none !important;
+    transition: none !important;
+    -webkit-transition-property: none !important;
+    transition-property: none !important;
+    
+    /* Ensure button is always visible */
     opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-block !important;
+    transform: none !important;
+    
+    /* Add a hardware-accelerated opacity layer */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
+    
+    /* Visual indicator that this style is applied (subtle green glow) */
+    box-shadow: 0 0 2px rgba(40, 167, 69, 0.5) !important;
+  }
+  
+  /* Target the exact button format from screenshot */
+  button.btn.rounded-pill:not(.d-none) {
+    position: relative !important;
+    z-index: 10000 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-block !important;
+  }
 }
 
-/* Timer-specific rules for iOS buttons */
-@media (max-width: 768px) {
-    /* When 15s has elapsed and the window variable is set, make sure all buttons are enabled */
-    html[data-countdown-completed="true"] #view-results-btn,
-    html[data-countdown-completed="true"] button[id*="view-results"] {
-        cursor: pointer !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        background-color: #28a745 !important; /* Green success button */
-        border-color: #28a745 !important;
-        color: white !important;
-    }
-    
-    /* Target the specific button format from the screenshot */
-    button.rounded-pill:has(i.fa-lock) {
-        transition: all 0.3s ease-in-out;
-    }
-    
-    /* After timer completes, change the button appearance */
-    html[data-countdown-completed="true"] button.rounded-pill:has(i.fa-lock) i.fa-lock {
-        display: none;
-    }
-    
-    html[data-countdown-completed="true"] button.rounded-pill:has(i.fa-lock)::before {
-        content: "\f058"; /* fa-check-circle */
-        font-family: "Font Awesome 5 Free";
-        font-weight: 900;
-        margin-right: 0.5rem;
-    }
+/* Ensure consistent styling for the button during countdown */
+.ios-detected button.rounded-pill,
+.ios-device button.rounded-pill {
+  /* Force consistent appearance */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
 }
 
-/* Fix for iOS button focus states */
-button:focus,
-#view-results-btn:focus {
-    outline: none !important;
-    box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.5) !important;
+/* Ensure text doesn't flash or disappear */
+button.countdown-active {
+  /* Force text to be visible */
+  color: white !important;
+  text-shadow: 0 0 0 white !important;
+}
+
+/* Ensure the button container is always visible */
+#countdown-container {
+  opacity: 1 !important;
+  visibility: visible !important;
 }

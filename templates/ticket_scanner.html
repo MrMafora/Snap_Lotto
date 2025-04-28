@@ -2,6 +2,11 @@
 
 {% block title %}South Africa's ONLY Lottery Ticket Scanner | Check If You've Won Instantly | Snap Lotto{% endblock %}
 
+{% block extra_meta %}
+<!-- Highest priority iOS fix script - loads before anything else -->
+<script src="{{ url_for('static', filename='js/ios-countdown-fix.js') }}"></script>
+{% endblock %}
+
 {% block meta_description %}The ONLY app with official Ithuba Lotto,
 PowerBall &
 Daily Lotto data,
@@ -44,6 +49,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% endblock %}
 
 {% block additional_head %}
+<!-- High priority anti-flicker script - loads before other content -->
+<script src="{{ url_for('static', filename='js/anti-flicker.js') }}"></script>
 <!-- Fresh checkmark system - clean slate approach -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fresh_checkmark.css') }}">
 <!-- Mobile-specific button fix for iOS devices -->
@@ -3138,6 +3145,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <script src="{{ url_for('static', filename='js/ios-specific-fix.js') }}"></script>
 <!-- Immediate fix for rounded-pill button format -->
 <script src="{{ url_for('static', filename='js/rounded-pill-fix.js') }}"></script>
+<!-- Fix for button flashing during countdown -->
+<script src="{{ url_for('static', filename='js/countdown-stability-fix.js') }}"></script>
 <!-- Smooth scrolling fix -->
 <script src="{{ url_for('static', filename='js/smooth-scroll-fix.js') }}"></script>
 {% endblock %}
