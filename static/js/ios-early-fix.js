@@ -1,55 +1,75 @@
 /**
- * iOS Early Fix - Executes before page is fully loaded
- * Ensures mobile devices don't get stuck in advertisement loops
+ * iOS Early Fix - Ensures loading process starts before DOM is fully loaded
+ * This critical script executes as early as possible to prevent iOS-specific issues
+ * with the scan advancement process.
  */
- 
-// This script is designed to execute as early as possible during page loading
+
+// Create global flags to help track scanning state
+window.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+window.iosScanInitialized = false;
+window.iosLoadingFixApplied = false;
+window.iosResultsFixApplied = false;
+window.forcedAdvancement = false;
+window.lastResultsData = null;  // For storing scan results
+
+// Setup early iOS-specific fixes
 (function() {
-    console.log("iOS early fix loaded");
-    
-    // Handle iOS-specific issues with scanning process
-    function setupEarlyFixHandlers() {
-        // Create a global emergency function that can be called from console
-        window.emergencyAdvanceScanner = function() {
-            console.log("Emergency scanner advancement triggered");
-            
-            // Force hide loading overlay
-            var loadingOverlay = document.getElementById('ad-overlay-loading');
-            if (loadingOverlay) {
-                loadingOverlay.style.display = 'none';
-            }
-            
-            // Force show results overlay
-            var resultsOverlay = document.getElementById('ad-overlay-results');
-            if (resultsOverlay) {
-                resultsOverlay.style.display = 'flex';
-            }
-            
-            return "Emergency scanner advancement initiated";
-        };
+    // Execute specific iOS fixes earlier than DOMContentLoaded
+    if (window.isIOS) {
+        console.log('iOS device detected, applying early fixes');
         
-        // Ensure loading overlay disappears after a maximum timeout
+        // Add max timeout to force-hide loading overlay if it gets stuck (10 seconds)
         setTimeout(function() {
-            var loadingOverlay = document.getElementById('ad-overlay-loading');
+            console.log('iOS early fix: Force hiding ad-overlay-loading after maximum timeout');
+            const loadingOverlay = document.getElementById('ad-overlay-loading');
             if (loadingOverlay && loadingOverlay.style.display !== 'none') {
-                console.log("iOS early fix: Force hiding ad-overlay-loading after maximum timeout");
                 loadingOverlay.style.display = 'none';
                 
-                // Also check if we need to show the results overlay
+                // CRITICAL FIX: If we have results data, explicitly show the results overlay
                 if (window.lastResultsData) {
-                    var resultsOverlay = document.getElementById('ad-overlay-results');
+                    const resultsOverlay = document.getElementById('ad-overlay-results');
                     if (resultsOverlay) {
                         resultsOverlay.style.display = 'flex';
+                        console.log('iOS early fix: Forced display of results overlay');
+                        window.iosResultsFixApplied = true;
                     }
                 }
             }
-        }, 25000); // 25 seconds maximum
-    }
-    
-    // Set up handlers when DOM is ready or immediately if already loaded
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupEarlyFixHandlers);
-    } else {
-        setupEarlyFixHandlers();
+        }, 10000);
+        
+        // Add observer to detect when loading ad overlay is hidden
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup a mutation observer to watch for when loading ad is hidden
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && 
+                        mutation.attributeName === 'style' && 
+                        mutation.target.style.display === 'none') {
+                        
+                        console.log('iOS early fix: Detected loading overlay hidden');
+                        
+                        // CRITICAL FIX: If we have results data, show the results overlay
+                        if (window.lastResultsData && !window.iosResultsFixApplied) {
+                            const resultsOverlay = document.getElementById('ad-overlay-results');
+                            if (resultsOverlay && resultsOverlay.style.display !== 'flex') {
+                                // Force short delay to ensure proper sequencing
+                                setTimeout(function() {
+                                    resultsOverlay.style.display = 'flex';
+                                    console.log('iOS early fix: Forced display of results overlay after loading ad closed');
+                                    window.iosResultsFixApplied = true;
+                                }, 100);
+                            }
+                        }
+                    }
+                });
+            });
+            
+            // Start observing loading overlay
+            const loadingOverlay = document.getElementById('ad-overlay-loading');
+            if (loadingOverlay) {
+                observer.observe(loadingOverlay, { attributes: true });
+                console.log('iOS early fix: Now observing loading overlay');
+            }
+        });
     }
 })();

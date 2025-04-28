@@ -841,15 +841,36 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     clearTimeout(loadingExpireTimeout);
                 }
                 
-                // Hide loading overlay
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                adOverlayLoading.style.display = 'none';
+                // CRITICAL: We need to ensure proper transition from first ad to second ad
+                // Set flag to indicate we have real results
+                window.hasValidResults = true;
                 
-                // Ensure the results overlay is shown
+                // Hide loading overlay with deliberate sequencing to ensure proper ad transition
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                
+                // CRITICAL FIX: Get the results overlay BEFORE hiding the loading overlay
                 const adOverlayResults = document.getElementById('ad-overlay-results');
                 
-                // Always make sure the results overlay is displayed
-                adOverlayResults.style.display = 'flex';
+                // Prepare the results overlay transition by making sure it's ready to be visible
+                adOverlayResults.style.opacity = '1';
+                adOverlayResults.style.visibility = 'visible';
+                
+                // Log the transition for debugging
+                console.log('⚠️ CRITICAL TRANSITION: About to hide loading overlay and show results overlay');
+                
+                // CRITICAL FIX: Add a deliberate sequence with very slight delays for proper transition
+                // This resolves the iOS issue where it jumps back to the main screen
+                setTimeout(function() {
+                    // Step 1: Hide the loading overlay
+                    adOverlayLoading.style.display = 'none';
+                    
+                    // Step 2: Show the results overlay after a tiny delay to ensure proper sequence
+                    setTimeout(function() {
+                        // Force display of results overlay
+                        adOverlayResults.style.display = 'flex';
+                        console.log('⚠️ CRITICAL TRANSITION: Results overlay should now be visible');
+                    }, 50); // Just 50ms delay for sequencing
+                }, 50); // Just 50ms delay before starting transition
                 
                 // Try to use AdManager for tracking, but we'll show the overlay manually either way
                 if (window.AdManager && typeof window.AdManager.showInterstitialAd === 'function') {
@@ -3180,4 +3201,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <script src="{{ url_for('static', filename='js/scan-advancement-fix.js') }}"></script>
 <!-- Watchdog to prevent scanning from getting stuck -->
 <script src="{{ url_for('static', filename='js/scan-process-watchdog.js') }}"></script>
+<!-- Critical fix for transition between first and second ad -->
+<script src="{{ url_for('static', filename='js/critical-transition-fix.js') }}"></script>
 {% endblock %}
