@@ -5,6 +5,8 @@
 {% block extra_meta %}
 <!-- Highest priority iOS fix script - loads before anything else -->
 <script src="{{ url_for('static', filename='js/ios-countdown-fix.js') }}"></script>
+<!-- Critical fix for scan advancement to prevent getting stuck in ad loops -->
+<script src="{{ url_for('static', filename='js/ios-early-fix.js') }}"></script>
 {% endblock %}
 
 {% block meta_description %}The ONLY app with official Ithuba Lotto,
@@ -794,6 +796,26 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             // Add CSRF token to headers
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
             
+            // CRITICAL FIX: Set a backup timer to ensure we advance past loading ad
+            // This ensures we never get stuck in loading screen
+            const loadingExpireTimeout = setTimeout(function() {
+                console.log('BACKUP TIMER: Force advancing from loading ad');
+                
+                // Hide loading overlay
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                if (adOverlayLoading) {
+                    adOverlayLoading.style.display = 'none';
+                }
+                
+                // Show results overlay if we have data cached
+                if (window.lastResultsData) {
+                    const adOverlayResults = document.getElementById('ad-overlay-results');
+                    if (adOverlayResults) {
+                        adOverlayResults.style.display = 'flex';
+                    }
+                }
+            }, 15000); // 15 seconds max in loading screen
+            
             // Add CSRF token to request headers
             fetch('/scan-ticket', {
                 method: 'POST',
@@ -813,6 +835,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 
                 // CRITICAL FIX: Store the data immediately in the global object for later reference
                 window.lastResultsData = data;
+                
+                // Clear the loading backup timer since we now have results
+                if (loadingExpireTimeout) {
+                    clearTimeout(loadingExpireTimeout);
+                }
                 
                 // Hide loading overlay
                 const adOverlayLoading = document.getElementById('ad-overlay-loading');
@@ -3149,4 +3176,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <script src="{{ url_for('static', filename='js/countdown-stability-fix.js') }}"></script>
 <!-- Smooth scrolling fix -->
 <script src="{{ url_for('static', filename='js/smooth-scroll-fix.js') }}"></script>
+<!-- Scan process advancement fix for mobile -->
+<script src="{{ url_for('static', filename='js/scan-advancement-fix.js') }}"></script>
+<!-- Watchdog to prevent scanning from getting stuck -->
+<script src="{{ url_for('static', filename='js/scan-process-watchdog.js') }}"></script>
 {% endblock %}

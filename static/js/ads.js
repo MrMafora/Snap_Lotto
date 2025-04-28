@@ -209,10 +209,14 @@ window.AdManager = window.AdManager || {
         console.log('AdManager: Showing loading ad');
         
         // Get the ad for scanner placement to access its loading_duration
-        const ad = this.ads['scanner'] || { loading_duration: 10 }; // Default to 10 seconds if no ad found
+        // REDUCED TIME: Changed from 10 to 6 seconds to prevent mobile scanning from getting stuck
+        const ad = this.ads['scanner'] || { loading_duration: 6 }; // Default to 6 seconds if no ad found
         const loadingDuration = ad.loading_duration * 1000; // Convert to milliseconds
         
         console.log(`AdManager: Using loading duration of ${ad.loading_duration} seconds`);
+        
+        // IMPORTANT: Set global flag to track loading state
+        window.adLoadingActive = true;
         
         // Use the enhanced showOverlay utility function if available
         if (typeof showOverlay === 'function') {
@@ -266,6 +270,19 @@ window.AdManager = window.AdManager || {
             if (adOverlayLoading && adOverlayLoading.style.display !== 'none') {
                 console.log(`AdManager: Auto-hiding loading overlay after ${ad.loading_duration} seconds`);
                 this.hideLoadingAd();
+                
+                // CRITICAL: Reset loading state flag
+                window.adLoadingActive = false;
+                
+                // Force display results if we have data but the callback wasn't run
+                if (window.lastResultsData && !window.resultsDisplayed) {
+                    console.log('AdManager: Force showing interstitial ad since we have results');
+                    // Show the results ad immediately
+                    this.showInterstitialAd(function() {
+                        console.log('AdManager: Forced interstitial ad now showing');
+                    });
+                }
+                
                 // If there was a callback, call it again to ensure the ticket processing continues
                 if (callback) callback(true);
             }
