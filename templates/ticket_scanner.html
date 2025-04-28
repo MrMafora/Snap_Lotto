@@ -5,17 +5,11 @@
 {% block extra_meta %}
 <!-- PERFORMANCE: Mobile optimization script loads first to improve performance -->
 <script src="{{ url_for('static', filename='js/mobile-optimization.js') }}" data-critical="true"></script>
-<!-- Highest priority iOS fix script - loads before anything else -->
-<script src="{{ url_for('static', filename='js/ios-countdown-fix.js') }}" data-critical="true"></script>
-<!-- Critical fix for scan advancement to prevent getting stuck in ad loops -->
-<script src="{{ url_for('static', filename='js/ios-early-fix.js') }}" data-critical="true"></script>
 
-<!-- Mobile-optimized advertisement system with enhanced timing enforcement -->
+<!-- Mobile-optimized advertisement system with enhanced timing enforcement - SINGLE TIMER SOURCE -->
 <script src="{{ url_for('static', filename='js/ads-mobile.js') }}" data-critical="true"></script>
-<!-- Critical fix for transitions between first and second ads -->
+<!-- Critical fix for transitions between first and second ads - SINGLE TIMER CONTROLLER -->
 <script src="{{ url_for('static', filename='js/critical-transition-fix.js') }}" data-critical="true"></script>
-<!-- Scan process watchdog to prevent getting stuck -->
-<script src="{{ url_for('static', filename='js/scan-process-watchdog.js') }}" data-critical="true"></script>
 
 <!-- Inline critical Font Awesome fix - immediate execution before DOM loads -->
 <style>
@@ -74,7 +68,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <link rel="preload" href="{{ url_for('static', filename='js/scanner-icon-fix.js') }}" as="script">
 <link rel="preload" href="{{ url_for('static', filename='js/ads-mobile.js') }}" as="script">
 <link rel="preload" href="{{ url_for('static', filename='js/critical-transition-fix.js') }}" as="script">
-<link rel="preload" href="{{ url_for('static', filename='js/scan-process-watchdog.js') }}" as="script">
 
 <!-- Mobile-optimized CSS loads first -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/optimized-mobile.css') }}">
@@ -3241,19 +3234,13 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         }
     });
 </script>
-<!-- CRITICAL SCRIPTS: Core functionality that must load immediately -->
-<script src="{{ url_for('static', filename='js/critical-transition-fix.js') }}" data-critical="true"></script>
-<script src="{{ url_for('static', filename='js/scan-process-watchdog.js') }}" data-critical="true"></script>
-
 <!-- DEFERRED SCRIPTS: Non-critical scripts that can load after page render -->
 <script src="{{ url_for('static', filename='js/fresh_checkmark.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/view-results-direct.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/mobile-button-fix.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/ios-specific-fix.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/rounded-pill-fix.js') }}" defer></script>
-<script src="{{ url_for('static', filename='js/countdown-stability-fix.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/smooth-scroll-fix.js') }}" defer></script>
-<script src="{{ url_for('static', filename='js/scan-advancement-fix.js') }}" defer></script>
 
 <!-- PERFORMANCE: Inline script to boost initial render speed on mobile -->
 <script>
