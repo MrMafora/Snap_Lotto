@@ -1024,11 +1024,21 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 // Store original button text to check if it actually changes
                                 const originalText = viewResultsBtn.innerHTML;
                                 
-                                // Update the button text and properties
+                                // Update the button text and properties with enhanced mobile support
                                 viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
                                 viewResultsBtn.disabled = false;
                                 viewResultsBtn.style.opacity = '1';
                                 viewResultsBtn.style.cursor = 'pointer';
+                                
+                                // Remove the countdown class and add active class
+                                viewResultsBtn.classList.remove('btn-secondary');
+                                viewResultsBtn.classList.add('btn-success');
+                                
+                                // Also clear the Mobile wait message if it exists (fix for mobile devices)
+                                const mobileTimerSpan = viewResultsBtn.querySelector('span');
+                                if (mobileTimerSpan) {
+                                    mobileTimerSpan.textContent = 'View Results Now!';
+                                }
                                 
                                 // Log if the button text didn't change (potential DOM update issue)
                                 if (viewResultsBtn.innerHTML === originalText) {
@@ -1037,6 +1047,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     viewResultsBtn.textContent = '';
                                     setTimeout(() => {
                                         viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                        // Also apply styles directly to ensure mobile compatibility
+                                        viewResultsBtn.classList.add('btn-success');
+                                        viewResultsBtn.classList.remove('btn-secondary');
                                     }, 10);
                                 }
                                 
@@ -1059,6 +1072,20 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 viewResultsBtn.style.opacity = '1';
                                 viewResultsBtn.style.cursor = 'pointer';
                                 viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                
+                                // Mobile-specific fix: ensure button appearance changes
+                                viewResultsBtn.classList.remove('btn-secondary');
+                                viewResultsBtn.classList.add('btn-success');
+                                
+                                // Mobile-specific: Handle the timer text in the span element
+                                const mobileSpans = viewResultsBtn.querySelectorAll('span');
+                                if (mobileSpans.length > 0) {
+                                    mobileSpans.forEach(span => {
+                                        if (span.textContent.includes('Wait')) {
+                                            span.textContent = 'View Results Now!';
+                                        }
+                                    });
+                                }
                                 
                                 // Make the button pulse to draw attention
                                 viewResultsBtn.classList.add('btn-pulse');
@@ -1173,7 +1200,19 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                 viewResultsBtn.style.cursor = 'pointer';
                                 viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
                                 viewResultsBtn.classList.add('btn-pulse');
+                                
+                                // Mobile-specific visual cues
+                                viewResultsBtn.classList.remove('btn-secondary');
+                                viewResultsBtn.classList.add('btn-success');
                                 viewResultsBtn.setAttribute('data-forced-enabled', 'true');
+                                
+                                // Mobile device fix - check for any remaining "Wait" spans
+                                const allSpans = document.querySelectorAll('#view-results-btn span');
+                                allSpans.forEach(span => {
+                                    if (span.textContent.includes('Wait')) {
+                                        span.textContent = 'View Results Now!';
+                                    }
+                                });
                                 
                                 // CRITICAL FIX: Replace the button with a clone to remove any event handlers that might prevent clicks
                                 if (viewResultsBtn && viewResultsBtn.parentNode) {
