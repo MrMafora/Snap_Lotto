@@ -281,12 +281,12 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             <p class="small text-muted mt-2">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
         </div>
     </div>
-    <!-- Countdown timer will be placed here above the button -->
+    <!-- Countdown timer with a single consistent display -->
     <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;">
         Please wait <span id="countdown">15</span> seconds to view your results
     </div>
-    <button class="btn btn-success btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;" disabled>
-        <i class="fas fa-check-circle me-2"></i> View Results
+    <button class="btn btn-secondary btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;" disabled>
+        <i class="fas fa-lock me-2"></i> Continue to Results (Wait 15s)
     </button>
 </div>
 
@@ -1097,7 +1097,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                         const counterElement = document.createElement('div');
                         counterElement.id = 'ad-countdown';
                         counterElement.style.cssText = 'font-size: 18px; color: #0d6efd; font-weight: bold;';
-                        counterElement.innerHTML = '<i class="fas fa-clock me-2"></i><span id="countdown-number">Results available in 15 seconds...</span>';
+                        counterElement.innerHTML = '<i class="fas fa-clock me-2"></i><span id="countdown-number">Please wait for your results</span>';
                         // Append to the countdown container above the button instead of the ad container
                         countdownContainer.appendChild(counterElement);
                     } else {
@@ -1130,7 +1130,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             
                             // Only update if the element exists
                             if (countdownNumber) {
-                                countdownNumber.textContent = `Results available in ${remainingSeconds} seconds...`;
+                                // Don't update with countdown text - use consistent countdown from ads-mobile.js
+                                countdownNumber.textContent = "Please wait for your results";
                             }
                             
                             // Update button text with more robust handling
