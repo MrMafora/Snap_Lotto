@@ -46,7 +46,17 @@
         const buttonId = e.detail.buttonId || 'view-results-btn';
         const phase = e.detail.phase || 'second';
         
+        // Update the ad phase state
+        state.adPhase = phase;
+        
+        // Reset any ongoing countdown to avoid conflicts
+        if (state.activeCountdown) {
+            clearInterval(state.activeCountdown);
+            state.activeCountdown = null;
+        }
+        
         // Set up countdown based on the requested phase
+        console.log('Setting up countdown for phase:', phase);
         setupCountdown(phase);
     });
     
@@ -239,7 +249,7 @@
             viewResultsBtn.disabled = true;
             
             // Update button text
-            viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> Continue to Results (Wait 15s)';
+            viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
             viewResultsBtn.classList.remove('btn-success');
             viewResultsBtn.classList.add('btn-secondary');
         }
@@ -263,7 +273,7 @@
             
             // Update button text only if button exists
             if (viewResultsBtn && phase === 'second') {
-                viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> Continue to Results (Wait ${secondsRemaining}s)`;
+                viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${secondsRemaining}s)`;
             }
             
             // Check if countdown is complete
@@ -282,7 +292,7 @@
                     viewResultsBtn.classList.add('btn-pulse');
                     
                     // Update button text
-                    viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> Continue to Results!';
+                    viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
                 }
                 
                 console.log('Transition fix: Countdown complete for ' + phase + ' ad');
