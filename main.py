@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Now that logger is defined, import other modules
 import scheduler  # Import directly at the top level for screenshot functions
+import create_template  # Import directly for template creation
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory, send_file, session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -141,12 +142,7 @@ def init_lazy_modules():
     """Initialize modules in a background thread with timeout"""
     global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, health_monitor
     
-    # Add timeout to prevent hanging
-    import signal
-    def timeout_handler(signum, frame):
-        raise TimeoutError("Module initialization timed out")
-    signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(30)  # 30 second timeout
+    # Note: Removed signal alarm since it only works in main thread
     
     # Import heavy modules only when needed
     import data_aggregator as da
@@ -657,7 +653,7 @@ def export_template():
     filename = f"lottery_data_template_{timestamp}.xlsx"
     
     # Create template with lottery-specific tabs
-    ie.create_empty_template(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    create_template.create_template(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     
     return send_from_directory(
         app.config['UPLOAD_FOLDER'], 
@@ -849,6 +845,8 @@ def import_details(import_id):
 @csrf.exempt
 def import_data():
     """Import data from Excel spreadsheet"""
+    global import_excel, import_snap_lotto_data
+    
     if not current_user.is_admin:
         flash('You must be an admin to import data.', 'danger')
         return redirect(url_for('index'))
@@ -1018,6 +1016,10 @@ def import_data():
                 else:
                     # Try standard format for non-template files
                     try:
+                        if import_excel is None:
+                            import import_excel as ie
+                        else:
+                            ie = import_excel
                         import_stats = ie.import_excel_data(excel_path)
                         
                         # If import was successful, track it in the import history
@@ -1060,6 +1062,11 @@ def import_data():
                                     'filename': filename
                                 }
                                 
+                                # Import import_snap_lotto_data if not already loaded
+                                if import_snap_lotto_data is None:
+                                    import import_snap_lotto_data as isld
+                                else:
+                                    isld = import_snap_lotto_data
                                 import_stats = isld.import_snap_lotto_data(excel_path, flask_app=app)
                                 
                                 # If import was successful, track it in the import history
@@ -1807,7 +1814,7 @@ def export_combined_zip():
             # Create the template file
             template_filename = f"lottery_data_template_{timestamp}.xlsx"
             template_path = os.path.join(temp_dir, template_filename)
-            ie.create_empty_template(template_path)
+            create_template.create_template(template_path)
             
             # Create a ZIP file in memory
             memory_file = io.BytesIO()
