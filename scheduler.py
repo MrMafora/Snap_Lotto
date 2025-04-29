@@ -141,8 +141,8 @@ def run_lottery_task(url, lottery_type):
             
             # Ensure we have an application context for all database operations
             with app.app_context():
-                # Step 1: Capture screenshot directly
-                capture_result = capture_screenshot(url, lottery_type)
+                # Step 1: Capture screenshot directly using the sm module
+                capture_result = sm.capture_screenshot(url, lottery_type)
                 
                 # Unpack the values - either we get (filepath, screenshot_data, zoom_filepath)
                 # or we get None if the capture failed
@@ -313,10 +313,10 @@ def retake_screenshot_by_id(screenshot_id, app=None):
             logger.info(f"Retaking screenshot for {screenshot.lottery_type} from {screenshot.url}")
             
             # Import screenshot manager inside the thread to avoid circular imports
-            from screenshot_manager import capture_screenshot
+            import screenshot_manager as sm
             
             # Capture new screenshot with the same URL and lottery type
-            capture_result = capture_screenshot(screenshot.url, screenshot.lottery_type)
+            capture_result = sm.capture_screenshot(screenshot.url, screenshot.lottery_type)
             
             if not capture_result:
                 logger.error(f"Failed to retake screenshot for {screenshot.lottery_type}")
@@ -376,11 +376,11 @@ def retake_all_screenshots(app=None, use_threading=True):
             logger.info(f"Retaking screenshot for {lottery_type} from {url}")
             
             # Import screenshot manager inside the thread to avoid circular imports
-            from screenshot_manager import capture_screenshot
+            import screenshot_manager as sm
             
             with app.app_context():
                 # Capture new screenshot
-                capture_result = capture_screenshot(url, lottery_type)
+                capture_result = sm.capture_screenshot(url, lottery_type)
                 
                 if not capture_result:
                     results[url] = {
