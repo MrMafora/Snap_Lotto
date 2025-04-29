@@ -1,1 +1,1 @@
-run = ["python", "direct_start.py"]
+run = ["python", "run_optimized.py"]

@@ -3,19 +3,28 @@
 Direct launcher for port 8080 with no configuration overrides
 """
 import os
+import logging
+import signal
 import sys
-import subprocess
+from main import app
 
-# Force environment variable to be 8080
-os.environ['PORT'] = '8080'
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('direct_8080')
 
-# Run Gunicorn with explicit config and bind
-cmd = [
-    "gunicorn",
-    "-c", "direct_gunicorn.conf.py",
-    "--bind", "0.0.0.0:8080",
-    "main:app"
-]
+def handle_signal(signum, frame):
+    """Handle termination signals"""
+    logger.info(f"Received signal {signum}, shutting down...")
+    sys.exit(0)
 
-print(f"Running direct command: {' '.join(cmd)}", file=sys.stderr)
-subprocess.run(cmd)
+if __name__ == "__main__":
+    # Register signal handlers
+    signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
+    
+    logger.info("Starting direct Flask server on port 8080")
+    # Run Flask directly on port 8080, with much smaller worker count
+    app.run(host='0.0.0.0', port=8080, debug=True, threaded=True)
