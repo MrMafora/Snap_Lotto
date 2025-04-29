@@ -25,6 +25,12 @@ window.AdManager = window.AdManager || {
     // Queue for ads to show
     adQueue: [],
     
+    // Current ad index in queue
+    currentAdIndex: 0,
+    
+    // Flag to indicate if ads are in sequence mode
+    inSequenceMode: false,
+    
     // Note: init() is called at the end of this file
     init: function() {
         console.log('AdManager initialized from ads.js');
@@ -289,6 +295,112 @@ window.AdManager = window.AdManager || {
         }, loadingDuration);
     },
 
+    // Queue multiple ads to be shown in sequence
+    queueAds: function(adCount) {
+        this.adQueue = [];
+        this.currentAdIndex = 0;
+        
+        // For development mode, create mock ads to queue
+        for (let i = 0; i < adCount; i++) {
+            // Add different mock ads to the queue
+            this.adQueue.push({
+                id: i + 1000,
+                name: `Sequential Ad ${i+1}`,
+                duration: 10, // 10 seconds per ad
+                placement: 'interstitial'
+            });
+        }
+        
+        console.log(`AdManager: Queued ${adCount} ads for sequential display`);
+        return this.adQueue.length;
+    },
+    
+    // Play the next ad in the queue
+    playNextAd: function() {
+        if (this.adQueue.length === 0 || this.currentAdIndex >= this.adQueue.length) {
+            console.log('AdManager: No more ads in queue to play');
+            // No more ads, show results
+            this.hideInterstitialAd();
+            return false;
+        }
+        
+        const nextAd = this.adQueue[this.currentAdIndex];
+        console.log(`AdManager: Playing ad ${this.currentAdIndex + 1} of ${this.adQueue.length}: ${nextAd.name}`);
+        
+        // Update ad display to show current ad number and duration
+        const adOverlay = document.getElementById('ad-overlay-results');
+        if (adOverlay) {
+            const adCounter = adOverlay.querySelector('.ad-counter');
+            if (adCounter) {
+                adCounter.textContent = `Ad ${this.currentAdIndex + 1} of ${this.adQueue.length}`;
+            } else {
+                // Create ad counter if it doesn't exist
+                const counterDiv = document.createElement('div');
+                counterDiv.className = 'ad-counter';
+                counterDiv.style.cssText = 'background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; position: absolute; top: 10px; right: 10px; font-size: 12px;';
+                counterDiv.textContent = `Ad ${this.currentAdIndex + 1} of ${this.adQueue.length}`;
+                adOverlay.appendChild(counterDiv);
+            }
+            
+            // Add or update countdown display
+            const countdownDiv = adOverlay.querySelector('.ad-countdown');
+            if (!countdownDiv) {
+                const newCountdown = document.createElement('div');
+                newCountdown.className = 'ad-countdown';
+                newCountdown.style.cssText = 'background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; position: absolute; bottom: 10px; right: 10px; font-size: 12px;';
+                newCountdown.textContent = `Next ad in: ${nextAd.duration}s`;
+                adOverlay.appendChild(newCountdown);
+            }
+        }
+        
+        // Start the countdown for this ad
+        this.startAdCountdown(nextAd.duration);
+        
+        // Increment the index for next time
+        this.currentAdIndex++;
+        return true;
+    },
+    
+    // Start countdown for current ad
+    startAdCountdown: function(duration) {
+        let remainingTime = duration;
+        const countdownElement = document.querySelector('.ad-countdown');
+        
+        // Update countdown display immediately
+        if (countdownElement) {
+            countdownElement.textContent = `Next ad in: ${remainingTime}s`;
+        }
+        
+        // Clear any existing countdown interval
+        if (window.adCountdownInterval) {
+            clearInterval(window.adCountdownInterval);
+        }
+        
+        // Set up the countdown interval
+        window.adCountdownInterval = setInterval(() => {
+            remainingTime--;
+            
+            // Update the countdown display
+            if (countdownElement) {
+                if (remainingTime > 0) {
+                    countdownElement.textContent = `Next ad in: ${remainingTime}s`;
+                } else {
+                    countdownElement.textContent = 'Loading next ad...';
+                }
+            }
+            
+            // When countdown reaches zero, play next ad or finish
+            if (remainingTime <= 0) {
+                clearInterval(window.adCountdownInterval);
+                
+                // Play the next ad or hide if no more ads
+                if (!this.playNextAd()) {
+                    console.log('AdManager: Ad sequence complete');
+                }
+            }
+        }, 1000);
+    },
+    
     // Show the interstitial ad (before showing results)
     showInterstitialAd: function(callback) {
         console.log('AdManager: Showing interstitial ad at ' + new Date().toISOString());
@@ -303,6 +415,10 @@ window.AdManager = window.AdManager || {
             if (callback) callback(false);
             return;
         }
+        
+        // Queue up two ads for sequential display
+        this.queueAds(2);
+        this.inSequenceMode = true;
         
         // Use the enhanced showOverlay utility function if available
         if (typeof showOverlay === 'function') {
@@ -345,9 +461,14 @@ window.AdManager = window.AdManager || {
         
         // Load ad in the container inside the overlay
         const adContainerId = 'ad-container-interstitial';
-        this.loadAd(adContainerId, function(success) {
+        this.loadAd(adContainerId, (success) => {
             // First, call the original callback
             if (callback) callback(success);
+            
+            // Start playing the first ad with countdown
+            if (success && this.inSequenceMode) {
+                this.playNextAd();
+            }
             
             // Add event listeners to the View Results button to ensure we handle clicks properly
             const viewResultsBtn = document.getElementById('view-results-btn');
@@ -452,6 +573,17 @@ window.AdManager = window.AdManager || {
     hideInterstitialAd: function() {
         console.log('🔄 Hiding all interstitial ads at ' + new Date().toISOString());
         
+        // Clean up any ad sequence timers
+        if (window.adCountdownInterval) {
+            clearInterval(window.adCountdownInterval);
+            window.adCountdownInterval = null;
+        }
+        
+        // Reset ad sequence flags
+        this.inSequenceMode = false;
+        this.adQueue = [];
+        this.currentAdIndex = 0;
+        
         // SET ALL THE FLAGS to remain in results mode
         window.inResultsMode = true;
         window.viewResultsBtnClicked = true;
@@ -478,6 +610,11 @@ window.AdManager = window.AdManager || {
         
         // Find and remove all direct ad elements with interstitial in the ID
         document.querySelectorAll('[id^="direct-ad-interstitial-"]').forEach(element => {
+            element.remove();
+        });
+        
+        // Clean up any ad counters or countdown elements
+        document.querySelectorAll('.ad-counter, .ad-countdown').forEach(element => {
             element.remove();
         });
         
