@@ -19,7 +19,9 @@
         adMinimumTime: 15000, // 15 seconds in milliseconds
         adStartTime: null,
         adIntervals: [],
-        adTimeouts: []
+        adTimeouts: [],
+        adQueue: [],           // Queue for sequencing ads
+        currentAdIndex: 0      // Current ad in the sequence
     };
     
     // Mock ads in development environment
@@ -166,6 +168,8 @@
         window.SnapLottoAds.firstAdComplete = false;
         window.SnapLottoAds.secondAdComplete = false;
         window.SnapLottoAds.adStartTime = null;
+        window.SnapLottoAds.adQueue = [];
+        window.SnapLottoAds.currentAdIndex = 0;
         
         console.log("Ad state completely reset");
     }
@@ -183,6 +187,29 @@
             window.SnapLottoAds.firstAdComplete = false;
             window.SnapLottoAds.adStartTime = Date.now();
             
+            // Add ad counter to show current ad in sequence
+            const adCounter = adOverlay.querySelector('.ad-counter');
+            if (adCounter) {
+                adCounter.textContent = `Ad 1 of 2`;
+            } else {
+                // Create ad counter if it doesn't exist
+                const counterDiv = document.createElement('div');
+                counterDiv.className = 'ad-counter';
+                counterDiv.style.cssText = 'background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; position: absolute; top: 10px; right: 10px; font-size: 12px;';
+                counterDiv.textContent = `Ad 1 of 2`;
+                adOverlay.appendChild(counterDiv);
+            }
+            
+            // Add or update countdown display
+            const countdownDiv = adOverlay.querySelector('.ad-countdown');
+            if (!countdownDiv) {
+                const newCountdown = document.createElement('div');
+                newCountdown.className = 'ad-countdown';
+                newCountdown.style.cssText = 'background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; position: absolute; bottom: 10px; right: 10px; font-size: 12px;';
+                newCountdown.textContent = `View results in: 15s`;
+                adOverlay.appendChild(newCountdown);
+            }
+            
             // Force-disable the view results button
             const viewBtn = document.getElementById('view-results-btn');
             if (viewBtn) {
@@ -195,27 +222,51 @@
             
             console.log("First ad shown at: " + new Date().toISOString());
             
-            // COMPLETELY REMOVED original timer system
-            // Delegate to critical-transition-fix.js for countdown handling
+            // Start our own countdown for this ad
+            let remainingTime = 15; // 15 seconds
+            const countdownElement = adOverlay.querySelector('.ad-countdown');
             
-            // Trigger the centralized countdown system
-            document.dispatchEvent(new CustomEvent('trigger-countdown', {
-                detail: { phase: 'first', seconds: 15 }
-            }));
+            // Update countdown display immediately
+            if (countdownElement) {
+                countdownElement.textContent = `View results in: ${remainingTime}s`;
+            }
             
-            // Safety timeout as a fallback if central timer fails
+            // Set up the countdown interval
+            window.adCountdownInterval = setInterval(() => {
+                remainingTime--;
+                
+                // Update the countdown display
+                if (countdownElement) {
+                    if (remainingTime > 0) {
+                        countdownElement.textContent = `View results in: ${remainingTime}s`;
+                    } else {
+                        countdownElement.textContent = 'Continue to next ad...';
+                    }
+                }
+                
+                // When countdown reaches zero, enable results button
+                if (remainingTime <= 0) {
+                    clearInterval(window.adCountdownInterval);
+                    console.log('AdManager: First ad complete, enabling view results button');
+                    window.SnapLottoAds.firstAdComplete = true;
+                    enableViewResultsButton();
+                }
+            }, 1000);
+            
+            // Store the interval for cleanup
+            window.SnapLottoAds.adIntervals.push(window.adCountdownInterval);
+            
+            // Safety timeout as a fallback if timer fails
             const safetyTimeout = setTimeout(function() {
-                console.log("SAFETY: First ad fallback timeout reached - only used if central timer failed");
-                window.SnapLottoAds.firstAdComplete = true;
-                enableViewResultsButton();
+                console.log("SAFETY: First ad fallback timeout reached - only used if timer failed");
+                if (!window.SnapLottoAds.firstAdComplete) {
+                    window.SnapLottoAds.firstAdComplete = true;
+                    enableViewResultsButton();
+                }
             }, window.SnapLottoAds.adMinimumTime + 2000); // 2 second buffer
             
             // Store the timeout for cleanup
             window.SnapLottoAds.adTimeouts.push(safetyTimeout);
-            
-            // DEFERRED COUNTDOWN: We now defer to critical-transition-fix.js
-            // which handles all countdown functionality to prevent conflicts
-            console.log("First ad countdown deferred to critical-transition-fix.js");
         }
     }
     
@@ -236,6 +287,29 @@
             window.SnapLottoAds.secondAdShown = true;
             window.SnapLottoAds.secondAdComplete = false;
             window.SnapLottoAds.adStartTime = Date.now();
+            
+            // Add ad counter to show current ad in sequence
+            const adCounter = resultsOverlay.querySelector('.ad-counter');
+            if (adCounter) {
+                adCounter.textContent = `Ad 2 of 2`;
+            } else {
+                // Create ad counter if it doesn't exist
+                const counterDiv = document.createElement('div');
+                counterDiv.className = 'ad-counter';
+                counterDiv.style.cssText = 'background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; position: absolute; top: 10px; right: 10px; font-size: 12px;';
+                counterDiv.textContent = `Ad 2 of 2`;
+                resultsOverlay.appendChild(counterDiv);
+            }
+            
+            // Add or update countdown display
+            const countdownDiv = resultsOverlay.querySelector('.ad-countdown');
+            if (!countdownDiv) {
+                const newCountdown = document.createElement('div');
+                newCountdown.className = 'ad-countdown';
+                newCountdown.style.cssText = 'background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; position: absolute; bottom: 10px; right: 10px; font-size: 12px;';
+                newCountdown.textContent = `View results in: 15s`;
+                resultsOverlay.appendChild(newCountdown);
+            }
             
             // Force-disable the view results button for second ad
             const viewBtn = document.getElementById('view-results-btn');
@@ -261,30 +335,51 @@
                 window.countdownInterval = null;
             }
             
-            // Force reset of any countdown state
-            document.dispatchEvent(new CustomEvent('reset-countdown', {}));
+            // Start our own countdown for this ad
+            let remainingTime = 15; // 15 seconds
+            const countdownElement = document.querySelector('.ad-countdown');
             
-            // Trigger the centralized countdown system - must be called AFTER display is set
-            setTimeout(function() {
-                console.log("Starting second ad countdown immediately");
-                document.dispatchEvent(new CustomEvent('trigger-countdown', {
-                    detail: { phase: 'second', seconds: 15, force: true }
-                }));
-            }, 50); // Short delay to ensure DOM is ready
+            // Update countdown display immediately
+            if (countdownElement) {
+                countdownElement.textContent = `View results in: ${remainingTime}s`;
+            }
+            
+            // Set up the countdown interval
+            window.adCountdownInterval = setInterval(() => {
+                remainingTime--;
+                
+                // Update the countdown display
+                if (countdownElement) {
+                    if (remainingTime > 0) {
+                        countdownElement.textContent = `View results in: ${remainingTime}s`;
+                    } else {
+                        countdownElement.textContent = 'Loading results...';
+                    }
+                }
+                
+                // When countdown reaches zero, enable results button
+                if (remainingTime <= 0) {
+                    clearInterval(window.adCountdownInterval);
+                    console.log('AdManager: Ad sequence complete, enabling results button');
+                    window.SnapLottoAds.secondAdComplete = true;
+                    enableContinueToResultsButton();
+                }
+            }, 1000);
+            
+            // Store the interval for cleanup
+            window.SnapLottoAds.adIntervals.push(window.adCountdownInterval);
             
             // Safety timeout that will ONLY run if the central timer system fails
             const safetyTimeout = setTimeout(function() {
-                console.log("SAFETY: Second ad fallback timeout reached - only used if central timer failed");
-                window.SnapLottoAds.secondAdComplete = true;
-                enableContinueToResultsButton();
+                console.log("SAFETY: Second ad fallback timeout reached - only used if timer failed");
+                if (!window.SnapLottoAds.secondAdComplete) {
+                    window.SnapLottoAds.secondAdComplete = true;
+                    enableContinueToResultsButton();
+                }
             }, window.SnapLottoAds.adMinimumTime + 2000); // 2 second buffer
             
             // Store the timeout for cleanup
             window.SnapLottoAds.adTimeouts.push(safetyTimeout);
-            
-            // DEFERRED COUNTDOWN: We now defer to critical-transition-fix.js
-            // which handles all countdown functionality to prevent conflicts
-            console.log("Second ad countdown deferred to critical-transition-fix.js");
         }
     }
     
