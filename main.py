@@ -18,6 +18,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Now that logger is defined, import other modules
+import scheduler  # Import directly at the top level for screenshot functions
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory, send_file, session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -133,12 +134,12 @@ import_excel = None
 import_snap_lotto_data = None
 ocr_processor = None
 screenshot_manager = None
-scheduler = None
+# scheduler is imported at the top level to ensure screenshot functions work
 health_monitor = None
 
 def init_lazy_modules():
     """Initialize modules in a background thread with timeout"""
-    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, scheduler, health_monitor
+    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, health_monitor
     
     # Add timeout to prevent hanging
     import signal
@@ -153,7 +154,6 @@ def init_lazy_modules():
     import import_snap_lotto_data as isld
     import ocr_processor as op
     import screenshot_manager as sm
-    import scheduler as sch
     import health_monitor as hm
     
     # Store module references
@@ -162,7 +162,6 @@ def init_lazy_modules():
     import_snap_lotto_data = isld
     ocr_processor = op
     screenshot_manager = sm
-    scheduler = sch
     health_monitor = hm
     
     # Initialize scheduler and health monitoring in background after imports are complete
@@ -1690,10 +1689,9 @@ def sync_all_screenshots():
         return redirect(url_for('index'))
     
     try:
-        # Use the function in scheduler module to retake all screenshots
+        # Use the scheduler module imported at the top level to retake all screenshots
         # Don't use threading for UI operations to ensure synchronous behavior
-        import scheduler as sched
-        count = sched.retake_all_screenshots(app, use_threading=False)
+        count = scheduler.retake_all_screenshots(app, use_threading=False)
         
         # Store status in session for display on next page load
         if count > 0:
@@ -1728,9 +1726,8 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Use the function in scheduler module to retake this screenshot
-        import scheduler as sched
-        success = sched.retake_screenshot_by_id(screenshot_id, app)
+        # Use the scheduler module imported at the top level to retake this screenshot
+        success = scheduler.retake_screenshot_by_id(screenshot_id, app)
         
         # Store status in session for display on next page load
         if success:
@@ -1762,9 +1759,8 @@ def cleanup_screenshots():
         return redirect(url_for('index'))
         
     try:
-        # Run the cleanup function from scheduler module
-        import scheduler as sched
-        sched.cleanup_old_screenshots()
+        # Run the cleanup function from scheduler module imported at the top level
+        scheduler.cleanup_old_screenshots()
         
         # Store success message in session
         session['sync_status'] = {
