@@ -658,7 +658,7 @@ def export_template():
     filename = f"lottery_data_template_{timestamp}.xlsx"
     
     # Create template with lottery-specific tabs
-    import_excel.create_empty_template(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    ie.create_empty_template(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     
     return send_from_directory(
         app.config['UPLOAD_FOLDER'], 
@@ -1019,7 +1019,7 @@ def import_data():
                 else:
                     # Try standard format for non-template files
                     try:
-                        import_stats = import_excel.import_excel_data(excel_path)
+                        import_stats = ie.import_excel_data(excel_path)
                         
                         # If import was successful, track it in the import history
                         if isinstance(import_stats, dict) and import_stats.get('success'):
@@ -1807,7 +1807,7 @@ def export_combined_zip():
             # Create the template file
             template_filename = f"lottery_data_template_{timestamp}.xlsx"
             template_path = os.path.join(temp_dir, template_filename)
-            import_excel.create_empty_template(template_path)
+            ie.create_empty_template(template_path)
             
             # Create a ZIP file in memory
             memory_file = io.BytesIO()
