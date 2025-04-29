@@ -112,8 +112,13 @@ class LotteryResult(db.Model):
     
     def get_bonus_numbers_list(self):
         """Return bonus numbers as a Python list, or empty list if None"""
-        if self.bonus_numbers:
-            return json.loads(self.bonus_numbers)
+        if self.bonus_numbers and self.bonus_numbers.strip():
+            try:
+                numbers = json.loads(self.bonus_numbers)
+                if numbers and len(numbers) > 0:
+                    return numbers
+            except:
+                pass
         return []
     
     def get_divisions(self):
