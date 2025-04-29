@@ -5,6 +5,10 @@ This file is imported by gunicorn using the 'main:app' notation.
 
 It also includes functionality to automatically bind to port 8080 
 when running directly, to support Replit's external access requirements.
+
+IMPORTANT: This application includes built-in port forwarding capabilities
+to handle both the internal port 5000 (used by gunicorn) and the external
+port 8080 required by Replit for public access.
 """
 import logging
 import os
