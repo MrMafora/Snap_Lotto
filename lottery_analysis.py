@@ -1911,16 +1911,16 @@ class LotteryAnalyzer:
                 if hasattr(actual_results, 'bonus_number') and actual_results.bonus_number is not None:
                     bonus_match = prediction.bonus_number == actual_results.bonus_number
                 
-                # Create verification result
+                # Create verification result with the updated model structure
                 verification = PredictionResult(
                     prediction_id=prediction.id,
-                    actual_draw_date=actual_results.draw_date,
-                    actual_draw_number=actual_results.draw_number,
+                    actual_draw_id=actual_results.id,
+                    draw_date=actual_results.draw_date,
                     matched_numbers=matches,
-                    total_numbers=total_numbers,
-                    accuracy=accuracy,
-                    bonus_match=bonus_match,
-                    verified_date=datetime.now()
+                    matched_bonus=bonus_match,
+                    accuracy_score=accuracy,
+                    match_positions=json.dumps([i for i, num in enumerate(predicted_numbers) if num in actual_numbers]),
+                    verification_date=datetime.now()
                 )
                 
                 # Update prediction as verified
@@ -2209,15 +2209,16 @@ def register_analysis_routes(app, db):
                     try:
                         predicted_numbers = json.loads(pred.predicted_numbers)
                         
+                        # Build history entry with updated field names
                         history.append({
                             'date': pred.prediction_date.strftime('%b %d, %Y'),
                             'strategy': pred.strategy,
                             'predicted_numbers': predicted_numbers,
-                            'draw_number': result.actual_draw_number,
-                            'draw_date': result.actual_draw_date.strftime('%b %d, %Y'),
-                            'matched': f"{result.matched_numbers}/{result.total_numbers}",
-                            'accuracy': result.accuracy,
-                            'bonus_match': result.bonus_match
+                            'draw_number': result.actual_draw.draw_number if result.actual_draw else 'N/A',
+                            'draw_date': result.draw_date.strftime('%b %d, %Y') if result.draw_date else 'N/A',
+                            'matched': f"{result.matched_numbers}/{len(predicted_numbers)}",
+                            'accuracy': result.accuracy_score,
+                            'bonus_match': result.matched_bonus
                         })
                     except Exception as json_error:
                         logger.error(f"Error parsing prediction history: {json_error}")
