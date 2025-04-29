@@ -387,6 +387,12 @@
     function enableViewResultsButton() {
         const viewBtn = document.getElementById('view-results-btn');
         if (viewBtn) {
+            // IMPORTANT: Make sure countdown is truly complete before enabling
+            if (!window.SnapLottoAds.firstAdComplete) {
+                console.log("Not enabling View Results button - countdown not complete");
+                return;
+            }
+            
             // Style changes to make it obvious button is enabled
             viewBtn.disabled = false;
             viewBtn.classList.add('btn-pulse');
@@ -407,6 +413,12 @@
                 
                 console.log("View Results button clicked at: " + new Date().toISOString());
                 
+                // Double-check that the countdown is really complete
+                if (!window.SnapLottoAds.firstAdComplete) {
+                    console.log("First ad not complete, ignoring click");
+                    return false;
+                }
+                
                 // Sequence:
                 // 1. Hide first overlay
                 hideLoadingAdOverlay();
@@ -417,8 +429,10 @@
                     resultsContainer.classList.remove('d-none');
                 }
                 
-                // 3. Show second ad with results
-                showResultsAdOverlay();
+                // 3. Show second ad with results - show immediately, don't wait for next tick
+                setTimeout(function() {
+                    showResultsAdOverlay();
+                }, 50); // very short delay to ensure smooth transition
                 
                 return false;
             });
@@ -429,6 +443,12 @@
     function enableContinueToResultsButton() {
         const viewBtn = document.getElementById('view-results-btn');
         if (viewBtn) {
+            // IMPORTANT: Make sure countdown is truly complete before enabling
+            if (!window.SnapLottoAds.secondAdComplete) {
+                console.log("Not enabling Continue to Results button - countdown not complete");
+                return;
+            }
+            
             // Style changes to make it obvious button is enabled
             viewBtn.disabled = false;
             viewBtn.classList.add('btn-pulse');
@@ -448,6 +468,12 @@
                 e.stopPropagation();
                 
                 console.log("Continue to Results button clicked at: " + new Date().toISOString());
+                
+                // Double-check that the countdown is really complete
+                if (!window.SnapLottoAds.secondAdComplete) {
+                    console.log("Second ad not complete, ignoring click");
+                    return false;
+                }
                 
                 // Hide the results overlay to show actual results
                 hideResultsAdOverlay();
