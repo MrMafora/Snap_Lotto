@@ -137,8 +137,15 @@ scheduler = None
 health_monitor = None
 
 def init_lazy_modules():
-    """Initialize modules in a background thread to speed up startup"""
+    """Initialize modules in a background thread with timeout"""
     global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, scheduler, health_monitor
+    
+    # Add timeout to prevent hanging
+    import signal
+    def timeout_handler(signum, frame):
+        raise TimeoutError("Module initialization timed out")
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(30)  # 30 second timeout
     
     # Import heavy modules only when needed
     import data_aggregator as da
