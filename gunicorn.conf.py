@@ -2,28 +2,24 @@
 """
 Gunicorn configuration file with optimized settings
 """
-import os
-import sys
-import logging
 import multiprocessing
+import logging
 
-# Setup logging
 logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('gunicorn.conf')
 
-# Bind directly to port 8080
 bind = "0.0.0.0:8080"
 
-# Optimize worker configuration
-workers = multiprocessing.cpu_count() * 2 + 1
+# Reduce worker count for faster startup
+workers = 4  # Reduced from dynamic calculation
 worker_class = "sync"
 threads = 4
 worker_connections = 1000
 timeout = 120
 keepalive = 2
 
-# Performance settings
+# Performance optimizations
 max_requests = 1000
 max_requests_jitter = 50
 graceful_timeout = 30
@@ -33,5 +29,5 @@ accesslog = "-"
 errorlog = "-"
 loglevel = "info"
 
-# Pre-load application to improve startup time
+# Enable preload for better memory usage
 preload_app = True

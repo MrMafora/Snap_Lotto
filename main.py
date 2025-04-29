@@ -146,6 +146,13 @@ def init_lazy_modules():
     """Initialize modules in a background thread with timeout"""
     global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, health_monitor
     
+    # Prioritize core modules
+    try:
+        import data_aggregator as da
+        data_aggregator = da
+    except Exception as e:
+        logger.error(f"Error loading data_aggregator: {e}")
+    
     # Note: Removed signal alarm since it only works in main thread
     
     # Import heavy modules only when needed
