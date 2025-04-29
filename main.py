@@ -1690,8 +1690,8 @@ def sync_all_screenshots():
         return redirect(url_for('index'))
     
     try:
-        # Use the screenshot_manager to retake all screenshots synchronously (don't use threading for UI operations)
-        count = screenshot_manager.retake_all_screenshots(app, use_threading=False)
+        # Use the screenshot manager to retake all screenshots synchronously (don't use threading for UI operations)
+        count = sm.retake_all_screenshots(app, use_threading=False)
         
         # Store status in session for display on next page load
         if count > 0:
@@ -1726,8 +1726,8 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Use the screenshot_manager to retake this screenshot
-        success = screenshot_manager.retake_screenshot_by_id(screenshot_id, app)
+        # Use the screenshot manager to retake this screenshot
+        success = sm.retake_screenshot_by_id(screenshot_id, app)
         
         # Store status in session for display on next page load
         if success:
