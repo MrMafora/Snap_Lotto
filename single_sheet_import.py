@@ -140,10 +140,12 @@ def parse_divisions(row):
                     payout_col = next((col for col in row.index if col.lower() == payout_key.lower()), None)
                     
                     if winners_col is not None or payout_col is not None:
-                        division_key = f"div{i}"
+                        # Use standardized division key format "Division X"
+                        division_key = f"Division {i}"
                         divisions[division_key] = {
                             'winners': '0',
-                            'prize': 'R0.00'
+                            'prize': 'R0.00',
+                            'match': f'{i} correct numbers'  # Default match description
                         }
                         
                         # Process winners
@@ -166,12 +168,76 @@ def parse_divisions(row):
                                 if isinstance(payout, str):
                                     # Clean up the string
                                     payout = payout.replace('Example:', '').strip()
-                                    # Add R prefix if missing
-                                    if not payout.startswith('R'):
-                                        payout = f'R{payout}'
-                                    divisions[division_key]['prize'] = payout
+                                    
+                                    # Remove any existing R prefix to standardize formatting
+                                    if payout.startswith('R'):
+                                        payout = payout[1:]
+                                    
+                                    # Handle different numeric formats
+                                    # Remove any commas or spaces in the number
+                                    payout_clean = payout.replace(',', '').replace(' ', '')
+                                    
+                                    try:
+                                        # Try to convert to float for proper formatting
+                                        payout_value = float(payout_clean)
+                                        # Format with commas for thousands and 2 decimal places
+                                        formatted_payout = f'R{payout_value:,.2f}'
+                                        divisions[division_key]['prize'] = formatted_payout
+                                    except ValueError:
+                                        # If conversion fails, just add R prefix
+                                        divisions[division_key]['prize'] = f'R{payout}'
                                 elif isinstance(payout, (int, float)):
+                                    # Format with commas for thousands and 2 decimal places
                                     divisions[division_key]['prize'] = f'R{payout:,.2f}'
+                        
+                        # Determine match description based on lottery type
+                        lottery_type = row.get('Game Name', '')
+                        if isinstance(lottery_type, str):
+                            if 'powerball' in lottery_type.lower():
+                                if i == 1:
+                                    divisions[division_key]['match'] = "5 CORRECT NUMBERS + POWERBALL"
+                                elif i == 2:
+                                    divisions[division_key]['match'] = "5 CORRECT NUMBERS"
+                                elif i == 3:
+                                    divisions[division_key]['match'] = "4 CORRECT NUMBERS + POWERBALL"
+                                elif i == 4:
+                                    divisions[division_key]['match'] = "4 CORRECT NUMBERS"
+                                elif i == 5:
+                                    divisions[division_key]['match'] = "3 CORRECT NUMBERS + POWERBALL"
+                                elif i == 6:
+                                    divisions[division_key]['match'] = "3 CORRECT NUMBERS"
+                                elif i == 7:
+                                    divisions[division_key]['match'] = "2 CORRECT NUMBERS + POWERBALL"
+                                elif i == 8:
+                                    divisions[division_key]['match'] = "1 CORRECT NUMBER + POWERBALL"
+                            elif 'lottery' in lottery_type.lower() or 'lotto' in lottery_type.lower():
+                                if i == 1:
+                                    divisions[division_key]['match'] = "6 CORRECT NUMBERS"
+                                elif i == 2:
+                                    divisions[division_key]['match'] = "5 CORRECT NUMBERS + BONUS BALL"
+                                elif i == 3:
+                                    divisions[division_key]['match'] = "5 CORRECT NUMBERS"
+                                elif i == 4:
+                                    divisions[division_key]['match'] = "4 CORRECT NUMBERS + BONUS BALL"
+                                elif i == 5:
+                                    divisions[division_key]['match'] = "4 CORRECT NUMBERS"
+                                elif i == 6:
+                                    divisions[division_key]['match'] = "3 CORRECT NUMBERS + BONUS BALL"
+                                elif i == 7:
+                                    divisions[division_key]['match'] = "3 CORRECT NUMBERS"
+                                elif i == 8:
+                                    divisions[division_key]['match'] = "2 CORRECT NUMBERS + BONUS BALL"
+                            elif 'daily' in lottery_type.lower():
+                                if i == 1:
+                                    divisions[division_key]['match'] = "5 CORRECT NUMBERS"
+                                elif i == 2:
+                                    divisions[division_key]['match'] = "4 CORRECT NUMBERS"
+                                elif i == 3:
+                                    divisions[division_key]['match'] = "3 CORRECT NUMBERS"
+                                elif i == 4:
+                                    divisions[division_key]['match'] = "2 CORRECT NUMBERS"
+                                elif i == 5:
+                                    divisions[division_key]['match'] = "1 CORRECT NUMBER"
                         
                         found_data = True
                         break
@@ -274,7 +340,18 @@ def import_single_sheet(excel_path):
             return {'success': False, 'error': "No 'Winning Numbers' column found"}
         
         # Identify column for bonus numbers (if available)
-        bonus_col = next((col for col in df.columns if 'Bonus' in col or 'PowerBall' in col), None)
+        # Enhanced detection for various bonus number column names
+        bonus_col = None
+        for col in df.columns:
+            col_lower = str(col).lower()
+            if ('bonus' in col_lower or 
+                'power' in col_lower or 
+                'powerball' in col_lower or 
+                'ball' in col_lower or
+                'extra' in col_lower):
+                bonus_col = col
+                logger.info(f"Found bonus column: {col}")
+                break
         
         # Process each draw
         for _, row in df.iterrows():

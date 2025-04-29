@@ -106,7 +106,7 @@
                                 <tr>
                                     <td><strong>{{ div_key }}</strong></td>
                                     <td>{{ div_data.get('match', 'Not specified') }}</td>
-                                    <td>{{ div_data.get('winners', '0') }}</td>
+                                    <td>{{ "{:,}".format(div_data.get('winners', '0')|int) if div_data.get('winners', '0').isdigit() else div_data.get('winners', '0') }}</td>
                                     <td>{{ div_data.get('prize', 'R0.00') }}</td>
                                 </tr>
                             {% endfor %}
