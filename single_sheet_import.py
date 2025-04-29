@@ -19,6 +19,7 @@ def get_database_url():
 def parse_numbers(numbers_str):
     """
     Parse lottery numbers from string format to list of integers.
+    Enhanced to handle various formats including single numbers.
     
     Args:
         numbers_str (str): String representation of numbers
@@ -31,19 +32,33 @@ def parse_numbers(numbers_str):
         
     # If already a list of integers, return as is
     if isinstance(numbers_str, list):
-        return numbers_str
+        return [int(n) for n in numbers_str if str(n).isdigit()]
+    
+    # If just a single integer, return as a list with one item
+    if isinstance(numbers_str, (int, float)) and not pd.isna(numbers_str):
+        return [int(numbers_str)]
         
     # Handle different formats of number strings
     if isinstance(numbers_str, str):
-        # Remove any prefix like "Example:"
-        numbers_str = numbers_str.replace('Example:', '').strip()
+        # Remove any prefix like "Example:" and other non-essential text
+        numbers_str = re.sub(r'example:|bonus:|ball:|powerball:', '', numbers_str.lower()).strip()
         
+        # Special case: "33" or single number as string
+        if numbers_str.isdigit():
+            return [int(numbers_str)]
+            
         # Handle comma-separated format: "1, 2, 3, 4, 5, 6"
         if ',' in numbers_str:
-            return [int(n.strip()) for n in numbers_str.split(',') if n.strip().isdigit()]
+            # Extract all numbers using regex to catch digits that might have text around them
+            matches = re.findall(r'\d+', numbers_str)
+            if matches:
+                return [int(n) for n in matches]
             
         # Handle space-separated format: "1 2 3 4 5 6"
-        return [int(n.strip()) for n in numbers_str.split() if n.strip().isdigit()]
+        # Extract all numbers using regex to be more robust
+        matches = re.findall(r'\d+', numbers_str)
+        if matches:
+            return [int(n) for n in matches]
         
     # Default empty list if we can't parse
     return []
@@ -343,19 +358,41 @@ def import_single_sheet(excel_path):
             logger.error("No 'Winning Numbers' column found")
             return {'success': False, 'error': "No 'Winning Numbers' column found"}
         
-        # Identify column for bonus numbers (if available)
-        # Enhanced detection for various bonus number column names
+        # Enhanced identification of bonus number columns with more comprehensive detection
         bonus_col = None
+        potential_bonus_cols = []
+        
         for col in df.columns:
             col_lower = str(col).lower()
             if ('bonus' in col_lower or 
                 'power' in col_lower or 
                 'powerball' in col_lower or 
                 'ball' in col_lower or
-                'extra' in col_lower):
-                bonus_col = col
-                logger.info(f"Found bonus column: {col}")
-                break
+                'extra' in col_lower or
+                'supplementary' in col_lower):
+                potential_bonus_cols.append(col)
+                logger.info(f"Found potential bonus column: {col}")
+        
+        # Use the first potential bonus column found
+        if potential_bonus_cols:
+            bonus_col = potential_bonus_cols[0]
+            logger.info(f"Using bonus column: {bonus_col}")
+            
+        # Special check for specific lottery types
+        lottery_type_cols = {}
+        for idx, row in df.iterrows():
+            if pd.isna(row.get('Game Name')):
+                continue
+                
+            lottery_type = normalize_lottery_type(row['Game Name'])
+            if not lottery_type:
+                continue
+                
+            for col in potential_bonus_cols:
+                if not pd.isna(row.get(col)):
+                    lottery_type_cols.setdefault(lottery_type, set()).add(col)
+                    
+        logger.info(f"Lottery type specific bonus columns: {lottery_type_cols}")
         
         # Process each draw
         for _, row in df.iterrows():
@@ -386,8 +423,34 @@ def import_single_sheet(excel_path):
                 
                 # Parse bonus numbers (if available)
                 bonus_numbers = []
-                if bonus_col and not pd.isna(row[bonus_col]):
+                
+                # Get current lottery type to check for type-specific bonus columns
+                current_lottery_type = normalize_lottery_type(row['Game Name'])
+                
+                # First, try lottery-type specific bonus column if available
+                if current_lottery_type in lottery_type_cols:
+                    for specific_col in lottery_type_cols[current_lottery_type]:
+                        if specific_col in row and not pd.isna(row[specific_col]):
+                            bonus_num = parse_numbers(row[specific_col])
+                            if bonus_num:
+                                bonus_numbers = bonus_num
+                                logger.info(f"Using lottery-specific bonus column {specific_col} for {current_lottery_type}: {bonus_numbers}")
+                                break
+                
+                # If no lottery-specific bonus numbers found, use the default bonus column
+                if not bonus_numbers and bonus_col and not pd.isna(row[bonus_col]):
                     bonus_numbers = parse_numbers(row[bonus_col])
+                    logger.info(f"Using default bonus column {bonus_col} for {current_lottery_type}: {bonus_numbers}")
+                
+                # Try all potential bonus columns if still no bonus numbers found
+                if not bonus_numbers:
+                    for col in potential_bonus_cols:
+                        if col in row and not pd.isna(row[col]):
+                            bonus_num = parse_numbers(row[col])
+                            if bonus_num:
+                                bonus_numbers = bonus_num
+                                logger.info(f"Found bonus numbers in column {col} for {current_lottery_type}: {bonus_numbers}")
+                                break
                 
                 # Parse division data
                 divisions = parse_divisions(row)
