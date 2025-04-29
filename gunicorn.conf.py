@@ -1,3 +1,4 @@
+
 """
 Gunicorn configuration file with optimized settings
 """
@@ -29,7 +30,7 @@ graceful_timeout = 30
 
 # Logging
 accesslog = "-"
-errorlog = "-" #Retained from original
+errorlog = "-"
 loglevel = "info"
 
 # Pre-load application to improve startup time
