@@ -15,7 +15,7 @@ logger = logging.getLogger('gunicorn.conf')
 # Bind directly to port 8080
 bind = "0.0.0.0:8080"
 
-# Optimize worker configuration 
+# Optimize worker configuration
 workers = multiprocessing.cpu_count() * 2 + 1
 worker_class = "sync"
 threads = 4
