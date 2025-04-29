@@ -1760,7 +1760,7 @@ def cleanup_screenshots():
         
     try:
         # Run the cleanup function
-        screenshot_manager.cleanup_old_screenshots()
+        sm.cleanup_old_screenshots()
         
         # Store success message in session
         session['sync_status'] = {
