@@ -211,22 +211,45 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                 logger.warning(f"⚠️ Processing CRITICAL Row 2 data: {df.iloc[0].to_dict()}")
             
             # Assign proper column names based on row 3
-            column_names = {
-                df.columns[0]: 'game_name',
-                df.columns[1]: 'draw_number',
-                df.columns[2]: 'draw_date',
-                df.columns[3]: 'winning_numbers',
-                df.columns[4]: 'bonus_ball'
-            }
+            # Start with base columns that are likely to exist
+            column_names = {}
             
-            # Add division columns
+            # Safely add columns only if they exist
+            if len(df.columns) > 0:
+                column_names[df.columns[0]] = 'game_name'
+            if len(df.columns) > 1:
+                column_names[df.columns[1]] = 'draw_number'
+            if len(df.columns) > 2:
+                column_names[df.columns[2]] = 'draw_date'
+            if len(df.columns) > 3:
+                column_names[df.columns[3]] = 'winning_numbers'
+            if len(df.columns) > 4:
+                column_names[df.columns[4]] = 'bonus_ball'
+            
+            # Add division columns only if they exist in the dataframe
             for i in range(1, 9):
-                column_names[df.columns[4 + (i*2) - 1]] = f'div_{i}_winners'
-                column_names[df.columns[4 + (i*2)]] = f'div_{i}_prize'
+                # Calculate column indices for winners and prize
+                winner_idx = 4 + (i*2) - 1
+                prize_idx = 4 + (i*2)
+                
+                # Check if these indices are within the range of columns
+                if winner_idx < len(df.columns):
+                    column_names[df.columns[winner_idx]] = f'div_{i}_winners'
+                if prize_idx < len(df.columns):
+                    column_names[df.columns[prize_idx]] = f'div_{i}_prize'
             
-            # Add rollover column
+            # Add rollover column if it exists
             if len(df.columns) > 20:
                 column_names[df.columns[20]] = 'rollover_amount'
+                
+            # Log the columns for debugging
+            logger.info(f"Data columns found: {len(df.columns)}")
+            logger.info(f"Mapped columns: {column_names}")
+            
+            # Print out full dataframe info for debugging
+            logger.info(f"DataFrame columns: {list(df.columns)}")
+            if not df.empty:
+                logger.info(f"First row data: {df.iloc[0].to_dict()}")
             
             # Rename columns
             df = df.rename(columns=column_names)

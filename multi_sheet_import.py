@@ -132,59 +132,105 @@ def parse_numbers(numbers_str):
     # If we got here, we couldn't parse the numbers
     return []
 
-def parse_divisions(division_data):
+def parse_divisions(row):
     """
     Parse division data from structured columns in the multi-sheet template.
+    Handles different column naming patterns.
     
     Args:
-        division_data (dict): Division data from DataFrame row
+        row (pandas.Series): Row data from DataFrame
         
     Returns:
         dict: Structured divisions dictionary
     """
     divisions = {}
     
-    # Process division winners and payouts from the template
-    for i in range(1, 6):  # Divisions 1-5
-        winners_key = f'Division {i} Winners'
-        payout_key = f'Division {i} Payout'
+    # Create a case-insensitive mapping to handle column name variations
+    column_map = {}
+    for col in row.index:
+        if isinstance(col, str):
+            column_map[col.lower()] = col
+    
+    # Helper function to get values with case-insensitive column names
+    def get_value(col_name):
+        # Try exact column name first
+        if col_name in row:
+            return row.get(col_name)
         
-        # Skip if both values are empty or if this is example data
-        if (winners_key not in division_data or pd.isna(division_data[winners_key])) and \
-           (payout_key not in division_data or pd.isna(division_data[payout_key])):
-            continue
+        # Try case-insensitive lookup
+        if col_name.lower() in column_map:
+            return row.get(column_map[col_name.lower()])
+        
+        # Column not found
+        return None
+    
+    # Look for division columns using different possible formats
+    division_prefixes = [
+        'Division', 'Div', 'D'  # Common prefix variants
+    ]
+    
+    # Process division winners and payouts from the template - search for up to 9 divisions
+    for i in range(1, 10):  # Support up to 9 divisions
+        found_data = False
+        
+        # Try different column naming patterns
+        for prefix in division_prefixes:
+            # Try different format patterns
+            format_patterns = [
+                (f'{prefix} {i} Winners', f'{prefix} {i} Payout'),
+                (f'{prefix}{i} Winners', f'{prefix}{i} Payout'),
+                (f'{prefix}_{i}_winners', f'{prefix}_{i}_prize'),
+                (f'{prefix}{i}_winners', f'{prefix}{i}_prize'),
+                (f'div_{i}_winners', f'div_{i}_prize'),
+            ]
             
-        # Skip example data
-        if isinstance(division_data.get(winners_key), str) and \
-            division_data.get(winners_key, '').lower().startswith('example:'):
-            continue
+            for winners_pattern, payout_pattern in format_patterns:
+                # Check for values
+                winners = get_value(winners_pattern)
+                payout = get_value(payout_pattern)
+                
+                if winners is not None or payout is not None:
+                    # If either has a valid value, process this division
+                    division_key = f"Division {i}"
+                    
+                    # Skip placeholder/example data
+                    if isinstance(winners, str) and winners.lower().startswith('example:'):
+                        continue
+                    if isinstance(payout, str) and payout.lower().startswith('example:'):
+                        continue
+                    
+                    # Initialize division entry
+                    if division_key not in divisions:
+                        divisions[division_key] = {}
+                    
+                    # Process winners
+                    if winners is not None and not pd.isna(winners):
+                        if isinstance(winners, str):
+                            # Clean up the string - remove "Example:" prefix and any non-numeric chars
+                            winners = winners.replace('Example:', '').strip()
+                            winners_value = re.sub(r'[^\d]', '', winners)
+                            if winners_value.isdigit():
+                                divisions[division_key]['winners'] = str(int(winners_value))
+                        elif isinstance(winners, (int, float)):
+                            divisions[division_key]['winners'] = str(int(winners))
+                    
+                    # Process payouts
+                    if payout is not None and not pd.isna(payout):
+                        if isinstance(payout, str):
+                            # Clean up the string - remove "Example:" prefix
+                            payout = payout.replace('Example:', '').strip()
+                            # Add R prefix if missing
+                            if not payout.startswith('R'):
+                                payout = f'R{payout}'
+                            divisions[division_key]['prize'] = payout
+                        elif isinstance(payout, (int, float)):
+                            divisions[division_key]['prize'] = f'R{payout:,.2f}'
+                    
+                    found_data = True
+                    break  # Found matching pattern
             
-        division_key = f'Division {i}'
-        divisions[division_key] = {}
-        
-        # Process winners
-        if winners_key in division_data and not pd.isna(division_data[winners_key]):
-            winners_value = division_data[winners_key]
-            if isinstance(winners_value, str):
-                # Clean up the string - remove "Example:" prefix and any non-numeric chars
-                winners_value = re.sub(r'[^\d]', '', winners_value)
-                if winners_value.isdigit():
-                    divisions[division_key]['winners'] = int(winners_value)
-            elif isinstance(winners_value, (int, float)):
-                divisions[division_key]['winners'] = int(winners_value)
-        
-        # Process payouts
-        if payout_key in division_data and not pd.isna(division_data[payout_key]):
-            payout_value = division_data[payout_key]
-            if isinstance(payout_value, str):
-                # Clean up the string - remove "Example:" prefix
-                payout_value = payout_value.replace('Example:', '').strip()
-                # Add R prefix if missing
-                if not payout_value.startswith('R'):
-                    payout_value = f'R{payout_value}'
-                divisions[division_key]['prize'] = payout_value
-            elif isinstance(payout_value, (int, float)):
-                divisions[division_key]['prize'] = f'R{payout_value:,.2f}'
+            if found_data:
+                break  # Found data with this prefix
     
     return divisions
 
@@ -199,26 +245,53 @@ def process_row(row, sheet_name):
     Returns:
         dict: Processed lottery data
     """
+    # Debug row data
+    logger.debug(f"Processing row from sheet '{sheet_name}', columns: {list(row.index)}")
+    
+    # Create a case-insensitive mapping to handle column name variations
+    column_map = {}
+    for col in row.index:
+        if isinstance(col, str):
+            column_map[col.lower()] = col
+    
+    # Helper function to get values with case-insensitive column names
+    def get_value(col_name):
+        # Try exact column name first
+        if col_name in row:
+            return row.get(col_name)
+        
+        # Try case-insensitive lookup
+        if col_name.lower() in column_map:
+            return row.get(column_map[col_name.lower()])
+        
+        # Column not found
+        return None
+    
     # Skip rows with example data
-    draw_number = row.get('Draw Number')
+    draw_number = get_value('Draw Number')
     if isinstance(draw_number, str) and draw_number.lower().startswith('example:'):
+        logger.debug(f"Skipping example row with draw number: {draw_number}")
         return None
         
     # Skip placeholder rows
-    draw_date = row.get('Draw Date')
+    draw_date = get_value('Draw Date')
     if isinstance(draw_date, str) and draw_date == 'YYYY-MM-DD':
+        logger.debug(f"Skipping placeholder row with date: {draw_date}")
         return None
         
     # Get lottery type from 'Game Name' column or sheet name
-    lottery_type = row.get('Game Name')
+    lottery_type = get_value('Game Name')
     if pd.isna(lottery_type) or not lottery_type:
+        # Use sheet name as fallback for lottery type
+        logger.info(f"Game Name column missing or empty, using sheet name '{sheet_name}' as lottery type")
         lottery_type = sheet_name
         
     # Standardize the lottery type
     standard_lottery_type = standardize_lottery_type(lottery_type)
+    logger.info(f"Standardized lottery type: '{lottery_type}' -> '{standard_lottery_type}'")
     
     # Extract draw number
-    draw_number = row.get('Draw Number')
+    draw_number = get_value('Draw Number')
     if pd.isna(draw_number) or not draw_number:
         # We need a draw number, skip this row if it's missing
         logger.warning(f"Skipping row because draw number is missing for {standard_lottery_type}")
@@ -232,7 +305,7 @@ def process_row(row, sheet_name):
         draw_number = re.sub(r'[^\d]', '', draw_number)
     
     # Extract draw date
-    draw_date = row.get('Draw Date')
+    draw_date = get_value('Draw Date')
     if pd.isna(draw_date) or not draw_date:
         # We need a draw date, skip this row if it's missing
         logger.warning(f"Skipping row because draw date is missing for {standard_lottery_type} - {draw_number}")
@@ -245,16 +318,16 @@ def process_row(row, sheet_name):
         return None
         
     # Extract winning numbers
-    numbers_str = row.get('Winning Numbers')
+    numbers_str = get_value('Winning Numbers')
     winning_numbers = parse_numbers(numbers_str)
     if not winning_numbers:
         logger.warning(f"Skipping row because winning numbers could not be parsed: {numbers_str}")
         return None
     
     # Extract bonus ball/powerball
-    bonus_str = row.get('Bonus Ball')
+    bonus_str = get_value('Bonus Ball')
     bonus_ball = None
-    if not pd.isna(bonus_str):
+    if bonus_str is not None and not pd.isna(bonus_str):
         if isinstance(bonus_str, str) and bonus_str.lower().startswith('example:'):
             # Skip example data
             pass
@@ -282,14 +355,14 @@ def process_row(row, sheet_name):
     }
     
     # Extract additional optional fields
-    next_draw_date = row.get('Next Draw Date')
-    if not pd.isna(next_draw_date):
+    next_draw_date = get_value('Next Draw Date')
+    if next_draw_date is not None and not pd.isna(next_draw_date):
         parsed_next_date = parse_excel_date(next_draw_date)
         if parsed_next_date:
             lottery_data['next_draw_date'] = parsed_next_date
     
-    next_jackpot = row.get('Next Draw Jackpot')
-    if not pd.isna(next_jackpot):
+    next_jackpot = get_value('Next Draw Jackpot')
+    if next_jackpot is not None and not pd.isna(next_jackpot):
         if isinstance(next_jackpot, str):
             # Clean up and ensure R prefix
             if not next_jackpot.startswith('R'):
@@ -336,6 +409,21 @@ def import_multisheet_excel(excel_file, flask_app=None):
         sheet_names = [sheet for sheet in xls.sheet_names if sheet.lower() != 'instructions']
         logger.info(f"Found {len(sheet_names)} data sheets: {sheet_names}")
         
+        # Map known lottery types to their standardized names
+        # This helps with sheet name recognition for specialized templates
+        lottery_type_map = {
+            'lottery': 'Lottery',
+            'lottery plus 1': 'Lottery Plus 1',
+            'lottery plus 2': 'Lottery Plus 2',
+            'powerball': 'Powerball',
+            'powerball plus': 'Powerball Plus',
+            'daily lottery': 'Daily Lottery',
+            'lotto': 'Lottery',
+            'lotto plus 1': 'Lottery Plus 1',
+            'lotto plus 2': 'Lottery Plus 2',
+            'daily lotto': 'Daily Lottery'
+        }
+        
         # Process each sheet
         for sheet_name in sheet_names:
             try:
@@ -348,6 +436,22 @@ def import_multisheet_excel(excel_file, flask_app=None):
                 if df.empty:
                     logger.warning(f"Sheet '{sheet_name}' is empty, skipping")
                     continue
+                
+                # For named sheets that match lottery types, make sure the game name
+                # column is properly populated if it's missing
+                sheet_name_lower = sheet_name.lower()
+                if sheet_name_lower in lottery_type_map:
+                    # This sheet name corresponds to a known lottery type
+                    standard_name = lottery_type_map[sheet_name_lower]
+                    logger.info(f"Sheet name '{sheet_name}' recognized as lottery type '{standard_name}'")
+                    
+                    # Check if 'Game Name' column exists but is empty/NaN
+                    if 'Game Name' in df.columns:
+                        # Fill NaN values in Game Name with the standardized sheet name
+                        mask = df['Game Name'].isna() | df['Game Name'].astype(str).eq('')
+                        if mask.any():
+                            logger.info(f"Filling {mask.sum()} empty Game Name values with '{standard_name}'")
+                            df.loc[mask, 'Game Name'] = standard_name
                 
                 # Process each row in the sheet
                 for _, row in df.iterrows():
