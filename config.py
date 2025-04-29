@@ -13,8 +13,8 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///lottery.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_size": 10,
-        "max_overflow": 20,
+        "pool_size": 5,  # Reduced pool size to prevent too many connections
+        "max_overflow": 10,  # Reduced max overflow
         "pool_recycle": 300,
         "pool_pre_ping": True,
         "pool_timeout": 30
@@ -22,7 +22,17 @@ class Config:
     
     # Only add SSL requirement for PostgreSQL connections
     if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith('postgresql'):
-        SQLALCHEMY_ENGINE_OPTIONS["connect_args"] = {"sslmode": "require"}
+        # Enhanced Neon PostgreSQL connection parameters
+        SQLALCHEMY_ENGINE_OPTIONS["connect_args"] = {
+            "sslmode": "require",
+            "connect_timeout": 10,
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 5,
+            "application_name": "snaplotto-flask-app",
+            "options": "-c statement_timeout=30000"  # 30 second timeout
+        }
     
     # Anthropic API settings (Custom environment variable name as requested)
     ANTHROPIC_API_KEY = os.environ.get('Lotto_scape_ANTHROPIC_KEY', '')
