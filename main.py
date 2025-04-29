@@ -1061,7 +1061,7 @@ def import_data():
                                     'filename': filename
                                 }
                                 
-                                import_stats = import_snap_lotto_data.import_snap_lotto_data(excel_path, flask_app=app)
+                                import_stats = isld.import_snap_lotto_data(excel_path, flask_app=app)
                                 
                                 # If import was successful, track it in the import history
                                 if isinstance(import_stats, dict) and import_stats.get('success'):
@@ -1691,7 +1691,7 @@ def sync_all_screenshots():
     
     try:
         # Use the screenshot manager to retake all screenshots synchronously (don't use threading for UI operations)
-        count = sm.retake_all_screenshots(app, use_threading=False)
+        count = scheduler.retake_all_screenshots(app, use_threading=False)
         
         # Store status in session for display on next page load
         if count > 0:
@@ -1727,7 +1727,7 @@ def sync_single_screenshot(screenshot_id):
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
         # Use the screenshot manager to retake this screenshot
-        success = sm.retake_screenshot_by_id(screenshot_id, app)
+        success = scheduler.retake_screenshot_by_id(screenshot_id, app)
         
         # Store status in session for display on next page load
         if success:
@@ -1760,7 +1760,7 @@ def cleanup_screenshots():
         
     try:
         # Run the cleanup function
-        sm.cleanup_old_screenshots()
+        scheduler.cleanup_old_screenshots()
         
         # Store success message in session
         session['sync_status'] = {
