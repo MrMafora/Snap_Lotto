@@ -108,7 +108,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                                     {% endfor %}
                                 </td>
                                 <td>
-                                    {% if result.bonus_numbers %}
+                                    {% if result.get_bonus_numbers_list()|length > 0 %}
                                         {% for num in result.get_bonus_numbers_list() %}
                                             <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
                                         {% endfor %}
@@ -173,7 +173,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                                 </div>
                             </div>
                             
-                            {% if result.bonus_numbers %}
+                            {% if result.get_bonus_numbers_list()|length > 0 %}
                                 <div>
                                     <div class="small mb-1"><strong>Bonus Numbers:</strong></div>
                                     <div class="numbers-container">
@@ -275,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
             allNumbers[{{ num }}] = (allNumbers[{{ num }}] || 0) + 1;
         {% endfor %}
         
-        {% if result.bonus_numbers %}
+        {% if result.get_bonus_numbers_list()|length > 0 %}
             {% for num in result.get_bonus_numbers_list() %}
                 allNumbers[{{ num }}] = (allNumbers[{{ num }}] || 0) + 1;
             {% endfor %}
