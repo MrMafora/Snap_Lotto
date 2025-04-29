@@ -2825,12 +2825,12 @@ def register_analysis_routes(app, db):
                         'predicted_numbers': predicted_numbers,
                         'confidence': pred.confidence_score,
                         'is_verified': pred.is_verified,
-                        'draw_date': verification.actual_draw_date if verification else None,
-                        'draw_number': verification.actual_draw_number if verification else None,
+                        'draw_date': verification.draw_date if verification else None,
+                        'draw_number': verification.actual_draw.draw_number if verification and verification.actual_draw else None,
                         'matched': verification.matched_numbers if verification else None,
-                        'total': verification.total_numbers if verification else None,
-                        'accuracy': verification.accuracy if verification else None,
-                        'bonus_match': verification.bonus_match if verification else None
+                        'total': len(predicted_numbers) if verification else None,
+                        'accuracy': verification.accuracy_score if verification else None,
+                        'bonus_match': verification.matched_bonus if verification else None
                     })
                 except Exception as err:
                     logger.error(f"Error processing prediction {pred.id}: {err}")
@@ -2856,8 +2856,11 @@ def register_analysis_routes(app, db):
                     for point in trend_data:
                         trend_points.append({
                             'date': point.training_date.strftime('%Y-%m-%d'),
-                            'accuracy': point.accuracy,
-                            'predictions': point.total_predictions
+                            'accuracy': point.accuracy_score,
+                            'predictions': point.total_predictions,
+                            'matched': point.matched_predictions,
+                            'bonus_matches': point.bonus_matches,
+                            'error_rate': point.error_rate
                         })
                     
                     performance_trends[s] = trend_points
