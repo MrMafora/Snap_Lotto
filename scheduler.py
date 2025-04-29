@@ -132,7 +132,7 @@ def run_lottery_task(url, lottery_type):
             from main import app
             
             # Get all the required functions
-            from screenshot_manager import capture_screenshot, cleanup_old_screenshots
+            import screenshot_manager as sm  # Import as module to avoid name conflicts
             from ocr_processor import process_screenshot
             from data_aggregator import aggregate_data
             from datetime import datetime
@@ -189,6 +189,7 @@ def run_lottery_task(url, lottery_type):
                 
                 # Step 4: Clean up old screenshots to save space
                 try:
+                    # Use our local implementation
                     cleanup_old_screenshots()
                 except Exception as e:
                     logger.error(f"Error during cleanup: {str(e)}")
@@ -218,14 +219,139 @@ def run_lottery_task(url, lottery_type):
         logger.error(f"Failed to start thread for {lottery_type}: {str(e)}")
         return False
 
-def retake_all_screenshots():
+def cleanup_old_screenshots():
+    """
+    Cleanup old screenshots, keeping only the latest screenshot for each URL.
+    
+    Returns:
+        int: Number of deleted screenshots
+    """
+    from models import Screenshot, db
+    from datetime import datetime
+    import os
+    import logging
+    
+    logger.info("Starting cleanup of old screenshots")
+    
+    try:
+        # Get all screenshots grouped by lottery type
+        lottery_types = db.session.query(Screenshot.lottery_type).distinct().all()
+        deleted_count = 0
+        
+        for lottery_type_row in lottery_types:
+            lottery_type = lottery_type_row[0]
+            logger.info(f"Cleaning up screenshots for {lottery_type}")
+            
+            # Get all screenshots for this lottery type, ordered by timestamp descending
+            screenshots = Screenshot.query.filter_by(lottery_type=lottery_type).order_by(Screenshot.timestamp.desc()).all()
+            
+            # Keep the most recent one, delete the rest
+            if len(screenshots) > 1:
+                for screenshot in screenshots[1:]:
+                    logger.info(f"Deleting old screenshot {screenshot.id} from {screenshot.timestamp}")
+                    
+                    # Delete the file
+                    if screenshot.path and os.path.exists(screenshot.path):
+                        try:
+                            os.remove(screenshot.path)
+                            logger.info(f"Deleted file: {screenshot.path}")
+                        except Exception as e:
+                            logger.error(f"Error deleting file {screenshot.path}: {str(e)}")
+                    
+                    # Delete the zoomed file if it exists
+                    if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                        try:
+                            os.remove(screenshot.zoomed_path)
+                            logger.info(f"Deleted zoomed file: {screenshot.zoomed_path}")
+                        except Exception as e:
+                            logger.error(f"Error deleting zoomed file {screenshot.zoomed_path}: {str(e)}")
+                    
+                    # Delete the database record
+                    db.session.delete(screenshot)
+                    deleted_count += 1
+                
+                # Commit after processing each lottery type
+                db.session.commit()
+        
+        logger.info(f"Cleanup completed. Deleted {deleted_count} old screenshots.")
+        return deleted_count
+    except Exception as e:
+        logger.error(f"Error cleaning up screenshots: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        db.session.rollback()
+        return 0
+
+def retake_screenshot_by_id(screenshot_id, app=None):
+    """
+    Retake a specific screenshot by its ID.
+    
+    Args:
+        screenshot_id (int): Database ID of the screenshot
+        app (Flask): Flask application instance (optional)
+        
+    Returns:
+        bool: Success status
+    """
+    from models import Screenshot, db
+    from flask import current_app
+    import traceback
+    
+    try:
+        # Import here to avoid circular imports
+        if app is None:
+            from main import app
+            
+        with app.app_context():
+            # Get the screenshot from the database
+            screenshot = Screenshot.query.get(screenshot_id)
+            
+            if not screenshot:
+                logger.error(f"Screenshot with ID {screenshot_id} not found")
+                return False
+                
+            logger.info(f"Retaking screenshot for {screenshot.lottery_type} from {screenshot.url}")
+            
+            # Import screenshot manager inside the thread to avoid circular imports
+            from screenshot_manager import capture_screenshot
+            
+            # Capture new screenshot with the same URL and lottery type
+            capture_result = capture_screenshot(screenshot.url, screenshot.lottery_type)
+            
+            if not capture_result:
+                logger.error(f"Failed to retake screenshot for {screenshot.lottery_type}")
+                return False
+            
+            filepath, _, zoom_filepath = capture_result
+            
+            # Update the existing screenshot record with new paths
+            screenshot.path = filepath
+            screenshot.zoomed_path = zoom_filepath
+            screenshot.timestamp = db.func.now()  # Update timestamp
+            db.session.commit()
+            
+            logger.info(f"Successfully retook screenshot for {screenshot.lottery_type}")
+            return True
+                
+    except Exception as e:
+        logger.error(f"Error retaking screenshot: {str(e)}")
+        logger.error(traceback.format_exc())
+        if 'db' in locals():
+            db.session.rollback()
+        return False
+
+def retake_all_screenshots(app=None, use_threading=True):
     """
     Retake screenshots for all configured URLs.
     This function will capture new screenshots for all URLs in the ScheduleConfig table.
     Old screenshots will be deleted through the normal cleanup process.
     
+    Args:
+        app (Flask): Flask application instance (optional)
+        use_threading (bool): Whether to use threading for parallel processing
+        
     Returns:
-        dict: A dictionary containing success/failure status for each URL
+        int: Number of successfully captured screenshots
     """
     import threading
     from models import ScheduleConfig
@@ -310,8 +436,7 @@ def retake_all_screenshots():
                 thread.join(timeout=60)  # Wait up to 60 seconds per thread
             
             # Run cleanup to remove old screenshots
-            from screenshot_manager import cleanup_old_screenshots
-            cleanup_old_screenshots()
+            cleanup_old_screenshots() # Call our local implementation
             
             return results
     except Exception as e:
