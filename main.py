@@ -1690,8 +1690,10 @@ def sync_all_screenshots():
         return redirect(url_for('index'))
     
     try:
-        # Use the screenshot manager to retake all screenshots synchronously (don't use threading for UI operations)
-        count = scheduler.retake_all_screenshots(app, use_threading=False)
+        # Use the function in scheduler module to retake all screenshots
+        # Don't use threading for UI operations to ensure synchronous behavior
+        import scheduler as sched
+        count = sched.retake_all_screenshots(app, use_threading=False)
         
         # Store status in session for display on next page load
         if count > 0:
@@ -1726,8 +1728,9 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Use the screenshot manager to retake this screenshot
-        success = scheduler.retake_screenshot_by_id(screenshot_id, app)
+        # Use the function in scheduler module to retake this screenshot
+        import scheduler as sched
+        success = sched.retake_screenshot_by_id(screenshot_id, app)
         
         # Store status in session for display on next page load
         if success:
@@ -1759,8 +1762,9 @@ def cleanup_screenshots():
         return redirect(url_for('index'))
         
     try:
-        # Run the cleanup function
-        scheduler.cleanup_old_screenshots()
+        # Run the cleanup function from scheduler module
+        import scheduler as sched
+        sched.cleanup_old_screenshots()
         
         # Store success message in session
         session['sync_status'] = {
