@@ -17,7 +17,8 @@
         countdownInterval: 1000,   // Update countdown every 1 second
         checkInterval: 500,        // Check ad state every 500ms
         maxChecks: 60,            // Maximum number of state checks (30 seconds)
-        adMinimumDisplayTime: 15000 // Minimum time in ms before ad can be closed
+        adMinimumDisplayTime: 15000, // Minimum time in ms before ad can be closed
+        strictEnforcement: true    // CRITICAL: Never allow early button activation
     };
     
     // State tracking
@@ -307,12 +308,14 @@
                 viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${secondsRemaining}s)`;
             }
             
-            // Check if countdown is complete
-            if (secondsRemaining <= 0) {
-                // Clean up
+            // Check if countdown is FULLY complete (strict enforcement)
+            if (secondsRemaining <= 0 && elapsed >= config.adMinimumDisplayTime) {
+                // Clean up - only if minimum display time has truly elapsed
                 clearInterval(state.activeCountdown);
                 state.activeCountdown = null;
                 state.countdownRunning = false;
+                
+                console.log(`Countdown complete at ${elapsed}ms - minimum required: ${config.adMinimumDisplayTime}ms`);
                 
                 // Only update button if it exists (only in second phase)
                 if (viewResultsBtn && phase === 'second') {

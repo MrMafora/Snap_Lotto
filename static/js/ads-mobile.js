@@ -288,6 +288,15 @@
             window.SnapLottoAds.secondAdComplete = false;
             window.SnapLottoAds.adStartTime = Date.now();
             
+            // Mark transition for debugging
+            console.log("⚠️ CRITICAL TRANSITION: Results overlay should now be visible");
+            
+            // Reset countdown timer to prevent mobile-button-fix.js from interferring
+            window.countdownStartTime = 0;
+            
+            // Log for debugging
+            console.log("Interstitial ad shown:", window.SnapLottoAds.adDisplayActive);
+            
             // Add ad counter to show current ad in sequence
             const adCounter = resultsOverlay.querySelector('.ad-counter');
             if (adCounter) {
