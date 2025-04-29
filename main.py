@@ -143,9 +143,9 @@ def init_lazy_modules():
     try:
         # Import heavy modules only when needed
         import data_aggregator as da
-        import import_excel as ie
-        import import_snap_lotto_data as isld
-        import ocr_processor as op
+    import import_excel as ie
+    import import_snap_lotto_data as isld
+    import ocr_processor as op
     import screenshot_manager as sm
     import scheduler as sch
     import health_monitor as hm
