@@ -48,9 +48,9 @@
                     <div class="divisions-summary mt-3">
                         {% for div_num, div_data in result.get_divisions().items() %}
                         {% if loop.index <= 3 %} <!-- Show only top 3 divisions -->
-                        <div class="division-row">
-                            <span class="division-name">{{ div_num }}</span>
-                            <span class="division-prize">{{ div_data.prize }}</span>
+                        <div class="division-row d-flex justify-content-between">
+                            <span class="division-name">Division {{ div_num[-1] }}</span>
+                            <span class="division-prize">{{ div_data.get('prize', 'R0.00') }}</span>
                         </div>
                         {% endif %}
                         {% endfor %}

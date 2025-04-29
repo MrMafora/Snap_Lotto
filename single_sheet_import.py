@@ -188,7 +188,11 @@ def parse_divisions(row):
                                         divisions[division_key]['prize'] = f'R{payout}'
                                 elif isinstance(payout, (int, float)):
                                     # Format with commas for thousands and 2 decimal places
-                                    divisions[division_key]['prize'] = f'R{payout:,.2f}'
+                                    # Ensure proper currency formatting with commas for thousands
+                                    if payout >= 1:
+                                        divisions[division_key]['prize'] = f'R{payout:,.2f}'
+                                    else:
+                                        divisions[division_key]['prize'] = f'R{payout:.2f}'
                         
                         # Determine match description based on lottery type
                         lottery_type = row.get('Game Name', '')
