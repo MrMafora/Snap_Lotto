@@ -8,8 +8,8 @@
 
 <!-- Mobile-optimized advertisement system with enhanced timing enforcement - SINGLE TIMER SOURCE -->
 <script src="{{ url_for('static', filename='js/ads-mobile.js') }}" data-critical="true"></script>
-<!-- New countdown system that replaces the problematic critical-transition-fix.js -->
-<script src="{{ url_for('static', filename='js/ad-countdown-fix.js') }}" data-critical="true"></script>
+<!-- Ultra-simple countdown system for reliability -->
+<script src="{{ url_for('static', filename='js/simple-countdown.js') }}" data-critical="true"></script>
 
 <!-- Inline critical Font Awesome fix - immediate execution before DOM loads -->
 <style>
@@ -67,7 +67,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <link rel="preload" href="{{ url_for('static', filename='js/mobile-optimization.js') }}" as="script">
 <link rel="preload" href="{{ url_for('static', filename='js/scanner-icon-fix.js') }}" as="script">
 <link rel="preload" href="{{ url_for('static', filename='js/ads-mobile.js') }}" as="script">
-<link rel="preload" href="{{ url_for('static', filename='js/ad-countdown-fix.js') }}" as="script">
+<link rel="preload" href="{{ url_for('static', filename='js/simple-countdown.js') }}" as="script">
 
 <!-- Mobile-optimized CSS loads first -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/optimized-mobile.css') }}">
