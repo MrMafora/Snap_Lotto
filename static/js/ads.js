@@ -215,8 +215,8 @@ window.AdManager = window.AdManager || {
         console.log('AdManager: Showing loading ad');
         
         // Get the ad for scanner placement to access its loading_duration
-        // REDUCED TIME: Changed from 10 to 6 seconds to prevent mobile scanning from getting stuck
-        const ad = this.ads['scanner'] || { loading_duration: 6 }; // Default to 6 seconds if no ad found
+        // REDUCED TIME: Changed from 10 to 5 seconds as requested
+        const ad = this.ads['scanner'] || { loading_duration: 5 }; // Default to 5 seconds if no ad found
         const loadingDuration = ad.loading_duration * 1000; // Convert to milliseconds
         
         console.log(`AdManager: Using loading duration of ${ad.loading_duration} seconds`);
@@ -371,6 +371,16 @@ window.AdManager = window.AdManager || {
             countdownElement.textContent = `Next ad in: ${remainingTime}s`;
         }
         
+        // Get the View Results button and disable it during countdown
+        const viewResultsBtn = document.getElementById('view-results-btn');
+        if (viewResultsBtn) {
+            // Disable the button during countdown
+            viewResultsBtn.disabled = true;
+            viewResultsBtn.classList.add('disabled');
+            viewResultsBtn.style.opacity = '0.5';
+            viewResultsBtn.style.cursor = 'not-allowed';
+        }
+        
         // Clear any existing countdown interval
         if (window.adCountdownInterval) {
             clearInterval(window.adCountdownInterval);
@@ -393,9 +403,17 @@ window.AdManager = window.AdManager || {
             if (remainingTime <= 0) {
                 clearInterval(window.adCountdownInterval);
                 
-                // Play the next ad or hide if no more ads
+                // Play the next ad or enable the View Results button if ad sequence complete
                 if (!this.playNextAd()) {
                     console.log('AdManager: Ad sequence complete');
+                    
+                    // Enable the View Results button after countdown completes
+                    if (viewResultsBtn) {
+                        viewResultsBtn.disabled = false;
+                        viewResultsBtn.classList.remove('disabled');
+                        viewResultsBtn.style.opacity = '1';
+                        viewResultsBtn.style.cursor = 'pointer';
+                    }
                 }
             }
         }, 1000);
@@ -482,6 +500,14 @@ window.AdManager = window.AdManager || {
                     // Log the click with timestamp
                     console.log('⭐ View Results button clicked at ' + new Date().toISOString());
                     
+                    // If button is disabled (during countdown), prevent click
+                    if (this.disabled || this.classList.contains('disabled')) {
+                        console.log('View Results button clicked while disabled, ignoring');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                    
                     // Prevent any default behavior or event bubbling
                     e.preventDefault();
                     e.stopPropagation();
@@ -493,11 +519,13 @@ window.AdManager = window.AdManager || {
                     window.resultsShown = true;
                     window.hasCompletedAdFlow = true;
                     window.permanentResultsMode = true;
+                    window.showingResultsAfterAd = true;
                     
                     // Force-cancel any timers that might be redirecting
                     try {
                         for (let i = 1; i < 500; i++) {
                             clearTimeout(i);
+                            clearInterval(i);
                         }
                     } catch (e) {}
                     
@@ -508,18 +536,21 @@ window.AdManager = window.AdManager || {
                         adOverlay.style.visibility = 'hidden';
                     }
                     
-                    // Force show results container
+                    // Force show results container and ensure it's visible
                     const resultsContainer = document.getElementById('results-container');
                     if (resultsContainer) {
                         resultsContainer.classList.remove('d-none');
                         resultsContainer.style.display = 'block';
+                        resultsContainer.style.visibility = 'visible';
+                        resultsContainer.style.opacity = '1';
                     }
                     
-                    // Force hide scan form
+                    // Force hide scan form completely
                     const scanForm = document.getElementById('scan-form-container');
                     if (scanForm) {
                         scanForm.classList.add('d-none');
                         scanForm.style.display = 'none';
+                        scanForm.style.visibility = 'hidden';
                     }
                     
                     // Double-check with a delay
@@ -709,7 +740,7 @@ window.AdManager = window.AdManager || {
             name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Ad Example`,
             file_url: '/static/ads/sample_video.mp4', // This should be a real sample video in production
             duration: 15,
-            loading_duration: 10, // Default loading overlay duration in seconds
+            loading_duration: 5, // Changed from 10 to 5 seconds as requested
             custom_message: 'Processing your lottery ticket...', // Default custom message
             custom_image_path: null, // No custom image in mock data
             placement: placement,
