@@ -23,6 +23,12 @@ def find_latest_template():
     template_pattern = "attached_assets/lottery_data_template_*.xlsx"
     template_files = glob.glob(template_pattern)
     
+    # Also look for the specific file requested by the user
+    user_template = "attached_assets/lottery_data_template_20250430_011720.xlsx"
+    if os.path.exists(user_template):
+        logger.info(f"Found specific user-requested template: {user_template}")
+        return user_template
+    
     if not template_files:
         logger.error("No template files found")
         return None

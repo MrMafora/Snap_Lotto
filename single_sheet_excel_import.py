@@ -428,8 +428,7 @@ def import_excel_data(excel_file, flask_app=None):
             if 'lottery_type' not in column_mapping or 'draw_number' not in column_mapping:
                 error_msg = "Could not find essential columns (Game Name and Draw Number)"
                 logger.error(error_msg)
-                import_history.status = "error"
-                import_history.notes = error_msg
+                import_history.errors = 1
                 db.session.commit()
                 return {'success': False, 'error': error_msg}
             
@@ -544,11 +543,12 @@ def import_excel_data(excel_file, flask_app=None):
                     
                     # Track imported record
                     imported_record = ImportedRecord(
-                        import_history_id=import_history.id,
+                        import_id=import_history.id,
                         lottery_type=lottery_type,
                         draw_number=draw_number,
                         draw_date=draw_date,
-                        status="success"
+                        is_new=not existing_result,
+                        lottery_result_id=existing_result.id if existing_result else new_result.id
                     )
                     imported_records.append(imported_record)
                     
@@ -567,25 +567,17 @@ def import_excel_data(excel_file, flask_app=None):
                     draw_number = draw_number if 'draw_number' in locals() else 'Unknown'
                     draw_date = draw_date if 'draw_date' in locals() else None
                     
-                    failed_record = ImportedRecord(
-                        import_history_id=import_history.id,
-                        lottery_type=lottery_type,
-                        draw_number=draw_number,
-                        draw_date=draw_date,
-                        status="error",
-                        error_details=str(e)
-                    )
-                    imported_records.append(failed_record)
+                    # We can't add a failed record without a lottery_result_id
+                    # Just increment the error count - already incremented above
             
             # Bulk add all imported records
             db.session.add_all(imported_records)
             
             # Update import history with results
-            import_history.status = "completed"
-            import_history.import_count = stats['imported']
-            import_history.update_count = stats['updated']
-            import_history.error_count = stats['errors']
-            import_history.notes = f"Processed {stats['total_processed']} records"
+            import_history.records_added = stats['imported']
+            import_history.records_updated = stats['updated']
+            import_history.errors = stats['errors']
+            import_history.total_processed = stats['total_processed']
             
             db.session.commit()
             
@@ -599,11 +591,16 @@ def import_excel_data(excel_file, flask_app=None):
         # Update import history with error if possible
         if last_import_history_id:
             try:
+                # Get the app context
+                if flask_app:
+                    ctx = flask_app.app_context()
+                else:
+                    ctx = current_app.app_context()
+                    
                 with ctx:
                     import_history = ImportHistory.query.get(last_import_history_id)
                     if import_history:
-                        import_history.status = "error"
-                        import_history.notes = f"General error: {str(e)}"
+                        import_history.errors = 1
                         db.session.commit()
             except Exception:
                 pass
