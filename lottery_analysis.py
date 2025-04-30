@@ -2779,7 +2779,7 @@ def register_analysis_routes(app, db):
             return redirect(url_for('index'))
             
         try:
-            from models import LotteryPrediction, PredictionResult, ModelTrainingHistory, db
+            from models import LotteryResult, LotteryPrediction, PredictionResult, ModelTrainingHistory, db
             
             # Filter parameters
             lottery_type = request.args.get('lottery_type', None)
@@ -2838,12 +2838,41 @@ def register_analysis_routes(app, db):
                     # Skip entries with invalid data
                     pass
             
-            # Get available filters for selects
-            lottery_types = db.session.query(LotteryPrediction.lottery_type).distinct().all()
-            lottery_types = [lt[0] for lt in lottery_types]
+            # Get available filters for lottery types
+            # First try to get from prediction table
+            lottery_types_from_pred = db.session.query(LotteryPrediction.lottery_type).distinct().all()
+            lottery_types = [lt[0] for lt in lottery_types_from_pred]
             
-            strategies = db.session.query(LotteryPrediction.strategy).distinct().all()
-            strategies = [s[0] for s in strategies]
+            # If no prediction data exists yet, get lottery types from results table
+            if not lottery_types:
+                logger.info("No prediction data found, getting lottery types from results table")
+                lottery_types_from_results = db.session.query(LotteryResult.lottery_type).distinct().all()
+                lottery_types = [lt[0] for lt in lottery_types_from_results]
+                # Standardize types
+                standard_types = {
+                    'Lotto': 'Lottery',
+                    'Lotto Plus 1': 'Lottery Plus 1',
+                    'Lotto Plus 2': 'Lottery Plus 2',
+                    'PowerBall': 'Powerball',
+                    'PowerBall Plus': 'Powerball Plus',
+                    'Daily Lotto': 'Daily Lottery'
+                }
+                lottery_types = [standard_types.get(lt, lt) for lt in lottery_types]
+            
+            # Get available strategies 
+            strategies_from_pred = db.session.query(LotteryPrediction.strategy).distinct().all()
+            strategies = [s[0] for s in strategies_from_pred]
+            
+            # If no strategies exist yet, use default strategies
+            if not strategies:
+                logger.info("No strategy data found, using default strategies")
+                strategies = [
+                    "Frequency Analysis", 
+                    "Pattern Matching", 
+                    "Time Series", 
+                    "Weighted Random",
+                    "Composite Model"
+                ]
             
             # Get performance trend over time
             performance_trends = {}
