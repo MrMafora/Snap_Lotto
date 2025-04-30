@@ -10,6 +10,7 @@ import logging
 from datetime import datetime
 import os
 import re
+import traceback
 from sqlalchemy import text
 from models import db, LotteryResult, ImportHistory, ImportedRecord
 from flask import current_app
@@ -345,9 +346,9 @@ def import_excel_data(excel_file, flask_app=None):
             
             # Create import history record
             import_history = ImportHistory(
-                filename=os.path.basename(excel_file),
-                timestamp=datetime.utcnow(),
-                status="processing"
+                import_type='excel',
+                file_name=os.path.basename(excel_file),
+                import_date=datetime.utcnow()
             )
             db.session.add(import_history)
             db.session.commit()
@@ -408,8 +409,8 @@ def import_excel_data(excel_file, flask_app=None):
                     error_messages.append(error_msg)
                     
                     # All engines failed, update ImportHistory entry with error
-                    import_history.status = "error"
-                    import_history.notes = f"Failed to read Excel file: {'; '.join(error_messages)}"
+                    import_history.errors = len(error_messages)
+                    # Note: ImportHistory doesn't have a notes field, but we'll keep error info in return value
                     db.session.commit()
                     return {'success': False, 'error': f"Failed to read Excel file: {'; '.join(error_messages)}"}
             
