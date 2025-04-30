@@ -2918,6 +2918,34 @@ def api_tracking_dashboard():
         service_tokens=service_tokens
     )
 
+# Route for importing latest template file
+@app.route('/admin/import-latest-template')
+@login_required
+@admin_required
+def import_latest_template_route():
+    """Import the latest lottery data template file"""
+    try:
+        result = import_latest_template.import_latest_template()
+        return render_template('import_status.html', 
+                               success=result.get('success', False),
+                               stats=result.get('stats', {}),
+                               error=result.get('error', 'Unknown error'))
+    except Exception as e:
+        logger.error(f"Error importing template: {str(e)}")
+        return render_template('import_status.html', 
+                               success=False,
+                               stats={},
+                               error=f"Error: {str(e)}")
+
+# Route for viewing import history
+@app.route('/admin/import-history')
+@login_required
+@admin_required
+def import_history():
+    """Display import history"""
+    history = ImportHistory.query.order_by(ImportHistory.import_date.desc()).all()
+    return render_template('import_history.html', history=history)
+
 # When running directly, not through gunicorn
 if __name__ == "__main__":
     # Extra logging to help diagnose startup issues
