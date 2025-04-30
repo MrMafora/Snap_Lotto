@@ -42,7 +42,6 @@ def import_latest_template():
     """Import the latest lottery data template file"""
     # Import here to avoid circular imports
     from main import app
-    import single_sheet_excel_import
     
     try:
         # Find the latest template file
@@ -53,15 +52,35 @@ def import_latest_template():
         # Import the template file
         logger.info(f"Importing template file: {template_file}")
         with app.app_context():
-            # Use the fixed import script
+            # Use the fixed import script with corrected column mapping
             import fixed_excel_import
+            
+            # Log found columns for debugging
+            try:
+                import pandas as pd
+                df = pd.read_excel(template_file, engine="openpyxl")
+                logger.info(f"Excel columns: {', '.join(str(col) for col in df.columns)}")
+                
+                # Verify if our fixed mapping logic works
+                mappings = fixed_excel_import.get_column_mapping(df)
+                logger.info(f"Generated mappings: {mappings}")
+                
+                # Check if we have the correct mappings
+                if 'draw_number' in mappings and mappings['draw_number'] == 'Draw Number':
+                    logger.info("Column mapping correctly fixed! Draw Number is using the correct column")
+                else:
+                    logger.warning("Column mapping may still be incorrect - check the logs")
+            except Exception as e:
+                logger.error(f"Error checking column mapping: {str(e)}")
+            
+            # Proceed with import
             import_result = fixed_excel_import.import_excel_data(template_file, flask_app=app)
             
             if import_result.get('success', False):
                 logger.info(f"Successfully imported template file.")
-                logger.info(f"Added: {import_result.get('added', 0)}, "
+                logger.info(f"Added: {import_result.get('imported', 0)}, "
                            f"Updated: {import_result.get('updated', 0)}, "
-                           f"Total: {import_result.get('total', 0)}, "
+                           f"Total: {import_result.get('total_processed', 0)}, "
                            f"Errors: {import_result.get('errors', 0)}")
             else:
                 logger.error(f"Failed to import template file: {import_result.get('error', 'Unknown error')}")
