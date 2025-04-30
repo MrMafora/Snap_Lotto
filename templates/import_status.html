@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3>Import Results</h3>
+                </div>
+                <div class="card-body">
+                    {% if success %}
+                    <div class="alert alert-success">
+                        <h4>Import Completed Successfully</h4>
+                        <p>The lottery data has been successfully imported from the template file.</p>
+                    </div>
+                    
+                    <h5>Import Statistics:</h5>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>New Records Added</th>
+                            <td>{{ stats.imported }}</td>
+                        </tr>
+                        <tr>
+                            <th>Records Updated</th>
+                            <td>{{ stats.updated }}</td>
+                        </tr>
+                        <tr>
+                            <th>Total Processed</th>
+                            <td>{{ stats.total_processed }}</td>
+                        </tr>
+                        <tr>
+                            <th>Errors</th>
+                            <td>{{ stats.errors }}</td>
+                        </tr>
+                    </table>
+                    
+                    {% if stats.by_lottery_type %}
+                    <h5>By Lottery Type:</h5>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Lottery Type</th>
+                                <th>Records Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lottery_type, count in stats.by_lottery_type.items() %}
+                            <tr>
+                                <td>{{ lottery_type }}</td>
+                                <td>{{ count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">Return to Admin Dashboard</a>
+                        <a href="{{ url_for('view_lottery_results') }}" class="btn btn-success">View Lottery Results</a>
+                    </div>
+                    
+                    {% else %}
+                    <div class="alert alert-danger">
+                        <h4>Import Failed</h4>
+                        <p>{{ error }}</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">Return to Admin Dashboard</a>
+                        <a href="{{ url_for('import_latest_template_route') }}" class="btn btn-warning">Try Again</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

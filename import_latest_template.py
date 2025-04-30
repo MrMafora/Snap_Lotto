@@ -53,7 +53,9 @@ def import_latest_template():
         # Import the template file
         logger.info(f"Importing template file: {template_file}")
         with app.app_context():
-            import_result = single_sheet_excel_import.import_excel_data(template_file, flask_app=app)
+            # Use the fixed import script
+            import fixed_excel_import
+            import_result = fixed_excel_import.import_excel_data(template_file, flask_app=app)
             
             if import_result.get('success', False):
                 logger.info(f"Successfully imported template file.")
