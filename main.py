@@ -2941,8 +2941,8 @@ def import_latest_template_route():
 @app.route('/admin/import-history')
 @login_required
 @admin_required
-def import_history():
-    """Display import history"""
+def admin_import_history():
+    """Display import history in admin panel"""
     history = ImportHistory.query.order_by(ImportHistory.import_date.desc()).all()
     return render_template('import_history.html', history=history)
 
