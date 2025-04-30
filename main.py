@@ -16,6 +16,16 @@ import threading
 import traceback
 from datetime import datetime, timedelta
 from functools import wraps
+from flask import abort
+
+# Admin required decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Set up logging first
 logging.basicConfig(level=logging.DEBUG)
@@ -47,6 +57,13 @@ try:
     logger.info("Port proxy auto-starter loaded")
 except Exception as e:
     logger.error(f"Failed to load port proxy auto-starter: {e}")
+
+# Import template handling
+try:
+    import import_latest_template
+    logger.info("Template import module loaded")
+except Exception as e:
+    logger.error(f"Failed to load template import module: {e}")
 
 # Create the Flask application
 app = Flask(__name__)
