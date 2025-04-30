@@ -223,12 +223,23 @@ def get_column_mapping(df):
     """
     mapping = {}
     
+    # First check for exact matches - our official template format
+    if 'Game Name' in df.columns and 'Draw Number' in df.columns and 'Winning Numbers (Numerical)' in df.columns:
+        logger.info("Detected standard lottery template format, applying fixed column mapping")
+        return {
+            'lottery_type': 'Game Name',
+            'draw_number': 'Draw Number',         # Must use exact column for draw number
+            'draw_date': 'Draw Date',
+            'numbers': 'Winning Numbers (Numerical)',
+            'bonus_ball': 'Bonus Ball'
+        }
+    
     # List of possible column names for each data type
     column_types = {
         'lottery_type': ['game name', 'game type', 'lottery type', 'lotto type', 'game', 'lottery'],
-        'draw_number': ['draw number', 'draw no', 'draw', 'id', 'draw id'],
+        'draw_number': ['draw number', 'draw no', 'draw', 'id', 'draw id'], 
         'draw_date': ['draw date', 'date', 'game date'],
-        'numbers': ['winning numbers', 'main numbers', 'numbers', 'winning balls', 'winning numbers (numerical)'],
+        'numbers': ['winning numbers', 'main numbers', 'winning balls'],  # Removed 'numbers' to prevent erroneous matches
         'bonus_ball': ['bonus ball', 'bonus number', 'powerball', 'power ball', 'additional number', 'extra ball', 'bonus']
     }
     
@@ -238,11 +249,16 @@ def get_column_mapping(df):
     # Map each data type to an actual column
     for data_type, possible_names in column_types.items():
         for col_index, col_name in enumerate(df_columns):
-            if any(possible in col_name for possible in possible_names):
+            if any(possible == col_name or (len(possible) > 4 and possible in col_name) for possible in possible_names):
                 # Found a match
                 mapping[data_type] = df.columns[col_index]
                 break
     
+    # Special handling for 'Winning Numbers (Numerical)' field
+    if 'Winning Numbers (Numerical)' in df.columns:
+        mapping['numbers'] = 'Winning Numbers (Numerical)'
+    
+    logger.info(f"Generated column mapping: {mapping}")
     return mapping
 
 def import_excel_data(excel_file, flask_app=None):
