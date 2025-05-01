@@ -1,9 +1,14 @@
 import os
+from datetime import timezone, timedelta
 
 class Config:
     """Application configuration settings"""
     # Environment settings
     ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development')  # 'development' or 'production'
+    
+    # South Africa is UTC+2
+    TIMEZONE = timezone(timedelta(hours=2))
+    TIMEZONE_NAME = 'SAST'  # South Africa Standard Time
     
     # Flask settings
     SECRET_KEY = os.environ.get('SESSION_SECRET', 'lottery-scraper-default-secret')
