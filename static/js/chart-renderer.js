@@ -99,6 +99,57 @@ function renderFrequencyChart(frequencyData) {
             barDiv.style.backgroundColor = barColors[index];
             barDiv.style.borderTopLeftRadius = '3px';
             barDiv.style.borderTopRightRadius = '3px';
+            barDiv.style.position = 'relative';
+            barDiv.style.cursor = 'pointer';
+            barDiv.style.transition = 'all 0.2s ease';
+            
+            // Hover effects
+            barDiv.addEventListener('mouseenter', function(e) {
+                // Highlight the bar
+                this.style.transform = 'scale(1.05)';
+                this.style.boxShadow = '0 0 8px rgba(0,0,0,0.3)';
+                
+                // Create tooltip
+                const tooltip = document.createElement('div');
+                tooltip.className = 'chart-tooltip';
+                tooltip.style.position = 'absolute';
+                tooltip.style.bottom = '105%';
+                tooltip.style.left = '50%';
+                tooltip.style.transform = 'translateX(-50%)';
+                tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                tooltip.style.color = 'white';
+                tooltip.style.padding = '6px 10px';
+                tooltip.style.borderRadius = '4px';
+                tooltip.style.fontSize = '12px';
+                tooltip.style.whiteSpace = 'nowrap';
+                tooltip.style.zIndex = '1000';
+                tooltip.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                tooltip.innerHTML = `
+                    <div><strong>Number:</strong> ${number}</div>
+                    <div><strong>Frequency:</strong> ${frequency} times</div>
+                    <div><strong>Percentage:</strong> ${((frequency / maxFrequency) * 100).toFixed(1)}%</div>
+                `;
+                
+                // Add small arrow at bottom
+                tooltip.style.setProperty('--tooltip-arrow', '');
+                tooltip.style.setProperty('--tooltip-arrow-color', 'rgba(0,0,0,0.8)');
+                
+                // Append tooltip to bar
+                this.appendChild(tooltip);
+            });
+            
+            barDiv.addEventListener('mouseleave', function() {
+                // Reset highlight
+                this.style.transform = 'scale(1)';
+                this.style.boxShadow = 'none';
+                
+                // Remove tooltip
+                const tooltip = this.querySelector('.chart-tooltip');
+                if (tooltip) {
+                    tooltip.remove();
+                }
+            });
+            
             barsContainer.appendChild(barDiv);
             
             // Create label
