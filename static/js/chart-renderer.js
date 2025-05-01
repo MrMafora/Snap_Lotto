@@ -24,16 +24,33 @@ function renderFrequencyChart(frequencyData) {
         // Clear previous chart
         barChartContainer.innerHTML = '';
         
-        // Create a container for the number frequency chart
-        const frequencyChart = document.createElement('div');
-        frequencyChart.className = 'frequency-chart d-flex align-items-end justify-content-between pb-2';
-        frequencyChart.style.height = '200px';
-        
         // Sort data by frequency (descending)
         const sortedData = [...frequencyData].sort((a, b) => b.frequency - a.frequency);
         
         // Get the maximum frequency for scaling
         const maxFrequency = sortedData[0]?.frequency || 1;
+        
+        // Create a container for the number frequency chart with Y-axis labels
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'd-flex';
+        
+        // Create Y-axis labels
+        const yAxis = document.createElement('div');
+        yAxis.className = 'y-axis me-2 d-flex flex-column justify-content-between';
+        yAxis.style.height = '170px';
+        
+        // Create labels at different points of the Y-axis
+        for (let i = 5; i >= 0; i--) {
+            const yLabel = document.createElement('div');
+            yLabel.className = 'text-end small text-muted';
+            yLabel.textContent = Math.round(maxFrequency * i / 5);
+            yAxis.appendChild(yLabel);
+        }
+        
+        // Create a container for the actual frequency chart
+        const frequencyChart = document.createElement('div');
+        frequencyChart.className = 'frequency-chart d-flex align-items-end justify-content-between pb-2 flex-grow-1';
+        frequencyChart.style.height = '200px';
         
         // Variables for color coding top numbers
         const colorClasses = [
@@ -123,8 +140,12 @@ function renderFrequencyChart(frequencyData) {
             frequencyChart.appendChild(barColumn);
         });
         
-        // Add the frequency chart to the container
-        barChartContainer.appendChild(frequencyChart);
+        // Add y-axis and frequency chart to the container
+        chartContainer.appendChild(yAxis);
+        chartContainer.appendChild(frequencyChart);
+        
+        // Add the chart container to the main container
+        barChartContainer.appendChild(chartContainer);
         
         // Add a legend for color coding
         const legend = document.createElement('div');
