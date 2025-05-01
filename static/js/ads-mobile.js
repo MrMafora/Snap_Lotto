@@ -404,104 +404,38 @@
         }
     }
     
-    // Enable "View Results" button after first ad countdown
+    // Enable "View Results" button after first ad countdown - DEPRECATED
     function enableViewResultsButton() {
-        const viewBtn = document.getElementById('view-results-btn');
-        if (viewBtn) {
-            // IMPORTANT: Make sure countdown is truly complete before enabling
-            if (!window.SnapLottoAds.firstAdComplete) {
-                console.log("Not enabling View Results button - countdown not complete");
-                return;
-            }
-            
-            // Style changes to make it obvious button is enabled
-            viewBtn.disabled = false;
-            viewBtn.classList.add('btn-pulse');
-            viewBtn.classList.remove('btn-secondary');
-            viewBtn.classList.add('btn-success');
-            
-            // Update inner text to indicate it's ready
-            viewBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-            
-            // Clear any existing event listeners by cloning the button
-            const newViewBtn = viewBtn.cloneNode(true);
-            viewBtn.parentNode.replaceChild(newViewBtn, viewBtn);
-            
-            // Set up event listener for button with reliable ordering
-            newViewBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                console.log("View Results button clicked at: " + new Date().toISOString());
-                
-                // Double-check that the countdown is really complete
-                if (!window.SnapLottoAds.firstAdComplete) {
-                    console.log("First ad not complete, ignoring click");
-                    return false;
-                }
-                
-                // Sequence:
-                // 1. Hide first overlay
-                hideLoadingAdOverlay();
-                
-                // 2. Make sure results container is visible 
-                const resultsContainer = document.getElementById('results-container');
-                if (resultsContainer) {
-                    resultsContainer.classList.remove('d-none');
-                }
-                
-                // 3. Show second ad with results - show immediately, don't wait for next tick
-                setTimeout(function() {
-                    showResultsAdOverlay();
-                }, 50); // very short delay to ensure smooth transition
-                
-                return false;
-            });
-        }
+        console.log("⚠️ ads-mobile.js: enableViewResultsButton DEPRECATED - Now handled by ad-countdown-fix.js");
+        
+        // Signal to ad-countdown-fix.js that we've reached this point
+        window.postMessage({ 
+            type: 'adStateChange', 
+            adType: 'first', 
+            state: 'complete', 
+            timestamp: Date.now(),
+            source: 'ads-mobile'
+        }, '*');
+        
+        // Don't directly manipulate the button anymore
+        return;
     }
     
-    // Enable final "Continue to Results" button after second ad countdown
+    // Enable final "Continue to Results" button after second ad countdown - DEPRECATED
     function enableContinueToResultsButton() {
-        const viewBtn = document.getElementById('view-results-btn');
-        if (viewBtn) {
-            // IMPORTANT: Make sure countdown is truly complete before enabling
-            if (!window.SnapLottoAds.secondAdComplete) {
-                console.log("Not enabling Continue to Results button - countdown not complete");
-                return;
-            }
-            
-            // Style changes to make it obvious button is enabled
-            viewBtn.disabled = false;
-            viewBtn.classList.add('btn-pulse');
-            viewBtn.classList.remove('btn-secondary');
-            viewBtn.classList.add('btn-success');
-            
-            // Update inner text to indicate it's ready
-            viewBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-            
-            // Clear any existing event listeners by cloning the button
-            const newViewBtn = viewBtn.cloneNode(true);
-            viewBtn.parentNode.replaceChild(newViewBtn, viewBtn);
-            
-            // Set up event listener for final button
-            newViewBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                console.log("Continue to Results button clicked at: " + new Date().toISOString());
-                
-                // Double-check that the countdown is really complete
-                if (!window.SnapLottoAds.secondAdComplete) {
-                    console.log("Second ad not complete, ignoring click");
-                    return false;
-                }
-                
-                // Hide the results overlay to show actual results
-                hideResultsAdOverlay();
-                
-                return false;
-            });
-        }
+        console.log("⚠️ ads-mobile.js: enableContinueToResultsButton DEPRECATED - Now handled by ad-countdown-fix.js");
+        
+        // Signal to ad-countdown-fix.js that we've reached this point
+        window.postMessage({ 
+            type: 'adStateChange', 
+            adType: 'second', 
+            state: 'complete', 
+            timestamp: Date.now(),
+            source: 'ads-mobile'
+        }, '*');
+        
+        // Don't directly manipulate the button anymore
+        return;
     }
     
     // Hide loading ad overlay

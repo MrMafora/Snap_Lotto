@@ -191,93 +191,34 @@
     }
 
     function enableContinueButton() {
-        // Create a new continue button with a clean event handler
-        const continueBtn = document.getElementById('view-results-btn');
-        if (!continueBtn) return;
+        console.log("⚠️ simple-countdown.js: enableContinueButton DEPRECATED - Now handled by ad-countdown-fix.js");
         
-        // Create a replacement button to clear stale handlers
-        const newBtn = continueBtn.cloneNode(true);
-        newBtn.disabled = false;
-        newBtn.classList.remove('btn-secondary');
-        newBtn.classList.add('btn-success', 'btn-pulse');
-        newBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+        // Signal to ad-countdown-fix.js that we've reached this point
+        window.postMessage({ 
+            type: 'adStateChange', 
+            adType: 'first', 
+            state: 'complete', 
+            timestamp: Date.now(),
+            source: 'simple-countdown'
+        }, '*');
         
-        // Add a fresh click handler
-        newBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            console.log('Continue button clicked after first ad');
-            
-            // Hide the first ad overlay
-            const firstAdOverlay = document.getElementById('ad-overlay-loading');
-            if (firstAdOverlay) {
-                firstAdOverlay.style.display = 'none';
-            }
-            
-            // Make sure results container is visible
-            const resultsContainer = document.getElementById('results-container');
-            if (resultsContainer) {
-                resultsContainer.classList.remove('d-none');
-            }
-            
-            // Show the second ad
-            const secondAdOverlay = document.getElementById('ad-overlay-results');
-            if (secondAdOverlay) {
-                secondAdOverlay.style.display = 'flex';
-            }
-        });
-        
-        // Replace the button
-        continueBtn.parentNode.replaceChild(newBtn, continueBtn);
+        // Don't directly manipulate the button anymore
+        return;
     }
 
     function enableViewResultsButton() {
-        // Show the button container first
-        const btnContainer = document.getElementById('view-results-btn-container');
-        if (btnContainer) {
-            console.log('📢 Now showing the View Results button container');
-            btnContainer.style.display = 'block';
-        }
-
-        // Get the view results button
-        const viewResultsBtn = document.getElementById('view-results-btn');
-        if (!viewResultsBtn) return;
+        console.log("⚠️ simple-countdown.js: enableViewResultsButton DEPRECATED - Now handled by ad-countdown-fix.js");
         
-        // Create a replacement button to clear stale handlers
-        const newBtn = viewResultsBtn.cloneNode(true);
-        newBtn.disabled = false;
-        newBtn.classList.remove('btn-secondary');
-        newBtn.classList.add('btn-success', 'btn-pulse');
-        newBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+        // Signal to ad-countdown-fix.js that we've reached this point
+        window.postMessage({ 
+            type: 'adStateChange', 
+            adType: 'second', 
+            state: 'complete', 
+            timestamp: Date.now(),
+            source: 'simple-countdown'
+        }, '*');
         
-        // Add a fresh click handler
-        newBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            console.log('View Results button clicked after second ad');
-            
-            // Hide the second ad overlay
-            const secondAdOverlay = document.getElementById('ad-overlay-results');
-            if (secondAdOverlay) {
-                secondAdOverlay.style.display = 'none';
-            }
-            
-            // Show the results
-            const resultsContainer = document.getElementById('results-container');
-            if (resultsContainer) {
-                resultsContainer.classList.remove('d-none');
-                resultsContainer.style.display = 'block';
-            }
-            
-            // Set global flags
-            window.resultsShown = true;
-        });
-        
-        // Replace the button
-        viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
-        
-        console.log('🎯 View Results button enabled and fully configured');
+        // Don't directly manipulate the button anymore
+        return;
     }
 })();
