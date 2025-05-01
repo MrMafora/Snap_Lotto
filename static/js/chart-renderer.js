@@ -5,6 +5,9 @@
 
 // Function to render the frequency chart with the provided data
 function renderFrequencyChart(frequencyData) {
+    // Log the received data to help with debugging
+    console.log('Frequency data received:', frequencyData);
+    
     if (!frequencyData || !Array.isArray(frequencyData) || frequencyData.length === 0) {
         console.warn('No frequency data to render');
         return;
@@ -150,6 +153,9 @@ function renderFrequencyChart(frequencyData) {
 
 // Function to render division statistics chart
 function renderDivisionChart(divisionData) {
+    // Log the received data to help with debugging
+    console.log('Division data received:', divisionData);
+    
     if (!divisionData || !Array.isArray(divisionData) || divisionData.length === 0) {
         console.warn('No division data to render');
         return;
@@ -403,6 +409,9 @@ function resetPieSegments() {
 
 // Function to update lottery type selector based on available data
 function renderLotteryTypeSelector(lotteryTypes) {
+    // Log the received lottery types to help with debugging
+    console.log('Lottery types received:', lotteryTypes);
+    
     if (!lotteryTypes || !Array.isArray(lotteryTypes)) {
         console.warn('No lottery types data available');
         return;
@@ -480,6 +489,9 @@ function renderLotteryTypeSelector(lotteryTypes) {
 
 // Function to update stats summary with latest data
 function updateStatsSummary(stats) {
+    // Log the stats data to help with debugging
+    console.log('Stats data received:', stats);
+    
     if (!stats) {
         console.warn('No stats data available');
         return;

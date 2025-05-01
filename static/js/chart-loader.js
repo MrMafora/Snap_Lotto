@@ -126,8 +126,11 @@ function fetchChartData(lotteryType, timePeriod) {
         })
         .then(data => {
             // Pass data to chart renderer functions
-            console.log("Chart data received:", data.lotteryTypes);
-            renderCharts(data);
+            console.log("Chart data received:", data);
+            
+            // Transform API response to expected format
+            const transformedData = transformApiResponse(data);
+            renderCharts(transformedData);
         })
         .catch(error => {
             console.error("Error fetching chart data:", error);
@@ -156,6 +159,73 @@ function fetchChartData(lotteryType, timePeriod) {
                 indicator.classList.add('d-none');
             });
         });
+}
+
+// Transform API response to expected format
+function transformApiResponse(apiData) {
+    // Initialize the transformed data structure
+    const transformed = {
+        frequencyData: [],
+        lotteryTypes: [],
+        divisionData: [],
+        stats: {}
+    };
+    
+    // If the API response is empty or not in expected format, return empty data
+    if (!apiData || typeof apiData !== 'object') {
+        console.warn('Invalid API response format');
+        return transformed;
+    }
+    
+    try {
+        // Extract lottery types and related data
+        const lotteryTypes = Object.keys(apiData).filter(key => 
+            key !== 'error' && key !== 'status' && key !== 'message'
+        );
+        
+        // Add lottery types to the transformed data
+        transformed.lotteryTypes = lotteryTypes;
+        
+        // Extract frequency data from each lottery type
+        lotteryTypes.forEach(type => {
+            const lotteryData = apiData[type];
+            
+            // Skip if this lottery type doesn't have valid data
+            if (!lotteryData || lotteryData.has_error || !lotteryData.top_numbers) {
+                return;
+            }
+            
+            // Add frequency data
+            lotteryData.top_numbers.forEach(entry => {
+                transformed.frequencyData.push({
+                    number: entry[0],
+                    frequency: entry[1],
+                    lotteryType: type
+                });
+            });
+            
+            // Add division data if available
+            if (lotteryData.divisions) {
+                Object.entries(lotteryData.divisions).forEach(([division, winners]) => {
+                    transformed.divisionData.push({
+                        division: division,
+                        winners: winners,
+                        lotteryType: type
+                    });
+                });
+            }
+            
+            // Add statistics data
+            if (lotteryData.statistics) {
+                transformed.stats[type] = lotteryData.statistics;
+            }
+        });
+        
+        return transformed;
+    } catch (error) {
+        console.error('Error transforming API data:', error);
+        return transformed;
+    }
 }
 
 // Process data for rendering
