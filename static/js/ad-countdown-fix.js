@@ -101,35 +101,116 @@
         state.backupTimerStarted = true;
         console.log('🔄 Starting backup timer to ensure button appears after 20 seconds');
         
-        // After 20 seconds (5s first ad + 15s second ad), force the button to appear
+        // EMERGENCY BACKUP #1: After 10 seconds, force reveal button 
         setTimeout(function() {
-            console.log('⏰ Backup timer expired - ensuring View Results button is visible and enabled');
+            console.log('⏰ EMERGENCY BACKUP #1: 10-second safety timer triggered');
+            completeSecondAd(); // Try to force the second ad complete
+        }, 10000);
+        
+        // EMERGENCY BACKUP #2: Shorter 15-second timeout as a middle ground
+        setTimeout(function() {
+            console.log('⏰ EMERGENCY BACKUP #2: 15-second safety timer triggered');
+            
+            // First make sure the ad overlay is hidden
+            const adOverlay = document.getElementById('ad-overlay-results');
+            if (adOverlay) {
+                console.log('⚡ Emergency hiding of the second ad overlay');
+                adOverlay.style.display = 'none';
+                adOverlay.style.visibility = 'hidden';
+            }
+            
+            // Force the button container to be visible
+            const btnContainer = document.getElementById('view-results-btn-container');
+            if (btnContainer) {
+                console.log('⚡ Emergency showing of button container');
+                btnContainer.style.display = 'block';
+                btnContainer.style.visibility = 'visible';
+            }
             
             // Force the button to be visible and enabled
             const viewResultsBtn = document.getElementById('view-results-btn');
             if (viewResultsBtn) {
-                // Make sure the button isn't still disabled
-                if (viewResultsBtn.disabled === true || viewResultsBtn.classList.contains('btn-secondary')) {
-                    console.log('🔧 View Results button was still disabled, fixing it now');
-                    
-                    // Enforce button enabled state
-                    viewResultsBtn.disabled = false;
-                    viewResultsBtn.classList.remove('btn-secondary');
-                    viewResultsBtn.classList.add('btn-success', 'btn-pulse');
-                    viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                    
-                    // Make sure the container is also visible
-                    const btnContainer = document.getElementById('view-results-btn-container');
-                    if (btnContainer) {
-                        btnContainer.style.display = 'block';
-                    }
-                    
-                    // Set state flags to reflect we've completed the ads
-                    state.firstAdComplete = true;
-                    state.secondAdComplete = true;
+                console.log('⚡ Emergency button reveal and enabling');
+                viewResultsBtn.disabled = false;
+                viewResultsBtn.style.display = 'block';
+                viewResultsBtn.style.visibility = 'visible';
+                viewResultsBtn.classList.remove('btn-secondary', 'disabled');
+                viewResultsBtn.classList.add('btn-success', 'btn-pulse');
+            }
+            
+            // Set state flags
+            state.firstAdComplete = true;
+            state.secondAdComplete = true;
+        }, 15000);
+        
+        // EMERGENCY BACKUP #3: After 20 seconds (5s first ad + 15s second ad), force the button to appear
+        setTimeout(function() {
+            console.log('⏰ EMERGENCY BACKUP #3: 20-second absolute last resort timer triggered');
+            
+            // Hide all overlays as a last resort
+            document.querySelectorAll('.ad-overlay').forEach(function(overlay) {
+                console.log('⚡⚡ Nuclear option: Hiding overlay', overlay.id);
+                overlay.style.display = 'none';
+                overlay.style.visibility = 'hidden';
+                overlay.style.opacity = '0';
+                overlay.style.zIndex = '-1';
+            });
+            
+            // Force the button to be visible and enabled with MAXIMUM FORCE
+            const viewResultsBtn = document.getElementById('view-results-btn');
+            if (viewResultsBtn) {
+                console.log('⚡⚡ CRITICAL: Emergency button reveal with maximum force');
+                
+                // HARD RESET ALL BUTTON PROPERTIES
+                viewResultsBtn.disabled = false;
+                viewResultsBtn.style.cssText = "display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 9999 !important;";
+                viewResultsBtn.classList.remove('btn-secondary', 'disabled');
+                viewResultsBtn.classList.add('btn-success', 'btn-pulse', 'btn-lg', 'fw-bold');
+                viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results NOW!';
+                
+                // Make sure the container is also visible
+                const btnContainer = document.getElementById('view-results-btn-container');
+                if (btnContainer) {
+                    btnContainer.style.cssText = "display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 9999 !important;";
                 }
+                
+                // Add a direct click handler as a last resort
+                viewResultsBtn.addEventListener('click', function() {
+                    console.log('⚡⚡ Emergency backup button clicked');
+                    
+                    // Show results container
+                    const resultsContainer = document.getElementById('results-container');
+                    if (resultsContainer) {
+                        resultsContainer.classList.remove('d-none');
+                        resultsContainer.style.display = 'block';
+                    }
+                });
+                
+                // Set state flags to reflect we've completed the ads
+                state.firstAdComplete = true;
+                state.secondAdComplete = true;
             } else {
-                console.log('⚠️ View Results button not found in the DOM');
+                console.log('⚠️ CRITICAL FAILURE: View Results button not found in the DOM');
+                
+                // Try to create the button if it doesn't exist at all
+                const resultsContainer = document.getElementById('results-container');
+                if (resultsContainer) {
+                    console.log('⚡⚡⚡ LAST RESORT: Creating emergency button manually');
+                    const emergencyBtn = document.createElement('button');
+                    emergencyBtn.id = 'emergency-results-btn';
+                    emergencyBtn.className = 'btn btn-danger btn-lg fw-bold';
+                    emergencyBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> EMERGENCY: View Results';
+                    emergencyBtn.style.cssText = "position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 15px 30px;";
+                    
+                    emergencyBtn.addEventListener('click', function() {
+                        console.log('⚡⚡⚡ Emergency manually created button clicked');
+                        resultsContainer.classList.remove('d-none');
+                        resultsContainer.style.display = 'block';
+                        emergencyBtn.style.display = 'none';
+                    });
+                    
+                    document.body.appendChild(emergencyBtn);
+                }
             }
         }, 20000); // 20 seconds is the combined duration of both ads
     }
@@ -393,34 +474,71 @@
             window.SnapLottoAds.secondAdComplete = true;
         }
         
-        // Now reveal and enable the View Results button container
-        const btnContainer = document.getElementById('view-results-btn-container');
-        if (btnContainer) {
-            console.log('📢 Now showing the View Results button container');
-            btnContainer.style.display = 'block';
+        console.log('⭐ CRITICAL: Forcing View Results button to appear - direct DOM manipulation');
+        
+        // First make sure the ad overlay is hidden
+        const adOverlay = document.getElementById('ad-overlay-results');
+        if (adOverlay) {
+            console.log('⭐ Hiding the second ad overlay');
+            adOverlay.style.display = 'none';
+            adOverlay.style.visibility = 'hidden';
+            adOverlay.style.opacity = '0';
         }
         
-        // Enable the View Results button
+        // Force the button container to be visible with all CSS properties
+        const btnContainer = document.getElementById('view-results-btn-container');
+        if (btnContainer) {
+            console.log('⭐ FORCING button container to be visible');
+            btnContainer.style.display = 'block';
+            btnContainer.style.visibility = 'visible';
+            btnContainer.style.opacity = '1';
+            btnContainer.style.pointerEvents = 'auto';
+        }
+        
+        // Force the button itself to be visible and enabled
         const viewResultsBtn = document.getElementById('view-results-btn');
         if (viewResultsBtn) {
-            console.log('🟢 ENABLING View Results button - second ad complete');
+            console.log('⭐ FORCING View Results button to be enabled and visible');
             
-            // Force enable button and show it
+            // Force enable button and make it visually prominent
             viewResultsBtn.disabled = false;
-            viewResultsBtn.classList.remove('btn-secondary');
-            viewResultsBtn.classList.add('btn-success', 'btn-pulse');
+            viewResultsBtn.style.display = 'block';
+            viewResultsBtn.style.visibility = 'visible';
+            viewResultsBtn.style.opacity = '1';
+            viewResultsBtn.style.pointerEvents = 'auto';
+            
+            // Ensure proper styling classes
+            viewResultsBtn.classList.remove('btn-secondary', 'disabled');
+            viewResultsBtn.classList.add('btn-success', 'btn-pulse', 'btn-lg', 'fw-bold');
             viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
             
-            // Ensure the button is made visible in its container
-            const btnContainer = document.getElementById('view-results-btn-container');
-            if (btnContainer && btnContainer.style.display !== 'block') {
-                btnContainer.style.display = 'block';
-            }
+            // Add direct click handler as a backup
+            viewResultsBtn.addEventListener('click', function() {
+                console.log('⭐ View Results button clicked (via direct event handler)');
+                
+                // Hide ad overlay
+                if (adOverlay) {
+                    adOverlay.style.display = 'none';
+                }
+                
+                // Show results container
+                const resultsContainer = document.getElementById('results-container');
+                if (resultsContainer) {
+                    resultsContainer.classList.remove('d-none');
+                    resultsContainer.style.display = 'block';
+                }
+                
+                // Set global state
+                window.inResultsMode = true;
+                if (window.SnapLottoAds) {
+                    window.SnapLottoAds.adClosed = true;
+                }
+            });
             
             // Log completion
-            console.log('🏁 Second ad complete, View Results button now enabled');
+            console.log('🏁 Second ad complete, View Results button forcibly enabled');
         } else {
-            console.log('⚠️ ERROR: View Results button not found when enabling!');
+            console.log('⚠️ CRITICAL ERROR: View Results button not found when enabling!');
         }
         
         // Signal to other components
