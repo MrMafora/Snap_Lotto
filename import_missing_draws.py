@@ -126,7 +126,7 @@ def import_missing_draws(excel_path):
                     # Update existing record
                     existing_draw.draw_date = draw_date
                     existing_draw.numbers = numbers_json
-                    existing_draw.bonus_numbers = str(bonus_ball)
+                    existing_draw.bonus_numbers = json.dumps([bonus_ball]) if bonus_ball is not None else None
                     logger.info(f"Updated {lottery_type} draw {draw_number}")
                     stats["updated"] += 1
                 else:
@@ -136,7 +136,7 @@ def import_missing_draws(excel_path):
                         draw_number=draw_number,
                         draw_date=draw_date,
                         numbers=numbers_json,
-                        bonus_numbers=str(bonus_ball),  # Convert to string as required
+                        bonus_numbers=json.dumps([bonus_ball]) if bonus_ball is not None else None,  # Store as JSON array
                         source_url="manually_imported"  # This field is required
                     )
                     session.add(new_draw)
