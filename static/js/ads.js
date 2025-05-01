@@ -342,15 +342,9 @@ window.AdManager = window.AdManager || {
                 adOverlay.appendChild(counterDiv);
             }
             
-            // Add or update countdown display
-            const countdownDiv = adOverlay.querySelector('.ad-countdown');
-            if (!countdownDiv) {
-                const newCountdown = document.createElement('div');
-                newCountdown.className = 'ad-countdown';
-                newCountdown.style.cssText = 'background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; position: absolute; bottom: 10px; right: 10px; font-size: 12px;';
-                newCountdown.textContent = `Next ad in: ${nextAd.duration}s`;
-                adOverlay.appendChild(newCountdown);
-            }
+            // We no longer need to create a separate countdown in the corner
+            // This is now handled by the central countdown timer and ad-countdown-fix.js
+            // Keeping only the ad counter for context
         }
         
         // Start the countdown for this ad
@@ -364,21 +358,17 @@ window.AdManager = window.AdManager || {
     // Start countdown for current ad
     startAdCountdown: function(duration) {
         let remainingTime = duration;
-        const countdownElement = document.querySelector('.ad-countdown');
         
-        // Update countdown display immediately
-        if (countdownElement) {
-            countdownElement.textContent = `Next ad in: ${remainingTime}s`;
-        }
+        // We don't need to use our own countdown element anymore
+        // as this is now handled by the central countdown timer
+        // But we'll keep a reference to the main countdown
+        const mainCountdown = document.getElementById('countdown');
         
         // Get the View Results button and disable it during countdown
         const viewResultsBtn = document.getElementById('view-results-btn');
         if (viewResultsBtn) {
-            // Disable the button during countdown
-            viewResultsBtn.disabled = true;
-            viewResultsBtn.classList.add('disabled');
-            viewResultsBtn.style.opacity = '0.5';
-            viewResultsBtn.style.cursor = 'not-allowed';
+            // Let ad-countdown-fix.js handle button states now
+            console.log('AdManager: First ad complete, starting next ad or countdown');
         }
         
         // Clear any existing countdown interval
@@ -386,17 +376,14 @@ window.AdManager = window.AdManager || {
             clearInterval(window.adCountdownInterval);
         }
         
-        // Set up the countdown interval
+        // Set up the countdown interval - only for triggering next ad, not UI updates
         window.adCountdownInterval = setInterval(() => {
             remainingTime--;
             
-            // Update the countdown display
-            if (countdownElement) {
-                if (remainingTime > 0) {
-                    countdownElement.textContent = `Next ad in: ${remainingTime}s`;
-                } else {
-                    countdownElement.textContent = 'Loading next ad...';
-                }
+            // Update the main countdown if it exists instead
+            if (mainCountdown && remainingTime > 0) {
+                // Only update this as a fallback - ad-countdown-fix.js should be handling it
+                console.log('Starting second ad countdown sequence');
             }
             
             // When countdown reaches zero, play next ad or finish
