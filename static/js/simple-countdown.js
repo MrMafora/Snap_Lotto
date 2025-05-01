@@ -4,7 +4,8 @@
  */
 (function() {
     // Configuration
-    const countdownTime = 15; // seconds
+    const firstAdCountdownTime = 5; // seconds (FIXED to exactly 5 seconds)
+    const secondAdCountdownTime = 15; // seconds
     const updateInterval = 1000; // ms
 
     // DOM elements we'll need
@@ -93,8 +94,8 @@
         secondAdComplete = false;
         
         // Reset countdown displays
-        if (firstAdCountdown) firstAdCountdown.textContent = countdownTime;
-        if (secondAdCountdown) secondAdCountdown.textContent = countdownTime;
+        if (firstAdCountdown) firstAdCountdown.textContent = firstAdCountdownTime;
+        if (secondAdCountdown) secondAdCountdown.textContent = secondAdCountdownTime;
     }
 
     function startFirstAdCountdown() {
@@ -105,7 +106,7 @@
         firstAdComplete = false;
         
         // Start with full countdown time
-        let secondsLeft = countdownTime;
+        let secondsLeft = firstAdCountdownTime;
         if (firstAdCountdown) firstAdCountdown.textContent = secondsLeft;
         
         // Start timer
@@ -142,11 +143,11 @@
             viewResultsBtn.disabled = true;
             viewResultsBtn.classList.remove('btn-success', 'btn-pulse');
             viewResultsBtn.classList.add('btn-secondary');
-            viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
+            viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${secondAdCountdownTime}s)`;
         }
         
         // Start with full countdown time
-        let secondsLeft = countdownTime;
+        let secondsLeft = secondAdCountdownTime;
         if (secondAdCountdown) secondAdCountdown.textContent = secondsLeft;
         
         // Start timer
