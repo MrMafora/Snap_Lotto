@@ -216,7 +216,8 @@
             console.log("First ad shown at: " + new Date().toISOString());
             
             // Start our own countdown for this ad - only for internal logic
-            let remainingTime = 15; // 15 seconds
+            // FIRST AD IS ALWAYS 5 SECONDS - this is the loading ad during processing
+            let remainingTime = 5; // 5 seconds for first ad
             
             // REMOVED: No longer accessing or updating countdown element
             // All countdown UI updates now handled by ad-countdown-fix.js
@@ -234,7 +235,8 @@
                     // Important: Do NOT enable the button yet - it will only be enabled after ALL ads finish
                     // The second ad's countdown will enable the button when it finishes
                     
-                    // Show the second ad
+                    // Show the second ad - CRITICAL TRANSITION POINT
+                    console.log('🔄 CRITICAL TRANSITION: Starting second ad with explicit call');
                     startSecondAdCountdown();
                 }
             }, 1000);
@@ -280,6 +282,14 @@
             window.SnapLottoAds.secondAdShown = true;
             window.SnapLottoAds.secondAdComplete = false;
             window.SnapLottoAds.adStartTime = Date.now();
+            
+            // Force interstitial ad container to be visible too
+            const interstitialContainer = document.getElementById('ad-container-interstitial');
+            if (interstitialContainer) {
+                interstitialContainer.style.display = 'block';
+                interstitialContainer.style.opacity = '1';
+                interstitialContainer.style.visibility = 'visible';
+            }
             
             // Mark transition for debugging
             console.log("⚠️ CRITICAL TRANSITION: Results overlay should now be visible");
