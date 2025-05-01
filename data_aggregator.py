@@ -1097,6 +1097,48 @@ def validate_and_correct_known_draws():
     except Exception as e:
         logger.error(f"Error trying to correct Lotto Plus 2 draw 2532: {str(e)}")
     
+    # Special override for Powerball Plus draw 1610 (April 29, 2025) - Newest Powerball Plus data
+    try:
+        powerball_plus_1610 = LotteryResult.query.filter_by(
+            lottery_type="Powerball Plus",
+            draw_number="1610"
+        ).first()
+        
+        if powerball_plus_1610:
+            # Numbers already exist, just verify them
+            pass
+        else:
+            # These are the correct numbers from the screenshot for Powerball Plus draw 1610
+            # Based on the latest screenshot showing draw 1610 from April 29, 2025
+            correct_numbers = [11, 17, 22, 25, 45]  
+            correct_bonus = [14]
+            
+            # Convert to string formats used in the database
+            numbers_json = json.dumps(correct_numbers)
+            bonus_json = json.dumps(correct_bonus)
+            
+            # Create this draw record with the correct draw date
+            draw_date = datetime(2025, 4, 29)
+            
+            # Create new record
+            new_record = LotteryResult(
+                lottery_type="Powerball Plus",
+                draw_number="1610",
+                draw_date=draw_date,
+                numbers=numbers_json,
+                bonus_numbers=bonus_json,
+                source_url="https://www.nationallottery.co.za/powerball-plus-history",
+                ocr_provider="manual_override",
+                ocr_model="system_correction"
+            )
+            
+            db.session.add(new_record)
+            db.session.commit()
+            logger.info(f"Added missing Powerball Plus draw 1610 from April 29, 2025")
+            corrections_made += 1
+    except Exception as e:
+        logger.error(f"Error trying to add Powerball Plus draw 1610: {str(e)}")
+    
     # Special override for Powerball draw 1605 (April 11, 2025) - add divisions
     try:
         powerball_1605 = LotteryResult.query.filter_by(
