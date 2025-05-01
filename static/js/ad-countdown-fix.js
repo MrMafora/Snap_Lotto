@@ -163,8 +163,8 @@
                 
                 // HARD RESET ALL BUTTON PROPERTIES
                 viewResultsBtn.disabled = false;
-                viewResultsBtn.style.cssText = "display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 9999 !important;";
-                viewResultsBtn.classList.remove('btn-secondary', 'disabled');
+                viewResultsBtn.style.cssText = "display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 9999 !important; cursor: pointer !important;";
+                viewResultsBtn.classList.remove('btn-secondary', 'disabled', 'countdown-active');
                 viewResultsBtn.classList.add('btn-success', 'btn-pulse', 'btn-lg', 'fw-bold');
                 viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results NOW!';
                 
@@ -174,9 +174,24 @@
                     btnContainer.style.cssText = "display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 9999 !important;";
                 }
                 
-                // Add a direct click handler as a last resort
-                viewResultsBtn.addEventListener('click', function() {
-                    console.log('⚡⚡ Emergency backup button clicked');
+                // Remove all existing event listeners by cloning and replacing the button
+                const newBtn = viewResultsBtn.cloneNode(true);
+                if (viewResultsBtn.parentNode) {
+                    viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+                }
+                
+                // Add a direct click handler that will definitely work
+                newBtn.onclick = function(e) {
+                    console.log('⚡⚡ Emergency backup button clicked with direct onclick handler');
+                    
+                    // Stop event propagation completely
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Hide all ad overlays
+                    document.querySelectorAll('.ad-overlay').forEach(function(overlay) {
+                        overlay.style.display = 'none';
+                    });
                     
                     // Show results container
                     const resultsContainer = document.getElementById('results-container');
@@ -184,7 +199,19 @@
                         resultsContainer.classList.remove('d-none');
                         resultsContainer.style.display = 'block';
                     }
-                });
+                    
+                    // Hide button container after click
+                    if (btnContainer) {
+                        btnContainer.style.display = 'none';
+                    }
+                    
+                    // Set global variables that other code might check
+                    window.inResultsMode = true;
+                    window.adClosed = true;
+                    window.viewResultsBtnClicked = true;
+                    
+                    return false;
+                };
                 
                 // Set state flags to reflect we've completed the ads
                 state.firstAdComplete = true;
@@ -483,16 +510,14 @@
             adOverlay.style.display = 'none';
             adOverlay.style.visibility = 'hidden';
             adOverlay.style.opacity = '0';
+            adOverlay.style.zIndex = '-1';
         }
         
         // Force the button container to be visible with all CSS properties
         const btnContainer = document.getElementById('view-results-btn-container');
         if (btnContainer) {
             console.log('⭐ FORCING button container to be visible');
-            btnContainer.style.display = 'block';
-            btnContainer.style.visibility = 'visible';
-            btnContainer.style.opacity = '1';
-            btnContainer.style.pointerEvents = 'auto';
+            btnContainer.style.cssText = "display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 9999 !important;";
         }
         
         // Force the button itself to be visible and enabled
@@ -500,26 +525,33 @@
         if (viewResultsBtn) {
             console.log('⭐ FORCING View Results button to be enabled and visible');
             
-            // Force enable button and make it visually prominent
-            viewResultsBtn.disabled = false;
-            viewResultsBtn.style.display = 'block';
-            viewResultsBtn.style.visibility = 'visible';
-            viewResultsBtn.style.opacity = '1';
-            viewResultsBtn.style.pointerEvents = 'auto';
+            // Clone the button to remove all existing event listeners
+            const newBtn = viewResultsBtn.cloneNode(true);
+            if (viewResultsBtn.parentNode) {
+                viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+            }
+            
+            // Force enable button and make it visually prominent with !important styles
+            newBtn.disabled = false;
+            newBtn.style.cssText = "display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 9999 !important; cursor: pointer !important;";
             
             // Ensure proper styling classes
-            viewResultsBtn.classList.remove('btn-secondary', 'disabled');
-            viewResultsBtn.classList.add('btn-success', 'btn-pulse', 'btn-lg', 'fw-bold');
-            viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+            newBtn.classList.remove('btn-secondary', 'disabled', 'countdown-active');
+            newBtn.classList.add('btn-success', 'btn-pulse', 'btn-lg', 'fw-bold');
+            newBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
             
-            // Add direct click handler as a backup
-            viewResultsBtn.addEventListener('click', function() {
-                console.log('⭐ View Results button clicked (via direct event handler)');
+            // Add direct onclick handler (more reliable than addEventListener)
+            newBtn.onclick = function(e) {
+                console.log('⭐ View Results button clicked (via direct onclick handler)');
                 
-                // Hide ad overlay
-                if (adOverlay) {
-                    adOverlay.style.display = 'none';
-                }
+                // Stop event propagation completely
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Hide all ad overlays
+                document.querySelectorAll('.ad-overlay').forEach(function(overlay) {
+                    overlay.style.display = 'none';
+                });
                 
                 // Show results container
                 const resultsContainer = document.getElementById('results-container');
@@ -528,17 +560,43 @@
                     resultsContainer.style.display = 'block';
                 }
                 
-                // Set global state
-                window.inResultsMode = true;
-                if (window.SnapLottoAds) {
-                    window.SnapLottoAds.adClosed = true;
+                // Hide button container after click
+                if (btnContainer) {
+                    btnContainer.style.display = 'none';
                 }
-            });
+                
+                // Set global variables that other code might check
+                window.inResultsMode = true;
+                window.adClosed = true;
+                window.viewResultsBtnClicked = true;
+                
+                return false;
+            };
             
             // Log completion
-            console.log('🏁 Second ad complete, View Results button forcibly enabled');
+            console.log('🏁 Second ad complete, View Results button forcibly enabled with direct click handler');
         } else {
             console.log('⚠️ CRITICAL ERROR: View Results button not found when enabling!');
+            
+            // Try to create an emergency button if the regular one wasn't found
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                console.log('⚡⚡⚡ CREATING EMERGENCY BUTTON since regular button not found');
+                const emergencyBtn = document.createElement('button');
+                emergencyBtn.id = 'emergency-results-btn';
+                emergencyBtn.className = 'btn btn-danger btn-lg fw-bold';
+                emergencyBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> EMERGENCY: View Results';
+                emergencyBtn.style.cssText = "position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 15px 30px;";
+                
+                emergencyBtn.onclick = function() {
+                    console.log('⚡⚡⚡ Emergency button clicked');
+                    resultsContainer.classList.remove('d-none');
+                    resultsContainer.style.display = 'block';
+                    emergencyBtn.style.display = 'none';
+                };
+                
+                document.body.appendChild(emergencyBtn);
+            }
         }
         
         // Signal to other components
