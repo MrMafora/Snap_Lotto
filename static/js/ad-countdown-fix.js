@@ -305,4 +305,83 @@
             source: 'ad-countdown-fix'
         }, '*');
     }
+    // Mark second ad as complete after exactly 15 seconds
+    function completeSecondAd() {
+        // Skip if already marked complete
+        if (state.secondAdComplete) return;
+        
+        // Mark ad as complete
+        state.secondAdComplete = true;
+        
+        // Update global state if available
+        if (window.SnapLottoAds) {
+            window.SnapLottoAds.secondAdComplete = true;
+        }
+        
+        // Now reveal and enable the View Results button container
+        const btnContainer = document.getElementById('view-results-btn-container');
+        if (btnContainer) {
+            console.log('📢 Now showing the View Results button container');
+            btnContainer.style.display = 'block';
+        }
+        
+        // Enable the View Results button
+        const viewResultsBtn = document.getElementById('view-results-btn');
+        if (viewResultsBtn) {
+            viewResultsBtn.disabled = false;
+            viewResultsBtn.classList.remove('btn-secondary');
+            viewResultsBtn.classList.add('btn-success', 'btn-pulse');
+            viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+            
+            // Log this once, not repeatedly
+            console.log('🏁 Second ad complete, enabling View Results button');
+        }
+        
+        // Signal to other components
+        window.postMessage({ 
+            type: 'adStateChange', 
+            adType: 'second', 
+            state: 'complete', 
+            timestamp: Date.now(),
+            source: 'ad-countdown-fix'
+        }, '*');
+    }
+    
+    // Listen for the second ad to appear and start a timer
+    document.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('load', function() {
+            // Add a custom event listener for when the second ad is displayed
+            window.addEventListener('message', function(event) {
+                if (event.data && 
+                    event.data.type === 'adStateChange' && 
+                    event.data.adType === 'second' && 
+                    event.data.state === 'start') {
+                    
+                    console.log('Second ad appeared, starting 15-second countdown');
+                    
+                    // Set up a timer for exactly 15 seconds
+                    setTimeout(function() {
+                        completeSecondAd();
+                    }, config.secondAdDuration * 1000);
+                }
+            });
+            
+            // Also detect if second ad is already visible when page loads
+            const secondAdOverlay = document.getElementById('ad-overlay-results');
+            if (secondAdOverlay && 
+                (secondAdOverlay.style.display === 'flex' || secondAdOverlay.style.display === 'block')) {
+                
+                // Don't start another timer if we already have second ad start time
+                if (!state.secondAdStartTime) {
+                    state.secondAdStartTime = Date.now();
+                    console.log('Second ad was already showing on page load, starting 15-second countdown');
+                    
+                    // Set up a timer for exactly 15 seconds
+                    setTimeout(function() {
+                        completeSecondAd();
+                    }, config.secondAdDuration * 1000);
+                }
+            }
+        });
+    });
 })();

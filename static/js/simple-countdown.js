@@ -138,7 +138,8 @@
         // Reset state
         secondAdComplete = false;
         
-        // Make sure the button is disabled
+        // Make sure the button is disabled and hidden initially
+        // (The button container is now hidden by default in HTML)
         if (viewResultsBtn) {
             viewResultsBtn.disabled = true;
             viewResultsBtn.classList.remove('btn-success', 'btn-pulse');
@@ -150,19 +151,30 @@
         let secondsLeft = secondAdCountdownTime;
         if (secondAdCountdown) secondAdCountdown.textContent = secondsLeft;
         
-        // Start timer
+        // Signal that second ad started (for coordination with ad-countdown-fix.js)
+        console.log('🔔 Sending adStateChange message to notify of second ad start');
+        window.postMessage({ 
+            type: 'adStateChange', 
+            adType: 'second', 
+            state: 'start', 
+            timestamp: Date.now(),
+            source: 'simple-countdown'
+        }, '*');
+        
+        // Start timer - ONLY UPDATES COUNTDOWN DISPLAY, doesn't control button anymore
         secondAdTimer = setInterval(function() {
             secondsLeft--;
             
             // Update display
             if (secondAdCountdown) secondAdCountdown.textContent = secondsLeft;
             
-            // Update button text
-            if (viewResultsBtn) {
+            // Only update text - button activation is now handled by ad-countdown-fix.js
+            if (viewResultsBtn && secondsLeft > 0) {
                 viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${secondsLeft}s)`;
             }
             
-            // Check if complete
+            // When countdown finishes, just clear the timer - 
+            // ad-countdown-fix.js will handle button enablement consistently
             if (secondsLeft <= 0) {
                 // Clear timer
                 clearInterval(secondAdTimer);
@@ -171,8 +183,9 @@
                 // Set completion flag
                 secondAdComplete = true;
                 
-                // Enable results button
-                enableViewResultsButton();
+                console.log('🔄 Second ad countdown finished in simple-countdown.js');
+                // We no longer enable the button directly here
+                // enableViewResultsButton() call removed
             }
         }, updateInterval);
     }
