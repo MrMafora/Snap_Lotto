@@ -21,9 +21,15 @@ def parse_numbers(numbers_str):
     """Parse numbers string into a list of integers"""
     if not numbers_str or not isinstance(numbers_str, str):
         return []
-    # Split the string by spaces and convert to integers
+    
+    # Handle different formats: space-separated, comma-separated, or both
     try:
-        return [int(num.strip()) for num in numbers_str.split() if num.strip().isdigit()]
+        # First try comma-separated format like "7, 16, 19, 20, 39"
+        if ',' in numbers_str:
+            return [int(num.strip()) for num in numbers_str.split(',') if num.strip().isdigit()]
+        # Fall back to space-separated format
+        else:
+            return [int(num.strip()) for num in numbers_str.split() if num.strip().isdigit()]
     except Exception as e:
         logger.error(f"Error parsing numbers '{numbers_str}': {e}")
         return []
