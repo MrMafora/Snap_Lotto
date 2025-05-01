@@ -14,12 +14,12 @@ function renderFrequencyChart(frequencyData) {
     }
     
     try {
-        // Find the first chart container (parent element for frequency chart)
-        // Using the parent of the frequency chart title to ensure we get the right one
-        const chartTitle = document.querySelector('.frequency-chart-title');
-        const chartCard = chartTitle ? chartTitle.closest('.chart-card') : 
-                         document.querySelectorAll('.chart-card')[0]; // Fallback to the first chart card
+        // Instead of using complex selectors, just get the first chart-card element
+        // This is simpler and should be more reliable
+        const chartCards = document.querySelectorAll('.chart-card');
         
+        // Get the first chart card
+        const chartCard = chartCards[0];
         if (!chartCard) {
             console.error('Chart card not found');
             return;
@@ -33,61 +33,46 @@ function renderFrequencyChart(frequencyData) {
             .filter(item => item.lotteryType === 'All Lottery Types' || item.lotteryType === frequencyData[0].lotteryType)
             .slice(0, 10);
             
-        // Use a completely blank slate approach - build the entire chart from scratch
-        // Clear everything
-        chartCard.innerHTML = '';
+        // Use a simple approach with direct HTML
+        const template = `
+            <h5 class="mb-4">Most Frequent Numbers</h5>
+            
+            <div style="margin-bottom: 30px;">
+                <div style="display: flex; flex-direction: column; height: 200px; position: relative;">
+                    <!-- Y-axis labels -->
+                    <div style="position: absolute; left: 0; top: 0%; font-size: 12px; color: #666;">40</div>
+                    <div style="position: absolute; left: 0; top: 20%; font-size: 12px; color: #666;">32</div>
+                    <div style="position: absolute; left: 0; top: 40%; font-size: 12px; color: #666;">24</div>
+                    <div style="position: absolute; left: 0; top: 60%; font-size: 12px; color: #666;">16</div>
+                    <div style="position: absolute; left: 0; top: 80%; font-size: 12px; color: #666;">8</div>
+                    <div style="position: absolute; left: 0; bottom: 0; font-size: 12px; color: #666;">0</div>
+                    
+                    <!-- Chart bars area -->
+                    <div id="chart-bars" style="position: absolute; left: 30px; right: 10px; top: 0; bottom: 30px; display: flex; align-items: flex-end; justify-content: space-between;">
+                        <!-- Bars will be inserted here dynamically -->
+                    </div>
+                    
+                    <!-- X-axis labels area -->
+                    <div id="x-axis-labels" style="position: absolute; left: 30px; right: 10px; bottom: 0; height: 30px; display: flex; justify-content: space-between;">
+                        <!-- Number labels will be inserted here dynamically -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Legend -->
+            <div class="d-flex mt-2">
+                <div class="me-3 small"><span class="badge" style="background-color: #e03237;">&nbsp;</span> Most frequent</div>
+                <div class="me-3 small"><span class="badge" style="background-color: #ffe11d;">&nbsp;</span> 2nd most frequent</div>
+                <div class="small"><span class="badge" style="background-color: #19a03a;">&nbsp;</span> 3rd most frequent</div>
+            </div>
+        `;
         
-        // Create the header
-        const header = document.createElement('h5');
-        header.className = 'mb-4';
-        header.textContent = 'Most Frequent Numbers';
-        chartCard.appendChild(header);
+        // Insert the template
+        chartCard.innerHTML = template;
         
-        // Create the Y-axis labels (40, 32, 24, 16, 8, 0)
-        const yAxisValues = [40, 32, 24, 16, 8, 0];
-        const chartContainer = document.createElement('div');
-        chartContainer.style.position = 'relative';
-        chartContainer.style.height = '250px';
-        chartContainer.style.marginBottom = '20px';
-        
-        // Add Y-axis labels
-        yAxisValues.forEach((value, index) => {
-            const label = document.createElement('div');
-            label.style.position = 'absolute';
-            label.style.left = '0';
-            // Position vertically based on index
-            label.style.top = `${index * 20}%`;
-            label.style.color = '#666';
-            label.style.fontSize = '12px';
-            label.textContent = value;
-            chartContainer.appendChild(label);
-        });
-        
-        // Create container for the bars
-        const barsContainer = document.createElement('div');
-        barsContainer.style.position = 'absolute';
-        barsContainer.style.left = '30px'; // Leave space for Y-axis labels
-        barsContainer.style.right = '0';
-        barsContainer.style.top = '0';
-        barsContainer.style.bottom = '30px'; // Leave space for X-axis labels
-        barsContainer.style.display = 'flex';
-        barsContainer.style.alignItems = 'flex-end';
-        barsContainer.style.justifyContent = 'space-between';
-        
-        // Add horizontal grid lines
-        for (let i = 1; i <= 5; i++) {
-            const gridLine = document.createElement('div');
-            gridLine.style.position = 'absolute';
-            gridLine.style.left = '30px';
-            gridLine.style.right = '0';
-            gridLine.style.top = `${i * 20}%`;
-            gridLine.style.height = '1px';
-            gridLine.style.backgroundColor = '#eee';
-            chartContainer.appendChild(gridLine);
-        }
-        
-        // Calculate max frequency for scaling
-        const maxFrequency = sortedData[0]?.frequency || 40;
+        // Get the containers for bars and labels
+        const barsContainer = document.getElementById('chart-bars');
+        const labelsContainer = document.getElementById('x-axis-labels');
         
         // Bar colors
         const barColors = [
@@ -97,61 +82,34 @@ function renderFrequencyChart(frequencyData) {
             '#67c6ed', '#67c6ed', '#67c6ed', '#67c6ed', '#67c6ed', '#67c6ed', '#67c6ed' // Blue for the rest
         ];
         
-        // Create each bar
+        // Calculate max frequency for scaling
+        const maxFrequency = sortedData[0]?.frequency || 40;
+        
+        // Add bars and labels
         sortedData.forEach((item, index) => {
             const { number, frequency } = item;
             
-            // Create bar container
-            const barContainer = document.createElement('div');
-            barContainer.style.display = 'flex';
-            barContainer.style.flexDirection = 'column';
-            barContainer.style.alignItems = 'center';
-            barContainer.style.width = '8%';
-            barContainer.style.position = 'relative';
+            // Calculate height percentage based on max frequency
+            const heightPercentage = Math.max(5, (frequency / maxFrequency) * 100);
             
-            // Create the bar
-            const bar = document.createElement('div');
-            // Calculate height based on maximum value (maxFrequency)
-            const barHeight = (frequency / maxFrequency) * 100;
-            bar.style.width = '70%';
-            bar.style.height = `${barHeight}%`;
-            bar.style.backgroundColor = barColors[index];
-            bar.style.borderTopLeftRadius = '3px';
-            bar.style.borderTopRightRadius = '3px';
+            // Create bar
+            const barDiv = document.createElement('div');
+            barDiv.style.width = '8%';
+            barDiv.style.height = `${heightPercentage}%`;
+            barDiv.style.backgroundColor = barColors[index];
+            barDiv.style.borderTopLeftRadius = '3px';
+            barDiv.style.borderTopRightRadius = '3px';
+            barsContainer.appendChild(barDiv);
             
-            // Add bar to container
-            barContainer.appendChild(bar);
-            
-            // Add to bars container
-            barsContainer.appendChild(barContainer);
-            
-            // Create X-axis label (number)
-            const label = document.createElement('div');
-            label.style.position = 'absolute';
-            label.style.bottom = '-25px';
-            label.style.width = '100%';
-            label.style.textAlign = 'center';
-            label.style.fontSize = '12px';
-            label.style.fontWeight = 'bold';
-            label.textContent = number;
-            barContainer.appendChild(label);
+            // Create label
+            const labelDiv = document.createElement('div');
+            labelDiv.style.width = '8%';
+            labelDiv.style.textAlign = 'center';
+            labelDiv.style.fontSize = '12px';
+            labelDiv.style.fontWeight = 'bold';
+            labelDiv.textContent = number;
+            labelsContainer.appendChild(labelDiv);
         });
-        
-        // Add bars container to chart
-        chartContainer.appendChild(barsContainer);
-        
-        // Add chart container to card
-        chartCard.appendChild(chartContainer);
-        
-        // Add legend below chart
-        const legend = document.createElement('div');
-        legend.className = 'd-flex mt-2';
-        legend.innerHTML = `
-            <div class="me-3 small"><span class="badge" style="background-color: #e03237;">&nbsp;</span> Most frequent</div>
-            <div class="me-3 small"><span class="badge" style="background-color: #ffe11d;">&nbsp;</span> 2nd most frequent</div>
-            <div class="small"><span class="badge" style="background-color: #19a03a;">&nbsp;</span> 3rd most frequent</div>
-        `;
-        chartCard.appendChild(legend);
         
     } catch (error) {
         console.error('Error rendering frequency chart:', error);
