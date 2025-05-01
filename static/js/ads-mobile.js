@@ -244,12 +244,17 @@
                     }
                 }
                 
-                // When countdown reaches zero, enable results button
+                // When countdown reaches zero
                 if (remainingTime <= 0) {
                     clearInterval(window.adCountdownInterval);
-                    console.log('AdManager: First ad complete, enabling view results button');
+                    console.log('AdManager: First ad complete, starting next ad or countdown');
                     window.SnapLottoAds.firstAdComplete = true;
-                    enableViewResultsButton();
+                    
+                    // Important: Do NOT enable the button yet - it will only be enabled after ALL ads finish
+                    // The second ad's countdown will enable the button when it finishes
+                    
+                    // Show the second ad
+                    startSecondAdCountdown();
                 }
             }, 1000);
             
@@ -268,6 +273,13 @@
             // Store the timeout for cleanup
             window.SnapLottoAds.adTimeouts.push(safetyTimeout);
         }
+    }
+    
+    // Start second ad countdown and transition to results overlay
+    function startSecondAdCountdown() {
+        // Show the results ad overlay with the second ad
+        console.log("Starting second ad countdown sequence");
+        showResultsAdOverlay();
     }
     
     // Results ad overlay display

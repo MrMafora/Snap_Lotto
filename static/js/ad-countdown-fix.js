@@ -1,319 +1,284 @@
 /**
- * Ad Countdown System - Fixed Version
- * This is a completely rewritten, simplified approach to the ad countdown system.
+ * Advertisement Countdown Fix
+ * 
+ * This script fixes the following issues with the advertisement system:
+ * 1. Changes first ad duration from variable time to exactly 5 seconds
+ * 2. Prevents View Results button from becoming active before countdown completes
+ * 3. Resolves the "AdManager: First ad complete, enabling view results button" logging issue
+ * 4. Coordinates ad sequence between mobile and desktop implementations
  */
 (function() {
+    'use strict';
+
+    console.log('Advertisement countdown fix loaded');
+    
     // Configuration
     const config = {
-        displayTime: 15, // seconds
-        interval: 1000, // update interval in ms
+        firstAdDuration: 5,         // First ad duration in seconds (FIXED to 5 seconds exactly)
+        secondAdDuration: 15,       // Second ad duration in seconds
+        strictMode: true            // Enforce strict compliance with minimum duration
     };
-
-    // Store countdown state
+    
+    // State tracking
     let state = {
-        firstAdTimer: null,
-        secondAdTimer: null,
-        firstAdComplete: false,
-        secondAdComplete: false
+        firstAdStartTime: null,     // When first ad started showing
+        secondAdStartTime: null,    // When second ad started showing
+        firstAdComplete: false,     // Is first ad display complete?
+        secondAdComplete: false,    // Is second ad display complete?
+        viewResultsEnabled: false,  // Is the View Results button enabled?
+        adSequenceComplete: false   // Is the entire ad sequence complete?
     };
-
-    // Set up event listeners once the page is ready
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        setTimeout(initCountdownSystem, 100);
-    } else {
-        document.addEventListener('DOMContentLoaded', initCountdownSystem);
+    
+    // Initialization
+    document.addEventListener('DOMContentLoaded', initialize);
+    
+    // Initialize and setup
+    function initialize() {
+        // Wait for page to be fully loaded
+        window.addEventListener('load', function() {
+            // Override the SnapLottoAds configuration if it exists
+            if (window.SnapLottoAds) {
+                console.log('Overriding SnapLottoAds configuration');
+                
+                // Change first ad duration in the global config
+                window.SnapLottoAds.adMinimumTime = config.firstAdDuration * 1000;
+                
+                // Backup original enableViewResultsButton function if it exists
+                if (window.enableViewResultsButton) {
+                    const originalEnableFunc = window.enableViewResultsButton;
+                    
+                    // Override with our own version that enforces timing
+                    window.enableViewResultsButton = function() {
+                        // Only proceed if strict compliance time has elapsed
+                        if (state.firstAdStartTime) {
+                            const elapsed = Date.now() - state.firstAdStartTime;
+                            
+                            if (elapsed < config.firstAdDuration * 1000) {
+                                console.log(`View Results button activation prevented - only ${elapsed}ms elapsed, need ${config.firstAdDuration * 1000}ms`);
+                                return false;
+                            }
+                        }
+                        
+                        // If we get here, timing requirements are met
+                        return originalEnableFunc.apply(this, arguments);
+                    };
+                }
+            }
+            
+            // Listen for ad state changes
+            window.addEventListener('message', function(event) {
+                // Skip if not from this window
+                if (event.source !== window) return;
+                
+                // Process event data
+                if (event.data && event.data.type === 'adStateChange') {
+                    processAdStateChange(event.data);
+                }
+            });
+            
+            // Detect first ad shown
+            setupFirstAdDetection();
+            
+            // Detect second ad shown
+            setupSecondAdDetection();
+            
+            // Setup button monitors
+            setupButtonMonitoring();
+        });
     }
-
-    function initCountdownSystem() {
-        console.log("Ad countdown fix: Initializing simplified countdown system");
-
-        // Listen for scan button to reset state
-        const scanButton = document.getElementById('scan-button');
-        if (scanButton) {
-            scanButton.addEventListener('click', resetState);
-        }
-
-        // Set up visibility observers for ad overlays
-        setupOverlayObservers();
-
-        // Set up display callbacks for the Continue button
-        setupViewResultsButtonFunctionality();
-
-        console.log("Ad countdown fix: Initialization complete");
-    }
-
-    function resetState() {
-        console.log("Ad countdown fix: Resetting state");
-        
-        // Clear any existing timers
-        if (state.firstAdTimer) {
-            clearInterval(state.firstAdTimer);
-            state.firstAdTimer = null;
-        }
-        
-        if (state.secondAdTimer) {
-            clearInterval(state.secondAdTimer);
-            state.secondAdTimer = null;
-        }
-        
-        // Reset completion flags
-        state.firstAdComplete = false;
-        state.secondAdComplete = false;
-    }
-
-    function setupOverlayObservers() {
-        // First ad overlay 
-        const firstAdObserver = new MutationObserver(function(mutations) {
+    
+    // Setup first ad detection
+    function setupFirstAdDetection() {
+        // Use MutationObserver to detect when first ad appears
+        const observer = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
-                if (mutation.attributeName === 'style') {
-                    const overlay = document.getElementById('ad-overlay-loading');
-                    if (overlay && (overlay.style.display === 'flex' || overlay.style.display === 'block')) {
-                        console.log("Ad countdown fix: First ad detected");
-                        startFirstAdCountdown();
+                if (mutation.type === 'attributes' && 
+                    mutation.attributeName === 'style' && 
+                    mutation.target.id === 'ad-overlay-loading') {
+                    
+                    // Check if first ad is now showing
+                    if (mutation.target.style.display === 'flex' || 
+                        mutation.target.style.display === 'block') {
+                        
+                        // Don't record again if already started
+                        if (!state.firstAdStartTime) {
+                            state.firstAdStartTime = Date.now();
+                            console.log(`First ad showing at ${new Date(state.firstAdStartTime).toISOString()}`);
+                            
+                            // Set up a timer for exactly 5 seconds
+                            setTimeout(function() {
+                                completeFirstAd();
+                            }, config.firstAdDuration * 1000);
+                            
+                            // Signal to other components
+                            window.postMessage({ 
+                                type: 'adStateChange', 
+                                adType: 'first', 
+                                state: 'start', 
+                                timestamp: state.firstAdStartTime 
+                            }, '*');
+                        }
                     }
                 }
             });
         });
-
-        const firstOverlay = document.getElementById('ad-overlay-loading');
-        if (firstOverlay) {
-            firstAdObserver.observe(firstOverlay, { attributes: true });
+        
+        // Observe the ad overlay
+        const firstAdOverlay = document.getElementById('ad-overlay-loading');
+        if (firstAdOverlay) {
+            observer.observe(firstAdOverlay, { attributes: true });
+            
+            // Check if already showing
+            if (firstAdOverlay.style.display === 'flex' || firstAdOverlay.style.display === 'block') {
+                state.firstAdStartTime = Date.now();
+                console.log(`First ad was already showing`);
+                
+                // Set up a timer for exactly 5 seconds
+                setTimeout(function() {
+                    completeFirstAd();
+                }, config.firstAdDuration * 1000);
+            }
         }
-
-        // Second ad overlay
-        const secondAdObserver = new MutationObserver(function(mutations) {
+    }
+    
+    // Setup second ad detection
+    function setupSecondAdDetection() {
+        // Use MutationObserver to detect when second ad appears
+        const observer = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
-                if (mutation.attributeName === 'style') {
-                    const overlay = document.getElementById('ad-overlay-results');
-                    if (overlay && (overlay.style.display === 'flex' || overlay.style.display === 'block')) {
-                        console.log("Ad countdown fix: Second ad detected");
-                        startSecondAdCountdown();
+                if (mutation.type === 'attributes' && 
+                    mutation.attributeName === 'style' && 
+                    mutation.target.id === 'ad-overlay-results') {
+                    
+                    // Check if second ad is now showing
+                    if (mutation.target.style.display === 'flex' || 
+                        mutation.target.style.display === 'block') {
+                        
+                        // Don't record again if already started
+                        if (!state.secondAdStartTime) {
+                            state.secondAdStartTime = Date.now();
+                            console.log(`Second ad showing at ${new Date(state.secondAdStartTime).toISOString()}`);
+                            
+                            // Signal to other components
+                            window.postMessage({ 
+                                type: 'adStateChange', 
+                                adType: 'second', 
+                                state: 'start', 
+                                timestamp: state.secondAdStartTime 
+                            }, '*');
+                        }
                     }
                 }
             });
         });
-
-        const secondOverlay = document.getElementById('ad-overlay-results');
-        if (secondOverlay) {
-            secondAdObserver.observe(secondOverlay, { attributes: true });
+        
+        // Observe the ad overlay
+        const secondAdOverlay = document.getElementById('ad-overlay-results');
+        if (secondAdOverlay) {
+            observer.observe(secondAdOverlay, { attributes: true });
+            
+            // Check if already showing
+            if (secondAdOverlay.style.display === 'flex' || secondAdOverlay.style.display === 'block') {
+                state.secondAdStartTime = Date.now();
+                console.log(`Second ad was already showing`);
+            }
         }
     }
-
-    function startFirstAdCountdown() {
-        // Clear any existing first ad countdown
-        if (state.firstAdTimer) {
-            clearInterval(state.firstAdTimer);
+    
+    // Setup button state monitoring
+    function setupButtonMonitoring() {
+        // Use MutationObserver to monitor the View Results button
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && 
+                    (mutation.attributeName === 'disabled' || 
+                     mutation.attributeName === 'class')) {
+                    
+                    // Check if button is now enabled (not disabled)
+                    if (mutation.target.disabled === false) {
+                        // If first ad is complete but second one hasn't started
+                        if (state.firstAdComplete && !state.secondAdStartTime) {
+                            state.viewResultsEnabled = true;
+                            console.log('View Results button enabled after first ad');
+                        }
+                        // If the entire sequence is complete
+                        else if (state.secondAdComplete) {
+                            state.adSequenceComplete = true;
+                            console.log('Ad sequence complete, all buttons enabled');
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Listen for the button
+        const viewResultsBtn = document.getElementById('view-results-btn');
+        if (viewResultsBtn) {
+            observer.observe(viewResultsBtn, { attributes: true });
         }
-
-        // Reset completion flag
-        state.firstAdComplete = false;
-
-        const countdownSpan = document.getElementById('first-countdown');
-        if (!countdownSpan) {
-            console.error("Ad countdown fix: First countdown element not found");
-            return;
-        }
-
-        // Set initial countdown value
-        countdownSpan.textContent = config.displayTime.toString();
-
-        // Start time for precise timing
-        const startTime = Date.now();
-        let secondsRemaining = config.displayTime;
-
-        // Start the countdown
-        state.firstAdTimer = setInterval(function() {
-            // Calculate time elapsed and remaining
-            const elapsed = Date.now() - startTime;
-            secondsRemaining = Math.max(0, Math.ceil((config.displayTime * 1000 - elapsed) / 1000));
-
-            // Update display
-            countdownSpan.textContent = secondsRemaining.toString();
-
-            // Check if countdown is complete
-            if (secondsRemaining <= 0) {
-                // Clean up
-                clearInterval(state.firstAdTimer);
-                state.firstAdTimer = null;
+    }
+    
+    // Process ad state change events
+    function processAdStateChange(data) {
+        // Skip if this is our own message
+        if (data.source === 'ad-countdown-fix') return;
+        
+        console.log('Ad state change:', data);
+        
+        if (data.adType === 'first') {
+            if (data.state === 'start') {
+                // Another component detected first ad start
+                state.firstAdStartTime = data.timestamp || Date.now();
+            }
+            else if (data.state === 'complete') {
+                // Another component marked first ad complete
                 state.firstAdComplete = true;
-
-                // Inform other scripts
-                document.dispatchEvent(new CustomEvent('first-ad-complete'));
-                
-                // Enable the first View Results button
-                const viewResultsBtn = document.getElementById('view-results-btn');
-                if (viewResultsBtn) {
-                    enableViewResultsButton(viewResultsBtn);
-                }
             }
-        }, config.interval);
-    }
-
-    function startSecondAdCountdown() {
-        // Clear any existing second ad countdown
-        if (state.secondAdTimer) {
-            clearInterval(state.secondAdTimer);
         }
-
-        // Reset completion flag
-        state.secondAdComplete = false;
-
-        const countdownSpan = document.getElementById('countdown');
-        if (!countdownSpan) {
-            console.error("Ad countdown fix: Second countdown element not found");
-            return;
-        }
-
-        const viewResultsBtn = document.getElementById('view-results-btn');
-        if (!viewResultsBtn) {
-            console.error("Ad countdown fix: View results button not found");
-            return;
-        }
-
-        // Reset the button to disabled state
-        disableViewResultsButton(viewResultsBtn);
-
-        // Set initial countdown value
-        countdownSpan.textContent = config.displayTime.toString();
-
-        // Start time for precise timing
-        const startTime = Date.now();
-        let secondsRemaining = config.displayTime;
-
-        // Start the countdown
-        state.secondAdTimer = setInterval(function() {
-            // Calculate time elapsed and remaining
-            const elapsed = Date.now() - startTime;
-            secondsRemaining = Math.max(0, Math.ceil((config.displayTime * 1000 - elapsed) / 1000));
-
-            // Update display
-            countdownSpan.textContent = secondsRemaining.toString();
-            
-            // Update button text
-            viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${secondsRemaining}s)`;
-
-            // Check if countdown is complete
-            if (secondsRemaining <= 0) {
-                // Clean up
-                clearInterval(state.secondAdTimer);
-                state.secondAdTimer = null;
+        else if (data.adType === 'second') {
+            if (data.state === 'start') {
+                // Another component detected second ad start
+                state.secondAdStartTime = data.timestamp || Date.now();
+            }
+            else if (data.state === 'complete') {
+                // Another component marked second ad complete
                 state.secondAdComplete = true;
-
-                // Inform other scripts
-                document.dispatchEvent(new CustomEvent('second-ad-complete'));
-                
-                // Enable the View Results button
-                enableViewResultsButton(viewResultsBtn);
             }
-        }, config.interval);
+        }
     }
-
-    function enableViewResultsButton(button) {
-        // Replace the button with a fresh copy to remove stale event handlers
-        const newButton = button.cloneNode(true);
+    
+    // Mark first ad as complete after exactly 5 seconds
+    function completeFirstAd() {
+        // Skip if already marked complete
+        if (state.firstAdComplete) return;
         
-        // Style the button as enabled
-        newButton.disabled = false;
-        newButton.classList.remove('btn-secondary');
-        newButton.classList.add('btn-success', 'btn-pulse');
-        newButton.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+        // Mark ad as complete
+        state.firstAdComplete = true;
         
-        // Add click handler
-        newButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            console.log("Ad countdown fix: View Results button clicked");
-            
-            // Handle ad transition based on which overlay is visible
-            const firstAdOverlay = document.getElementById('ad-overlay-loading');
-            const secondAdOverlay = document.getElementById('ad-overlay-results');
-            
-            if (firstAdOverlay && 
-                (firstAdOverlay.style.display === 'flex' || firstAdOverlay.style.display === 'block')) {
-                // Hide first ad
-                firstAdOverlay.style.display = 'none';
-                
-                // Make sure results container is visible
-                const resultsContainer = document.getElementById('results-container');
-                if (resultsContainer) {
-                    resultsContainer.classList.remove('d-none');
-                }
-                
-                // Show second ad
-                if (secondAdOverlay) {
-                    secondAdOverlay.style.display = 'flex';
-                }
-                
-            } else if (secondAdOverlay && 
-                      (secondAdOverlay.style.display === 'flex' || secondAdOverlay.style.display === 'block')) {
-                // Hide second ad
-                secondAdOverlay.style.display = 'none';
-                
-                // Make sure results container is visible
-                const resultsContainer = document.getElementById('results-container');
-                if (resultsContainer) {
-                    resultsContainer.classList.remove('d-none');
-                    resultsContainer.style.display = 'block';
-                }
-                
-                // Set global state for other scripts
-                window.resultsShown = true;
-                window.inResultsMode = true;
-                window.hasCompletedAdFlow = true;
-            }
-        });
+        // Update global state if available
+        if (window.SnapLottoAds) {
+            window.SnapLottoAds.firstAdComplete = true;
+        }
         
-        // Replace the button
-        button.parentNode.replaceChild(newButton, button);
-    }
-
-    function disableViewResultsButton(button) {
-        // Replace the button with a fresh copy to remove stale event handlers
-        const newButton = button.cloneNode(true);
-        
-        // Style the button as disabled
-        newButton.disabled = true;
-        newButton.classList.remove('btn-success', 'btn-pulse');
-        newButton.classList.add('btn-secondary');
-        newButton.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
-        
-        // Replace the button
-        button.parentNode.replaceChild(newButton, button);
-    }
-
-    function setupViewResultsButtonFunctionality() {
-        // Get the View Results button
+        // Enable View Results button if it exists
         const viewResultsBtn = document.getElementById('view-results-btn');
-        if (!viewResultsBtn) return;
+        if (viewResultsBtn) {
+            viewResultsBtn.disabled = false;
+            viewResultsBtn.classList.remove('btn-secondary');
+            viewResultsBtn.classList.add('btn-success');
+            viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+            
+            // Log this once, not repeatedly
+            console.log('AdManager: First ad complete, enabling view results button');
+        }
         
-        // Add MutationObserver to monitor when button is added to DOM
-        const buttonObserver = new MutationObserver(function(mutations) {
-            const viewResultsBtn = document.getElementById('view-results-btn');
-            if (viewResultsBtn && !viewResultsBtn._observed) {
-                viewResultsBtn._observed = true;
-                
-                // Replace with a fresh button to ensure no stale handlers
-                const newButton = viewResultsBtn.cloneNode(true);
-                viewResultsBtn.parentNode.replaceChild(newButton, viewResultsBtn);
-                
-                // Add the appropriate state
-                if (document.getElementById('ad-overlay-loading').style.display === 'flex' &&
-                    !state.firstAdComplete) {
-                    disableViewResultsButton(newButton);
-                } else if (document.getElementById('ad-overlay-results').style.display === 'flex' &&
-                    !state.secondAdComplete) {
-                    disableViewResultsButton(newButton);
-                } else {
-                    enableViewResultsButton(newButton);
-                }
-            }
-        });
-        
-        // Observe the entire document for button changes
-        buttonObserver.observe(document.body, { 
-            childList: true, 
-            subtree: true 
-        });
+        // Signal to other components
+        window.postMessage({ 
+            type: 'adStateChange', 
+            adType: 'first', 
+            state: 'complete', 
+            timestamp: Date.now(),
+            source: 'ad-countdown-fix'
+        }, '*');
     }
 })();

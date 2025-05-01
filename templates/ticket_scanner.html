@@ -6,6 +6,10 @@
 <!-- PERFORMANCE: Mobile optimization script loads first to improve performance -->
 <script src="{{ url_for('static', filename='js/mobile-optimization.js') }}" data-critical="true"></script>
 
+<!-- NEW: Fixed advertisement system with 5-second first ad and proper timing -->
+<script src="{{ url_for('static', filename='js/debug-ad-log.js') }}" data-critical="true"></script>
+<script src="{{ url_for('static', filename='js/ad-countdown-fix.js') }}" data-critical="true"></script>
+
 <!-- Mobile-optimized advertisement system with enhanced timing enforcement - SINGLE TIMER SOURCE -->
 <script src="{{ url_for('static', filename='js/ads-mobile.js') }}" data-critical="true"></script>
 <!-- Ultra-simple countdown system for reliability -->
@@ -68,6 +72,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <link rel="preload" href="{{ url_for('static', filename='js/scanner-icon-fix.js') }}" as="script">
 <link rel="preload" href="{{ url_for('static', filename='js/ads-mobile.js') }}" as="script">
 <link rel="preload" href="{{ url_for('static', filename='js/simple-countdown.js') }}" as="script">
+<link rel="preload" href="{{ url_for('static', filename='js/debug-ad-log.js') }}" as="script">
+<link rel="preload" href="{{ url_for('static', filename='js/ad-countdown-fix.js') }}" as="script">
 
 <!-- Mobile-optimized CSS loads first -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/optimized-mobile.css') }}">
@@ -276,7 +282,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         
         <!-- First ad countdown timer -->
         <div id="first-countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;">
-            Please wait <span id="first-countdown">15</span> seconds
+            Please wait <span id="first-countdown">5</span> seconds
         </div>
     </div>
 </div>

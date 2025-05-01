@@ -215,11 +215,11 @@ window.AdManager = window.AdManager || {
         console.log('AdManager: Showing loading ad');
         
         // Get the ad for scanner placement to access its loading_duration
-        // REDUCED TIME: Changed from 10 to 5 seconds as requested
-        const ad = this.ads['scanner'] || { loading_duration: 5 }; // Default to 5 seconds if no ad found
-        const loadingDuration = ad.loading_duration * 1000; // Convert to milliseconds
+        // FIXED: Always use 5 seconds (hard-coded) for first ad duration as requested
+        const ad = this.ads['scanner'] || { loading_duration: 5 }; 
+        const loadingDuration = 5000; // Always use exactly 5 seconds (5000ms)
         
-        console.log(`AdManager: Using loading duration of ${ad.loading_duration} seconds`);
+        console.log(`AdManager: Using fixed loading duration of 5 seconds`);
         
         // IMPORTANT: Set global flag to track loading state
         window.adLoadingActive = true;
