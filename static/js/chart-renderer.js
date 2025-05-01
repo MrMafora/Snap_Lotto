@@ -24,8 +24,11 @@ function renderFrequencyChart(frequencyData) {
         // Clear previous chart
         barChartContainer.innerHTML = '';
         
-        // Sort data by frequency (descending)
-        const sortedData = [...frequencyData].sort((a, b) => b.frequency - a.frequency);
+        // Sort data by frequency (descending) and get only top 10
+        const sortedData = [...frequencyData]
+            .sort((a, b) => b.frequency - a.frequency)
+            .filter(item => item.lotteryType === 'All Lottery Types' || item.lotteryType === frequencyData[0].lotteryType)
+            .slice(0, 10);
         
         // Get the maximum frequency for scaling
         const maxFrequency = sortedData[0]?.frequency || 1;
@@ -37,15 +40,20 @@ function renderFrequencyChart(frequencyData) {
         // Create Y-axis labels
         const yAxis = document.createElement('div');
         yAxis.className = 'y-axis me-2 d-flex flex-column justify-content-between';
-        yAxis.style.height = '170px';
+        yAxis.style.height = '200px';
         
-        // Create labels at different points of the Y-axis
-        for (let i = 5; i >= 0; i--) {
+        // Create labels at different points of the Y-axis (going from bottom to top)
+        for (let i = 0; i <= 5; i++) {
             const yLabel = document.createElement('div');
             yLabel.className = 'text-end small text-muted';
             yLabel.textContent = Math.round(maxFrequency * i / 5);
             yAxis.appendChild(yLabel);
         }
+        
+        // Reverse the order of labels to have highest value at top
+        Array.from(yAxis.children).forEach(child => {
+            yAxis.prepend(child);
+        });
         
         // Create a container for the actual frequency chart
         const frequencyChart = document.createElement('div');
@@ -54,37 +62,38 @@ function renderFrequencyChart(frequencyData) {
         
         // Variables for color coding top numbers
         const colorClasses = [
-            'bg-danger',    // 1st place (red)
-            'bg-warning',   // 2nd place (yellow)
-            'bg-success'    // 3rd place (green)
+            'bg-info',      // 1st place (light blue)
+            'bg-info',      // 2nd place (light blue)
+            'bg-success',   // 3rd place (green)
+            'bg-success',   // 4th place (green)
+            'bg-warning',   // 5th place (yellow)
+            'bg-warning',   // 6th place (yellow)
+            'bg-danger',    // 7th place (red)
+            'bg-danger',    // 8th place (red)
+            'bg-primary',   // 9th place (blue)
+            'bg-primary'    // 10th place (blue)
         ];
         
-        // Create bar for each number
+        // Create bar for each number (top 10 only)
         sortedData.forEach((item, index) => {
             const { number, frequency } = item;
             
-            // Calculate height percentage (with 10% minimum for visibility)
-            const heightPercentage = 10 + ((frequency / maxFrequency) * 90);
+            // Calculate height percentage based on max frequency
+            const heightPercentage = (frequency / maxFrequency) * 100;
             
             // Create column for this number
             const barColumn = document.createElement('div');
-            barColumn.className = 'bar-column text-center position-relative';
+            barColumn.className = 'bar-column text-center position-relative mx-1';
             barColumn.setAttribute('data-bs-title', `Number ${number} appeared ${frequency} times`);
             barColumn.setAttribute('data-bs-toggle', 'tooltip');
             barColumn.setAttribute('data-bs-placement', 'top');
             
-            // Create interactive bar container with proper height
-            const barContainer = document.createElement('div');
-            barContainer.className = 'interactive-bar-container';
-            barContainer.style.height = '170px';
-            
-            // Create the actual bar with appropriate height and color
+            // Create the bar with fixed width and variable height
             const bar = document.createElement('div');
-            bar.className = `interactive-bar ${index < 3 ? colorClasses[index] : 'bg-primary'}`;
+            bar.className = `interactive-bar ${colorClasses[index]}`;
             bar.style.height = `${heightPercentage}%`;
-            bar.style.width = '100%';
-            bar.style.borderRadius = '4px';
-            bar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            bar.style.width = '30px';
+            bar.style.borderRadius = '2px';
             bar.style.transition = 'transform 0.2s';
             bar.setAttribute('data-number', number);
             bar.setAttribute('data-frequency', frequency);
@@ -98,7 +107,6 @@ function renderFrequencyChart(frequencyData) {
             bar.addEventListener('mouseover', function() {
                 // Scale up the bar slightly on hover
                 this.style.transform = 'scaleY(1.05)';
-                this.style.transition = 'transform 0.2s';
                 
                 // Create a tooltip
                 const tooltip = document.createElement('div');
@@ -134,8 +142,7 @@ function renderFrequencyChart(frequencyData) {
             });
             
             // Assemble the components
-            barContainer.appendChild(bar);
-            barColumn.appendChild(barContainer);
+            barColumn.appendChild(bar);
             barColumn.appendChild(numberLabel);
             frequencyChart.appendChild(barColumn);
         });
