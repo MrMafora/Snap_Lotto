@@ -26,7 +26,8 @@
         firstAdComplete: false,     // Is first ad display complete?
         secondAdComplete: false,    // Is second ad display complete?
         viewResultsEnabled: false,  // Is the View Results button enabled?
-        adSequenceComplete: false   // Is the entire ad sequence complete?
+        adSequenceComplete: false,  // Is the entire ad sequence complete?
+        backupTimerStarted: false   // Has the backup timer been started?
     };
     
     // Initialization
@@ -36,6 +37,8 @@
     function initialize() {
         // Wait for page to be fully loaded
         window.addEventListener('load', function() {
+            console.log('🟢 ad-countdown-fix.js: Page loaded, initializing ad system');
+            
             // Override the SnapLottoAds configuration if it exists
             if (window.SnapLottoAds) {
                 console.log('Overriding SnapLottoAds configuration');
@@ -84,7 +87,51 @@
             
             // Setup button monitors
             setupButtonMonitoring();
+            
+            // CRITICAL: Set up an absolute last-resort timeout to make sure the button is enabled
+            // This ensures the button will appear even if event messaging fails
+            startBackupTimer();
         });
+    }
+
+    // Start a backup timer to ensure button appears after 20 seconds no matter what
+    function startBackupTimer() {
+        if (state.backupTimerStarted) return;
+        
+        state.backupTimerStarted = true;
+        console.log('🔄 Starting backup timer to ensure button appears after 20 seconds');
+        
+        // After 20 seconds (5s first ad + 15s second ad), force the button to appear
+        setTimeout(function() {
+            console.log('⏰ Backup timer expired - ensuring View Results button is visible and enabled');
+            
+            // Force the button to be visible and enabled
+            const viewResultsBtn = document.getElementById('view-results-btn');
+            if (viewResultsBtn) {
+                // Make sure the button isn't still disabled
+                if (viewResultsBtn.disabled === true || viewResultsBtn.classList.contains('btn-secondary')) {
+                    console.log('🔧 View Results button was still disabled, fixing it now');
+                    
+                    // Enforce button enabled state
+                    viewResultsBtn.disabled = false;
+                    viewResultsBtn.classList.remove('btn-secondary');
+                    viewResultsBtn.classList.add('btn-success', 'btn-pulse');
+                    viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                    
+                    // Make sure the container is also visible
+                    const btnContainer = document.getElementById('view-results-btn-container');
+                    if (btnContainer) {
+                        btnContainer.style.display = 'block';
+                    }
+                    
+                    // Set state flags to reflect we've completed the ads
+                    state.firstAdComplete = true;
+                    state.secondAdComplete = true;
+                }
+            } else {
+                console.log('⚠️ View Results button not found in the DOM');
+            }
+        }, 20000); // 20 seconds is the combined duration of both ads
     }
     
     // Setup first ad detection
@@ -159,6 +206,12 @@
                             state.secondAdStartTime = Date.now();
                             console.log(`Second ad showing at ${new Date(state.secondAdStartTime).toISOString()}`);
                             
+                            // IMPORTANT: Start a timer for the second ad immediately when detected
+                            console.log('🕒 Starting 15-second timer for second ad');
+                            setTimeout(function() {
+                                completeSecondAd();
+                            }, config.secondAdDuration * 1000);
+                            
                             // Signal to other components
                             window.postMessage({ 
                                 type: 'adStateChange', 
@@ -181,6 +234,12 @@
             if (secondAdOverlay.style.display === 'flex' || secondAdOverlay.style.display === 'block') {
                 state.secondAdStartTime = Date.now();
                 console.log(`Second ad was already showing`);
+                
+                // IMPORTANT: Start a timer for the second ad immediately when detected
+                console.log('🕒 Starting 15-second timer for second ad (already showing)');
+                setTimeout(function() {
+                    completeSecondAd();
+                }, config.secondAdDuration * 1000);
             }
         }
     }
@@ -239,6 +298,12 @@
             if (data.state === 'start') {
                 // Another component detected second ad start
                 state.secondAdStartTime = data.timestamp || Date.now();
+                
+                // IMPORTANT: Start a timer for the second ad when we receive this message
+                console.log('🕒 Starting 15-second timer for second ad (from message)');
+                setTimeout(function() {
+                    completeSecondAd();
+                }, config.secondAdDuration * 1000);
             }
             else if (data.state === 'complete') {
                 // Another component marked second ad complete
@@ -293,6 +358,15 @@
             if (secondAdOverlay) {
                 secondAdOverlay.style.display = 'flex';
                 console.log('Second ad overlay shown programmatically');
+                
+                // IMPORTANT: Start the second ad timer immediately when we show it
+                if (!state.secondAdStartTime) {
+                    state.secondAdStartTime = Date.now();
+                    console.log('🕒 Starting 15-second timer for second ad (after first ad)');
+                    setTimeout(function() {
+                        completeSecondAd();
+                    }, config.secondAdDuration * 1000);
+                }
             }
         }
         
@@ -305,6 +379,7 @@
             source: 'ad-countdown-fix'
         }, '*');
     }
+    
     // Mark second ad as complete after exactly 15 seconds
     function completeSecondAd() {
         // Skip if already marked complete
@@ -328,13 +403,24 @@
         // Enable the View Results button
         const viewResultsBtn = document.getElementById('view-results-btn');
         if (viewResultsBtn) {
+            console.log('🟢 ENABLING View Results button - second ad complete');
+            
+            // Force enable button and show it
             viewResultsBtn.disabled = false;
             viewResultsBtn.classList.remove('btn-secondary');
             viewResultsBtn.classList.add('btn-success', 'btn-pulse');
             viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
             
-            // Log this once, not repeatedly
-            console.log('🏁 Second ad complete, enabling View Results button');
+            // Ensure the button is made visible in its container
+            const btnContainer = document.getElementById('view-results-btn-container');
+            if (btnContainer && btnContainer.style.display !== 'block') {
+                btnContainer.style.display = 'block';
+            }
+            
+            // Log completion
+            console.log('🏁 Second ad complete, View Results button now enabled');
+        } else {
+            console.log('⚠️ ERROR: View Results button not found when enabling!');
         }
         
         // Signal to other components
