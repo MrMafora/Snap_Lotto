@@ -220,6 +220,13 @@
     }
 
     function enableViewResultsButton() {
+        // Show the button container first
+        const btnContainer = document.getElementById('view-results-btn-container');
+        if (btnContainer) {
+            console.log('📢 Now showing the View Results button container');
+            btnContainer.style.display = 'block';
+        }
+
         // Get the view results button
         const viewResultsBtn = document.getElementById('view-results-btn');
         if (!viewResultsBtn) return;
@@ -257,5 +264,7 @@
         
         // Replace the button
         viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+        
+        console.log('🎯 View Results button enabled and fully configured');
     }
 })();

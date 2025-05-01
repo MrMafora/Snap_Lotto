@@ -305,9 +305,12 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;">
         Please wait <span id="countdown">15</span> seconds to view your results
     </div>
-    <button class="btn btn-secondary btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;" disabled>
-        <i class="fas fa-lock me-2"></i> Continue to Results (Wait 15s)
-    </button>
+    <!-- Button initially hidden and will be shown only when the countdown completes -->
+    <div id="view-results-btn-container" style="display: none;">
+        <button class="btn btn-secondary btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;" disabled>
+            <i class="fas fa-lock me-2"></i> Continue to Results (Wait 15s)
+        </button>
+    </div>
 </div>
 
 <div class="container py-3">
