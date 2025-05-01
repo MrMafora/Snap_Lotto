@@ -322,15 +322,9 @@
                 resultsOverlay.appendChild(counterDiv);
             }
             
-            // Add or update countdown display
-            const countdownDiv = resultsOverlay.querySelector('.ad-countdown');
-            if (!countdownDiv) {
-                const newCountdown = document.createElement('div');
-                newCountdown.className = 'ad-countdown';
-                newCountdown.style.cssText = 'background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; position: absolute; bottom: 10px; right: 10px; font-size: 12px;';
-                newCountdown.textContent = `View results in: 15s`;
-                resultsOverlay.appendChild(newCountdown);
-            }
+            // We're no longer creating a separate countdown in the corner
+            // This is now handled by the central countdown timer in the main UI
+            // The ad-countdown-fix.js module handles the timer logic now
             
             // Force-disable the view results button for second ad
             const viewBtn = document.getElementById('view-results-btn');
@@ -356,27 +350,14 @@
                 window.countdownInterval = null;
             }
             
-            // Start our own countdown for this ad
+            // Start our own countdown timer, but only for internal logic
+            // No longer updating any countdown UI from ads-mobile.js
             let remainingTime = 15; // 15 seconds
-            const countdownElement = document.querySelector('.ad-countdown');
             
-            // Update countdown display immediately
-            if (countdownElement) {
-                countdownElement.textContent = `View results in: ${remainingTime}s`;
-            }
-            
-            // Set up the countdown interval
+            // Set up the countdown interval but don't update UI in ads-mobile.js
+            // Let the main countdown timer handle the UI updates
             window.adCountdownInterval = setInterval(() => {
                 remainingTime--;
-                
-                // Update the countdown display
-                if (countdownElement) {
-                    if (remainingTime > 0) {
-                        countdownElement.textContent = `View results in: ${remainingTime}s`;
-                    } else {
-                        countdownElement.textContent = 'Loading results...';
-                    }
-                }
                 
                 // When countdown reaches zero, enable results button
                 if (remainingTime <= 0) {
