@@ -24,9 +24,9 @@ function renderFrequencyChart(frequencyData) {
         // Clear previous chart
         barChartContainer.innerHTML = '';
         
-        // Add title
+        // Add title (only once)
         const chartTitle = document.createElement('h5');
-        chartTitle.className = 'mb-4';
+        chartTitle.className = 'mb-3';
         chartTitle.textContent = 'Most Frequent Numbers';
         barChartContainer.appendChild(chartTitle);
         
@@ -74,13 +74,13 @@ function renderFrequencyChart(frequencyData) {
             'bg-danger',    // 1st place (red)
             'bg-warning',   // 2nd place (yellow)
             'bg-success',   // 3rd place (green)
-            'bg-success',   // Use success for rest
-            'bg-success',
-            'bg-success',
-            'bg-success',
-            'bg-success',
-            'bg-success',
-            'bg-success'
+            'bg-primary',   // Use primary for the rest
+            'bg-primary',
+            'bg-primary',
+            'bg-primary',
+            'bg-primary',
+            'bg-primary',
+            'bg-primary'
         ];
         
         // Create bar for each number (top 10 only)
@@ -93,21 +93,23 @@ function renderFrequencyChart(frequencyData) {
             // Create column for this number
             const barColumn = document.createElement('div');
             barColumn.className = 'bar-column text-center position-relative';
-            barColumn.style.width = '30px'; // Fixed width for bars
-            barColumn.style.margin = '0 2px'; // Small gap between bars
+            barColumn.style.width = '40px'; // Fixed width for bars
+            barColumn.style.margin = '0 5px'; // Small gap between bars
             
             // Create the bar with fixed width and variable height
             const bar = document.createElement('div');
             bar.className = `interactive-bar ${colorClasses[index]}`;
             bar.style.height = `${heightPercentage}%`;
             bar.style.width = '100%';
-            bar.style.borderRadius = '2px';
+            bar.style.borderRadius = '3px';
+            // Add margin to bottom to ensure bars appear above the number
+            bar.style.marginBottom = '5px';
             bar.setAttribute('data-number', number);
             bar.setAttribute('data-frequency', frequency);
             
             // Add the number label below
             const numberLabel = document.createElement('div');
-            numberLabel.className = 'number-label mt-1';
+            numberLabel.className = 'number-label';
             numberLabel.style.fontSize = '14px';
             numberLabel.textContent = number;
             
@@ -143,9 +145,25 @@ function renderFrequencyChart(frequencyData) {
                 }
             });
             
-            // Assemble the components
-            barColumn.appendChild(bar);
-            barColumn.appendChild(numberLabel);
+            // Create a container for the bar and label
+            const barContainer = document.createElement('div');
+            barContainer.className = 'd-flex flex-column align-items-center';
+            barContainer.style.height = '100%';
+            
+            // Create a div for the bar that takes full height
+            const barWrap = document.createElement('div');
+            barWrap.className = 'd-flex align-items-end';
+            barWrap.style.height = '100%';
+            barWrap.appendChild(bar);
+            
+            // Add the bar wrapper and number label to the container
+            barContainer.appendChild(barWrap);
+            barContainer.appendChild(numberLabel);
+            
+            // Add the container to the column
+            barColumn.appendChild(barContainer);
+            
+            // Add column to the chart
             frequencyChart.appendChild(barColumn);
         });
         
