@@ -270,6 +270,30 @@
             
             // Log this once, not repeatedly
             console.log('AdManager: First ad complete, enabling view results button');
+            
+            // AUTOMATICALLY TRIGGER THE TRANSITION without requiring user click
+            console.log('💥 AUTO-TRIGGERING transition to second ad');
+            
+            // Hide the first ad overlay immediately
+            const firstAdOverlay = document.getElementById('ad-overlay-loading');
+            if (firstAdOverlay) {
+                firstAdOverlay.style.display = 'none';
+                console.log('First ad overlay hidden programmatically');
+            }
+            
+            // Make sure results container is visible
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                resultsContainer.classList.remove('d-none');
+                console.log('Results container made visible');
+            }
+            
+            // Show the second ad immediately
+            const secondAdOverlay = document.getElementById('ad-overlay-results');
+            if (secondAdOverlay) {
+                secondAdOverlay.style.display = 'flex';
+                console.log('Second ad overlay shown programmatically');
+            }
         }
         
         // Signal to other components
