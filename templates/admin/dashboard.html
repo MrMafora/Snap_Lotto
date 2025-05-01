@@ -40,6 +40,12 @@
                     <a href="{{ url_for('import_data') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-file-excel me-2"></i> Import Spreadsheet
                     </a>
+                    <a href="{{ url_for('import_latest_template_route') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-cloud-download-alt me-2"></i> Import Latest Template
+                    </a>
+                    <a href="{{ url_for('import_missing_draws_route') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-calendar-plus me-2"></i> Import Missing Draws
+                    </a>
                     <a href="{{ url_for('admin_import_history') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-history me-2"></i> Import History
                     </a>

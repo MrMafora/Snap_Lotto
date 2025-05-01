@@ -2946,6 +2946,27 @@ def admin_import_history():
     history = ImportHistory.query.order_by(ImportHistory.import_date.desc()).all()
     return render_template('import_history.html', history=history)
 
+# Route for importing missing draws
+@app.route('/admin/import-missing-draws')
+@login_required
+@admin_required
+def import_missing_draws_route():
+    """Import specific missing lottery draws"""
+    try:
+        from import_missing_draws import import_missing_draws
+        result = import_missing_draws("attached_assets/missing_draws.xlsx")
+        
+        return render_template('import_status.html', 
+                              success=result.get('success', False),
+                              stats=result.get('stats', {}),
+                              error=result.get('error', 'Unknown error'))
+    except Exception as e:
+        logger.error(f"Error importing missing draws: {str(e)}")
+        return render_template('import_status.html', 
+                              success=False,
+                              stats={},
+                              error=f"Error: {str(e)}")
+
 # When running directly, not through gunicorn
 if __name__ == "__main__":
     # Extra logging to help diagnose startup issues

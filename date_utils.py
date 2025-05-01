@@ -2,7 +2,6 @@
 Date and time formatting utilities for the application.
 """
 from datetime import datetime
-from flask import current_app
 from timezone_utils import utc_to_sast, now_sast, format_sast
 
 def format_datetime(dt=None, format_str="%Y-%m-%d %H:%M:%S"):

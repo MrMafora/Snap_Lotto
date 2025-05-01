@@ -25,7 +25,7 @@
                                     <div class="card shadow bg-success text-white">
                                         <div class="card-body text-center">
                                             <h5 class="card-title">Records Added</h5>
-                                            <h2 class="display-4">{{ stats.imported }}</h2>
+                                            <h2 class="display-4">{{ stats.added if 'added' in stats else stats.imported }}</h2>
                                         </div>
                                     </div>
                                 </div>
@@ -41,7 +41,7 @@
                                     <div class="card shadow bg-primary text-white">
                                         <div class="card-body text-center">
                                             <h5 class="card-title">Total Processed</h5>
-                                            <h2 class="display-4">{{ stats.total_processed }}</h2>
+                                            <h2 class="display-4">{{ stats.total_processed if 'total_processed' in stats else (stats.added + stats.updated + stats.errors) }}</h2>
                                         </div>
                                     </div>
                                 </div>
@@ -71,9 +71,15 @@
                                         {% for lottery_type, counts in stats.by_lottery_type.items() %}
                                         <tr>
                                             <td>{{ lottery_type }}</td>
+                                            {% if counts is mapping %}
                                             <td>{{ counts.added }}</td>
                                             <td>{{ counts.updated }}</td>
                                             <td>{{ counts.added + counts.updated }}</td>
+                                            {% else %}
+                                            <td>{{ counts }}</td>
+                                            <td>0</td>
+                                            <td>{{ counts }}</td>
+                                            {% endif %}
                                         </tr>
                                         {% endfor %}
                                     </tbody>
