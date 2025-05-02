@@ -30,6 +30,7 @@ import anthropic
 from anthropic import Anthropic
 from PIL import Image
 from flask import Blueprint, Flask, request, render_template, redirect, url_for, flash, jsonify, current_app, abort
+from flask_login import current_user, login_required
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -656,6 +657,7 @@ def pending_extractions():
     return render_template('pending_extractions.html', pending_extractions=pending_list)
 
 @automated_extraction_bp.route('/extraction_details/<int:extraction_id>')
+@login_required
 def extraction_details(extraction_id):
     """Display details of a specific extraction."""
     try:
@@ -680,6 +682,7 @@ def extraction_details(extraction_id):
         return redirect(url_for('automated_extraction.pending_extractions'))
 
 @automated_extraction_bp.route('/approve_extraction/<int:extraction_id>', methods=['POST'])
+@login_required
 def approve_extraction(extraction_id):
     """Approve a pending extraction."""
     try:
@@ -703,6 +706,7 @@ def approve_extraction(extraction_id):
         return redirect(url_for('automated_extraction.pending_extractions'))
 
 @automated_extraction_bp.route('/reject_extraction/<int:extraction_id>', methods=['POST'])
+@login_required
 def reject_extraction(extraction_id):
     """Reject a pending extraction."""
     try:
@@ -722,6 +726,7 @@ def reject_extraction(extraction_id):
         return redirect(url_for('automated_extraction.pending_extractions'))
 
 @automated_extraction_bp.route('/run_extraction_now')
+@login_required
 def run_extraction_now():
     """Run the extraction process immediately."""
     try:
@@ -740,12 +745,14 @@ def run_extraction_now():
 
 # API endpoints
 @automated_extraction_bp.route('/api/pending_extractions')
+@login_required
 def api_pending_extractions():
     """API endpoint to get pending extractions."""
     pending_list = PendingDataManager.get_pending_extractions()
     return jsonify({"pending_extractions": pending_list})
 
 @automated_extraction_bp.route('/api/approve_extraction/<int:extraction_id>', methods=['POST'])
+@login_required
 def api_approve_extraction(extraction_id):
     """API endpoint to approve an extraction."""
     try:
@@ -764,6 +771,7 @@ def api_approve_extraction(extraction_id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @automated_extraction_bp.route('/api/reject_extraction/<int:extraction_id>', methods=['POST'])
+@login_required
 def api_reject_extraction(extraction_id):
     """API endpoint to reject an extraction."""
     try:
@@ -782,6 +790,7 @@ def api_reject_extraction(extraction_id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @automated_extraction_bp.route('/api/run_extraction_now', methods=['POST'])
+@login_required
 def api_run_extraction_now():
     """API endpoint to run extraction process."""
     try:
