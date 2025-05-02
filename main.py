@@ -248,147 +248,22 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""
-    # Ensure data_aggregator is loaded before using it
-    global data_aggregator
+    # Simplified index route to troubleshoot application issues
+    meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
+    breadcrumbs = []
     
-    try:
-        # Import if not already loaded
-        if data_aggregator is None:
-            import data_aggregator as da
-            data_aggregator = da
-            logger.info("Loaded data_aggregator module on demand")
-        
-        # First, validate and correct any known draws (adds missing division data)
-        try:
-            corrected = data_aggregator.validate_and_correct_known_draws()
-            if corrected > 0:
-                logger.info(f"Corrected {corrected} lottery draws with verified data")
-        except Exception as e:
-            logger.error(f"Error in validate_and_correct_known_draws: {e}")
-        
-        # Get the latest results for each lottery type
-        try:
-            latest_results = data_aggregator.get_latest_results()
-            
-            # Convert dictionary of results to a list for iteration in the template
-            results_list = []
-            
-            # Use a dictionary to track unique draw numbers per type to avoid duplicates
-            seen_draws = {}
-            normalized_results = {}
-            
-            # First, create a dictionary to group results by normalized type
-            type_groups = {}
-            for lottery_type, result in latest_results.items():
-                # Normalize the lottery type
-                normalized_type = data_aggregator.normalize_lottery_type(lottery_type)
-                
-                # Group all results by normalized type
-                if normalized_type not in type_groups:
-                    type_groups[normalized_type] = []
-                type_groups[normalized_type].append(result)
-            
-            # Now select the newest result for each normalized type
-            for normalized_type, type_results in type_groups.items():
-                # Sort by date (newest first)
-                type_results.sort(key=lambda x: x.draw_date, reverse=True)
-                # Take the newest result only
-                newest_result = type_results[0]
-                normalized_results[normalized_type] = newest_result
-            
-            # Second pass: add results using normalized keys to avoid duplicates
-            for normalized_type, result in normalized_results.items():
-                # Generate a deduplication key using normalized type
-                key = f"{normalized_type}_{result.draw_number}"
-                if key not in seen_draws:
-                    # Clone the result to avoid modifying the database object directly
-                    # This prevents unique constraint violations when adding to results_list
-                    result_clone = LotteryResult(
-                        id=result.id,
-                        lottery_type=normalized_type,  # Use normalized type
-                        draw_number=result.draw_number,
-                        draw_date=result.draw_date,
-                        numbers=result.numbers,
-                        bonus_numbers=result.bonus_numbers,
-                        divisions=result.divisions,
-                        source_url=result.source_url,
-                        screenshot_id=result.screenshot_id,
-                        ocr_provider=result.ocr_provider,
-                        ocr_model=result.ocr_model,
-                        ocr_timestamp=result.ocr_timestamp,
-                        created_at=result.created_at
-                    )
-                    results_list.append(result_clone)
-                    seen_draws[key] = True
-            
-            # Sort results by date (newest first)
-            results_list.sort(key=lambda x: x.draw_date, reverse=True)
-        except Exception as e:
-            logger.error(f"Error getting latest lottery results: {e}")
-            latest_results = {}
-            results_list = []
-        
-        # Get analytics data for the dashboard
-        try:
-            frequent_numbers = data_aggregator.get_most_frequent_numbers(limit=10)
-        except Exception as e:
-            logger.error(f"Error getting frequent numbers: {e}")
-            frequent_numbers = []
-            
-        try:
-            division_stats = data_aggregator.get_division_statistics()
-        except Exception as e:
-            logger.error(f"Error getting division statistics: {e}")
-            division_stats = {}
-            
-        # Get cold numbers (least frequently drawn)
-        try:
-            cold_numbers = data_aggregator.get_least_frequent_numbers(limit=5)
-        except Exception as e:
-            logger.error(f"Error getting cold numbers: {e}")
-            cold_numbers = []
-            
-        # Get numbers not drawn recently
-        try:
-            absent_numbers = data_aggregator.get_numbers_not_drawn_recently(limit=5)
-        except Exception as e:
-            logger.error(f"Error getting absent numbers: {e}")
-            absent_numbers = []
-        
-        # Define rich meta description for SEO
-        meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
-        
-        # Home page doesn't need breadcrumbs (it's the root), but we define an empty list for consistency
-        breadcrumbs = []
-        
-        return render_template('index.html', 
-                            latest_results=latest_results,
-                            results=results_list,
-                            frequent_numbers=frequent_numbers,
-                            cold_numbers=cold_numbers,
-                            absent_numbers=absent_numbers,
-                            division_stats=division_stats,
-                            title="South African Lottery Results | Latest Winning Numbers",
-                            meta_description=meta_description,
-                            breadcrumbs=breadcrumbs)
-    except Exception as e:
-        logger.error(f"Critical error in index route: {e}")
-        # Define rich meta description for SEO even in error case
-        meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
-        
-        # Define empty breadcrumbs for consistency even in error case
-        breadcrumbs = []
-        
-        return render_template('index.html', 
-                            latest_results={},
-                            results=[],
-                            frequent_numbers=[],
-                            cold_numbers=[],
-                            absent_numbers=[],
-                            division_stats={},
-                            title="South African Lottery Results | Latest Winning Numbers",
-                            meta_description=meta_description,
-                            breadcrumbs=breadcrumbs)
+    # Provide empty data to template to avoid DB queries for now
+    return render_template('index.html', 
+                        latest_results={},
+                        results=[],
+                        frequent_numbers=[],
+                        cold_numbers=[],
+                        absent_numbers=[],
+                        division_stats={},
+                        title="South African Lottery Results | Latest Winning Numbers",
+                        meta_description=meta_description,
+                        breadcrumbs=breadcrumbs,
+                        maintenance_mode=True)
 
 @app.route('/admin')
 @login_required

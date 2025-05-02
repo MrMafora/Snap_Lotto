@@ -56,7 +56,7 @@ automated_extraction_bp = Blueprint('automated_extraction', __name__)
 # Initialize the Anthropic client
 anthropic_api_key = os.environ.get('ANTHROPIC_API_KEY')
 anthropic_client = Anthropic(api_key=anthropic_api_key)
-MODEL = "claude-3-5-sonnet-20241022"  # Using the newest Anthropic model (Claude 3.5 Sonnet)
+MODEL = "claude-3-sonnet-20240229"  # Using Claude 3 Sonnet model
 
 # South African timezone
 SA_TIMEZONE = pytz.timezone('Africa/Johannesburg')
@@ -688,7 +688,7 @@ def update_model_configuration():
     try:
         # For future updates, we could query Anthropic API for latest model
         # For now, we just use the static latest model
-        MODEL = "claude-3-5-sonnet-20241022"  # Using the newest Anthropic model (Claude 3.5 Sonnet)
+        MODEL = "claude-3-sonnet-20240229"  # Using Claude 3 Sonnet model
         logger.info(f"Updated model configuration to use {MODEL}")
     
     except Exception as e:
