@@ -169,9 +169,6 @@ def improved_excel_import(excel_path, app):
                 try:
                     logger.info(f"Processing sheet: {sheet}")
                     
-                    # Try to determine lottery type from sheet name if needed
-                    sheet_lottery_type = normalize_lottery_type(sheet)
-                    
                     # Read sheet
                     df = pd.read_excel(excel_path, sheet_name=sheet)
                     
@@ -179,6 +176,15 @@ def improved_excel_import(excel_path, app):
                     if df.empty:
                         logger.info(f"Sheet {sheet} is empty, skipping")
                         continue
+                    
+                    # Check if this is a multi-lottery sheet or single lottery sheet
+                    is_multi_lottery = False
+                    if 'Game Name' in df.columns:
+                        # Count unique lottery types
+                        unique_games = df['Game Name'].dropna().unique()
+                        logger.info(f"Found {len(unique_games)} unique lottery types in the sheet")
+                        if len(unique_games) > 1:
+                            is_multi_lottery = True
                     
                     # Print column names for this sheet
                     logger.info(f"Columns in sheet {sheet}: {list(df.columns)}")
@@ -191,8 +197,28 @@ def improved_excel_import(excel_path, app):
                         "errors": 0
                     }
                     
+                    # Filter out non-data rows (metadata, headers, notes)
+                    valid_rows = df
+                    
+                    # For multi-lottery sheets, only keep rows with valid Game Name and Draw Number
+                    if is_multi_lottery:
+                        # Keep only rows that have both Game Name and Draw Number
+                        valid_mask = (~pd.isna(df['Game Name'])) & (~pd.isna(df['Draw Number']))
+                        
+                        # Make sure Game Name is a lottery type (skip note rows)
+                        def is_lottery_type(game_name):
+                            if pd.isna(game_name):
+                                return False
+                            game_name = str(game_name).strip().lower()
+                            return any(lottery_keyword in game_name for lottery_keyword in 
+                                    ['lottery', 'lotto', 'powerball', 'power ball', 'daily'])
+                        
+                        valid_mask = valid_mask & df['Game Name'].apply(is_lottery_type)
+                        valid_rows = df[valid_mask]
+                        logger.info(f"Filtered {len(df)} rows down to {len(valid_rows)} valid lottery data rows")
+                    
                     # Process each row
-                    for index, row in df.iterrows():
+                    for index, row in valid_rows.iterrows():
                         try:
                             # Skip rows with insufficient data - require Game Name and Draw Number
                             if pd.isna(row.get('Game Name')) or pd.isna(row.get('Draw Number')):
@@ -207,7 +233,7 @@ def improved_excel_import(excel_path, app):
                             # Get lottery type from data
                             lottery_type = normalize_lottery_type(row['Game Name'])
                             
-                            # Get draw number as string
+                            # Get draw number as string - handle both numeric and string formats
                             try:
                                 draw_number = str(int(row['Draw Number']))
                             except:
@@ -401,29 +427,35 @@ def improved_excel_import(excel_path, app):
             logger.error(traceback.format_exc())
             return {"error": str(e)}
 
-# If run directly, find and import the most recent Excel file
+# If run directly, find and import the Excel file
 if __name__ == "__main__":
     from main import app
     
-    # Find the most recent Excel file in uploads and attached_assets folders
-    excel_files = []
-    for directory in ["uploads", "attached_assets"]:
-        if os.path.exists(directory):
-            for filename in os.listdir(directory):
-                if filename.endswith(".xlsx"):
-                    full_path = os.path.join(directory, filename)
-                    excel_files.append((full_path, os.path.getmtime(full_path)))
-    
-    if not excel_files:
-        print("No Excel files found in uploads or attached_assets directories")
-        sys.exit(1)
-    
-    # Sort by modification time (newest first)
-    excel_files.sort(key=lambda x: x[1], reverse=True)
-    newest_file = excel_files[0][0]
-    
-    print(f"Importing from: {newest_file}")
-    stats = improved_excel_import(newest_file, app)
+    # Check if file path was provided as command line argument
+    if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
+        excel_path = sys.argv[1]
+        print(f"Importing from specified file: {excel_path}")
+        stats = improved_excel_import(excel_path, app)
+    else:
+        # Find the most recent Excel file in uploads and attached_assets folders
+        excel_files = []
+        for directory in ["uploads", "attached_assets"]:
+            if os.path.exists(directory):
+                for filename in os.listdir(directory):
+                    if filename.endswith(".xlsx"):
+                        full_path = os.path.join(directory, filename)
+                        excel_files.append((full_path, os.path.getmtime(full_path)))
+        
+        if not excel_files:
+            print("No Excel files found in uploads or attached_assets directories")
+            sys.exit(1)
+        
+        # Sort by modification time (newest first)
+        excel_files.sort(key=lambda x: x[1], reverse=True)
+        newest_file = excel_files[0][0]
+        
+        print(f"Importing from newest file: {newest_file}")
+        stats = improved_excel_import(newest_file, app)
     
     # Print summary
     print("\nImport Summary:")
