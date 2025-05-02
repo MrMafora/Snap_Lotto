@@ -1714,7 +1714,7 @@ def view_zoomed_screenshot(screenshot_id):
     
     return send_from_directory(directory, filename)
 
-@app.route('/sync-all-screenshots', methods=['POST'])
+@app.route('/sync-all-screenshots', methods=['GET', 'POST'])
 @login_required
 @csrf.exempt
 def sync_all_screenshots():
@@ -1723,6 +1723,11 @@ def sync_all_screenshots():
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
     
+    # For GET requests, just redirect to the export screenshots page
+    if request.method == 'GET':
+        return redirect(url_for('export_screenshots'))
+    
+    # For POST requests, perform the sync operation
     try:
         app.logger.info("Starting screenshot sync process")
         # Use the scheduler module imported at the top level to retake all screenshots
