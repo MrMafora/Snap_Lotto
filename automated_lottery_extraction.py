@@ -638,6 +638,20 @@ def update_model_configuration():
 @automated_extraction_bp.route('/pending_extractions')
 def pending_extractions():
     """Display pending extractions for review."""
+    # Ensure user is logged in
+    if not hasattr(current_user, 'is_authenticated') or not current_user.is_authenticated:
+        # Import Flask modules here to avoid circular import
+        from flask import flash, redirect, url_for
+        flash('You must be logged in to access this page.', 'warning')
+        return redirect(url_for('login', next=request.url))
+    
+    # Ensure user is admin
+    if not hasattr(current_user, 'is_admin') or not current_user.is_admin:
+        # Import Flask modules here to avoid circular import
+        from flask import flash, redirect, url_for
+        flash('You must be an admin to access this page.', 'danger')
+        return redirect(url_for('index'))
+    
     pending_list = PendingDataManager.get_pending_extractions()
     return render_template('pending_extractions.html', pending_extractions=pending_list)
 
