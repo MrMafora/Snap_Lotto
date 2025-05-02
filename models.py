@@ -75,10 +75,12 @@ class Screenshot(db.Model):
     url = db.Column(db.String(255), nullable=False)
     lottery_type = db.Column(db.String(50), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    capture_date = db.Column(db.DateTime, default=datetime.utcnow)  # Added for compatibility with new extraction system
-    path = db.Column(db.String(255), nullable=True)  # Path can be nullable now
-    filename = db.Column(db.String(255), nullable=True)  # For the new extraction system
-    zoomed_path = db.Column(db.String(255), nullable=True)  # Path to zoomed-in screenshot
+    # NOTE: capture_date and filename don't exist in the actual database
+    # These are commented out to match the actual database schema
+    # capture_date = db.Column(db.DateTime, default=datetime.utcnow)
+    # filename = db.Column(db.String(255), nullable=True)
+    path = db.Column(db.String(255), nullable=True)
+    zoomed_path = db.Column(db.String(255), nullable=True)
     processed = db.Column(db.Boolean, default=False)
     
     def __repr__(self):

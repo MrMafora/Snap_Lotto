@@ -1478,13 +1478,14 @@ def export_screenshots_zip():
                 if os.path.exists(screenshot.path):
                     # Get the file extension
                     _, ext = os.path.splitext(screenshot.path)
-                    # Create a unique filename for each screenshot
+                    # Create a unique filename for each screenshot based on path and timestamp
+                    # We don't use screenshot.filename since it doesn't exist in the database
                     lottery_type = screenshot.lottery_type.replace(' ', '_')
                     timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
-                    filename = f"{lottery_type}_{timestamp}{ext}"
+                    generated_filename = f"{lottery_type}_{timestamp}{ext}"
                     
                     # Add the screenshot to the ZIP file
-                    zf.write(screenshot.path, filename)
+                    zf.write(screenshot.path, generated_filename)
                     
                     # Add zoomed version if it exists
                     if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
