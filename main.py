@@ -399,8 +399,17 @@ def admin():
         flash('You must be an admin to access this page.', 'danger')
         return redirect(url_for('index'))
 
-    # Use our helper function to avoid non-existent columns
-    screenshots = get_screenshots_safe(order_by_column=Screenshot.timestamp, descending=True)
+    # Query screenshots directly with specific columns to avoid schema mismatch
+    screenshots = db.session.query(
+        Screenshot.id, 
+        Screenshot.url, 
+        Screenshot.lottery_type, 
+        Screenshot.timestamp, 
+        Screenshot.path, 
+        Screenshot.filename,
+        Screenshot.zoomed_path,
+        Screenshot.processed
+    ).order_by(Screenshot.timestamp.desc()).all()
     
     schedule_configs = ScheduleConfig.query.all()
 
@@ -1403,8 +1412,17 @@ def export_screenshots():
     # Define SEO metadata
     meta_description = "Export and manage South African lottery screenshots. Download captured lottery result images in various formats for analysis and record-keeping."
     
-    # Use our helper function to avoid non-existent columns
-    screenshots = get_screenshots_safe(order_by_column=Screenshot.timestamp, descending=True)
+    # Query screenshots directly with specific columns to avoid schema mismatch
+    screenshots = db.session.query(
+        Screenshot.id, 
+        Screenshot.url, 
+        Screenshot.lottery_type, 
+        Screenshot.timestamp, 
+        Screenshot.path, 
+        Screenshot.filename,
+        Screenshot.zoomed_path,
+        Screenshot.processed
+    ).order_by(Screenshot.timestamp.desc()).all()
     
     # Check for sync status in session
     sync_status = None
@@ -1437,8 +1455,17 @@ def export_screenshots_zip():
         import zipfile
         from datetime import datetime
         
-        # Get all screenshots
-        screenshots = get_screenshots_safe(order_by_column=Screenshot.lottery_type)
+        # Query screenshots directly with specific columns to avoid schema mismatch
+        screenshots = db.session.query(
+            Screenshot.id, 
+            Screenshot.url, 
+            Screenshot.lottery_type, 
+            Screenshot.timestamp, 
+            Screenshot.path, 
+            Screenshot.filename,
+            Screenshot.zoomed_path,
+            Screenshot.processed
+        ).order_by(Screenshot.lottery_type).all()
         
         if not screenshots:
             flash('No screenshots available to export.', 'warning')
