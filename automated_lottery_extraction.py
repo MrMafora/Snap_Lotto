@@ -671,12 +671,12 @@ def schedule_extraction_job():
     scheduler.remove_all_jobs()
     
     # Add the job to run at 2 AM SAST
-    trigger = CronTrigger(hour=2, minute=0, timezone=sa_timezone)
+    trigger = CronTrigger(hour=2, minute=0, timezone=SA_TIMEZONE)
     scheduler.add_job(run_extraction_process, trigger=trigger, id="lottery_extraction")
     
     # Also add a job to run daily model updates if needed
     # This ensures we're always using the latest available model
-    update_trigger = CronTrigger(hour=1, minute=0, timezone=sa_timezone)
+    update_trigger = CronTrigger(hour=1, minute=0, timezone=SA_TIMEZONE)
     scheduler.add_job(update_model_configuration, trigger=update_trigger, id="model_update")
     
     logger.info("Scheduled extraction job to run at 2:00 AM SAST")
