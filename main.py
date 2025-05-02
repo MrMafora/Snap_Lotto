@@ -360,7 +360,18 @@ def admin():
         flash('You must be an admin to access this page.', 'danger')
         return redirect(url_for('index'))
 
-    screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
+    # Use only columns that exist in the database to avoid errors
+    screenshots = db.session.query(
+        Screenshot.id, 
+        Screenshot.url, 
+        Screenshot.lottery_type, 
+        Screenshot.timestamp, 
+        Screenshot.path, 
+        Screenshot.filename,
+        Screenshot.zoomed_path,
+        Screenshot.processed
+    ).order_by(Screenshot.timestamp.desc()).all()
+    
     schedule_configs = ScheduleConfig.query.all()
 
     # Define breadcrumbs for SEO
@@ -1362,7 +1373,17 @@ def export_screenshots():
     # Define SEO metadata
     meta_description = "Export and manage South African lottery screenshots. Download captured lottery result images in various formats for analysis and record-keeping."
     
-    screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
+    # Use only columns that exist in the database to avoid errors
+    screenshots = db.session.query(
+        Screenshot.id, 
+        Screenshot.url, 
+        Screenshot.lottery_type, 
+        Screenshot.timestamp, 
+        Screenshot.path, 
+        Screenshot.filename,
+        Screenshot.zoomed_path,
+        Screenshot.processed
+    ).order_by(Screenshot.timestamp.desc()).all()
     
     # Check for sync status in session
     sync_status = None
