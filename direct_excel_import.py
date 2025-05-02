@@ -28,10 +28,18 @@ def normalize_lottery_type(lottery_type):
     
     # First, handle exact matches for special cases
     cleaned_type = str(lottery_type).strip()
+    
+    # Handle the exact matches from the Excel file
     if cleaned_type == 'PowerBall':
         return 'Powerball'
     elif cleaned_type == 'PowerBall PLUS':
         return 'Powerball Plus'
+    elif cleaned_type == 'Lottery Plus 1':
+        return 'Lottery Plus 1'
+    elif cleaned_type == 'Lottery Plus 2':
+        return 'Lottery Plus 2'
+    elif cleaned_type == 'Daily Lottery':
+        return 'Daily Lottery'
     
     # Convert to uppercase for case-insensitive matching
     upper_type = cleaned_type.upper()
@@ -185,15 +193,22 @@ def direct_excel_import(excel_path, app):
                             bonus_numbers = []
                             if not pd.isna(row.get('Bonus Ball')):
                                 bonus_str = str(row['Bonus Ball'])
-                                if bonus_str.strip().isdigit():
+                                
+                                # For Daily Lottery, the Bonus Ball is sometimes the division name "Five Correct Numbers"
+                                # Skip processing it as a bonus number in that case
+                                if 'daily' in lottery_type.lower() and ('five correct' in bonus_str.lower() or 'division' in bonus_str.lower()):
+                                    bonus_numbers = []
+                                elif bonus_str.strip().isdigit():
                                     bonus_numbers = [int(bonus_str.strip())]
                                 else:
                                     # Try to parse multiple bonus numbers
                                     for delimiter in [',', ' ', ';']:
                                         if delimiter in bonus_str:
                                             try:
-                                                bonus_numbers = [int(n.strip()) for n in bonus_str.split(delimiter) if n.strip().isdigit()]
-                                                if bonus_numbers:
+                                                numbers_from_str = [n.strip() for n in bonus_str.split(delimiter)]
+                                                digit_numbers = [int(n) for n in numbers_from_str if n.isdigit()]
+                                                if digit_numbers:
+                                                    bonus_numbers = digit_numbers
                                                     break
                                             except:
                                                 continue
