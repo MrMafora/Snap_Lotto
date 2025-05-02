@@ -1974,39 +1974,33 @@ class LotteryAnalyzer:
         try:
             from models import ModelTrainingHistory, db
             
-            # Group results by strategy and lottery type
-            strategy_results = {}
+            # Group results by lottery type only (since strategy column doesn't exist)
+            lottery_type_results = {}
             for result in verification_results:
-                strategy = result.get('strategy')
                 lottery_type = result.get('lottery_type')
-                if not strategy or not lottery_type:
+                if not lottery_type:
                     continue
                     
-                key = f"{lottery_type}_{strategy}"
-                if key not in strategy_results:
-                    strategy_results[key] = {
+                if lottery_type not in lottery_type_results:
+                    lottery_type_results[lottery_type] = {
                         'lottery_type': lottery_type,
-                        'strategy': strategy,
                         'count': 0,
                         'matches': 0,
                         'total_numbers': 0,
-                        'accuracy_sum': 0,
-                        'bonus_matches': 0
+                        'accuracy_sum': 0
                     }
                 
-                strategy_results[key]['count'] += 1
-                strategy_results[key]['matches'] += result.get('matches', 0)
-                strategy_results[key]['total_numbers'] += len(result.get('actual_numbers', []))
-                strategy_results[key]['accuracy_sum'] += result.get('accuracy', 0)
-                strategy_results[key]['bonus_matches'] += 1 if result.get('bonus_match', False) else 0
+                lottery_type_results[lottery_type]['count'] += 1
+                lottery_type_results[lottery_type]['matches'] += result.get('matches', 0)
+                lottery_type_results[lottery_type]['total_numbers'] += len(result.get('actual_numbers', []))
+                lottery_type_results[lottery_type]['accuracy_sum'] += result.get('accuracy', 0)
             
-            # Calculate performance metrics for each strategy
+            # Calculate performance metrics for each lottery type
             performance = []
-            for key, metrics in strategy_results.items():
-                # Check if we already have a record for this strategy and lottery type
+            for lottery_type, metrics in lottery_type_results.items():
+                # Check if we already have a record for this lottery type
                 history = ModelTrainingHistory.query.filter_by(
-                    lottery_type=metrics['lottery_type'],
-                    strategy=metrics['strategy']
+                    lottery_type=lottery_type
                 ).order_by(ModelTrainingHistory.training_date.desc()).first()
                 
                 # Calculate new metrics
@@ -2019,29 +2013,23 @@ class LotteryAnalyzer:
                 if history:
                     accuracy_change = accuracy - history.accuracy_score
                 
-                # Create a new history record
+                # Create a new history record with only the columns that exist in the database
                 new_history = ModelTrainingHistory(
-                    lottery_type=metrics['lottery_type'],
-                    strategy=metrics['strategy'],
+                    lottery_type=lottery_type,
                     model_version='1.0',  # Simple version tracking
                     training_date=datetime.now(),
                     training_data_size=count,
-                    total_predictions=count,
-                    matched_predictions=metrics['matches'],
-                    bonus_matches=metrics['bonus_matches'],
                     accuracy_score=accuracy,
                     error_rate=1.0 - accuracy,
-                    notes=f"Verification batch update for {metrics['strategy']} strategy on {metrics['lottery_type']}"
+                    notes=f"Verification batch update for {lottery_type}"
                 )
                 
                 db.session.add(new_history)
                 
                 performance.append({
-                    'lottery_type': metrics['lottery_type'],
-                    'strategy': metrics['strategy'],
+                    'lottery_type': lottery_type,
                     'accuracy': accuracy,
                     'total_accuracy': total_accuracy,
-                    'bonus_accuracy': metrics['bonus_matches'] / count if count > 0 else 0,
                     'predictions': count,
                     'matched_numbers': metrics['matches'],
                     'accuracy_change': accuracy_change,
@@ -2227,31 +2215,30 @@ def register_analysis_routes(app, db):
             except Exception as history_error:
                 logger.error(f"Error fetching prediction history: {history_error}")
             
-            # Get performance metrics for strategies
+            # Get performance metrics for lottery types instead of strategies since strategy column doesn't exist
             performance = {}
             try:
-                # Group by strategy, get the latest record for each
-                strategies = db.session.query(ModelTrainingHistory.strategy).distinct().all()
-                for strategy_row in strategies:
-                    strategy = strategy_row[0]
+                # Group by lottery_type instead of strategy (since strategy column doesn't exist)
+                lottery_types = db.session.query(ModelTrainingHistory.lottery_type).distinct().all()
+                for lt_row in lottery_types:
+                    lottery_type = lt_row[0]
                     latest = ModelTrainingHistory.query.filter_by(
-                        strategy=strategy
+                        lottery_type=lottery_type
                     ).order_by(ModelTrainingHistory.training_date.desc()).first()
                     
                     if latest:
                         # Calculate performance change between this record and previous one
                         prev_record = ModelTrainingHistory.query.filter_by(
-                            strategy=strategy
+                            lottery_type=lottery_type
                         ).order_by(ModelTrainingHistory.training_date.desc()).offset(1).first()
                         
                         accuracy_change = 0
                         if prev_record:
                             accuracy_change = latest.accuracy_score - prev_record.accuracy_score
                         
-                        performance[strategy] = {
+                        # Use lottery_type as key instead of strategy
+                        performance[lottery_type] = {
                             'accuracy': latest.accuracy_score,
-                            'total_predictions': latest.total_predictions,
-                            'matched_predictions': latest.matched_predictions,
                             'accuracy_change': accuracy_change,
                             'trend': 'improving' if accuracy_change > 0 else 
                                     'declining' if accuracy_change < 0 else 'stable'
@@ -2876,11 +2863,12 @@ def register_analysis_routes(app, db):
                     "Composite Model"
                 ]
             
-            # Get performance trend over time
+            # Get performance trend over time by lottery type instead of strategy
             performance_trends = {}
-            for s in strategies:
+            # Use lottery types instead of strategies
+            for lt in lottery_types:
                 trend_data = ModelTrainingHistory.query.filter_by(
-                    strategy=s
+                    lottery_type=lt[0]  # First element of the tuple
                 ).order_by(ModelTrainingHistory.training_date.asc()).all()
                 
                 if trend_data:
@@ -2889,19 +2877,16 @@ def register_analysis_routes(app, db):
                         trend_points.append({
                             'date': point.training_date.strftime('%Y-%m-%d'),
                             'accuracy': point.accuracy_score,
-                            'predictions': point.total_predictions,
-                            'matched': point.matched_predictions,
-                            'bonus_matches': point.bonus_matches,
                             'error_rate': point.error_rate
                         })
                     
-                    performance_trends[s] = trend_points
+                    performance_trends[lt[0]] = trend_points
             
             return render_template(
                 'admin/prediction_history.html',
                 results=results,
                 lottery_types=lottery_types,
-                strategies=strategies,
+                strategies=lottery_types,  # Just use lottery types instead of strategies
                 selected_type=lottery_type,
                 selected_strategy=strategy,
                 selected_days=days,

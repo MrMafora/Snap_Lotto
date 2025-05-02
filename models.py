@@ -645,13 +645,15 @@ class ModelTrainingHistory(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     lottery_type = db.Column(db.String(50), nullable=False)
-    strategy = db.Column(db.String(50), nullable=True)  # Prediction strategy used
+    # strategy column doesn't exist in the actual database, so it's commented out
+    # strategy = db.Column(db.String(50), nullable=True)  # Prediction strategy used
     model_version = db.Column(db.String(20), nullable=False)
     training_date = db.Column(db.DateTime, default=datetime.utcnow)
     training_data_size = db.Column(db.Integer, nullable=False)  # Number of draws used for training
-    total_predictions = db.Column(db.Integer, default=0)  # Total predictions evaluated 
-    matched_predictions = db.Column(db.Integer, default=0)  # Total numbers matched across all predictions
-    bonus_matches = db.Column(db.Integer, default=0)  # Total bonus number matches
+    # These columns don't exist in the actual database, so they're commented out
+    # total_predictions = db.Column(db.Integer, default=0)  # Total predictions evaluated 
+    # matched_predictions = db.Column(db.Integer, default=0)  # Total numbers matched across all predictions
+    # bonus_matches = db.Column(db.Integer, default=0)  # Total bonus number matches
     accuracy_score = db.Column(db.Float, nullable=False)  # Model accuracy score
     error_rate = db.Column(db.Float, nullable=False)  # Model error rate
     features_used = db.Column(db.Text, nullable=True)  # JSON string of features used in training
@@ -659,7 +661,7 @@ class ModelTrainingHistory(db.Model):
     notes = db.Column(db.Text, nullable=True)  # Any notes about this training run
     
     def __repr__(self):
-        return f"<ModelTrainingHistory {self.id}: {self.lottery_type} - {self.strategy} v{self.model_version}, Accuracy: {self.accuracy_score}>"
+        return f"<ModelTrainingHistory {self.id}: {self.lottery_type} v{self.model_version}, Accuracy: {self.accuracy_score}>"
     
     def get_features_list(self):
         """Return features used as a Python list"""
@@ -678,13 +680,9 @@ class ModelTrainingHistory(db.Model):
         return {
             'id': self.id,
             'lottery_type': self.lottery_type,
-            'strategy': self.strategy,
             'model_version': self.model_version,
             'training_date': self.training_date.isoformat(),
             'training_data_size': self.training_data_size,
-            'total_predictions': self.total_predictions,
-            'matched_predictions': self.matched_predictions,
-            'bonus_matches': self.bonus_matches,
             'accuracy_score': self.accuracy_score,
             'error_rate': self.error_rate,
             'features_used': self.get_features_list(),
