@@ -2902,4 +2902,37 @@ def register_analysis_routes(app, db):
         """Serve generated analysis images"""
         return send_from_directory(STATIC_DIR, filename)
     
+    @app.route('/admin/generate-predictions')
+    @login_required
+    def admin_generate_predictions():
+        """Admin route to manually generate predictions for all lottery types"""
+        if not current_user.is_admin:
+            return redirect(url_for('index'))
+        
+        try:
+            total_predictions = 0
+            results = {}
+            
+            # Generate predictions for each lottery type
+            for lottery_type in analyzer.lottery_types:
+                prediction = analyzer.predict_next_draw(lottery_type, save_to_db=True)
+                if 'error' not in prediction:
+                    recommendations = prediction.get('recommendations', [])
+                    results[lottery_type] = f"Generated {len(recommendations)} predictions"
+                    total_predictions += len(recommendations)
+                else:
+                    results[lottery_type] = f"Error: {prediction['error']}"
+            
+            if total_predictions > 0:
+                flash(f"Successfully generated {total_predictions} predictions across all lottery types", "success")
+            else:
+                flash("No predictions were generated. Check logs for errors.", "warning")
+                
+            return render_template('admin/generate_predictions.html', 
+                                 title="Generate Predictions",
+                                 results=results)
+        except Exception as e:
+            flash(f"Error generating predictions: {str(e)}", "danger")
+            return redirect(url_for('admin_dashboard'))
+    
     logger.info("Lottery analysis routes registered")
