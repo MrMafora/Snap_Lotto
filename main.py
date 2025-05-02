@@ -57,16 +57,13 @@ def get_screenshots_safe(order_by_column=None, descending=False):
     )
     
     # Always apply an order, defaulting to ID if nothing specified
+    if order_by_column is None:
+        order_by_column = Screenshot.id
+        
     if descending:
-        if order_by_column:
-            query = query.order_by(order_by_column.desc())
-        else:
-            query = query.order_by(Screenshot.id.desc())
+        query = query.order_by(order_by_column.desc())
     else:
-        if order_by_column:
-            query = query.order_by(order_by_column)
-        else:
-            query = query.order_by(Screenshot.id)
+        query = query.order_by(order_by_column.asc())
         
     return query.all()
 
@@ -397,38 +394,44 @@ def index():
 @login_required
 def admin():
     """Admin dashboard page"""
-    if not current_user.is_admin:
-        flash('You must be an admin to access this page.', 'danger')
-        return redirect(url_for('index'))
-
-    # Query screenshots directly with specific columns to avoid schema mismatch
-    screenshots = db.session.query(
-        Screenshot.id, 
-        Screenshot.url, 
-        Screenshot.lottery_type, 
-        Screenshot.timestamp, 
-        Screenshot.path, 
+    try:
+        logger.info("Admin dashboard accessed by: %s", current_user.username if current_user.is_authenticated else "Unauthenticated user")
         
-        Screenshot.zoomed_path,
-        Screenshot.processed
-    ).order_by(Screenshot.timestamp.desc()).all()
-    
-    schedule_configs = ScheduleConfig.query.all()
+        if not current_user.is_admin:
+            flash('You must be an admin to access this page.', 'danger')
+            logger.warning("Non-admin user attempted to access admin dashboard: %s", current_user.username)
+            return redirect(url_for('index'))
 
-    # Define breadcrumbs for SEO
-    breadcrumbs = [
-        {"name": "Admin Dashboard", "url": url_for('admin')}
-    ]
+        logger.info("Admin user verified, querying data for dashboard")
+        
+        # Use the safe screenshots query function
+        screenshots = get_screenshots_safe(order_by_column=Screenshot.timestamp, descending=True)
+        logger.info("Retrieved %d screenshots", len(screenshots))
+        
+        # Get schedule configs
+        schedule_configs = ScheduleConfig.query.all()
+        logger.info("Retrieved %d schedule configs", len(schedule_configs))
 
-    # Define SEO metadata
-    meta_description = "Admin dashboard for the South African lottery results system. Manage data, screenshots, schedule configurations, and system settings."
-    
-    return render_template('admin/dashboard.html', 
-                          screenshots=screenshots,
-                          schedule_configs=schedule_configs,
-                          title="Admin Dashboard | Lottery Results Management",
-                          breadcrumbs=breadcrumbs,
-                          meta_description=meta_description)
+        # Define breadcrumbs for SEO
+        breadcrumbs = [
+            {"name": "Admin Dashboard", "url": url_for('admin')}
+        ]
+
+        # Define SEO metadata
+        meta_description = "Admin dashboard for the South African lottery results system. Manage data, screenshots, schedule configurations, and system settings."
+        
+        logger.info("Rendering admin dashboard template")
+        return render_template('admin/dashboard.html', 
+                              screenshots=screenshots,
+                              schedule_configs=schedule_configs,
+                              title="Admin Dashboard | Lottery Results Management",
+                              breadcrumbs=breadcrumbs,
+                              meta_description=meta_description)
+    except Exception as e:
+        logger.error("Error in admin dashboard: %s", str(e))
+        logger.error(traceback.format_exc())
+        flash(f'An error occurred: {str(e)}', 'danger')
+        return redirect(url_for('index'))
 
 @app.route('/login', methods=['GET', 'POST'])
 @csrf.exempt
