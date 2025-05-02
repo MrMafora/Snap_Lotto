@@ -159,6 +159,44 @@ class ScheduleConfig(db.Model):
     
     def __repr__(self):
         return f"<ScheduleConfig {self.lottery_type}: {self.frequency} at {self.hour}:{self.minute}>"
+        
+class PendingExtraction(db.Model):
+    """Model for storing pending data extractions waiting for review"""
+    id = db.Column(db.Integer, primary_key=True)
+    lottery_type = db.Column(db.String(50), nullable=False)
+    draw_number = db.Column(db.String(20), nullable=True)
+    extraction_date = db.Column(db.DateTime, default=datetime.utcnow)
+    review_date = db.Column(db.DateTime, nullable=True)
+    screenshot_id = db.Column(db.Integer, db.ForeignKey('screenshot.id'), nullable=True)
+    raw_data = db.Column(db.Text, nullable=False)  # JSON dump of extracted data
+    reviewed = db.Column(db.Boolean, default=False)
+    approved = db.Column(db.Boolean, nullable=True)
+    rejection_reason = db.Column(db.Text, nullable=True)
+    
+    # Relationships
+    screenshot = db.relationship('Screenshot', backref='pending_extractions')
+    
+    def __repr__(self):
+        return f"<PendingExtraction {self.lottery_type} - Draw #{self.draw_number}>"
+        
+    def to_dict(self):
+        """Convert model to dictionary for API responses"""
+        try:
+            data = json.loads(self.raw_data)
+        except:
+            data = {}
+            
+        return {
+            'id': self.id,
+            'lottery_type': self.lottery_type,
+            'draw_number': self.draw_number,
+            'extraction_date': self.extraction_date.isoformat() if self.extraction_date else None,
+            'review_date': self.review_date.isoformat() if self.review_date else None,
+            'reviewed': self.reviewed,
+            'approved': self.approved,
+            'rejection_reason': self.rejection_reason,
+            'data': data
+        }
 
 class Campaign(DuplicateCheckMixin, db.Model):
     """Model for grouping advertisements into campaigns"""

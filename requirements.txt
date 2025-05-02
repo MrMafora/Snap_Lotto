@@ -34,3 +34,4 @@ openpyxl
 pandas
 trafilatura
 playwright
+anthropic
