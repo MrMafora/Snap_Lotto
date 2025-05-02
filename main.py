@@ -404,13 +404,60 @@ def admin():
 
         logger.info("Admin user verified, querying data for dashboard")
         
-        # Use the safe screenshots query function
-        screenshots = get_screenshots_safe(order_by_column=Screenshot.timestamp, descending=True)
-        logger.info("Retrieved %d screenshots", len(screenshots))
+        try:
+            # Use the safe screenshots query function
+            screenshots = get_screenshots_safe(order_by_column=Screenshot.timestamp, descending=True)
+            logger.info("Retrieved %d screenshots", len(screenshots))
+        except Exception as e:
+            logger.error(f"Error retrieving screenshots: {e}")
+            screenshots = []
+            flash(f"Error retrieving screenshots: {str(e)}", "warning")
         
-        # Get schedule configs
-        schedule_configs = ScheduleConfig.query.all()
-        logger.info("Retrieved %d schedule configs", len(schedule_configs))
+        try:
+            # Get schedule configs
+            schedule_configs = ScheduleConfig.query.all()
+            logger.info("Retrieved %d schedule configs", len(schedule_configs))
+        except Exception as e:
+            logger.error(f"Error retrieving schedule configs: {e}")
+            schedule_configs = []
+            flash(f"Error retrieving schedule configs: {str(e)}", "warning")
+
+        # Get recent imports
+        try:
+            recent_imports = ImportHistory.query.order_by(ImportHistory.import_date.desc()).limit(5).all()
+            logger.info("Retrieved %d recent imports", len(recent_imports))
+        except Exception as e:
+            logger.error(f"Error retrieving recent imports: {e}")
+            recent_imports = []
+            flash(f"Error retrieving recent imports: {str(e)}", "warning")
+
+        # Get recent health alerts
+        try:
+            if 'HealthAlert' in globals():
+                recent_alerts = HealthAlert.query.filter_by(resolved=False).order_by(HealthAlert.created_at.desc()).limit(5).all()
+                logger.info("Retrieved %d recent health alerts", len(recent_alerts))
+            else:
+                logger.warning("HealthAlert model not available")
+                recent_alerts = []
+        except Exception as e:
+            logger.error(f"Error retrieving health alerts: {e}")
+            recent_alerts = []
+            flash(f"Error retrieving health alerts: {str(e)}", "warning")
+
+        # Get prediction counts for each lottery type
+        try:
+            prediction_counts = {}
+            for lottery_type in ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lottery']:
+                try:
+                    count = LotteryPrediction.query.filter_by(lottery_type=lottery_type).count()
+                    prediction_counts[lottery_type] = count
+                except Exception as e:
+                    logger.error(f"Error counting predictions for {lottery_type}: {e}")
+                    prediction_counts[lottery_type] = 0
+            logger.info("Retrieved prediction counts for lottery types")
+        except Exception as e:
+            logger.error(f"Error retrieving prediction counts: {e}")
+            prediction_counts = {}
 
         # Define breadcrumbs for SEO
         breadcrumbs = [
@@ -424,6 +471,9 @@ def admin():
         return render_template('admin/dashboard.html', 
                               screenshots=screenshots,
                               schedule_configs=schedule_configs,
+                              recent_imports=recent_imports,
+                              recent_alerts=recent_alerts,
+                              prediction_counts=prediction_counts,
                               title="Admin Dashboard | Lottery Results Management",
                               breadcrumbs=breadcrumbs,
                               meta_description=meta_description)
