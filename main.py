@@ -75,6 +75,8 @@ import scheduler  # Import directly at the top level for screenshot functions
 import create_template  # Import directly for template creation
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory, send_file, session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
+from flask_wtf import FlaskForm
+from wtforms import StringField, IntegerField, SelectField, BooleanField, SubmitField, HiddenField
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -82,7 +84,7 @@ from werkzeug.utils import secure_filename
 from csrf_fix import EnhancedCSRFProtect
 
 # Import models only (lightweight)
-from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, db
+from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, LotteryPrediction, PredictionResult, ModelTrainingHistory, db
 from config import Config
 
 # Import modules
@@ -3061,6 +3063,9 @@ def import_missing_draws_route():
                               success=False,
                               stats={},
                               error=f"Error: {str(e)}")
+
+# Class for lottery prediction generation form - unused now, we're using the existing route
+# from lottery_analysis.py instead
 
 # When running directly, not through gunicorn
 if __name__ == "__main__":
