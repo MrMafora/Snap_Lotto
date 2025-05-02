@@ -1,58 +1,237 @@
-{% extends "admin/base.html" %}
+{% extends "base.html" %}
+
+{% block title %}Generate Lottery Predictions | Snap Lotto{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1>{{ title }}</h1>
-    
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header lottery-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">GENERATE LOTTERY PREDICTIONS</h4>
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
                 </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-    
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Prediction Results</h5>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    This tool generates predictions for upcoming lottery draws using historical data patterns and machine learning algorithms.
+                </p>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> Predictions are based on historical patterns and statistical analysis. They do not guarantee winning numbers.
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            {% if results %}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">PREDICTION SETTINGS</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('admin_generate_predictions') }}" method="post">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label for="lottery_type" class="form-label">Lottery Type</label>
+                        <select name="lottery_type" id="lottery_type" class="form-control" required>
+                            <option value="">Select Lottery Type</option>
+                            <option value="POWERBALL">PowerBall</option>
+                            <option value="POWERBALL PLUS">PowerBall Plus</option>
+                            <option value="LOTTO">Lotto</option>
+                            <option value="LOTTO PLUS 1">Lotto Plus 1</option>
+                            <option value="LOTTO PLUS 2">Lotto Plus 2</option>
+                            <option value="DAILY LOTTO">Daily Lotto</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="days" class="form-label">Historical Data (Days)</label>
+                        <select name="days" id="days" class="form-control">
+                            <option value="30">Last 30 days</option>
+                            <option value="90">Last 90 days</option>
+                            <option value="180">Last 180 days</option>
+                            <option value="365" selected>Last 365 days</option>
+                            <option value="730">Last 2 years</option>
+                            <option value="1095">Last 3 years</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="advanced_model" id="advanced_model" checked>
+                            <label class="form-check-label" for="advanced_model">
+                                Use advanced modeling techniques
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-magic me-1"></i> Generate Predictions
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">GENERATION HISTORY</h5>
+            </div>
+            <div class="card-body">
+                {% if generation_history %}
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped table-hover">
                         <thead>
                             <tr>
                                 <th>Lottery Type</th>
-                                <th>Result</th>
+                                <th>Date Generated</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for lottery_type, result in results.items() %}
-                                <tr>
-                                    <td>{{ lottery_type }}</td>
-                                    <td>{{ result }}</td>
-                                </tr>
+                            {% for item in generation_history %}
+                            <tr>
+                                <td>{{ item.lottery_type }}</td>
+                                <td>{{ item.created_at }}</td>
+                                <td>
+                                    {% if item.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                    {% elif item.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Failed</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-            {% else %}
-                <p class="text-center">No predictions were generated.</p>
-            {% endif %}
-        </div>
-    </div>
-    
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <a href="{{ url_for('lottery_predictions') }}" class="btn btn-primary">View Predictions</a>
-        </div>
-        <div class="col-md-6 text-end">
-            <a href="{{ url_for('admin_generate_predictions') }}" class="btn btn-success">Generate Again</a>
-            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i> No prediction generation history found.
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
+
+{% if result %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">PREDICTION RESULTS</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i> Predictions successfully generated for {{ result.lottery_type }}!
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="card-title mb-0">PREDICTED MAIN NUMBERS</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-around">
+                                    {% for number in result.main_numbers %}
+                                    <div class="lottery-ball">{{ number }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if result.bonus_number is not none %}
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header bg-warning text-white">
+                                <h6 class="card-title mb-0">PREDICTED BONUS NUMBER</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-center">
+                                    <div class="lottery-ball bonus-ball">{{ result.bonus_number }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="card-title mb-0">PREDICTION DETAILS</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Lottery Type
+                                        <span class="badge bg-primary rounded-pill">{{ result.lottery_type }}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Estimated Next Draw Date
+                                        <span class="badge bg-primary rounded-pill">{{ result.next_draw_date }}</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Confidence Score
+                                        <span class="badge bg-primary rounded-pill">{{ result.confidence }}%</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Historical Data Analyzed
+                                        <span class="badge bg-primary rounded-pill">{{ result.data_analyzed }} draws</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('lottery_predictions') }}" class="btn btn-primary">
+                        <i class="fas fa-chart-line me-1"></i> View All Predictions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i> {{ error }}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Initialize any interactive elements
+        $('#lottery_type').on('change', function() {
+            // You can add dynamic behavior based on lottery type selection here
+        });
+    });
+</script>
 {% endblock %}
