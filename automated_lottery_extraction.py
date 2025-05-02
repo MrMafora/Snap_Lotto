@@ -28,7 +28,8 @@ from typing import Dict, List, Union, Any, Optional, Tuple
 
 import anthropic
 from anthropic import Anthropic
-from PIL import Image
+# We removed the PIL import since we're not using images anymore
+from bs4 import BeautifulSoup
 from flask import Blueprint, Flask, request, render_template, redirect, url_for, flash, jsonify, current_app, abort
 from flask_login import current_user, login_required
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -58,7 +59,10 @@ anthropic_client = Anthropic(api_key=anthropic_api_key)
 MODEL = "claude-3-7-sonnet-20240307"  # Using Claude 3.7 Sonnet as specified
 
 # South African timezone
-sa_timezone = pytz.timezone('Africa/Johannesburg')
+SA_TIMEZONE = pytz.timezone('Africa/Johannesburg')
+
+# Screenshot directory
+SCREENSHOT_DIR = Config.SCREENSHOT_DIR
 
 # URLs for lottery results
 LOTTERY_URLS = Config.RESULTS_URLS
@@ -69,91 +73,145 @@ class LotteryScreenshotManager:
     @staticmethod
     def capture_lottery_screenshots() -> List[Dict[str, Any]]:
         """
-        Capture screenshots from all lottery results websites.
+        Capture lottery results data using requests instead of screenshots.
         
         Returns:
-            List[Dict[str, Any]]: List of dictionaries with screenshot information
+            List[Dict[str, Any]]: List of dictionaries with lottery data information
         """
         screenshots = []
         
-        from playwright.sync_api import sync_playwright
+        # Use requests and BeautifulSoup instead of Playwright
+        import requests
+        from bs4 import BeautifulSoup
+        
+        # Headers to mimic a real browser
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
         
         try:
-            with sync_playwright() as playwright:
-                browser = playwright.chromium.launch()
-                page = browser.new_page()
+            for url_info in LOTTERY_URLS:
+                url = url_info['url']
+                lottery_type = url_info['lottery_type']
                 
-                for url_info in LOTTERY_URLS:
-                    url = url_info['url']
-                    lottery_type = url_info['lottery_type']
+                try:
+                    logger.info(f"Capturing HTML content for {lottery_type} from {url}")
+                    response = requests.get(url, headers=headers, timeout=30)
                     
+                    if response.status_code != 200:
+                        logger.error(f"Failed to retrieve page for {lottery_type}. Status code: {response.status_code}")
+                        continue
+                    
+                    html_content = response.text
+                    
+                    # Parse HTML with BeautifulSoup
+                    soup = BeautifulSoup(html_content, 'html.parser')
+                    
+                    # Extract the main content area
+                    main_content = soup.find('main') or soup.find('div', class_='content') or soup
+                    simplified_content = main_content.get_text(separator='\n', strip=True)
+                    
+                    # Save both HTML and text to file system for backup
+                    os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+                    timestamp = datetime.now(SA_TIMEZONE).strftime("%Y%m%d_%H%M%S")
+                    html_filename = f"{lottery_type.replace(' ', '_').lower()}_{timestamp}.html"
+                    html_path = os.path.join(SCREENSHOT_DIR, html_filename)
+                    
+                    with open(html_path, "w", encoding='utf-8') as f:
+                        f.write(html_content)
+                    
+                    # Also save a text version for easier review
+                    text_filename = f"{lottery_type.replace(' ', '_').lower()}_{timestamp}.txt"
+                    text_path = os.path.join(SCREENSHOT_DIR, text_filename)
+                    
+                    with open(text_path, "w", encoding='utf-8') as f:
+                        f.write(simplified_content)
+                    
+                    # Create "screenshot" record in database 
+                    # We're reusing the Screenshot model but storing HTML content instead
+                    screenshot = Screenshot(
+                        url=url,
+                        lottery_type=lottery_type,
+                        timestamp=datetime.now(SA_TIMEZONE),
+                        path=html_path,
+                        zoomed_path=text_path,  # Store text content path in zoomed_path
+                        processed=False
+                    )
+                    db.session.add(screenshot)
+                    db.session.commit()
+                    
+                    # For Claude processing we'll need base64 encoded content
+                    html_base64 = base64.b64encode(html_content.encode('utf-8')).decode('utf-8')
+                    
+                    screenshots.append({
+                        "id": screenshot.id,
+                        "lottery_type": lottery_type,
+                        "url": url,
+                        "path": html_path,
+                        "zoomed_path": text_path,
+                        "data": html_base64,
+                        "html_content": html_content,
+                        "text_content": simplified_content
+                    })
+                    
+                    logger.info(f"Successfully captured and saved content for {lottery_type}")
+                    
+                except Exception as e:
+                    logger.error(f"Error capturing content for {lottery_type}: {e}")
+                    logger.error(traceback.format_exc())
+                    
+                    # Try to use most recent existing data as fallback
                     try:
-                        logger.info(f"Capturing screenshot for {lottery_type} from {url}")
-                        page.goto(url, wait_until="networkidle", timeout=60000)
-                        
-                        # Wait for lottery results to load
-                        page.wait_for_selector(".lottery-results", timeout=30000)
-                        
-                        # Take screenshot
-                        screenshot_data = page.screenshot(type="png")
-                        
-                        # Save screenshot to file system for backup
-                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        filename = f"screenshots/{lottery_type.replace(' ', '_')}_{timestamp}.png"
-                        os.makedirs(os.path.dirname(filename), exist_ok=True)
-                        with open(filename, "wb") as f:
-                            f.write(screenshot_data)
-                        
-                        # Create Screenshot record in database
-                        screenshot = Screenshot(
+                        existing_screenshot = Screenshot.query.filter_by(
                             lottery_type=lottery_type,
-                            capture_date=datetime.utcnow(),
-                            url=url,
-                            filename=filename,
-                            processed=False
-                        )
-                        db.session.add(screenshot)
-                        db.session.commit()
+                            processed=True
+                        ).order_by(Screenshot.timestamp.desc()).first()
                         
-                        screenshots.append({
-                            "id": screenshot.id,
-                            "lottery_type": lottery_type,
-                            "filename": filename,
-                            "data": screenshot_data
-                        })
-                        
-                        logger.info(f"Successfully captured and saved screenshot for {lottery_type}")
-                    
-                    except Exception as e:
-                        logger.error(f"Error capturing screenshot for {lottery_type}: {e}")
-                        logger.error(traceback.format_exc())
-                        
-                        # Try to use most recent existing screenshot as fallback
-                        try:
-                            existing_screenshot = Screenshot.query.filter_by(
-                                lottery_type=lottery_type,
-                                processed=True
-                            ).order_by(Screenshot.capture_date.desc()).first()
+                        if existing_screenshot and os.path.exists(existing_screenshot.path):
+                            logger.info(f"Using existing data as fallback for {lottery_type}")
                             
-                            if existing_screenshot and os.path.exists(existing_screenshot.filename):
-                                logger.info(f"Using existing screenshot as fallback for {lottery_type}")
-                                with open(existing_screenshot.filename, "rb") as f:
-                                    screenshot_data = f.read()
+                            # Check if this is HTML or image
+                            if existing_screenshot.path.endswith('.html'):
+                                with open(existing_screenshot.path, "r", encoding='utf-8') as f:
+                                    html_content = f.read()
+                                html_base64 = base64.b64encode(html_content.encode('utf-8')).decode('utf-8')
+                                
+                                # Also get the text content if available
+                                text_content = ""
+                                if existing_screenshot.zoomed_path and os.path.exists(existing_screenshot.zoomed_path):
+                                    with open(existing_screenshot.zoomed_path, "r", encoding='utf-8') as f:
+                                        text_content = f.read()
                                 
                                 screenshots.append({
                                     "id": existing_screenshot.id,
                                     "lottery_type": lottery_type,
-                                    "filename": existing_screenshot.filename,
-                                    "data": screenshot_data,
+                                    "url": url,
+                                    "path": existing_screenshot.path,
+                                    "zoomed_path": existing_screenshot.zoomed_path,
+                                    "data": html_base64,
+                                    "html_content": html_content,
+                                    "text_content": text_content,
                                     "is_fallback": True
                                 })
                             else:
-                                logger.error(f"No fallback screenshot available for {lottery_type}")
-                        
-                        except Exception as fallback_error:
-                            logger.error(f"Error using fallback screenshot for {lottery_type}: {fallback_error}")
-                
-                browser.close()
+                                # If it's an image, read as binary
+                                with open(existing_screenshot.path, "rb") as f:
+                                    screenshot_data = f.read()
+                                    
+                                screenshots.append({
+                                    "id": existing_screenshot.id,
+                                    "lottery_type": lottery_type,
+                                    "url": url,
+                                    "path": existing_screenshot.path,
+                                    "zoomed_path": existing_screenshot.zoomed_path,
+                                    "data": base64.b64encode(screenshot_data).decode('utf-8'),
+                                    "is_fallback": True
+                                })
+                        else:
+                            logger.error(f"No fallback data available for {lottery_type}")
+                            
+                    except Exception as fallback_error:
+                        logger.error(f"Error using fallback data for {lottery_type}: {fallback_error}")
         
         except Exception as e:
             logger.error(f"Error in capture_lottery_screenshots: {e}")
@@ -167,25 +225,28 @@ class LotteryDataExtractor:
     @staticmethod
     def extract_data_from_screenshot(screenshot: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Extract lottery data from a screenshot using Claude's vision API.
+        Extract lottery data from HTML content using Claude API.
         
         Args:
-            screenshot (Dict[str, Any]): Screenshot information including data and lottery type
+            screenshot (Dict[str, Any]): Content information including HTML data and lottery type
             
         Returns:
             Dict[str, Any]: Extracted lottery data
         """
         lottery_type = screenshot["lottery_type"]
-        screenshot_data = screenshot["data"]
         screenshot_id = screenshot["id"]
         
         try:
-            # Encode the image as base64
-            base64_image = base64.b64encode(screenshot_data).decode('utf-8')
+            # We'll use the base64 data that was already prepared
+            base64_content = screenshot["data"]
             
-            # Define the prompt for Claude vision
+            # Check if we have additional text content
+            has_text_content = "text_content" in screenshot and screenshot["text_content"]
+            text_content = screenshot.get("text_content", "")
+            
+            # Define the prompt for Claude
             system_prompt = """
-            You are a lottery data extraction expert. Your task is to extract structured lottery data from screenshots of South African lottery results.
+            You are a lottery data extraction expert. Your task is to extract structured lottery data from South African lottery results HTML/text.
             
             Follow these precise guidelines:
             1. Extract the exact lottery type, draw number, draw date, winning numbers, and bonus ball/powerball.
@@ -193,6 +254,7 @@ class LotteryDataExtractor:
             3. Format all data as a JSON object with specific fields.
             4. Maintain proper data types (numbers as integers, dates as ISO format strings).
             5. Be extremely precise with numbers - they must be exactly as shown.
+            6. For draw dates, ensure they are in ISO format YYYY-MM-DD.
             
             Return ONLY a valid JSON object with the following structure:
             {
@@ -210,18 +272,28 @@ class LotteryDataExtractor:
             """
             
             user_prompt = f"""
-            This is a screenshot of South African {lottery_type} results. Please extract the following information:
+            This is South African {lottery_type} results data. Please extract the following information:
             
             1. Draw Number
             2. Draw Date
             3. Winning Numbers
-            4. Bonus Ball/Powerball
+            4. Bonus Ball/Powerball (if applicable)
             5. Division details (winners and prize amounts)
             
             Return only a valid, properly formatted JSON object according to the specified structure.
             """
             
-            # Make the API call to Claude vision
+            # Prepare the content for Claude
+            content = [{"type": "text", "text": user_prompt}]
+            
+            # If we have text content, add it
+            if has_text_content:
+                content.append({
+                    "type": "text", 
+                    "text": f"Extracted text content:\n\n{text_content}"
+                })
+            
+            # Make the API call to Claude
             response = anthropic_client.messages.create(
                 model=MODEL,
                 max_tokens=2000,
@@ -230,20 +302,7 @@ class LotteryDataExtractor:
                 messages=[
                     {
                         "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": user_prompt
-                            },
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": "image/png",
-                                    "data": base64_image
-                                }
-                            }
-                        ]
+                        "content": content
                     }
                 ]
             )

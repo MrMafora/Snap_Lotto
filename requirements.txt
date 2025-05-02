@@ -37,3 +37,4 @@ playwright
 anthropic
 flask-login
 flask-wtf
+beautifulsoup4
