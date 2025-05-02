@@ -35,3 +35,5 @@ pandas
 trafilatura
 playwright
 anthropic
+flask-login
+flask-wtf
