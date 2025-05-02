@@ -1724,9 +1724,12 @@ def sync_all_screenshots():
         return redirect(url_for('index'))
     
     try:
+        app.logger.info("Starting screenshot sync process")
         # Use the scheduler module imported at the top level to retake all screenshots
         # Don't use threading for UI operations to ensure synchronous behavior
         count = scheduler.retake_all_screenshots(app, use_threading=False)
+        
+        app.logger.info(f"Screenshot sync completed with count: {count}")
         
         # Store status in session for display on next page load
         if count > 0:
@@ -1741,6 +1744,8 @@ def sync_all_screenshots():
             }
     except Exception as e:
         app.logger.error(f"Error syncing screenshots: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
         session['sync_status'] = {
             'status': 'danger',
             'message': f'Error syncing screenshots: {str(e)}'
