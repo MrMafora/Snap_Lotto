@@ -32,14 +32,15 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Define a helper function to get Screenshots without accessing non-existent columns
-def get_screenshots_safe(order_by=None):
+def get_screenshots_safe(order_by_column=None, descending=False):
     """
     Get screenshots without accessing non-existent columns.
     This function is a workaround for the schema mismatch where the model has capture_date
     but the actual database doesn't.
     
     Args:
-        order_by: Optional SQLAlchemy order_by expression
+        order_by_column: Optional column to order by (e.g., Screenshot.timestamp)
+        descending: Whether to order in descending order
         
     Returns:
         List of Screenshot objects with only existing columns
@@ -55,8 +56,11 @@ def get_screenshots_safe(order_by=None):
         Screenshot.processed
     )
     
-    if order_by:
-        query = query.order_by(order_by)
+    if order_by_column is not None:
+        if descending:
+            query = query.order_by(order_by_column.desc())
+        else:
+            query = query.order_by(order_by_column)
         
     return query.all()
 
@@ -390,7 +394,7 @@ def admin():
         return redirect(url_for('index'))
 
     # Use our helper function to avoid non-existent columns
-    screenshots = get_screenshots_safe(order_by=Screenshot.timestamp.desc())
+    screenshots = get_screenshots_safe(order_by_column=Screenshot.timestamp, descending=True)
     
     schedule_configs = ScheduleConfig.query.all()
 
@@ -1394,7 +1398,7 @@ def export_screenshots():
     meta_description = "Export and manage South African lottery screenshots. Download captured lottery result images in various formats for analysis and record-keeping."
     
     # Use our helper function to avoid non-existent columns
-    screenshots = get_screenshots_safe(order_by=Screenshot.timestamp.desc())
+    screenshots = get_screenshots_safe(order_by_column=Screenshot.timestamp, descending=True)
     
     # Check for sync status in session
     sync_status = None
@@ -1428,7 +1432,7 @@ def export_screenshots_zip():
         from datetime import datetime
         
         # Get all screenshots
-        screenshots = get_screenshots_safe(order_by=Screenshot.lottery_type)
+        screenshots = get_screenshots_safe(order_by_column=Screenshot.lottery_type)
         
         if not screenshots:
             flash('No screenshots available to export.', 'warning')
