@@ -56,11 +56,17 @@ def get_screenshots_safe(order_by_column=None, descending=False):
         Screenshot.processed
     )
     
-    if order_by_column is not None:
-        if descending:
+    # Always apply an order, defaulting to ID if nothing specified
+    if descending:
+        if order_by_column:
             query = query.order_by(order_by_column.desc())
         else:
+            query = query.order_by(Screenshot.id.desc())
+    else:
+        if order_by_column:
             query = query.order_by(order_by_column)
+        else:
+            query = query.order_by(Screenshot.id)
         
     return query.all()
 
