@@ -555,7 +555,15 @@ def capture_screenshot(url, lottery_type=None):
         # Use the sync method instead of async to avoid event loop issues
         filepath, screenshot_data, zoom_filepath = capture_screenshot_sync(url)
         
-        if filepath and screenshot_data:
+        # Verify that screenshot files actually exist before proceeding
+        if filepath and screenshot_data and os.path.isfile(filepath):
+            logger.info(f"Screenshot file verified at {filepath}")
+            
+            # Also verify zoomed screenshot if applicable
+            if zoom_filepath and not os.path.isfile(zoom_filepath):
+                logger.warning(f"Zoomed screenshot file not found at {zoom_filepath}")
+                zoom_filepath = None
+                
             try:
                 # Check if we need to create an app context
                 from flask import current_app, has_app_context
@@ -598,6 +606,14 @@ def capture_screenshot(url, lottery_type=None):
                 # Still return the filepath so OCR can be attempted
             
             return filepath, None, zoom_filepath  # Return None for extracted data to use OCR
+        else:
+            if not filepath:
+                logger.error(f"Screenshot capture failed for {lottery_type}: No filepath returned")
+            elif not screenshot_data:
+                logger.error(f"Screenshot capture failed for {lottery_type}: No screenshot data returned")
+            elif not os.path.isfile(filepath):
+                logger.error(f"Screenshot capture failed for {lottery_type}: File not found at {filepath}")
+            return None, None, None
     except Exception as e:
         logger.error(f"Error in capture_screenshot: {str(e)}")
         traceback.print_exc()
