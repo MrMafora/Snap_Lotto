@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 def get_screenshots_safe(order_by_column=None, descending=False):
     """
     Get screenshots without accessing non-existent columns.
-    This function is a workaround for the schema mismatch where the model has capture_date
-    but the actual database doesn't.
+    This function is a workaround for the schema mismatch where the model has columns
+    that don't exist in the actual database.
     
     Args:
         order_by_column: Optional column to order by (e.g., Screenshot.timestamp)
@@ -45,13 +45,13 @@ def get_screenshots_safe(order_by_column=None, descending=False):
     Returns:
         List of Screenshot objects with only existing columns
     """
+    # Only query columns that actually exist in the database
     query = db.session.query(
         Screenshot.id, 
         Screenshot.url, 
         Screenshot.lottery_type, 
         Screenshot.timestamp, 
         Screenshot.path, 
-        Screenshot.filename,
         Screenshot.zoomed_path,
         Screenshot.processed
     )
@@ -406,7 +406,7 @@ def admin():
         Screenshot.lottery_type, 
         Screenshot.timestamp, 
         Screenshot.path, 
-        Screenshot.filename,
+        
         Screenshot.zoomed_path,
         Screenshot.processed
     ).order_by(Screenshot.timestamp.desc()).all()
@@ -1419,7 +1419,7 @@ def export_screenshots():
         Screenshot.lottery_type, 
         Screenshot.timestamp, 
         Screenshot.path, 
-        Screenshot.filename,
+        
         Screenshot.zoomed_path,
         Screenshot.processed
     ).order_by(Screenshot.timestamp.desc()).all()
@@ -1462,7 +1462,7 @@ def export_screenshots_zip():
             Screenshot.lottery_type, 
             Screenshot.timestamp, 
             Screenshot.path, 
-            Screenshot.filename,
+            
             Screenshot.zoomed_path,
             Screenshot.processed
         ).order_by(Screenshot.lottery_type).all()
