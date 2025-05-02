@@ -31,6 +31,35 @@ def admin_required(f):
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Define a helper function to get Screenshots without accessing non-existent columns
+def get_screenshots_safe(order_by=None):
+    """
+    Get screenshots without accessing non-existent columns.
+    This function is a workaround for the schema mismatch where the model has capture_date
+    but the actual database doesn't.
+    
+    Args:
+        order_by: Optional SQLAlchemy order_by expression
+        
+    Returns:
+        List of Screenshot objects with only existing columns
+    """
+    query = db.session.query(
+        Screenshot.id, 
+        Screenshot.url, 
+        Screenshot.lottery_type, 
+        Screenshot.timestamp, 
+        Screenshot.path, 
+        Screenshot.filename,
+        Screenshot.zoomed_path,
+        Screenshot.processed
+    )
+    
+    if order_by:
+        query = query.order_by(order_by)
+        
+    return query.all()
+
 # Now that logger is defined, import other modules
 import scheduler  # Import directly at the top level for screenshot functions
 import create_template  # Import directly for template creation
@@ -360,17 +389,8 @@ def admin():
         flash('You must be an admin to access this page.', 'danger')
         return redirect(url_for('index'))
 
-    # Use only columns that exist in the database to avoid errors
-    screenshots = db.session.query(
-        Screenshot.id, 
-        Screenshot.url, 
-        Screenshot.lottery_type, 
-        Screenshot.timestamp, 
-        Screenshot.path, 
-        Screenshot.filename,
-        Screenshot.zoomed_path,
-        Screenshot.processed
-    ).order_by(Screenshot.timestamp.desc()).all()
+    # Use our helper function to avoid non-existent columns
+    screenshots = get_screenshots_safe(order_by=Screenshot.timestamp.desc())
     
     schedule_configs = ScheduleConfig.query.all()
 
@@ -1373,17 +1393,8 @@ def export_screenshots():
     # Define SEO metadata
     meta_description = "Export and manage South African lottery screenshots. Download captured lottery result images in various formats for analysis and record-keeping."
     
-    # Use only columns that exist in the database to avoid errors
-    screenshots = db.session.query(
-        Screenshot.id, 
-        Screenshot.url, 
-        Screenshot.lottery_type, 
-        Screenshot.timestamp, 
-        Screenshot.path, 
-        Screenshot.filename,
-        Screenshot.zoomed_path,
-        Screenshot.processed
-    ).order_by(Screenshot.timestamp.desc()).all()
+    # Use our helper function to avoid non-existent columns
+    screenshots = get_screenshots_safe(order_by=Screenshot.timestamp.desc())
     
     # Check for sync status in session
     sync_status = None
@@ -1417,7 +1428,7 @@ def export_screenshots_zip():
         from datetime import datetime
         
         # Get all screenshots
-        screenshots = Screenshot.query.order_by(Screenshot.lottery_type).all()
+        screenshots = get_screenshots_safe(order_by=Screenshot.lottery_type)
         
         if not screenshots:
             flash('No screenshots available to export.', 'warning')
