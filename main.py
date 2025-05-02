@@ -135,6 +135,12 @@ csrf.exempt('api_winner_analysis')
 csrf.exempt('api_lottery_prediction')
 csrf.exempt('api_full_analysis')
 
+# Exempt automated extraction API endpoints
+csrf.exempt('automated_extraction.api_pending_extractions')
+csrf.exempt('automated_extraction.api_approve_extraction')
+csrf.exempt('automated_extraction.api_reject_extraction')
+csrf.exempt('automated_extraction.api_run_extraction_now')
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -2842,6 +2848,15 @@ ad_management.register_ad_routes(app)
 
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
+
+# Register automated lottery extraction routes
+try:
+    from automated_lottery_extraction import register_extraction_routes
+    register_extraction_routes(app)
+    logger.info("Automated lottery extraction system registered successfully")
+except Exception as e:
+    logger.error(f"Failed to register automated lottery extraction system: {e}")
+    logger.error(traceback.format_exc())
 
 # API Request Tracking routes
 @app.route('/admin/api-tracking')

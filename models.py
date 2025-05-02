@@ -75,7 +75,9 @@ class Screenshot(db.Model):
     url = db.Column(db.String(255), nullable=False)
     lottery_type = db.Column(db.String(50), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    path = db.Column(db.String(255), nullable=False)
+    capture_date = db.Column(db.DateTime, default=datetime.utcnow)  # Added for compatibility with new extraction system
+    path = db.Column(db.String(255), nullable=True)  # Path can be nullable now
+    filename = db.Column(db.String(255), nullable=True)  # For the new extraction system
     zoomed_path = db.Column(db.String(255), nullable=True)  # Path to zoomed-in screenshot
     processed = db.Column(db.Boolean, default=False)
     
