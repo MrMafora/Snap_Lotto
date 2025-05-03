@@ -733,28 +733,26 @@ def retake_all_screenshots(app=None, use_threading=False):
             
         logger.info(f"Retaking screenshots for {len(configs)} configurations")
         
-        # Check if playwright browser automation is available
+        # Use requests and BeautifulSoup instead of Playwright for web scraping
+        # This aligns with the approach used in automated_lottery_extraction.py
+        import requests
+        from bs4 import BeautifulSoup
         try:
-            from playwright.sync_api import sync_playwright
-            import subprocess
-            
-            # Try to create a playwright instance to see if it works
-            with sync_playwright() as p:
-                try:
-                    chromium_available = True
-                    # Try a simple browser launch to see if it works
-                    browser = p.chromium.launch(headless=True)
-                    browser.close()
-                except Exception as browser_error:
-                    chromium_available = False
-                    logger.error(f"Playwright browser automation not available: {browser_error}")
-        except Exception as playwright_error:
-            chromium_available = False
-            logger.error(f"Playwright module not properly installed: {playwright_error}")
+            # Test if requests can work
+            test_response = requests.get("https://www.google.com", timeout=5)
+            if test_response.status_code == 200:
+                logger.info("Web scraping with requests is available")
+                web_scraping_available = True
+            else:
+                logger.error("Web scraping test failed: HTTP status " + str(test_response.status_code))
+                web_scraping_available = False
+        except Exception as request_error:
+            web_scraping_available = False
+            logger.error(f"Web scraping with requests not available: {request_error}")
         
-        # If browser automation isn't available, update the database with existing files
-        if not chromium_available:
-            logger.warning("Browser automation not available. Using existing screenshot files instead.")
+        # If web scraping isn't available, update the database with existing files
+        if not web_scraping_available:
+            logger.warning("Web scraping not available. Using existing screenshot files instead.")
             count = _update_screenshot_records_without_capture(configs, app)
             return count
         
