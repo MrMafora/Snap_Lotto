@@ -149,73 +149,183 @@ USER_AGENTS = [
 ]
 
 # Human-like scroll behavior parameters with more natural patterns
+# Enhanced Human-like scroll behavior with more realistic patterns
 SCROLL_BEHAVIOR = [
-    # Initial scan of the page
-    {'distance': 0.15, 'delay': 0.8},   # Quick scroll down a bit
-    {'distance': 0.25, 'delay': 1.2},   # Pause to read content
-    {'distance': 0.35, 'delay': 0.7},   # Continue scrolling
+    # Initial scan of the page - carefully reading the top content
+    {'distance': 0.05, 'delay': 1.5},   # First quick look
+    {'distance': 0.15, 'delay': 2.3},   # Read top content (longer pause)
+    {'distance': 0.22, 'delay': 1.1},   # Continue reading
+    {'distance': 0.28, 'delay': 0.9},   # Short scan down
     
-    # Deeper reading (middle of the page)
-    {'distance': 0.45, 'delay': 1.5},   # Longer pause at interesting content
-    {'distance': 0.55, 'delay': 0.9},   # Resume scrolling
+    # Middle section reading (with variable speeds and micro-pauses)
+    {'distance': 0.35, 'delay': 2.7},   # Pause at interesting content
+    {'distance': 0.37, 'delay': 0.4},   # Micro adjustment (very human-like)
+    {'distance': 0.42, 'delay': 1.8},   # Continue reading
+    {'distance': 0.48, 'delay': 0.7},   # Quick scan
     
-    # Accelerating towards the end
-    {'distance': 0.65, 'delay': 0.6},   # Faster scrolling (less interesting content)
-    {'distance': 0.80, 'delay': 0.5},   # Quick scroll
+    # Occasional scrolling up (humans often go back up to re-read)
+    {'distance': 0.44, 'delay': 1.2},   # Scroll back up a bit
+    {'distance': 0.51, 'delay': 2.0},   # Resume reading
     
-    # Final review
-    {'distance': 0.95, 'delay': 1.0},   # Almost at the bottom
-    {'distance': 1.0, 'delay': 1.2}     # Read the footer/end of page
+    # Variable-speed middle section (most realistic)
+    {'distance': 0.58, 'delay': 0.6},   # Slightly faster
+    {'distance': 0.63, 'delay': 1.4},   # Slow down again
+    {'distance': 0.65, 'delay': 0.3},   # Micro adjustment
+    {'distance': 0.72, 'delay': 1.9},   # Longer read
+
+    # Skimming the bottom with more consistent speed (typical human pattern)
+    {'distance': 0.79, 'delay': 0.8},   # Faster now
+    {'distance': 0.85, 'delay': 0.7},   # Continued skimming
+    {'distance': 0.91, 'delay': 0.6},   # Fast scroll near bottom
+    
+    # Final look and possible bounce
+    {'distance': 0.96, 'delay': 1.3},   # Almost at the bottom
+    {'distance': 1.0, 'delay': 2.2},    # Pause at footer
+    {'distance': 0.93, 'delay': 0.9},   # Sometimes scroll back up a bit (very human)
+    {'distance': 1.0, 'delay': 1.5}     # Final look at footer
 ]
 
-# Browser fingerprint modification options
+# Define multiple scroll patterns to rotate through (even more human-like)
+SCROLL_PATTERNS = [
+    # Pattern 1: Fast reader (scrolls quickly with occasional pauses)
+    [
+        {'distance': 0.12, 'delay': 0.9},
+        {'distance': 0.25, 'delay': 0.5},
+        {'distance': 0.45, 'delay': 1.2},
+        {'distance': 0.65, 'delay': 0.4},
+        {'distance': 0.85, 'delay': 0.3},
+        {'distance': 1.0, 'delay': 1.0}
+    ],
+    
+    # Pattern 2: Careful reader (slower with more pauses)
+    [
+        {'distance': 0.08, 'delay': 2.1},
+        {'distance': 0.16, 'delay': 1.8},
+        {'distance': 0.25, 'delay': 2.3},
+        {'distance': 0.33, 'delay': 1.5},
+        {'distance': 0.38, 'delay': 0.9},
+        {'distance': 0.42, 'delay': 1.7},
+        {'distance': 0.51, 'delay': 1.8},
+        {'distance': 0.65, 'delay': 1.5},
+        {'distance': 0.78, 'delay': 1.2},
+        {'distance': 0.91, 'delay': 0.9},
+        {'distance': 1.0, 'delay': 2.0}
+    ],
+    
+    # Pattern 3: Skimmer (fast with a few strategic pauses)
+    [
+        {'distance': 0.15, 'delay': 0.7},
+        {'distance': 0.35, 'delay': 1.3},
+        {'distance': 0.75, 'delay': 0.5},
+        {'distance': 0.95, 'delay': 1.4},
+        {'distance': 1.0, 'delay': 0.8}
+    ],
+    
+    # Pattern 4: Erratic reader (unpredictable, with back-scrolling)
+    [
+        {'distance': 0.12, 'delay': 0.9},
+        {'distance': 0.24, 'delay': 1.1},
+        {'distance': 0.18, 'delay': 0.8}, # Back up
+        {'distance': 0.35, 'delay': 1.5},
+        {'distance': 0.58, 'delay': 0.7},
+        {'distance': 0.49, 'delay': 1.2}, # Back up
+        {'distance': 0.67, 'delay': 0.9},
+        {'distance': 0.85, 'delay': 1.7},
+        {'distance': 1.0, 'delay': 1.3}
+    ]
+]
+
+# Enhanced browser fingerprint modification options for better anti-bot measures
 BROWSER_FINGERPRINT_MODIFICATIONS = {
-    # Screen sizes (width x height)
+    # Screen sizes (width x height) - Common South African screen resolutions
     'screen_sizes': [
-        {'width': 1366, 'height': 768},   # Common laptop
-        {'width': 1920, 'height': 1080},  # FHD desktop
-        {'width': 1536, 'height': 864},   # Common laptop variant
-        {'width': 1440, 'height': 900},   # MacBook Pro 
-        {'width': 1280, 'height': 720},   # HD ready
-        {'width': 2560, 'height': 1440},  # QHD desktop
-        {'width': 3840, 'height': 2160},  # 4K desktop
+        {'width': 1366, 'height': 768},   # Common laptop (40% of ZA users)
+        {'width': 1920, 'height': 1080},  # FHD desktop (30%)
+        {'width': 1536, 'height': 864},   # Common laptop variant (10%)
+        {'width': 1440, 'height': 900},   # MacBook Pro (8%)
+        {'width': 1280, 'height': 720},   # HD ready (5%)
+        {'width': 2560, 'height': 1440},  # QHD desktop (4%)
+        {'width': 3840, 'height': 2160},  # 4K desktop (3%)
     ],
     
-    # Color depths (bits)
-    'color_depths': [24, 30, 48],
+    # Color depths (bits) with weights to favor common depths
+    'color_depths': [24, 24, 24, 24, 30, 30, 48],  # Weighted to favor 24-bit (common)
     
-    # Platform information
+    # Platform information with South African market share weights
     'platforms': [
-        {'name': 'Win32', 'os': 'Windows'},
-        {'name': 'MacIntel', 'os': 'Mac OS X'},
-        {'name': 'Linux x86_64', 'os': 'Linux'},
+        {'name': 'Win32', 'os': 'Windows', 'weight': 65},  # 65% market share
+        {'name': 'MacIntel', 'os': 'Mac OS X', 'weight': 23},  # 23%
+        {'name': 'Linux x86_64', 'os': 'Linux', 'weight': 7},  # 7%
+        {'name': 'Android', 'os': 'Android', 'weight': 5},  # 5%
     ],
     
-    # Common browser plugins to emulate
+    # Common browser plugins to emulate - updated with versions
     'plugins': [
-        'PDF Viewer',
-        'Chrome PDF Viewer',
-        'Chromium PDF Viewer',
-        'Native Client',
-        'Microsoft Edge PDF Viewer',
+        {'name': 'PDF Viewer', 'description': 'Portable Document Format', 'version': '1.0.0'},
+        {'name': 'Chrome PDF Viewer', 'description': 'Portable Document Format', 'version': '124.0.0.0'},
+        {'name': 'Chromium PDF Viewer', 'description': 'Portable Document Format', 'version': '124.0.0.0'},
+        {'name': 'Native Client', 'description': 'Native Client Execution Environment', 'version': ''},
+        {'name': 'Microsoft Edge PDF Viewer', 'description': 'Portable Document Format', 'version': '124.0.0.0'},
+        {'name': 'WebKit built-in PDF', 'description': 'Portable Document Format', 'version': '17.2'},
     ],
     
-    # Common languages
+    # Common languages with South African focus
     'languages': [
-        ['en-US', 'en'],
-        ['en-GB', 'en'],
-        ['en-ZA', 'en', 'af'],  # South African languages
-        ['en-CA', 'fr-CA', 'en'],
-        ['en-AU', 'en'],
+        ['en-ZA', 'en', 'af'],  # South African primary (55%)
+        ['en-ZA', 'en'],  # South African English only (25%)
+        ['en-US', 'en'],  # American English (8%)
+        ['en-GB', 'en'],  # British English (7%)
+        ['af-ZA', 'en-ZA', 'en'],  # Afrikaans primary (5%)
     ],
     
-    # Timezones
+    # Timezones with weights towards South Africa
     'timezones': [
-        'Africa/Johannesburg',  # South Africa
+        'Africa/Johannesburg',  # South Africa (80% weight)
+        'Africa/Johannesburg',
+        'Africa/Johannesburg',
+        'Africa/Johannesburg',
         'Europe/London',
         'America/New_York',
-        'America/Los_Angeles',
         'Australia/Sydney',
+    ],
+    
+    # Font fingerprinting - common SA fonts
+    'fonts': [
+        # System fonts
+        'Arial', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana', 
+        'Tahoma', 'Trebuchet MS', 'Impact', 'Comic Sans MS', 'Webdings',
+        # South African specific
+        'Ubuntu', 'DejaVu Sans', 'Liberation Sans', 'Noto Sans', 
+    ],
+    
+    # Hardware concurrency (CPU cores) distribution
+    'hardware_concurrency': [2, 4, 4, 4, 4, 6, 6, 8, 8, 8, 12, 16],
+    
+    # Device memory (GB) distribution
+    'device_memory': [2, 4, 4, 4, 8, 8, 8, 16, 16, 32],
+    
+    # WebGL vendor and renderer combinations
+    'webgl_vendors': [
+        {
+            'vendor': 'Google Inc. (Intel)',
+            'renderer': 'ANGLE (Intel, Intel(R) UHD Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)'
+        },
+        {
+            'vendor': 'Google Inc. (NVIDIA)',
+            'renderer': 'ANGLE (NVIDIA, NVIDIA GeForce GTX 1650 Direct3D11 vs_5_0 ps_5_0, D3D11)'
+        },
+        {
+            'vendor': 'Google Inc. (AMD)',
+            'renderer': 'ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)'
+        },
+        {
+            'vendor': 'Apple Inc.',
+            'renderer': 'Apple M1'
+        },
+        {
+            'vendor': 'Intel Inc.',
+            'renderer': 'Intel Iris OpenGL Engine'
+        }
     ],
 }
 
@@ -460,7 +570,13 @@ def capture_screenshot_sync(url, retry_count=0):
                     ]
                 )
                 
-                # Create a new context with specific settings to appear more human-like
+                # Create a new context with enhanced settings to appear more human-like
+                # Randomly select hardware concurrency and device memory to mimic different devices
+                hw_concurrency = random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['hardware_concurrency'])
+                device_memory = random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['device_memory'])
+                webgl_info = random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['webgl_vendors'])
+                
+                # Create a context with advanced fingerprinting attributes
                 context = browser.new_context(
                     viewport={'width': fingerprint['screen']['width'], 'height': fingerprint['screen']['height']},
                     user_agent=user_agent,
@@ -468,9 +584,13 @@ def capture_screenshot_sync(url, retry_count=0):
                     timezone_id=fingerprint['timezone'],
                     geolocation={"latitude": -26.2041, "longitude": 28.0473},  # Johannesburg coordinates
                     permissions=['geolocation'],
-                    color_scheme='light',  # Most users use light mode
-                    reduced_motion='no-preference',  # Default motion preference
+                    color_scheme=random.choice(['light', 'light', 'light', 'dark']),  # 75% light, 25% dark
+                    reduced_motion=random.choice(['no-preference', 'no-preference', 'reduce']),  # 66% no-preference
                     has_touch=random.random() < 0.3,  # 30% chance to simulate touch capability
+                    is_mobile=random.random() < 0.12,  # 12% chance to be mobile
+                    device_scale_factor=random.choice([1, 1, 1, 1.5, 2]),  # Weighted towards 1x
+                    java_script_enabled=True,  # Always enable JavaScript
+                    accept_downloads=False,  # Most browsing doesn't involve downloads
                 )
                 
                 # Load cookies from previous sessions if available
@@ -687,12 +807,17 @@ def capture_screenshot_sync(url, retry_count=0):
                         )
                         page.wait_for_timeout(random.randint(100, 500))
                     
-                    # Apply human-like scrolling behavior
+                    # Apply enhanced human-like scrolling behavior
                     current_position = 0
                     scroll_positions = []
                     
+                    # Select a random scroll pattern for this session to appear more human-like
+                    # This makes each browser session have a consistent "personality" in how it scrolls
+                    scroll_pattern = random.choice(SCROLL_PATTERNS) if random.random() < 0.7 else SCROLL_BEHAVIOR
+                    logger.debug(f"Using {'random scroll pattern' if scroll_pattern != SCROLL_BEHAVIOR else 'default scroll behavior'} with {len(scroll_pattern)} steps")
+                    
                     # Apply each scroll step with varied timing and distance
-                    for scroll_step in SCROLL_BEHAVIOR:
+                    for scroll_step in scroll_pattern:
                         # Calculate scroll distance for this step with some randomness
                         jitter_factor = random.uniform(0.9, 1.1)  # +/- 10% jitter
                         target_position = int(page_height * scroll_step['distance'] * jitter_factor)
