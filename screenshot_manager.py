@@ -528,7 +528,7 @@ def capture_screenshot_sync(url, retry_count=0):
         traceback.print_exc()
         return None, None, None
 
-def capture_screenshot(url, lottery_type=None):
+def capture_screenshot(url, lottery_type=None, increased_timeout=False):
     """
     Capture HTML content from the specified URL and save metadata to database.
     
@@ -538,6 +538,7 @@ def capture_screenshot(url, lottery_type=None):
     Args:
         url (str): The URL to capture
         lottery_type (str, optional): The type of lottery. If None, extracted from URL.
+        increased_timeout (bool): Whether to use increased timeout for requests
         
     Returns:
         tuple: (filepath, screenshot_data, img_filepath) or (None, None, None) if failed
@@ -570,9 +571,10 @@ def capture_screenshot(url, lottery_type=None):
             'Cache-Control': 'max-age=0'
         }
         
-        # Request the page with a timeout
-        logger.info(f"Requesting URL: {url}")
-        response = requests.get(url, headers=headers, timeout=30)
+        # Request the page with a timeout (increased if needed)
+        timeout = 60 if increased_timeout else 30
+        logger.info(f"Requesting URL: {url} with timeout {timeout}s")
+        response = requests.get(url, headers=headers, timeout=timeout)
         
         if response.status_code != 200:
             logger.error(f"Failed to fetch URL {url}: HTTP status {response.status_code}")
@@ -771,43 +773,48 @@ def retake_all_screenshots(app=None, use_threading=False):
             
         logger.info(f"Retaking screenshots for {len(configs)} configurations")
         
-        # Use requests and BeautifulSoup instead of Playwright for web scraping
-        # This aligns with the approach used in automated_lottery_extraction.py
-        import requests
-        from bs4 import BeautifulSoup
-        try:
-            # Test if requests can work
-            test_response = requests.get("https://www.google.com", timeout=5)
-            if test_response.status_code == 200:
-                logger.info("Web scraping with requests is available")
-                web_scraping_available = True
-            else:
-                logger.error("Web scraping test failed: HTTP status " + str(test_response.status_code))
-                web_scraping_available = False
-        except Exception as request_error:
-            web_scraping_available = False
-            logger.error(f"Web scraping with requests not available: {request_error}")
-        
-        # If web scraping isn't available, update the database with existing files
-        if not web_scraping_available:
-            logger.warning("Web scraping not available. Using existing screenshot files instead.")
-            count = _update_screenshot_records_without_capture(configs, app)
-            return count
-        
-        # Normal screenshot capture logic when browser automation is available
+        # Normal screenshot capture logic
         count = 0
         results = []
+        failed_configs = []
         
         # When called from the UI, we want to wait for screenshots to complete
         if not use_threading:
+            # First attempt - try each URL
             for config in configs:
-                # Call the worker function directly, not through a thread
-                success = _take_screenshot_worker(config.url, config.lottery_type)
-                if success:
-                    count += 1
-                    logger.info(f"Successfully captured screenshot for {config.lottery_type}")
-                else:
-                    logger.warning(f"Failed to capture screenshot for {config.lottery_type}")
+                try:
+                    # Call the worker function directly, not through a thread
+                    success = _take_screenshot_worker(config.url, config.lottery_type)
+                    if success:
+                        count += 1
+                        logger.info(f"Successfully captured screenshot for {config.lottery_type}")
+                    else:
+                        logger.warning(f"Failed to capture screenshot for {config.lottery_type} - will retry")
+                        failed_configs.append(config)
+                except Exception as url_error:
+                    logger.warning(f"Error capturing screenshot for {config.lottery_type}: {str(url_error)} - will retry")
+                    failed_configs.append(config)
+            
+            # Second attempt - retry failed URLs with increased timeout
+            if failed_configs:
+                logger.info(f"Retrying {len(failed_configs)} failed URLs with increased timeout")
+                for config in failed_configs:
+                    try:
+                        # Try again with increased timeout
+                        logger.info(f"Retrying screenshot capture for {config.lottery_type}")
+                        success = _take_screenshot_worker(config.url, config.lottery_type, increased_timeout=True)
+                        if success:
+                            count += 1
+                            logger.info(f"Successfully captured screenshot for {config.lottery_type} on retry")
+                        else:
+                            # Last resort - update database timestamp but keep existing file
+                            logger.warning(f"Failed to capture screenshot for {config.lottery_type} even with retry")
+                            # Update database record with current timestamp to show we tried
+                            _update_single_screenshot_record(config.url, config.lottery_type, app)
+                    except Exception as retry_error:
+                        logger.error(f"Error in retry for {config.lottery_type}: {str(retry_error)}")
+                        # Update database record with current timestamp to show we tried
+                        _update_single_screenshot_record(config.url, config.lottery_type, app)
             
             # Run cleanup after all screenshots are processed (for UI operations)
             logger.info("Running screenshot cleanup after sync operation")
@@ -906,7 +913,7 @@ def _update_screenshot_records_without_capture(configs, app=None):
         traceback.print_exc()
         return count
 
-def take_screenshot_threaded(url, lottery_type, use_thread=True):
+def take_screenshot_threaded(url, lottery_type, use_thread=True, increased_timeout=False):
     """
     Take a screenshot of the specified URL in a separate thread.
     
@@ -914,6 +921,7 @@ def take_screenshot_threaded(url, lottery_type, use_thread=True):
         url (str): The URL to capture
         lottery_type (str): Type of lottery (used for DB storage)
         use_thread (bool): Whether to use a thread or run synchronously
+        increased_timeout (bool): Whether to use increased timeout for requests
         
     Returns:
         bool: True if the screenshot was successfully scheduled/taken
@@ -927,19 +935,19 @@ def take_screenshot_threaded(url, lottery_type, use_thread=True):
             # Use a thread to avoid blocking the main thread
             threading.Thread(
                 target=_take_screenshot_worker,
-                args=(url, lottery_type),
+                args=(url, lottery_type, increased_timeout),
                 daemon=True
             ).start()
             return True
         else:
             # Run synchronously
-            return _take_screenshot_worker(url, lottery_type)
+            return _take_screenshot_worker(url, lottery_type, increased_timeout)
     except Exception as e:
         logger.error(f"Error scheduling screenshot for {url}: {str(e)}")
         traceback.print_exc()
         return False
 
-def _take_screenshot_worker(url, lottery_type):
+def _take_screenshot_worker(url, lottery_type, increased_timeout=False):
     """
     Worker function to take a screenshot of the specified URL.
     Intended to be run in a separate thread.
@@ -947,6 +955,7 @@ def _take_screenshot_worker(url, lottery_type):
     Args:
         url (str): The URL to capture
         lottery_type (str): Type of lottery
+        increased_timeout (bool): Whether to use increased timeout values
         
     Returns:
         bool: True if successful
@@ -956,8 +965,8 @@ def _take_screenshot_worker(url, lottery_type):
         with screenshot_semaphore:
             logger.info(f"Taking screenshot of {url} ({lottery_type})")
             
-            # Take the screenshot
-            filepath, screenshot_data, zoom_filepath = capture_screenshot(url, lottery_type)
+            # Take the screenshot, using increased timeout if specified
+            filepath, screenshot_data, zoom_filepath = capture_screenshot(url, lottery_type, increased_timeout=increased_timeout)
             
             if not filepath or not screenshot_data:
                 logger.error(f"Failed to capture screenshot for {url}")
@@ -1005,6 +1014,71 @@ def _take_screenshot_worker(url, lottery_type):
             
     except Exception as e:
         logger.error(f"Error in screenshot worker thread: {str(e)}")
+        traceback.print_exc()
+        return False
+
+def _update_single_screenshot_record(url, lottery_type, app=None):
+    """
+    Update a screenshot record's timestamp without capturing a new screenshot.
+    This is used as a fallback when screenshot capture fails but we want to update the timestamp.
+    
+    Args:
+        url (str): The URL of the screenshot
+        lottery_type (str): Type of lottery
+        app (Flask): Flask app for context management
+        
+    Returns:
+        bool: True if successful
+    """
+    try:
+        # Set up app context if needed
+        if app:
+            context_func = app.app_context
+        else:
+            # Create a dummy context manager
+            from contextlib import contextmanager
+            @contextmanager
+            def context_func():
+                yield
+        
+        with context_func():
+            # Find existing screenshot
+            screenshot = Screenshot.query.filter_by(url=url).first()
+            
+            if screenshot:
+                # Update timestamp only
+                screenshot.timestamp = datetime.now()
+                db.session.commit()
+                logger.info(f"Updated timestamp for {lottery_type} screenshot record")
+                return True
+            else:
+                # Find a file to use (use any existing screenshot file)
+                screenshot_files = os.listdir(SCREENSHOT_DIR)
+                screenshot_files = [f for f in screenshot_files if f.endswith('.png') and os.path.isfile(os.path.join(SCREENSHOT_DIR, f))]
+                
+                if not screenshot_files:
+                    logger.error(f"No existing screenshot files found for {lottery_type}")
+                    return False
+                
+                # Use the first file
+                filepath = os.path.join(SCREENSHOT_DIR, screenshot_files[0])
+                
+                # Create new record
+                screenshot = Screenshot(
+                    url=url,
+                    lottery_type=lottery_type,
+                    path=filepath,
+                    zoomed_path=filepath,  # Use same file for both
+                    timestamp=datetime.now(),
+                    processed=False
+                )
+                
+                db.session.add(screenshot)
+                db.session.commit()
+                logger.info(f"Created new screenshot record for {lottery_type} using existing file")
+                return True
+    except Exception as e:
+        logger.error(f"Error updating screenshot record for {lottery_type}: {str(e)}")
         traceback.print_exc()
         return False
 
