@@ -89,12 +89,9 @@ import ad_management
 import lottery_analysis
 from import_latest_spreadsheet import import_latest_spreadsheet, find_latest_spreadsheet
 
-# Import auto_proxy to start the port proxy in the background
-try:
-    import auto_proxy
-    logger.info("Port proxy auto-starter loaded")
-except Exception as e:
-    logger.error(f"Failed to load port proxy auto-starter: {e}")
+# Port proxy is now handled directly by gunicorn.conf.py
+# No need for a separate process
+logger.info("Using gunicorn.conf.py for port configuration")
 
 # Import template handling
 try:
