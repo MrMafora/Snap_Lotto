@@ -1,3 +1,0 @@
-[workflow]
-name = "Direct Start On 8080"
-command = "python direct_gunicorn_start.py"

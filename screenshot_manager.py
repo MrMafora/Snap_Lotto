@@ -13,14 +13,31 @@ import threading
 import shutil
 import json
 from urllib.parse import urlparse
-from playwright.async_api import async_playwright
-from playwright.sync_api import sync_playwright
+import requests
+from bs4 import BeautifulSoup
 from sqlalchemy import func
 from models import db, Screenshot, ScheduleConfig
-from logger import setup_logger
 
 # Set up module-specific logger
-logger = setup_logger(__name__, level=logging.INFO)
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    # Create logs directory if it doesn't exist
+    logs_dir = os.path.join(os.getcwd(), 'logs')
+    if not os.path.exists(logs_dir):
+        os.makedirs(logs_dir)
+    
+    # Set up file handler
+    file_handler = logging.FileHandler(os.path.join(logs_dir, 'screenshot_manager.log'))
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(file_handler)
+    
+    # Set up console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(console_handler)
+    
+    # Set logging level
+    logger.setLevel(logging.INFO)
 
 # Create directory for screenshots if it doesn't exist
 SCREENSHOT_DIR = os.path.join(os.getcwd(), 'screenshots')

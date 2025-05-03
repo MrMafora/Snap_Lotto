@@ -5,10 +5,28 @@ import atexit
 import threading
 import time
 import logging
-from logger import setup_logger
+import os
 
 # Set up module-specific logger
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    # Create logs directory if it doesn't exist
+    logs_dir = os.path.join(os.getcwd(), 'logs')
+    if not os.path.exists(logs_dir):
+        os.makedirs(logs_dir)
+    
+    # Set up file handler
+    file_handler = logging.FileHandler(os.path.join(logs_dir, 'scheduler.log'))
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(file_handler)
+    
+    # Set up console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(console_handler)
+    
+    # Set logging level
+    logger.setLevel(logging.INFO)
 
 # Flag to indicate if we're in Replit environment
 # Used to optimize startup for Replit workflows

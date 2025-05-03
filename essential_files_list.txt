@@ -1,0 +1,34 @@
+# Essential application files
+main.py
+models.py
+config.py
+scheduler.py
+screenshot_manager.py
+health_monitor.py
+automated_lottery_extraction.py
+lottery_analysis.py
+ad_management.py
+csrf_fix.py
+create_template.py
+import_latest_spreadsheet.py
+import_missing_draws.py
+import_excel.py
+import_snap_lotto_data.py
+sync_all_timestamps.py
+
+# Essential folders
+static/
+templates/
+screenshots/
+uploads/
+attached_assets/
+instance/
+
+# Configuration files
+.env
+.replit
+.replit-deployment
+.replit-ports
+.replit-run-command
+gunicorn.conf.py
+Procfile
