@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Snap Lotto Admin{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/lottery.css') }}">
+    
+    <!-- Admin-specific CSS -->
+    <style>
+        .admin-sidebar {
+            background-color: #343a40;
+            min-height: 100vh;
+            color: white;
+        }
+        .admin-sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.75);
+        }
+        .admin-sidebar .nav-link:hover,
+        .admin-sidebar .nav-link.active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .admin-content {
+            padding: 20px;
+        }
+        .card-admin {
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .admin-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px 0;
+            margin-bottom: 20px;
+        }
+    </style>
+    
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 admin-sidebar p-0 d-none d-md-block">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h3>Snap Lotto</h3>
+                        <p class="text-muted">Administration</p>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'admin' else '' }}" href="{{ url_for('admin') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'admin_screenshots' else '' }}" href="{{ url_for('admin_screenshots') }}">
+                                <i class="fas fa-images me-2"></i> Screenshots
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'import_history' else '' }}" href="{{ url_for('import_history') }}">
+                                <i class="fas fa-file-import me-2"></i> Import History
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'import_data' else '' }}" href="{{ url_for('import_data') }}">
+                                <i class="fas fa-upload me-2"></i> Import Data
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'health_dashboard' else '' }}" href="{{ url_for('health_dashboard') }}">
+                                <i class="fas fa-heartbeat me-2"></i> Health Monitor
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'health_alerts' else '' }}" href="{{ url_for('health_alerts') }}">
+                                <i class="fas fa-exclamation-triangle me-2"></i> Alerts
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'manage_ads' else '' }}" href="{{ url_for('manage_ads') }}">
+                                <i class="fas fa-ad me-2"></i> Advertisements
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'settings' else '' }}" href="{{ url_for('settings') }}">
+                                <i class="fas fa-cog me-2"></i> Settings
+                            </a>
+                        </li>
+                        <li class="nav-item mt-3">
+                            <a class="nav-link" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <!-- Header -->
+                <div class="admin-header d-flex justify-content-between align-items-center py-3">
+                    <div>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0">
+                                <li class="breadcrumb-item"><a href="{{ url_for('admin') }}">Admin</a></li>
+                                {% block breadcrumb %}{% endblock %}
+                            </ol>
+                        </nav>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle me-1"></i> {{ current_user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="{{ url_for('index') }}"><i class="fas fa-home me-2"></i> Site Home</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile Nav Toggle -->
+                <div class="d-md-none mb-3">
+                    <button class="btn btn-primary w-100" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminSidebar">
+                        <i class="fas fa-bars me-2"></i> Admin Menu
+                    </button>
+                </div>
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Main Content Area -->
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- Mobile Sidebar Offcanvas -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="adminSidebar">
+        <div class="offcanvas-header bg-dark text-white">
+            <h5 class="offcanvas-title">Admin Menu</h5>
+            <button type="button" class="btn-close text-reset bg-light" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('admin') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'admin' else '' }}">
+                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                </a>
+                <a href="{{ url_for('admin_screenshots') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'admin_screenshots' else '' }}">
+                    <i class="fas fa-images me-2"></i> Screenshots
+                </a>
+                <a href="{{ url_for('import_history') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'import_history' else '' }}">
+                    <i class="fas fa-file-import me-2"></i> Import History
+                </a>
+                <a href="{{ url_for('import_data') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'import_data' else '' }}">
+                    <i class="fas fa-upload me-2"></i> Import Data
+                </a>
+                <a href="{{ url_for('health_dashboard') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'health_dashboard' else '' }}">
+                    <i class="fas fa-heartbeat me-2"></i> Health Monitor
+                </a>
+                <a href="{{ url_for('health_alerts') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'health_alerts' else '' }}">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Alerts
+                </a>
+                <a href="{{ url_for('manage_ads') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'manage_ads' else '' }}">
+                    <i class="fas fa-ad me-2"></i> Advertisements
+                </a>
+                <a href="{{ url_for('settings') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'settings' else '' }}">
+                    <i class="fas fa-cog me-2"></i> Settings
+                </a>
+                <a href="{{ url_for('logout') }}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-sign-out-alt me-2"></i> Logout
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- jQuery (if needed) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Chart.js for any charting needs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

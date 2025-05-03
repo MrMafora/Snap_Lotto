@@ -54,9 +54,21 @@ def init_scheduler(app):
     
     # Import heavy modules only when needed
     from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.triggers.cron import CronTrigger
     
     # Initialize scheduler but don't start it yet
     scheduler = BackgroundScheduler()
+    
+    # Add daily screenshot cleanup job (runs at 4:00 AM SAST)
+    # This ensures we keep our storage clean and organized
+    scheduler.add_job(
+        func=run_screenshot_cleanup,
+        trigger=CronTrigger(hour=4, minute=0),  # 4:00 AM
+        args=[app],
+        id="daily_screenshot_cleanup",
+        replace_existing=True
+    )
+    logger.info("Added daily screenshot cleanup job (runs at 4:00 AM SAST)")
     
     # In Replit environment, delay scheduler startup to allow port detection
     if IS_REPLIT_ENV:
@@ -378,3 +390,53 @@ def retake_all_screenshots(app=None, use_threading=True):
         import traceback
         logger.error(traceback.format_exc())
         return 0
+
+def run_screenshot_cleanup(app=None):
+    """
+    Run the screenshot cleanup process to remove old screenshots.
+    This helps maintain disk space by keeping only the latest screenshots.
+    
+    Args:
+        app (Flask): Flask application instance (optional)
+        
+    Returns:
+        bool: True if cleanup was successful, False otherwise
+    """
+    try:
+        # Import screenshot manager here to avoid circular imports
+        import screenshot_manager as sm
+        
+        logger.info("Starting scheduled screenshot cleanup from scheduler")
+        
+        # If no app context is provided but we need one
+        if app is None:
+            # Import Flask app (handle circular imports)
+            from flask import current_app
+            
+            if not current_app:
+                from main import app
+                app_context = app.app_context()
+                app_context.push()
+                created_context = True
+            else:
+                created_context = False
+        else:
+            app_context = app.app_context()
+            app_context.push()
+            created_context = True
+            
+        try:
+            # Execute the cleanup function
+            sm.cleanup_old_screenshots()
+            logger.info("Scheduled screenshot cleanup completed successfully")
+            return True
+        finally:
+            # Only pop the context if we created it
+            if app is not None and created_context:
+                app_context.pop()
+                
+    except Exception as e:
+        logger.error(f"Error in scheduler.run_screenshot_cleanup: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return False

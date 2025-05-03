@@ -1233,32 +1233,97 @@ def _update_single_screenshot_record(url, lottery_type, app=None):
 def cleanup_old_screenshots():
     """
     Clean up old screenshots to save disk space.
-    Keep only the most recent screenshot for each URL.
+    Keep only ONE screenshot for each lottery type, regardless of URL or file format.
     
-    This ensures we only have 12 screenshots at any given time (one per URL).
+    This ensures we only have exactly 6 screenshots at any time (one per normalized lottery type).
+    Handles all file types (HTML, PNG) and ensures complete cleanup.
     """
     logger.info("Starting screenshot cleanup process")
     
     try:
-        # Get all unique URLs
-        unique_urls = db.session.query(Screenshot.url).distinct().all()
-        urls = [url[0] for url in unique_urls]
+        # Step 1: Sync database with filesystem - fix any missing files
+        from data_aggregator import normalize_lottery_type
         
-        deleted_count = 0
+        # Step 1a: First check for database records with missing files
+        db_screenshots = Screenshot.query.all()
+        invalid_records = []
         
-        from models import LotteryResult
+        for screenshot in db_screenshots:
+            if not screenshot.path or not os.path.exists(screenshot.path):
+                invalid_records.append(screenshot)
+                logger.warning(f"Screenshot ID {screenshot.id} references missing file: {screenshot.path}")
         
-        # For each URL, keep only the most recent screenshot
-        for url in urls:
-            # Get all screenshots for this URL ordered by timestamp (newest first)
-            screenshots = Screenshot.query.filter_by(url=url).order_by(Screenshot.timestamp.desc()).all()
+        # If any database records reference missing files, delete them
+        if invalid_records:
+            for screenshot in invalid_records:
+                # Check for references in lottery results
+                from models import LotteryResult
+                referenced_results = LotteryResult.query.filter_by(screenshot_id=screenshot.id).all()
+                
+                if referenced_results:
+                    # Update references to NULL
+                    for result in referenced_results:
+                        result.screenshot_id = None
+                    db.session.commit()
+                
+                # Delete the invalid database record
+                db.session.delete(screenshot)
+                logger.info(f"Deleted invalid database record ID {screenshot.id}")
             
-            # Keep the most recent one, delete the rest
+            db.session.commit()
+            logger.info(f"Cleaned up {len(invalid_records)} invalid database records")
+        
+        # Step 2: Delete all files not tracked in the database
+        all_files = os.listdir(SCREENSHOT_DIR)
+        db_files = Screenshot.query.with_entities(Screenshot.path).all()
+        db_files = [os.path.basename(f[0]) for f in db_files if f[0]]
+        
+        # Count files deleted
+        untracked_deleted_count = 0
+        
+        # Remove README.md from cleanup
+        if 'README.md' in all_files:
+            all_files.remove('README.md')
+            
+        # Delete any file not in the database
+        for file in all_files:
+            if file not in db_files and file != 'README.md':
+                try:
+                    file_path = os.path.join(SCREENSHOT_DIR, file)
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        logger.info(f"Deleted untracked file: {file_path}")
+                        untracked_deleted_count += 1
+                except Exception as e:
+                    logger.error(f"Error deleting untracked file {file}: {str(e)}")
+        
+        # Step 3: Group screenshots by normalized lottery type
+        # Use data_aggregator's normalize_lottery_type function to standardize names
+        normalized_types = {}
+        screenshots_by_norm_type = {}
+        
+        # Group all screenshots by their normalized lottery type
+        all_screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
+        for screenshot in all_screenshots:
+            norm_type = normalize_lottery_type(screenshot.lottery_type)
+            normalized_types[screenshot.id] = norm_type
+            
+            if norm_type not in screenshots_by_norm_type:
+                screenshots_by_norm_type[norm_type] = []
+            screenshots_by_norm_type[norm_type].append(screenshot)
+        
+        # For each normalized lottery type, keep only the most recent screenshot
+        db_deleted_count = 0
+        
+        for norm_type, screenshots in screenshots_by_norm_type.items():
+            # Keep the newest screenshot, delete the rest
             if len(screenshots) > 1:
+                logger.info(f"Found {len(screenshots)} screenshots for '{norm_type}' - keeping only the newest one")
+                # First screenshot is newest (we ordered by timestamp desc)
                 for screenshot in screenshots[1:]:
                     try:
                         # First check if screenshot is referenced by lottery results
-                        # We need to handle the foreign key constraint
+                        from models import LotteryResult
                         referenced_results = LotteryResult.query.filter_by(screenshot_id=screenshot.id).all()
                         
                         if referenced_results:
@@ -1268,25 +1333,58 @@ def cleanup_old_screenshots():
                                 result.screenshot_id = None
                             db.session.commit()
                                 
-                        # Delete the files from disk
-                        if os.path.exists(screenshot.path):
+                        # Delete the file from disk
+                        if screenshot.path and os.path.exists(screenshot.path):
                             os.remove(screenshot.path)
                             logger.info(f"Deleted old screenshot file: {screenshot.path}")
                             
-                        # Zoom functionality has been removed
-                        
+                            # Also check for matching PNG files with same base name
+                            base_name = os.path.splitext(os.path.basename(screenshot.path))[0]
+                            png_path = os.path.join(SCREENSHOT_DIR, f"{base_name}.png")
+                            if os.path.exists(png_path):
+                                os.remove(png_path)
+                                logger.info(f"Deleted matching PNG file: {png_path}")
+                            
                         # Delete the database record
                         db.session.delete(screenshot)
-                        deleted_count += 1
+                        db_deleted_count += 1
                         db.session.commit()  # Commit after each deletion to avoid large transactions
                         
                     except Exception as e:
                         logger.error(f"Error deleting screenshot {screenshot.id}: {str(e)}")
                         logger.error(traceback.format_exc())
-                        # Continue with next screenshot
-                        db.session.rollback()
+                        db.session.rollback()  # Rollback on error
         
-        logger.info(f"Cleaned up {deleted_count} old screenshots" if deleted_count > 0 else "No old screenshots to clean up")
+        # Step 4: Ensure there's exactly one screenshot per normalized type
+        # Get the final list of normalized types
+        final_types = set()
+        for screenshot in Screenshot.query.all():
+            norm_type = normalize_lottery_type(screenshot.lottery_type)
+            final_types.add(norm_type)
+            
+        # Log what we ended up with
+        logger.info(f"Final normalized lottery types: {sorted(list(final_types))}")
+        logger.info(f"Expected 6 normalized types: ['Daily Lottery', 'Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 'Powerball', 'Powerball Plus']")
+        
+        # Report total files deleted
+        total_deleted = db_deleted_count + untracked_deleted_count
+        logger.info(f"Cleaned up {total_deleted} old screenshots ({db_deleted_count} from database, {untracked_deleted_count} untracked files)" 
+                   if total_deleted > 0 else "No old screenshots to clean up")
+        
+        # Verify final counts match
+        expected_db_count = len(final_types)  # Should be 6
+        remaining_files = [f for f in os.listdir(SCREENSHOT_DIR) if os.path.isfile(os.path.join(SCREENSHOT_DIR, f)) and f != 'README.md']
+        remaining_db = Screenshot.query.count()
+        
+        if remaining_db != expected_db_count:
+            logger.warning(f"Database records ({remaining_db}) does not match expected count ({expected_db_count})")
+        else:
+            logger.info(f"Database records match expected count: {remaining_db}")
+            
+        if len(remaining_files) != remaining_db:
+            logger.warning(f"Files on disk ({len(remaining_files)}) does not match database records ({remaining_db})")
+        else:
+            logger.info(f"Files on disk match database records: {len(remaining_files)}")
             
     except Exception as e:
         logger.error(f"Error during screenshot cleanup: {str(e)}")

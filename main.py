@@ -2489,6 +2489,84 @@ def health_dashboard():
         service_port_map=service_port_map
     )
 
+@app.route('/admin/screenshots', methods=['GET', 'POST'])
+@login_required
+def admin_screenshots():
+    """Manage lottery screenshots"""
+    from models import Screenshot
+    from data_aggregator import normalize_lottery_type
+    import subprocess
+    import threading
+    
+    # Process POST requests for actions
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'sync_all':
+            # Run the sync_all_screenshots.py script in the background
+            def run_sync_script():
+                try:
+                    # Run the script and capture output
+                    result = subprocess.run(["python", "sync_all_screenshots.py"], 
+                                          capture_output=True, text=True)
+                    
+                    if result.returncode == 0:
+                        flash('Screenshot synchronization completed successfully', 'success')
+                    else:
+                        flash(f'Screenshot synchronization failed: {result.stderr}', 'danger')
+                except Exception as e:
+                    flash(f'Error running synchronization script: {str(e)}', 'danger')
+            
+            # Start in background thread to avoid blocking the web request
+            thread = threading.Thread(target=run_sync_script)
+            thread.daemon = True
+            thread.start()
+            
+            flash('Screenshot synchronization started in the background', 'info')
+            return redirect(url_for('admin_screenshots'))
+        
+        elif action == 'cleanup':
+            # Run cleanup directly
+            try:
+                # Import here to avoid circular imports
+                import screenshot_manager
+                
+                deleted = screenshot_manager.cleanup_old_screenshots()
+                flash(f'Screenshot cleanup completed successfully', 'success')
+            except Exception as e:
+                flash(f'Error during cleanup: {str(e)}', 'danger')
+            
+            return redirect(url_for('admin_screenshots'))
+    
+    # Get all screenshots from the database
+    screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
+    
+    # Group by normalized type
+    normalized_groups = {}
+    for screenshot in screenshots:
+        norm_type = normalize_lottery_type(screenshot.lottery_type)
+        if norm_type not in normalized_groups:
+            normalized_groups[norm_type] = []
+        normalized_groups[norm_type].append(screenshot)
+    
+    # Expected normalized types
+    expected_types = [
+        'Daily Lottery', 'Lottery', 'Lottery Plus 1', 
+        'Lottery Plus 2', 'Powerball', 'Powerball Plus'
+    ]
+    
+    # Check for missing types
+    missing_types = [t for t in expected_types if t not in normalized_groups]
+    
+    return render_template(
+        'admin/screenshots.html',
+        screenshots=screenshots,
+        normalized_groups=normalized_groups,
+        missing_types=missing_types,
+        expected_count=len(expected_types),
+        current_count=len(normalized_groups)
+    )
+
 @app.route('/admin/health-alerts')
 @login_required
 def health_alerts():

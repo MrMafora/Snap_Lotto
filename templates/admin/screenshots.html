@@ -1,0 +1,239 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manage Screenshots{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mt-4">Screenshot Management</h1>
+            <p class="lead">
+                Manage lottery screenshots for extraction and analysis. This system requires exactly one screenshot for each of the 6 normalized lottery types.
+            </p>
+
+            <!-- Status overview card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Screenshot Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1">
+                                    <h6>Total Screenshots</h6>
+                                    <h2 class="mb-0">{{ screenshots|length }}</h2>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <div class="badge bg-{{ 'success' if screenshots|length == 6 else 'warning' }} p-2">
+                                        <i class="fas fa-{{ 'check' if screenshots|length == 6 else 'exclamation-triangle' }}"></i>
+                                        {{ 'Optimal' if screenshots|length == 6 else 'Suboptimal' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1">
+                                    <h6>Normalized Types</h6>
+                                    <h2 class="mb-0">{{ current_count }}/{{ expected_count }}</h2>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <div class="badge bg-{{ 'success' if current_count == expected_count else 'danger' }} p-2">
+                                        <i class="fas fa-{{ 'check' if current_count == expected_count else 'times' }}"></i>
+                                        {{ 'Complete' if current_count == expected_count else 'Incomplete' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if missing_types %}
+                    <div class="alert alert-warning mt-3">
+                        <strong>Missing {{ missing_types|length }} normalized type(s):</strong>
+                        <ul class="mb-0">
+                            {% for type in missing_types %}
+                            <li>{{ type }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <div class="progress mt-3" style="height: 20px;">
+                        {% set percentage = (current_count / expected_count * 100)|int %}
+                        <div class="progress-bar {{ 'bg-success' if percentage == 100 else 'bg-primary' }}" role="progressbar" style="width: {{ percentage }}%;" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100">{{ percentage }}%</div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <form method="post" action="{{ url_for('admin_screenshots') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="sync_all">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-sync-alt"></i> Synchronize All Screenshots
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                            <form method="post" action="{{ url_for('admin_screenshots') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="cleanup">
+                                <button type="submit" class="btn btn-secondary">
+                                    <i class="fas fa-broom"></i> Run Cleanup
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Normalized Types -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Normalized Types</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Normalized Type</th>
+                                    <th>Actual Types</th>
+                                    <th>Status</th>
+                                    <th>Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for norm_type, screenshots in normalized_groups.items() %}
+                                <tr>
+                                    <td class="fw-bold">{{ norm_type }}</td>
+                                    <td>
+                                        {% for s in screenshots %}
+                                        <span class="badge bg-info me-1">{{ s.lottery_type }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% if screenshots|length == 1 %}
+                                        <span class="badge bg-success">Optimal</span>
+                                        {% elif screenshots|length > 1 %}
+                                        <span class="badge bg-warning">{{ screenshots|length }} duplicates</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Missing</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if screenshots %}
+                                        {{ screenshots[0].timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                
+                                {% for missing_type in missing_types %}
+                                <tr class="table-danger">
+                                    <td class="fw-bold">{{ missing_type }}</td>
+                                    <td>-</td>
+                                    <td><span class="badge bg-danger">Missing</span></td>
+                                    <td>-</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- All Screenshots -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">All Screenshots ({{ screenshots|length }})</h5>
+                    <span class="badge bg-{{ 'success' if screenshots|length == 6 else 'warning' }}">
+                        {{ 'Optimal' if screenshots|length == 6 else 'Suboptimal' }}
+                    </span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Lottery Type</th>
+                                    <th>Normalized Type</th>
+                                    <th>URL</th>
+                                    <th>Date Captured</th>
+                                    <th>File Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for screenshot in screenshots %}
+                                <tr>
+                                    <td>{{ screenshot.id }}</td>
+                                    <td>{{ screenshot.lottery_type }}</td>
+                                    <td>
+                                        {% if normalize_lottery_type is defined %}
+                                            {{ normalize_lottery_type(screenshot.lottery_type) }}
+                                        {% else %}
+                                            {{ screenshot.lottery_type }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ screenshot.url }}" target="_blank" class="text-truncate d-inline-block" style="max-width: 250px;">
+                                            {{ screenshot.url }}
+                                        </a>
+                                    </td>
+                                    <td>{{ screenshot.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td>
+                                        {% if screenshot.path and screenshot.path.endswith('.html') %}
+                                            <span class="badge bg-success">HTML File</span>
+                                        {% elif screenshot.path and screenshot.path.endswith('.png') %}
+                                            <span class="badge bg-info">PNG File</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Unknown Format</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Instructions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Instructions</h5>
+                </div>
+                <div class="card-body">
+                    <h6>How Screenshot Management Works</h6>
+                    <p>
+                        The screenshot system is designed to maintain exactly one screenshot for each of the 6 normalized lottery types:
+                    </p>
+                    <ul>
+                        <li>Lottery (from Lotto)</li>
+                        <li>Lottery Plus 1 (from Lotto Plus 1)</li>
+                        <li>Lottery Plus 2 (from Lotto Plus 2)</li>
+                        <li>Powerball</li>
+                        <li>Powerball Plus</li>
+                        <li>Daily Lottery (from Daily Lotto)</li>
+                    </ul>
+                    
+                    <h6>Actions</h6>
+                    <ul>
+                        <li><strong>Synchronize All Screenshots:</strong> Automatically detects and captures missing screenshots. This is the recommended action when screenshots are missing.</li>
+                        <li><strong>Run Cleanup:</strong> Removes duplicate screenshots while ensuring exactly one screenshot per normalized type remains.</li>
+                    </ul>
+                    
+                    <h6>Note</h6>
+                    <p class="mb-0">
+                        The system automatically runs cleanup daily at 4:00 AM SAST to maintain optimal screenshot storage.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
