@@ -832,14 +832,46 @@ def capture_screenshot(url, lottery_type=None, increased_timeout=False):
         # Request the page with a timeout (increased if needed)
         timeout = 60 if increased_timeout else 30
         logger.info(f"Requesting URL: {url} with timeout {timeout}s")
-        response = requests.get(url, headers=headers, timeout=timeout)
         
-        if response.status_code != 200:
-            logger.error(f"Failed to fetch URL {url}: HTTP status {response.status_code}")
-            return None, None, None
+        try:
+            # Modified to handle gzip encoding issues by explicitly disabling content compression
+            # This fixes the "InvalidChunkLength" errors by telling the server not to compress the response
+            headers['Accept-Encoding'] = 'identity'  # Explicitly request uncompressed response
             
-        # Parse the HTML content
-        soup = BeautifulSoup(response.text, 'html.parser')
+            response = requests.get(url, headers=headers, timeout=timeout, stream=True)
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to fetch URL {url}: HTTP status {response.status_code}")
+                return None, None, None
+                
+            # Read the entire content with streaming to avoid compression issues
+            content = ""
+            for chunk in response.iter_content(chunk_size=1024, decode_unicode=True):
+                if chunk:
+                    content += chunk
+            
+            # Parse the HTML content
+            soup = BeautifulSoup(content, 'html.parser')
+        except requests.exceptions.ChunkedEncodingError as chunk_error:
+            logger.error(f"Chunked encoding error for {url}: {str(chunk_error)}")
+            # Try again with even more cautious settings
+            logger.info(f"Retrying with more cautious request settings for {url}")
+            
+            # Create a completely new session with different settings
+            with requests.Session() as session:
+                session.headers.update(headers)
+                session.headers['Accept-Encoding'] = 'identity'
+                
+                # Setting lower timeout and disabling keep-alive
+                session.headers['Connection'] = 'close'
+                response = session.get(url, timeout=timeout/2, stream=False)
+                
+                if response.status_code != 200:
+                    logger.error(f"Failed to fetch URL {url} on retry: HTTP status {response.status_code}")
+                    return None, None, None
+                
+                # Parse the HTML content
+                soup = BeautifulSoup(response.text, 'html.parser')
         
         # Generate timestamp for filename
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -859,7 +891,11 @@ def capture_screenshot(url, lottery_type=None, increased_timeout=False):
         # Save HTML content to file
         os.makedirs(SCREENSHOT_DIR, exist_ok=True)
         with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(response.text)
+            # Use the content variable if we used streaming, otherwise use response.text
+            if 'content' in locals():
+                f.write(content)
+            else:
+                f.write(response.text)
             
         # Save image to file
         img.save(img_filepath)
