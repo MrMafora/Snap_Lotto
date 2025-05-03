@@ -114,17 +114,19 @@ app.jinja_env.filters['cos'] = lambda x: math.cos(float(x))
 app.jinja_env.filters['sin'] = lambda x: math.sin(float(x))
 app.jinja_env.filters['format_number'] = lambda x: f"{int(x):,}" if isinstance(x, (int, float)) else x
 
-# Explicitly set database URI from environment variable
+# Always use PostgreSQL database on Replit via DATABASE_URL environment variable
 database_url = os.environ.get('DATABASE_URL')
-if database_url:
-    # Ensure proper PostgreSQL connection string format
-    # Heroku-style connection strings start with postgres:// but SQLAlchemy requires postgresql://
-    if database_url.startswith('postgres://'):
-        database_url = database_url.replace('postgres://', 'postgresql://', 1)
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    logger.info(f"Using database from DATABASE_URL environment variable")
-else:
-    logger.warning("DATABASE_URL not found, using fallback database configuration")
+if not database_url:
+    logger.error("DATABASE_URL environment variable not found - this is required for the application to work")
+    # Force fail early with a clear error message
+    raise EnvironmentError("DATABASE_URL environment variable is required but was not found")
+
+# Ensure proper PostgreSQL connection string format (convert postgres:// to postgresql://)
+if database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+logger.info("Using PostgreSQL database from DATABASE_URL environment variable")
 
 # Initialize SQLAlchemy with additional connection settings
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
