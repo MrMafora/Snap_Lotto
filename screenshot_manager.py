@@ -12,11 +12,16 @@ from pathlib import Path
 import threading
 import shutil
 import json
+import uuid
+import io
 from urllib.parse import urlparse
 import requests
 from bs4 import BeautifulSoup
+from PIL import Image
 from sqlalchemy import func
 from models import db, Screenshot, ScheduleConfig
+from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 
 # Set up module-specific logger
 logger = logging.getLogger(__name__)
@@ -38,6 +43,65 @@ if not logger.handlers:
     
     # Set logging level
     logger.setLevel(logging.INFO)
+    
+# Function to save screenshot metadata to database
+def save_screenshot_to_database(url, lottery_type, filepath, img_filepath):
+    """
+    Save screenshot information to the database.
+    
+    Args:
+        url (str): Source URL
+        lottery_type (str): Type of lottery
+        filepath (str): Path to the HTML file
+        img_filepath (str): Path to the image file
+        
+    Returns:
+        int: ID of the created database record
+    """
+    try:
+        # Check if we need to create an app context
+        from flask import current_app, has_app_context
+        if not has_app_context():
+            # Import app here to avoid circular imports
+            from main import app
+            with app.app_context():
+                # Save screenshot metadata to database within app context
+                screenshot = Screenshot(
+                    url=url,
+                    lottery_type=lottery_type,
+                    timestamp=datetime.now(),
+                    path=filepath,
+                    zoomed_path=img_filepath,
+                    processed=False
+                )
+                
+                db.session.add(screenshot)
+                db.session.commit()
+                
+                logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
+                return screenshot.id
+        else:
+            # We already have an app context, proceed normally
+            screenshot = Screenshot(
+                url=url,
+                lottery_type=lottery_type,
+                timestamp=datetime.now(),
+                path=filepath,
+                zoomed_path=img_filepath,
+                processed=False
+            )
+            
+            db.session.add(screenshot)
+            db.session.commit()
+            
+            logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
+            return screenshot.id
+    except Exception as e:
+        logger.error(f"Database error when saving screenshot: {str(e)}")
+        logger.error(traceback.format_exc())
+        if 'db' in locals():
+            db.session.rollback()
+        raise
 
 # Create directory for screenshots if it doesn't exist
 SCREENSHOT_DIR = os.path.join(os.getcwd(), 'screenshots')
@@ -81,10 +145,46 @@ def ensure_playwright_browsers():
     """
     try:
         import subprocess
-        subprocess.check_call(['playwright', 'install', 'chromium'])
-        logger.info("Playwright browsers installed successfully")
+        # Try to install Chromium browser with increased timeout
+        logger.info("Starting Playwright browsers installation...")
+        result = subprocess.check_call(['python', '-m', 'playwright', 'install', 'chromium'], timeout=180)
+        logger.info(f"Playwright browsers installed successfully with result: {result}")
+        return True
+    except subprocess.TimeoutExpired:
+        logger.error("Timeout expired when installing Playwright browsers")
+        return False
+    except subprocess.SubprocessError as e:
+        logger.error(f"Subprocess error when installing Playwright browsers: {str(e)}")
+        return False
     except Exception as e:
         logger.error(f"Error installing Playwright browsers: {str(e)}")
+        logger.error(f"Error details: {traceback.format_exc()}")
+        return False
+
+def is_playwright_available():
+    """
+    Check if Playwright is available for use.
+    
+    Returns:
+        bool: True if Playwright is available, False otherwise
+    """
+    try:
+        # First check if the module is importable
+        from playwright.sync_api import sync_playwright
+        
+        # Then try to actually use it by creating a minimal instance
+        with sync_playwright() as p:
+            # Just access a property to verify it's working
+            browser_type = p.chromium
+            logger.info(f"Playwright is available with browser types: {p.devices}")
+            return True
+    except ImportError:
+        logger.error("Playwright is not installed")
+        return False
+    except Exception as e:
+        logger.error(f"Error checking Playwright availability: {str(e)}")
+        logger.error(f"Error traceback: {traceback.format_exc()}")
+        return False
 
 async def capture_screenshot_async(url):
     """
@@ -549,8 +649,9 @@ def capture_screenshot(url, lottery_type=None, increased_timeout=False):
     """
     Capture HTML content from the specified URL and save metadata to database.
     
-    This function uses requests and BeautifulSoup to fetch and save the HTML content,
-    which is more reliable than using browser automation in the Replit environment.
+    This function tries multiple methods to capture screenshots:
+    1. First it attempts to use Playwright (if available)
+    2. If Playwright fails, falls back to requests and BeautifulSoup
     
     Args:
         url (str): The URL to capture
@@ -563,6 +664,8 @@ def capture_screenshot(url, lottery_type=None, increased_timeout=False):
     if not lottery_type:
         lottery_type = extract_lottery_type_from_url(url)
     
+    logger.info(f"Starting capture process for {lottery_type} from {url}")
+    
     # Use semaphore to limit concurrent requests
     # This prevents too many simultaneous connections
     if not screenshot_semaphore.acquire(blocking=True, timeout=300):
@@ -570,6 +673,143 @@ def capture_screenshot(url, lottery_type=None, increased_timeout=False):
         return None, None, None
     
     try:
+        # Try to use Playwright first (synchronous version)
+        if is_playwright_available():
+            logger.info(f"Attempting to capture {lottery_type} with Playwright")
+            try:
+                # Try our improved sync version first (more reliable)
+                result = capture_screenshot_sync(url, retry_count=0)
+                if result and all(result):
+                    filepath, screenshot_data, img_filepath = result
+                    logger.info(f"Successfully captured screenshot with Playwright sync for {url}")
+                    
+                    # Save to database
+                    try:
+                        save_screenshot_to_database(url, lottery_type, filepath, img_filepath)
+                    except Exception as db_error:
+                        logger.error(f"Database error when saving screenshot: {str(db_error)}")
+                        logger.error(traceback.format_exc())
+                        # Continue anyway as we have the files
+                        
+                    return filepath, screenshot_data, img_filepath
+            except Exception as e:
+                logger.warning(f"Playwright sync capture failed: {str(e)}")
+                logger.warning(traceback.format_exc())
+                
+                # Traditional Playwright approach as backup
+                logger.info(f"Attempting to capture screenshot using traditional Playwright for {url}")
+                
+                # Generate timestamp for filename
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_id = str(uuid.uuid4())[:8]
+                
+                # Create image filename
+                img_filename = f"{lottery_type.replace(' ', '_')}_{timestamp}_{unique_id}.png"
+                img_filepath = os.path.join(SCREENSHOT_DIR, img_filename)
+                
+                # Try to use synchronous Playwright
+                with sync_playwright() as p:
+                    browser_type = p.chromium
+                    
+                    # Launch with specific arguments to prevent detection
+                    browser = browser_type.launch(
+                        headless=True,
+                        args=["--no-sandbox", "--disable-setuid-sandbox"]
+                    )
+                    
+                    try:
+                        # Create a new context with specific settings
+                        context = browser.new_context(
+                            viewport={'width': 1280, 'height': 1024},
+                            user_agent=random.choice(USER_AGENTS)
+                        )
+                        
+                        # Create a new page
+                        page = context.new_page()
+                        
+                        # Set timeout (increased if needed)
+                        timeout = 60000 if increased_timeout else 30000  # in milliseconds
+                        
+                        # Navigate to URL
+                        page.goto(url, timeout=timeout, wait_until='networkidle')
+                        
+                        # Take screenshot
+                        page.screenshot(path=img_filepath, full_page=True)
+                        
+                        # Read screenshot data
+                        with open(img_filepath, 'rb') as f:
+                            screenshot_data = f.read()
+                        
+                        # Create HTML file
+                        html_content = page.content()
+                        html_filename = f"{lottery_type.replace(' ', '_')}_{timestamp}_{unique_id}.html"
+                        filepath = os.path.join(SCREENSHOT_DIR, html_filename)
+                        
+                        with open(filepath, 'w', encoding='utf-8') as f:
+                            f.write(html_content)
+                        
+                        # Close browser
+                        browser.close()
+                        
+                        logger.info(f"Successfully captured screenshot with Playwright from {url}")
+                        
+                        # Save to database
+                        try:
+                            # Check if we need to create an app context
+                            from flask import current_app, has_app_context
+                            if not has_app_context():
+                                # Import app here to avoid circular imports
+                                from main import app
+                                with app.app_context():
+                                    # Save screenshot metadata to database within app context
+                                    screenshot = Screenshot(
+                                        url=url,
+                                        lottery_type=lottery_type,
+                                        timestamp=datetime.now(),
+                                        path=filepath,
+                                        zoomed_path=img_filepath,
+                                        processed=False
+                                    )
+                                    
+                                    db.session.add(screenshot)
+                                    db.session.commit()
+                                    
+                                    logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
+                            else:
+                                # We already have an app context, proceed normally
+                                screenshot = Screenshot(
+                                    url=url,
+                                    lottery_type=lottery_type,
+                                    timestamp=datetime.now(),
+                                    path=filepath,
+                                    zoomed_path=img_filepath,
+                                    processed=False
+                                )
+                                
+                                db.session.add(screenshot)
+                                db.session.commit()
+                                
+                                logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
+                        except Exception as e:
+                            logger.error(f"Error saving Playwright screenshot to database: {str(e)}")
+                            traceback.print_exc()
+                            # Still return the filepath so OCR can be attempted
+                        
+                        return filepath, screenshot_data, img_filepath
+                    finally:
+                        # Make sure the browser is closed
+                        if 'browser' in locals():
+                            browser.close()
+                    
+            except Exception as playwright_error:
+                logger.warning(f"Failed to capture with Playwright: {str(playwright_error)}. Falling back to requests.")
+                # Fall through to the fallback method
+        else:
+            logger.info("Playwright not available, using requests for screenshot capture")
+        
+        # Fallback to using requests and BeautifulSoup
+        logger.info(f"Using fallback method (requests) to capture data from {url}")
+        
         # Import required libraries
         import requests
         from bs4 import BeautifulSoup
@@ -577,15 +817,16 @@ def capture_screenshot(url, lottery_type=None, increased_timeout=False):
         from PIL import Image
         import io
         
-        # Headers to mimic a real browser
+        # Headers to mimic a real browser with random user agent
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'User-Agent': random.choice(USER_AGENTS),
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
             'Referer': 'https://www.google.com/',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'max-age=0'
+            'Cache-Control': 'max-age=0',
+            'DNT': '1'  # Do Not Track header for privacy-focused appearance
         }
         
         # Request the page with a timeout (increased if needed)
@@ -630,47 +871,13 @@ def capture_screenshot(url, lottery_type=None, increased_timeout=False):
         img.save(img_buffer, format='PNG')
         screenshot_data = img_buffer.getvalue()
         
-        # Save to database
+        # Save to database using our helper function
         try:
-            # Check if we need to create an app context
-            from flask import current_app, has_app_context
-            if not has_app_context():
-                # Import app here to avoid circular imports
-                from main import app
-                with app.app_context():
-                    # Save screenshot metadata to database within app context
-                    screenshot = Screenshot(
-                        url=url,
-                        lottery_type=lottery_type,
-                        timestamp=datetime.now(),
-                        path=filepath,
-                        zoomed_path=img_filepath,  # Use the image file as the zoomed path
-                        processed=False
-                    )
-                    
-                    db.session.add(screenshot)
-                    db.session.commit()
-                    
-                    logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
-            else:
-                # We already have an app context, proceed normally
-                screenshot = Screenshot(
-                    url=url,
-                    lottery_type=lottery_type,
-                    timestamp=datetime.now(),
-                    path=filepath,
-                    zoomed_path=img_filepath,  # Use the image file as the zoomed path
-                    processed=False
-                )
-                
-                db.session.add(screenshot)
-                db.session.commit()
-                
-                logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
+            save_screenshot_to_database(url, lottery_type, filepath, img_filepath)
         except Exception as e:
-            logger.error(f"Error saving screenshot to database: {str(e)}")
-            traceback.print_exc()
-            # Still return the filepath so OCR can be attempted
+            logger.error(f"Error saving fallback screenshot to database: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Still return the filepath even if DB saving failed
         
         return filepath, screenshot_data, img_filepath  # Return the HTML filepath and image filepath
     except Exception as e:
@@ -985,7 +1192,7 @@ def _take_screenshot_worker(url, lottery_type, increased_timeout=False):
             # Take the screenshot, using increased timeout if specified
             filepath, screenshot_data, zoom_filepath = capture_screenshot(url, lottery_type, increased_timeout=increased_timeout)
             
-            if not filepath or not screenshot_data:
+            if not filepath:
                 logger.error(f"Failed to capture screenshot for {url}")
                 return False
                 
