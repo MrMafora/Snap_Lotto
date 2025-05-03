@@ -191,8 +191,15 @@
                         <div class="card h-100 gallery-card" style="user-select: none;">
                             <!-- Direct image preview as seen in the original version -->
                             <div class="gallery-image-container">
-                                <img src="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
+                                {% if screenshot.zoomed_path %}
+                                <img src="{{ url_for('view_zoomed_screenshot', screenshot_id=screenshot.id) }}" 
                                      alt="{{ screenshot.lottery_type }} screenshot">
+                                {% else %}
+                                <div class="text-center p-3">
+                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                    <p class="mt-2 text-muted small">Preview unavailable</p>
+                                </div>
+                                {% endif %}
                             </div>
                             <div class="card-body d-flex flex-column">
                                 <h5 class="card-title">{{ screenshot.lottery_type }}</h5>
@@ -203,11 +210,19 @@
                                 </p>
                                 <div class="mt-auto">
                                     <div class="d-flex mb-2">
-                                        <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
+                                        {% if screenshot.zoomed_path %}
+                                        <a href="{{ url_for('view_zoomed_screenshot', screenshot_id=screenshot.id) }}" 
                                            class="btn btn-sm btn-primary w-100" 
-                                           download>
+                                           download="{{ screenshot.lottery_type.replace(' ', '_') }}_screenshot.png">
                                             <i class="fas fa-download me-1"></i> Download
                                         </a>
+                                        {% else %}
+                                        <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
+                                           class="btn btn-sm btn-primary w-100" 
+                                           download="{{ screenshot.lottery_type.replace(' ', '_') }}.html">
+                                            <i class="fas fa-download me-1"></i> Download
+                                        </a>
+                                        {% endif %}
                                     </div>
                                     <form action="{{ url_for('sync_single_screenshot', screenshot_id=screenshot.id) }}" method="POST">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
