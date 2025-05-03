@@ -153,8 +153,8 @@ async def capture_screenshot_async(url):
 
 def capture_screenshot_sync(url, retry_count=0):
     """
-    Enhanced synchronous version of screenshot capture using Playwright sync API.
-    Includes anti-detection techniques and human-like behavior.
+    Synchronous version of screenshot capture using requests and BeautifulSoup.
+    More reliable than Playwright in the Replit environment.
     
     Args:
         url (str): The URL to capture
@@ -530,69 +530,102 @@ def capture_screenshot_sync(url, retry_count=0):
 
 def capture_screenshot(url, lottery_type=None):
     """
-    Capture screenshot of the specified URL and save metadata to database.
+    Capture HTML content from the specified URL and save metadata to database.
     
-    This function captures a screenshot using Playwright with Chromium to bypass 
-    anti-scraping measures on lottery websites.
+    This function uses requests and BeautifulSoup to fetch and save the HTML content,
+    which is more reliable than using browser automation in the Replit environment.
     
     Args:
         url (str): The URL to capture
         lottery_type (str, optional): The type of lottery. If None, extracted from URL.
         
     Returns:
-        tuple: (filepath, screenshot_data, zoom_filepath) or (None, None, None) if failed
+        tuple: (filepath, screenshot_data, img_filepath) or (None, None, None) if failed
     """
     if not lottery_type:
         lottery_type = extract_lottery_type_from_url(url)
     
-    # Use semaphore to limit concurrent screenshot captures
-    # This prevents "can't start new thread" errors
+    # Use semaphore to limit concurrent requests
+    # This prevents too many simultaneous connections
     if not screenshot_semaphore.acquire(blocking=True, timeout=300):
         logger.error(f"Could not acquire screenshot semaphore for {lottery_type} after waiting 5 minutes")
         return None, None, None
     
     try:
-        # Use the sync method instead of async to avoid event loop issues
-        filepath, screenshot_data, zoom_filepath = capture_screenshot_sync(url)
+        # Import required libraries
+        import requests
+        from bs4 import BeautifulSoup
+        import uuid
+        from PIL import Image
+        import io
         
-        # Verify that screenshot files actually exist before proceeding
-        if filepath and screenshot_data and os.path.isfile(filepath):
-            logger.info(f"Screenshot file verified at {filepath}")
+        # Headers to mimic a real browser
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Referer': 'https://www.google.com/',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'max-age=0'
+        }
+        
+        # Request the page with a timeout
+        logger.info(f"Requesting URL: {url}")
+        response = requests.get(url, headers=headers, timeout=30)
+        
+        if response.status_code != 200:
+            logger.error(f"Failed to fetch URL {url}: HTTP status {response.status_code}")
+            return None, None, None
             
-            # Also verify zoomed screenshot if applicable
-            if zoom_filepath and not os.path.isfile(zoom_filepath):
-                logger.warning(f"Zoomed screenshot file not found at {zoom_filepath}")
-                zoom_filepath = None
-                
-            try:
-                # Check if we need to create an app context
-                from flask import current_app, has_app_context
-                if not has_app_context():
-                    # Import app here to avoid circular imports
-                    from main import app
-                    with app.app_context():
-                        # Save screenshot metadata to database within app context
-                        screenshot = Screenshot(
-                            url=url,
-                            lottery_type=lottery_type,
-                            timestamp=datetime.now(),
-                            path=filepath,
-                            zoomed_path=zoom_filepath,
-                            processed=False
-                        )
-                        
-                        db.session.add(screenshot)
-                        db.session.commit()
-                        
-                        logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
-                else:
-                    # We already have an app context, proceed normally
+        # Parse the HTML content
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Generate timestamp for filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # Generate a unique ID
+        unique_id = str(uuid.uuid4())[:8]
+        
+        # Create filenames
+        screenshot_filename = f"{lottery_type.replace(' ', '_')}_{timestamp}_{unique_id}.html"
+        filepath = os.path.join(SCREENSHOT_DIR, screenshot_filename)
+        
+        # Create a simple image representation of the webpage (for compatibility)
+        img = Image.new('RGB', (1200, 800), color = (255, 255, 255))
+        img_filename = f"{lottery_type.replace(' ', '_')}_{timestamp}_{unique_id}.png"
+        img_filepath = os.path.join(SCREENSHOT_DIR, img_filename)
+        
+        # Save HTML content to file
+        os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(response.text)
+            
+        # Save image to file
+        img.save(img_filepath)
+        
+        logger.info(f"Successfully captured content from {url} and saved to {filepath}")
+        
+        # Prepare image data for return
+        img_buffer = io.BytesIO()
+        img.save(img_buffer, format='PNG')
+        screenshot_data = img_buffer.getvalue()
+        
+        # Save to database
+        try:
+            # Check if we need to create an app context
+            from flask import current_app, has_app_context
+            if not has_app_context():
+                # Import app here to avoid circular imports
+                from main import app
+                with app.app_context():
+                    # Save screenshot metadata to database within app context
                     screenshot = Screenshot(
                         url=url,
                         lottery_type=lottery_type,
                         timestamp=datetime.now(),
                         path=filepath,
-                        zoomed_path=zoom_filepath,
+                        zoomed_path=img_filepath,  # Use the image file as the zoomed path
                         processed=False
                     )
                     
@@ -600,20 +633,27 @@ def capture_screenshot(url, lottery_type=None):
                     db.session.commit()
                     
                     logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
-            except Exception as e:
-                logger.error(f"Error saving screenshot to database: {str(e)}")
-                traceback.print_exc()
-                # Still return the filepath so OCR can be attempted
-            
-            return filepath, None, zoom_filepath  # Return None for extracted data to use OCR
-        else:
-            if not filepath:
-                logger.error(f"Screenshot capture failed for {lottery_type}: No filepath returned")
-            elif not screenshot_data:
-                logger.error(f"Screenshot capture failed for {lottery_type}: No screenshot data returned")
-            elif not os.path.isfile(filepath):
-                logger.error(f"Screenshot capture failed for {lottery_type}: File not found at {filepath}")
-            return None, None, None
+            else:
+                # We already have an app context, proceed normally
+                screenshot = Screenshot(
+                    url=url,
+                    lottery_type=lottery_type,
+                    timestamp=datetime.now(),
+                    path=filepath,
+                    zoomed_path=img_filepath,  # Use the image file as the zoomed path
+                    processed=False
+                )
+                
+                db.session.add(screenshot)
+                db.session.commit()
+                
+                logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
+        except Exception as e:
+            logger.error(f"Error saving screenshot to database: {str(e)}")
+            traceback.print_exc()
+            # Still return the filepath so OCR can be attempted
+        
+        return filepath, screenshot_data, img_filepath  # Return the HTML filepath and image filepath
     except Exception as e:
         logger.error(f"Error in capture_screenshot: {str(e)}")
         traceback.print_exc()
@@ -623,8 +663,6 @@ def capture_screenshot(url, lottery_type=None):
         # to ensure it's released even if an exception occurs
         screenshot_semaphore.release()
         logger.debug(f"Released screenshot semaphore for {lottery_type}")
-    
-    return None, None, None
 
 def extract_lottery_type_from_url(url):
     """Extract lottery type from the URL"""
