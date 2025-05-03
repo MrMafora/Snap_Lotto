@@ -1253,16 +1253,18 @@ def retake_screenshots():
         return redirect(url_for('index'))
         
     try:
-        result = scheduler.retake_all_screenshots()
+        # Call scheduler's retake_all_screenshots function
+        # This returns an integer count of successfully captured screenshots
+        success_count = scheduler.retake_all_screenshots(app=app, use_threading=False)
         
-        if result:
-            success_count = sum(1 for status in result.values() if status == 'success')
-            fail_count = len(result) - success_count
-            
-            flash(f'Screenshot process started. {success_count} URLs queued successfully. {fail_count} failed.', 'info')
+        if success_count > 0:
+            flash(f'Screenshot process completed. {success_count} screenshots captured successfully.', 'success')
         else:
-            flash('No URLs configured for screenshots.', 'warning')
+            flash('No screenshots could be captured. Please check logs for details.', 'warning')
     except Exception as e:
+        app.logger.error(f"Error in retake_screenshots route: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
         flash(f'Error: {str(e)}', 'danger')
     
     return redirect(url_for('admin'))
