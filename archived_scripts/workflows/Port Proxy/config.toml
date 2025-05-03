@@ -1,7 +1,0 @@
-[[tasks]]
-task = "packager.installForAll"
-
-[[tasks]]
-task = "shell.exec"
-command = "python port_proxy_service.py"
-waitForPort = 8080

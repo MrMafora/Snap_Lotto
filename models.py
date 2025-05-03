@@ -49,6 +49,36 @@ class DuplicateCheckMixin:
 # Initialize database
 db = SQLAlchemy(model_class=Base)
 
+class HealthAlert(db.Model):
+    """Model for system health alerts"""
+    id = db.Column(db.Integer, primary_key=True)
+    alert_type = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    resolved = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+    
+    def __repr__(self):
+        return f"<HealthAlert {self.alert_type}: {self.message[:30]}...>"
+    
+    def resolve(self):
+        """Mark this alert as resolved"""
+        self.resolved = True
+        self.resolved_at = datetime.utcnow()
+        
+    @classmethod
+    def get_active(cls):
+        """Get all active (unresolved) alerts"""
+        return cls.query.filter_by(resolved=False).all()
+    
+    @classmethod
+    def create(cls, alert_type, message):
+        """Create a new health alert"""
+        alert = cls(alert_type=alert_type, message=message)
+        db.session.add(alert)
+        db.session.commit()
+        return alert
+
 class User(UserMixin, db.Model):
     """User model for admin authentication"""
     id = db.Column(db.Integer, primary_key=True)

@@ -307,12 +307,10 @@ def admin():
 
         # Get recent health alerts
         try:
-            if 'HealthAlert' in globals():
-                recent_alerts = HealthAlert.query.filter_by(resolved=False).order_by(HealthAlert.created_at.desc()).limit(5).all()
-                logger.info("Retrieved %d recent health alerts", len(recent_alerts))
-            else:
-                logger.warning("HealthAlert model not available")
-                recent_alerts = []
+            # Import HealthAlert model directly from models
+            from models import HealthAlert
+            recent_alerts = HealthAlert.query.filter_by(resolved=False).order_by(HealthAlert.created_at.desc()).limit(5).all()
+            logger.info("Retrieved %d recent health alerts", len(recent_alerts))
         except Exception as e:
             logger.error(f"Error retrieving health alerts: {e}")
             recent_alerts = []
