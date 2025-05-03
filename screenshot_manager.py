@@ -6,6 +6,8 @@ import logging
 import asyncio
 import random
 import time
+import math
+import subprocess
 from datetime import datetime
 import traceback
 from pathlib import Path
@@ -114,24 +116,108 @@ os.makedirs(COOKIES_DIR, exist_ok=True)
 MAX_CONCURRENT_THREADS = 3
 screenshot_semaphore = threading.Semaphore(MAX_CONCURRENT_THREADS)
 
-# List of user agents to rotate through randomly
+# List of user agents to rotate through randomly - updated with 2024 versions
 USER_AGENTS = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
+    # Chrome (Windows)
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    # Chrome (Mac)
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+    # Firefox (Windows)
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
+    # Firefox (Mac)
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:124.0) Gecko/20100101 Firefox/124.0',
+    # Safari (Mac)
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+    # Edge (Windows)
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0',
+    # Chrome (Linux)
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+    # Firefox (Linux)
+    'Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0',
+    # Mobile browsers (for variety)
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (iPad; CPU OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (Linux; Android 14; SM-S908U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+    'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36'
 ]
 
-# Human-like scroll behavior parameters
+# Human-like scroll behavior parameters with more natural patterns
 SCROLL_BEHAVIOR = [
-    {'distance': 0.2, 'delay': 0.5},  # Scroll 20% with 0.5s delay
-    {'distance': 0.3, 'delay': 0.7},  # Scroll 30% with 0.7s delay
-    {'distance': 0.5, 'delay': 0.3},  # Scroll 50% with 0.3s delay
-    {'distance': 0.7, 'delay': 0.6},  # Scroll 70% with 0.6s delay
-    {'distance': 1.0, 'delay': 0.8}   # Scroll 100% with 0.8s delay
+    # Initial scan of the page
+    {'distance': 0.15, 'delay': 0.8},   # Quick scroll down a bit
+    {'distance': 0.25, 'delay': 1.2},   # Pause to read content
+    {'distance': 0.35, 'delay': 0.7},   # Continue scrolling
+    
+    # Deeper reading (middle of the page)
+    {'distance': 0.45, 'delay': 1.5},   # Longer pause at interesting content
+    {'distance': 0.55, 'delay': 0.9},   # Resume scrolling
+    
+    # Accelerating towards the end
+    {'distance': 0.65, 'delay': 0.6},   # Faster scrolling (less interesting content)
+    {'distance': 0.80, 'delay': 0.5},   # Quick scroll
+    
+    # Final review
+    {'distance': 0.95, 'delay': 1.0},   # Almost at the bottom
+    {'distance': 1.0, 'delay': 1.2}     # Read the footer/end of page
 ]
+
+# Browser fingerprint modification options
+BROWSER_FINGERPRINT_MODIFICATIONS = {
+    # Screen sizes (width x height)
+    'screen_sizes': [
+        {'width': 1366, 'height': 768},   # Common laptop
+        {'width': 1920, 'height': 1080},  # FHD desktop
+        {'width': 1536, 'height': 864},   # Common laptop variant
+        {'width': 1440, 'height': 900},   # MacBook Pro 
+        {'width': 1280, 'height': 720},   # HD ready
+        {'width': 2560, 'height': 1440},  # QHD desktop
+        {'width': 3840, 'height': 2160},  # 4K desktop
+    ],
+    
+    # Color depths (bits)
+    'color_depths': [24, 30, 48],
+    
+    # Platform information
+    'platforms': [
+        {'name': 'Win32', 'os': 'Windows'},
+        {'name': 'MacIntel', 'os': 'Mac OS X'},
+        {'name': 'Linux x86_64', 'os': 'Linux'},
+    ],
+    
+    # Common browser plugins to emulate
+    'plugins': [
+        'PDF Viewer',
+        'Chrome PDF Viewer',
+        'Chromium PDF Viewer',
+        'Native Client',
+        'Microsoft Edge PDF Viewer',
+    ],
+    
+    # Common languages
+    'languages': [
+        ['en-US', 'en'],
+        ['en-GB', 'en'],
+        ['en-ZA', 'en', 'af'],  # South African languages
+        ['en-CA', 'fr-CA', 'en'],
+        ['en-AU', 'en'],
+    ],
+    
+    # Timezones
+    'timezones': [
+        'Africa/Johannesburg',  # South Africa
+        'Europe/London',
+        'America/New_York',
+        'America/Los_Angeles',
+        'Australia/Sydney',
+    ],
+}
 
 # Maximum number of retry attempts
 MAX_RETRIES = 3
@@ -268,8 +354,8 @@ async def capture_screenshot_async(url):
 
 def capture_screenshot_sync(url, retry_count=0):
     """
-    Synchronous version of screenshot capture using requests and BeautifulSoup.
-    More reliable than Playwright in the Replit environment.
+    Enhanced synchronous version of screenshot capture using Playwright.
+    Implements advanced anti-bot detection measures to mimic human browsing behavior.
     
     Args:
         url (str): The URL to capture
@@ -311,13 +397,37 @@ def capture_screenshot_sync(url, retry_count=0):
                 chromium_path = path
                 break
         
-        # Choose a random user agent
+        # Select randomized browser fingerprint parameters
+        fingerprint = {
+            'screen': random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['screen_sizes']),
+            'color_depth': random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['color_depths']),
+            'platform': random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['platforms']),
+            'languages': random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['languages']),
+            'timezone': random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['timezones']),
+        }
+        
+        # Choose a random user agent - more recent versions
         user_agent = random.choice(USER_AGENTS)
         logger.debug(f"Using user agent: {user_agent}")
+        logger.debug(f"Fingerprint: {fingerprint}")
         
-        # Random screen size to prevent fingerprinting
-        screen_width = random.choice([1280, 1366, 1440, 1920])
-        screen_height = random.choice([800, 900, 1024, 1080])
+        # Randomize timing between actions (jitter)
+        jitter = random.uniform(0.8, 1.2)  # +/- 20% randomization factor
+        
+        # Randomize referrer to simulate different sources
+        referrers = [
+            "https://www.google.com/search?q=south+africa+lottery+results",
+            "https://www.google.co.za/search?q=lottery+results+south+africa",
+            "https://www.bing.com/search?q=national+lottery+south+africa",
+            "https://duckduckgo.com/?q=south+africa+lotto+results",
+            "https://www.facebook.com/",
+            "https://twitter.com/home",
+            "https://www.linkedin.com/feed/",
+            None  # Sometimes no referrer (direct navigation)
+        ]
+        
+        # Select a referrer with 80% probability (sometimes direct navigation)
+        referrer = random.choice(referrers) if random.random() < 0.8 else None
         
         # Use Playwright to capture screenshot with built-in timeouts
         with sync_playwright() as p:
@@ -332,20 +442,35 @@ def capture_screenshot_sync(url, retry_count=0):
                         "--disable-blink-features=AutomationControlled",
                         "--disable-features=IsolateOrigins,site-per-process",
                         "--disable-site-isolation-trials",
-                        f"--window-size={screen_width},{screen_height}",
+                        f"--window-size={fingerprint['screen']['width']},{fingerprint['screen']['height']}",
                         "--no-sandbox",
-                        "--disable-setuid-sandbox"
+                        "--disable-setuid-sandbox",
+                        # Additional flags to reduce detection
+                        "--disable-infobars",
+                        "--disable-dev-shm-usage",
+                        "--disable-browser-side-navigation",
+                        "--disable-gpu",
+                        "--disable-accelerated-2d-canvas",
+                        "--disable-accelerated-jpeg-decoding",
+                        "--disable-accelerated-mjpeg-decode",
+                        "--disable-accelerated-video-decode",
+                        f"--user-agent={user_agent}",
+                        # Disable automation flags
+                        "--disable-automation"
                     ]
                 )
                 
                 # Create a new context with specific settings to appear more human-like
                 context = browser.new_context(
-                    viewport={'width': screen_width, 'height': screen_height},
+                    viewport={'width': fingerprint['screen']['width'], 'height': fingerprint['screen']['height']},
                     user_agent=user_agent,
-                    locale=random.choice(['en-US', 'en-GB', 'en-CA', 'en-ZA']),
-                    timezone_id=random.choice(['America/New_York', 'Europe/London', 'Africa/Johannesburg']),
+                    locale=fingerprint['languages'][0],
+                    timezone_id=fingerprint['timezone'],
                     geolocation={"latitude": -26.2041, "longitude": 28.0473},  # Johannesburg coordinates
-                    permissions=['geolocation']
+                    permissions=['geolocation'],
+                    color_scheme='light',  # Most users use light mode
+                    reduced_motion='no-preference',  # Default motion preference
+                    has_touch=random.random() < 0.3,  # 30% chance to simulate touch capability
                 )
                 
                 # Load cookies from previous sessions if available
@@ -361,139 +486,290 @@ def capture_screenshot_sync(url, retry_count=0):
                 # Create a new page
                 page = context.new_page()
                 
-                # Execute stealth script to prevent detection
+                # Execute standard stealth script to prevent detection
                 # This script modifies navigator properties to appear as a real browser
-                page.evaluate("""() => {
+                stealth_script = """
+                function() {
                     // Overwrite the 'webdriver' property
                     Object.defineProperty(navigator, 'webdriver', {
-                        get: () => false,
+                        get: function() { return false; },
                         configurable: true
                     });
                     
-                    // Overwrite plugins to add some fake ones
-                    Object.defineProperty(navigator, 'plugins', {
-                        get: () => {
-                            return [
-                                {
-                                    name: 'Chrome PDF Plugin',
-                                    description: 'Portable Document Format',
-                                    filename: 'internal-pdf-viewer'
-                                },
-                                {
-                                    name: 'Chrome PDF Viewer',
-                                    description: '',
-                                    filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai'
-                                },
-                                {
-                                    name: 'Native Client',
-                                    description: '',
-                                    filename: 'internal-nacl-plugin'
-                                }
-                            ];
-                        },
+                    // Set proper platform
+                    Object.defineProperty(navigator, 'platform', {
+                        get: function() { return 'Win32'; },
                         configurable: true
                     });
                     
-                    // Add language plugins
+                    // Override productSub
+                    Object.defineProperty(navigator, 'productSub', {
+                        get: function() { return '20100101'; },
+                        configurable: true
+                    });
+                    
+                    // Set vendor
+                    Object.defineProperty(navigator, 'vendor', {
+                        get: function() { return 'Google Inc.'; },
+                        configurable: true
+                    });
+                    
+                    // Set languages 
                     Object.defineProperty(navigator, 'languages', {
-                        get: () => ['en-US', 'en'],
+                        get: function() { return ['en-ZA', 'en', 'af']; },
                         configurable: true
                     });
-                }""")
+                    
+                    // Set hardware concurrency
+                    Object.defineProperty(navigator, 'hardwareConcurrency', {
+                        get: function() { return 8; },
+                        configurable: true
+                    });
+                    
+                    // Hide automation flag
+                    if (window.chrome) {
+                        if (window.chrome.automation) {
+                            delete window.chrome.automation;
+                        }
+                    }
+                }
+                """
+                page.evaluate(stealth_script)
                 
                 # Set extra HTTP headers to appear more like a real browser
-                page.set_extra_http_headers({
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-                    "Accept-Language": "en-US,en;q=0.9",
+                headers = {
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                    "Accept-Language": f"{fingerprint['languages'][0]},en;q=0.9",
                     "Accept-Encoding": "gzip, deflate, br",
                     "Connection": "keep-alive",
                     "Upgrade-Insecure-Requests": "1",
                     "Sec-Fetch-Dest": "document",
                     "Sec-Fetch-Mode": "navigate",
-                    "Sec-Fetch-Site": "none",
                     "Sec-Fetch-User": "?1",
+                    "Sec-Ch-Ua": f"\"Chromium\";v=\"{random.randint(118, 125)}\", \"Google Chrome\";v=\"{random.randint(118, 125)}\"",
+                    "Sec-Ch-Ua-Mobile": random.choice(["?0", "?1"]),
+                    "Sec-Ch-Ua-Platform": f"\"{fingerprint['platform']['os']}\"",
                     "DNT": "1",
                     "Cache-Control": "max-age=0",
-                    "Referer": "https://www.google.com/"
-                })
+                }
+                
+                # Add referer only if we have one
+                if referrer:
+                    headers["Referer"] = referrer
+                    
+                page.set_extra_http_headers(headers)
                 
                 # Add randomized delays to appear more human-like
-                # Random initial wait before accessing the site (250-750ms)
-                page.wait_for_timeout(random.randint(250, 750))
+                # Random initial wait before accessing the site (250-850ms)
+                initial_wait = random.randint(250, 850)
+                logger.debug(f"Initial wait: {initial_wait}ms")
+                page.wait_for_timeout(initial_wait)
                 
-                # Navigate and wait for the page to fully load with a timeout
+                # Navigation strategy with fallbacks
+                navigation_success = False
                 start_time = time.time()
-                max_time = 30  # Maximum time in seconds
+                max_time = 45  # Maximum time in seconds (increased for reliability)
                 
-                try:
-                    # Try to navigate with a 20-second timeout
-                    page.goto(url, wait_until='domcontentloaded', timeout=20000)
+                # Try different navigation strategies
+                navigation_strategies = [
+                    {'wait_until': 'domcontentloaded', 'timeout': 25000},
+                    {'wait_until': 'load', 'timeout': 30000},
+                    {'wait_until': 'networkidle', 'timeout': 35000}
+                ]
+                
+                # Shuffle the strategies to randomize our approach
+                random.shuffle(navigation_strategies)
+                
+                # Loop through strategies until one succeeds
+                for i, strategy in enumerate(navigation_strategies):
+                    if navigation_success:
+                        break
+                        
+                    try:
+                        logger.info(f"Trying navigation strategy {i+1}: {strategy['wait_until']}")
+                        
+                        # Navigate to the URL using the current strategy
+                        response = page.goto(
+                            url, 
+                            wait_until=strategy['wait_until'], 
+                            timeout=strategy['timeout'],
+                            referer=referrer
+                        )
+                        
+                        # Wait a randomized amount of time for additional resources to load
+                        # This makes it appear more human-like
+                        human_wait = random.randint(1500, 3000)
+                        logger.debug(f"Human wait after page load: {human_wait}ms")
+                        page.wait_for_timeout(human_wait)
+                        
+                        # Check response status
+                        if response and response.status >= 200 and response.status < 300:
+                            logger.info(f"Navigation successful with status {response.status}")
+                            navigation_success = True
+                        else:
+                            logger.warning(f"Navigation returned non-success status: {response.status if response else 'unknown'}")
+                            
+                            # Check for common block indicators in page content
+                            page_content = page.content()
+                            if any(term in page_content.lower() for term in ["denied", "blocked", "captcha", "security check", "cloudflare", "access denied"]):
+                                logger.warning(f"Possible blocking detected in content")
+                                # We'll continue anyway, but log this issue
                     
-                    # Wait a randomized amount of time for additional resources to load
-                    # This makes it appear more human-like, instead of immediately interacting with the page
-                    page.wait_for_timeout(random.randint(1000, 2000))
-                    
-                except Exception as e:
-                    # If timeout occurs, log but continue - we might still get a partial page
-                    logger.warning(f"Page navigation timeout for {url}: {str(e)}")
-                    
-                    # Since we caught the timeout, let's try to continue with whatever page was loaded
-                    if time.time() - start_time > max_time:
-                        logger.error("Exceeded maximum time, aborting")
+                    except Exception as e:
+                        # If timeout occurs, log but try next strategy
+                        logger.warning(f"Navigation strategy {i+1} failed: {str(e)}")
+                        
+                        # If we've been trying too long, give up
+                        if time.time() - start_time > max_time:
+                            logger.error("Exceeded maximum navigation time")
+                            browser.close()
+                            
+                            # If we've reached max retries, give up, otherwise retry with new session
+                            if retry_count >= MAX_RETRIES - 1:
+                                logger.error(f"Max retries reached ({MAX_RETRIES}), giving up on {url}")
+                                return None, None, None
+                            else:
+                                logger.info(f"Retrying with new browser session (attempt {retry_count + 1})")
+                                # Wait a longer time before the retry to avoid rate limiting
+                                time.sleep(5 + random.random() * 5)  # 5-10 seconds
+                                return capture_screenshot_sync(url, retry_count + 1)
+                
+                # Check if we were blocked or got a CAPTCHA - expanded detection
+                captcha_selectors = [
+                    'div:has-text("captcha")', 
+                    'div:has-text("CAPTCHA")',
+                    'img[src*="captcha"]',
+                    'div[class*="captcha"]',
+                    'div:has-text("security check")',
+                    'div:has-text("bot")',
+                    'div:has-text("automated")',
+                    'div:has-text("blocked")',
+                    'div:has-text("unusual activity")',
+                    'iframe[src*="captcha"]',
+                    'iframe[src*="challenge"]',
+                ]
+                
+                for selector in captcha_selectors:
+                    if page.query_selector(selector):
+                        logger.warning(f"CAPTCHA/blocking detected using selector: {selector}")
+                        
+                        # Take a screenshot of the CAPTCHA for debugging
+                        captcha_path = os.path.join(SCREENSHOT_DIR, f"captcha_{timestamp}.png")
+                        page.screenshot(path=captcha_path)
+                        logger.info(f"Saved CAPTCHA screenshot to {captcha_path}")
                         
                         # Close browser to clean up resources
                         browser.close()
                         
-                        # If this was a timeout, retry with a different approach
-                        if "timeout" in str(e).lower():
-                            logger.info(f"Retrying with different wait strategy (attempt {retry_count + 1})")
+                        # If we've reached max retries, give up, otherwise retry with new session
+                        if retry_count >= MAX_RETRIES - 1:
+                            logger.error(f"Max retries reached ({MAX_RETRIES}), giving up on {url}")
+                            return None, None, None
+                        else:
+                            logger.info(f"Retrying with new parameters (attempt {retry_count + 1})")
+                            # Wait a longer time before the retry to avoid rate limiting
+                            time.sleep(10 + random.random() * 10)  # 10-20 seconds
                             return capture_screenshot_sync(url, retry_count + 1)
-                        
-                        raise TimeoutError("Screenshot capture exceeded maximum time")
                 
-                # Check if we were blocked or got a CAPTCHA
-                if page.query_selector('div:has-text("captcha")') or page.query_selector('div:has-text("CAPTCHA")'):
-                    logger.warning(f"CAPTCHA detected on {url}")
-                    
-                    # Close browser
-                    browser.close()
-                    
-                    # Retry with different user agent and longer wait
-                    logger.info(f"Retrying with different user agent (attempt {retry_count + 1})")
-                    return capture_screenshot_sync(url, retry_count + 1)
-                    
-                # Perform human-like scrolling with random behavior
+                # Simulate human-like interaction and movements
                 try:
-                    # Get page height
+                    # Get page dimensions
                     page_height = page.evaluate('document.body.scrollHeight')
+                    page_width = page.evaluate('document.body.scrollWidth')
+                    viewport_height = page.evaluate('window.innerHeight')
+                    
+                    # Move the mouse around a bit randomly before scrolling to appear more human
+                    for _ in range(random.randint(2, 5)):
+                        # Move to random positions
+                        page.mouse.move(
+                            random.randint(100, min(page_width - 100, 1000)), 
+                            random.randint(100, min(viewport_height - 100, 700))
+                        )
+                        page.wait_for_timeout(random.randint(100, 500))
+                    
+                    # Apply human-like scrolling behavior
                     current_position = 0
+                    scroll_positions = []
                     
                     # Apply each scroll step with varied timing and distance
-                    for scroll_step in random.sample(SCROLL_BEHAVIOR, len(SCROLL_BEHAVIOR)):
-                        # Calculate scroll distance for this step
-                        target_position = int(page_height * scroll_step['distance'])
+                    for scroll_step in SCROLL_BEHAVIOR:
+                        # Calculate scroll distance for this step with some randomness
+                        jitter_factor = random.uniform(0.9, 1.1)  # +/- 10% jitter
+                        target_position = int(page_height * scroll_step['distance'] * jitter_factor)
                         
-                        # Scroll to the new position
+                        # Smooth scroll animation to simulate human behavior
+                        # This divides the scroll into small steps to make it look like human scrolling
+                        if current_position < target_position:
+                            step_count = random.randint(5, 15)  # Number of small scrolls to reach target
+                            step_size = (target_position - current_position) / step_count
+                            
+                            for i in range(1, step_count + 1):
+                                # Add slight non-linearity to the scroll speed (easing)
+                                progress = i / step_count
+                                # Easing function - start slow, accelerate in middle, slow at end
+                                eased_progress = 0.5 - 0.5 * math.cos(math.pi * progress)
+                                
+                                interim_pos = int(current_position + (target_position - current_position) * eased_progress)
+                                page.evaluate(f'window.scrollTo(0, {interim_pos})')
+                                page.wait_for_timeout(int((scroll_step['delay'] * 1000) / step_count))
+                        
+                        # Final position
                         page.evaluate(f'window.scrollTo(0, {target_position})')
                         
-                        # Wait for the specified delay
-                        page.wait_for_timeout(int(scroll_step['delay'] * 1000))
+                        # Wait for the specified delay with jitter
+                        delay_with_jitter = int(scroll_step['delay'] * 1000 * random.uniform(0.8, 1.2))
+                        page.wait_for_timeout(delay_with_jitter)
+                        
+                        # After scrolling to a new position, randomly decide to interact with the page
+                        if random.random() < 0.3:  # 30% chance to interact
+                            # Look for clickable elements like links or buttons in the viewport
+                            elements = page.query_selector_all('a, button, .btn, [role="button"]')
+                            if elements and len(elements) > 0:
+                                # Filter to get only visible elements in current viewport
+                                visible_elements = []
+                                for elem in elements:
+                                    try:
+                                        # Check if element is visible and in viewport
+                                        is_visible = elem.is_visible()
+                                        if is_visible:
+                                            bounding_box = elem.bounding_box()
+                                            if bounding_box and bounding_box['y'] > current_position and bounding_box['y'] < current_position + viewport_height:
+                                                visible_elements.append(elem)
+                                    except:
+                                        pass
+                                
+                                # Possibly hover over a visible element
+                                if visible_elements and random.random() < 0.7:  # 70% chance to hover
+                                    try:
+                                        random_element = random.choice(visible_elements)
+                                        random_element.hover()
+                                        page.wait_for_timeout(random.randint(300, 800))
+                                    except:
+                                        pass
                         
                         # Update current position
                         current_position = target_position
+                        scroll_positions.append(current_position)
                     
-                    # Randomly scroll back up a bit to simulate looking at something
-                    if random.random() < 0.7:  # 70% chance to scroll back up
-                        scroll_back = random.uniform(0.2, 0.6)  # Scroll back 20-60%
-                        scroll_up_pos = int(current_position * (1 - scroll_back))
-                        page.evaluate(f'window.scrollTo(0, {scroll_up_pos})')
-                        page.wait_for_timeout(random.randint(800, 1500))
+                    # Randomly scroll back up to previously viewed position
+                    if len(scroll_positions) > 2 and random.random() < 0.7:  # 70% chance to scroll back
+                        # Choose a random previous position
+                        random_position = random.choice(scroll_positions[:len(scroll_positions)-1])
                         
-                        # Then scroll back to bottom
-                        page.evaluate(f'window.scrollTo(0, {current_position})')
-                        page.wait_for_timeout(random.randint(500, 1000))
+                        # Smooth scroll back to that position
+                        page.evaluate(f'window.scrollTo({{ top: {random_position}, behavior: "smooth" }})')
+                        page.wait_for_timeout(random.randint(1000, 2000))
+                        
+                        # Then either stay there or go back to bottom
+                        if random.random() < 0.5:  # 50% chance to go back to bottom
+                            page.evaluate(f'window.scrollTo({{ top: {scroll_positions[-1]}, behavior: "smooth" }})')
+                            page.wait_for_timeout(random.randint(800, 1500))
+                    
                 except Exception as e:
-                    logger.warning(f"Error during human-like scrolling: {str(e)}")
+                    logger.warning(f"Error during human-like interaction: {str(e)}")
+                
+                # Wait a final random delay before taking the screenshot
+                page.wait_for_timeout(random.randint(500, 1500))
                 
                 # Save the full page screenshot
                 page.screenshot(path=filepath, full_page=True)
@@ -514,7 +790,9 @@ def capture_screenshot_sync(url, retry_count=0):
                 with open(filepath, 'rb') as f:
                     screenshot_data = f.read()
                 
+                # Clean up browser resources
                 browser.close()
+                
                 # Return without zoomed path
                 return filepath, screenshot_data, None
                 
@@ -528,12 +806,30 @@ def capture_screenshot_sync(url, retry_count=0):
                 except:
                     pass
                 
-                return None, None, None
+                # If this is the last retry, give up
+                if retry_count >= MAX_RETRIES - 1:
+                    logger.error(f"Max retries reached ({MAX_RETRIES}), giving up on {url}")
+                    return None, None, None
+                else:
+                    # Otherwise retry with exponential backoff
+                    backoff_time = 5 * (2 ** retry_count) + random.random() * 5  # 5, 15, 35, etc seconds + random jitter
+                    logger.info(f"Backing off for {backoff_time:.1f} seconds before retry {retry_count + 1}")
+                    time.sleep(backoff_time)
+                    return capture_screenshot_sync(url, retry_count + 1)
             
     except Exception as e:
         logger.error(f"Error capturing screenshot: {str(e)}")
         traceback.print_exc()
-        return None, None, None
+        
+        # If this is the last retry, give up
+        if retry_count >= MAX_RETRIES - 1:
+            return None, None, None
+        else:
+            # Simple linear backoff
+            backoff_time = 3 * (retry_count + 1) + random.random() * 2
+            logger.info(f"Backing off for {backoff_time:.1f} seconds before retry {retry_count + 1}")
+            time.sleep(backoff_time)
+            return capture_screenshot_sync(url, retry_count + 1)
 
 def capture_screenshot(url, lottery_type=None, increased_timeout=False):
     """
