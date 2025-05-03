@@ -38,3 +38,4 @@ anthropic
 flask-login
 flask-wtf
 beautifulsoup4
+imagehash
