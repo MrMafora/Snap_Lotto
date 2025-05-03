@@ -71,7 +71,6 @@ def save_screenshot_to_database(url, lottery_type, filepath, img_filepath):
                     lottery_type=lottery_type,
                     timestamp=datetime.now(),
                     path=filepath,
-                    zoomed_path=img_filepath,
                     processed=False
                 )
                 
@@ -87,7 +86,6 @@ def save_screenshot_to_database(url, lottery_type, filepath, img_filepath):
                 lottery_type=lottery_type,
                 timestamp=datetime.now(),
                 path=filepath,
-                zoomed_path=img_filepath,
                 processed=False
             )
             
@@ -278,7 +276,7 @@ def capture_screenshot_sync(url, retry_count=0):
         retry_count (int): Current retry attempt, used for recursive retries
         
     Returns:
-        tuple: (filepath, screenshot_data, zoom_filepath) or (None, None, None) if failed
+        tuple: (filepath, screenshot_data, img_filepath) or (None, None, None) if failed
     """
     import time
 
@@ -501,115 +499,6 @@ def capture_screenshot_sync(url, retry_count=0):
                 page.screenshot(path=filepath, full_page=True)
                 logger.info(f"Full screenshot saved to {filepath}")
                 
-                # Create a separate zoomed-in screenshot of the main data
-                try:
-                    # For results pages, try to capture the specific lottery results box
-                    if 'results' in url.lower():
-                        # Look for the main results container with lottery numbers and divisions
-                        main_content = None
-                        
-                        # Try several potential selectors for the main content
-                        selectors = [
-                            '.results-section', 
-                            '.lottery-results', 
-                            '.main-content',
-                            '.results-container',
-                            '#results-container',
-                            'table.results-table',
-                            'div.container'
-                        ]
-                        
-                        for selector in selectors:
-                            try:
-                                main_content = page.query_selector(selector)
-                                if main_content:
-                                    logger.info(f"Found main content with selector: {selector}")
-                                    break
-                            except:
-                                continue
-                        
-                        # If we couldn't find a specific selector, try to find the red-bordered section
-                        # by looking for typical content like lottery numbers or division tables
-                        if not main_content:
-                            # Look for lottery number balls (they usually have specific classes)
-                            ball_selectors = [
-                                '.lottery-ball', 
-                                '.ball',
-                                '.number-ball',
-                                '.winning-number',
-                                'span[class*="ball"]',
-                                'div[class*="ball"]'
-                            ]
-                            
-                            for selector in ball_selectors:
-                                try:
-                                    balls = page.query_selector_all(selector)
-                                    if balls and len(balls) > 5:  # Typical lottery has at least 6 numbers
-                                        # Get the parent element that contains all balls
-                                        parent = page.evaluate('el => el.parentElement.parentElement', balls[0])
-                                        if parent:
-                                            main_content = parent
-                                            logger.info(f"Found lottery balls with selector: {selector}")
-                                            break
-                                except:
-                                    continue
-                        
-                        # As a fallback, try using a more generic approach by looking for content
-                        # with lottery keywords like "winning numbers" or "division"
-                        if not main_content:
-                            try:
-                                # Look for text content that indicates lottery results
-                                main_content = page.query_selector('div:has-text("WINNING NUMBERS"), div:has-text("Divisions"), div:has-text("DIVISION"), table:has-text("WINNERS")')
-                                logger.info("Found main content using text content search")
-                            except:
-                                pass
-                        
-                        # If we found content to zoom in on
-                        if main_content:
-                            # Use a custom filename for the zoomed screenshot
-                            zoom_filename = f"{timestamp}_{url.split('/')[-1]}_zoomed.png"
-                            zoom_filepath = os.path.join(SCREENSHOT_DIR, zoom_filename)
-                            
-                            # Take a screenshot of just this element with a bit of padding
-                            bounding_box = main_content.bounding_box()
-                            if bounding_box:
-                                # Add 20px padding around the element
-                                clip = {
-                                    'x': max(0, bounding_box['x'] - 20),
-                                    'y': max(0, bounding_box['y'] - 20),
-                                    'width': bounding_box['width'] + 40,
-                                    'height': bounding_box['height'] + 40
-                                }
-                                
-                                # Take the zoomed screenshot
-                                page.screenshot(path=zoom_filepath, clip=clip)
-                                logger.info(f"Zoomed screenshot saved to {zoom_filepath}")
-                                
-                                # Save cookies from this session for future use
-                                try:
-                                    cookies = context.cookies()
-                                    with open(cookie_file, 'w') as f:
-                                        json.dump(cookies, f)
-                                    logger.info(f"Saved {len(cookies)} cookies for {domain}")
-                                except Exception as e:
-                                    logger.warning(f"Error saving cookies: {str(e)}")
-                                
-                                # Read the screenshot data
-                                with open(filepath, 'rb') as f:
-                                    screenshot_bytes = f.read()
-                                
-                                browser.close()
-                                # Return both filepaths so they can be saved to the database
-                                return filepath, screenshot_bytes, zoom_filepath
-                        else:
-                            logger.warning("Could not find a specific content area to zoom in on")
-                
-                except Exception as e:
-                    logger.error(f"Error creating zoomed screenshot: {str(e)}")
-                    # Continue with the regular screenshot even if zoomed fails
-                
-                logger.info(f"Screenshot process completed for {url}")
-                
                 # Save cookies from this session for future use
                 try:
                     cookies = context.cookies()
@@ -619,7 +508,8 @@ def capture_screenshot_sync(url, retry_count=0):
                 except Exception as e:
                     logger.warning(f"Error saving cookies: {str(e)}")
                 
-                # If we got this far, we didn't capture a zoomed screenshot yet
+                logger.info(f"Screenshot process completed for {url}")
+                
                 # Read the full screenshot data
                 with open(filepath, 'rb') as f:
                     screenshot_data = f.read()
@@ -767,7 +657,6 @@ def capture_screenshot(url, lottery_type=None, increased_timeout=False):
                                         lottery_type=lottery_type,
                                         timestamp=datetime.now(),
                                         path=filepath,
-                                        zoomed_path=img_filepath,
                                         processed=False
                                     )
                                     
@@ -782,7 +671,6 @@ def capture_screenshot(url, lottery_type=None, increased_timeout=False):
                                     lottery_type=lottery_type,
                                     timestamp=datetime.now(),
                                     path=filepath,
-                                    zoomed_path=img_filepath,
                                     processed=False
                                 )
                                 
@@ -915,11 +803,11 @@ def capture_screenshot(url, lottery_type=None, increased_timeout=False):
             logger.error(traceback.format_exc())
             # Still return the filepath even if DB saving failed
         
-        return filepath, screenshot_data, img_filepath  # Return the HTML filepath and image filepath
+        return filepath  # Return only the filepath - zoom functionality has been removed
     except Exception as e:
         logger.error(f"Error in capture_screenshot: {str(e)}")
         traceback.print_exc()
-        return None, None, None
+        return None  # Return only None - zoom functionality has been removed
     finally:
         # Always release the semaphore in the finally block
         # to ensure it's released even if an exception occurs
@@ -1226,7 +1114,7 @@ def _take_screenshot_worker(url, lottery_type, increased_timeout=False):
             logger.info(f"Taking screenshot of {url} ({lottery_type})")
             
             # Take the screenshot, using increased timeout if specified
-            filepath, screenshot_data, zoom_filepath = capture_screenshot(url, lottery_type, increased_timeout=increased_timeout)
+            filepath = capture_screenshot(url, lottery_type, increased_timeout=increased_timeout)
             
             if not filepath:
                 logger.error(f"Failed to capture screenshot for {url}")
@@ -1240,7 +1128,7 @@ def _take_screenshot_worker(url, lottery_type, increased_timeout=False):
                 if existing:
                     # Update existing record
                     existing.path = filepath
-                    existing.zoomed_path = zoom_filepath
+                    # Zoom functionality has been removed
                     existing.timestamp = datetime.now()
                     existing.processed = False
                     db.session.commit()
@@ -1253,7 +1141,7 @@ def _take_screenshot_worker(url, lottery_type, increased_timeout=False):
                         url=url,
                         lottery_type=lottery_type,
                         path=filepath,
-                        zoomed_path=zoom_filepath,
+                        # Zoom functionality has been removed
                         timestamp=datetime.now(),
                         processed=False
                     )
@@ -1328,7 +1216,7 @@ def _update_single_screenshot_record(url, lottery_type, app=None):
                     url=url,
                     lottery_type=lottery_type,
                     path=filepath,
-                    zoomed_path=filepath,  # Use same file for both
+                    # Zoom functionality has been removed
                     timestamp=datetime.now(),
                     processed=False
                 )
@@ -1385,10 +1273,7 @@ def cleanup_old_screenshots():
                             os.remove(screenshot.path)
                             logger.info(f"Deleted old screenshot file: {screenshot.path}")
                             
-                        # Delete the zoomed screenshot if it exists
-                        if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
-                            os.remove(screenshot.zoomed_path)
-                            logger.info(f"Deleted old zoomed screenshot file: {screenshot.zoomed_path}")
+                        # Zoom functionality has been removed
                         
                         # Delete the database record
                         db.session.delete(screenshot)

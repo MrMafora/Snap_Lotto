@@ -110,7 +110,7 @@ class Screenshot(db.Model):
     # capture_date = db.Column(db.DateTime, default=datetime.utcnow)
     # filename = db.Column(db.String(255), nullable=True)
     path = db.Column(db.String(255), nullable=True)
-    zoomed_path = db.Column(db.String(255), nullable=True)
+    # zoomed_path column has been removed as per requirements
     processed = db.Column(db.Boolean, default=False)
     
     def __repr__(self):

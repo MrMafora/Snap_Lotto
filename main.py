@@ -52,7 +52,6 @@ def get_screenshots_safe(order_by_column=None, descending=False):
         Screenshot.lottery_type, 
         Screenshot.timestamp, 
         Screenshot.path, 
-        Screenshot.zoomed_path,
         Screenshot.processed
     )
     
@@ -1348,8 +1347,6 @@ def export_screenshots():
         Screenshot.lottery_type, 
         Screenshot.timestamp, 
         Screenshot.path, 
-        
-        Screenshot.zoomed_path,
         Screenshot.processed
     ).order_by(Screenshot.timestamp.desc()).all()
     
@@ -1391,8 +1388,6 @@ def export_screenshots_zip():
             Screenshot.lottery_type, 
             Screenshot.timestamp, 
             Screenshot.path, 
-            
-            Screenshot.zoomed_path,
             Screenshot.processed
         ).order_by(Screenshot.lottery_type).all()
         
@@ -1415,12 +1410,6 @@ def export_screenshots_zip():
                     
                     # Add the screenshot to the ZIP file
                     zf.write(screenshot.path, generated_filename)
-                    
-                    # Add zoomed version if it exists
-                    if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
-                        _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
-                        zoomed_filename = f"{lottery_type}_{timestamp}_zoomed{zoomed_ext}"
-                        zf.write(screenshot.zoomed_path, zoomed_filename)
         
         # Reset the file pointer to the beginning of the file
         memory_file.seek(0)
@@ -1720,39 +1709,7 @@ def view_screenshot(screenshot_id):
     flash('Screenshot file not found', 'danger')
     return redirect(url_for('admin'))
 
-@app.route('/screenshot-zoomed/<int:screenshot_id>')
-def view_zoomed_screenshot(screenshot_id):
-    """View a zoomed screenshot image"""
-    screenshot = Screenshot.query.get_or_404(screenshot_id)
-    
-    # If no zoomed path, fall back to regular path
-    if not screenshot.zoomed_path:
-        app.logger.info(f"No zoomed path for screenshot {screenshot_id}, falling back to regular path")
-        return view_screenshot(screenshot_id)
-    
-    # Normalize path and check if file exists
-    zoomed_path = os.path.normpath(screenshot.zoomed_path)
-    
-    # First try the exact path from the database
-    if os.path.isfile(zoomed_path):
-        directory = os.path.dirname(zoomed_path)
-        filename = os.path.basename(zoomed_path)
-        return send_from_directory(directory, filename)
-    
-    # If that fails, try looking for the file in the screenshots directory
-    base_filename = os.path.basename(zoomed_path)
-    alternative_path = os.path.join('screenshots', base_filename)
-    
-    if os.path.isfile(alternative_path):
-        app.logger.info(f"Found alternative path for screenshot {screenshot_id} at {alternative_path}")
-        return send_from_directory('screenshots', base_filename)
-    
-    # If still not found, try falling back to the regular path
-    app.logger.info(f"Zoomed path not found for screenshot {screenshot_id}, trying regular path")
-    return view_screenshot(screenshot_id)
-    
-    # Note: We don't need to search for files with similar names as the view_screenshot function 
-    # will handle that when we fall back to it
+# Zoom functionality has been removed as per requirements
 
 @app.route('/sync-all-screenshots', methods=['GET', 'POST'])
 @login_required
@@ -1912,12 +1869,6 @@ def export_combined_zip():
                         
                         # Add the screenshot to the ZIP file in a screenshots folder
                         zf.write(screenshot.path, f"screenshots/{filename}")
-                        
-                        # Add zoomed version if it exists
-                        if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
-                            _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
-                            zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
-                            zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
             
             # Reset the file pointer to the beginning of the file
             memory_file.seek(0)

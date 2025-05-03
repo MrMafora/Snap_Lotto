@@ -162,14 +162,14 @@ def run_lottery_task(url, lottery_type):
                 # Step 1: Capture screenshot directly using the sm module
                 capture_result = sm.capture_screenshot(url, lottery_type)
                 
-                # Unpack the values - either we get (filepath, screenshot_data, zoom_filepath)
-                # or we get None if the capture failed
+                # Check if the capture was successful
+                # Zoom functionality has been removed - capture_result is now just a filepath
                 if not capture_result:
                     logger.error(f"Failed to capture screenshot for {lottery_type}")
                     return False
                     
-                # Unpack the result
-                filepath, screenshot_data, zoom_filepath = capture_result
+                # Assign the filepath
+                filepath = capture_result
                 
                 # Only proceed if we have a valid screenshot filepath
                 if not filepath:
@@ -276,13 +276,7 @@ def cleanup_old_screenshots():
                         except Exception as e:
                             logger.error(f"Error deleting file {screenshot.path}: {str(e)}")
                     
-                    # Delete the zoomed file if it exists
-                    if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
-                        try:
-                            os.remove(screenshot.zoomed_path)
-                            logger.info(f"Deleted zoomed file: {screenshot.zoomed_path}")
-                        except Exception as e:
-                            logger.error(f"Error deleting zoomed file {screenshot.zoomed_path}: {str(e)}")
+                    # Zoom functionality has been removed
                     
                     # Delete the database record
                     db.session.delete(screenshot)
@@ -334,17 +328,16 @@ def retake_screenshot_by_id(screenshot_id, app=None):
             import screenshot_manager as sm
             
             # Capture new screenshot with the same URL and lottery type
-            capture_result = sm.capture_screenshot(screenshot.url, screenshot.lottery_type)
+            # Capture screenshot (with zoom functionality removed, returns only filepath)
+            filepath = sm.capture_screenshot(screenshot.url, screenshot.lottery_type)
             
-            if not capture_result:
+            if not filepath:
                 logger.error(f"Failed to retake screenshot for {screenshot.lottery_type}")
                 return False
             
-            filepath, _, zoom_filepath = capture_result
-            
-            # Update the existing screenshot record with new paths
+            # Update the existing screenshot record with new path
             screenshot.path = filepath
-            screenshot.zoomed_path = zoom_filepath
+            # No longer using zoomed_path since zoom functionality has been removed
             screenshot.timestamp = db.func.now()  # Update timestamp
             db.session.commit()
             
