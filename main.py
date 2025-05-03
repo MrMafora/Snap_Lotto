@@ -1687,37 +1687,72 @@ def view_screenshot(screenshot_id):
     # Normalize path and check if file exists
     screenshot_path = os.path.normpath(screenshot.path)
     
-    if not os.path.isfile(screenshot_path):
-        flash('Screenshot file not found', 'danger')
-        return redirect(url_for('admin'))
+    # First try the exact path from the database
+    if os.path.isfile(screenshot_path):
+        directory = os.path.dirname(screenshot_path)
+        filename = os.path.basename(screenshot_path)
+        return send_from_directory(directory, filename)
     
-    # Extract directory and filename from path
-    directory = os.path.dirname(screenshot_path)
-    filename = os.path.basename(screenshot_path)
+    # If that fails, try looking for the file in the screenshots directory
+    base_filename = os.path.basename(screenshot_path)
+    alternative_path = os.path.join('screenshots', base_filename)
     
-    return send_from_directory(directory, filename)
+    if os.path.isfile(alternative_path):
+        return send_from_directory('screenshots', base_filename)
+        
+    # As a last resort, search for any file with a similar name pattern in the screenshots directory
+    lottery_type_search = screenshot.lottery_type.replace(' ', '_')
+    matching_files = []
+    
+    try:
+        for file in os.listdir('screenshots'):
+            if lottery_type_search in file and (file.endswith('.html') or file.endswith('.png')):
+                matching_files.append(file)
+                
+        if matching_files:
+            # Sort files by modification time (newest first)
+            matching_files.sort(key=lambda x: os.path.getmtime(os.path.join('screenshots', x)), reverse=True)
+            return send_from_directory('screenshots', matching_files[0])
+    except Exception as e:
+        app.logger.error(f"Error searching for alternative files: {str(e)}")
+    
+    # If we've reached this point, no suitable file was found
+    flash('Screenshot file not found', 'danger')
+    return redirect(url_for('admin'))
 
 @app.route('/screenshot-zoomed/<int:screenshot_id>')
 def view_zoomed_screenshot(screenshot_id):
     """View a zoomed screenshot image"""
     screenshot = Screenshot.query.get_or_404(screenshot_id)
     
+    # If no zoomed path, fall back to regular path
     if not screenshot.zoomed_path:
-        flash('No zoomed screenshot available', 'warning')
-        return redirect(url_for('admin'))
+        app.logger.info(f"No zoomed path for screenshot {screenshot_id}, falling back to regular path")
+        return view_screenshot(screenshot_id)
     
     # Normalize path and check if file exists
     zoomed_path = os.path.normpath(screenshot.zoomed_path)
     
-    if not os.path.isfile(zoomed_path):
-        flash('Zoomed screenshot file not found', 'danger')
-        return redirect(url_for('admin'))
+    # First try the exact path from the database
+    if os.path.isfile(zoomed_path):
+        directory = os.path.dirname(zoomed_path)
+        filename = os.path.basename(zoomed_path)
+        return send_from_directory(directory, filename)
     
-    # Extract directory and filename from path
-    directory = os.path.dirname(zoomed_path)
-    filename = os.path.basename(zoomed_path)
+    # If that fails, try looking for the file in the screenshots directory
+    base_filename = os.path.basename(zoomed_path)
+    alternative_path = os.path.join('screenshots', base_filename)
     
-    return send_from_directory(directory, filename)
+    if os.path.isfile(alternative_path):
+        app.logger.info(f"Found alternative path for screenshot {screenshot_id} at {alternative_path}")
+        return send_from_directory('screenshots', base_filename)
+    
+    # If still not found, try falling back to the regular path
+    app.logger.info(f"Zoomed path not found for screenshot {screenshot_id}, trying regular path")
+    return view_screenshot(screenshot_id)
+    
+    # Note: We don't need to search for files with similar names as the view_screenshot function 
+    # will handle that when we fall back to it
 
 @app.route('/sync-all-screenshots', methods=['GET', 'POST'])
 @login_required
