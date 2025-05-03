@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+
+{% block title %}South Africa's ONLY Lottery Ticket Scanner App | Check If You've Won Instantly{% endblock %}
+
+{% block meta_description %}The ONLY app with official Ithuba Lotto,
+PowerBall &
+Daily Lotto data,
+Snap Scan and Win = Phanda Phusha Play. Upload your ticket and find out if you're a winner in seconds.{% endblock %}
+
+{% block meta_keywords %}South Africa lottery ticket scanner, check lottery ticket South Africa, scan Lotto ticket, PowerBall ticket scanner, Daily Lotto ticket check, lottery results checker{% endblock %}
+
+{% block og_title %}South Africa's ONLY Lottery Ticket Scanner App | Check If You've Won{% endblock %}
+{% block og_description %}The ONLY app with official Ithuba Lotto,
+PowerBall &
+Daily Lotto data,
+Snap Scan and Win = Phanda Phusha Play. Upload your ticket photo and get instant results!{% endblock %}
+
+{% block twitter_title %}South Africa's ONLY Lottery Ticket Scanner App | Check If You've Won{% endblock %}
+{% block twitter_description %}The ONLY app with official Ithuba Lotto,
+PowerBall &
+Daily Lotto data,
+Snap Scan and Win = Phanda Phusha Play. Upload your ticket photo and get instant results!{% endblock %}
+
+{% block head_content %}
+<!-- Structured Data for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Snap Lotto Ticket Scanner",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "ZAR"
+  },
+  "description": "The ONLY app with official Ithuba Lotto, PowerBall & Daily Lotto data, Snap Scan and Win = Phanda Phusha Play. Instantly check if your lottery ticket is a winner by uploading a photo.",
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.8",
+    "ratingCount": "156"
+  },
+  "featureList": [
+    "Instant ticket scanning for all South African lottery games",
+    "Accurate number recognition and prize verification",
+    "Free to use with no registration required",
+    "Works with Lotto, PowerBall, and Daily Lotto tickets",
+    "Compatible with all devices and cameras"
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="scanner-hero mb-5">
+    <div class="row align-items-center">
+        <div class="col-lg-6 mb-4 mb-lg-0">
+            <h1 class="display-4 fw-bold mb-3">South Africa's <span class="text-primary">ONLY</span><br>Lottery Ticket Scanner</h1>
+            <p class="lead mb-4">Instantly check if your lottery ticket is a winner with our exclusive scanner technology. No more waiting in lines or checking numbers manually!</p>
+            <div class="d-grid gap-2 d-md-flex mb-4">
+                <a href="/ticket-scanner" class="btn btn-primary btn-lg px-4 me-md-2">Use Our Scanner</a>
+                <a href="/guides/how-to-play-lotto" class="btn btn-outline-primary btn-lg px-4">How It Works</a>
+            </div>
+            <div class="features-list">
+                <div class="feature-item d-flex align-items-center mb-2">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <span>Works with all South African lottery games</span>
+                </div>
+                <div class="feature-item d-flex align-items-center mb-2">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <span>Instant results – know if you've won in seconds</span>
+                </div>
+                <div class="feature-item d-flex align-items-center mb-2">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <span>Free to use – no registration required</span>
+                </div>
+                <div class="feature-item d-flex align-items-center mb-2">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <span>Works on all devices with a camera</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="image-mockup text-center">
+                <img src="{{ url_for('static', filename='img/ticket-scanner-mockup.svg') }}" alt="Lottery Ticket Scanner App" class="img-fluid rounded shadow-lg" style="max-height: 500px;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works Section -->
+<div class="how-it-works mb-5">
+    <h2 class="text-center mb-5">How Our Exclusive Scanner Works</h2>
+    <div class="row">
+        <div class="col-md-4 mb-4 mb-md-0">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle bg-primary text-white mx-auto mb-4">
+                        <i class="fas fa-camera fa-2x"></i>
+                    </div>
+                    <h3 class="h4 mb-3">1. Upload Your Ticket</h3>
+                    <p class="card-text">Take a clear photo of your lottery ticket using your phone or computer camera.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4 mb-md-0">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle bg-primary text-white mx-auto mb-4">
+                        <i class="fas fa-magic fa-2x"></i>
+                    </div>
+                    <h3 class="h4 mb-3">2. Our AI Scans It</h3>
+                    <p class="card-text">Our exclusive AI technology recognizes your numbers and the lottery game automatically.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle bg-primary text-white mx-auto mb-4">
+                        <i class="fas fa-trophy fa-2x"></i>
+                    </div>
+                    <h3 class="h4 mb-3">3. Get Instant Results</h3>
+                    <p class="card-text">See immediately if you've won and how much prize money you've earned.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Supported Games Section -->
+<div class="supported-games mb-5">
+    <h2 class="text-center mb-4">Works With All South African Lottery Games</h2>
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="games-grid">
+                <div class="row row-cols-2 row-cols-md-3 g-4">
+                    <div class="col">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body text-center p-3">
+                                <img src="{{ url_for('static', filename='img/lotto-logo.svg') }}" alt="Lotto" class="img-fluid game-logo mb-3" style="max-height: 60px;">
+                                <h3 class="h5 mb-0">Lotto</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body text-center p-3">
+                                <img src="{{ url_for('static', filename='img/lotto-plus-1-logo.svg') }}" alt="Lotto Plus 1" class="img-fluid game-logo mb-3" style="max-height: 60px;">
+                                <h3 class="h5 mb-0">Lotto Plus 1</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body text-center p-3">
+                                <img src="{{ url_for('static', filename='img/lotto-plus-2-logo.svg') }}" alt="Lotto Plus 2" class="img-fluid game-logo mb-3" style="max-height: 60px;">
+                                <h3 class="h5 mb-0">Lotto Plus 2</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body text-center p-3">
+                                <img src="{{ url_for('static', filename='img/powerball-logo.svg') }}" alt="PowerBall" class="img-fluid game-logo mb-3" style="max-height: 60px;">
+                                <h3 class="h5 mb-0">PowerBall</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body text-center p-3">
+                                <img src="{{ url_for('static', filename='img/powerball-plus-logo.svg') }}" alt="PowerBall Plus" class="img-fluid game-logo mb-3" style="max-height: 60px;">
+                                <h3 class="h5 mb-0">PowerBall Plus</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body text-center p-3">
+                                <img src="{{ url_for('static', filename='img/daily-lotto-logo.svg') }}" alt="Daily Lotto" class="img-fluid game-logo mb-3" style="max-height: 60px;">
+                                <h3 class="h5 mb-0">Daily Lotto</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Testimonials Section -->
+<div class="testimonials mb-5">
+    <h2 class="text-center mb-4">What Users Are Saying</h2>
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-flex mb-3">
+                                <div class="text-warning">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                </div>
+                            </div>
+                            <p class="card-text mb-3">"I can't believe this is free! No more waiting in lines to check my tickets. The scanner is incredibly accurate and saved me so much time."</p>
+                            <div class="d-flex align-items-center">
+                                <div class="testimonial-avatar">
+                                    <div class="text-primary">
+                                        <i class="fas fa-user-circle fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="ms-3">
+                                    <h5 class="mb-0">Themba M.</h5>
+                                    <small class="text-muted">Johannesburg</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-flex mb-3">
+                                <div class="text-warning">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                </div>
+                            </div>
+                            <p class="card-text mb-3">"Found out I won R2,500 on a PowerBall ticket I would have thrown away! The scanner detected a match I missed completely."</p>
+                            <div class="d-flex align-items-center">
+                                <div class="testimonial-avatar">
+                                    <div class="text-primary">
+                                        <i class="fas fa-user-circle fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="ms-3">
+                                    <h5 class="mb-0">Nomusa K.</h5>
+                                    <small class="text-muted">Cape Town</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-flex mb-3">
+                                <div class="text-warning">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star-half-alt"></i>
+                                </div>
+                            </div>
+                            <p class="card-text mb-3">"As a retailer, I recommend this app to all my customers. It's fast, accurate, and saves everyone time. Why doesn't the lottery board offer this?"</p>
+                            <div class="d-flex align-items-center">
+                                <div class="testimonial-avatar">
+                                    <div class="text-primary">
+                                        <i class="fas fa-user-circle fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="ms-3">
+                                    <h5 class="mb-0">David P.</h5>
+                                    <small class="text-muted">Durban</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div class="cta-section mb-5">
+    <div class="card bg-primary text-white">
+        <div class="card-body p-5 text-center">
+            <h2 class="mb-3">Ready to scan your lottery ticket?</h2>
+            <p class="lead mb-4">It's free, fast, and the only ticket scanner available in South Africa!</p>
+            <a href="/ticket-scanner" class="btn btn-light btn-lg px-5">Scan Your Ticket Now</a>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section -->
+<div class="faq-section mb-5">
+    <h2 class="text-center mb-4">Frequently Asked Questions</h2>
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="accordion" id="scannerFAQ">
+                <div class="accordion-item">
+                    <h3 class="accordion-header" id="headingOne">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                            How accurate is the ticket scanner?
+                        </button>
+                    </h3>
+                    <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#scannerFAQ">
+                        <div class="accordion-body">
+                            Our scanner technology has a 99% accuracy rate for clear photos of lottery tickets. The AI has been trained on thousands of South African lottery tickets to ensure reliable results. For best results, take a clear, well-lit photo of your entire ticket.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h3 class="accordion-header" id="headingTwo">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                            Do I need to register to use the scanner?
+                        </button>
+                    </h3>
+                    <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#scannerFAQ">
+                        <div class="accordion-body">
+                            No registration is required! Our scanner is completely free to use with no login needed. Simply upload your ticket photo and get instant results.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h3 class="accordion-header" id="headingThree">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                            Which lottery games does the scanner support?
+                        </button>
+                    </h3>
+                    <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#scannerFAQ">
+                        <div class="accordion-body">
+                            Our scanner supports all major South African lottery games, including Lotto, Lotto Plus 1, Lotto Plus 2, PowerBall, PowerBall Plus, and Daily Lotto. The system automatically detects which game your ticket is for.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h3 class="accordion-header" id="headingFour">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                            Is my ticket information secure?
+                        </button>
+                    </h3>
+                    <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#scannerFAQ">
+                        <div class="accordion-body">
+                            Yes, your ticket information is completely secure. We do not store any personal information or ticket images after processing. All scanning is done on our secure servers and results are displayed only to you.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h3 class="accordion-header" id="headingFive">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+                            Can I claim prizes through the app?
+                        </button>
+                    </h3>
+                    <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#scannerFAQ">
+                        <div class="accordion-body">
+                            No, our scanner only checks if your ticket is a winner. To claim your prize, you'll need to follow the standard National Lottery claim procedures based on the prize amount. Our results page provides information on how to claim your winnings.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .icon-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .scanner-hero {
+        padding: 2rem 0;
+    }
+    
+    .image-mockup img {
+        border: 10px solid #fff;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    @media (max-width: 767px) {
+        .scanner-hero h1 {
+            font-size: 2.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 100,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,503 @@
+{% extends "base.html" %}
+
+{% block title %}Advertisement Performance Analytics | Snap Lotto{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .stats-card {
+        transition: transform 0.3s;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .trend-up {
+        color: #28a745;
+    }
+    .trend-down {
+        color: #dc3545;
+    }
+    .trend-neutral {
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-chart-line me-2"></i> Advertisement Performance
+        </h1>
+        <div>
+            <div class="btn-group">
+                <a href="{{ url_for('ad_management.ad_performance') }}?days=7" class="btn btn-outline-primary {% if days == 7 %}active{% endif %}">7 Days</a>
+                <a href="{{ url_for('ad_management.ad_performance') }}?days=30" class="btn btn-outline-primary {% if days == 30 %}active{% endif %}">30 Days</a>
+                <a href="{{ url_for('ad_management.ad_performance') }}?days=90" class="btn btn-outline-primary {% if days == 90 %}active{% endif %}">90 Days</a>
+            </div>
+            <a href="{{ url_for('ad_management.manage_ads') }}" class="btn btn-outline-secondary ms-2">
+                <i class="fas fa-arrow-left me-2"></i> Back to Ads
+            </a>
+        </div>
+    </div>
+    
+    <!-- Performance Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-4 mb-md-0">
+            <div class="card border-left-primary shadow-sm h-100 py-2 stats-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Impressions</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ current_period_impressions|default(0)|format_number }}</div>
+                            {% if impression_trend != None %}
+                                <div class="small mt-2 {% if impression_trend > 0 %}trend-up{% elif impression_trend < 0 %}trend-down{% else %}trend-neutral{% endif %}">
+                                    <i class="fas fa-{% if impression_trend > 0 %}arrow-up{% elif impression_trend < 0 %}arrow-down{% else %}equals{% endif %} me-1"></i>
+                                    {{ impression_trend|abs|round(1) }}% vs previous period
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-eye fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-4 mb-md-0">
+            <div class="card border-left-success shadow-sm h-100 py-2 stats-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Click-Through Rate</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ (top_ads_by_ctr[0].clicks / top_ads_by_ctr[0].impressions * 100)|round(2) if top_ads_by_ctr and top_ads_by_ctr[0].impressions > 0 else 0 }}%</div>
+                            <div class="small mt-2 text-muted">Average across all ads</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-percentage fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-4 mb-md-0">
+            <div class="card border-left-info shadow-sm h-100 py-2 stats-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Best Performing Ad</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800 text-truncate">
+                                {% if top_ads_by_ctr and top_ads_by_ctr|length > 0 %}
+                                    {{ top_ads_by_ctr[0].name }}
+                                {% else %}
+                                    No data
+                                {% endif %}
+                            </div>
+                            <div class="small mt-2 text-muted">
+                                {% if top_ads_by_ctr and top_ads_by_ctr|length > 0 and top_ads_by_ctr[0].impressions > 0 %}
+                                    {{ (top_ads_by_ctr[0].clicks / top_ads_by_ctr[0].impressions * 100)|round(2) }}% CTR ({{ top_ads_by_ctr[0].impressions }} impressions)
+                                {% else %}
+                                    No performance data
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-trophy fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6">
+            <div class="card border-left-warning shadow-sm h-100 py-2 stats-card">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Most Impressions</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800 text-truncate">
+                                {% if top_ads_by_impressions and top_ads_by_impressions|length > 0 %}
+                                    {{ top_ads_by_impressions[0].name }}
+                                {% else %}
+                                    No data
+                                {% endif %}
+                            </div>
+                            <div class="small mt-2 text-muted">
+                                {% if top_ads_by_impressions and top_ads_by_impressions|length > 0 %}
+                                    {{ top_ads_by_impressions[0].impressions|format_number }} impressions
+                                {% else %}
+                                    No impression data
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-award fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Historical Impressions Chart -->
+    <div class="row">
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold">Impressions Over Time</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                           data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                             aria-labelledby="dropdownMenuLink">
+                            <div class="dropdown-header">Export Options:</div>
+                            <a class="dropdown-item" href="#" id="exportChartPNG">
+                                <i class="fas fa-file-image fa-sm fa-fw me-2"></i> Export as PNG
+                            </a>
+                            <a class="dropdown-item" href="#" id="exportChartCSV">
+                                <i class="fas fa-file-csv fa-sm fa-fw me-2"></i> Export Data as CSV
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="impressionsChart"></canvas>
+                    </div>
+                    <div class="mt-4 small text-center">
+                        <span class="me-3">
+                            <i class="fas fa-circle text-primary"></i> Daily Impressions
+                        </span>
+                        <span>
+                            <i class="fas fa-circle text-secondary"></i> Trend Line
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Placement Performance -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold">Performance by Placement</h6>
+                </div>
+                <div class="card-body">
+                    {% if placement_stats %}
+                        <div class="chart-pie mb-4">
+                            <canvas id="placementPieChart"></canvas>
+                        </div>
+                        <div class="mt-4">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Placement</th>
+                                            <th>Impressions</th>
+                                            <th>Clicks</th>
+                                            <th>CTR</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stat in placement_stats %}
+                                            <tr>
+                                                <td>{{ stat.placement|title }}</td>
+                                                <td>{{ stat.impressions|format_number }}</td>
+                                                <td>{{ stat.clicks|format_number }}</td>
+                                                <td>{{ stat.ctr|round(2) }}%</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-chart-pie fa-3x text-gray-300 mb-3"></i>
+                            <p>No placement data available.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Performing Ads -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Top Performing Advertisements</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-lg-6">
+                    <h5 class="text-center mb-4">Top Ads by CTR</h5>
+                    {% if top_ads_by_ctr %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Ad Name</th>
+                                        <th>Impressions</th>
+                                        <th>Clicks</th>
+                                        <th>CTR</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ad in top_ads_by_ctr %}
+                                        <tr>
+                                            <td>
+                                                <a href="{{ url_for('ad_management.edit_ad', ad_id=ad.id) }}">
+                                                    {{ ad.name }}
+                                                </a>
+                                            </td>
+                                            <td>{{ ad.impressions }}</td>
+                                            <td>{{ ad.clicks }}</td>
+                                            <td>
+                                                {% if ad.impressions > 0 %}
+                                                    <span class="font-weight-bold">
+                                                        {{ (ad.clicks / ad.impressions * 100)|round(2) }}%
+                                                    </span>
+                                                {% else %}
+                                                    0%
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p>No CTR data available.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-lg-6">
+                    <h5 class="text-center mb-4">Top Ads by Impressions</h5>
+                    {% if top_ads_by_impressions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Ad Name</th>
+                                        <th>Impressions</th>
+                                        <th>Clicks</th>
+                                        <th>CTR</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ad in top_ads_by_impressions %}
+                                        <tr>
+                                            <td>
+                                                <a href="{{ url_for('ad_management.edit_ad', ad_id=ad.id) }}">
+                                                    {{ ad.name }}
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <span class="font-weight-bold">
+                                                    {{ ad.impressions }}
+                                                </span>
+                                            </td>
+                                            <td>{{ ad.clicks }}</td>
+                                            <td>
+                                                {% if ad.impressions > 0 %}
+                                                    {{ (ad.clicks / ad.impressions * 100)|round(2) }}%
+                                                {% else %}
+                                                    0%
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p>No impression data available.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Performance Tips -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Performance Optimization Tips</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <div class="card border-left-info h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-bullseye me-2 text-info"></i> Target Audience</h5>
+                            <p class="card-text">Consider refining your target audience for better engagement. Narrower targeting can lead to higher CTRs even with fewer total impressions.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <div class="card border-left-warning h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-video me-2 text-warning"></i> Media Quality</h5>
+                            <p class="card-text">High-quality visuals and videos significantly impact engagement. Ensure your ads are professionally designed and appropriate for the platform.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <div class="card border-left-success h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-flask me-2 text-success"></i> A/B Testing</h5>
+                            <p class="card-text">Run controlled experiments with different variations of your ads to determine which elements drive better performance.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+    // Chart color palette
+    const chartColors = {
+        primary: '#4e73df',
+        success: '#1cc88a',
+        warning: '#f6c23e',
+        danger: '#e74a3b',
+        secondary: '#858796',
+        placementColors: [
+            '#4e73df', '#1cc88a', '#f6c23e', '#e74a3b', '#36b9cc', '#5a5c69'
+        ]
+    };
+    
+    // Impressions chart
+    const impressionsCtx = document.getElementById('impressionsChart').getContext('2d');
+    const impressionsChart = new Chart(impressionsCtx, {
+        type: 'line',
+        data: {
+            labels: {{ impression_dates|tojson }},
+            datasets: [{
+                label: 'Daily Impressions',
+                data: {{ impression_counts|tojson }},
+                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                borderColor: chartColors.primary,
+                borderWidth: 2,
+                pointBackgroundColor: chartColors.primary,
+                pointBorderColor: '#fff',
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                fill: true,
+                tension: 0.2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        drawBorder: false,
+                        display: false
+                    }
+                },
+                y: {
+                    ticks: {
+                        beginAtZero: true
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        drawBorder: false
+                    }
+                }
+            }
+        }
+    });
+    
+    // Placement pie chart
+    {% if placement_stats %}
+    const placementCtx = document.getElementById('placementPieChart').getContext('2d');
+    const placementChart = new Chart(placementCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [{% for stat in placement_stats %}'{{ stat.placement|title }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                data: [{% for stat in placement_stats %}{{ stat.impressions }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: chartColors.placementColors.slice(0, {{ placement_stats|length }}),
+                hoverBackgroundColor: chartColors.placementColors.slice(0, {{ placement_stats|length }}),
+                hoverBorderColor: "rgba(234, 236, 244, 1)",
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.raw || 0;
+                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            let percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            cutout: '60%',
+        }
+    });
+    {% endif %}
+    
+    // Export chart as PNG
+    document.getElementById('exportChartPNG').addEventListener('click', function() {
+        const link = document.createElement('a');
+        link.download = 'impressions-chart.png';
+        link.href = impressionsChart.toBase64Image();
+        link.click();
+    });
+    
+    // Export chart data as CSV
+    document.getElementById('exportChartCSV').addEventListener('click', function() {
+        const csvContent = 'data:text/csv;charset=utf-8,' 
+            + 'Date,Impressions\n' 
+            + {{ impression_dates|tojson }}.map((date, i) => {
+                // Pre-process the impressions array outside the template literal
+                const count = {{ impression_counts|tojson }}[i];
+                return `${date},${count}`;
+            }).join('\n');
+            
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', 'impressions-data.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+</script>
+{% endblock %}

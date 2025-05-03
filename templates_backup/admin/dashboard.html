@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | Snap Lotto{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header lottery-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">ADMIN DASHBOARD</h4>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    Welcome {{ current_user.username }}! Manage your lottery data and system settings from this dashboard.
+                </p>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> This area is restricted to administrators. All changes made here will affect the public-facing website.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">DATA MANAGEMENT</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('import_data') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-file-excel me-2"></i> Import Spreadsheet
+                    </a>
+                    <a href="{{ url_for('import_latest_template_route') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-cloud-download-alt me-2"></i> Import Latest Template
+                    </a>
+                    <a href="{{ url_for('import_missing_draws_route') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-calendar-plus me-2"></i> Import Missing Draws
+                    </a>
+                    <a href="{{ url_for('admin_import_history') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-history me-2"></i> Import History
+                    </a>
+                    <a href="{{ url_for('results') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-search me-2"></i> View All Results
+                    </a>
+                    <a href="{{ url_for('visualizations') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-bar me-2"></i> Data Analytics
+                    </a>
+                    <a href="{{ url_for('lottery_analysis_dashboard') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-brain me-2"></i> Lottery Analysis Algorithm
+                    </a>
+                    <a href="{{ url_for('admin_generate_predictions') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-magic me-2"></i> Generate Predictions
+                    </a>
+                    <a href="{{ url_for('lottery_predictions') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-line me-2"></i> View Predictions
+                    </a>
+                    <a href="{{ url_for('automated_extraction.pending_extractions') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-robot me-2"></i> Automated Data Extraction
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">SYSTEM SETTINGS</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('settings') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-cog me-2"></i> Manage Data Syncs
+                    </a>
+                    <a href="{{ url_for('export_screenshots') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-download me-2"></i> Export Screenshots & Template
+                    </a>
+                    <a href="{{ url_for('register') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-user-plus me-2"></i> Add Admin User
+                    </a>
+                    <a href="{{ url_for('api_tracking_dashboard') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-line me-2"></i> API Usage Tracking
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">PUBLIC FEATURES</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('index') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-home me-2"></i> Public Homepage
+                    </a>
+                    <a href="{{ url_for('ticket_scanner') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-ticket-alt me-2"></i> Ticket Scanner
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Health Monitoring Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header lottery-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">SYSTEM HEALTH MONITORING</h5>
+                    <a href="{{ url_for('health_dashboard') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-heartbeat me-1"></i> Health Dashboard
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> Monitor system performance, track health metrics, and receive alerts for critical issues.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="card-title mb-0">SYSTEM STATUS</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('health_dashboard') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-tachometer-alt me-2"></i> Health Dashboard
+                                    </a>
+                                    <a href="{{ url_for('system_status') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-server me-2"></i> System Status
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-warning text-white">
+                                <h6 class="card-title mb-0">ALERTS</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('health_alerts') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-bell me-2"></i> View Alerts
+                                    </a>
+                                    <form action="{{ url_for('run_health_checks') }}" method="post" class="mt-2">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-outline-primary w-100">
+                                            <i class="fas fa-sync-alt me-1"></i> Run Health Checks
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="card-title mb-0">HISTORY</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('health_history') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-history me-2"></i> Check History
+                                    </a>
+                                    <a href="{{ url_for('api_tracking_dashboard') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-key me-2"></i> API Usage Tracking
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100 bg-light">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="card-title mb-0">SYSTEM INFO</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled">
+                                    <li class="mb-2">
+                                        <i class="fas fa-microchip me-2"></i> CPU Usage: 
+                                        <span id="cpu-usage">Loading...</span>
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-memory me-2"></i> Memory Usage: 
+                                        <span id="memory-usage">Loading...</span>
+                                    </li>
+                                    <li>
+                                        <i class="fas fa-hdd me-2"></i> Disk Usage: 
+                                        <span id="disk-usage">Loading...</span>
+                                    </li>
+                                </ul>
+                                <div class="text-center mt-3">
+                                    <button id="refresh-stats" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-sync-alt"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Advertisement Management Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header lottery-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">ADVERTISEMENT MANAGEMENT</h5>
+                    <div>
+                        <a href="{{ url_for('ad_management.manage_campaigns') }}" class="btn btn-success btn-sm me-2">
+                            <i class="fas fa-bullhorn me-1"></i> Campaigns
+                        </a>
+                        <a href="{{ url_for('ad_management.upload_ad') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i> Add New Ad
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> Manage video advertisements that appear during the ticket scanning process and throughout the application.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="card-title mb-0">AD MANAGEMENT</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('ad_management.manage_ads') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-video me-2"></i> Manage Video Ads
+                                    </a>
+                                    <a href="{{ url_for('ad_management.upload_ad') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-upload me-2"></i> Upload New Ad
+                                    </a>
+                                    <a href="{{ url_for('ad_management.manage_ads') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-copy me-2"></i> Ad Templates
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="card-title mb-0">CAMPAIGNS & TARGETING</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('ad_management.manage_campaigns') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-bullhorn me-2"></i> Campaigns
+                                    </a>
+                                    <a href="{{ url_for('ad_management.manage_campaigns') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-flask me-2"></i> A/B Testing
+                                    </a>
+                                    <a href="{{ url_for('ad_management.manage_ads') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-users me-2"></i> Audience Targeting
+                                    </a>
+                                    <a href="{{ url_for('ad_management.manage_ads') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-calendar-alt me-2"></i> Ad Scheduling
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="card-title mb-0">ANALYTICS & PERFORMANCE</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('ad_management.ad_performance') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-chart-line me-2"></i> Performance Dashboard
+                                    </a>
+                                    <a href="{{ url_for('ad_management.manage_ads') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-eye me-2"></i> View Impressions
+                                    </a>
+                                    <a href="{{ url_for('ad_management.ad_performance') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-money-bill-wave me-2"></i> Revenue Analytics
+                                    </a>
+                                    <a href="{{ url_for('ad_management.ad_performance') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-user-tag me-2"></i> Audience Insights
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-warning text-white">
+                                <h6 class="card-title mb-0">INTEGRATIONS & ALERTS</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="{{ url_for('ad_management.manage_ads') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-link me-2"></i> Ad Network Connections
+                                    </a>
+                                    <a href="{{ url_for('ad_management.ad_performance') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-bell me-2"></i> Performance Alerts
+                                    </a>
+                                    <a href="{{ url_for('ad_management.manage_ads') }}" class="list-group-item list-group-item-action">
+                                        <i class="fas fa-cog me-2"></i> Ad System Settings
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Stats Overview -->
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="card bg-light">
+                            <div class="card-body py-3">
+                                <div class="row text-center">
+                                    <div class="col-md-3">
+                                        <h4 class="mb-0 text-primary">{{ active_ads if active_ads is defined else '0' }}</h4>
+                                        <small class="text-muted">Active Ads</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h4 class="mb-0 text-success">{{ active_campaigns if active_campaigns is defined else '0' }}</h4>
+                                        <small class="text-muted">Active Campaigns</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h4 class="mb-0 text-info">{{ total_impressions_today if total_impressions_today is defined else '0' }}</h4>
+                                        <small class="text-muted">Today's Impressions</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h4 class="mb-0 text-warning">{{ avg_ctr|round(2) if avg_ctr is defined else '0.00' }}%</h4>
+                                        <small class="text-muted">Average CTR</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

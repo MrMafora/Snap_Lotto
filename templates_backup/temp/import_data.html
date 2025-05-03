@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+
+{% block title %}Import Lottery Data{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    /* Full-page overlay loader */
+    #loader-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        color: white;
+    }
+    
+    .loader-spinner {
+        width: 50px;
+        height: 50px;
+        margin-bottom: 20px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3498db;
+        border-radius: 50%;
+        animation: spin 2s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Full-page loader overlay -->
+<div id="loader-overlay">
+    <div style="width: 100%; text-align: center;">
+        <div class="loader-spinner" style="margin-left: auto; margin-right: auto;"></div>
+        <h3 class="text-center mb-2">Processing Import...</h3>
+        <p class="text-center mb-3">Please wait while we process your data</p>
+        <div class="mt-3" style="width: 80%; max-width: 500px; margin-left: auto; margin-right: auto;">
+            <div class="progress" style="height: 24px;">
+                <div id="upload-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+            <div id="upload-status" class="mt-2 text-center text-white fw-bold">Initializing...</div>
+        </div>
+    </div>
+</div>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header lottery-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0">IMPORT LOTTERY DATA FROM SPREADSHEET</h4>
+                        <a href="{{ url_for('import_history') }}" class="btn btn-light">
+                            <i class="fas fa-history me-1"></i> View Import History
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> Upload either:
+                        <ul class="mt-2 mb-0">
+                            <li><strong>Snap Lotto Format</strong> - The official Snap Lotto Excel file with specific structure</li>
+                            <li><strong>Standard Format</strong> - Our lottery template downloaded from Export Screenshots</li>
+                        </ul>
+                        <p class="mt-2 mb-0">The system will automatically detect the format and extract all game types, draw numbers, and prize information.</p>
+                        <div class="mt-2 d-flex flex-wrap">
+                            <a href="{{ url_for('export_template') }}" class="btn btn-sm btn-primary me-2 mb-2">
+                                <i class="fas fa-download me-1"></i> Download Empty Template
+                            </a>
+                            <form action="{{ url_for('import_latest_spreadsheet_route') }}" method="POST" class="d-inline me-2 mb-2" id="latest-spreadsheet-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="import_type" value="excel">
+                                <input type="hidden" name="purge" value="no">
+                                <button type="submit" class="btn btn-sm btn-success" id="latest-spreadsheet-btn">
+                                    <i class="fas fa-file-import me-1"></i> Import Latest Spreadsheet
+                                </button>
+                            </form>
+                            <script>
+                                document.getElementById('latest-spreadsheet-form').addEventListener('submit', function(e) {
+                                    const btn = document.getElementById('latest-spreadsheet-btn');
+                                    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Importing...';
+                                    btn.disabled = true;
+                                });
+                            </script>
+                            <div class="mt-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="auto_import_type" id="auto-excel" value="excel" checked onclick="document.querySelector('#latest-spreadsheet-form input[name=import_type]').value = 'excel';">
+                                    <label class="form-check-label" for="auto-excel">Standard Format</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="auto_import_type" id="auto-snap" value="snap_lotto" onclick="document.querySelector('#latest-spreadsheet-form input[name=import_type]').value = 'snap_lotto';">
+                                    <label class="form-check-label" for="auto-snap">Snap Lotto Format</label>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-1">The "Import Latest Spreadsheet" button will automatically find and import the most recent spreadsheet file from either the <strong>uploads</strong> directory (where uploaded files are stored) or the <strong>attached_assets</strong> directory (where system files are stored). It handles files with different naming patterns and timestamps.</small>
+                        </div>
+                    </div>
+
+                    <div id="message-container">
+                        <!-- Flashed messages -->
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'info' %}info-circle{% else %}exclamation-triangle{% endif %} me-2"></i>
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <!-- Custom messages -->
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show">
+                                    <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'info' %}info-circle{% else %}exclamation-triangle{% endif %} me-2"></i>
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    {% if imported_results or added_count or updated_count %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-lottery-primary text-white">
+                            <i class="fas fa-check-circle me-2"></i> Import Summary
+                        </div>
+                        <div class="card-body">
+                            {% if added_count > 0 %}
+                                <div class="alert alert-success">
+                                    <i class="fas fa-plus-circle me-2"></i> Added {{ added_count }} new records to database
+                                </div>
+                            {% endif %}
+                            
+                            {% if updated_count > 0 %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-sync me-2"></i> Updated {{ updated_count }} existing records with new information
+                                </div>
+                            {% endif %}
+                            
+                            {% if added_count == 0 and updated_count == 0 and total_count > 0 %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-check-circle me-2"></i> All {{ total_count }} records already exist in the database with the same information (no changes needed)
+                                </div>
+                            {% endif %}
+                            
+                            {% if added_count == 0 and updated_count == 0 and total_count == 0 and error_count == 0 %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-circle me-2"></i> No valid lottery records found in the spreadsheet. Please check your data format.
+                                </div>
+                            {% endif %}
+                            
+                            {% if error_count > 0 %}
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle me-2"></i> Encountered {{ error_count }} errors during processing
+                                </div>
+                            {% endif %}
+                            
+                            {% if imported_results %}
+                                <h5 class="card-title">{% if added_count > 0 %}Newly added{% else %}Processed{% endif %} lottery results:</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Lottery Type</th>
+                                                <th>Draw Number</th>
+                                                <th>Draw Date</th>
+                                                <th>Numbers</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for result in imported_results %}
+                                            <tr>
+                                                <td>{{ result.lottery_type }}</td>
+                                                <td>{{ result.draw_number }}</td>
+                                                <td>{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
+                                                <td>{{ result.get_numbers_list()|join(', ') }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" enctype="multipart/form-data" class="mt-4">
+                        <!-- CSRF Token -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-4">
+                            <label for="file" class="form-label fw-bold">Select Excel Spreadsheet:</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls" required>
+                            <div class="form-text">Only Excel files (.xlsx, .xls) are supported</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Select Import Format:</label>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="import_type" id="type-snap" value="snap_lotto" checked>
+                                <label class="form-check-label" for="type-snap">
+                                    <i class="fas fa-file-excel me-1"></i> Snap Lotto Format
+                                    <div class="form-text">Use this for the official Snap Lotto spreadsheet</div>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="import_type" id="type-standard" value="standard">
+                                <label class="form-check-label" for="type-standard">
+                                    <i class="fas fa-table me-1"></i> Standard Format
+                                    <div class="form-text">Use this for our exported template with lottery-specific sheets</div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Import Mode:</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="purge" id="purge-no" value="no" checked>
+                                <label class="form-check-label" for="purge-no">
+                                    <i class="fas fa-database me-1"></i> Append Data - Keep existing records and add new ones
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="purge" id="purge-yes" value="yes">
+                                <label class="form-check-label" for="purge-yes">
+                                    <i class="fas fa-trash-alt me-1"></i> Replace All Data - Delete all existing records and import fresh data
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i> <strong>Warning:</strong> If you choose to replace all data, this action cannot be undone.
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                            </a>
+                            <button type="submit" class="btn btn-lottery-primary" id="import-btn">
+                                <i class="fas fa-file-upload me-1"></i> Import Data
+                            </button>
+                        </div>
+                        
+                        <!-- Processing indicator - hidden by default -->
+                        <div id="processing-indicator" class="alert alert-info mt-3 d-none">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">Processing...</span>
+                                </div>
+                                <div>Processing your import... Please wait.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- JavaScript to show processing indicator and track progress -->
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const form = document.querySelector('form');
+                                const importBtn = document.getElementById('import-btn');
+                                const indicator = document.getElementById('processing-indicator');
+                                const loaderOverlay = document.getElementById('loader-overlay');
+                                const progressBar = document.getElementById('upload-progress-bar');
+                                const uploadStatus = document.getElementById('upload-status');
+                                
+                                // Poll interval in milliseconds (how often to check progress)
+                                const POLL_INTERVAL = 500;
+                                // Polling ID to clear the interval when done
+                                let progressPollId = null;
+                                
+                                // Function to update progress bar
+                                function updateProgressBar(percentage, status) {
+                                    progressBar.style.width = percentage + '%';
+                                    progressBar.setAttribute('aria-valuenow', percentage);
+                                    progressBar.textContent = percentage + '%';
+                                    
+                                    if (status) {
+                                        uploadStatus.textContent = status;
+                                    }
+                                    
+                                    // Change color based on progress
+                                    if (percentage < 20) {
+                                        progressBar.classList.remove('bg-warning', 'bg-success', 'bg-danger');
+                                    } else if (percentage < 80) {
+                                        progressBar.classList.add('bg-warning');
+                                        progressBar.classList.remove('bg-success', 'bg-danger');
+                                    } else if (percentage === 100) {
+                                        progressBar.classList.add('bg-success');
+                                        progressBar.classList.remove('bg-warning', 'bg-danger');
+                                    }
+                                }
+                                
+                                // Function to poll for progress updates
+                                function pollForProgress() {
+                                    fetch('/api/file-upload-progress')
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            // Update progress bar
+                                            const percentage = data.percentage || 0;
+                                            const status = data.status || 'Uploading...';
+                                            const filename = data.filename || '';
+                                            
+                                            updateProgressBar(percentage, status === 'processing' 
+                                                ? 'Processing file...' 
+                                                : status === 'uploading' 
+                                                    ? `Uploading ${filename}...` 
+                                                    : status === 'error'
+                                                        ? 'Error processing file'
+                                                        : 'Upload complete');
+                                            
+                                            // If status is 'error', stop polling and show error
+                                            if (status === 'error') {
+                                                clearInterval(progressPollId);
+                                                progressBar.classList.add('bg-danger');
+                                                progressBar.classList.remove('bg-warning', 'bg-success');
+                                            }
+                                            
+                                            // If we're at 100%, we can stop polling (processing is done on the server)
+                                            if (percentage === 100) {
+                                                if (status === 'complete') {
+                                                    uploadStatus.textContent = 'Import complete!';
+                                                    
+                                                    // Show import results summary if available
+                                                    if (data.summary) {
+                                                        const added = data.summary.added || 0;
+                                                        const total = data.summary.total || 0;
+                                                        const errors = data.summary.errors || 0;
+                                                        
+                                                        // Create a success message with import details
+                                                        const messageContainer = document.getElementById('message-container');
+                                                        const resultMsg = document.createElement('div');
+                                                        resultMsg.className = 'alert alert-success alert-dismissible fade show mt-3';
+                                                        
+                                                        let msgContent = '<i class="fas fa-check-circle me-2"></i><strong>Import Complete:</strong> ';
+                                                        
+                                                        if (added > 0) {
+                                                            msgContent += `Added ${added} new records, processed ${total} total records`;
+                                                        } else {
+                                                            msgContent += `No new records were added. Processed ${total} records`;
+                                                        }
+                                                        
+                                                        if (errors > 0) {
+                                                            msgContent += ` with ${errors} errors.`;
+                                                        } else {
+                                                            msgContent += ` with no errors.`;
+                                                        }
+                                                        
+                                                        resultMsg.innerHTML = msgContent + 
+                                                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                                                        
+                                                        // Add message to container
+                                                        if (messageContainer) {
+                                                            messageContainer.appendChild(resultMsg);
+                                                        }
+                                                    }
+                                                    
+                                                    // Hide the overlay after 1 second to show success
+                                                    setTimeout(() => {
+                                                        loaderOverlay.style.display = 'none';
+                                                        // Reset the button
+                                                        importBtn.disabled = false;
+                                                        importBtn.innerHTML = '<i class="fas fa-file-upload me-1"></i> Import Data';
+                                                    }, 1000);
+                                                } else if (status === 'processing') {
+                                                    uploadStatus.textContent = 'Processing file (this may take a while)...';
+                                                }
+                                                
+                                                clearInterval(progressPollId);
+                                            }
+                                        })
+                                        .catch(err => {
+                                            console.error('Error fetching progress:', err);
+                                            // Don't stop polling on temporary error
+                                        });
+                                }
+                                
+                                // Reset progress tracking when page loads
+                                fetch('/api/file-upload-progress/reset', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': '{{ csrf_token() }}'
+                                    },
+                                    credentials: 'same-origin'
+                                }).catch(err => console.error('Error resetting progress:', err));
+                                
+                                form.addEventListener('submit', function() {
+                                    // Check if a file was selected
+                                    const fileInput = document.getElementById('file');
+                                    if (fileInput.files.length > 0) {
+                                        // Reset progress display
+                                        updateProgressBar(0, 'Preparing upload...');
+                                        
+                                        // Show both indicators
+                                        indicator.classList.remove('d-none');
+                                        loaderOverlay.style.display = 'flex';
+                                        importBtn.disabled = true;
+                                        importBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                                        
+                                        // Start polling for progress
+                                        progressPollId = setInterval(pollForProgress, POLL_INTERVAL);
+                                        
+                                        // For immediate visual feedback before form submits
+                                        setTimeout(function() {
+                                            // If still on the page after 100ms, ensure overlay is visible
+                                            if (loaderOverlay) {
+                                                loaderOverlay.style.display = 'flex';
+                                            }
+                                        }, 100);
+                                    }
+                                });
+                                
+                                // Make sure buttons with close class hide messages
+                                document.querySelectorAll('.btn-close').forEach(function(button) {
+                                    button.addEventListener('click', function() {
+                                        this.closest('.alert').style.display = 'none';
+                                    });
+                                });
+                                
+                                // Add special notice about empty templates at the top of the page if needed
+                                const messageContainer = document.getElementById('message-container');
+                                if (messageContainer.textContent.includes('empty template')) {
+                                    const emptyTemplateAlert = document.createElement('div');
+                                    emptyTemplateAlert.className = 'alert alert-warning alert-dismissible fade show mb-4';
+                                    emptyTemplateAlert.innerHTML = `
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>Empty Template Detected!</strong> 
+                                        <p>You've uploaded an empty template. Please add lottery data to it before importing.</p>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    `;
+                                    
+                                    // Insert at the top of the form
+                                    form.insertAdjacentElement('beforebegin', emptyTemplateAlert);
+                                }
+                            });
+                        </script>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+
+{% block title %}Health Check History | Snap Lotto{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .history-table th, .history-table td {
+        white-space: nowrap;
+    }
+    
+    .details-json {
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 0.8rem;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-history me-2"></i> Health Check History
+        </h1>
+        <div>
+            <a href="{{ url_for('health_dashboard') }}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+            </a>
+            <button id="refresh-history" class="btn btn-primary">
+                <i class="fas fa-sync-alt me-2"></i> Refresh
+            </button>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Health Check Records</h5>
+                    <div>
+                        <form class="d-flex" action="{{ url_for('health_history') }}" method="get">
+                            <select name="check_type" class="form-select form-select-sm me-2">
+                                <option value="">All Check Types</option>
+                                {% for check_type in check_types %}
+                                    <option value="{{ check_type }}" {{ 'selected' if selected_type == check_type else '' }}>
+                                        {{ check_type }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <select name="status" class="form-select form-select-sm me-2">
+                                <option value="">All Statuses</option>
+                                <option value="OK" {{ 'selected' if selected_status == 'OK' else '' }}>OK</option>
+                                <option value="WARNING" {{ 'selected' if selected_status == 'WARNING' else '' }}>Warning</option>
+                                <option value="CRITICAL" {{ 'selected' if selected_status == 'CRITICAL' else '' }}>Critical</option>
+                                <option value="ERROR" {{ 'selected' if selected_status == 'ERROR' else '' }}>Error</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-filter me-1"></i> Filter
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if history %}
+                        <div class="table-responsive">
+                            <table class="table table-hover history-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Timestamp</th>
+                                        <th>Check Type</th>
+                                        <th>Status</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for check in history %}
+                                        <tr>
+                                            <td>{{ check.id }}</td>
+                                            <td>{{ check.timestamp }}</td>
+                                            <td>{{ check.check_type }}</td>
+                                            <td>
+                                                <span class="badge {{ 'bg-success' if check.status == 'OK' else 'bg-warning' if check.status == 'WARNING' else 'bg-danger' if check.status == 'CRITICAL' else 'bg-secondary' }}">
+                                                    {{ check.status }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#detailsModal-{{ check.id }}">
+                                                    <i class="fas fa-info-circle"></i> View
+                                                </button>
+                                                
+                                                <!-- Modal for details -->
+                                                <div class="modal fade" id="detailsModal-{{ check.id }}" tabindex="-1" aria-labelledby="detailsModalLabel-{{ check.id }}" aria-hidden="true">
+                                                    <div class="modal-dialog modal-lg">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="detailsModalLabel-{{ check.id }}">
+                                                                    {{ check.check_type }} Details (#{{ check.id }})
+                                                                </h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <div class="mb-3">
+                                                                    <div class="row mb-2">
+                                                                        <div class="col-md-4 fw-bold">Status:</div>
+                                                                        <div class="col-md-8">
+                                                                            <span class="badge {{ 'bg-success' if check.status == 'OK' else 'bg-warning' if check.status == 'WARNING' else 'bg-danger' if check.status == 'CRITICAL' else 'bg-secondary' }}">
+                                                                                {{ check.status }}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="row mb-2">
+                                                                        <div class="col-md-4 fw-bold">Timestamp:</div>
+                                                                        <div class="col-md-8">{{ check.timestamp }}</div>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <div class="card">
+                                                                    <div class="card-header">
+                                                                        <h6 class="mb-0">Details JSON</h6>
+                                                                    </div>
+                                                                    <div class="card-body">
+                                                                        <div class="details-json">
+                                                                            <pre>{{ format_json(check.details) }}</pre>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        {% if pagination %}
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center mt-4 mb-4">
+                                {% if pagination.has_prev %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('health_history', page=pagination.prev_num, check_type=selected_type, status=selected_status) }}">
+                                            <i class="fas fa-chevron-left"></i> Previous
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#"><i class="fas fa-chevron-left"></i> Previous</a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for page in pagination.iter_pages() %}
+                                    {% if page %}
+                                        {% if page == pagination.page %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ page }}</span>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ url_for('health_history', page=page, check_type=selected_type, status=selected_status) }}">
+                                                    {{ page }}
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if pagination.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('health_history', page=pagination.next_num, check_type=selected_type, status=selected_status) }}">
+                                            Next <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#">Next <i class="fas fa-chevron-right"></i></a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-exclamation-circle text-muted fa-3x mb-3"></i>
+                            <h5>No health check records found</h5>
+                            <p class="text-muted">Try changing your filter criteria or wait for health checks to be performed</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Health Check Statistics -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i> Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Check Types</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="checkTypesChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Status Chart
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        new Chart(statusCtx, {
+            type: 'pie',
+            data: {
+                labels: ['OK', 'Warning', 'Critical', 'Error'],
+                datasets: [{
+                    data: {{ status_counts|tojson }},
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)',
+                        'rgba(255, 193, 7, 0.8)',
+                        'rgba(220, 53, 69, 0.8)',
+                        'rgba(108, 117, 125, 0.8)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+        
+        // Check Types Chart
+        const checkTypesCtx = document.getElementById('checkTypesChart').getContext('2d');
+        new Chart(checkTypesCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ check_types|tojson }},
+                datasets: [{
+                    label: 'Number of Checks',
+                    data: {{ type_counts|tojson }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Count'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Check Type'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Refresh button
+        document.getElementById('refresh-history').addEventListener('click', function() {
+            window.location.reload();
+        });
+    });
+</script>
+{% endblock %}

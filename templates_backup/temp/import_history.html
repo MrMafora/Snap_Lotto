@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">Import History</h3>
+                    <a href="{{ url_for('import_latest_template_route') }}" class="btn btn-light">
+                        <i class="fas fa-file-import"></i> Import Latest Template
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if history %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Import Date</th>
+                                    <th>Type</th>
+                                    <th>File Name</th>
+                                    <th>Records Added</th>
+                                    <th>Records Updated</th>
+                                    <th>Total Processed</th>
+                                    <th>Errors</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in history %}
+                                <tr>
+                                    <td>{{ item.id }}</td>
+                                    <td>{{ item.import_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td>{{ item.import_type }}</td>
+                                    <td>{{ item.file_name }}</td>
+                                    <td>{{ item.records_added }}</td>
+                                    <td>{{ item.records_updated }}</td>
+                                    <td>{{ item.total_processed }}</td>
+                                    <td>
+                                        {% if item.errors > 0 %}
+                                        <span class="badge badge-danger">{{ item.errors }}</span>
+                                        {% else %}
+                                        <span class="badge badge-success">0</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <h4 class="alert-heading">No Import History</h4>
+                        <p>There is no import history available yet. Start by importing a lottery data template.</p>
+                        <hr>
+                        <p class="mb-0">Click the "Import Latest Template" button to import the most recent template file.</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="{{ url_for('admin') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Admin
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

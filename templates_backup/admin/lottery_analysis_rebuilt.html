@@ -1,0 +1,703 @@
+{% extends "base.html" %}
+
+{% block title %}Lottery Data Analysis{% endblock %}
+
+{% block extrahead %}
+<!-- Include JavaScript for tab functionality -->
+<script src="{{ url_for('static', filename='js/lottery_analysis_tabs.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-chart-line mr-2"></i> Lottery Analysis Algorithm
+        </h1>
+    </div>
+
+    <!-- Filter Options -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter mr-1"></i> Analysis Filters
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{{ url_for('lottery_analysis_dashboard') }}" class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="lottery_type">Lottery Type:</label>
+                        <select class="form-control" id="lottery_type" name="lottery_type">
+                            <option value="">All Lottery Types</option>
+                            {% for lt in lottery_types %}
+                                <option value="{{ lt }}" {% if selected_type == lt %}selected{% endif %}>{{ lt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="days">Data Range (days):</label>
+                        <select class="form-control" id="days" name="days">
+                            <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 days</option>
+                            <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 days</option>
+                            <option value="180" {% if days == 180 %}selected{% endif %}>Last 6 months</option>
+                            <option value="365" {% if days == 365 %}selected{% endif %}>Last year</option>
+                            <option value="730" {% if days == 730 %}selected{% endif %}>Last 2 years</option>
+                            <option value="999999" {% if days == 999999 %}selected{% endif %}>All time</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group" style="margin-top: 32px;">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sync-alt mr-1"></i> Update Analysis
+                        </button>
+                        
+                        {% if selected_type %}
+                            <a href="{{ url_for('lottery_predictions', lottery_type=selected_type) }}" class="btn btn-success ml-2">
+                                <i class="fas fa-dice mr-1"></i> Predictions
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('lottery_predictions') }}" class="btn btn-success ml-2">
+                                <i class="fas fa-dice mr-1"></i> Predictions
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Analysis Tabs -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <ul class="nav nav-tabs card-header-tabs" id="analysisTab" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="frequency-tab" data-toggle="tab" href="#frequency" role="tab" aria-controls="frequency" aria-selected="true">
+                        <i class="fas fa-chart-bar mr-1"></i> Number Frequency
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="patterns-tab" data-toggle="tab" href="#patterns" role="tab" aria-controls="patterns" aria-selected="false">
+                        <i class="fas fa-puzzle-piece mr-1"></i> Pattern Analysis
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="timeseries-tab" data-toggle="tab" href="#timeseries" role="tab" aria-controls="timeseries" aria-selected="false">
+                        <i class="fas fa-chart-line mr-1"></i> Time Series
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="winners-tab" data-toggle="tab" href="#winners" role="tab" aria-controls="winners" aria-selected="false">
+                        <i class="fas fa-trophy mr-1"></i> Winner Analysis
+                    </a>
+                </li>
+                {% if not selected_type %}
+                <li class="nav-item">
+                    <a class="nav-link" id="correlations-tab" data-toggle="tab" href="#correlations" role="tab" aria-controls="correlations" aria-selected="false">
+                        <i class="fas fa-link mr-1"></i> Lottery Correlations
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="analysisTabContent">
+                
+                <!-- Frequency Analysis Tab -->
+                <div class="tab-pane fade show active" id="frequency" role="tabpanel" aria-labelledby="frequency-tab">
+                    <div class="row">
+                        {% if frequency_data %}
+                            {% for lottery_type, data in frequency_data.items() %}
+                                {% if data and not data.error %}
+                                <div class="col-md-6 mb-4">
+                                    <div class="card border-left-primary shadow h-100 py-2">
+                                        <div class="card-body">
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-2">
+                                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                        {{ lottery_type }}
+                                                    </div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                        Most Frequent Numbers
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <div class="frequency-chart">
+                                                            <img src="data:image/png;base64,{{ data.chart_base64 }}" 
+                                                                 alt="Frequency Chart for {{ lottery_type }}" 
+                                                                 class="img-fluid">
+                                                        </div>
+                                                        <div class="mt-3">
+                                                            <h6>Top 5 Most Frequent Numbers:</h6>
+                                                            <div class="row justify-content-center">
+                                                                {% for number, freq in data.top_numbers %}
+                                                                <div class="col text-center" style="max-width: 70px;">
+                                                                    <div class="lottery-ball">
+                                                                        <span class="number">{{ number }}</span>
+                                                                        <span class="frequency">{{ freq }} times</span>
+                                                                    </div>
+                                                                </div>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="col-md-6 mb-4">
+                                    <div class="card border-left-warning shadow h-100 py-2">
+                                        <div class="card-body">
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-2">
+                                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                        {{ lottery_type }}
+                                                    </div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                        No Data Available
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        {% if data.error %}
+                                                            <p>{{ data.error }}</p>
+                                                        {% else %}
+                                                            <p>Insufficient data for frequency analysis.</p>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle mr-1"></i> No data available for frequency analysis. Please ensure there are lottery results in the database.
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Pattern Analysis Tab -->
+                <div class="tab-pane fade" id="patterns" role="tabpanel" aria-labelledby="patterns-tab">
+                    <div class="row">
+                        <div class="col-12 mb-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h4 class="mb-0">Pattern Analysis Results</h4>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="reload-patterns">
+                                    <i class="fas fa-sync-alt"></i> Reload Data
+                                </button>
+                            </div>
+                            <hr>
+                        </div>
+                    </div>
+                    <!-- Loading indicator -->
+                    <div id="patterns-loading" class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading pattern analysis data...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <!-- Content area -->
+                    <div id="patterns-content" class="row" style="display: none;">
+                        <!-- Filled dynamically via JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Time Series Tab -->
+                <div class="tab-pane fade" id="timeseries" role="tabpanel" aria-labelledby="timeseries-tab">
+                    <div class="row">
+                        <div class="col-12 mb-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h4 class="mb-0">Time Series Analysis</h4>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="reload-timeseries">
+                                    <i class="fas fa-sync-alt"></i> Reload Data
+                                </button>
+                            </div>
+                            <hr>
+                        </div>
+                    </div>
+                    <!-- Loading indicator -->
+                    <div id="timeseries-loading" class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading time series analysis data...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <!-- Content area -->
+                    <div id="timeseries-content" class="row" style="display: none;">
+                        <!-- Filled dynamically via JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Winner Analysis Tab -->
+                <div class="tab-pane fade" id="winners" role="tabpanel" aria-labelledby="winners-tab">
+                    <div class="row">
+                        <div class="col-12 mb-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h4 class="mb-0">Winner Analysis</h4>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="reload-winners">
+                                    <i class="fas fa-sync-alt"></i> Reload Data
+                                </button>
+                            </div>
+                            <hr>
+                        </div>
+                    </div>
+                    <!-- Loading indicator -->
+                    <div id="winners-loading" class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading winner analysis data...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <!-- Content area -->
+                    <div id="winners-content" class="row" style="display: none;">
+                        <!-- Filled dynamically via JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Correlations Tab -->
+                {% if not selected_type %}
+                <div class="tab-pane fade" id="correlations" role="tabpanel" aria-labelledby="correlations-tab">
+                    <div class="row">
+                        <div class="col-12 mb-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h4 class="mb-0">Cross-Lottery Type Correlations</h4>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="reload-correlations">
+                                    <i class="fas fa-sync-alt"></i> Reload Data
+                                </button>
+                            </div>
+                            <hr>
+                        </div>
+                    </div>
+                    <!-- Loading indicator -->
+                    <div id="correlations-loading" class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading correlation analysis data...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <!-- Content area -->
+                    <div id="correlations-content" class="row" style="display: none;">
+                        <!-- Filled dynamically via JavaScript -->
+                    </div>
+                </div>
+                {% endif %}
+                
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+/**
+ * Tab Content Display Function
+ * Handles displaying data for each tab
+ */
+function displayTabData(tabId, data) {
+    console.log(`Displaying data for tab: ${tabId}`);
+    const contentEl = document.getElementById(`${tabId}-content`);
+    let html = '';
+    
+    // Generate appropriate HTML based on tab type and data
+    if (tabId === 'patterns') {
+        if (data && data.patterns) {
+            Object.entries(data.patterns).forEach(([lottery_type, patterns]) => {
+                if (patterns && patterns.length > 0) {
+                    html += `
+                        <div class="col-md-6 mb-4">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        ${lottery_type}
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        Pattern Analysis
+                                    </div>
+                                    <div class="mt-3">
+                                        <ul class="list-group">
+                    `;
+                    
+                    patterns.slice(0, 5).forEach(pattern => {
+                        html += `
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                ${pattern.description}
+                                <span class="badge badge-primary badge-pill">${pattern.frequency}</span>
+                            </li>
+                        `;
+                    });
+                    
+                    html += `
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        }
+        
+        if (html === '') {
+            html = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-1"></i> No pattern analysis data available for the selected lottery type(s).
+                    </div>
+                </div>
+            `;
+        }
+    } 
+    else if (tabId === 'timeseries') {
+        if (data && data.time_series) {
+            Object.entries(data.time_series).forEach(([lottery_type, typeData]) => {
+                html += `
+                    <div class="col-md-6 mb-4">
+                        <div class="card border-left-info shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    ${lottery_type}
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                    Time Series Analysis
+                                </div>
+                                <div class="mt-2">
+                                    <img src="data:image/png;base64,${typeData.chart_base64}" 
+                                        alt="Time Series Analysis for ${lottery_type}" 
+                                        class="img-fluid">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        if (html === '') {
+            html = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-1"></i> No time series data available for the selected lottery type(s).
+                    </div>
+                </div>
+            `;
+        }
+    } 
+    else if (tabId === 'winners') {
+        if (data && data.winners) {
+            Object.entries(data.winners).forEach(([lottery_type, winners]) => {
+                html += `
+                    <div class="col-md-6 mb-4">
+                        <div class="card border-left-success shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    ${lottery_type}
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                    Winner Analysis
+                                </div>
+                                <div class="mt-3">
+                `;
+                
+                if (winners && winners.divisions) {
+                    html += '<ul class="list-group">';
+                    Object.entries(winners.divisions).slice(0, 5).forEach(([division, stats]) => {
+                        html += `
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <span>${division}</span>
+                                    <span>${stats.total_winners} winner(s)</span>
+                                </div>
+                                <div class="small text-muted">
+                                    Average prize: ${stats.average_prize || 'Not available'}
+                                </div>
+                            </li>
+                        `;
+                    });
+                    html += '</ul>';
+                } else {
+                    html += '<p>No winner data available</p>';
+                }
+                
+                html += `
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        if (html === '') {
+            html = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-1"></i> No winner data available for the selected lottery type(s).
+                    </div>
+                </div>
+            `;
+        }
+    } 
+    else if (tabId === 'correlations') {
+        if (data && data.correlations && data.correlations.length > 0) {
+            html += `
+                <div class="col-12 mb-4">
+                    <div class="card shadow">
+                        <div class="card-body">
+                            <h5 class="font-weight-bold text-primary mb-3">Cross-Lottery Correlations</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Type A</th>
+                                            <th>Type B</th>
+                                            <th>Correlation</th>
+                                            <th>Strength</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+            `;
+            
+            data.correlations.forEach(corr => {
+                let strengthClass = 'text-muted';
+                let strength = 'Weak';
+                
+                if (Math.abs(corr.correlation) > 0.7) {
+                    strengthClass = 'text-danger font-weight-bold';
+                    strength = 'Strong';
+                } else if (Math.abs(corr.correlation) > 0.4) {
+                    strengthClass = 'text-warning';
+                    strength = 'Moderate';
+                }
+                
+                html += `
+                    <tr>
+                        <td>${corr.type_a}</td>
+                        <td>${corr.type_b}</td>
+                        <td>${corr.correlation.toFixed(2)}</td>
+                        <td class="${strengthClass}">${strength}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            if (data.chart_base64) {
+                html += `
+                    <div class="col-12 mb-4">
+                        <div class="card shadow">
+                            <div class="card-body">
+                                <h5 class="font-weight-bold text-primary mb-3">Correlation Matrix</h5>
+                                <img src="data:image/png;base64,${data.chart_base64}" 
+                                     alt="Lottery Type Correlation Matrix" 
+                                     class="img-fluid">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            html = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-1"></i> No correlation data available. Need at least two lottery types with sufficient data for correlation analysis.
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    // Update the content and hide loading
+    contentEl.innerHTML = html;
+    document.getElementById(`${tabId}-loading`).style.display = 'none';
+    contentEl.style.display = 'block';
+}
+
+/**
+ * Main Tab Initialization Script
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Direct tab initialization');
+    
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const lotteryType = urlParams.get('lottery_type') || '';
+    const days = urlParams.get('days') || '365';
+    
+    // Manual tab handling
+    const tabLinks = document.querySelectorAll('a[data-toggle="tab"]');
+    console.log(`Found ${tabLinks.length} tab links`);
+    
+    tabLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Get the target tab ID from the href
+            const targetId = this.getAttribute('href').substring(1);
+            console.log(`Tab clicked: ${targetId}`);
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('show', 'active');
+            });
+            
+            // Show the selected tab
+            const targetTab = document.getElementById(targetId);
+            if (targetTab) {
+                targetTab.classList.add('show', 'active');
+            }
+            
+            // Update the active state of the tab buttons
+            tabLinks.forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            
+            // Set this tab as active
+            this.classList.add('active');
+            this.setAttribute('aria-selected', 'true');
+            
+            // Load data for this tab if needed
+            if (targetId !== 'frequency') {
+                // Check if data is already loaded
+                const contentEl = document.getElementById(`${targetId}-content`);
+                if (contentEl && contentEl.innerHTML.trim() === '') {
+                    loadTabData(targetId);
+                }
+            }
+        });
+    });
+    
+    // Function to load data for each tab
+    function loadTabData(tabId) {
+        console.log(`Loading data for tab: ${tabId}`);
+        
+        const loadingEl = document.getElementById(`${tabId}-loading`);
+        const contentEl = document.getElementById(`${tabId}-content`);
+        
+        if (!loadingEl || !contentEl) {
+            console.error(`Elements for tab ${tabId} not found`);
+            return;
+        }
+        
+        // Show loading, hide content
+        loadingEl.style.display = 'block';
+        contentEl.style.display = 'none';
+        
+        // Build API endpoint
+        let endpoint = '';
+        switch(tabId) {
+            case 'patterns':
+                endpoint = `/api/lottery-analysis/patterns?lottery_type=${lotteryType}&days=${days}`;
+                break;
+            case 'timeseries':
+                endpoint = `/api/lottery-analysis/time-series?lottery_type=${lotteryType}&days=${days}`;
+                break;
+            case 'winners':
+                endpoint = `/api/lottery-analysis/winners?lottery_type=${lotteryType}&days=${days}`;
+                break;
+            case 'correlations':
+                endpoint = `/api/lottery-analysis/correlations?lottery_type=${lotteryType}&days=${days}`;
+                break;
+            default:
+                console.error(`Unknown tab ID: ${tabId}`);
+                loadingEl.style.display = 'none';
+                contentEl.innerHTML = `<div class="alert alert-danger">Unknown tab ID: ${tabId}</div>`;
+                contentEl.style.display = 'block';
+                return;
+        }
+        
+        console.log(`Fetching data from ${endpoint}`);
+        
+        // Fetch data from API
+        fetch(endpoint)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(`Data loaded successfully for ${tabId}`);
+                displayTabData(tabId, data);
+            })
+            .catch(error => {
+                console.error(`Error loading ${tabId} data:`, error);
+                contentEl.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle mr-1"></i> Error loading data: ${error.message}
+                            <button class="btn btn-outline-danger btn-sm ml-3" onclick="loadTabData('${tabId}')">Try Again</button>
+                        </div>
+                    </div>
+                `;
+                loadingEl.style.display = 'none';
+                contentEl.style.display = 'block';
+            });
+    }
+    
+    // Make function globally available
+    window.loadTabData = loadTabData;
+    window.displayTabData = displayTabData;
+    
+    // Hook up reload buttons
+    document.getElementById('reload-patterns')?.addEventListener('click', () => {
+        const contentEl = document.getElementById('patterns-content');
+        if (contentEl) contentEl.innerHTML = '';
+        loadTabData('patterns');
+    });
+    
+    document.getElementById('reload-timeseries')?.addEventListener('click', () => {
+        const contentEl = document.getElementById('timeseries-content');
+        if (contentEl) contentEl.innerHTML = '';
+        loadTabData('timeseries');
+    });
+    
+    document.getElementById('reload-winners')?.addEventListener('click', () => {
+        const contentEl = document.getElementById('winners-content');
+        if (contentEl) contentEl.innerHTML = '';
+        loadTabData('winners');
+    });
+    
+    document.getElementById('reload-correlations')?.addEventListener('click', () => {
+        const contentEl = document.getElementById('correlations-content');
+        if (contentEl) contentEl.innerHTML = '';
+        loadTabData('correlations');
+    });
+    
+    // Preload patterns tab data
+    const patternsTab = document.getElementById('patterns');
+    if (patternsTab) {
+        loadTabData('patterns');
+    }
+});
+</script>
+{% endblock %}
+</script>

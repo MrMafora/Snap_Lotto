@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}System Status | Snap Lotto{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .status-indicator {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    .status-ok { background-color: #28a745; }
+    .status-warning { background-color: #ffc107; }
+    .status-critical { background-color: #dc3545; }
+    .status-error { background-color: #6c757d; }
+    
+    .progress-bar {
+        transition: width 0.6s ease;
+    }
+    
+    .system-component {
+        transition: all 0.3s ease;
+    }
+    .system-component:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-server me-2"></i> System Status
+        </h1>
+        <div>
+            <a href="{{ url_for('health_dashboard') }}" class="btn btn-primary">
+                <i class="fas fa-tachometer-alt me-1"></i> Health Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">System Overview</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <th scope="row">Server Time</th>
+                                <td>{{ server_time }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Last Checked</th>
+                                <td>{{ last_checked }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Port 5000 Status</th>
+                                <td>
+                                    {% if port_5000_status %}
+                                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> Online</span>
+                                    {% else %}
+                                        <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Offline</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Port 8080 Status</th>
+                                <td>
+                                    {% if port_8080_status %}
+                                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> Online</span>
+                                    {% else %}
+                                        <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Offline</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Memory Usage</label>
+                        <div class="progress">
+                            <div class="progress-bar {{ 'bg-danger' if memory_usage > 80 else 'bg-warning' if memory_usage > 60 else 'bg-success' }}" 
+                                 role="progressbar" 
+                                 style="width: {{ memory_usage }}%"
+                                 aria-valuenow="{{ memory_usage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">{{ memory_usage }}%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">CPU Usage</label>
+                        <div class="progress">
+                            <div class="progress-bar {{ 'bg-danger' if cpu_usage > 80 else 'bg-warning' if cpu_usage > 60 else 'bg-success' }}" 
+                                 role="progressbar" 
+                                 style="width: {{ cpu_usage }}%"
+                                 aria-valuenow="{{ cpu_usage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">{{ cpu_usage }}%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Disk Usage</label>
+                        <div class="progress">
+                            <div class="progress-bar {{ 'bg-danger' if disk_usage > 80 else 'bg-warning' if disk_usage > 60 else 'bg-success' }}" 
+                                 role="progressbar" 
+                                 style="width: {{ disk_usage }}%"
+                                 aria-valuenow="{{ disk_usage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">{{ disk_usage }}%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <!-- Database Status -->
+        <div class="col-md-6 mb-3">
+            <div class="card system-component h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-database me-2"></i> Database Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="status-indicator {{ 'status-ok' if db_status else 'status-critical' }}"></span>
+                        <h5 class="mb-0">{{ 'Connected' if db_status else 'Disconnected' }}</h5>
+                    </div>
+                    
+                    {% if db_status %}
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Database Type</th>
+                                    <td>{{ db_type }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Tables Count</th>
+                                    <td>{{ db_tables_count }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Sample Records Count</th>
+                                    <td>{{ db_records_count }} (from lottery_result)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i> Database connection failed
+                            <p class="mb-0 mt-2">Please check the database connection and credentials.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Advertisement System -->
+        <div class="col-md-6 mb-3">
+            <div class="card system-component h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-ad me-2"></i> Advertisement System</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="status-indicator {{ 'status-ok' if js_status else 'status-warning' }}"></span>
+                        <h5 class="mb-0">{{ 'Active' if js_status else 'Warning' }}</h5>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Active Ads</h6>
+                                    <h2>{{ active_ads_count }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Total Impressions</h6>
+                                    <h2>{{ total_impressions }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> JavaScript Status Check
+                        <div id="js-check-result" class="mt-2">
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                            Checking JavaScript functionality...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i> Lottery Data Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Lottery Type</th>
+                            <th>Records Count</th>
+                            <th>Latest Draw</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in lottery_stats %}
+                            <tr>
+                                <td>{{ stat.name }}</td>
+                                <td>{{ stat.count }}</td>
+                                <td>{{ stat.latest_draw }}</td>
+                                <td>
+                                    {% if stat.count > 0 %}
+                                        <span class="badge bg-success">Available</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">No Data</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="{{ url_for('admin') }}" class="btn btn-outline-primary">
+                <i class="fas fa-camera me-1"></i> View Screenshots in Admin
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i> System Maintenance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center py-4">
+                                    <i class="fas fa-sync-alt fa-3x mb-3 text-primary"></i>
+                                    <h5>Refresh Screenshots</h5>
+                                    <p class="text-muted">Update lottery data with the latest screenshots</p>
+                                    <a href="{{ url_for('retake_screenshots') }}" class="btn btn-primary">
+                                        <i class="fas fa-camera me-1"></i> Refresh
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center py-4">
+                                    <i class="fas fa-database fa-3x mb-3 text-primary"></i>
+                                    <h5>Database Maintenance</h5>
+                                    <p class="text-muted">Run database optimization operations</p>
+                                    <button class="btn btn-primary" onclick="alert('Database maintenance triggered')">
+                                        <i class="fas fa-wrench me-1"></i> Optimize
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center py-4">
+                                    <i class="fas fa-file-export fa-3x mb-3 text-primary"></i>
+                                    <h5>Export Logs</h5>
+                                    <p class="text-muted">Download system logs for troubleshooting</p>
+                                    <button class="btn btn-primary" onclick="alert('Log export triggered')">
+                                        <i class="fas fa-download me-1"></i> Export
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // JavaScript status check
+        setTimeout(function() {
+            fetch('/admin/check-js', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('js-check-result').innerHTML = 
+                        '<span class="text-success"><i class="fas fa-check-circle"></i> JavaScript is working properly</span>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('js-check-result').innerHTML = 
+                    '<span class="text-danger"><i class="fas fa-times-circle"></i> JavaScript functionality error: ' + error.message + '</span>';
+            });
+        }, 1000);
+        
+        // Auto-refresh the page every 30 seconds
+        setTimeout(function() {
+            window.location.reload();
+        }, 30000);
+    });
+</script>
+{% endblock %}
