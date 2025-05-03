@@ -1309,19 +1309,178 @@ def settings():
     # Define SEO metadata
     meta_description = "Configure South African lottery system settings and scheduled tasks. Manage data synchronization, screenshot capture timing, and system preferences."
     
-    schedule_configs = ScheduleConfig.query.all()
+    # Get missing URLs using the enhanced detection logic
+    missing_results_urls, missing_historical_urls, schedule_configs = detect_missing_urls()
     
-    # Handle form submission for updating settings
+    # Handle form submission for updating settings or adding missing URLs
     if request.method == 'POST':
-        # This would normally handle the form submission
-        flash('Settings updated successfully.', 'success')
-        return redirect(url_for('settings'))
+        action = request.form.get('action')
+        
+        if action == 'add_missing_urls':
+            # Add all missing URLs to the schedule
+            added_count = add_missing_urls_to_schedule(missing_results_urls, missing_historical_urls)
+            
+            if added_count > 0:
+                flash(f'Successfully added {added_count} missing URLs to the schedule.', 'success')
+            else:
+                flash('No URLs were added to the schedule.', 'warning')
+                
+            return redirect(url_for('settings'))
+        elif action == 'add_url':
+            # Add a single URL from the form
+            url = request.form.get('url')
+            lottery_type = request.form.get('lottery_type')
+            hour = int(request.form.get('hour', 1))
+            minute = int(request.form.get('minute', 0))
+            frequency = request.form.get('frequency', 'daily')
+            active = request.form.get('active') == 'true'
+            
+            if url and lottery_type:
+                try:
+                    # Convert "Lotto" to "Lottery" for consistency
+                    if "Lotto" in lottery_type and "Lottery" not in lottery_type:
+                        lottery_type = lottery_type.replace("Lotto", "Lottery")
+                    
+                    new_config = ScheduleConfig(
+                        url=url,
+                        lottery_type=lottery_type,
+                        frequency=frequency,
+                        hour=hour,
+                        minute=minute,
+                        active=active
+                    )
+                    db.session.add(new_config)
+                    db.session.commit()
+                    flash('New URL schedule added successfully.', 'success')
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f'Error adding URL: {str(e)}', 'danger')
+            else:
+                flash('URL and lottery type are required.', 'danger')
+                
+            return redirect(url_for('settings'))
+        else:
+            # This would normally handle other form submissions
+            flash('Settings updated successfully.', 'success')
+            return redirect(url_for('settings'))
     
+    # Show notification about missing URLs
+    if missing_results_urls or missing_historical_urls:
+        total_missing = len(missing_results_urls) + len(missing_historical_urls)
+        flash(f'Found {total_missing} missing URLs that can be added to the schedule.', 'warning')
+    
+    # Pass all available data to the template
     return render_template('settings.html', 
                           schedule_configs=schedule_configs,
+                          missing_results_urls=missing_results_urls,
+                          missing_historical_urls=missing_historical_urls,
                           title="System Settings | Lottery Data Management",
                           meta_description=meta_description,
                           breadcrumbs=breadcrumbs)
+
+def detect_missing_urls():
+    """
+    Enhanced function to detect missing URLs in the schedule.
+    This function handles both results URLs and historical data URLs.
+    
+    Returns:
+        tuple: (missing_results_urls, missing_historical_urls, schedule_configs)
+    """
+    # Import data_aggregator to normalize lottery types consistently
+    global data_aggregator
+    if data_aggregator is None:
+        import data_aggregator as da
+        data_aggregator = da
+    
+    # Get both current results URLs and historical data URLs from config
+    from config import Config
+    results_urls = Config.RESULTS_URLS.copy()  # Make a copy to avoid modifying the original
+    
+    # Normalize the lottery type names in results URLs to match our consistent format
+    for url_config in results_urls:
+        lottery_type = url_config['lottery_type']
+        url_config['lottery_type'] = data_aggregator.normalize_lottery_type(lottery_type)
+    
+    # Create consistent historical URLs entries
+    historical_urls = []
+    for url in Config.DEFAULT_LOTTERY_URLS:
+        # Extract the base lottery type from the URL
+        base_type = url.split('/')[-1].replace('-history', '').replace('-', ' ').title()
+        # Normalize it according to our standards
+        normalized_type = data_aggregator.normalize_lottery_type(base_type) + ' History'
+        historical_urls.append({
+            'url': url,
+            'lottery_type': normalized_type
+        })
+    
+    # Get existing schedule configurations
+    schedule_configs = ScheduleConfig.query.all()
+    
+    # Check for missing URLs that should be added (both results and historical)
+    existing_urls = {config.url for config in schedule_configs}
+    
+    missing_results_urls = [
+        url_config for url_config in results_urls
+        if url_config['url'] not in existing_urls
+    ]
+    
+    missing_historical_urls = [
+        url_config for url_config in historical_urls
+        if url_config['url'] not in existing_urls
+    ]
+    
+    return missing_results_urls, missing_historical_urls, schedule_configs
+
+def add_missing_urls_to_schedule(missing_results_urls, missing_historical_urls):
+    """
+    Add missing URLs to the schedule.
+    
+    Args:
+        missing_results_urls (list): List of dictionaries with URLs for results pages
+        missing_historical_urls (list): List of dictionaries with URLs for historical data
+        
+    Returns:
+        int: Number of URLs added to the schedule
+    """
+    if not missing_results_urls and not missing_historical_urls:
+        app.logger.info("No missing URLs found to add.")
+        return 0
+    
+    # Add all missing URLs to the schedule
+    added_count = 0
+    for url_config in missing_results_urls + missing_historical_urls:
+        # Create a new schedule config with default time
+        # (1:00 AM for results, 2:00 AM for historical data)
+        is_historical = 'History' in url_config['lottery_type']
+        hour = 2 if is_historical else 1
+        
+        try:
+            new_config = ScheduleConfig(
+                url=url_config['url'],
+                lottery_type=url_config['lottery_type'],
+                frequency='daily',
+                hour=hour,
+                minute=0,
+                active=True
+            )
+            db.session.add(new_config)
+            added_count += 1
+            app.logger.info(f"Added URL to schedule: {url_config['lottery_type']} - {url_config['url']}")
+        except Exception as e:
+            app.logger.error(f"Error adding URL {url_config['url']}: {e}")
+    
+    try:
+        if added_count > 0:
+            db.session.commit()
+            app.logger.info(f"Successfully added {added_count} URLs to the schedule.")
+        else:
+            app.logger.warning("No URLs were added to the schedule.")
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error committing changes: {e}")
+        return 0
+    
+    return added_count
 
 @app.route('/export-screenshots')
 @login_required
