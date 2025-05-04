@@ -1,112 +1,427 @@
 /**
  * Clean File Uploader
- * A completely rebuilt file upload system that handles all aspects of file selection,
- * preview, and submission without any conflicts or dependencies on other scripts.
+ * A standalone, dependency-free file uploader with robust error handling
+ * and progress tracking for the Snap Lotto Ticket Scanner
  */
 
 (function() {
     'use strict';
-
+    
     // Configuration
-    const CONFIG = {
+    const config = {
+        acceptedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic'],
+        maxFileSizeMB: 10,
+        endpoint: '/scan-ticket',
         debug: true,
-        formId: 'ticket-form',
-        fileInputId: 'ticket-image',
-        fileSelectBtnId: 'file-select-btn',
-        scanBtnId: 'scan-button',
-        previewContainerId: 'preview-container',
-        previewImageId: 'ticket-preview',
-        removeImageBtnId: 'remove-image',
-        dropAreaId: 'drop-area',
-        loadingIndicatorId: 'scanner-loading',
-        resultContainerId: 'results-container'
+        processingTimeout: 60000, // 60 seconds
+        previewWidth: 300,
+        previewHeight: 200
     };
-
-    // State object to track current uploader state
+    
+    // DOM elements - will be populated in init()
+    let elements = {
+        form: null,
+        fileInput: null, 
+        fileSelectBtn: null,
+        dropArea: null,
+        previewContainer: null,
+        previewImage: null,
+        removeBtn: null,
+        scanBtn: null,
+        progressContainer: null,
+        progressBar: null,
+        errorContainer: null
+    };
+    
+    // State management
     let state = {
-        hasFile: false,
-        fileObject: null,
-        isUploading: false,
-        isPreviewVisible: false
+        fileSelected: false,
+        uploading: false,
+        processing: false,
+        currentFile: null,
+        uploadProgress: 0,
+        csrfToken: null,
+        formSubmitHandler: null
     };
-
-    // Element references
-    let elements = {};
-
-    // Debug logging helper
+    
+    // Utility functions
     function log(message, data) {
-        if (CONFIG.debug) {
-            const timestamp = new Date().toISOString();
-            if (data !== undefined) {
-                console.log(`[${timestamp}] CleanUploader: ${message}`, data);
+        if (config.debug) {
+            if (data) {
+                console.log(`[CleanFileUploader] ${message}`, data);
             } else {
-                console.log(`[${timestamp}] CleanUploader: ${message}`);
+                console.log(`[CleanFileUploader] ${message}`);
             }
         }
     }
-
-    // Error logging - always show errors
-    function error(message, err) {
-        console.error(`CleanUploader ERROR: ${message}`, err);
+    
+    function error(message, data) {
+        if (data) {
+            console.error(`[CleanFileUploader] ERROR: ${message}`, data);
+        } else {
+            console.error(`[CleanFileUploader] ERROR: ${message}`);
+        }
     }
-
-    // Initialize when the DOM is ready
-    document.addEventListener('DOMContentLoaded', initialize);
-
-    // Main initialization function
-    function initialize() {
-        log('Initializing Clean File Uploader');
+    
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' bytes';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+    
+    // Event handlers and core functionality
+    function handleFileSelect(e) {
+        const files = e.target?.files || e.dataTransfer?.files;
         
-        // Cache all required DOM elements
-        cacheElements();
+        if (!files || files.length === 0) {
+            log('No files selected');
+            return;
+        }
         
-        // Set up all event handlers
-        setupEventHandlers();
-
-        // Initialize controls state
-        updateControlState();
+        const file = files[0];
+        log('File selected:', file.name);
         
-        // Make the uploader functions available globally
-        window.CleanFileUploader = {
-            selectFile: () => {
-                if (elements.fileInput) elements.fileInput.click();
-            },
-            removeFile: removeFile,
-            submitForm: submitForm,
-            getState: () => ({...state}),
-            // For integration with ad system
-            beginImageProcessing: function() {
-                // This can be called by the ad system when it's ready to submit the form
-                if (state.hasFile && !state.isUploading) {
-                    submitForm();
-                    return true;
+        // Validate file type
+        if (!config.acceptedTypes.includes(file.type) && 
+            !(file.name.toLowerCase().endsWith('.heic') && config.acceptedTypes.includes('image/heic'))) {
+            showError(`Invalid file type. Please select one of the following: ${config.acceptedTypes.map(t => t.replace('image/', '')).join(', ')}`);
+            clearFileInput();
+            return;
+        }
+        
+        // Validate file size
+        if (file.size > config.maxFileSizeMB * 1024 * 1024) {
+            showError(`File is too large. Maximum file size is ${config.maxFileSizeMB}MB.`);
+            clearFileInput();
+            return;
+        }
+        
+        // Update state and UI
+        state.fileSelected = true;
+        state.currentFile = file;
+        hideError();
+        
+        // Generate and show preview
+        generatePreview(file);
+        
+        // Update UI states
+        if (elements.dropArea) elements.dropArea.style.display = 'none';
+        if (elements.previewContainer) elements.previewContainer.classList.remove('d-none');
+        if (elements.scanBtn) elements.scanBtn.disabled = false;
+        
+        log('File selected and validated');
+    }
+    
+    function generatePreview(file) {
+        if (!elements.previewImage) return;
+        
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            elements.previewImage.src = e.target.result;
+            log('Preview generated');
+        };
+        
+        reader.onerror = function() {
+            error('Failed to generate preview');
+            elements.previewImage.src = ''; // Clear preview on error
+        };
+        
+        reader.readAsDataURL(file);
+    }
+    
+    function removeFile() {
+        log('Removing file');
+        
+        // Reset state
+        state.fileSelected = false;
+        state.currentFile = null;
+        
+        // Reset UI
+        clearFileInput();
+        if (elements.previewImage) elements.previewImage.src = '';
+        if (elements.previewContainer) elements.previewContainer.classList.add('d-none');
+        if (elements.dropArea) elements.dropArea.style.display = 'block';
+        if (elements.scanBtn) elements.scanBtn.disabled = true;
+        if (elements.progressContainer) elements.progressContainer.classList.add('d-none');
+        if (elements.progressBar) elements.progressBar.style.width = '0%';
+        
+        hideError();
+    }
+    
+    function clearFileInput() {
+        if (elements.fileInput) {
+            try {
+                elements.fileInput.value = '';
+                
+                // For IE/Edge (if needed)
+                if (elements.fileInput.value) {
+                    // Create a form and reset it to clear the input
+                    const form = document.createElement('form');
+                    form.appendChild(elements.fileInput.cloneNode(true));
+                    form.reset();
+                    elements.fileInput.parentNode.replaceChild(form.firstChild, elements.fileInput);
+                    elements.fileInput = form.firstChild;
                 }
-                return false;
+            } catch (e) {
+                error('Failed to clear file input', e);
+            }
+        }
+    }
+    
+    function showError(message) {
+        log('Showing error:', message);
+        
+        if (elements.errorContainer) {
+            elements.errorContainer.textContent = message;
+            elements.errorContainer.classList.remove('d-none');
+        } else {
+            // Fallback to alert if error container doesn't exist
+            alert(message);
+        }
+    }
+    
+    function hideError() {
+        if (elements.errorContainer) {
+            elements.errorContainer.textContent = '';
+            elements.errorContainer.classList.add('d-none');
+        }
+    }
+    
+    function updateProgressBar(percent) {
+        state.uploadProgress = percent;
+        
+        if (elements.progressBar) {
+            elements.progressBar.style.width = `${percent}%`;
+            elements.progressBar.setAttribute('aria-valuenow', percent);
+        }
+        
+        log(`Upload progress: ${percent}%`);
+    }
+    
+    function uploadFile() {
+        if (!state.fileSelected || !state.currentFile) {
+            showError('Please select a file first');
+            return false;
+        }
+        
+        if (state.uploading) {
+            log('Upload already in progress');
+            return false;
+        }
+        
+        log('Starting file upload');
+        state.uploading = true;
+        
+        // Show progress
+        if (elements.progressContainer) {
+            elements.progressContainer.classList.remove('d-none');
+        }
+        updateProgressBar(0);
+        
+        // Create FormData
+        const formData = new FormData();
+        formData.append('ticket_image', state.currentFile);
+        
+        // Add CSRF token if available
+        if (state.csrfToken) {
+            formData.append('csrf_token', state.csrfToken);
+        }
+        
+        // Add other form fields if present
+        if (elements.form) {
+            const formElements = elements.form.elements;
+            for (let i = 0; i < formElements.length; i++) {
+                const element = formElements[i];
+                if (element.name && element.name !== 'ticket_image' && element.name !== 'csrf_token') {
+                    formData.append(element.name, element.value);
+                }
+            }
+        }
+        
+        // Send the AJAX request
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', config.endpoint, true);
+        
+        // Set up event handlers
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                updateProgressBar(percent);
             }
         };
         
-        log('Clean File Uploader initialized successfully');
-    }
-
-    // Cache references to all required DOM elements
-    function cacheElements() {
-        elements.form = document.getElementById(CONFIG.formId);
-        elements.fileInput = document.getElementById(CONFIG.fileInputId);
-        elements.fileSelectBtn = document.getElementById(CONFIG.fileSelectBtnId);
-        elements.scanBtn = document.getElementById(CONFIG.scanBtnId);
-        elements.previewContainer = document.getElementById(CONFIG.previewContainerId);
-        elements.previewImage = document.getElementById(CONFIG.previewImageId);
-        elements.removeImageBtn = document.getElementById(CONFIG.removeImageBtnId);
-        elements.dropArea = document.getElementById(CONFIG.dropAreaId);
-        elements.loadingIndicator = document.getElementById(CONFIG.loadingIndicatorId);
-        elements.resultContainer = document.getElementById(CONFIG.resultContainerId);
+        xhr.onload = function() {
+            state.uploading = false;
+            
+            let response;
+            try {
+                response = JSON.parse(xhr.responseText);
+            } catch (e) {
+                error('Failed to parse response', e);
+                response = { 
+                    error: 'Failed to process response from server',
+                    details: xhr.responseText.substring(0, 100) + '...' 
+                };
+            }
+            
+            if (xhr.status >= 200 && xhr.status < 300) {
+                log('Upload successful', response);
+                
+                // Check if we need to show ads first
+                if (window.DualAdManager && typeof window.DualAdManager.showResultsWithAd === 'function') {
+                    log('Showing ads before results');
+                    window.DualAdManager.showResultsWithAd(response);
+                } else {
+                    // Handle the response directly
+                    handleUploadSuccess(response);
+                }
+            } else {
+                log('Upload failed', response);
+                handleUploadError(response.error || 'Failed to upload file');
+            }
+        };
         
-        log('Elements cached:', Object.keys(elements).filter(k => elements[k] !== null));
+        xhr.onerror = function() {
+            state.uploading = false;
+            error('Network error during upload');
+            handleUploadError('Network error while uploading. Please check your connection and try again.');
+        };
+        
+        xhr.ontimeout = function() {
+            state.uploading = false;
+            error('Upload timed out');
+            handleUploadError('The upload took too long and timed out. Please try again with a smaller file or better connection.');
+        };
+        
+        xhr.send(formData);
+        return true;
     }
-
-    // Set up all event handlers
-    function setupEventHandlers() {
-        // File select button - trigger file input click
+    
+    function handleUploadSuccess(response) {
+        log('Processing successful upload response', response);
+        
+        // Reset upload UI
+        if (elements.progressContainer) {
+            elements.progressContainer.classList.add('d-none');
+        }
+        
+        // Here we would normally handle displaying the results
+        // but this depends on the application's needs
+        
+        // If there's a global result handler, call it
+        if (window.handleTicketScanResults && typeof window.handleTicketScanResults === 'function') {
+            window.handleTicketScanResults(response);
+        }
+        
+        // If we have a results container in our config, update it
+        const resultsContainer = document.getElementById('results-container');
+        if (resultsContainer) {
+            // Render results - this would be customized based on your application's needs
+            renderResults(resultsContainer, response);
+        }
+    }
+    
+    function handleUploadError(errorMessage) {
+        error('Upload error:', errorMessage);
+        
+        // Reset UI
+        if (elements.progressContainer) {
+            elements.progressContainer.classList.add('d-none');
+        }
+        updateProgressBar(0);
+        
+        // Show error
+        showError(errorMessage);
+    }
+    
+    function renderResults(container, data) {
+        // This function would be customized based on your application's needs
+        if (!container) return;
+        
+        if (data.success) {
+            container.innerHTML = '<div class="alert alert-success">Upload successful! Results will be displayed soon.</div>';
+        } else {
+            container.innerHTML = `<div class="alert alert-danger">Error: ${data.error || 'Unknown error'}</div>`;
+        }
+    }
+    
+    // Main initialization function
+    function initialize() {
+        log('Initializing CleanFileUploader');
+        
+        // Cache DOM elements
+        elements.form = document.getElementById('ticket-form');
+        elements.fileInput = document.getElementById('ticket-image');
+        elements.fileSelectBtn = document.getElementById('file-select-btn');
+        elements.dropArea = document.getElementById('drop-area');
+        elements.previewContainer = document.getElementById('preview-container');
+        elements.previewImage = document.getElementById('ticket-preview');
+        elements.removeBtn = document.getElementById('remove-image');
+        elements.scanBtn = document.getElementById('scan-button');
+        
+        // Progress elements - create them if they don't exist
+        elements.progressContainer = document.getElementById('progress-container');
+        if (!elements.progressContainer && elements.form) {
+            elements.progressContainer = document.createElement('div');
+            elements.progressContainer.id = 'progress-container';
+            elements.progressContainer.className = 'd-none mt-3';
+            elements.progressContainer.innerHTML = `
+                <label class="form-label small">Upload Progress</label>
+                <div class="progress" style="height: 10px;">
+                    <div id="upload-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                </div>
+            `;
+            elements.form.appendChild(elements.progressContainer);
+        }
+        elements.progressBar = document.getElementById('upload-progress-bar');
+        
+        // Error container - create it if it doesn't exist
+        elements.errorContainer = document.getElementById('error-container');
+        if (!elements.errorContainer && elements.form) {
+            elements.errorContainer = document.createElement('div');
+            elements.errorContainer.id = 'error-container';
+            elements.errorContainer.className = 'alert alert-danger d-none mt-3';
+            elements.form.appendChild(elements.errorContainer);
+        }
+        
+        // Get CSRF token if available
+        const csrfInput = document.querySelector('input[name="csrf_token"]');
+        if (csrfInput) {
+            state.csrfToken = csrfInput.value;
+        }
+        
+        // Check for required elements
+        if (!elements.fileInput || !elements.form) {
+            error('Required elements not found. Make sure you have a form with id "ticket-form" and a file input with id "ticket-image".');
+            return;
+        }
+        
+        // Set up event listeners
+        setupEventListeners();
+        
+        // Initialize UI state
+        if (elements.scanBtn) {
+            elements.scanBtn.disabled = true;
+        }
+        
+        log('CleanFileUploader initialized successfully');
+    }
+    
+    function setupEventListeners() {
+        // File input change
+        if (elements.fileInput) {
+            // Clone to remove any existing listeners
+            const newInput = elements.fileInput.cloneNode(true);
+            elements.fileInput.parentNode.replaceChild(newInput, elements.fileInput);
+            elements.fileInput = newInput;
+            
+            // Add change listener
+            elements.fileInput.addEventListener('change', handleFileSelect);
+        }
+        
+        // File select button
         if (elements.fileSelectBtn) {
             elements.fileSelectBtn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -114,53 +429,9 @@
                     elements.fileInput.click();
                 }
             });
-            log('File select button handler attached');
         }
         
-        // File input change - process selected file
-        if (elements.fileInput) {
-            elements.fileInput.addEventListener('change', handleFileSelected);
-            log('File input change handler attached');
-        }
-        
-        // Remove image button
-        if (elements.removeImageBtn) {
-            elements.removeImageBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                removeFile();
-            });
-            log('Remove image button handler attached');
-        }
-        
-        // Form submission
-        if (elements.form) {
-            elements.form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                if (state.hasFile) {
-                    submitForm();
-                } else {
-                    alert('Please select an image first.');
-                }
-                return false;
-            });
-            log('Form submit handler attached');
-        }
-        
-        // Scan button
-        if (elements.scanBtn) {
-            elements.scanBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (state.hasFile) {
-                    submitForm();
-                } else {
-                    alert('Please select an image first.');
-                }
-                return false;
-            });
-            log('Scan button handler attached');
-        }
-        
-        // File drop handling
+        // Drop area
         if (elements.dropArea) {
             elements.dropArea.addEventListener('dragover', function(e) {
                 e.preventDefault();
@@ -179,259 +450,74 @@
                 e.stopPropagation();
                 this.classList.remove('highlight');
                 
-                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    handleFile(e.dataTransfer.files[0]);
-                }
+                handleFileSelect(e);
             });
             
-            log('Drop area handlers attached');
-        }
-    }
-
-    // Handle selected file from file input
-    function handleFileSelected(e) {
-        if (e.target.files && e.target.files.length > 0) {
-            log('File selected via input:', e.target.files[0].name);
-            handleFile(e.target.files[0]);
-        }
-    }
-
-    // Process a file (from any source)
-    function handleFile(file) {
-        // Validate the file
-        if (!validateFile(file)) {
-            return;
+            // Also make drop area clickable
+            elements.dropArea.addEventListener('click', function(e) {
+                if (e.target !== elements.fileSelectBtn && !elements.fileSelectBtn.contains(e.target)) {
+                    if (elements.fileInput) {
+                        elements.fileInput.click();
+                    }
+                }
+            });
         }
         
-        // Store the file in state
-        state.fileObject = file;
-        state.hasFile = true;
-        
-        // Create preview
-        createPreview(file);
-        
-        // Update UI elements
-        updateControlState();
-        
-        log('File processed successfully:', file.name);
-    }
-
-    // Validate file type and size
-    function validateFile(file) {
-        // Check if it's an image file
-        if (!file.type.startsWith('image/')) {
-            error('Invalid file type:', file.type);
-            alert('Please select an image file (JPEG, PNG, etc).');
-            return false;
+        // Remove button
+        if (elements.removeBtn) {
+            elements.removeBtn.addEventListener('click', removeFile);
         }
         
-        // Check file size (max 10MB)
-        const maxSize = 10 * 1024 * 1024; // 10MB
-        if (file.size > maxSize) {
-            error('File too large:', file.size);
-            alert('File is too large. Maximum size is 10MB.');
-            return false;
-        }
-        
-        return true;
-    }
-
-    // Create image preview
-    function createPreview(file) {
-        if (!elements.previewImage) {
-            error('Preview image element not found');
-            return;
-        }
-        
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-            elements.previewImage.src = e.target.result;
+        // Form submission
+        if (elements.form) {
+            // Store original submit handler if it exists
+            state.formSubmitHandler = elements.form.onsubmit;
             
-            // Show preview container
-            if (elements.previewContainer) {
-                elements.previewContainer.classList.remove('d-none');
-                state.isPreviewVisible = true;
-            }
-            
-            // Hide drop area
-            if (elements.dropArea) {
-                elements.dropArea.style.display = 'none';
-            }
-            
-            log('Image preview created');
-        };
-        
-        reader.onerror = function() {
-            error('Error reading file for preview');
-            alert('Error creating preview. Please try another image.');
-        };
-        
-        reader.readAsDataURL(file);
-    }
-
-    // Remove selected file
-    function removeFile() {
-        // Clear file input
-        if (elements.fileInput) {
-            elements.fileInput.value = '';
+            // Override submit event
+            elements.form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (!state.fileSelected) {
+                    showError('Please select a file first.');
+                    return false;
+                }
+                
+                uploadFile();
+                return false;
+            });
         }
         
-        // Hide preview
-        if (elements.previewContainer) {
-            elements.previewContainer.classList.add('d-none');
-            state.isPreviewVisible = false;
-        }
-        
-        // Show drop area
-        if (elements.dropArea) {
-            elements.dropArea.style.display = 'block';
-        }
-        
-        // Reset state
-        state.fileObject = null;
-        state.hasFile = false;
-        
-        // Update UI
-        updateControlState();
-        
-        log('File removed');
-    }
-
-    // Update UI control states based on current state
-    function updateControlState() {
-        // Enable/disable scan button
+        // Scan button
         if (elements.scanBtn) {
-            elements.scanBtn.disabled = !state.hasFile;
-        }
-        
-        // Show/hide remove button
-        if (elements.removeImageBtn) {
-            elements.removeImageBtn.style.display = state.hasFile ? 'inline-block' : 'none';
-        }
-    }
-
-    // Submit the form with the file
-    function submitForm() {
-        if (!state.hasFile || !state.fileObject) {
-            error('Cannot submit form - no file selected');
-            alert('Please select an image first.');
-            return;
-        }
-        
-        // Prevent multiple submissions
-        if (state.isUploading) {
-            log('Upload already in progress, ignoring duplicate submission');
-            return;
-        }
-        
-        log('Submitting form with file:', state.fileObject.name);
-        
-        // Update state
-        state.isUploading = true;
-        
-        // Show loading indicator
-        if (elements.loadingIndicator) {
-            elements.loadingIndicator.style.display = 'block';
-        }
-        
-        // Create FormData from form
-        const formData = new FormData(elements.form);
-        
-        // Ensure the file is correctly added to FormData
-        // First remove any existing file entry
-        formData.delete(CONFIG.fileInputId);
-        // Then add the file with the correct field name
-        formData.append('ticket_image', state.fileObject);
-        
-        // Log form data for debugging
-        if (CONFIG.debug) {
-            log('Form data entries:');
-            for (const pair of formData.entries()) {
-                log(`- ${pair[0]}: ${pair[1] instanceof File ? pair[1].name : pair[1]}`);
-            }
-        }
-        
-        // Get CSRF token if available
-        const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
-        
-        // Send the request
-        fetch(elements.form.action || '/scan-ticket', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': csrfToken || ''
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            log('Form submission successful, response:', data);
-            
-            // Store results data for later use
-            window.lastResultsData = data;
-            
-            // Check if we have DualAdManager for handling the ads
-            if (window.DualAdManager) {
-                log('Using DualAdManager to display results with ads');
+            elements.scanBtn.addEventListener('click', function(e) {
+                e.preventDefault();
                 
-                // Start with the public service ad
-                window.DualAdManager.showPublicServiceAd();
+                if (!state.fileSelected) {
+                    showError('Please select a file first.');
+                    return false;
+                }
                 
-                // Schedule the monetization ad after the public service ad is done
-                // (DualAdManager handles this timing internally)
-            } else {
-                // Handle results display directly if no ad manager
-                displayResults(data);
-            }
-        })
-        .catch(err => {
-            error('Error submitting form:', err.message);
-            
-            // Hide loading indicator
-            if (elements.loadingIndicator) {
-                elements.loadingIndicator.style.display = 'none';
-            }
-            
-            // Reset state
-            state.isUploading = false;
-            
-            // Show error message
-            alert(`Error uploading image: ${err.message}`);
-        });
-    }
-
-    // Display results directly (when not using ad manager)
-    function displayResults(data) {
-        // Hide loading indicator
-        if (elements.loadingIndicator) {
-            elements.loadingIndicator.style.display = 'none';
+                uploadFile();
+            });
         }
-        
-        // Reset upload state
-        state.isUploading = false;
-        
-        // Display results in results container
-        if (elements.resultContainer) {
-            // This would typically be more complex with template rendering
-            elements.resultContainer.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
-            elements.resultContainer.style.display = 'block';
-        }
-        
-        log('Results displayed');
     }
-
-    // This function can be called by DualAdManager when view results is clicked
-    window.showTicketResults = function() {
-        if (window.lastResultsData) {
-            displayResults(window.lastResultsData);
-        } else {
-            error('No results data available to display');
+    
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', function() {
+        // Slight delay to ensure other scripts have loaded
+        setTimeout(initialize, 100);
+    });
+    
+    // Expose public API
+    window.CleanFileUploader = {
+        init: initialize,
+        upload: uploadFile,
+        removeFile: removeFile,
+        selectFile: function() {
+            if (elements.fileInput) elements.fileInput.click();
+        },
+        getState: function() {
+            return {...state};
         }
     };
 })();
