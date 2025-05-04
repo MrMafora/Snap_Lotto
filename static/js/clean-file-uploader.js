@@ -188,16 +188,7 @@
         }
     }
     
-    function updateProgressBar(percent) {
-        state.uploadProgress = percent;
-        
-        if (elements.progressBar) {
-            elements.progressBar.style.width = `${percent}%`;
-            elements.progressBar.setAttribute('aria-valuenow', percent);
-        }
-        
-        log(`Upload progress: ${percent}%`);
-    }
+    // Progress bar functionality has been completely removed as it was not part of the original implementation
     
     function uploadFile() {
         if (!state.fileSelected || !state.currentFile) {
@@ -213,11 +204,8 @@
         log('Starting file upload');
         state.uploading = true;
         
-        // Show progress
-        if (elements.progressContainer) {
-            elements.progressContainer.classList.remove('d-none');
-        }
-        updateProgressBar(0);
+        // Progress tracking - keep track of progress percentage in state without showing progress bar
+        state.uploadProgress = 0;
         
         // Create FormData
         const formData = new FormData();
@@ -247,7 +235,9 @@
         xhr.upload.onprogress = function(e) {
             if (e.lengthComputable) {
                 const percent = Math.round((e.loaded / e.total) * 100);
-                updateProgressBar(percent);
+                // Track progress in state without showing progress bar
+                state.uploadProgress = percent;
+                log(`Upload progress: ${percent}%`);
             }
         };
         
@@ -301,35 +291,48 @@
     function handleUploadSuccess(response) {
         log('Processing successful upload response', response);
         
-        // Reset upload UI
-        if (elements.progressContainer) {
-            elements.progressContainer.classList.add('d-none');
-        }
-        
-        // Here we would normally handle displaying the results
-        // but this depends on the application's needs
-        
-        // If there's a global result handler, call it
-        if (window.handleTicketScanResults && typeof window.handleTicketScanResults === 'function') {
-            window.handleTicketScanResults(response);
-        }
-        
-        // If we have a results container in our config, update it
-        const resultsContainer = document.getElementById('results-container');
-        if (resultsContainer) {
-            // Render results - this would be customized based on your application's needs
-            renderResults(resultsContainer, response);
+        // Use the enhanced dual ad manager with results if available
+        if (window.DualAdManager && typeof window.DualAdManager.showResultsWithAd === 'function') {
+            log('Starting integrated ad sequence with results storage');
+            window.DualAdManager.showResultsWithAd(response);
+        } 
+        // Fallback to old ad system if enhanced version is not available
+        else if (window.DualAdManager && typeof window.DualAdManager.showPublicServiceAd === 'function') {
+            log('Starting legacy ad sequence with Public Service Announcement');
+            window.DualAdManager.showPublicServiceAd();
+            
+            // Call the global result handler if it exists
+            if (window.handleTicketScanResults && typeof window.handleTicketScanResults === 'function') {
+                window.handleTicketScanResults(response);
+            }
+            
+            // If we have a results container in our config, update it
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                // Render results - this would be customized based on your application's needs
+                renderResults(resultsContainer, response);
+            }
+        } 
+        // No ad system, directly show results
+        else {
+            log('No ad system found, directly showing results');
+            
+            // Call the global result handler if it exists
+            if (window.handleTicketScanResults && typeof window.handleTicketScanResults === 'function') {
+                window.handleTicketScanResults(response);
+            }
+            
+            // If we have a results container in our config, update it
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                // Render results - this would be customized based on your application's needs
+                renderResults(resultsContainer, response);
+            }
         }
     }
     
     function handleUploadError(errorMessage) {
         error('Upload error:', errorMessage);
-        
-        // Reset UI
-        if (elements.progressContainer) {
-            elements.progressContainer.classList.add('d-none');
-        }
-        updateProgressBar(0);
         
         // Show error
         showError(errorMessage);
@@ -360,22 +363,9 @@
         elements.removeBtn = document.getElementById('remove-image');
         elements.scanBtn = document.getElementById('scan-button');
         
-        // Progress elements - create them if they don't exist
-        elements.progressContainer = document.getElementById('progress-container');
-        if (!elements.progressContainer && elements.form) {
-            elements.progressContainer = document.createElement('div');
-            elements.progressContainer.id = 'progress-container';
-            elements.progressContainer.className = 'd-none mt-3';
-            elements.progressContainer.innerHTML = `
-                <label class="form-label small">Upload Progress</label>
-                <div class="progress" style="height: 10px;">
-                    <div id="upload-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
-                         role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
-                </div>
-            `;
-            elements.form.appendChild(elements.progressContainer);
-        }
-        elements.progressBar = document.getElementById('upload-progress-bar');
+        // Progress bar code removed as it was not part of original implementation
+        elements.progressContainer = null;
+        elements.progressBar = null;
         
         // Error container - create it if it doesn't exist
         elements.errorContainer = document.getElementById('error-container');

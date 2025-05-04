@@ -35,7 +35,10 @@
         
         // Timers
         publicServiceCountdownTimer: null,
-        monetizationCountdownTimer: null
+        monetizationCountdownTimer: null,
+        
+        // Store upload results from file uploader
+        uploadResults: null
     };
 
     // DOM Elements (will be initialized when DOM is ready)
@@ -97,7 +100,8 @@
             showPublicServiceAd: showPublicServiceAd,
             showMonetizationAd: showMonetizationAd,
             hideAllAds: hideAllAds,
-            resetAdState: resetAdState
+            resetAdState: resetAdState,
+            showResultsWithAd: showResultsWithAd
         };
         
         log('Dual advertisement manager initialized');
@@ -178,6 +182,30 @@
                 elements.resultsContainer.classList.remove('d-none');
                 elements.resultsContainer.style.display = 'block';
                 log('Results container displayed');
+                
+                // Display the stored upload results if available
+                if (state.uploadResults) {
+                    log('Displaying stored upload results');
+                    
+                    // Handle the upload results
+                    if (window.handleTicketScanResults && typeof window.handleTicketScanResults === 'function') {
+                        window.handleTicketScanResults(state.uploadResults);
+                    }
+                    
+                    // Optional: directly update the results container
+                    if (state.uploadResults.success) {
+                        elements.resultsContainer.innerHTML = '<div class="alert alert-success">Upload successful! Results displayed below.</div>';
+                        
+                        // Add results content if available
+                        if (state.uploadResults.html) {
+                            elements.resultsContainer.innerHTML += state.uploadResults.html;
+                        }
+                    } else {
+                        elements.resultsContainer.innerHTML = `<div class="alert alert-danger">Error: ${state.uploadResults.error || 'Unknown error'}</div>`;
+                    }
+                } else {
+                    log('No upload results available to display');
+                }
             } else {
                 log('ERROR: Results container not found!');
             }
@@ -303,6 +331,24 @@
         
         // We'll handle the results later when they're available
         // The monetization ad will be visible during the entire processing time
+    }
+    
+    // Function to show ads and then display results
+    // This function is called by the file uploader after successful upload
+    function showResultsWithAd(results) {
+        log('Starting ad sequence before showing results');
+        
+        // Store the results for later use
+        state.uploadResults = results;
+        
+        // Reset ad state
+        resetAdState();
+        
+        // Start with the public service ad
+        showPublicServiceAd();
+        
+        // The second ad will be triggered automatically from completePublicServiceAd()
+        // Results will be shown when user clicks the View Results button after ads
     }
 
     // CRITICAL FIX: Function to kill all timers to prevent ad flashing
@@ -623,6 +669,9 @@
         
         state.viewResultsEnabled = false;
         state.adSequenceComplete = false;
+        
+        // Keep uploadResults in state for use when View Results button is clicked
+        // This allows results to be displayed after the ad sequence completes
         
         // Reset countdown displays
         if (elements.publicServiceCountdown) {
