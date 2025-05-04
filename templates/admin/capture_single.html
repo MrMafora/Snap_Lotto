@@ -1,0 +1,233 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Capture Single URL{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .capture-form {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .capture-form .form-group {
+        margin-bottom: 20px;
+    }
+    .capture-options {
+        margin-top: 10px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .result-panel {
+        margin-top: 30px;
+        padding: 20px;
+        border-radius: 5px;
+    }
+    .success-panel {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+    }
+    .error-panel {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+    }
+    .preview-image {
+        max-width: 100%;
+        height: auto;
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    .preview-html {
+        max-height: 300px;
+        overflow-y: auto;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        font-family: monospace;
+        white-space: pre-wrap;
+    }
+    .loading-spinner {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+    }
+    .loading-spinner .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Capture Single URL</h1>
+    <p class="lead">
+        Use this tool to test capturing a single URL using the specialized National Lottery capture.
+        This is useful for debugging and testing the capture system.
+    </p>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <div class="card capture-form mb-4">
+        <div class="card-body">
+            <form id="captureForm" method="post" action="{{ url_for('admin.capture_single') }}">
+                {{ form.csrf_token }}
+                
+                <div class="form-group mb-3">
+                    <label for="url_type" class="form-label">Select URL</label>
+                    <select class="form-select" id="url_type" name="url_type">
+                        <option value="custom">Enter Custom URL</option>
+                        <option value="configured">Select from Configured URLs</option>
+                    </select>
+                </div>
+                
+                <div id="custom_url_group" class="form-group mb-3">
+                    <label for="url" class="form-label">URL to Capture</label>
+                    <input type="url" class="form-control" id="url" name="url" 
+                           placeholder="https://www.nationallottery.co.za/results/lotto" required>
+                    <div class="form-text">Enter the full URL you want to capture.</div>
+                </div>
+                
+                <div id="configured_url_group" class="form-group mb-3" style="display:none;">
+                    <label for="configured_url" class="form-label">Select Configured URL</label>
+                    <select class="form-select" id="configured_url" name="configured_url">
+                        {% for config in configs %}
+                            <option value="{{ config.id }}">{{ config.lottery_type }} - {{ config.url }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="lottery_type" class="form-label">Lottery Type</label>
+                    <input type="text" class="form-control" id="lottery_type" name="lottery_type" 
+                           placeholder="e.g., Lotto Results" required>
+                    <div class="form-text">Enter the type of lottery (e.g., Lotto, Powerball, Daily Lotto).</div>
+                </div>
+                
+                <div class="capture-options">
+                    <h5>Capture Options</h5>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="save_to_db" name="save_to_db" value="1" checked>
+                        <label class="form-check-label" for="save_to_db">
+                            Save to database
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="use_requests" name="use_requests" value="1">
+                        <label class="form-check-label" for="use_requests">
+                            Use requests method (faster but less reliable)
+                        </label>
+                    </div>
+                    
+                    <div class="form-group mt-3">
+                        <label for="timeout" class="form-label">Timeout (seconds)</label>
+                        <input type="number" class="form-control" id="timeout" name="timeout" 
+                               min="30" max="900" value="300">
+                        <div class="form-text">Maximum time to wait for capture to complete (30-900 seconds).</div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg" id="captureButton">
+                        <i class="fas fa-camera"></i> Capture URL
+                    </button>
+                </div>
+            </form>
+            
+            <div class="loading-spinner" id="loadingSpinner">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Capturing URL, please wait...</p>
+                <p class="text-muted">This may take up to several minutes depending on the website.</p>
+            </div>
+        </div>
+    </div>
+    
+    {% if result %}
+        <div class="result-panel {% if result.success %}success-panel{% else %}error-panel{% endif %}">
+            <h3>Capture Result: {% if result.success %}Success{% else %}Failed{% endif %}</h3>
+            
+            {% if result.success %}
+                <p><strong>HTML Path:</strong> {{ result.html_path }}</p>
+                {% if result.img_path %}
+                    <p><strong>Image Path:</strong> {{ result.img_path }}</p>
+                    <img src="{{ url_for('admin.view_screenshot_file', filename=result.img_path.split('/')[-1]) }}" 
+                         class="preview-image" alt="Screenshot">
+                {% endif %}
+                
+                {% if result.html_content %}
+                    <h4 class="mt-4">HTML Preview (first 1000 characters)</h4>
+                    <pre class="preview-html">{{ result.html_content }}</pre>
+                {% endif %}
+            {% else %}
+                <p class="text-danger">
+                    <strong>Error:</strong> {{ result.error }}
+                </p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlTypeSelect = document.getElementById('url_type');
+        const customUrlGroup = document.getElementById('custom_url_group');
+        const configuredUrlGroup = document.getElementById('configured_url_group');
+        const urlInput = document.getElementById('url');
+        const configuredUrlSelect = document.getElementById('configured_url');
+        const lotteryTypeInput = document.getElementById('lottery_type');
+        const captureForm = document.getElementById('captureForm');
+        const captureButton = document.getElementById('captureButton');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        
+        // Toggle URL input based on selection
+        urlTypeSelect.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                customUrlGroup.style.display = 'block';
+                configuredUrlGroup.style.display = 'none';
+                urlInput.required = true;
+                configuredUrlSelect.required = false;
+            } else {
+                customUrlGroup.style.display = 'none';
+                configuredUrlGroup.style.display = 'block';
+                urlInput.required = false;
+                configuredUrlSelect.required = true;
+                
+                // When a configured URL is selected, update the lottery type
+                const selectedOption = configuredUrlSelect.options[configuredUrlSelect.selectedIndex];
+                const lotteryTypeFromOption = selectedOption.text.split(' - ')[0];
+                lotteryTypeInput.value = lotteryTypeFromOption;
+            }
+        });
+        
+        // Update lottery type when configured URL is changed
+        configuredUrlSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const lotteryTypeFromOption = selectedOption.text.split(' - ')[0];
+            lotteryTypeInput.value = lotteryTypeFromOption;
+        });
+        
+        // Show loading spinner on form submit
+        captureForm.addEventListener('submit', function() {
+            captureButton.disabled = true;
+            loadingSpinner.style.display = 'block';
+        });
+    });
+</script>
+{% endblock %}

@@ -63,6 +63,8 @@ def main():
     parser = argparse.ArgumentParser(description="Capture the next missing URL")
     parser.add_argument('--use-undetected', action='store_true', 
                       help='Use undetected_chromedriver instead of Playwright')
+    parser.add_argument('--use-legacy', action='store_true', 
+                      help='Use legacy capture methods instead of specialized National Lottery capture')
     
     args = parser.parse_args()
     
@@ -81,7 +83,25 @@ def main():
     logger.info(f"Will capture: {lottery_type} from {url}")
     
     try:
-        # Choose the capture method based on the argument - default to Playwright now
+        # Use the specialized National Lottery capture module by default
+        if not args.use_legacy:
+            # Import and use the specialized capture function
+            try:
+                from national_lottery_capture import capture_national_lottery_url
+                logger.info("Using specialized National Lottery capture module")
+                success, html_path, img_path = capture_national_lottery_url(url, lottery_type, save_to_db=True)
+                
+                if success:
+                    logger.info(f"Successfully captured {lottery_type} from {url}")
+                    return 0
+                else:
+                    logger.error(f"Specialized National Lottery capture failed for {lottery_type}")
+                    logger.info("Falling back to legacy methods...")
+            except Exception as e:
+                logger.error(f"Error during specialized capture: {str(e)}")
+                logger.info("Falling back to legacy methods...")
+        
+        # If specialized capture is disabled or failed, use legacy methods
         if args.use_undetected:
             # Use undetected_chromedriver
             from capture_with_undetected import capture_with_undetected_chromedriver

@@ -65,7 +65,7 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ 'active' if request.endpoint == 'admin_screenshots' else '' }}" href="{{ url_for('admin_screenshots') }}">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'admin.view_screenshots' else '' }}" href="{{ url_for('admin.view_screenshots') }}">
                                 <i class="fas fa-images me-2"></i> Screenshots
                             </a>
                         </li>
@@ -170,7 +170,7 @@
                 <a href="{{ url_for('admin') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'admin' else '' }}">
                     <i class="fas fa-tachometer-alt me-2"></i> Dashboard
                 </a>
-                <a href="{{ url_for('admin_screenshots') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'admin_screenshots' else '' }}">
+                <a href="{{ url_for('admin.view_screenshots') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'admin.view_screenshots' else '' }}">
                     <i class="fas fa-images me-2"></i> Screenshots
                 </a>
                 <a href="{{ url_for('import_history') }}" class="list-group-item list-group-item-action {{ 'active' if request.endpoint == 'import_history' else '' }}">
