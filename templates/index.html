@@ -587,13 +587,16 @@ function fetchChartData(lotteryType, timePeriod) {
     // Ensure DOM elements exist before proceeding with data operations
     ensureDomElementsExist();
     
-    // Show loading state for charts
+    console.log("Fetching chart data for:", lotteryType, timePeriod);
+    
+    // Show loading state for all charts including hot/cold section
     document.querySelectorAll('.chart-loading').forEach(indicator => {
         indicator.classList.remove('d-none');
     });
     
-    // Get the bar chart container for showing loading/error states
+    // Get the critical containers for showing loading/error states
     const barChartContainer = document.querySelector('.bar-chart-container');
+    const hotColdContainer = document.querySelector('.hot-cold-container');
     if (barChartContainer) {
         barChartContainer.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
@@ -761,6 +764,9 @@ function extractFrequencyData(data, selectedType) {
 
 // Function to update the Hot & Cold Numbers section with filtered data
 function updateHotColdNumbers(data, frequencyData) {
+    // Ensure DOM elements exist before processing
+    ensureDomElementsExist();
+    
     // Get all chart loading indicators, including the hot/cold section's
     const loadingIndicators = document.querySelectorAll('.chart-loading');
     loadingIndicators.forEach(indicator => {
@@ -769,15 +775,26 @@ function updateHotColdNumbers(data, frequencyData) {
     
     console.log("Updating hot/cold numbers with shared data:", frequencyData);
     
-    // Get the hot numbers container, with fallback
+    // More robust selection for hot/cold containers - first try exact ID match, 
+    // then try direct class selection, then try any container that might be appropriate
     const hotNumbersContainer = document.getElementById('hotNumbersContainer') || 
-                             document.querySelector('.hot-numbers .d-flex');
-    // Get the cold numbers container, with fallback
+                             document.querySelector('.hot-numbers .d-flex') ||
+                             document.querySelector('.hot-numbers-section .number-list');
+    
     const coldNumbersContainer = document.getElementById('coldNumbersContainer') ||
-                              document.querySelector('.cold-numbers .d-flex');
-    // Get the absent numbers container, with fallback  
+                              document.querySelector('.cold-numbers .d-flex') ||
+                              document.querySelector('.cold-numbers-section .number-list');
+    
     const absentNumbersContainer = document.getElementById('absentNumbersContainer') ||
-                                document.querySelector('.absent-numbers .d-flex');
+                                document.querySelector('.absent-numbers .d-flex') ||
+                                document.querySelector('.absent-numbers-section .number-list');
+    
+    // Log which containers were found to help debugging
+    console.log("Container elements found:", {
+        hot: !!hotNumbersContainer,
+        cold: !!coldNumbersContainer,
+        absent: !!absentNumbersContainer
+    });
     
     // If we have no data from the shared frequency data, show error message
     if (!frequencyData || !frequencyData.data || !frequencyData.lotteryType) {
@@ -1154,14 +1171,21 @@ function updateFrequencyChart(data, frequencyData) {
     chartWrapper.appendChild(topBox);
 }
 
-// Function to update the Hot & Cold Numbers chart
+// Function to update the Division Chart (Note: this is NOT the Hot & Cold section - that's handled by updateHotColdNumbers)
 function updateDivisionChart(data, frequencyData) {
     // Ensure DOM elements exist before processing division chart data
     ensureDomElementsExist();
     
-    // Get the temperature chart container
-    const tempChartContainer = document.querySelector('.temperature-chart-container');
-    if (!tempChartContainer) return;
+    // Try to find the container to place the division chart
+    // IMPORTANT: This is NOT related to the hot-cold-container which is the static HTML section
+    const tempChartContainer = document.querySelector('.division-chart-container') || 
+                              document.querySelector('.temperature-chart-container');
+    
+    // If we can't find either container, log error and return
+    if (!tempChartContainer) {
+        console.error("Division chart container not found - skipping division chart update");
+        return;
+    }
     
     console.log("Updating division chart with shared data:", frequencyData);
     
@@ -1373,7 +1397,7 @@ function updateDivisionChart(data, frequencyData) {
 function ensureDomElementsExist() {
     // Create a map of element IDs to fallback selectors
     const elementSelectors = {
-        // Hot/cold numbers containers
+        // Static Hot/cold numbers containers from the HTML section
         'hotNumbersContainer': '.hot-numbers .d-flex',
         'coldNumbersContainer': '.cold-numbers .d-flex',
         'absentNumbersContainer': '.absent-numbers .d-flex',
@@ -1384,7 +1408,11 @@ function ensureDomElementsExist() {
         
         // Filters and controls
         'lotteryTypeDropdown': '.lottery-type-filter',
-        'hotColdLoading': '.hot-cold-container .chart-loading'
+        'hotColdLoading': '.hot-cold-container .chart-loading',
+        
+        // Ensure we can find the containers for all visualization components
+        'barChartContainer': '.bar-chart-container', 
+        'hotColdContainer': '.hot-cold-container'
     };
     
     // Check for each element and try fallback selectors if direct ID lookup fails
