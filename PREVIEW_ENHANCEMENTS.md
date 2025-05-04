@@ -1,56 +1,50 @@
-# Preview Generation Enhancements
+# Preview Enhancements for Snap Lotto
 
-## Problem Analysis
-The preview-website feature was experiencing timeout issues when trying to capture screenshots of lottery websites. The error message "Preview generation timed out. The website may be unavailable" suggests that:
+## Overview
+This document explains the new approach to handling website previews in the Snap Lotto application. We've replaced the real-time preview generation with a more reliable approach that displays the most recently captured screenshots.
 
-1. The National Lottery website is responding slowly or implementing measures that delay automated requests
-2. Our preview generation timeouts were too short (20 seconds)
-3. We lacked a robust retry strategy with exponential backoff
+## Why These Changes Were Made
 
-## Implemented Improvements
+1. **Anti-Scraping Measures**: Many lottery websites employ anti-scraping technologies that detect and block automated screenshot attempts, especially when made frequently.
 
-### 1. Extended Timeouts
-- Increased preview navigation timeout from 20 seconds to 45 seconds
-- Set maximum wait time to 60 seconds for the entire preview generation process
-- Added cache headers to reduce server load (1-hour caching)
+2. **Reliability Issues**: Previous preview attempts often timed out or failed completely, resulting in error images instead of useful previews.
 
-### 2. Resilient Retry Logic
-- Increased maximum retry attempts for preview operations from 3 to 5
-- Implemented exponential backoff for retries (1s, 2s, 4s, 8s, 15s)
-- Added varied request strategies on each retry:
-  - Different user agents per attempt
-  - Alternating viewport sizes
-  - Different wait_until strategies ('domcontentloaded' or 'load')
-  - Modified HTTP headers including cache control
-  - Added referer headers on retry attempts
+3. **Resource Usage**: Generating real-time previews for every screenshot view consumed significant server resources, particularly when multiple admin users were viewing the screenshot gallery simultaneously.
 
-### 3. Better Error Handling
-- More robust error classification to identify timeout vs. other issues
-- Continued screenshot process even after navigation timeouts to capture partial content
-- Added scrolling attempts to trigger lazy-loaded content on retry attempts
-- Improved error messages with clear advice on what to do next
+## New Preview Approach
 
-### 4. Improved Caching Strategy  
-- Used existing screenshots if fresh (less than 1 hour old)
-- Added etag headers for proper caching
-- Made cache timeout configurable (PREVIEW_CACHE_SECONDS)
+### How It Works
 
-### 5. Optimized Browser Configuration
-- Used low-resource mode for preview generation with disabled extensions
-- Optimized launch arguments for speed and reliability
-- Eliminated non-essential browser features for preview capturing
+1. **Use Existing Screenshots**: Instead of attempting to generate a new real-time preview when viewing the screenshot gallery, the system now displays the most recently captured screenshot.
 
-## Technical Implementation Details
-1. Created a specialized `generate_preview_image()` function optimized for previews
-2. Modified the `preview_website` route to use the new function with fallback strategies
-3. Added timing metrics to monitor performance
-4. Enhanced error page to provide more specific information about the failure
+2. **Timestamp Information**: Each preview image includes a timestamp overlay showing when the screenshot was captured, formatted in a human-readable way (e.g., "Captured 2 hours ago").
 
-## Fallback Mechanisms
-If the optimized preview function fails, the system will:
-1. First try to use any existing screenshot if available (even if older)
-2. Attempt up to 5 retries with exponential backoff
-3. Try different browser configurations on each retry 
-4. As a last resort, fall back to the standard screenshot function
+3. **Clear Labeling**: The previews are clearly labeled as "CAPTURED PREVIEW" to distinguish them from live content.
 
-These improvements make the preview generation more patient and resilient in the face of slow-responding pages and potential anti-scraping measures.
+### Benefits
+
+1. **Consistent Experience**: Admins always see a preview image, even when the lottery website is actively blocking scraping attempts.
+
+2. **Reduced Resource Usage**: Server resources are conserved by not attempting new screenshot captures for every preview view.
+
+3. **Faster Loading**: Preview images load instantly since they're served from existing files rather than requiring a new capture process.
+
+4. **Visual Verification**: Admins can still verify the content and appearance of lottery websites through the most recent successful capture.
+
+## When to Sync Screenshots
+
+With this approach, it's recommended to use the "Sync All Screenshots" button periodically (e.g., once a day) to refresh all screenshot captures. Individual screenshots can also be refreshed using their respective "Resync" buttons when needed.
+
+## Fallback Behavior
+
+If no screenshot exists for a URL (such as when a new screenshot entry is added), the preview will display an informative message indicating that no screenshot is available and suggesting to use the "Sync All Screenshots" or "Resync" button.
+
+## Technical Implementation
+
+The implementation:
+
+1. Modifies the `/preview-website/<int:screenshot_id>` route to always use the existing screenshot file
+2. Adds timestamp information and "CAPTURED PREVIEW" labeling to the images
+3. Provides clear error handling and fallback images when no screenshot is available
+
+This approach aligns with our goal of maintaining reliable, consistent functionality while avoiding triggering anti-scraping protections on the source websites.

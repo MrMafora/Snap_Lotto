@@ -1796,148 +1796,125 @@ def sync_single_screenshot(screenshot_id):
 @login_required
 def preview_website(screenshot_id):
     """
-    Generate and serve a real-time preview image of the website.
-    This approach bypasses iframe restrictions by rendering the site server-side.
-    Uses the optimized generate_preview_image function with extended timeouts.
+    Serve the most recent screenshot as a preview image.
+    
+    Instead of attempting to generate a real-time preview (which often fails due to anti-scraping),
+    this simplified approach displays the most recently captured screenshot with timestamp information.
+    This provides a reliable preview experience without triggering anti-scraping measures.
     """
     from io import BytesIO
-    import base64
     import time
+    from datetime import datetime, timedelta
+    from PIL import Image, ImageDraw, ImageFont
 
-    # Record start time to monitor overall preview generation time
-    start_time = time.time()
-    
     try:
         # Retrieve the screenshot object
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # First try to use an existing screenshot if it's fresh (less than 1 hour old)
+        # If we have a valid existing screenshot, use it directly
         if screenshot.path and os.path.exists(screenshot.path):
             try:
-                # Check file modification time
+                # Get file modification time and format it
                 file_mod_time = os.path.getmtime(screenshot.path)
-                if time.time() - file_mod_time < 3600:  # 1 hour cache
-                    app.logger.info(f"Using cached screenshot for preview of {screenshot.lottery_type}")
-                    with open(screenshot.path, 'rb') as f:
-                        existing_img_data = f.read()
-                    
-                    return send_file(
-                        BytesIO(existing_img_data),
-                        mimetype='image/png',
-                        download_name=f'preview_{screenshot_id}.png',
-                        as_attachment=False,
-                        etag=True,
-                        cache_timeout=3600  # Cache for 1 hour
-                    )
+                capture_time = datetime.fromtimestamp(file_mod_time)
+                time_ago = datetime.now() - capture_time
+                
+                # Read the existing screenshot
+                with open(screenshot.path, 'rb') as f:
+                    existing_img_data = f.read()
+                
+                # Create a PIL Image from the screenshot
+                img = Image.open(BytesIO(existing_img_data))
+                
+                # Add timestamp overlay at the top
+                draw = ImageDraw.Draw(img)
+                
+                # Try to use a default font
+                try:
+                    font = ImageFont.load_default()
+                except Exception:
+                    font = None
+                
+                # Create semi-transparent background for text
+                # Get image width for the background rectangle
+                img_width = img.width
+                draw.rectangle(((0, 0), (img_width, 30)), fill=(0, 0, 0, 128))
+                
+                # Format time ago in a human-readable way
+                if time_ago < timedelta(minutes=1):
+                    time_text = "Captured just now"
+                elif time_ago < timedelta(hours=1):
+                    time_text = f"Captured {int(time_ago.total_seconds() / 60)} minutes ago"
+                elif time_ago < timedelta(days=1):
+                    time_text = f"Captured {int(time_ago.total_seconds() / 3600)} hours ago"
                 else:
-                    app.logger.info(f"Cached screenshot for {screenshot.lottery_type} is too old, generating new preview")
-            except Exception as file_error:
-                app.logger.warning(f"Could not use existing screenshot, trying live capture: {str(file_error)}")
-        
-        # Use the specialized preview function with extended timeouts
-        from screenshot_manager import generate_preview_image
-        img_data, error_message = generate_preview_image(screenshot.url, is_preview=True)
-        
-        if img_data:
-            elapsed_time = time.time() - start_time
-            app.logger.info(f"Successfully captured preview for {screenshot.lottery_type} in {elapsed_time:.2f} seconds")
-            
-            # Return the image data with appropriate headers
-            return send_file(
-                BytesIO(img_data),
-                mimetype='image/png',
-                download_name=f'preview_{screenshot_id}.png',
-                as_attachment=False,
-                etag=True,
-                cache_timeout=3600  # Cache for 1 hour
-            )
-        else:
-            # Optimization: Try once more with a different approach if we failed
-            if error_message and "timeout" in error_message.lower():
-                app.logger.warning(f"Timeout occurred during preview for {screenshot.lottery_type}, trying backup approach")
+                    time_text = f"Captured {int(time_ago.days)} days ago"
                 
-                # Try again with the standard screenshot function as backup
-                from screenshot_manager import capture_screenshot_sync
-                _, backup_img_data, _ = capture_screenshot_sync(screenshot.url)
+                # Add timestamp text
+                timestamp_text = f"{time_text} ({capture_time.strftime('%Y-%m-%d %H:%M:%S')})"
+                draw.text((10, 8), timestamp_text, fill=(255, 255, 255), font=font)
+
+                # Add indicator that this is not a live preview
+                draw.text((img_width - 150, 8), "CAPTURED PREVIEW", fill=(255, 200, 200), font=font)
                 
-                if backup_img_data:
-                    elapsed_time = time.time() - start_time
-                    app.logger.info(f"Backup approach succeeded for {screenshot.lottery_type} in {elapsed_time:.2f} seconds")
-                    return send_file(
-                        BytesIO(backup_img_data),
-                        mimetype='image/png',
-                        download_name=f'preview_{screenshot_id}.png',
-                        as_attachment=False
-                    )
-            
-            # Before showing error, try text-based preview as a fallback
-            app.logger.warning(f"Visual preview failed for {screenshot.lottery_type}, attempting text-based fallback")
-            
-            # Import our text-based preview generator
-            from web_scraper import generate_text_preview_image
-            text_img_data, text_error = generate_text_preview_image(screenshot.url, screenshot.lottery_type)
-            
-            if text_img_data:
-                app.logger.info(f"Successfully generated text-based preview for {screenshot.lottery_type}")
+                # Convert back to bytes
+                buffer = BytesIO()
+                img.save(buffer, format='PNG')
+                buffer.seek(0)
+                
+                app.logger.info(f"Using last successful screenshot for preview of {screenshot.lottery_type} from {time_ago.total_seconds():.0f} seconds ago")
+                
                 return send_file(
-                    BytesIO(text_img_data),
+                    buffer,
                     mimetype='image/png',
-                    download_name=f'preview_text_{screenshot_id}.png',
+                    download_name=f'preview_{screenshot_id}.png',
                     as_attachment=False,
                     etag=True,
                     cache_timeout=3600  # Cache for 1 hour
                 )
-            
-            # If both visual and text-based approaches failed, return an error image
-            app.logger.warning(f"All preview methods failed for {screenshot.lottery_type}: Visual: {error_message}, Text: {text_error}")
-            
-            # Generate a simple error message image
-            from PIL import Image, ImageDraw, ImageFont
-            
-            img = Image.new('RGB', (800, 600), color=(248, 249, 250))
-            d = ImageDraw.Draw(img)
-            
-            # Try to use a default font
-            try:
-                # Use a default system font if available
-                font = ImageFont.load_default()
-                font_medium = ImageFont.load_default()
-                font_small = ImageFont.load_default()
-            except Exception:
-                font = None
-                font_medium = None
-                font_small = None
-            
-            # Draw error text with more specific message
-            d.text((20, 20), f"Preview generation timed out. The website may be unavailable.", 
-                  fill=(200, 50, 50), font=font)
-            d.text((20, 60), f"URL: {screenshot.url[:50]}...",
-                  fill=(50, 50, 50), font=font_medium)
-            d.text((20, 100), f"Try using the 'Resync' button to capture a full screenshot.", 
-                  fill=(50, 50, 50), font=font_small)
-            d.text((20, 140), f"Error details: {error_message[:100] if error_message else 'Unknown error'}", 
-                  fill=(100, 100, 100), font=font_small)
-            
-            # Also include text-based error if applicable
-            if text_error:
-                d.text((20, 170), f"Text preview error: {text_error[:100]}", 
-                      fill=(100, 100, 100), font=font_small)
-            
-            # Save to buffer
-            buffer = BytesIO()
-            img.save(buffer, 'PNG')
-            buffer.seek(0)
-            
-            # Return the error image
-            return send_file(
-                buffer,
-                mimetype='image/png',
-                download_name=f'preview_error_{screenshot_id}.png',
-                as_attachment=False
-            )
+            except Exception as file_error:
+                app.logger.warning(f"Could not process existing screenshot for preview: {str(file_error)}")
+        
+        # If we don't have a screenshot or couldn't process it, create an informative image
+        app.logger.warning(f"No valid screenshot found for {screenshot.lottery_type} ({screenshot_id})")
+        
+        # Create an informative image indicating no screenshot is available
+        img = Image.new('RGB', (800, 600), color=(248, 249, 250))
+        d = ImageDraw.Draw(img)
+        
+        # Try to use a default font
+        try:
+            font = ImageFont.load_default()
+            font_medium = ImageFont.load_default()
+            font_small = ImageFont.load_default()
+        except Exception:
+            font = None
+            font_medium = None
+            font_small = None
+        
+        # Draw informative text
+        d.text((20, 20), f"No screenshot available for {screenshot.lottery_type}", 
+              fill=(50, 50, 50), font=font)
+        d.text((20, 60), f"URL: {screenshot.url[:80]}...",
+              fill=(100, 100, 100), font=font_medium)
+        d.text((20, 100), f"Use the 'Sync All Screenshots' or 'Resync' button to capture a screenshot.", 
+              fill=(50, 50, 200), font=font_small)
+        
+        # Save to buffer
+        buffer = BytesIO()
+        img.save(buffer, 'PNG')
+        buffer.seek(0)
+        
+        # Return the informative image
+        return send_file(
+            buffer,
+            mimetype='image/png',
+            download_name=f'preview_info_{screenshot_id}.png',
+            as_attachment=False
+        )
     
     except Exception as e:
-        app.logger.error(f"Error generating preview for {screenshot_id}: {str(e)}")
+        app.logger.error(f"Error serving preview for {screenshot_id}: {str(e)}")
         # Generate a simple error message image
         from PIL import Image, ImageDraw
         
