@@ -1868,9 +1868,7 @@ def preview_website(screenshot_id):
                     buffer,
                     mimetype='image/png',
                     download_name=f'preview_{screenshot_id}.png',
-                    as_attachment=False,
-                    etag=True,
-                    cache_timeout=3600  # Cache for 1 hour
+                    as_attachment=False
                 )
             except Exception as file_error:
                 app.logger.warning(f"Could not process existing screenshot for preview: {str(file_error)}")
