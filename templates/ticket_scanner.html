@@ -102,6 +102,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fresh_checkmark.css') }}">
 <!-- Mobile-specific button fix for iOS devices -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-button-fix.css') }}">
+<!-- CRITICAL FIX: Button activation fix to ensure View Results button works properly -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/button-activation-fix.css') }}">
 <style>
     .ticket-scanner-container {
         max-width: 800px;
@@ -982,12 +984,31 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 // Set flag to indicate we have real results
                 window.hasValidResults = true;
                 
+                // CRITICAL FIX: Cancel any outstanding timers that might be causing the flash of 3rd ad
+                if (window.adTransitionTimeout) {
+                    console.log('Cancelling existing ad transition timeout to prevent ad flash');
+                    clearTimeout(window.adTransitionTimeout);
+                    window.adTransitionTimeout = null;
+                }
+                
+                if (window.resultDisplayTimeout) {
+                    console.log('Cancelling existing result display timeout to prevent ad flash');
+                    clearTimeout(window.resultDisplayTimeout);
+                    window.resultDisplayTimeout = null;
+                }
+                
+                // CRITICAL: Cancel all outstanding timeouts that might cause ad flashing
+                if (window.DualAdManager?.clearAllTimers) {
+                    window.DualAdManager.clearAllTimers();
+                }
+                
                 // Use the Dual Ad Manager for transitioning from first to second ad
                 if (window.DualAdManager) {
                     console.log('Using Dual Ad Manager for transitioning to monetization ad');
                     
-                    // First hide the first ad (public service announcement)
-                    // Then show the second ad (monetization ad)
+                    // CRITICAL FIX: We need to let the Dual Ad Manager handle ALL transitions
+                    // The DualAdManager will handle hiding the first ad and showing the second
+                    // It has built-in sequencing to prevent ad flashing
                     window.DualAdManager.showMonetizationAd();
                 } else {
                     // Fallback for manual transition if DualAdManager isn't available
@@ -997,17 +1018,17 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     const adOverlayLoading = document.getElementById('ad-overlay-loading');
                     const adOverlayResults = document.getElementById('ad-overlay-results');
                     
-                    // Prepare the results overlay transition by making sure it's ready to be visible
-                    adOverlayResults.style.opacity = '1';
-                    adOverlayResults.style.visibility = 'visible';
+                    // CRITICAL FIX: Make sure we don't have any transition timers running
+                    // We need to perform this transition in a single, atomic operation
+                    if (window.manualTransitionTimer) {
+                        clearTimeout(window.manualTransitionTimer);
+                        window.manualTransitionTimer = null;
+                    }
                     
                     // Log the transition for debugging
                     console.log('⚠️ CRITICAL TRANSITION: About to hide loading overlay and show results overlay');
                     
-                    // CRITICAL FIX: Add a deliberate sequence with very slight delays for proper transition
-                    // This resolves the iOS issue where it jumps back to the main screen
-                    setTimeout(function() {
-                        // Step 1: Hide the loading overlay
+                    // Step 1: Hide the loading overlay - NO DELAY
                         adOverlayLoading.style.display = 'none';
                         
                         // Step 2: Show the results overlay after a tiny delay to ensure proper sequence
@@ -1157,18 +1178,36 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     }, 1000); // Check every second
                 };
                 
+                // CRITICAL FIX: Reset button state completely before initiating the countdown
+                // This ensures we have a clean state to start from
+                // Remove any potential stale event handlers first
+                const oldButton = document.getElementById('view-results-btn');
+                if (oldButton) {
+                    // Clone the button to remove all event listeners
+                    const newButton = oldButton.cloneNode(true);
+                    if (oldButton.parentNode) {
+                        oldButton.parentNode.replaceChild(newButton, oldButton);
+                        
+                        // Update our reference to the new clean button
+                        viewResultsBtn = newButton;
+                        console.log('CRITICAL FIX: View Results button was completely reset to clean state');
+                    }
+                }
+                
                 // FORCEFULLY disable the view results button for 15 seconds
                 // We'll use a global flag to track if countdown is already running
                 if (!window.countdownRunning) {
-                    console.log('Setting 15-second mandatory ad display timer...');
+                    console.log('Setting 15-second mandatory ad display timer with enhanced reliability...');
                     
                     // Set global flag to prevent multiple timers
                     window.countdownRunning = true;
                     
-                    // Disable the View Results button
+                    // Disable the View Results button using multiple approaches
                     viewResultsBtn.disabled = true;
+                    viewResultsBtn.setAttribute('disabled', 'disabled');
                     viewResultsBtn.style.opacity = '0.5';
                     viewResultsBtn.style.cursor = 'not-allowed';
+                    viewResultsBtn.style.pointerEvents = 'none';
                     viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
                     
                     // Add a counter display to show remaining seconds
@@ -3231,4 +3270,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     }
 })();
 </script>
+
+<!-- CRITICAL FIX: Add View Results Button Fixer script for guaranteed button functionality -->
+<script src="{{ url_for('static', filename='js/view-results-fixer.js') }}" defer></script>
 {% endblock %}

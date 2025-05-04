@@ -304,9 +304,43 @@
         // The monetization ad will be visible during the entire processing time
     }
 
+    // CRITICAL FIX: Function to kill all timers to prevent ad flashing
+    function clearAllTimers() {
+        log('Clearing all advertisement timers to prevent flashing/conflicts');
+        
+        // Clear our specific timers first
+        if (state.publicServiceCountdownTimer) {
+            clearInterval(state.publicServiceCountdownTimer);
+            state.publicServiceCountdownTimer = null;
+            log('Cleared public service countdown timer');
+        }
+        
+        if (state.monetizationCountdownTimer) {
+            clearInterval(state.monetizationCountdownTimer);
+            state.monetizationCountdownTimer = null;
+            log('Cleared monetization countdown timer');
+        }
+        
+        // Clear any animation timers we might be storing
+        if (window.adTransitionTimer) {
+            clearTimeout(window.adTransitionTimer);
+            window.adTransitionTimer = null;
+            log('Cleared ad transition timer');
+        }
+        
+        // Force all ad overlays to have clean CSS
+        document.querySelectorAll('[id^="ad-overlay"]').forEach(overlay => {
+            overlay.style.transition = '';
+            log('Reset transition style on overlay: ' + overlay.id);
+        });
+    }
+
     // Show the second ad (Monetization Advertisement)
     function showMonetizationAd(callback) {
-        log('Showing monetization ad');
+        log('Showing monetization ad with enhanced reliability');
+        
+        // CRITICAL FIX: First clear all timers to prevent interference
+        clearAllTimers();
         
         // Reset state for this ad
         state.monetizationAdActive = true;
@@ -322,10 +356,13 @@
             
             // Make sure button is properly set up initially - grey without lock icon
             if (elements.viewResultsButton) {
+                // CRITICAL FIX: Make absolute sure the button attributes are properly set
                 elements.viewResultsButton.disabled = true;
+                elements.viewResultsButton.removeAttribute('data-has-direct-handler'); // Will be re-added by view-results-direct.js
                 elements.viewResultsButton.classList.remove('btn-success', 'btn-pulse', 'btn-pulse-subtle', 'btn-glow');
                 elements.viewResultsButton.classList.add('btn-secondary');
                 elements.viewResultsButton.innerHTML = `Continue to Results (Wait ${config.monetizationAdDuration}s)`;
+                log('Reset View Results button to initial state');
             }
             
             // Show button container but with button disabled
@@ -334,59 +371,39 @@
             }
         }
         
-        // Now perform the perfect transition - hide first ad and show second ad simultaneously
-        // This completely eliminates any gap between ads
-        if (elements.publicServiceAdOverlay) {
-            // Add fade-out effect to first ad
-            elements.publicServiceAdOverlay.style.transition = 'opacity 0.3s ease';
-            elements.publicServiceAdOverlay.style.opacity = '0';
+        // Store the transition timer globally so we can cancel it if needed
+        window.adTransitionTimer = setTimeout(function() {
+            // Hide first ad completely first, so there's no possibility of overlap
+            if (elements.publicServiceAdOverlay) {
+                elements.publicServiceAdOverlay.style.transition = '';
+                elements.publicServiceAdOverlay.style.display = 'none';
+                log('First ad hidden (clean transition)');
+            }
             
-            // After fade-out completes, hide first ad and fully show second ad
+            // CRITICAL FIX: Small pause before showing second ad to avoid visual overlap
             setTimeout(function() {
-                // Hide first ad completely
-                if (elements.publicServiceAdOverlay) {
-                    elements.publicServiceAdOverlay.style.display = 'none';
-                    log('First ad hidden');
-                }
-                
-                // Show second ad with fade-in effect
+                // Show second ad with clean display approach
                 if (elements.monetizationAdOverlay) {
+                    // Use a fresh, clean transition
                     elements.monetizationAdOverlay.style.transition = 'opacity 0.3s ease';
                     elements.monetizationAdOverlay.style.opacity = '1';
-                    log('Monetization ad overlay displayed');
+                    log('Monetization ad overlay displayed (clean transition)');
+                    
+                    // Start the countdown after ensuring smooth transition
+                    startMonetizationCountdown(function() {
+                        // When countdown completes
+                        completeMonetizationAd();
+                        
+                        // Call the callback if provided
+                        if (callback && typeof callback === 'function') {
+                            callback();
+                        }
+                    });
                 } else {
                     log('ERROR: Monetization ad overlay element not found');
                 }
-                
-                // Start the countdown after ensuring smooth transition
-                startMonetizationCountdown(function() {
-                    // When countdown completes
-                    completeMonetizationAd();
-                    
-                    // Call the callback if provided
-                    if (callback && typeof callback === 'function') {
-                        callback();
-                    }
-                });
-            }, 300); // Match this with the transition duration
-        } else {
-            // If first ad not found, just show second ad immediately
-            if (elements.monetizationAdOverlay) {
-                elements.monetizationAdOverlay.style.opacity = '1';
-                log('Monetization ad overlay displayed (first ad not found)');
-                
-                // Start the countdown
-                startMonetizationCountdown(function() {
-                    // When countdown completes
-                    completeMonetizationAd();
-                    
-                    // Call the callback if provided
-                    if (callback && typeof callback === 'function') {
-                        callback();
-                    }
-                });
-            }
-        }
+            }, 100); // Brief pause for clean sequence
+        }, 100); // Very brief initial timer
     }
 
     // Start countdown for the monetization advertisement
