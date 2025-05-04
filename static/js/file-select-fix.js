@@ -145,6 +145,12 @@
                         e.stopPropagation();
                         console.log('File select button clicked, triggering file input');
                         
+                        // Only proceed if we're not already selecting a file
+                        if (window.fileDialogState && window.fileDialogState.isSelectingFile) {
+                            console.log('Prevented recursive file dialog from select button');
+                            return false;
+                        }
+                        
                         // Use the stored fixed file input reference if available, otherwise fall back to original
                         const inputToClick = window.fixedFileInput || fileInput;
                         console.log('Clicking on file input element:', inputToClick ? 'Found' : 'Not found');
@@ -179,10 +185,13 @@
         // Add a global helper function that can be called from anywhere
         window.openFileSelector = function() {
             const fileInput = document.getElementById('ticket-image');
-            if (fileInput) {
+            // Only open dialog if we're not already selecting a file
+            if (fileInput && (!window.fileDialogState || !window.fileDialogState.isSelectingFile)) {
                 console.log('Direct file selector opened via global helper');
                 fileInput.click();
                 return true;
+            } else if (window.fileDialogState && window.fileDialogState.isSelectingFile) {
+                console.log('Prevented recursive file dialog via global helper');
             }
             return false;
         };
@@ -193,10 +202,16 @@
             if (e.target && e.target.id === 'file-select-btn') {
                 console.log('Document-level file select button click detected');
                 const fileInput = document.getElementById('ticket-image');
-                if (fileInput) {
+                // Only proceed if we're not already selecting a file
+                if (fileInput && (!window.fileDialogState || !window.fileDialogState.isSelectingFile)) {
                     e.preventDefault();
                     e.stopPropagation();
                     fileInput.click();
+                    return false;
+                } else if (window.fileDialogState && window.fileDialogState.isSelectingFile) {
+                    console.log('Prevented recursive file dialog from document-level handler');
+                    e.preventDefault();
+                    e.stopPropagation();
                     return false;
                 }
             }

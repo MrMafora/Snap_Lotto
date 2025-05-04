@@ -99,6 +99,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% block additional_head %}
 <!-- High priority anti-flicker script - loads before other content -->
 <script src="{{ url_for('static', filename='js/anti-flicker.js') }}"></script>
+<!-- Critical fix for file dialog loop issue - loads early to prevent file dialog loops -->
+<script src="{{ url_for('static', filename='js/loop-fix.js') }}"></script>
 <!-- Fresh checkmark system - clean slate approach -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fresh_checkmark.css') }}">
 <!-- Mobile-specific button fix for iOS devices -->
@@ -3302,4 +3304,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <script src="{{ url_for('static', filename='js/ticket-scanner-integration.js') }}" defer></script>
 <!-- Critical Fix: High-priority file upload fix loads as early as possible -->
 <script src="{{ url_for('static', filename='js/file-upload-fix.js') }}"></script>
+<!-- Critical fix for file upload loop issue -->
+<script src="{{ url_for('static', filename='js/loop-fix.js') }}"></script>
 {% endblock %}

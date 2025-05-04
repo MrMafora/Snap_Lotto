@@ -456,8 +456,12 @@
             // Also make drop area clickable
             elements.dropArea.addEventListener('click', function(e) {
                 if (e.target !== elements.fileSelectBtn && !elements.fileSelectBtn.contains(e.target)) {
-                    if (elements.fileInput) {
+                    // Only trigger file input click if we're not already in a file selection process
+                    if (elements.fileInput && (!window.fileDialogState || !window.fileDialogState.isSelectingFile)) {
+                        log('Drop area clicked, opening file dialog');
                         elements.fileInput.click();
+                    } else {
+                        log('Prevented recursive file dialog from drop area click');
                     }
                 }
             });
@@ -514,7 +518,13 @@
         upload: uploadFile,
         removeFile: removeFile,
         selectFile: function() {
-            if (elements.fileInput) elements.fileInput.click();
+            // Only open dialog if we're not already in a selection process
+            if (elements.fileInput && (!window.fileDialogState || !window.fileDialogState.isSelectingFile)) {
+                log('Opening file selection dialog via API');
+                elements.fileInput.click();
+            } else {
+                log('Prevented recursive file dialog via API');
+            }
         },
         getState: function() {
             return {...state};
