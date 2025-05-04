@@ -1798,12 +1798,31 @@ def preview_website(screenshot_id):
         # Retrieve the screenshot object
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
+        # For faster loading, first try to return the existing screenshot if available
+        if screenshot.path and os.path.exists(screenshot.path):
+            try:
+                with open(screenshot.path, 'rb') as f:
+                    existing_img_data = f.read()
+                
+                return send_file(
+                    BytesIO(existing_img_data),
+                    mimetype='image/png',
+                    download_name=f'preview_{screenshot_id}.png',
+                    as_attachment=False,
+                    etag=False,
+                    cache_timeout=300  # Cache for 5 minutes
+                )
+            except Exception as file_error:
+                app.logger.warning(f"Could not use existing screenshot, trying live capture: {str(file_error)}")
+                # Continue to live capture if file access fails
+        
         # Use the existing screenshot capture function to generate a fresh preview
         # This leverages our existing Playwright setup which already handles anti-bot measures
         from screenshot_manager import capture_screenshot_sync
         filepath, img_data, _ = capture_screenshot_sync(screenshot.url)
         
         if img_data:
+            app.logger.info(f"Successfully captured preview for {screenshot.lottery_type}")
             # Return the image data with appropriate headers
             return send_file(
                 BytesIO(img_data),
@@ -1814,16 +1833,32 @@ def preview_website(screenshot_id):
                 cache_timeout=300  # Cache for 5 minutes
             )
         else:
+            app.logger.warning(f"Failed to capture preview for {screenshot.lottery_type}, generating error image")
             # If capture failed, return a placeholder error image
             # Generate a simple error message image
-            from PIL import Image, ImageDraw
+            from PIL import Image, ImageDraw, ImageFont
+            
             img = Image.new('RGB', (800, 600), color=(248, 249, 250))
             d = ImageDraw.Draw(img)
             
+            # Try to use a default font
+            try:
+                # Use a default system font if available
+                font = ImageFont.load_default()
+                font_medium = ImageFont.load_default()
+                font_small = ImageFont.load_default()
+            except Exception:
+                font = None
+                font_medium = None
+                font_small = None
+            
             # Draw error text
-            d.text((20, 20), f"Preview Error: Could not load {screenshot.url}", fill=(200, 50, 50))
-            d.text((20, 60), "The website may be blocking access or experiencing issues.", fill=(50, 50, 50))
-            d.text((20, 100), f"Try using the 'Resync' button to capture a full screenshot.", fill=(50, 50, 50))
+            d.text((20, 20), f"Preview Error: Could not load {screenshot.url}", 
+                  fill=(200, 50, 50), font=font)
+            d.text((20, 60), "The website may be blocking access or experiencing issues.", 
+                  fill=(50, 50, 50), font=font_medium)
+            d.text((20, 100), f"Try using the 'Resync' button to capture a full screenshot.", 
+                  fill=(50, 50, 50), font=font_small)
             
             # Save to buffer
             buffer = BytesIO()
@@ -1840,7 +1875,28 @@ def preview_website(screenshot_id):
     
     except Exception as e:
         app.logger.error(f"Error generating preview for {screenshot_id}: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        # Generate a simple error message image
+        from PIL import Image, ImageDraw
+        
+        img = Image.new('RGB', (800, 600), color=(255, 240, 240))
+        d = ImageDraw.Draw(img)
+        
+        # Draw error text
+        d.text((20, 20), f"Server Error: Preview generation failed", fill=(200, 0, 0))
+        d.text((20, 60), f"Error details: {str(e)[:200]}", fill=(100, 0, 0))
+        
+        # Save to buffer
+        buffer = BytesIO()
+        img.save(buffer, 'PNG')
+        buffer.seek(0)
+        
+        # Return the error image instead of JSON error
+        return send_file(
+            buffer,
+            mimetype='image/png',
+            download_name=f'preview_error_{screenshot_id}.png',
+            as_attachment=False
+        )
 
 @app.route('/cleanup-screenshots', methods=['POST'])
 @login_required
