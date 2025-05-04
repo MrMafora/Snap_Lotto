@@ -250,31 +250,76 @@ class LotteryAnalyzer:
             for result in results:
                 try:
                     # Extract the numbers as a list - handle JSON strings
-                    if isinstance(result.numbers, str):
-                        if result.numbers.startswith('[') and result.numbers.endswith(']'):
-                            # JSON format
-                            try:
-                                numbers = json.loads(result.numbers)
-                            except json.JSONDecodeError:
-                                # Try handling as comma-separated values
-                                numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
-                        else:
-                            # Comma-separated values
-                            numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
-                    else:
-                        # Already in list form
-                        numbers = result.numbers
+                    numbers = []
+                    if result.numbers:
+                        if isinstance(result.numbers, str):
+                            if result.numbers.startswith('[') and result.numbers.endswith(']'):
+                                # JSON format
+                                try:
+                                    numbers_raw = json.loads(result.numbers)
+                                    # Ensure each number is an integer
+                                    numbers = []
+                                    for num in numbers_raw:
+                                        try:
+                                            numbers.append(int(num))
+                                        except (ValueError, TypeError):
+                                            logger.warning(f"Could not convert number '{num}' to integer")
+                                except json.JSONDecodeError:
+                                    # Try handling as comma-separated values
+                                    numbers = []
+                                    for n in result.numbers.strip('[]').split(','):
+                                        try:
+                                            if n.strip() and n.strip().isdigit():
+                                                numbers.append(int(n.strip()))
+                                        except (ValueError, TypeError):
+                                            logger.warning(f"Could not convert number '{n}' to integer")
+                            else:
+                                # Comma-separated values
+                                numbers = []
+                                for n in result.numbers.split(','):
+                                    try:
+                                        if n.strip() and n.strip().isdigit():
+                                            numbers.append(int(n.strip()))
+                                    except (ValueError, TypeError):
+                                        logger.warning(f"Could not convert number '{n}' to integer")
+                        elif isinstance(result.numbers, list):
+                            # Already in list form, ensure integers
+                            numbers = []
+                            for num in result.numbers:
+                                try:
+                                    numbers.append(int(num))
+                                except (ValueError, TypeError):
+                                    logger.warning(f"Could not convert number '{num}' to integer")
                     
                     # Get bonus numbers if available
                     bonus_numbers = []
                     if result.bonus_numbers:
                         if isinstance(result.bonus_numbers, str):
                             try:
-                                bonus_numbers = json.loads(result.bonus_numbers)
+                                bonus_raw = json.loads(result.bonus_numbers)
+                                # Ensure each bonus number is an integer
+                                bonus_numbers = []
+                                for num in bonus_raw:
+                                    try:
+                                        bonus_numbers.append(int(num))
+                                    except (ValueError, TypeError):
+                                        logger.warning(f"Could not convert bonus number '{num}' to integer")
                             except json.JSONDecodeError:
-                                bonus_numbers = [int(n.strip()) for n in result.bonus_numbers.split(',') if n.strip().isdigit()]
-                        else:
-                            bonus_numbers = result.bonus_numbers
+                                bonus_numbers = []
+                                for n in result.bonus_numbers.split(','):
+                                    try:
+                                        if n.strip() and n.strip().isdigit():
+                                            bonus_numbers.append(int(n.strip()))
+                                    except (ValueError, TypeError):
+                                        logger.warning(f"Could not convert bonus number '{n}' to integer")
+                        elif isinstance(result.bonus_numbers, list):
+                            # Already in list form, ensure integers
+                            bonus_numbers = []
+                            for num in result.bonus_numbers:
+                                try:
+                                    bonus_numbers.append(int(num))
+                                except (ValueError, TypeError):
+                                    logger.warning(f"Could not convert bonus number '{num}' to integer")
                     
                     # Create row dictionary
                     row = {
@@ -284,17 +329,23 @@ class LotteryAnalyzer:
                         'draw_date': result.draw_date,
                     }
                     
-                    # Add individual numbers as separate columns
+                    # Add individual numbers as separate columns, ensuring they're integers
                     max_numbers = self.required_numbers.get(result.lottery_type, 6)
                     for i in range(max_numbers):
                         if i < len(numbers):
-                            row[f'number_{i+1}'] = numbers[i]
+                            row[f'number_{i+1}'] = int(numbers[i])
                         else:
                             row[f'number_{i+1}'] = None
                     
-                    # Add bonus number if applicable
+                    # Add bonus number if applicable, ensuring it's an integer
                     if result.lottery_type in ['Powerball', 'Powerball Plus'] and bonus_numbers:
-                        row['bonus_number'] = bonus_numbers[0] if len(bonus_numbers) > 0 else None
+                        if len(bonus_numbers) > 0:
+                            try:
+                                row['bonus_number'] = int(bonus_numbers[0])
+                            except (ValueError, TypeError):
+                                row['bonus_number'] = None
+                        else:
+                            row['bonus_number'] = None
                     
                     # Add division data if available
                     if result.divisions:
@@ -308,9 +359,12 @@ class LotteryAnalyzer:
                                 for div_num, div_data in divisions.items():
                                     winners = div_data.get('winners', 0)
                                     if isinstance(winners, str):
-                                        if winners.isdigit():
-                                            winners = int(winners)
-                                        else:
+                                        try:
+                                            if winners.isdigit():
+                                                winners = int(winners)
+                                            else:
+                                                winners = 0
+                                        except (ValueError, TypeError):
                                             winners = 0
                                     row[f'div_{div_num}_winners'] = winners
                         except Exception as e:
@@ -323,6 +377,12 @@ class LotteryAnalyzer:
             
             # Create DataFrame
             df = pd.DataFrame(data)
+            
+            # Convert number columns to numeric types for consistent comparisons
+            number_cols = [col for col in df.columns if col.startswith('number_') or col == 'bonus_number']
+            for col in number_cols:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
             
             return df
             
@@ -371,8 +431,13 @@ class LotteryAnalyzer:
                     # Find the highest number across all draws and all types
                     for col in all_number_cols:
                         max_val = all_types_df[col].max()
-                        if max_val and max_val > max_number:
-                            max_number = int(max_val)
+                        if max_val is not None:
+                            try:
+                                max_val_int = int(max_val)
+                                if max_val_int > max_number:
+                                    max_number = max_val_int
+                            except (ValueError, TypeError):
+                                logger.warning(f"Could not convert max value '{max_val}' to int in column {col}")
                     
                     # Create a frequency array for all possible numbers
                     combined_frequency = np.zeros(max_number + 1, dtype=int)
@@ -380,8 +445,12 @@ class LotteryAnalyzer:
                     # Count occurrences of each number across all lottery types
                     for col in all_number_cols:
                         for num in all_types_df[col].dropna():
-                            if 0 <= int(num) <= max_number:
-                                combined_frequency[int(num)] += 1
+                            try:
+                                num_int = int(num)
+                                if 0 <= num_int <= max_number:
+                                    combined_frequency[num_int] += 1
+                            except (ValueError, TypeError):
+                                logger.warning(f"Could not convert lottery number '{num}' to int")
                     
                     # Remove the 0 index since there's no ball numbered 0
                     combined_frequency = combined_frequency[1:]
@@ -421,8 +490,13 @@ class LotteryAnalyzer:
                     # Find the highest number across all draws
                     for col in number_cols:
                         max_val = lt_df[col].max()
-                        if max_val and max_val > max_number:
-                            max_number = int(max_val)
+                        if max_val is not None:
+                            try:
+                                max_val_int = int(max_val)
+                                if max_val_int > max_number:
+                                    max_number = max_val_int
+                            except (ValueError, TypeError):
+                                logger.warning(f"Could not convert max value '{max_val}' to int in column {col} for {lt}")
                     
                     # Create a frequency array for all possible numbers
                     frequency = np.zeros(max_number + 1, dtype=int)
@@ -430,8 +504,12 @@ class LotteryAnalyzer:
                     # Count occurrences of each number
                     for col in number_cols:
                         for num in lt_df[col].dropna():
-                            if 0 <= int(num) <= max_number:
-                                frequency[int(num)] += 1
+                            try:
+                                num_int = int(num)
+                                if 0 <= num_int <= max_number:
+                                    frequency[num_int] += 1
+                            except (ValueError, TypeError):
+                                logger.warning(f"Could not convert lottery number '{num}' to int for {lt}")
                     
                     # Remove the 0 index since there's no ball numbered 0
                     frequency = frequency[1:]
