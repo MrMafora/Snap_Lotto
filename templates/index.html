@@ -702,15 +702,46 @@ function updateHotColdNumbers(data) {
         hotColdLoading.classList.remove('d-none');
     }
     
-    // Find the lottery type with the most data (similar logic as updateFrequencyChart)
-    let selectedLotteryType = null;
-    let maxFrequencyData = [];
+    // Get the currently selected lottery type from UI
+    const userSelectedType = document.querySelector('.current-lottery-type').textContent.trim();
     
-    // Find the lottery type with the most data
+    // Use the user's selected lottery type instead of automatically finding the one with most data
+    let selectedLotteryType = null;
+    
+    // Normalize user selected type for comparison
+    const normalizedUserType = userSelectedType === 'All Lottery Types' ? 'All Lottery Types' : userSelectedType;
+    
+    // First try to find an exact match for the user's selection
     for (const lotteryType in data) {
-        if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
-            maxFrequencyData = data[lotteryType].frequency;
+        if (lotteryType === normalizedUserType || 
+            (normalizedUserType === 'All Lottery Types' && lotteryType === 'All Lottery Types')) {
             selectedLotteryType = lotteryType;
+            break;
+        }
+    }
+    
+    // If no exact match, find a close match by comparing case-insensitive
+    if (!selectedLotteryType) {
+        for (const lotteryType in data) {
+            if (lotteryType.toLowerCase() === normalizedUserType.toLowerCase()) {
+                selectedLotteryType = lotteryType;
+                break;
+            }
+        }
+    }
+    
+    // If still no match, fall back to using the "All Lottery Types" or the first available lottery type
+    if (!selectedLotteryType) {
+        if (data['All Lottery Types']) {
+            selectedLotteryType = 'All Lottery Types';
+        } else {
+            // Find the first lottery type with data as a last resort
+            for (const lotteryType in data) {
+                if (data[lotteryType] && data[lotteryType].frequency) {
+                    selectedLotteryType = lotteryType;
+                    break;
+                }
+            }
         }
     }
     
@@ -848,15 +879,46 @@ function updateFrequencyChart(data) {
     barChartContainer.style.width = '100%';
     barChartContainer.style.overflow = 'hidden';
     
-    // We need to get the lottery type with the most data
-    let selectedLotteryType = null;
-    let maxFrequencyData = [];
+    // Get the currently selected lottery type from UI
+    const userSelectedType = document.querySelector('.current-lottery-type').textContent.trim();
     
-    // Find the lottery type with the most data
+    // Use the user's selected lottery type instead of automatically finding the one with most data
+    let selectedLotteryType = null;
+    
+    // Normalize user selected type for comparison
+    const normalizedUserType = userSelectedType === 'All Lottery Types' ? 'All Lottery Types' : userSelectedType;
+    
+    // First try to find an exact match for the user's selection
     for (const lotteryType in data) {
-        if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
-            maxFrequencyData = data[lotteryType].frequency;
+        if (lotteryType === normalizedUserType || 
+            (normalizedUserType === 'All Lottery Types' && lotteryType === 'All Lottery Types')) {
             selectedLotteryType = lotteryType;
+            break;
+        }
+    }
+    
+    // If no exact match, find a close match by comparing case-insensitive
+    if (!selectedLotteryType) {
+        for (const lotteryType in data) {
+            if (lotteryType.toLowerCase() === normalizedUserType.toLowerCase()) {
+                selectedLotteryType = lotteryType;
+                break;
+            }
+        }
+    }
+    
+    // If still no match, fall back to using the "All Lottery Types" or the first available lottery type
+    if (!selectedLotteryType) {
+        if (data['All Lottery Types']) {
+            selectedLotteryType = 'All Lottery Types';
+        } else {
+            // Find the first lottery type with data as a last resort
+            for (const lotteryType in data) {
+                if (data[lotteryType] && data[lotteryType].frequency) {
+                    selectedLotteryType = lotteryType;
+                    break;
+                }
+            }
         }
     }
     

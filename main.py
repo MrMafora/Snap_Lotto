@@ -278,8 +278,28 @@ def index():
                     results_list.append(result_clone)
                     seen_draws[key] = True
             
-            # Sort results by date (newest first)
-            results_list.sort(key=lambda x: x.draw_date, reverse=True)
+            # Define standard order of lottery types for consistent display
+            lottery_type_order = [
+                'Lottery', 
+                'Lottery Plus 1', 
+                'Lottery Plus 2', 
+                'Powerball', 
+                'Powerball Plus', 
+                'Daily Lottery'
+            ]
+            
+            # Create an order lookup dictionary for sorting (lower value = higher priority)
+            lottery_order_lookup = {lottery_type: index for index, lottery_type in enumerate(lottery_type_order)}
+            
+            # Sort by lottery type order first, then by date (newest first) for same lottery type
+            def sort_key(result):
+                # If the lottery type isn't in our predefined order, put it at the end
+                order_position = lottery_order_lookup.get(result.lottery_type, len(lottery_type_order))
+                # Return a tuple to allow sortable comparison
+                return (order_position, -int(result.draw_number) if result.draw_number.isdigit() else 0)
+                
+            # Apply the sorting
+            results_list.sort(key=sort_key)
         except Exception as e:
             logger.error(f"Error getting latest lottery results: {e}")
             latest_results = {}
