@@ -130,40 +130,59 @@
         
         // Set up the View Results button
         if (elements.viewResultsButton) {
-            // Remove existing listeners and add our own
+            // Remove existing listeners and add our own by replacing the button
+            // This ensures no stale event handlers are present
             const newButton = elements.viewResultsButton.cloneNode(true);
-            elements.viewResultsButton.parentNode.replaceChild(newButton, elements.viewResultsButton);
-            elements.viewResultsButton = newButton;
-            
-            elements.viewResultsButton.addEventListener('click', function(event) {
-                event.preventDefault();
+            if (elements.viewResultsButton.parentNode) {
+                elements.viewResultsButton.parentNode.replaceChild(newButton, elements.viewResultsButton);
+                elements.viewResultsButton = newButton;
                 
-                if (this.disabled) {
-                    log('View Results button clicked while disabled, ignoring');
-                    return false;
-                }
-                
-                // Hide all ad overlays
-                hideAllAds();
-                
-                // Show results container
-                if (elements.resultsContainer) {
-                    elements.resultsContainer.classList.remove('d-none');
-                    elements.resultsContainer.style.display = 'block';
-                }
-                
-                // Set state
-                state.adSequenceComplete = true;
-                
-                // Set global flags for compatibility with other code
-                window.inResultsMode = true;
-                window.adClosed = true;
-                window.viewResultsBtnClicked = true;
-                
-                log('View Results button clicked, showing results');
-                return false;
-            });
+                // Add the event listener to the fresh button
+                elements.viewResultsButton.addEventListener('click', handleViewResultsClick);
+                log('View Results button event handler attached');
+            }
         }
+    }
+    
+    // Separate handler function for the View Results button click
+    function handleViewResultsClick(event) {
+        event.preventDefault();
+        
+        // Check if the button is currently disabled or not enabled by state
+        if (this.disabled || !state.viewResultsEnabled) {
+            log('View Results button clicked while disabled or not enabled, ignoring');
+            return false;
+        }
+        
+        log('View Results button clicked, preparing to show results');
+        
+        // Force enable button in case it's still disabled despite state saying it should be enabled
+        this.disabled = false;
+        
+        // Hide all ad overlays immediately
+        hideAllAds();
+        
+        // Set global flags for compatibility with other code
+        window.inResultsMode = true;
+        window.adClosed = true;
+        window.viewResultsBtnClicked = true;
+        window.resultsDisplayed = true;
+        
+        // Set state
+        state.adSequenceComplete = true;
+        
+        // Show results container with slight delay to ensure overlays are hidden
+        setTimeout(function() {
+            if (elements.resultsContainer) {
+                elements.resultsContainer.classList.remove('d-none');
+                elements.resultsContainer.style.display = 'block';
+                log('Results container displayed');
+            } else {
+                log('ERROR: Results container not found!');
+            }
+        }, 100);
+        
+        return false;
     }
 
     // Show the first ad (Public Service Announcement)
@@ -243,9 +262,12 @@
         state.publicServiceAdActive = false;
         state.publicServiceAdComplete = true;
         
-        // Hide the first ad overlay
-        if (elements.publicServiceAdOverlay) {
-            elements.publicServiceAdOverlay.style.display = 'none';
+        // Only hide the first ad overlay if we're not immediately showing the second one
+        // This prevents the flicker/gap between ads
+        if (!window.lastResultsData || window.resultsDisplayed) {
+            if (elements.publicServiceAdOverlay) {
+                elements.publicServiceAdOverlay.style.display = 'none';
+            }
         }
         
         // Show the second ad if results are ready
@@ -267,37 +289,47 @@
         state.monetizationAdStartTime = Date.now();
         state.viewResultsEnabled = false;
         
-        // Show the overlay
-        if (elements.monetizationAdOverlay) {
-            elements.monetizationAdOverlay.style.display = 'flex';
-            log('Monetization ad overlay displayed');
-        } else {
-            log('ERROR: Monetization ad overlay element not found');
+        // Hide first ad overlay if it was visible
+        // Only hide it after making sure the second ad is ready to be shown
+        if (elements.publicServiceAdOverlay && 
+            elements.publicServiceAdOverlay.style.display !== 'none') {
+            log('First ad was visible, hiding it now before showing second ad');
+            elements.publicServiceAdOverlay.style.display = 'none';
         }
         
-        // Make sure button is disabled initially
-        if (elements.viewResultsButton) {
-            elements.viewResultsButton.disabled = true;
-            elements.viewResultsButton.classList.remove('btn-success', 'btn-pulse');
-            elements.viewResultsButton.classList.add('btn-secondary');
-            elements.viewResultsButton.innerHTML = `<i class="fas fa-lock me-2"></i> Continue to Results (Wait ${config.monetizationAdDuration}s)`;
-        }
-        
-        // Show button container but with button disabled
-        if (elements.viewResultsButtonContainer) {
-            elements.viewResultsButtonContainer.style.display = 'block';
-        }
-        
-        // Start the countdown
-        startMonetizationCountdown(function() {
-            // When countdown completes
-            completeMonetizationAd();
-            
-            // Call the callback if provided
-            if (callback && typeof callback === 'function') {
-                callback();
+        // Show the overlay with a small delay for smoother transition
+        setTimeout(function() {
+            if (elements.monetizationAdOverlay) {
+                elements.monetizationAdOverlay.style.display = 'flex';
+                log('Monetization ad overlay displayed');
+            } else {
+                log('ERROR: Monetization ad overlay element not found');
             }
-        });
+            
+            // Make sure button is disabled initially
+            if (elements.viewResultsButton) {
+                elements.viewResultsButton.disabled = true;
+                elements.viewResultsButton.classList.remove('btn-success', 'btn-pulse', 'btn-pulse-subtle');
+                elements.viewResultsButton.classList.add('btn-secondary');
+                elements.viewResultsButton.innerHTML = `<i class="fas fa-lock me-2"></i> Continue to Results (Wait ${config.monetizationAdDuration}s)`;
+            }
+            
+            // Show button container but with button disabled
+            if (elements.viewResultsButtonContainer) {
+                elements.viewResultsButtonContainer.style.display = 'block';
+            }
+            
+            // Start the countdown
+            startMonetizationCountdown(function() {
+                // When countdown completes
+                completeMonetizationAd();
+                
+                // Call the callback if provided
+                if (callback && typeof callback === 'function') {
+                    callback();
+                }
+            });
+        }, 50); // Short delay for smoother transition
     }
 
     // Start countdown for the monetization advertisement
@@ -315,6 +347,14 @@
         
         log(`Starting monetization ad countdown: ${secondsLeft} seconds`);
         
+        // Make sure button is disabled initially
+        if (elements.viewResultsButton) {
+            elements.viewResultsButton.disabled = true;
+            elements.viewResultsButton.classList.remove('btn-success', 'btn-pulse');
+            elements.viewResultsButton.classList.add('btn-secondary');
+            elements.viewResultsButton.innerHTML = `<i class="fas fa-lock me-2"></i> Continue to Results (Wait ${secondsLeft}s)`;
+        }
+        
         // Start countdown timer
         state.monetizationCountdownTimer = setInterval(function() {
             secondsLeft--;
@@ -329,6 +369,12 @@
                 elements.viewResultsButton.innerHTML = `<i class="fas fa-lock me-2"></i> Continue to Results (Wait ${secondsLeft}s)`;
             }
             
+            // Start visual transition during the last 3 seconds
+            if (secondsLeft <= 3 && secondsLeft > 0 && elements.viewResultsButton) {
+                // Add a pulse effect as we get closer to enabling the button
+                elements.viewResultsButton.classList.add('btn-pulse-subtle');
+            }
+            
             // If countdown is complete
             if (secondsLeft <= 0) {
                 // Clear the timer
@@ -336,6 +382,22 @@
                 state.monetizationCountdownTimer = null;
                 
                 log('Monetization ad countdown complete');
+                
+                // Double-check that button is properly enabled
+                if (elements.viewResultsButton) {
+                    elements.viewResultsButton.disabled = false;
+                    elements.viewResultsButton.classList.remove('btn-secondary', 'btn-pulse-subtle');
+                    elements.viewResultsButton.classList.add('btn-success', 'btn-pulse');
+                    elements.viewResultsButton.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results';
+                    log('View Results button enabled by countdown');
+                    
+                    // Force DOM update to ensure button is enabled
+                    setTimeout(function() {
+                        if (elements.viewResultsButton) {
+                            elements.viewResultsButton.disabled = false;
+                        }
+                    }, 100);
+                }
                 
                 // Call the callback
                 if (callback && typeof callback === 'function') {
