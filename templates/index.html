@@ -694,8 +694,11 @@ function updateCharts(data) {
     // Update hot and cold numbers section using the same extracted data
     updateHotColdNumbers(data, frequencyData);
     
-    // Update division statistics chart
-    updateDivisionChart(data);
+    // Update division statistics chart with the same shared data
+    updateDivisionChart(data, frequencyData);
+    
+    // Log completion of chart updates
+    console.log("All chart components updated with shared frequency data:", frequencyData.lotteryType);
     
     // Charts are now ready - we no longer use the pie chart container
     // Keep this section for future chart code but removed the pie chart references
@@ -757,6 +760,8 @@ function updateHotColdNumbers(data, frequencyData) {
     if (hotColdLoading) {
         hotColdLoading.classList.remove('d-none');
     }
+    
+    console.log("Updating hot/cold numbers with shared data:", frequencyData);
     
     // If we have no data from the shared frequency data, show error message
     if (!frequencyData || !frequencyData.data || !frequencyData.lotteryType) {
@@ -1128,20 +1133,30 @@ function updateFrequencyChart(data, frequencyData) {
 }
 
 // Function to update the Hot & Cold Numbers chart
-function updateDivisionChart(data) {
+function updateDivisionChart(data, frequencyData) {
     // Get the temperature chart container
     const tempChartContainer = document.querySelector('.temperature-chart-container');
     if (!tempChartContainer) return;
     
-    // Find the lottery type with the most data
+    console.log("Updating division chart with shared data:", frequencyData);
+    
+    // Use shared frequency data instead of finding the lottery type with the most data
     let selectedLotteryType = null;
     let maxFrequencyData = [];
     
-    // Find the lottery type with the most data
-    for (const lotteryType in data) {
-        if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
-            maxFrequencyData = data[lotteryType].frequency;
-            selectedLotteryType = lotteryType;
+    if (frequencyData && frequencyData.lotteryType && frequencyData.data) {
+        selectedLotteryType = frequencyData.lotteryType;
+        if (frequencyData.data.frequency) {
+            maxFrequencyData = frequencyData.data.frequency;
+        }
+    } else {
+        // Fallback to the old method if no shared data is available
+        // Find the lottery type with the most data
+        for (const lotteryType in data) {
+            if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
+                maxFrequencyData = data[lotteryType].frequency;
+                selectedLotteryType = lotteryType;
+            }
         }
     }
     
@@ -1152,13 +1167,17 @@ function updateDivisionChart(data) {
     }
     
     // Get the frequency data for this lottery type
-    const frequencyData = data[selectedLotteryType].frequency;
+    const frequencyArray = frequencyData && frequencyData.data && frequencyData.data.frequency ? 
+                          frequencyData.data.frequency : 
+                          data[selectedLotteryType].frequency;
     
     // If no frequency data, show a message and return
-    if (!frequencyData || !frequencyData.length) {
+    if (!frequencyArray || !frequencyArray.length) {
         tempChartContainer.innerHTML = '<div class="text-center my-5">No number data available for the selected filters.</div>';
         return;
     }
+    
+    console.log("Using frequency array with length:", frequencyArray.length);
     
     // Clear the container except for the header
     const header = tempChartContainer.querySelector('h6');
@@ -1187,10 +1206,10 @@ function updateDivisionChart(data) {
     
     // Collect the frequency data and sort by frequency
     const sortedNumbers = [];
-    for (let i = 0; i < frequencyData.length; i++) {
+    for (let i = 0; i < frequencyArray.length; i++) {
         sortedNumbers.push({
             number: i + 1,
-            frequency: frequencyData[i]
+            frequency: frequencyArray[i]
         });
     }
     
@@ -1315,7 +1334,13 @@ function updateDivisionChart(data) {
     // Note about the data
     const noteContainer = document.createElement('div');
     noteContainer.className = 'text-center mt-2';
-    noteContainer.innerHTML = `<small class="text-muted">${selectedLotteryType} number frequency, ${data[selectedLotteryType].total_draws} draws</small>`;
+    
+    // Use data from the shared frequency object when available
+    const totalDraws = frequencyData && frequencyData.data && frequencyData.data.total_draws ? 
+                      frequencyData.data.total_draws : 
+                      data[selectedLotteryType].total_draws;
+                      
+    noteContainer.innerHTML = `<small class="text-muted">${selectedLotteryType} number frequency, ${totalDraws} draws</small>`;
     tempChartContainer.appendChild(noteContainer);
 }
 
