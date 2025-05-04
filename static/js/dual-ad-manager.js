@@ -202,6 +202,39 @@
             log('ERROR: Public service announcement overlay element not found');
         }
         
+        // Only create countdown if it doesn't already exist
+        if (!document.getElementById('first-countdown-container')) {
+            // Create a dynamic countdown element
+            let countdownContainer = document.createElement('div');
+            countdownContainer.id = 'first-countdown-container';
+            countdownContainer.className = 'text-center mt-3 mb-2';
+            countdownContainer.style.fontWeight = 'bold';
+            countdownContainer.style.color = '#495057';
+            countdownContainer.style.backgroundColor = '#f8f9fa';
+            countdownContainer.style.padding = '8px';
+            countdownContainer.style.borderRadius = '5px';
+            countdownContainer.style.maxWidth = '350px';
+            countdownContainer.style.marginLeft = 'auto';
+            countdownContainer.style.marginRight = 'auto';
+            
+            let countdownText = document.createElement('span');
+            countdownText.id = 'first-countdown';
+            countdownText.textContent = config.publicServiceAdDuration;
+            
+            countdownContainer.innerHTML = 'Please wait ';
+            countdownContainer.appendChild(countdownText);
+            countdownContainer.innerHTML += ' seconds';
+            
+            // Find the container to append this countdown
+            const appendContainer = elements.publicServiceAdOverlay.querySelector('.mt-3');
+            if (appendContainer) {
+                appendContainer.appendChild(countdownContainer);
+            }
+        }
+        
+        // Always make sure we have a reference to the countdown element
+        elements.publicServiceCountdown = document.getElementById('first-countdown');
+        
         // Start the countdown
         startPublicServiceCountdown(function() {
             // When countdown completes
@@ -246,7 +279,7 @@
                 
                 log('Public service announcement countdown complete');
                 
-                // Call the callback
+                // Call the callback immediately to prevent delays
                 if (callback && typeof callback === 'function') {
                     callback();
                 }
@@ -289,47 +322,79 @@
         state.monetizationAdStartTime = Date.now();
         state.viewResultsEnabled = false;
         
-        // Hide first ad overlay if it was visible
-        // Only hide it after making sure the second ad is ready to be shown
-        if (elements.publicServiceAdOverlay && 
-            elements.publicServiceAdOverlay.style.display !== 'none') {
-            log('First ad was visible, hiding it now before showing second ad');
-            elements.publicServiceAdOverlay.style.display = 'none';
-        }
-        
-        // Show the overlay with a small delay for smoother transition
-        setTimeout(function() {
-            if (elements.monetizationAdOverlay) {
-                elements.monetizationAdOverlay.style.display = 'flex';
-                log('Monetization ad overlay displayed');
-            } else {
-                log('ERROR: Monetization ad overlay element not found');
-            }
+        // First make sure the second ad is ready to display
+        if (elements.monetizationAdOverlay) {
+            // Prepare the ad but don't display it yet 
+            elements.monetizationAdOverlay.style.opacity = '0';
+            elements.monetizationAdOverlay.style.display = 'flex';
             
-            // Make sure button is disabled initially
+            // Make sure button is properly set up initially - grey without lock icon
             if (elements.viewResultsButton) {
                 elements.viewResultsButton.disabled = true;
-                elements.viewResultsButton.classList.remove('btn-success', 'btn-pulse', 'btn-pulse-subtle');
+                elements.viewResultsButton.classList.remove('btn-success', 'btn-pulse', 'btn-pulse-subtle', 'btn-glow');
                 elements.viewResultsButton.classList.add('btn-secondary');
-                elements.viewResultsButton.innerHTML = `<i class="fas fa-lock me-2"></i> Continue to Results (Wait ${config.monetizationAdDuration}s)`;
+                elements.viewResultsButton.innerHTML = `Continue to Results (Wait ${config.monetizationAdDuration}s)`;
             }
             
             // Show button container but with button disabled
             if (elements.viewResultsButtonContainer) {
                 elements.viewResultsButtonContainer.style.display = 'block';
             }
+        }
+        
+        // Now perform the perfect transition - hide first ad and show second ad simultaneously
+        // This completely eliminates any gap between ads
+        if (elements.publicServiceAdOverlay) {
+            // Add fade-out effect to first ad
+            elements.publicServiceAdOverlay.style.transition = 'opacity 0.3s ease';
+            elements.publicServiceAdOverlay.style.opacity = '0';
             
-            // Start the countdown
-            startMonetizationCountdown(function() {
-                // When countdown completes
-                completeMonetizationAd();
-                
-                // Call the callback if provided
-                if (callback && typeof callback === 'function') {
-                    callback();
+            // After fade-out completes, hide first ad and fully show second ad
+            setTimeout(function() {
+                // Hide first ad completely
+                if (elements.publicServiceAdOverlay) {
+                    elements.publicServiceAdOverlay.style.display = 'none';
+                    log('First ad hidden');
                 }
-            });
-        }, 50); // Short delay for smoother transition
+                
+                // Show second ad with fade-in effect
+                if (elements.monetizationAdOverlay) {
+                    elements.monetizationAdOverlay.style.transition = 'opacity 0.3s ease';
+                    elements.monetizationAdOverlay.style.opacity = '1';
+                    log('Monetization ad overlay displayed');
+                } else {
+                    log('ERROR: Monetization ad overlay element not found');
+                }
+                
+                // Start the countdown after ensuring smooth transition
+                startMonetizationCountdown(function() {
+                    // When countdown completes
+                    completeMonetizationAd();
+                    
+                    // Call the callback if provided
+                    if (callback && typeof callback === 'function') {
+                        callback();
+                    }
+                });
+            }, 300); // Match this with the transition duration
+        } else {
+            // If first ad not found, just show second ad immediately
+            if (elements.monetizationAdOverlay) {
+                elements.monetizationAdOverlay.style.opacity = '1';
+                log('Monetization ad overlay displayed (first ad not found)');
+                
+                // Start the countdown
+                startMonetizationCountdown(function() {
+                    // When countdown completes
+                    completeMonetizationAd();
+                    
+                    // Call the callback if provided
+                    if (callback && typeof callback === 'function') {
+                        callback();
+                    }
+                });
+            }
+        }
     }
 
     // Start countdown for the monetization advertisement
@@ -347,12 +412,17 @@
         
         log(`Starting monetization ad countdown: ${secondsLeft} seconds`);
         
-        // Make sure button is disabled initially
+        // Make sure button is properly set up initially - grey with no lock icon
         if (elements.viewResultsButton) {
             elements.viewResultsButton.disabled = true;
-            elements.viewResultsButton.classList.remove('btn-success', 'btn-pulse');
+            elements.viewResultsButton.classList.remove('btn-success', 'btn-pulse', 'btn-pulse-subtle');
             elements.viewResultsButton.classList.add('btn-secondary');
-            elements.viewResultsButton.innerHTML = `<i class="fas fa-lock me-2"></i> Continue to Results (Wait ${secondsLeft}s)`;
+            elements.viewResultsButton.innerHTML = `Continue to Results (Wait ${secondsLeft}s)`; // No lock icon
+        }
+        
+        // Show button container
+        if (elements.viewResultsButtonContainer) {
+            elements.viewResultsButtonContainer.style.display = 'block';
         }
         
         // Start countdown timer
@@ -364,14 +434,14 @@
                 elements.monetizationCountdown.textContent = secondsLeft;
             }
             
-            // Update button text
+            // Update button text but WITHOUT lock icon
             if (elements.viewResultsButton && secondsLeft > 0) {
-                elements.viewResultsButton.innerHTML = `<i class="fas fa-lock me-2"></i> Continue to Results (Wait ${secondsLeft}s)`;
+                elements.viewResultsButton.innerHTML = `Continue to Results (Wait ${secondsLeft}s)`;
             }
             
             // Start visual transition during the last 3 seconds
             if (secondsLeft <= 3 && secondsLeft > 0 && elements.viewResultsButton) {
-                // Add a pulse effect as we get closer to enabling the button
+                // Add a subtle pulse effect as we get closer to enabling the button
                 elements.viewResultsButton.classList.add('btn-pulse-subtle');
             }
             
@@ -383,20 +453,38 @@
                 
                 log('Monetization ad countdown complete');
                 
-                // Double-check that button is properly enabled
+                // Update state
+                state.viewResultsEnabled = true;
+                
+                // Ensure button is properly enabled with correct appearance
                 if (elements.viewResultsButton) {
-                    elements.viewResultsButton.disabled = false;
+                    // First remove all classes that might interfere
                     elements.viewResultsButton.classList.remove('btn-secondary', 'btn-pulse-subtle');
+                    
+                    // Force the button to be enabled
+                    elements.viewResultsButton.disabled = false;
+                    
+                    // Add success styling and pulse effect
                     elements.viewResultsButton.classList.add('btn-success', 'btn-pulse');
+                    
+                    // Update button text - no lock icon, just checkmark
                     elements.viewResultsButton.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results';
+                    
                     log('View Results button enabled by countdown');
                     
-                    // Force DOM update to ensure button is enabled
+                    // Force a second update to ensure button is enabled
+                    // This helps with browser rendering issues
                     setTimeout(function() {
                         if (elements.viewResultsButton) {
                             elements.viewResultsButton.disabled = false;
+                            
+                            // Add an additional class to ensure the change is noticeable
+                            elements.viewResultsButton.classList.add('btn-glow');
+                            
+                            // Force a redraw by accessing offsetHeight
+                            elements.viewResultsButton.offsetHeight;
                         }
-                    }, 100);
+                    }, 50);
                 }
                 
                 // Call the callback
@@ -480,12 +568,33 @@
             elements.monetizationCountdown.textContent = config.monetizationAdDuration;
         }
         
-        // Reset button state
+        // Reset CSS transitions
+        if (elements.publicServiceAdOverlay) {
+            elements.publicServiceAdOverlay.style.transition = '';
+            elements.publicServiceAdOverlay.style.opacity = '1';
+        }
+        
+        if (elements.monetizationAdOverlay) {
+            elements.monetizationAdOverlay.style.transition = '';
+            elements.monetizationAdOverlay.style.opacity = '1';
+        }
+        
+        // Reset button state completely
         if (elements.viewResultsButton) {
+            // Reset all button properties
             elements.viewResultsButton.disabled = true;
-            elements.viewResultsButton.classList.remove('btn-success', 'btn-pulse');
+            
+            // Remove all possible classes
+            elements.viewResultsButton.classList.remove(
+                'btn-success', 'btn-pulse', 'btn-pulse-subtle', 
+                'btn-glow', 'btn-primary'
+            );
+            
+            // Add only the initial classes
             elements.viewResultsButton.classList.add('btn-secondary');
-            elements.viewResultsButton.innerHTML = `<i class="fas fa-lock me-2"></i> Continue to Results (Wait ${config.monetizationAdDuration}s)`;
+            
+            // Reset button text to initial state without lock icon
+            elements.viewResultsButton.innerHTML = `Continue to Results (Wait ${config.monetizationAdDuration}s)`;
         }
         
         // Hide button container
@@ -493,7 +602,7 @@
             elements.viewResultsButtonContainer.style.display = 'none';
         }
         
-        // Reset global flags for compatibility
+        // Reset global flags for compatibility with other code
         window.inResultsMode = false;
         window.adClosed = false;
         window.viewResultsBtnClicked = false;

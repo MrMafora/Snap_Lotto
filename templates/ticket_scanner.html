@@ -257,6 +257,17 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         animation: btn-pulse 1.5s infinite;
     }
     
+    /* Button glow effect for enabled state */
+    .btn-glow {
+        box-shadow: 0 0 15px rgba(40, 167, 69, 0.7);
+        transition: all 0.3s ease;
+    }
+    
+    /* Button state transitions */
+    .btn-secondary, .btn-success {
+        transition: all 0.3s ease;
+    }
+    
     /* Fix for spinner animation */
     @keyframes spinner-border {
         to { transform: rotate(360deg); }
@@ -276,7 +287,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% endblock %}
 
 {% block content %}
-<!-- Ad overlay - Loading screen -->
+<!-- Ad overlay - Loading screen (First ad - Public Service) -->
 <div id="ad-overlay-loading" class="interstitial-view">
     <h4 class="mb-4">Processing your ticket...</h4>
     <div id="ad-container-loader" class="ad-container">
@@ -293,14 +304,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         <p class="loading-message">Scanning in progress...</p>
         <p class="small text-muted mt-2">This will take a few moments</p>
         
-        <!-- First ad countdown timer -->
-        <div id="first-countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;">
-            Please wait <span id="first-countdown">5</span> seconds
-        </div>
+        <!-- First ad countdown timer - We'll manage this through JS only to prevent duplicate countdowns -->
     </div>
 </div>
 
-<!-- Ad overlay - Results screen -->
+<!-- Ad overlay - Results screen (Second ad - Monetization) -->
 <div id="ad-overlay-results" class="interstitial-view">
     <h3 class="mb-3 text-success">Results Ready! <i class="fas fa-check-circle"></i></h3>
     <div class="alert alert-info mb-3" style="max-width: 400px;">
@@ -314,14 +322,16 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             <p class="small text-muted mt-2">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
         </div>
     </div>
-    <!-- Countdown timer with a single consistent display -->
+    
+    <!-- Single unified countdown container -->
     <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;">
-        Please wait <span id="countdown">15</span> seconds to view your results
+        Please wait <span id="countdown">15</span> seconds
     </div>
-    <!-- Button initially hidden and will be shown only when the countdown completes -->
+    
+    <!-- Button container -->
     <div id="view-results-btn-container" style="display: none;">
-        <button class="btn btn-secondary btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;" disabled>
-            <i class="fas fa-lock me-2"></i> Continue to Results (Wait 15s)
+        <button class="btn btn-secondary btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px; transition: all 0.3s ease;" disabled>
+            Continue to Results
         </button>
     </div>
 </div>
