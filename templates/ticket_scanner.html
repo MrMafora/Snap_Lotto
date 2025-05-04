@@ -6,14 +6,8 @@
 <!-- PERFORMANCE: Mobile optimization script loads first to improve performance -->
 <script src="{{ url_for('static', filename='js/mobile-optimization.js') }}" data-critical="true"></script>
 
-<!-- NEW: Fixed advertisement system with 5-second first ad and proper timing -->
-<script src="{{ url_for('static', filename='js/debug-ad-log.js') }}" data-critical="true"></script>
-<script src="{{ url_for('static', filename='js/ad-countdown-fix.js') }}" data-critical="true"></script>
-
-<!-- Mobile-optimized advertisement system with enhanced timing enforcement - SINGLE TIMER SOURCE -->
-<script src="{{ url_for('static', filename='js/ads-mobile.js') }}" data-critical="true"></script>
-<!-- Ultra-simple countdown system for reliability -->
-<script src="{{ url_for('static', filename='js/simple-countdown.js') }}" data-critical="true"></script>
+<!-- NEW STREAMLINED ADVERTISEMENT SYSTEM: Dual-tier ads (5s PSA + 15s monetization) -->
+<script src="{{ url_for('static', filename='js/dual-ad-manager.js') }}" data-critical="true"></script>
 
 <!-- Inline critical Font Awesome fix - immediate execution before DOM loads -->
 <style>
@@ -70,10 +64,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <link rel="preload" href="{{ url_for('static', filename='css/optimized-mobile.css') }}" as="style">
 <link rel="preload" href="{{ url_for('static', filename='js/mobile-optimization.js') }}" as="script">
 <link rel="preload" href="{{ url_for('static', filename='js/scanner-icon-fix.js') }}" as="script">
-<link rel="preload" href="{{ url_for('static', filename='js/ads-mobile.js') }}" as="script">
-<link rel="preload" href="{{ url_for('static', filename='js/simple-countdown.js') }}" as="script">
-<link rel="preload" href="{{ url_for('static', filename='js/debug-ad-log.js') }}" as="script">
-<link rel="preload" href="{{ url_for('static', filename='js/ad-countdown-fix.js') }}" as="script">
+<link rel="preload" href="{{ url_for('static', filename='js/dual-ad-manager.js') }}" as="script">
 
 <!-- Mobile-optimized CSS loads first -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/optimized-mobile.css') }}">
@@ -333,7 +324,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             <i class="fa fa-info-circle me-1"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
                         </div>
 
-                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data" onsubmit="event.preventDefault(); processTicketWithAds(); return false;">
+                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data" onsubmit="event.preventDefault(); if (window.DualAdManager) { DualAdManager.showPublicServiceAd(); } return false;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-2">
                                 <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
@@ -841,39 +832,27 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             // Create form data for later use
             const formData = new FormData(ticketForm);
             
-            // Show the loading ad overlay first
-            const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            adOverlayLoading.style.display = 'flex';
-            
-            // Immediately trigger the first countdown
-            document.dispatchEvent(new CustomEvent('trigger-countdown', {
-                detail: { phase: 'first', seconds: 15 }
-            }));
-            
-            // Ensure the ad overlay stays visible for at least 2 seconds before processing
-            setTimeout(() => {
-                // Check if AdManager is available and use it to show ad, otherwise just process
-                if (window.AdManager && typeof window.AdManager.showLoadingAd === 'function') {
-                    console.log('Using AdManager to show loading ad');
-                    window.AdManager.showLoadingAd(function(adShown) {
-                        // Keep ad visible for at least 5 seconds total
-                        setTimeout(() => {
-                            // After ad is displayed for minimum time, process the ticket
-                            console.log('Ad loading callback returned after minimum display time:', adShown);
-                            processTicket(formData);
-                        }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
-                    });
-                } else {
-                    // Fallback - Ad overlay is already shown manually
-                    console.log('AdManager not available, showing overlay manually');
-                    
-                    // Process the ticket after a minimum viewing time
-                    setTimeout(() => {
-                        console.log('Processing ticket without AdManager after minimum ad view time');
-                        processTicket(formData);
-                    }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
-                }
-            }, 2000); // Initial 2 seconds minimum display time
+            // Use the new Dual Ad Manager for streamlined ad flow
+            if (window.DualAdManager) {
+                console.log('Using streamlined Dual Ad Manager for the two-tier ad experience');
+                window.DualAdManager.showPublicServiceAd();
+                
+                // Process the ticket immediately (the ad will stay visible for 5 seconds regardless)
+                processTicket(formData);
+            } else {
+                // Fallback in case the dual ad manager isn't loaded
+                console.log('DualAdManager not available, showing overlay manually');
+                
+                // Show the loading ad overlay first
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                adOverlayLoading.style.display = 'flex';
+                
+                // Process the ticket after a 5-second delay
+                setTimeout(() => {
+                    console.log('Processing ticket after 5-second public service announcement');
+                    processTicket(formData);
+                }, 5000); // Exactly 5 seconds for the public service announcement
+            }
         }
         
         // Function to process the ticket after ad is shown
@@ -930,43 +909,46 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 // Set flag to indicate we have real results
                 window.hasValidResults = true;
                 
-                // Hide loading overlay with deliberate sequencing to ensure proper ad transition
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                
-                // CRITICAL FIX: Get the results overlay BEFORE hiding the loading overlay
-                const adOverlayResults = document.getElementById('ad-overlay-results');
-                
-                // Prepare the results overlay transition by making sure it's ready to be visible
-                adOverlayResults.style.opacity = '1';
-                adOverlayResults.style.visibility = 'visible';
-                
-                // Log the transition for debugging
-                console.log('⚠️ CRITICAL TRANSITION: About to hide loading overlay and show results overlay');
-                
-                // CRITICAL FIX: Add a deliberate sequence with very slight delays for proper transition
-                // This resolves the iOS issue where it jumps back to the main screen
-                setTimeout(function() {
-                    // Step 1: Hide the loading overlay
-                    adOverlayLoading.style.display = 'none';
+                // Use the Dual Ad Manager for transitioning from first to second ad
+                if (window.DualAdManager) {
+                    console.log('Using Dual Ad Manager for transitioning to monetization ad');
                     
-                    // Step 2: Show the results overlay after a tiny delay to ensure proper sequence
-                    setTimeout(function() {
-                        // Force display of results overlay
-                        adOverlayResults.style.display = 'flex';
-                        console.log('⚠️ CRITICAL TRANSITION: Results overlay should now be visible');
-                    }, 50); // Just 50ms delay for sequencing
-                }, 50); // Just 50ms delay before starting transition
-                
-                // Try to use AdManager for tracking, but we'll show the overlay manually either way
-                if (window.AdManager && typeof window.AdManager.showInterstitialAd === 'function') {
-                    console.log('Using AdManager to show interstitial ad');
-                    window.AdManager.showInterstitialAd(function(adShown) {
-                        console.log('Interstitial ad shown:', adShown);
-                        // Make sure the overlay is displayed even if AdManager fails
-                        adOverlayResults.style.display = 'flex';
-                    });
+                    // First hide the first ad (public service announcement)
+                    // Then show the second ad (monetization ad)
+                    window.DualAdManager.showMonetizationAd();
                 } else {
-                    console.log('AdManager not available, showing results overlay manually');
+                    // Fallback for manual transition if DualAdManager isn't available
+                    console.log('DualAdManager not available, doing manual transition');
+                    
+                    // Get references to both ad overlays
+                    const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                    const adOverlayResults = document.getElementById('ad-overlay-results');
+                    
+                    // Prepare the results overlay transition by making sure it's ready to be visible
+                    adOverlayResults.style.opacity = '1';
+                    adOverlayResults.style.visibility = 'visible';
+                    
+                    // Log the transition for debugging
+                    console.log('⚠️ CRITICAL TRANSITION: About to hide loading overlay and show results overlay');
+                    
+                    // CRITICAL FIX: Add a deliberate sequence with very slight delays for proper transition
+                    // This resolves the iOS issue where it jumps back to the main screen
+                    setTimeout(function() {
+                        // Step 1: Hide the loading overlay
+                        adOverlayLoading.style.display = 'none';
+                        
+                        // Step 2: Show the results overlay after a tiny delay to ensure proper sequence
+                        setTimeout(function() {
+                            // Force display of results overlay
+                            adOverlayResults.style.display = 'flex';
+                            console.log('⚠️ CRITICAL TRANSITION: Results overlay should now be visible');
+                            
+                            // Start the monetization ad countdown (15 seconds)
+                            document.dispatchEvent(new CustomEvent('trigger-countdown', {
+                                detail: { phase: 'second', seconds: 15 }
+                            }));
+                        }, 50); // Just 50ms delay for sequencing
+                    }, 50); // Just 50ms delay before starting transition
                 }
                 
                 console.log('Showing results interstitial ad');
@@ -992,33 +974,47 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Store locally to ensure we have it for display
                     const resultsToShow = window.lastResultsData || data;
                     
-                    // Clear ALL possible timers to prevent any conflicts
-                    // This is important to prevent any hidden callbacks from running later
-                    for (let i = 1; i < 10000; i++) {
-                        clearTimeout(i);
-                        clearInterval(i);
-                    }
-                    
-                    // Clear our named timers
-                    if (window.countdownInterval) {
-                        clearInterval(window.countdownInterval);
-                        window.countdownInterval = null;
-                    }
-                    
-                    if (window.countdownTimeout) {
-                        clearTimeout(window.countdownTimeout);
-                        window.countdownTimeout = null;
-                    }
-                    
-                    // Reset other possible timeout variables
-                    if (window.adDisplayTimeout) {
-                        clearTimeout(window.adDisplayTimeout);
-                        window.adDisplayTimeout = null;
-                    }
-                    
-                    if (window.resultDisplayTimeout) {
-                        clearTimeout(window.resultDisplayTimeout);
-                        window.resultDisplayTimeout = null;
+                    // Use the Dual Ad Manager to hide ads if available
+                    if (window.DualAdManager) {
+                        console.log('Using Dual Ad Manager to hide all ads and show results');
+                        window.DualAdManager.hideAllAds();
+                    } else {
+                        // Fallback: Clear ALL possible timers to prevent any conflicts
+                        // This is important to prevent any hidden callbacks from running later
+                        for (let i = 1; i < 10000; i++) {
+                            clearTimeout(i);
+                            clearInterval(i);
+                        }
+                        
+                        // Clear our named timers
+                        if (window.countdownInterval) {
+                            clearInterval(window.countdownInterval);
+                            window.countdownInterval = null;
+                        }
+                        
+                        if (window.countdownTimeout) {
+                            clearTimeout(window.countdownTimeout);
+                            window.countdownTimeout = null;
+                        }
+                        
+                        // Reset other possible timeout variables
+                        if (window.adDisplayTimeout) {
+                            clearTimeout(window.adDisplayTimeout);
+                            window.adDisplayTimeout = null;
+                        }
+                        
+                        if (window.resultDisplayTimeout) {
+                            clearTimeout(window.resultDisplayTimeout);
+                            window.resultDisplayTimeout = null;
+                        }
+                        
+                        // Force hide all overlays manually
+                        const allOverlays = document.querySelectorAll('[id^="ad-overlay"]');
+                        allOverlays.forEach(overlay => {
+                            overlay.style.display = 'none';
+                            overlay.style.opacity = '0';
+                            overlay.style.visibility = 'hidden';
+                        });
                     }
                     
                     // Set state flags immediately
@@ -1027,15 +1023,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     window.showingResultsAfterAd = true;
                     window.adClosed = true;
                     window.viewResultsBtnClicked = true; // New flag for tracking this specific click
-                    
-                    // Get the ad overlay for transition effects
-                    const adOverlay = document.getElementById('ad-overlay');
-                    if (adOverlay) {
-                        adOverlay.classList.add('closing');
-                    }
-                    
-                    // Apply closing animation to ad overlay results
-                    adOverlayResults.classList.add('closing');
                     
                     // Save the data for reuse if needed
                     window.lastTicketData = data;
@@ -1046,14 +1033,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     document.body.classList.add('results-mode');
                     document.body.classList.add('showing-results');
                     document.body.classList.add('ad-closed');
-                    
-                    // Force hide all overlays immediately (don't wait for animation)
-                    const allOverlays = document.querySelectorAll('[id^="ad-overlay"]');
-                    allOverlays.forEach(overlay => {
-                        overlay.style.display = 'none';
-                        overlay.style.opacity = '0';
-                        overlay.style.visibility = 'hidden';
-                    });
                     
                     // Make sure body scrolling is enabled using our improved function
                     if (typeof enableScrolling === 'function') {
