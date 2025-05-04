@@ -1784,6 +1784,64 @@ def sync_single_screenshot(screenshot_id):
     
     return redirect(url_for('export_screenshots'))
 
+@app.route('/preview-website/<int:screenshot_id>')
+@login_required
+def preview_website(screenshot_id):
+    """
+    Generate and serve a real-time preview image of the website.
+    This approach bypasses iframe restrictions by rendering the site server-side.
+    """
+    from io import BytesIO
+    import base64
+    
+    try:
+        # Retrieve the screenshot object
+        screenshot = Screenshot.query.get_or_404(screenshot_id)
+        
+        # Use the existing screenshot capture function to generate a fresh preview
+        # This leverages our existing Playwright setup which already handles anti-bot measures
+        from screenshot_manager import capture_screenshot_sync
+        filepath, img_data, _ = capture_screenshot_sync(screenshot.url)
+        
+        if img_data:
+            # Return the image data with appropriate headers
+            return send_file(
+                BytesIO(img_data),
+                mimetype='image/png',
+                download_name=f'preview_{screenshot_id}.png',
+                as_attachment=False,
+                etag=False,
+                cache_timeout=300  # Cache for 5 minutes
+            )
+        else:
+            # If capture failed, return a placeholder error image
+            # Generate a simple error message image
+            from PIL import Image, ImageDraw
+            img = Image.new('RGB', (800, 600), color=(248, 249, 250))
+            d = ImageDraw.Draw(img)
+            
+            # Draw error text
+            d.text((20, 20), f"Preview Error: Could not load {screenshot.url}", fill=(200, 50, 50))
+            d.text((20, 60), "The website may be blocking access or experiencing issues.", fill=(50, 50, 50))
+            d.text((20, 100), f"Try using the 'Resync' button to capture a full screenshot.", fill=(50, 50, 50))
+            
+            # Save to buffer
+            buffer = BytesIO()
+            img.save(buffer, 'PNG')
+            buffer.seek(0)
+            
+            # Return the error image
+            return send_file(
+                buffer,
+                mimetype='image/png',
+                download_name=f'preview_error_{screenshot_id}.png',
+                as_attachment=False
+            )
+    
+    except Exception as e:
+        app.logger.error(f"Error generating preview for {screenshot_id}: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/cleanup-screenshots', methods=['POST'])
 @login_required
 @csrf.exempt
