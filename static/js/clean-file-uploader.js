@@ -520,4 +520,13 @@
             return {...state};
         }
     };
+    
+    // Self-initialize after a brief delay to allow DOM to fully load
+    setTimeout(function() {
+        if (!window.cleanFileUploaderInitialized) {
+            console.log('[CleanFileUploader] Auto-initializing');
+            initialize();
+            window.cleanFileUploaderInitialized = true;
+        }
+    }, 300);
 })();

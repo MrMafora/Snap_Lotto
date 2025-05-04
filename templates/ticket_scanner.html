@@ -3300,4 +3300,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <script src="{{ url_for('static', filename='js/file-upload-test.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/clean-file-uploader.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/ticket-scanner-integration.js') }}" defer></script>
+<!-- Critical Fix: High-priority file upload fix loads as early as possible -->
+<script src="{{ url_for('static', filename='js/file-upload-fix.js') }}"></script>
 {% endblock %}
