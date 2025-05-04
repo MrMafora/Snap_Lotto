@@ -1,12 +1,13 @@
 /**
- * Emergency Button Fix
+ * Emergency Button Fix with Advertisement Integration
  * This is a critical emergency fix for the file selection button
  * that uses a completely isolated approach to avoid all conflicts
+ * while preserving the advertisement system
  */
 
 // Run this script as late as possible to override any other scripts
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[EMERGENCY] Emergency button fix initializing');
+    console.log('[EMERGENCY] Emergency button fix initializing with ad integration');
     
     // Use setTimeout to ensure this runs after all other scripts
     setTimeout(function() {
@@ -103,6 +104,123 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn('[EMERGENCY] Could not find original file select button');
         }
     }
+    
+    // CRITICAL ADVERTISEMENT SYSTEM INTEGRATION
+    // We need to hook into the file upload completion to trigger ads
+    const originalXHROpen = XMLHttpRequest.prototype.open;
+    const originalXHRSend = XMLHttpRequest.prototype.send;
+    
+    // Intercept all XHR requests to check for ticket scanning completion
+    XMLHttpRequest.prototype.open = function() {
+        this._ticketScannerUrl = arguments[1];
+        return originalXHROpen.apply(this, arguments);
+    };
+    
+    XMLHttpRequest.prototype.send = function() {
+        // Only hook into ticket scanner requests
+        if (this._ticketScannerUrl && this._ticketScannerUrl.includes('/scan-ticket')) {
+            this.addEventListener('load', function() {
+                if (this.status === 200) {
+                    console.log('[EMERGENCY] Ticket scan completed successfully, triggering ad system');
+                    try {
+                        const response = JSON.parse(this.responseText);
+                        
+                        // Store the results data for later use
+                        window.lastResultsData = response;
+                        
+                        // First trigger the public service announcement (5 seconds)
+                        const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                        if (adOverlayLoading) {
+                            console.log('[EMERGENCY] Showing 5-second public service announcement');
+                            adOverlayLoading.style.display = 'flex';
+                            document.body.style.overflow = 'hidden';
+                            
+                            // Then show the monetization ad after 5 seconds
+                            setTimeout(function() {
+                                console.log('[EMERGENCY] Public service announcement completed, switching to monetization ad');
+                                adOverlayLoading.style.display = 'none';
+                                
+                                const adOverlayResults = document.getElementById('ad-overlay-results');
+                                if (adOverlayResults) {
+                                    // Show the monetization ad (15 seconds)
+                                    adOverlayResults.style.display = 'flex';
+                                    
+                                    // Update the countdown display
+                                    const countdownElement = document.getElementById('countdown');
+                                    if (countdownElement) {
+                                        let remainingSeconds = 15;
+                                        countdownElement.textContent = remainingSeconds;
+                                        
+                                        const intervalId = setInterval(function() {
+                                            remainingSeconds--;
+                                            countdownElement.textContent = remainingSeconds;
+                                            
+                                            if (remainingSeconds <= 0) {
+                                                clearInterval(intervalId);
+                                                
+                                                // Enable the View Results button
+                                                const viewResultsBtn = document.getElementById('view-results-btn');
+                                                if (viewResultsBtn) {
+                                                    viewResultsBtn.disabled = false;
+                                                    viewResultsBtn.classList.remove('btn-secondary');
+                                                    viewResultsBtn.classList.add('btn-success');
+                                                    viewResultsBtn.classList.add('btn-pulse');
+                                                }
+                                                
+                                                // Show the View Results button container
+                                                const viewResultsBtnContainer = document.getElementById('view-results-btn-container');
+                                                if (viewResultsBtnContainer) {
+                                                    viewResultsBtnContainer.style.display = 'block';
+                                                }
+                                            }
+                                        }, 1000);
+                                    }
+                                } else {
+                                    console.error('[EMERGENCY] Could not find monetization ad overlay');
+                                }
+                            }, 5000);
+                        } else {
+                            console.error('[EMERGENCY] Could not find public service announcement overlay');
+                        }
+                    } catch (error) {
+                        console.error('[EMERGENCY] Error processing scan response:', error);
+                    }
+                }
+            });
+        }
+        return originalXHRSend.apply(this, arguments);
+    };
+    
+    // Make sure view results button works properly
+    setTimeout(function() {
+        const viewResultsBtn = document.getElementById('view-results-btn');
+        if (viewResultsBtn) {
+            viewResultsBtn.addEventListener('click', function() {
+                console.log('[EMERGENCY] View Results button clicked');
+                
+                // Hide all ad overlays
+                const adOverlays = document.querySelectorAll('[id^="ad-overlay"]');
+                adOverlays.forEach(function(overlay) {
+                    overlay.style.display = 'none';
+                });
+                
+                // Show the results container
+                const resultsContainer = document.getElementById('results-container');
+                if (resultsContainer) {
+                    resultsContainer.classList.remove('d-none');
+                    resultsContainer.style.display = 'block';
+                }
+                
+                // Re-enable scrolling
+                document.body.style.overflow = '';
+                
+                // Process results if they exist
+                if (window.lastResultsData && typeof processTicketScanResults === 'function') {
+                    processTicketScanResults(window.lastResultsData);
+                }
+            });
+        }
+    }, 1000);
 });
 
 // Also add a global function that can be called from the console for manual fixes
