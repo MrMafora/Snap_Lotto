@@ -1718,32 +1718,36 @@ def view_zoomed_screenshot(screenshot_id):
 @login_required
 @csrf.exempt
 def sync_all_screenshots():
-    """Sync all screenshots from their source URLs"""
+    """Sync all screenshots from their source URLs using simplified approach"""
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
     
     try:
-        # Use the scheduler module imported at the top level to retake all screenshots
-        # Don't use threading for UI operations to ensure synchronous behavior
-        count = scheduler.retake_all_screenshots(app, use_threading=False)
+        # Import our simplified scheduler to use the basic screenshot approach
+        import simple_scheduler
+        
+        # Use the simplified screenshot approach without any data extraction
+        # This focuses solely on getting basic screenshots without complex interactions
+        count = simple_scheduler.retake_all_screenshots(app)
         
         # Store status in session for display on next page load
         if count > 0:
             session['sync_status'] = {
                 'status': 'success',
-                'message': f'Successfully synced {count} screenshots.'
+                'message': f'Successfully captured {count} screenshots using simplified approach (no data extraction).'
             }
         else:
             session['sync_status'] = {
                 'status': 'warning',
-                'message': 'No screenshots were synced. Check configured URLs.'
+                'message': 'No screenshots were captured. Check configured URLs.'
             }
     except Exception as e:
-        app.logger.error(f"Error syncing screenshots: {str(e)}")
+        app.logger.error(f"Error capturing screenshots: {str(e)}")
+        traceback.print_exc()
         session['sync_status'] = {
             'status': 'danger',
-            'message': f'Error syncing screenshots: {str(e)}'
+            'message': f'Error capturing screenshots: {str(e)}'
         }
     
     return redirect(url_for('export_screenshots'))
@@ -1752,7 +1756,7 @@ def sync_all_screenshots():
 @login_required
 @csrf.exempt
 def sync_single_screenshot(screenshot_id):
-    """Sync a single screenshot by its ID"""
+    """Sync a single screenshot by its ID using the simplified approach"""
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
@@ -1761,25 +1765,29 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Use the scheduler module imported at the top level to retake this screenshot
-        success = scheduler.retake_screenshot_by_id(screenshot_id, app)
+        # Import our simplified scheduler to use the basic screenshot approach
+        import simple_scheduler
+        
+        # Use the simplified approach that focuses solely on screenshot capture
+        success = simple_scheduler.sync_single_screenshot(screenshot_id, app)
         
         # Store status in session for display on next page load
         if success:
             session['sync_status'] = {
                 'status': 'success',
-                'message': f'Successfully synced screenshot for {screenshot.lottery_type}.'
+                'message': f'Successfully captured screenshot for {screenshot.lottery_type} using simplified approach.'
             }
         else:
             session['sync_status'] = {
                 'status': 'warning',
-                'message': f'Failed to sync screenshot for {screenshot.lottery_type}.'
+                'message': f'Failed to capture screenshot for {screenshot.lottery_type}.'
             }
     except Exception as e:
-        app.logger.error(f"Error syncing screenshot: {str(e)}")
+        app.logger.error(f"Error capturing screenshot: {str(e)}")
+        traceback.print_exc()
         session['sync_status'] = {
             'status': 'danger',
-            'message': f'Error syncing screenshot: {str(e)}'
+            'message': f'Error capturing screenshot: {str(e)}'
         }
     
     return redirect(url_for('export_screenshots'))
@@ -1862,8 +1870,26 @@ def preview_website(screenshot_id):
                         as_attachment=False
                     )
             
-            # If all approaches failed, return an error image
-            app.logger.warning(f"Failed to capture preview for {screenshot.lottery_type}: {error_message}")
+            # Before showing error, try text-based preview as a fallback
+            app.logger.warning(f"Visual preview failed for {screenshot.lottery_type}, attempting text-based fallback")
+            
+            # Import our text-based preview generator
+            from web_scraper import generate_text_preview_image
+            text_img_data, text_error = generate_text_preview_image(screenshot.url, screenshot.lottery_type)
+            
+            if text_img_data:
+                app.logger.info(f"Successfully generated text-based preview for {screenshot.lottery_type}")
+                return send_file(
+                    BytesIO(text_img_data),
+                    mimetype='image/png',
+                    download_name=f'preview_text_{screenshot_id}.png',
+                    as_attachment=False,
+                    etag=True,
+                    cache_timeout=3600  # Cache for 1 hour
+                )
+            
+            # If both visual and text-based approaches failed, return an error image
+            app.logger.warning(f"All preview methods failed for {screenshot.lottery_type}: Visual: {error_message}, Text: {text_error}")
             
             # Generate a simple error message image
             from PIL import Image, ImageDraw, ImageFont
@@ -1891,6 +1917,11 @@ def preview_website(screenshot_id):
                   fill=(50, 50, 50), font=font_small)
             d.text((20, 140), f"Error details: {error_message[:100] if error_message else 'Unknown error'}", 
                   fill=(100, 100, 100), font=font_small)
+            
+            # Also include text-based error if applicable
+            if text_error:
+                d.text((20, 170), f"Text preview error: {text_error[:100]}", 
+                      fill=(100, 100, 100), font=font_small)
             
             # Save to buffer
             buffer = BytesIO()
@@ -1934,19 +1965,61 @@ def preview_website(screenshot_id):
 @login_required
 @csrf.exempt
 def cleanup_screenshots():
-    """Route to cleanup old screenshots"""
+    """Route to cleanup old screenshots with simplified approach"""
     if not current_user.is_admin:
         flash('You must be an admin to clean up screenshots.', 'danger')
         return redirect(url_for('index'))
         
     try:
-        # Run the cleanup function from scheduler module imported at the top level
-        scheduler.cleanup_old_screenshots()
+        # Simple approach to cleanup - just keep the latest screenshot per URL
+        # This is a direct implementation rather than relying on the complex scheduler module
+        from models import Screenshot, db
+        import os
+        from sqlalchemy import func
+        
+        # Group screenshots by URL and find the latest for each
+        subquery = db.session.query(
+            Screenshot.url,
+            func.max(Screenshot.timestamp).label('max_timestamp')
+        ).group_by(Screenshot.url).subquery()
+        
+        # Find all screenshots that aren't the latest for their URL
+        screenshots_to_delete = Screenshot.query.join(
+            subquery,
+            db.and_(
+                Screenshot.url == subquery.c.url,
+                Screenshot.timestamp < subquery.c.max_timestamp
+            )
+        ).all()
+        
+        # Delete files and database records
+        deleted_count = 0
+        for screenshot in screenshots_to_delete:
+            # Try to delete the file if it exists
+            if screenshot.path and os.path.exists(screenshot.path):
+                try:
+                    os.remove(screenshot.path)
+                except Exception as file_error:
+                    app.logger.warning(f"Could not delete screenshot file {screenshot.path}: {str(file_error)}")
+            
+            # Try to delete zoomed file if it exists
+            if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                try:
+                    os.remove(screenshot.zoomed_path)
+                except Exception as file_error:
+                    app.logger.warning(f"Could not delete zoomed screenshot file {screenshot.zoomed_path}: {str(file_error)}")
+            
+            # Delete the database record
+            db.session.delete(screenshot)
+            deleted_count += 1
+        
+        # Commit changes
+        db.session.commit()
         
         # Store success message in session
         session['sync_status'] = {
             'status': 'success',
-            'message': 'Successfully cleaned up old screenshots. Only the latest screenshot for each URL is kept.'
+            'message': f'Successfully cleaned up {deleted_count} old screenshots. Only the latest screenshot for each URL is kept.'
         }
     except Exception as e:
         app.logger.error(f"Error cleaning up screenshots: {str(e)}")
