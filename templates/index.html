@@ -584,6 +584,9 @@ function resetPieSegments() {
 
 // Function to fetch chart data via AJAX
 function fetchChartData(lotteryType, timePeriod) {
+    // Ensure DOM elements exist before proceeding with data operations
+    ensureDomElementsExist();
+    
     // Show loading state for charts
     document.querySelectorAll('.chart-loading').forEach(indicator => {
         indicator.classList.remove('d-none');
@@ -675,6 +678,9 @@ function fetchChartData(lotteryType, timePeriod) {
 
 // Function to update charts with new data
 function updateCharts(data) {
+    // Ensure DOM elements exist before processing any chart data
+    ensureDomElementsExist();
+    
     // Check if we have valid data
     if (!data || typeof data !== 'object') {
         console.error('Invalid chart data received');
@@ -900,10 +906,12 @@ function updateHotColdNumbers(data, frequencyData) {
     // Log completion to console for debugging
     console.log(`Hot/cold numbers updated successfully for ${selectedLotteryType}`);
 }
-}
 
 // Function to update the frequency chart
 function updateFrequencyChart(data, frequencyData) {
+    // Ensure DOM elements exist before processing frequency chart data
+    ensureDomElementsExist();
+    
     // Get the bar chart container
     const barChartContainer = document.querySelector('.bar-chart-container');
     if (!barChartContainer) return;
@@ -1148,6 +1156,9 @@ function updateFrequencyChart(data, frequencyData) {
 
 // Function to update the Hot & Cold Numbers chart
 function updateDivisionChart(data, frequencyData) {
+    // Ensure DOM elements exist before processing division chart data
+    ensureDomElementsExist();
+    
     // Get the temperature chart container
     const tempChartContainer = document.querySelector('.temperature-chart-container');
     if (!tempChartContainer) return;
@@ -1358,7 +1369,48 @@ function updateDivisionChart(data, frequencyData) {
     tempChartContainer.appendChild(noteContainer);
 }
 
+// Function to ensure critical DOM elements exist and are properly identified
+function ensureDomElementsExist() {
+    // Create a map of element IDs to fallback selectors
+    const elementSelectors = {
+        // Hot/cold numbers containers
+        'hotNumbersContainer': '.hot-numbers .d-flex',
+        'coldNumbersContainer': '.cold-numbers .d-flex',
+        'absentNumbersContainer': '.absent-numbers .d-flex',
+        
+        // Stats elements
+        'statsContainer': '.stats-summary',
+        'statsTable': '.stats-summary table',
+        
+        // Filters and controls
+        'lotteryTypeDropdown': '.lottery-type-filter',
+        'hotColdLoading': '.hot-cold-container .chart-loading'
+    };
+    
+    // Check for each element and try fallback selectors if direct ID lookup fails
+    for (const [elementId, fallbackSelector] of Object.entries(elementSelectors)) {
+        if (!document.getElementById(elementId)) {
+            console.log(`Element with ID ${elementId} not found, trying fallback selector ${fallbackSelector}`);
+            
+            const fallbackElement = document.querySelector(fallbackSelector);
+            if (fallbackElement && !fallbackElement.id) {
+                fallbackElement.id = elementId;
+                console.log(`Found element using fallback selector, assigned ID ${elementId}`);
+            } else {
+                console.warn(`Element ${elementId} not found after fallback, using flexible selection in functions`);
+            }
+        } else {
+            console.log(`Element with ID ${elementId} found directly`);
+        }
+    }
+    
+    return true;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // First ensure all DOM elements are properly identified
+    ensureDomElementsExist();
+    
     // Initialize Bootstrap tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -1367,6 +1419,30 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load initial chart data
     fetchChartData('all', 'all');
+    
+    // Set up a MutationObserver to watch for DOM changes
+    const targetNode = document.querySelector('.data-analytics-preview') || document.body;
+    if (targetNode) {
+        const observerCallback = function(mutationsList, observer) {
+            // Check if any of the mutations involve our containers of interest
+            for (const mutation of mutationsList) {
+                if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                    // Re-run element discovery when DOM changes
+                    ensureDomElementsExist();
+                }
+            }
+        };
+        
+        // Create and start the observer
+        const observer = new MutationObserver(observerCallback);
+        observer.observe(targetNode, { 
+            childList: true, 
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'id']
+        });
+        console.log("MutationObserver monitoring DOM changes");
+    }
     
     // Filter functionality
     const lotteryTypeFilters = document.querySelectorAll('a[data-lottery-type]');
