@@ -108,30 +108,12 @@
             event.stopPropagation();
         }, true);
         
-        // Ensure images don't capture scroll events and prevent dragging
-        const galleryImages = document.querySelectorAll('.gallery-image-container img');
-        galleryImages.forEach(img => {
-            // Prevent wheel events from being captured
-            img.addEventListener('wheel', function(event) {
-                event.stopPropagation();
-            }, false);
-            
-            // Prevent dragging which can interfere with scrolling
-            img.setAttribute('draggable', 'false');
-            img.addEventListener('dragstart', function(event) {
-                event.preventDefault();
-            });
-            
-            // Ensure pointer events work properly
-            img.style.pointerEvents = 'auto';
-        });
-        
         // Add prevention for any other event handlers that might block scrolling
         document.body.style.overflowY = 'scroll';
         document.documentElement.style.overflowY = 'scroll';
         
-        // Initialize preview functionality for cards
-        initializePreviewFunctionality();
+        // Initialize automatic preview functionality
+        initializeAutoPreviewFunctionality();
         
         // Make cards responsive to window size changes
         window.addEventListener('resize', adjustCardLayout);
@@ -139,90 +121,75 @@
         adjustCardLayout();
     });
     
-    function initializePreviewFunctionality() {
-        // Get all preview toggle buttons
-        const previewButtons = document.querySelectorAll('.btn-preview-toggle');
+    /**
+     * Initialize automatic preview functionality for all iframes on the page
+     * This loads website previews automatically as users scroll through the gallery
+     */
+    function initializeAutoPreviewFunctionality() {
+        // Get all preview containers
+        const previewContainers = document.querySelectorAll('.preview-iframe-container');
         
-        previewButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                const card = this.closest('.gallery-card');
-                const imageContainer = card.querySelector('.gallery-image-container');
-                const previewContainer = card.querySelector('.preview-iframe-container');
-                const sourceUrl = this.dataset.sourceUrl;
-                
-                // Toggle between image and preview
-                if (previewContainer.style.display === 'none' || !previewContainer.style.display) {
-                    // Show preview
-                    imageContainer.style.display = 'none';
-                    previewContainer.style.display = 'block';
-                    this.innerHTML = '<i class="fas fa-image me-1"></i> Show Image';
-                    
-                    // If iframe doesn't exist, create it
-                    if (!previewContainer.querySelector('iframe')) {
-                        // Add loading spinner
-                        const spinner = document.createElement('div');
-                        spinner.className = 'loading-spinner';
-                        previewContainer.appendChild(spinner);
-                        
-                        // Create iframe
-                        const iframe = document.createElement('iframe');
-                        iframe.className = 'preview-iframe';
-                        iframe.style.display = 'none'; // Hide until loaded
-                        iframe.src = sourceUrl;
-                        iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts');
-                        
-                        // Listen for load event
-                        iframe.addEventListener('load', function() {
-                            try {
-                                // Check if the iframe loaded content
-                                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                                if (!iframeDoc.body.innerHTML) {
-                                    handlePreviewError(previewContainer, "Error: Empty content");
-                                } else {
-                                    // Remove spinner, show iframe
-                                    if (previewContainer.querySelector('.loading-spinner')) {
-                                        previewContainer.querySelector('.loading-spinner').remove();
-                                    }
-                                    iframe.style.display = 'block';
-                                }
-                            } catch (error) {
-                                // Cross-origin error - this is expected if the site has correct security
-                                // We still show the iframe as it might be displaying content
-                                console.log("Cross-origin limitation detected - preview may be limited");
-                                
-                                // Remove spinner, show iframe anyway
-                                if (previewContainer.querySelector('.loading-spinner')) {
-                                    previewContainer.querySelector('.loading-spinner').remove();
-                                }
-                                iframe.style.display = 'block';
+        previewContainers.forEach(container => {
+            const iframe = container.querySelector('iframe');
+            
+            if (iframe) {
+                // Handle iframe load event
+                iframe.addEventListener('load', function() {
+                    try {
+                        // Check if the iframe loaded content successfully
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        if (!iframeDoc.body.innerHTML) {
+                            handlePreviewError(container, "Error: Empty content");
+                        } else {
+                            // Successfully loaded - remove spinner, show iframe
+                            if (container.querySelector('.loading-spinner')) {
+                                container.querySelector('.loading-spinner').remove();
                             }
-                        });
+                            iframe.style.display = 'block';
+                        }
+                    } catch (error) {
+                        // Cross-origin error - this is expected if the site has correct security
+                        // We still show the iframe as it might be displaying content
+                        console.log("Cross-origin limitation detected - preview may be limited");
                         
-                        // Handle iframe load errors
-                        iframe.addEventListener('error', function() {
-                            handlePreviewError(previewContainer, "Failed to load preview");
-                        });
-                        
-                        // Add timeout in case the iframe never triggers load event
-                        setTimeout(function() {
-                            if (previewContainer.querySelector('.loading-spinner')) {
-                                // If spinner still exists after 8 seconds, iframe probably failed to load properly
-                                handlePreviewError(previewContainer, "Preview timed out. The website may be unavailable or blocking iframe embedding.");
-                            }
-                        }, 8000);
-                        
-                        previewContainer.appendChild(iframe);
+                        // Remove spinner, show iframe anyway
+                        if (container.querySelector('.loading-spinner')) {
+                            container.querySelector('.loading-spinner').remove();
+                        }
+                        iframe.style.display = 'block';
                     }
-                } else {
-                    // Show image
-                    imageContainer.style.display = 'flex';
-                    previewContainer.style.display = 'none';
-                    this.innerHTML = '<i class="fas fa-globe me-1"></i> Live Preview';
-                }
-            });
+                });
+                
+                // Handle iframe load errors
+                iframe.addEventListener('error', function() {
+                    handlePreviewError(container, "Failed to load preview");
+                });
+                
+                // Add timeout in case the iframe never triggers load event
+                setTimeout(function() {
+                    if (container.querySelector('.loading-spinner')) {
+                        // If spinner still exists after 8 seconds, iframe probably failed to load
+                        handlePreviewError(container, "Preview timed out. The website may be unavailable or blocking iframe embedding.");
+                    }
+                }, 8000);
+            }
         });
+        
+        // Monitor scroll to optimize loading
+        let scrollDebounceTimer;
+        window.addEventListener('scroll', function() {
+            // Clear previous timeout
+            if(scrollDebounceTimer) clearTimeout(scrollDebounceTimer);
+            
+            // Set a new timeout
+            scrollDebounceTimer = setTimeout(function() {
+                // Only load visible iframes
+                optimizePreviews();
+            }, 200);
+        });
+        
+        // Initial optimization
+        optimizePreviews();
     }
     
     function handlePreviewError(container, message) {
@@ -239,29 +206,70 @@
         container.appendChild(errorDiv);
     }
     
-    function adjustCardLayout() {
-        // Get all gallery cards
-        const cards = document.querySelectorAll('.gallery-card');
-        const windowWidth = window.innerWidth;
+    /**
+     * Optimize preview loading by determining which cards are visible in viewport
+     * This helps reduce resource usage by only loading previews that are currently visible
+     */
+    function optimizePreviews() {
+        const previewContainers = document.querySelectorAll('.preview-iframe-container');
         
-        // Adjust layout based on window size
-        cards.forEach(card => {
-            const imageContainer = card.querySelector('.gallery-image-container');
-            
-            if (windowWidth > 1200) {
-                // Extra large screens
-                imageContainer.style.minHeight = '300px';
-            } else if (windowWidth > 992) {
-                // Large screens
-                imageContainer.style.minHeight = '250px';
-            } else if (windowWidth > 768) {
-                // Medium screens
-                imageContainer.style.minHeight = '230px';
-            } else {
-                // Small screens
-                imageContainer.style.minHeight = '200px';
+        previewContainers.forEach(container => {
+            // Check if this container is in the viewport
+            if (isElementInViewport(container)) {
+                // Make sure the iframe is in the active state
+                const iframe = container.querySelector('iframe');
+                if (iframe && iframe.getAttribute('data-src') && !iframe.src) {
+                    // Load the iframe source from the data-src attribute
+                    iframe.src = iframe.getAttribute('data-src');
+                }
             }
         });
+    }
+    
+    /**
+     * Check if an element is currently visible in the viewport
+     * @param {HTMLElement} el - The element to check
+     * @returns {boolean} - Whether the element is in the viewport
+     */
+    function isElementInViewport(el) {
+        const rect = el.getBoundingClientRect();
+        
+        return (
+            rect.top >= -rect.height &&
+            rect.left >= -rect.width &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) + rect.height &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth) + rect.width
+        );
+    }
+    
+    /**
+     * Adjust card layout based on screen size
+     * Makes the gallery responsive to different device sizes
+     */
+    function adjustCardLayout() {
+        // Get all preview containers
+        const previewContainers = document.querySelectorAll('.preview-iframe-container');
+        const windowWidth = window.innerWidth;
+        
+        // Adjust height based on window size
+        previewContainers.forEach(container => {
+            if (windowWidth > 1200) {
+                // Extra large screens
+                container.style.height = '300px';
+            } else if (windowWidth > 992) {
+                // Large screens
+                container.style.height = '250px';
+            } else if (windowWidth > 768) {
+                // Medium screens
+                container.style.height = '230px';
+            } else {
+                // Small screens
+                container.style.height = '200px';
+            }
+        });
+        
+        // Re-check which previews should be loaded
+        optimizePreviews();
     }
 </script>
 {% endblock %}
@@ -389,17 +397,17 @@
                     {% for screenshot in screenshots %}
                     <div class="col-lg-4 col-md-6 mb-4">
                         <div class="card h-100 gallery-card" style="user-select: none;">
-                            <!-- Standard image container -->
-                            <div class="gallery-image-container">
-                                <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" target="_blank">
-                                    <img src="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
-                                         alt="{{ screenshot.lottery_type }} screenshot">
-                                </a>
-                            </div>
-                            
-                            <!-- Preview iframe container (initially hidden) -->
-                            <div class="preview-iframe-container" style="display: none;">
-                                <!-- Iframe will be inserted here by JS when preview is activated -->
+                            <!-- Preview iframe container (automatic loading) -->
+                            <div class="preview-iframe-container">
+                                <!-- Loading spinner shown until iframe loads -->
+                                <div class="loading-spinner"></div>
+                                <!-- Iframe with data-src for lazy loading -->
+                                <iframe data-src="{{ screenshot.url }}" 
+                                        class="preview-iframe"
+                                        sandbox="allow-same-origin allow-scripts"
+                                        loading="lazy"
+                                        style="display: none;"
+                                        title="{{ screenshot.lottery_type }} live preview"></iframe>
                             </div>
                             
                             <div class="card-body d-flex flex-column">
@@ -413,11 +421,6 @@
                                 </span>
                                 
                                 <div class="mt-auto pt-3">
-                                    <!-- Preview toggle button -->
-                                    <button class="btn btn-sm btn-info w-100 mb-2 btn-preview-toggle" 
-                                           data-source-url="{{ screenshot.url }}">
-                                        <i class="fas fa-globe me-1"></i> Live Preview
-                                    </button>
                                             
                                     <div class="d-flex justify-content-between gap-1 mb-2">
                                         <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
