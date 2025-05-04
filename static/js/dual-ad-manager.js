@@ -108,24 +108,25 @@
         // When the ticket form is submitted, we'll show the first ad
         const ticketForm = document.getElementById('ticket-form');
         if (ticketForm) {
-            // We'll add our handler but keep the existing one
-            const originalSubmit = ticketForm.onsubmit;
-            ticketForm.onsubmit = function(event) {
+            // Remove any existing onsubmit handler, we want to control it entirely
+            ticketForm.onsubmit = null;
+            
+            // Add our event listener as the sole form submission handler
+            ticketForm.addEventListener('submit', function(event) {
                 // Always prevent the default form submission
                 event.preventDefault();
+                
+                log('Form submission intercepted by DualAdManager');
                 
                 // Reset ad state before starting a new sequence
                 resetAdState();
                 
-                // Call the original handler if it exists
-                if (typeof originalSubmit === 'function') {
-                    return originalSubmit.call(this, event);
-                }
-                
-                // If no original handler, use our default process
+                // Start our ad sequence and handle the form submission
                 processTicketWithAds();
                 return false;
-            };
+            });
+            
+            log('Ticket form submit handler configured');
         }
         
         // Set up the View Results button

@@ -399,7 +399,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             <i class="fa fa-info-circle me-1"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
                         </div>
 
-                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data" onsubmit="event.preventDefault(); if (window.DualAdManager) { DualAdManager.showPublicServiceAd(); } return false;">
+                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-2">
                                 <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
@@ -3276,4 +3276,5 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 
 <!-- CRITICAL FIX: Add File Selection Button Fixer script to restore Select Image button functionality -->
 <script src="{{ url_for('static', filename='js/file-select-fix.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/ticket-scanner.js') }}" defer></script>
 {% endblock %}

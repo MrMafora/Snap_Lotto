@@ -127,8 +127,8 @@
                     newFileInput.addEventListener('change', handleImageSelection);
                     console.log('Enhanced file input change handler attached');
                     
-                    // Update our reference
-                    fileInput = newFileInput;
+                    // Store reference to new file input for later use
+                    window.fixedFileInput = newFileInput;
                 }
             }
             
@@ -145,8 +145,14 @@
                         e.stopPropagation();
                         console.log('File select button clicked, triggering file input');
                         
-                        // Directly trigger the file input click
-                        fileInput.click();
+                        // Use the stored fixed file input reference if available, otherwise fall back to original
+                        const inputToClick = window.fixedFileInput || fileInput;
+                        console.log('Clicking on file input element:', inputToClick ? 'Found' : 'Not found');
+                        if (inputToClick) {
+                            inputToClick.click();
+                        } else {
+                            console.error('Cannot find file input element to click');
+                        }
                         
                         return false;
                     });
@@ -169,6 +175,32 @@
         
         // Initialize right away
         initFileSelectFix();
+        
+        // Add a global helper function that can be called from anywhere
+        window.openFileSelector = function() {
+            const fileInput = document.getElementById('ticket-image');
+            if (fileInput) {
+                console.log('Direct file selector opened via global helper');
+                fileInput.click();
+                return true;
+            }
+            return false;
+        };
+        
+        // Add a direct click handler to the document that will work as a fallback
+        // This ensures redundant functionality in case our main fixes don't work
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'file-select-btn') {
+                console.log('Document-level file select button click detected');
+                const fileInput = document.getElementById('ticket-image');
+                if (fileInput) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    fileInput.click();
+                    return false;
+                }
+            }
+        }, true); // Use capture phase for maximum reliability
         
         // Also initialize after a delay to ensure all other scripts have run
         setTimeout(initFileSelectFix, 500);
