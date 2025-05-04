@@ -1469,38 +1469,56 @@ def capture_screenshot(url, lottery_type=None, increased_timeout=False):
         logger.debug(f"Released screenshot semaphore for {lottery_type}")
 
 def extract_lottery_type_from_url(url):
-    """Extract lottery type from the URL"""
-    lower_url = url.lower()
+    """
+    Extract lottery type from the URL using normalization function if available.
     
-    if "lotto-plus-1" in lower_url:
-        return "Lotto Plus 1"
-    elif "lotto-plus-2" in lower_url:
-        return "Lotto Plus 2"
-    elif "powerball-plus" in lower_url:
-        return "Powerball Plus"
-    elif "powerball" in lower_url:
-        return "Powerball"
-    elif "daily-lotto" in lower_url:
-        return "Daily Lotto"
-    elif "lotto" in lower_url:
-        return "Lotto"
-    
-    # For results pages
-    if "results" in lower_url:
-        if "lotto-plus-1-results" in lower_url:
-            return "Lotto Plus 1 Results"
-        elif "lotto-plus-2-results" in lower_url:
-            return "Lotto Plus 2 Results"
+    Args:
+        url (str): URL to analyze
+        
+    Returns:
+        str: Normalized lottery type name
+    """
+    # Try to use the normalize_lottery_type function from national_lottery_capture.py
+    try:
+        from national_lottery_capture import normalize_lottery_type
+        normalized_type = normalize_lottery_type(url)
+        logger.info(f"Using normalized lottery type from national_lottery_capture: {normalized_type}")
+        return normalized_type
+    except ImportError:
+        # Fallback to simplified determination if the function isn't available
+        logger.warning("Could not import normalize_lottery_type, using simplified detection")
+        lower_url = url.lower()
+        
+        # Use consistent naming with "Lottery" instead of "Lotto"
+        if "lotto-plus-1" in lower_url:
+            return "Lottery Plus 1"
+        elif "lotto-plus-2" in lower_url:
+            return "Lottery Plus 2"
         elif "powerball-plus" in lower_url:
-            return "Powerball Plus Results"
+            return "Powerball Plus"
         elif "powerball" in lower_url:
-            return "Powerball Results"
+            return "Powerball"
         elif "daily-lotto" in lower_url:
-            return "Daily Lotto Results"
+            return "Daily Lottery"
         elif "lotto" in lower_url:
-            return "Lotto Results"
-    
-    return "Unknown"
+            return "Lottery"
+        
+        # For results pages, still remove the "Results" suffix for consistency
+        if "results" in lower_url:
+            if "lotto-plus-1-results" in lower_url:
+                return "Lottery Plus 1"
+            elif "lotto-plus-2-results" in lower_url:
+                return "Lottery Plus 2"
+            elif "powerball-plus" in lower_url:
+                return "Powerball Plus"
+            elif "powerball" in lower_url:
+                return "Powerball"
+            elif "daily-lotto" in lower_url:
+                return "Daily Lottery"
+            elif "lotto" in lower_url:
+                return "Lottery"
+        
+        return "Unknown"
 
 def get_unprocessed_screenshots():
     """Get all unprocessed screenshots from the database"""

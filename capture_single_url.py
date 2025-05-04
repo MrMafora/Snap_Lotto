@@ -49,17 +49,32 @@ def capture_url(url, lottery_type=None, timeout=300, method_index=None):
     # Set up timeout
     start_time = time.time()
     
-    # Ensure we have a lottery type
-    if not lottery_type:
-        # Try to determine lottery type from URL
-        if "lotto" in url.lower():
-            lottery_type = "Lotto Results"
-        elif "powerball" in url.lower():
-            lottery_type = "PowerBall Results"
-        elif "dailylotto" in url.lower() or "daily-lotto" in url.lower():
-            lottery_type = "Daily Lotto Results"
-        else:
-            lottery_type = "National Lottery"
+    # Ensure we have a lottery type by using the normalize function from national_lottery_capture.py
+    try:
+        # Try to import the normalize function
+        from national_lottery_capture import normalize_lottery_type
+        if not lottery_type or lottery_type in ["National Lottery", "Lotto Results", "PowerBall Results", "Daily Lotto Results"]:
+            normalized_lottery_type = normalize_lottery_type(url)
+            logger.info(f"Normalized lottery type from URL: {normalized_lottery_type}")
+            lottery_type = normalized_lottery_type
+    except ImportError:
+        # Fallback to simple determination if normalize_lottery_type isn't available
+        logger.warning("Could not import normalize_lottery_type, using simple detection")
+        if not lottery_type:
+            if "lotto" in url.lower() and "plus" not in url.lower():
+                lottery_type = "Lottery"
+            elif "lotto-plus-1" in url.lower():
+                lottery_type = "Lottery Plus 1"
+            elif "lotto-plus-2" in url.lower():
+                lottery_type = "Lottery Plus 2"
+            elif "powerball" in url.lower() and "plus" not in url.lower():
+                lottery_type = "Powerball"
+            elif "powerball-plus" in url.lower():
+                lottery_type = "Powerball Plus"
+            elif "dailylotto" in url.lower() or "daily-lotto" in url.lower():
+                lottery_type = "Daily Lottery"
+            else:
+                lottery_type = "National Lottery"
     
     # Import the specialized capture function
     try:

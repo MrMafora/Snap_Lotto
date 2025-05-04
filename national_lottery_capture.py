@@ -81,6 +81,67 @@ SA_DESKTOP_USER_AGENTS = [
 # Combine with higher weight for mobile (more common in South Africa)
 ALL_USER_AGENTS = SA_MOBILE_USER_AGENTS * 3 + SA_DESKTOP_USER_AGENTS * 2
 
+def normalize_lottery_type(url):
+    """
+    Normalize lottery type based on URL to ensure correct classification.
+    Maps each URL to its correct lottery type following consistent naming conventions.
+    
+    Args:
+        url (str): URL to analyze
+        
+    Returns:
+        str: Normalized lottery type name
+    """
+    if not url:
+        return "Unknown"
+        
+    url_lower = url.lower()
+    
+    # History pages
+    if "lotto-history" in url_lower:
+        return "Lottery"
+    elif "lotto-plus-1-history" in url_lower:
+        return "Lottery Plus 1"
+    elif "lotto-plus-2-history" in url_lower:
+        return "Lottery Plus 2"
+    elif "powerball-history" in url_lower:
+        return "Powerball"
+    elif "powerball-plus-history" in url_lower:
+        return "Powerball Plus"
+    elif "daily-lotto-history" in url_lower:
+        return "Daily Lottery"
+    
+    # Current results URLs
+    elif "/results/lotto" in url_lower and "plus" not in url_lower:
+        return "Lottery"
+    elif "/results/lotto-plus-1" in url_lower:
+        return "Lottery Plus 1"
+    elif "/results/lotto-plus-2" in url_lower:
+        return "Lottery Plus 2"
+    elif "/results/powerball" in url_lower and "plus" not in url_lower:
+        return "Powerball"
+    elif "/results/powerball-plus" in url_lower:
+        return "Powerball Plus"
+    elif "/results/daily-lotto" in url_lower:
+        return "Daily Lottery"
+    
+    # Generic fallbacks based on keywords in URL
+    elif "lotto-plus-1" in url_lower or "lottoplus1" in url_lower:
+        return "Lottery Plus 1"
+    elif "lotto-plus-2" in url_lower or "lottoplus2" in url_lower:
+        return "Lottery Plus 2"
+    elif "powerball-plus" in url_lower or "powerballplus" in url_lower:
+        return "Powerball Plus"
+    elif "powerball" in url_lower:
+        return "Powerball"
+    elif "daily-lotto" in url_lower or "dailylotto" in url_lower:
+        return "Daily Lottery"
+    elif "lotto" in url_lower:
+        return "Lottery"
+    
+    # If we couldn't identify by URL, default to base type
+    return "Unknown"
+
 def get_cookie_filename(url):
     """Generate a unique, consistent filename for storing cookies for a specific URL."""
     domain = urlparse(url).netloc
@@ -816,13 +877,13 @@ def detect_blocking_selenium(driver):
         logger.error(f"Error in detect_blocking_selenium: {str(e)}")
         return False
 
-def capture_national_lottery_url(url, lottery_type, save_to_db=True, method_index=None):
+def capture_national_lottery_url(url, lottery_type=None, save_to_db=True, method_index=None):
     """
     Main capture function with multiple fallback strategies.
     
     Args:
         url (str): URL to capture
-        lottery_type (str): Type of lottery
+        lottery_type (str, optional): Type of lottery. If None, will be determined from URL.
         save_to_db (bool): Whether to save to database
         method_index (int, optional): If provided, use a specific method:
                                       0 = undetected_chromedriver
@@ -832,6 +893,12 @@ def capture_national_lottery_url(url, lottery_type, save_to_db=True, method_inde
     Returns:
         tuple: (success, html_path, img_path)
     """
+    # If lottery_type is not provided or is generic, normalize it from the URL
+    if not lottery_type or lottery_type in ["National Lottery", "Unknown", "Lotto Results", "PowerBall Results"]:
+        normalized_lottery_type = normalize_lottery_type(url)
+        logger.info(f"Normalized lottery type from URL: {normalized_lottery_type}")
+        lottery_type = normalized_lottery_type
+    
     logger.info(f"Attempting to capture {lottery_type} from {url}")
     
     # If a specific method is requested, use only that method

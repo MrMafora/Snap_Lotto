@@ -299,7 +299,16 @@ def run_lottery_task(url, lottery_type):
             with app.app_context():
                 # Step 1: Try to capture screenshot using specialized National Lottery capture
                 try:
-                    from national_lottery_capture import capture_national_lottery_url
+                    from national_lottery_capture import capture_national_lottery_url, normalize_lottery_type
+                    
+                    # Normalize the lottery type from the URL
+                    normalized_type = normalize_lottery_type(url)
+                    
+                    # Log the normalization for debugging
+                    if normalized_type != lottery_type:
+                        logger.info(f"Normalized lottery type from '{lottery_type}' to '{normalized_type}'")
+                        lottery_type = normalized_type
+                    
                     logger.info(f"Attempting specialized National Lottery capture for {lottery_type}")
                     success, html_path, img_path = capture_national_lottery_url(url, lottery_type, save_to_db=True)
                     
@@ -479,7 +488,16 @@ def retake_screenshot_by_id(screenshot_id, app=None):
             
             # Try to use specialized National Lottery capture first
             try:
-                from national_lottery_capture import capture_national_lottery_url
+                from national_lottery_capture import capture_national_lottery_url, normalize_lottery_type
+                
+                # Normalize the lottery type from the URL
+                normalized_type = normalize_lottery_type(screenshot.url)
+                
+                # Log the normalization for debugging
+                if normalized_type != screenshot.lottery_type:
+                    logger.info(f"Normalized lottery type from '{screenshot.lottery_type}' to '{normalized_type}'")
+                    screenshot.lottery_type = normalized_type
+                
                 logger.info(f"Attempting specialized National Lottery capture for retake of {screenshot.lottery_type}")
                 success, html_path, img_path = capture_national_lottery_url(
                     screenshot.url, screenshot.lottery_type, save_to_db=False)
