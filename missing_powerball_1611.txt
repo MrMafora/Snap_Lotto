@@ -1,0 +1,5 @@
+Sheet 1: Lottery Games
+
+Game Name	Draw Number	Draw Date	Winning Numbers	Bonus Number	Division 1 Description	Division 1 Winners	Division 1 Prize	Division 2 Description	Division 2 Winners	Division 2 Prize	Division 3 Description	Division 3 Winners	Division 3 Prize	Division 4 Description	Division 4 Winners	Division 4 Prize	Division 5 Description	Division 5 Winners	Division 5 Prize	Division 6 Description	Division 6 Winners	Division 6 Prize	Division 7 Description	Division 7 Winners	Division 7 Prize	Division 8 Description	Division 8 Winners	Division 8 Prize
+Powerball	1611	2025-05-03	07 19 27 35 46	20	Match 5 + Powerball	0	R0	Match 5	1	R483,127.30	Match 4 + Powerball	2	R123,876.90	Match 4	42	R1,207.80	Match 3 + Powerball	115	R518.40	Match 3	2,026	R22.60	Match 2 + Powerball	1,546	R22.60	Match 1 + Powerball	8,232	R11.30
+Powerball Plus	1611	2025-05-03	02 16 24 30 39	08	Match 5 + Powerball	0	R0	Match 5	0	R0	Match 4 + Powerball	4	R26,214.20	Match 4	47	R543.20	Match 3 + Powerball	129	R232.60	Match 3	2,342	R10.60	Match 2 + Powerball	1,672	R10.20	Match 1 + Powerball	8,596	R5.10
