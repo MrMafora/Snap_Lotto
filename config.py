@@ -15,13 +15,7 @@ class Config:
     DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
     
     # Database settings
-    # Always use PostgreSQL database on Replit
-    database_url = os.environ.get('DATABASE_URL')
-    if not database_url:
-        raise EnvironmentError("DATABASE_URL environment variable is required but was not found")
-    
-    # Convert postgres:// to postgresql:// if needed
-    SQLALCHEMY_DATABASE_URI = database_url.replace('postgres://', 'postgresql://', 1) if database_url.startswith('postgres://') else database_url
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///lottery.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_size": 5,  # Reduced pool size to prevent too many connections

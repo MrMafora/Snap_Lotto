@@ -333,19 +333,13 @@ def normalize_lottery_type(lottery_type):
         "daily lotto": "Daily Lottery",
         "dailylotto": "Daily Lottery",
         "daily-lotto": "Daily Lottery",
-        "lotto results": "Lottery",
-        "lotto plus 1 results": "Lottery Plus 1",
-        "lotto plus 2 results": "Lottery Plus 2",
-        "daily lotto results": "Daily Lottery",
         
         # Powerball (unchanged)
         "powerball": "Powerball",
         "powerball plus": "Powerball Plus",
         "power ball plus": "Powerball Plus",
         "powerball+": "Powerball Plus",
-        "powerballplus": "Powerball Plus",
-        "powerball results": "Powerball",
-        "powerball plus results": "Powerball Plus"
+        "powerballplus": "Powerball Plus"
     }
     
     # Look for known variations and standardize

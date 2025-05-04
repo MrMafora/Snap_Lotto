@@ -6,102 +6,21 @@ import logging
 import asyncio
 import random
 import time
-import math
-import subprocess
 from datetime import datetime
 import traceback
 from pathlib import Path
 import threading
 import shutil
 import json
-import uuid
-import io
 from urllib.parse import urlparse
-import requests
-from bs4 import BeautifulSoup
-from PIL import Image
-from sqlalchemy import func
-from models import db, Screenshot, ScheduleConfig
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
+from sqlalchemy import func
+from models import db, Screenshot, ScheduleConfig
+from logger import setup_logger
 
 # Set up module-specific logger
-logger = logging.getLogger(__name__)
-if not logger.handlers:
-    # Create logs directory if it doesn't exist
-    logs_dir = os.path.join(os.getcwd(), 'logs')
-    if not os.path.exists(logs_dir):
-        os.makedirs(logs_dir)
-    
-    # Set up file handler
-    file_handler = logging.FileHandler(os.path.join(logs_dir, 'screenshot_manager.log'))
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-    logger.addHandler(file_handler)
-    
-    # Set up console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-    logger.addHandler(console_handler)
-    
-    # Set logging level
-    logger.setLevel(logging.INFO)
-    
-# Function to save screenshot metadata to database
-def save_screenshot_to_database(url, lottery_type, filepath, img_filepath):
-    """
-    Save screenshot information to the database.
-    
-    Args:
-        url (str): Source URL
-        lottery_type (str): Type of lottery
-        filepath (str): Path to the HTML file
-        img_filepath (str): Path to the image file
-        
-    Returns:
-        int: ID of the created database record
-    """
-    try:
-        # Check if we need to create an app context
-        from flask import current_app, has_app_context
-        if not has_app_context():
-            # Import app here to avoid circular imports
-            from main import app
-            with app.app_context():
-                # Save screenshot metadata to database within app context
-                screenshot = Screenshot(
-                    url=url,
-                    lottery_type=lottery_type,
-                    timestamp=datetime.now(),
-                    path=filepath,
-                    processed=False
-                )
-                
-                db.session.add(screenshot)
-                db.session.commit()
-                
-                logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
-                return screenshot.id
-        else:
-            # We already have an app context, proceed normally
-            screenshot = Screenshot(
-                url=url,
-                lottery_type=lottery_type,
-                timestamp=datetime.now(),
-                path=filepath,
-                processed=False
-            )
-            
-            db.session.add(screenshot)
-            db.session.commit()
-            
-            logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
-            return screenshot.id
-    except Exception as e:
-        logger.error(f"Database error when saving screenshot: {str(e)}")
-        logger.error(traceback.format_exc())
-        if 'db' in locals():
-            db.session.rollback()
-        raise
+logger = setup_logger(__name__, level=logging.INFO)
 
 # Create directory for screenshots if it doesn't exist
 SCREENSHOT_DIR = os.path.join(os.getcwd(), 'screenshots')
@@ -116,261 +35,24 @@ os.makedirs(COOKIES_DIR, exist_ok=True)
 MAX_CONCURRENT_THREADS = 3
 screenshot_semaphore = threading.Semaphore(MAX_CONCURRENT_THREADS)
 
-# List of user agents to rotate through randomly - updated with 2024 versions
+# List of user agents to rotate through randomly
 USER_AGENTS = [
-    # Chrome (Windows)
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    # Chrome (Mac)
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-    # Firefox (Windows)
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
-    # Firefox (Mac)
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:124.0) Gecko/20100101 Firefox/124.0',
-    # Safari (Mac)
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
-    # Edge (Windows)
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0',
-    # Chrome (Linux)
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-    # Firefox (Linux)
-    'Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0',
-    # Mobile browsers (with South African devices - Samsung is very popular in SA)
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-    'Mozilla/5.0 (iPad; CPU OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-    'Mozilla/5.0 (Linux; Android 14; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36', # Galaxy S23 Ultra (South African model)
-    'Mozilla/5.0 (Linux; Android 14; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36', # Galaxy S21 Ultra (South African model)
-    'Mozilla/5.0 (Linux; Android 14; SM-A546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36', # Galaxy A54 (popular in SA)
-    'Mozilla/5.0 (Linux; Android 13; SM-A536B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Mobile Safari/537.36', # Galaxy A53 (popular in SA)
-    'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
-    'Mozilla/5.0 (Linux; Android 13; HUAWEI P40 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Mobile Safari/537.36', # Huawei (common in SA)
-    'Mozilla/5.0 (Linux; Android 13; moto g72) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36' # Motorola (budget option in SA)
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
 ]
 
-# Human-like scroll behavior parameters with more natural patterns
-# Enhanced Human-like scroll behavior with more realistic patterns
+# Human-like scroll behavior parameters
 SCROLL_BEHAVIOR = [
-    # Initial scan of the page - carefully reading the top content
-    {'distance': 0.05, 'delay': 1.5},   # First quick look
-    {'distance': 0.15, 'delay': 2.3},   # Read top content (longer pause)
-    {'distance': 0.22, 'delay': 1.1},   # Continue reading
-    {'distance': 0.28, 'delay': 0.9},   # Short scan down
-    
-    # Middle section reading (with variable speeds and micro-pauses)
-    {'distance': 0.35, 'delay': 2.7},   # Pause at interesting content
-    {'distance': 0.37, 'delay': 0.4},   # Micro adjustment (very human-like)
-    {'distance': 0.42, 'delay': 1.8},   # Continue reading
-    {'distance': 0.48, 'delay': 0.7},   # Quick scan
-    
-    # Occasional scrolling up (humans often go back up to re-read)
-    {'distance': 0.44, 'delay': 1.2},   # Scroll back up a bit
-    {'distance': 0.51, 'delay': 2.0},   # Resume reading
-    
-    # Variable-speed middle section (most realistic)
-    {'distance': 0.58, 'delay': 0.6},   # Slightly faster
-    {'distance': 0.63, 'delay': 1.4},   # Slow down again
-    {'distance': 0.65, 'delay': 0.3},   # Micro adjustment
-    {'distance': 0.72, 'delay': 1.9},   # Longer read
-
-    # Skimming the bottom with more consistent speed (typical human pattern)
-    {'distance': 0.79, 'delay': 0.8},   # Faster now
-    {'distance': 0.85, 'delay': 0.7},   # Continued skimming
-    {'distance': 0.91, 'delay': 0.6},   # Fast scroll near bottom
-    
-    # Final look and possible bounce
-    {'distance': 0.96, 'delay': 1.3},   # Almost at the bottom
-    {'distance': 1.0, 'delay': 2.2},    # Pause at footer
-    {'distance': 0.93, 'delay': 0.9},   # Sometimes scroll back up a bit (very human)
-    {'distance': 1.0, 'delay': 1.5}     # Final look at footer
+    {'distance': 0.2, 'delay': 0.5},  # Scroll 20% with 0.5s delay
+    {'distance': 0.3, 'delay': 0.7},  # Scroll 30% with 0.7s delay
+    {'distance': 0.5, 'delay': 0.3},  # Scroll 50% with 0.3s delay
+    {'distance': 0.7, 'delay': 0.6},  # Scroll 70% with 0.6s delay
+    {'distance': 1.0, 'delay': 0.8}   # Scroll 100% with 0.8s delay
 ]
-
-# Define multiple scroll patterns to rotate through (even more human-like)
-SCROLL_PATTERNS = [
-    # Pattern 1: Fast reader (scrolls quickly with occasional pauses)
-    [
-        {'distance': 0.12, 'delay': 0.9},
-        {'distance': 0.25, 'delay': 0.5},
-        {'distance': 0.45, 'delay': 1.2},
-        {'distance': 0.65, 'delay': 0.4},
-        {'distance': 0.85, 'delay': 0.3},
-        {'distance': 1.0, 'delay': 1.0}
-    ],
-    
-    # Pattern 2: Careful reader (slower with more pauses)
-    [
-        {'distance': 0.08, 'delay': 2.1},
-        {'distance': 0.16, 'delay': 1.8},
-        {'distance': 0.25, 'delay': 2.3},
-        {'distance': 0.33, 'delay': 1.5},
-        {'distance': 0.38, 'delay': 0.9},
-        {'distance': 0.42, 'delay': 1.7},
-        {'distance': 0.51, 'delay': 1.8},
-        {'distance': 0.65, 'delay': 1.5},
-        {'distance': 0.78, 'delay': 1.2},
-        {'distance': 0.91, 'delay': 0.9},
-        {'distance': 1.0, 'delay': 2.0}
-    ],
-    
-    # Pattern 3: Skimmer (fast with a few strategic pauses)
-    [
-        {'distance': 0.15, 'delay': 0.7},
-        {'distance': 0.35, 'delay': 1.3},
-        {'distance': 0.75, 'delay': 0.5},
-        {'distance': 0.95, 'delay': 1.4},
-        {'distance': 1.0, 'delay': 0.8}
-    ],
-    
-    # Pattern 4: Erratic reader (unpredictable, with back-scrolling)
-    [
-        {'distance': 0.12, 'delay': 0.9},
-        {'distance': 0.24, 'delay': 1.1},
-        {'distance': 0.18, 'delay': 0.8}, # Back up
-        {'distance': 0.35, 'delay': 1.5},
-        {'distance': 0.58, 'delay': 0.7},
-        {'distance': 0.49, 'delay': 1.2}, # Back up
-        {'distance': 0.67, 'delay': 0.9},
-        {'distance': 0.85, 'delay': 1.7},
-        {'distance': 1.0, 'delay': 1.3}
-    ]
-]
-
-# Enhanced browser fingerprint modification options for better anti-bot measures
-BROWSER_FINGERPRINT_MODIFICATIONS = {
-    # Screen sizes (width x height) - Common South African screen resolutions
-    'screen_sizes': [
-        {'width': 1366, 'height': 768},   # Common laptop (40% of ZA users)
-        {'width': 1920, 'height': 1080},  # FHD desktop (30%)
-        {'width': 1536, 'height': 864},   # Common laptop variant (10%)
-        {'width': 1440, 'height': 900},   # MacBook Pro (8%)
-        {'width': 1280, 'height': 720},   # HD ready (5%)
-        {'width': 2560, 'height': 1440},  # QHD desktop (4%)
-        {'width': 3840, 'height': 2160},  # 4K desktop (3%)
-    ],
-    
-    # Color depths (bits) with weights to favor common depths
-    'color_depths': [24, 24, 24, 24, 30, 30, 48],  # Weighted to favor 24-bit (common)
-    
-    # Platform information with South African market share weights
-    'platforms': [
-        {'name': 'Win32', 'os': 'Windows', 'weight': 65},  # 65% market share
-        {'name': 'MacIntel', 'os': 'Mac OS X', 'weight': 23},  # 23%
-        {'name': 'Linux x86_64', 'os': 'Linux', 'weight': 7},  # 7%
-        {'name': 'Android', 'os': 'Android', 'weight': 5},  # 5%
-    ],
-    
-    # Common browser plugins to emulate - updated with versions
-    'plugins': [
-        {'name': 'PDF Viewer', 'description': 'Portable Document Format', 'version': '1.0.0'},
-        {'name': 'Chrome PDF Viewer', 'description': 'Portable Document Format', 'version': '124.0.0.0'},
-        {'name': 'Chromium PDF Viewer', 'description': 'Portable Document Format', 'version': '124.0.0.0'},
-        {'name': 'Native Client', 'description': 'Native Client Execution Environment', 'version': ''},
-        {'name': 'Microsoft Edge PDF Viewer', 'description': 'Portable Document Format', 'version': '124.0.0.0'},
-        {'name': 'WebKit built-in PDF', 'description': 'Portable Document Format', 'version': '17.2'},
-    ],
-    
-    # Common languages with South African focus
-    'languages': [
-        ['en-ZA', 'en', 'af'],  # South African primary (55%)
-        ['en-ZA', 'en'],  # South African English only (25%)
-        ['en-US', 'en'],  # American English (8%)
-        ['en-GB', 'en'],  # British English (7%)
-        ['af-ZA', 'en-ZA', 'en'],  # Afrikaans primary (5%)
-    ],
-    
-    # Timezones with weights towards South Africa
-    'timezones': [
-        'Africa/Johannesburg',  # South Africa (80% weight)
-        'Africa/Johannesburg',
-        'Africa/Johannesburg',
-        'Africa/Johannesburg',
-        'Europe/London',
-        'America/New_York',
-        'Australia/Sydney',
-    ],
-    
-    # Font fingerprinting - common SA fonts
-    'fonts': [
-        # System fonts
-        'Arial', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana', 
-        'Tahoma', 'Trebuchet MS', 'Impact', 'Comic Sans MS', 'Webdings',
-        # South African specific
-        'Ubuntu', 'DejaVu Sans', 'Liberation Sans', 'Noto Sans', 
-    ],
-    
-    # Hardware concurrency (CPU cores) distribution
-    'hardware_concurrency': [2, 4, 4, 4, 4, 6, 6, 8, 8, 8, 12, 16],
-    
-    # Device memory (GB) distribution
-    'device_memory': [2, 4, 4, 4, 8, 8, 8, 16, 16, 32],
-    
-    # WebGL vendor and renderer combinations - with South African hardware focus
-    # South Africa has older hardware on average than US/EU markets
-    'webgl_vendors': [
-        # Common Intel integrated graphics (35% of South African market)
-        {
-            'vendor': 'Google Inc. (Intel)',
-            'renderer': 'ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)'
-        },
-        {
-            'vendor': 'Google Inc. (Intel)',
-            'renderer': 'ANGLE (Intel, Intel(R) HD Graphics 520 Direct3D11 vs_5_0 ps_5_0, D3D11)'
-        },
-        {
-            'vendor': 'Google Inc. (Intel)',
-            'renderer': 'ANGLE (Intel, Intel(R) HD Graphics 4000 Direct3D11 vs_5_0 ps_5_0, D3D11)'
-        },
-        # NVIDIA GPUs (25% of South African market, older models more common)
-        {
-            'vendor': 'Google Inc. (NVIDIA)',
-            'renderer': 'ANGLE (NVIDIA, NVIDIA GeForce GTX 1050 Direct3D11 vs_5_0 ps_5_0, D3D11)'
-        },
-        {
-            'vendor': 'Google Inc. (NVIDIA)',
-            'renderer': 'ANGLE (NVIDIA, NVIDIA GeForce MX150 Direct3D11 vs_5_0 ps_5_0, D3D11)'
-        },
-        {
-            'vendor': 'Google Inc. (NVIDIA)',
-            'renderer': 'ANGLE (NVIDIA, NVIDIA GeForce GTX 970 Direct3D11 vs_5_0 ps_5_0, D3D11)'
-        },
-        # AMD GPUs (15% of South African market)
-        {
-            'vendor': 'Google Inc. (AMD)',
-            'renderer': 'ANGLE (AMD, AMD Radeon(TM) Vega 8 Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)'
-        },
-        {
-            'vendor': 'Google Inc. (AMD)',
-            'renderer': 'ANGLE (AMD, AMD Radeon R7 Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)'
-        },
-        # Mobile GPUs (20% of South African market, growing segment)
-        {
-            'vendor': 'Google Inc. (Qualcomm)',
-            'renderer': 'ANGLE (Qualcomm, Adreno (TM) 650, OpenGL ES 3.2 V@475.0)'
-        },
-        {
-            'vendor': 'Google Inc. (ARM)',
-            'renderer': 'ANGLE (ARM, Mali-G78 MP14, OpenGL ES 3.2)'
-        },
-        {
-            'vendor': 'Google Inc. (Samsung)',
-            'renderer': 'ANGLE (Samsung, Mali-G78 MP10, OpenGL ES 3.2)'
-        },
-        # Apple (5% of South African market - lower than global average)
-        {
-            'vendor': 'Apple Inc.',
-            'renderer': 'Apple M1'
-        },
-        {
-            'vendor': 'Apple Inc.',
-            'renderer': 'Intel Iris Plus Graphics 655'
-        },
-    ],
-}
 
 # Maximum number of retry attempts
 MAX_RETRIES = 3
@@ -382,46 +64,10 @@ def ensure_playwright_browsers():
     """
     try:
         import subprocess
-        # Try to install Chromium browser with increased timeout
-        logger.info("Starting Playwright browsers installation...")
-        result = subprocess.check_call(['python', '-m', 'playwright', 'install', 'chromium'], timeout=180)
-        logger.info(f"Playwright browsers installed successfully with result: {result}")
-        return True
-    except subprocess.TimeoutExpired:
-        logger.error("Timeout expired when installing Playwright browsers")
-        return False
-    except subprocess.SubprocessError as e:
-        logger.error(f"Subprocess error when installing Playwright browsers: {str(e)}")
-        return False
+        subprocess.check_call(['playwright', 'install', 'chromium'])
+        logger.info("Playwright browsers installed successfully")
     except Exception as e:
         logger.error(f"Error installing Playwright browsers: {str(e)}")
-        logger.error(f"Error details: {traceback.format_exc()}")
-        return False
-
-def is_playwright_available():
-    """
-    Check if Playwright is available for use.
-    
-    Returns:
-        bool: True if Playwright is available, False otherwise
-    """
-    try:
-        # First check if the module is importable
-        from playwright.sync_api import sync_playwright
-        
-        # Then try to actually use it by creating a minimal instance
-        with sync_playwright() as p:
-            # Just access a property to verify it's working
-            browser_type = p.chromium
-            logger.info(f"Playwright is available with browser types: {p.devices}")
-            return True
-    except ImportError:
-        logger.error("Playwright is not installed")
-        return False
-    except Exception as e:
-        logger.error(f"Error checking Playwright availability: {str(e)}")
-        logger.error(f"Error traceback: {traceback.format_exc()}")
-        return False
 
 async def capture_screenshot_async(url):
     """
@@ -507,15 +153,15 @@ async def capture_screenshot_async(url):
 
 def capture_screenshot_sync(url, retry_count=0):
     """
-    Enhanced synchronous version of screenshot capture using Playwright.
-    Implements advanced anti-bot detection measures to mimic human browsing behavior.
+    Enhanced synchronous version of screenshot capture using Playwright sync API.
+    Includes anti-detection techniques and human-like behavior.
     
     Args:
         url (str): The URL to capture
         retry_count (int): Current retry attempt, used for recursive retries
         
     Returns:
-        tuple: (filepath, screenshot_data, img_filepath) or (None, None, None) if failed
+        tuple: (filepath, screenshot_data, zoom_filepath) or (None, None, None) if failed
     """
     import time
 
@@ -550,37 +196,13 @@ def capture_screenshot_sync(url, retry_count=0):
                 chromium_path = path
                 break
         
-        # Select randomized browser fingerprint parameters
-        fingerprint = {
-            'screen': random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['screen_sizes']),
-            'color_depth': random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['color_depths']),
-            'platform': random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['platforms']),
-            'languages': random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['languages']),
-            'timezone': random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['timezones']),
-        }
-        
-        # Choose a random user agent - more recent versions
+        # Choose a random user agent
         user_agent = random.choice(USER_AGENTS)
         logger.debug(f"Using user agent: {user_agent}")
-        logger.debug(f"Fingerprint: {fingerprint}")
         
-        # Randomize timing between actions (jitter)
-        jitter = random.uniform(0.8, 1.2)  # +/- 20% randomization factor
-        
-        # Randomize referrer to simulate different sources
-        referrers = [
-            "https://www.google.com/search?q=south+africa+lottery+results",
-            "https://www.google.co.za/search?q=lottery+results+south+africa",
-            "https://www.bing.com/search?q=national+lottery+south+africa",
-            "https://duckduckgo.com/?q=south+africa+lotto+results",
-            "https://www.facebook.com/",
-            "https://twitter.com/home",
-            "https://www.linkedin.com/feed/",
-            None  # Sometimes no referrer (direct navigation)
-        ]
-        
-        # Select a referrer with 80% probability (sometimes direct navigation)
-        referrer = random.choice(referrers) if random.random() < 0.8 else None
+        # Random screen size to prevent fingerprinting
+        screen_width = random.choice([1280, 1366, 1440, 1920])
+        screen_height = random.choice([800, 900, 1024, 1080])
         
         # Use Playwright to capture screenshot with built-in timeouts
         with sync_playwright() as p:
@@ -595,45 +217,20 @@ def capture_screenshot_sync(url, retry_count=0):
                         "--disable-blink-features=AutomationControlled",
                         "--disable-features=IsolateOrigins,site-per-process",
                         "--disable-site-isolation-trials",
-                        f"--window-size={fingerprint['screen']['width']},{fingerprint['screen']['height']}",
+                        f"--window-size={screen_width},{screen_height}",
                         "--no-sandbox",
-                        "--disable-setuid-sandbox",
-                        # Additional flags to reduce detection
-                        "--disable-infobars",
-                        "--disable-dev-shm-usage",
-                        "--disable-browser-side-navigation",
-                        "--disable-gpu",
-                        "--disable-accelerated-2d-canvas",
-                        "--disable-accelerated-jpeg-decoding",
-                        "--disable-accelerated-mjpeg-decode",
-                        "--disable-accelerated-video-decode",
-                        f"--user-agent={user_agent}",
-                        # Disable automation flags
-                        "--disable-automation"
+                        "--disable-setuid-sandbox"
                     ]
                 )
                 
-                # Create a new context with enhanced settings to appear more human-like
-                # Randomly select hardware concurrency and device memory to mimic different devices
-                hw_concurrency = random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['hardware_concurrency'])
-                device_memory = random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['device_memory'])
-                webgl_info = random.choice(BROWSER_FINGERPRINT_MODIFICATIONS['webgl_vendors'])
-                
-                # Create a context with advanced fingerprinting attributes
+                # Create a new context with specific settings to appear more human-like
                 context = browser.new_context(
-                    viewport={'width': fingerprint['screen']['width'], 'height': fingerprint['screen']['height']},
+                    viewport={'width': screen_width, 'height': screen_height},
                     user_agent=user_agent,
-                    locale=fingerprint['languages'][0],
-                    timezone_id=fingerprint['timezone'],
+                    locale=random.choice(['en-US', 'en-GB', 'en-CA', 'en-ZA']),
+                    timezone_id=random.choice(['America/New_York', 'Europe/London', 'Africa/Johannesburg']),
                     geolocation={"latitude": -26.2041, "longitude": 28.0473},  # Johannesburg coordinates
-                    permissions=['geolocation'],
-                    color_scheme=random.choice(['light', 'light', 'light', 'dark']),  # 75% light, 25% dark
-                    reduced_motion=random.choice(['no-preference', 'no-preference', 'reduce']),  # 66% no-preference
-                    has_touch=random.random() < 0.3,  # 30% chance to simulate touch capability
-                    is_mobile=random.random() < 0.12,  # 12% chance to be mobile
-                    device_scale_factor=random.choice([1, 1, 1, 1.5, 2]),  # Weighted towards 1x
-                    java_script_enabled=True,  # Always enable JavaScript
-                    accept_downloads=False,  # Most browsing doesn't involve downloads
+                    permissions=['geolocation']
                 )
                 
                 # Load cookies from previous sessions if available
@@ -649,489 +246,252 @@ def capture_screenshot_sync(url, retry_count=0):
                 # Create a new page
                 page = context.new_page()
                 
-                # Execute standard stealth script to prevent detection
+                # Execute stealth script to prevent detection
                 # This script modifies navigator properties to appear as a real browser
-                stealth_script = """
-                function() {
+                page.evaluate("""() => {
                     // Overwrite the 'webdriver' property
                     Object.defineProperty(navigator, 'webdriver', {
-                        get: function() { return false; },
+                        get: () => false,
                         configurable: true
                     });
                     
-                    // Set proper platform
-                    Object.defineProperty(navigator, 'platform', {
-                        get: function() { return 'Win32'; },
+                    // Overwrite plugins to add some fake ones
+                    Object.defineProperty(navigator, 'plugins', {
+                        get: () => {
+                            return [
+                                {
+                                    name: 'Chrome PDF Plugin',
+                                    description: 'Portable Document Format',
+                                    filename: 'internal-pdf-viewer'
+                                },
+                                {
+                                    name: 'Chrome PDF Viewer',
+                                    description: '',
+                                    filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai'
+                                },
+                                {
+                                    name: 'Native Client',
+                                    description: '',
+                                    filename: 'internal-nacl-plugin'
+                                }
+                            ];
+                        },
                         configurable: true
                     });
                     
-                    // Override productSub
-                    Object.defineProperty(navigator, 'productSub', {
-                        get: function() { return '20100101'; },
-                        configurable: true
-                    });
-                    
-                    // Set vendor
-                    Object.defineProperty(navigator, 'vendor', {
-                        get: function() { return 'Google Inc.'; },
-                        configurable: true
-                    });
-                    
-                    // Set languages 
+                    // Add language plugins
                     Object.defineProperty(navigator, 'languages', {
-                        get: function() { return ['en-ZA', 'en', 'af']; },
+                        get: () => ['en-US', 'en'],
                         configurable: true
                     });
-                    
-                    // Set hardware concurrency
-                    Object.defineProperty(navigator, 'hardwareConcurrency', {
-                        get: function() { return 8; },
-                        configurable: true
-                    });
-                    
-                    // Hide automation flag
-                    if (window.chrome) {
-                        if (window.chrome.automation) {
-                            delete window.chrome.automation;
-                        }
-                    }
-                }
-                """
-                page.evaluate(stealth_script)
+                }""")
                 
                 # Set extra HTTP headers to appear more like a real browser
-                headers = {
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                    "Accept-Language": f"{fingerprint['languages'][0]},en;q=0.9",
+                page.set_extra_http_headers({
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.9",
                     "Accept-Encoding": "gzip, deflate, br",
                     "Connection": "keep-alive",
                     "Upgrade-Insecure-Requests": "1",
                     "Sec-Fetch-Dest": "document",
                     "Sec-Fetch-Mode": "navigate",
+                    "Sec-Fetch-Site": "none",
                     "Sec-Fetch-User": "?1",
-                    "Sec-Ch-Ua": f"\"Chromium\";v=\"{random.randint(118, 125)}\", \"Google Chrome\";v=\"{random.randint(118, 125)}\"",
-                    "Sec-Ch-Ua-Mobile": random.choice(["?0", "?1"]),
-                    "Sec-Ch-Ua-Platform": f"\"{fingerprint['platform']['os']}\"",
                     "DNT": "1",
                     "Cache-Control": "max-age=0",
-                }
-                
-                # Add referer only if we have one
-                if referrer:
-                    headers["Referer"] = referrer
-                    
-                page.set_extra_http_headers(headers)
+                    "Referer": "https://www.google.com/"
+                })
                 
                 # Add randomized delays to appear more human-like
-                # Random initial wait before accessing the site (250-850ms)
-                initial_wait = random.randint(250, 850)
-                logger.debug(f"Initial wait: {initial_wait}ms")
-                page.wait_for_timeout(initial_wait)
+                # Random initial wait before accessing the site (250-750ms)
+                page.wait_for_timeout(random.randint(250, 750))
                 
-                # Navigation strategy with fallbacks
-                navigation_success = False
+                # Navigate and wait for the page to fully load with a timeout
                 start_time = time.time()
-                max_time = 45  # Maximum time in seconds (increased for reliability)
+                max_time = 30  # Maximum time in seconds
                 
-                # Try different navigation strategies
-                navigation_strategies = [
-                    {'wait_until': 'domcontentloaded', 'timeout': 25000},
-                    {'wait_until': 'load', 'timeout': 30000},
-                    {'wait_until': 'networkidle', 'timeout': 35000}
-                ]
-                
-                # Shuffle the strategies to randomize our approach
-                random.shuffle(navigation_strategies)
-                
-                # Loop through strategies until one succeeds
-                for i, strategy in enumerate(navigation_strategies):
-                    if navigation_success:
-                        break
-                        
-                    try:
-                        logger.info(f"Trying navigation strategy {i+1}: {strategy['wait_until']}")
-                        
-                        # Navigate to the URL using the current strategy
-                        response = page.goto(
-                            url, 
-                            wait_until=strategy['wait_until'], 
-                            timeout=strategy['timeout'],
-                            referer=referrer
-                        )
-                        
-                        # Enhanced wait strategy for dynamic content loading
-                        # This is critical for modern sites with lazy loading and AJAX
-                        
-                        # Initial human-like wait (people pause to look at the page when it first loads)
-                        initial_wait = random.randint(1500, 3000)
-                        logger.debug(f"Initial human wait after page load: {initial_wait}ms")
-                        page.wait_for_timeout(initial_wait)
-                        
-                        # Look for common loading indicators and wait for them to disappear
-                        loading_selectors = [
-                            ".loading", ".spinner", ".loader", ".progress", 
-                            "[role='progressbar']", ".loading-spinner", "#loading",
-                            ".loading-animation", ".ajax-loader", ".loading-indicator",
-                            "[aria-busy='true']", ".buffering", ".sitewide-spinner",
-                            "svg[class*='spinner']", "svg[class*='loading']",
-                            "img[src*='spinner']", "img[src*='loading']",
-                            ".skeleton-loader", ".shimmer", ".skeleton"
-                        ]
-                        
-                        # Check for loading elements
-                        for selector in loading_selectors:
-                            try:
-                                loading_elements = page.query_selector_all(selector)
-                                if loading_elements and len(loading_elements) > 0:
-                                    logger.info(f"Found loading indicators matching {selector}, waiting for them to disappear")
-                                    # Wait for loading elements to disappear (max 20 seconds)
-                                    max_wait_time = 20000  # 20 seconds
-                                    start_time = time.time() * 1000  # convert to ms
-                                    
-                                    while time.time() * 1000 - start_time < max_wait_time:
-                                        # Check again if loading elements are still visible
-                                        still_loading = False
-                                        for elem in loading_elements:
-                                            try:
-                                                if elem.is_visible():
-                                                    still_loading = True
-                                                    break
-                                            except:
-                                                pass
-                                        
-                                        if not still_loading:
-                                            logger.info("Loading indicators have disappeared")
-                                            break
-                                            
-                                        # Wait a bit before checking again
-                                        page.wait_for_timeout(500)
-                                    
-                                    # Additional wait after loading disappears
-                                    page.wait_for_timeout(random.randint(500, 1500))
-                            except Exception as e:
-                                logger.debug(f"Error checking loading selector {selector}: {str(e)}")
-                        
-                        # Wait for network activity to settle
-                        try:
-                            # Check if there are active network connections
-                            for _ in range(5):  # Check a few times with small pauses
-                                # Evaluate if there are active XHR or fetch requests
-                                pending_requests = page.evaluate("""() => {
-                                    // Look for active network requests
-                                    const performance = window.performance;
-                                    if (performance && performance.getEntriesByType) {
-                                        const resources = performance.getEntriesByType('resource');
-                                        const currentTime = performance.now();
-                                        // Check for resources loaded in the last 2 seconds
-                                        const recentResources = resources.filter(r => 
-                                            (currentTime - r.startTime) < 2000 &&
-                                            !r.responseEnd);
-                                        return recentResources.length;
-                                    }
-                                    return 0;
-                                }""")
-                                
-                                if pending_requests > 0:
-                                    logger.info(f"Detected {pending_requests} pending network requests, waiting...")
-                                    page.wait_for_timeout(1000)
-                                else:
-                                    break
-                        except Exception as e:
-                            logger.debug(f"Error checking network activity: {str(e)}")
-                        
-                        # Additional human-like random wait before continuing with interactions
-                        post_load_wait = random.randint(1000, 2500)
-                        logger.debug(f"Post-load wait: {post_load_wait}ms")
-                        page.wait_for_timeout(post_load_wait)
-                        
-                        # Check response status
-                        if response and response.status >= 200 and response.status < 300:
-                            logger.info(f"Navigation successful with status {response.status}")
-                            navigation_success = True
-                        else:
-                            logger.warning(f"Navigation returned non-success status: {response.status if response else 'unknown'}")
-                            
-                            # Check for common block indicators in page content
-                            page_content = page.content()
-                            if any(term in page_content.lower() for term in ["denied", "blocked", "captcha", "security check", "cloudflare", "access denied"]):
-                                logger.warning(f"Possible blocking detected in content")
-                                # We'll continue anyway, but log this issue
+                try:
+                    # Try to navigate with a 20-second timeout
+                    page.goto(url, wait_until='domcontentloaded', timeout=20000)
                     
-                    except Exception as e:
-                        # If timeout occurs, log but try next strategy
-                        logger.warning(f"Navigation strategy {i+1} failed: {str(e)}")
-                        
-                        # If we've been trying too long, give up
-                        if time.time() - start_time > max_time:
-                            logger.error("Exceeded maximum navigation time")
-                            browser.close()
-                            
-                            # If we've reached max retries, give up, otherwise retry with new session
-                            if retry_count >= MAX_RETRIES - 1:
-                                logger.error(f"Max retries reached ({MAX_RETRIES}), giving up on {url}")
-                                return None, None, None
-                            else:
-                                logger.info(f"Retrying with new browser session (attempt {retry_count + 1})")
-                                # Wait a longer time before the retry to avoid rate limiting
-                                time.sleep(5 + random.random() * 5)  # 5-10 seconds
-                                return capture_screenshot_sync(url, retry_count + 1)
-                
-                # Check if we were blocked or got a CAPTCHA - expanded detection
-                captcha_selectors = [
-                    'div:has-text("captcha")', 
-                    'div:has-text("CAPTCHA")',
-                    'img[src*="captcha"]',
-                    'div[class*="captcha"]',
-                    'div:has-text("security check")',
-                    'div:has-text("bot")',
-                    'div:has-text("automated")',
-                    'div:has-text("blocked")',
-                    'div:has-text("unusual activity")',
-                    'iframe[src*="captcha"]',
-                    'iframe[src*="challenge"]',
-                ]
-                
-                for selector in captcha_selectors:
-                    if page.query_selector(selector):
-                        logger.warning(f"CAPTCHA/blocking detected using selector: {selector}")
-                        
-                        # Take a screenshot of the CAPTCHA for debugging
-                        captcha_path = os.path.join(SCREENSHOT_DIR, f"captcha_{timestamp}.png")
-                        page.screenshot(path=captcha_path)
-                        logger.info(f"Saved CAPTCHA screenshot to {captcha_path}")
+                    # Wait a randomized amount of time for additional resources to load
+                    # This makes it appear more human-like, instead of immediately interacting with the page
+                    page.wait_for_timeout(random.randint(1000, 2000))
+                    
+                except Exception as e:
+                    # If timeout occurs, log but continue - we might still get a partial page
+                    logger.warning(f"Page navigation timeout for {url}: {str(e)}")
+                    
+                    # Since we caught the timeout, let's try to continue with whatever page was loaded
+                    if time.time() - start_time > max_time:
+                        logger.error("Exceeded maximum time, aborting")
                         
                         # Close browser to clean up resources
                         browser.close()
                         
-                        # If we've reached max retries, give up, otherwise retry with new session
-                        if retry_count >= MAX_RETRIES - 1:
-                            logger.error(f"Max retries reached ({MAX_RETRIES}), giving up on {url}")
-                            return None, None, None
-                        else:
-                            logger.info(f"Retrying with new parameters (attempt {retry_count + 1})")
-                            # Wait a longer time before the retry to avoid rate limiting
-                            time.sleep(10 + random.random() * 10)  # 10-20 seconds
+                        # If this was a timeout, retry with a different approach
+                        if "timeout" in str(e).lower():
+                            logger.info(f"Retrying with different wait strategy (attempt {retry_count + 1})")
                             return capture_screenshot_sync(url, retry_count + 1)
+                        
+                        raise TimeoutError("Screenshot capture exceeded maximum time")
                 
-                # Simulate human-like interaction and movements
+                # Check if we were blocked or got a CAPTCHA
+                if page.query_selector('div:has-text("captcha")') or page.query_selector('div:has-text("CAPTCHA")'):
+                    logger.warning(f"CAPTCHA detected on {url}")
+                    
+                    # Close browser
+                    browser.close()
+                    
+                    # Retry with different user agent and longer wait
+                    logger.info(f"Retrying with different user agent (attempt {retry_count + 1})")
+                    return capture_screenshot_sync(url, retry_count + 1)
+                    
+                # Perform human-like scrolling with random behavior
                 try:
-                    # Get page dimensions
+                    # Get page height
                     page_height = page.evaluate('document.body.scrollHeight')
-                    page_width = page.evaluate('document.body.scrollWidth')
-                    viewport_height = page.evaluate('window.innerHeight')
-                    
-                    # Move the mouse around a bit randomly before scrolling to appear more human
-                    for _ in range(random.randint(2, 5)):
-                        # Move to random positions
-                        page.mouse.move(
-                            random.randint(100, min(page_width - 100, 1000)), 
-                            random.randint(100, min(viewport_height - 100, 700))
-                        )
-                        page.wait_for_timeout(random.randint(100, 500))
-                    
-                    # Apply enhanced human-like scrolling behavior
                     current_position = 0
-                    scroll_positions = []
-                    
-                    # Select a random scroll pattern for this session to appear more human-like
-                    # This makes each browser session have a consistent "personality" in how it scrolls
-                    scroll_pattern = random.choice(SCROLL_PATTERNS) if random.random() < 0.7 else SCROLL_BEHAVIOR
-                    logger.debug(f"Using {'random scroll pattern' if scroll_pattern != SCROLL_BEHAVIOR else 'default scroll behavior'} with {len(scroll_pattern)} steps")
                     
                     # Apply each scroll step with varied timing and distance
-                    for scroll_step in scroll_pattern:
-                        # Calculate scroll distance for this step with some randomness
-                        jitter_factor = random.uniform(0.9, 1.1)  # +/- 10% jitter
-                        target_position = int(page_height * scroll_step['distance'] * jitter_factor)
+                    for scroll_step in random.sample(SCROLL_BEHAVIOR, len(SCROLL_BEHAVIOR)):
+                        # Calculate scroll distance for this step
+                        target_position = int(page_height * scroll_step['distance'])
                         
-                        # Smooth scroll animation to simulate human behavior
-                        # This divides the scroll into small steps to make it look like human scrolling
-                        if current_position < target_position:
-                            step_count = random.randint(5, 15)  # Number of small scrolls to reach target
-                            step_size = (target_position - current_position) / step_count
-                            
-                            for i in range(1, step_count + 1):
-                                # Add slight non-linearity to the scroll speed (easing)
-                                progress = i / step_count
-                                # Easing function - start slow, accelerate in middle, slow at end
-                                eased_progress = 0.5 - 0.5 * math.cos(math.pi * progress)
-                                
-                                interim_pos = int(current_position + (target_position - current_position) * eased_progress)
-                                page.evaluate(f'window.scrollTo(0, {interim_pos})')
-                                page.wait_for_timeout(int((scroll_step['delay'] * 1000) / step_count))
-                        
-                        # Final position
+                        # Scroll to the new position
                         page.evaluate(f'window.scrollTo(0, {target_position})')
                         
-                        # Wait for the specified delay with jitter
-                        delay_with_jitter = int(scroll_step['delay'] * 1000 * random.uniform(0.8, 1.2))
-                        page.wait_for_timeout(delay_with_jitter)
-                        
-                        # After scrolling to a new position, randomly decide to interact with the page
-                        if random.random() < 0.3:  # 30% chance to interact
-                            # Look for clickable elements like links or buttons in the viewport
-                            elements = page.query_selector_all('a, button, .btn, [role="button"]')
-                            if elements and len(elements) > 0:
-                                # Filter to get only visible elements in current viewport
-                                visible_elements = []
-                                for elem in elements:
-                                    try:
-                                        # Check if element is visible and in viewport
-                                        is_visible = elem.is_visible()
-                                        if is_visible:
-                                            bounding_box = elem.bounding_box()
-                                            if bounding_box and bounding_box['y'] > current_position and bounding_box['y'] < current_position + viewport_height:
-                                                visible_elements.append(elem)
-                                    except:
-                                        pass
-                                
-                                # Possibly hover over a visible element
-                                if visible_elements and random.random() < 0.7:  # 70% chance to hover
-                                    try:
-                                        random_element = random.choice(visible_elements)
-                                        random_element.hover()
-                                        page.wait_for_timeout(random.randint(300, 800))
-                                    except:
-                                        pass
+                        # Wait for the specified delay
+                        page.wait_for_timeout(int(scroll_step['delay'] * 1000))
                         
                         # Update current position
                         current_position = target_position
-                        scroll_positions.append(current_position)
                     
-                    # Randomly scroll back up to previously viewed position
-                    if len(scroll_positions) > 2 and random.random() < 0.7:  # 70% chance to scroll back
-                        # Choose a random previous position
-                        random_position = random.choice(scroll_positions[:len(scroll_positions)-1])
+                    # Randomly scroll back up a bit to simulate looking at something
+                    if random.random() < 0.7:  # 70% chance to scroll back up
+                        scroll_back = random.uniform(0.2, 0.6)  # Scroll back 20-60%
+                        scroll_up_pos = int(current_position * (1 - scroll_back))
+                        page.evaluate(f'window.scrollTo(0, {scroll_up_pos})')
+                        page.wait_for_timeout(random.randint(800, 1500))
                         
-                        # Smooth scroll back to that position
-                        page.evaluate(f'window.scrollTo({{ top: {random_position}, behavior: "smooth" }})')
-                        page.wait_for_timeout(random.randint(1000, 2000))
-                        
-                        # Then either stay there or go back to bottom
-                        if random.random() < 0.5:  # 50% chance to go back to bottom
-                            page.evaluate(f'window.scrollTo({{ top: {scroll_positions[-1]}, behavior: "smooth" }})')
-                            page.wait_for_timeout(random.randint(800, 1500))
-                    
+                        # Then scroll back to bottom
+                        page.evaluate(f'window.scrollTo(0, {current_position})')
+                        page.wait_for_timeout(random.randint(500, 1000))
                 except Exception as e:
-                    logger.warning(f"Error during human-like interaction: {str(e)}")
+                    logger.warning(f"Error during human-like scrolling: {str(e)}")
                 
-                # Handle cookie consent and other popup dialogs before screenshot
-                await_time = random.randint(2000, 4000)  # 2-4 seconds to wait for popups
-                logger.info(f"Waiting {await_time}ms for cookie consent popups to appear")
-                page.wait_for_timeout(await_time)
-                
-                # Try to find and accept cookie consent buttons with different patterns
-                # Common cookie consent button selectors
-                cookie_button_selectors = [
-                    # Generic consent buttons
-                    "button:has-text('Accept')",
-                    "button:has-text('Accept all')",
-                    "button:has-text('Accept cookies')",
-                    "button:has-text('I agree')",
-                    "button:has-text('Agree')",
-                    "button:has-text('Allow')",
-                    "button:has-text('Allow all')",
-                    "button:has-text('Continue')",
-                    "button:has-text('OK')",
-                    "button:has-text('Got it')",
-                    "[aria-label='Accept cookies']",
-                    # South African specific (include Afrikaans)
-                    "button:has-text('Aanvaar')",  # Afrikaans
-                    "button:has-text('Aanvaar koekies')",  # Afrikaans
-                    "button:has-text('Ek stem in')",  # Afrikaans
-                    # Div/span with roles that might be clickable
-                    "div[role='button']:has-text('Accept')",
-                    "div[role='button']:has-text('Accept all')",
-                    "div[role='button']:has-text('I agree')",
-                    "span[role='button']:has-text('Accept')",
-                    # Links that might be consent buttons
-                    "a:has-text('Accept')",
-                    "a:has-text('Accept all')",
-                    "a:has-text('I agree')",
-                    # Lottery site specific (based on structure)
-                    ".cmpboxbtn:has-text('Accept')",
-                    ".cmpboxbtn:has-text('Accept all')",
-                    ".cookiesBtn",
-                    "#onetrust-accept-btn-handler",
-                    "#accept-all-cookies-button",
-                    "[data-testid='cookie-accept-all']",
-                    ".cookie-consent-buttons button",
-                    "[aria-label='Allow cookies']",
-                    ".cc_btn.cc_btn_accept_all",
-                    ".butterBar-close",
-                    ".js-accept-cookies",
-                    ".js-cookie-consent-agree"
-                ]
-                
-                # Try each selector and click the first one found
-                cookie_button_clicked = False
-                for selector in cookie_button_selectors:
-                    try:
-                        if page.query_selector(selector):
-                            logger.info(f"Found cookie consent button with selector: {selector}")
-                            page.click(selector)
-                            logger.info("Clicked cookie consent button")
-                            cookie_button_clicked = True
-                            # Wait to ensure popup is gone
-                            page.wait_for_timeout(random.randint(1000, 2000))
-                            break
-                    except Exception as e:
-                        logger.debug(f"Failed to click selector {selector}: {str(e)}")
-                
-                # If no specific buttons found, try clicking on the general cookie banner
-                if not cookie_button_clicked:
-                    cookie_banner_selectors = [
-                        ".cookie-banner", "#cookie-banner", "#cookie-consent", 
-                        ".cookie-consent", ".cookie-notice", "#cookie-notice",
-                        "#cookiebanner", ".cookies-banner", "#cookies-notice",
-                        ".privacy-banner", "#privacy-banner", ".gdpr-banner",
-                        "#gdpr-banner", ".consent-banner", "#consent-banner",
-                        "#onetrust-banner-sdk", ".cc_banner", "#pn-gdpr-banner",
-                        ".optanon-alert-box-wrapper", "#cookieConsentBar",
-                        ".qc-cmp2-container", ".butterBar"
-                    ]
-                    
-                    for selector in cookie_banner_selectors:
-                        try:
-                            banner_elements = page.query_selector_all(f"{selector} button")
-                            if banner_elements and len(banner_elements) > 0:
-                                # Try to find the most likely "accept" button in the banner
-                                for elem in banner_elements:
-                                    text = elem.inner_text().lower()
-                                    if any(keyword in text for keyword in ['accept', 'agree', 'allow', 'continue', 'ok']):
-                                        elem.click()
-                                        logger.info(f"Clicked likely accept button in {selector}")
-                                        cookie_button_clicked = True
-                                        page.wait_for_timeout(random.randint(1000, 2000))
-                                        break
-                                        
-                                # If no obvious accept button, just click the first button
-                                if not cookie_button_clicked and banner_elements:
-                                    banner_elements[0].click()
-                                    logger.info(f"Clicked first button in {selector}")
-                                    cookie_button_clicked = True
-                                    page.wait_for_timeout(random.randint(1000, 2000))
-                                    break
-                        except Exception as e:
-                            logger.debug(f"Failed to interact with cookie banner {selector}: {str(e)}")
-                
-                # Log whether we successfully handled cookie consent
-                if cookie_button_clicked:
-                    logger.info("Successfully handled cookie consent popup")
-                else:
-                    logger.info("No cookie consent popup detected or unable to interact with it")
-                
-                # Wait a final random delay before taking the screenshot
-                page.wait_for_timeout(random.randint(1500, 3000))
-                
-                # Additional check: In case there are other dialogs, press ESC to clear them
-                page.keyboard.press('Escape')
-                page.wait_for_timeout(500)
-                
-                # Final wait and screenshot
-                logger.info("Taking full page screenshot")
+                # Save the full page screenshot
                 page.screenshot(path=filepath, full_page=True)
                 logger.info(f"Full screenshot saved to {filepath}")
+                
+                # Create a separate zoomed-in screenshot of the main data
+                try:
+                    # For results pages, try to capture the specific lottery results box
+                    if 'results' in url.lower():
+                        # Look for the main results container with lottery numbers and divisions
+                        main_content = None
+                        
+                        # Try several potential selectors for the main content
+                        selectors = [
+                            '.results-section', 
+                            '.lottery-results', 
+                            '.main-content',
+                            '.results-container',
+                            '#results-container',
+                            'table.results-table',
+                            'div.container'
+                        ]
+                        
+                        for selector in selectors:
+                            try:
+                                main_content = page.query_selector(selector)
+                                if main_content:
+                                    logger.info(f"Found main content with selector: {selector}")
+                                    break
+                            except:
+                                continue
+                        
+                        # If we couldn't find a specific selector, try to find the red-bordered section
+                        # by looking for typical content like lottery numbers or division tables
+                        if not main_content:
+                            # Look for lottery number balls (they usually have specific classes)
+                            ball_selectors = [
+                                '.lottery-ball', 
+                                '.ball',
+                                '.number-ball',
+                                '.winning-number',
+                                'span[class*="ball"]',
+                                'div[class*="ball"]'
+                            ]
+                            
+                            for selector in ball_selectors:
+                                try:
+                                    balls = page.query_selector_all(selector)
+                                    if balls and len(balls) > 5:  # Typical lottery has at least 6 numbers
+                                        # Get the parent element that contains all balls
+                                        parent = page.evaluate('el => el.parentElement.parentElement', balls[0])
+                                        if parent:
+                                            main_content = parent
+                                            logger.info(f"Found lottery balls with selector: {selector}")
+                                            break
+                                except:
+                                    continue
+                        
+                        # As a fallback, try using a more generic approach by looking for content
+                        # with lottery keywords like "winning numbers" or "division"
+                        if not main_content:
+                            try:
+                                # Look for text content that indicates lottery results
+                                main_content = page.query_selector('div:has-text("WINNING NUMBERS"), div:has-text("Divisions"), div:has-text("DIVISION"), table:has-text("WINNERS")')
+                                logger.info("Found main content using text content search")
+                            except:
+                                pass
+                        
+                        # If we found content to zoom in on
+                        if main_content:
+                            # Use a custom filename for the zoomed screenshot
+                            zoom_filename = f"{timestamp}_{url.split('/')[-1]}_zoomed.png"
+                            zoom_filepath = os.path.join(SCREENSHOT_DIR, zoom_filename)
+                            
+                            # Take a screenshot of just this element with a bit of padding
+                            bounding_box = main_content.bounding_box()
+                            if bounding_box:
+                                # Add 20px padding around the element
+                                clip = {
+                                    'x': max(0, bounding_box['x'] - 20),
+                                    'y': max(0, bounding_box['y'] - 20),
+                                    'width': bounding_box['width'] + 40,
+                                    'height': bounding_box['height'] + 40
+                                }
+                                
+                                # Take the zoomed screenshot
+                                page.screenshot(path=zoom_filepath, clip=clip)
+                                logger.info(f"Zoomed screenshot saved to {zoom_filepath}")
+                                
+                                # Save cookies from this session for future use
+                                try:
+                                    cookies = context.cookies()
+                                    with open(cookie_file, 'w') as f:
+                                        json.dump(cookies, f)
+                                    logger.info(f"Saved {len(cookies)} cookies for {domain}")
+                                except Exception as e:
+                                    logger.warning(f"Error saving cookies: {str(e)}")
+                                
+                                # Read the screenshot data
+                                with open(filepath, 'rb') as f:
+                                    screenshot_bytes = f.read()
+                                
+                                browser.close()
+                                # Return both filepaths so they can be saved to the database
+                                return filepath, screenshot_bytes, zoom_filepath
+                        else:
+                            logger.warning("Could not find a specific content area to zoom in on")
+                
+                except Exception as e:
+                    logger.error(f"Error creating zoomed screenshot: {str(e)}")
+                    # Continue with the regular screenshot even if zoomed fails
+                
+                logger.info(f"Screenshot process completed for {url}")
                 
                 # Save cookies from this session for future use
                 try:
@@ -1142,15 +502,12 @@ def capture_screenshot_sync(url, retry_count=0):
                 except Exception as e:
                     logger.warning(f"Error saving cookies: {str(e)}")
                 
-                logger.info(f"Screenshot process completed for {url}")
-                
+                # If we got this far, we didn't capture a zoomed screenshot yet
                 # Read the full screenshot data
                 with open(filepath, 'rb') as f:
                     screenshot_data = f.read()
                 
-                # Clean up browser resources
                 browser.close()
-                
                 # Return without zoomed path
                 return filepath, screenshot_data, None
                 
@@ -1164,361 +521,144 @@ def capture_screenshot_sync(url, retry_count=0):
                 except:
                     pass
                 
-                # If this is the last retry, give up
-                if retry_count >= MAX_RETRIES - 1:
-                    logger.error(f"Max retries reached ({MAX_RETRIES}), giving up on {url}")
-                    return None, None, None
-                else:
-                    # Otherwise retry with exponential backoff
-                    backoff_time = 5 * (2 ** retry_count) + random.random() * 5  # 5, 15, 35, etc seconds + random jitter
-                    logger.info(f"Backing off for {backoff_time:.1f} seconds before retry {retry_count + 1}")
-                    time.sleep(backoff_time)
-                    return capture_screenshot_sync(url, retry_count + 1)
+                return None, None, None
             
     except Exception as e:
         logger.error(f"Error capturing screenshot: {str(e)}")
         traceback.print_exc()
-        
-        # If this is the last retry, give up
-        if retry_count >= MAX_RETRIES - 1:
-            return None, None, None
-        else:
-            # Simple linear backoff
-            backoff_time = 3 * (retry_count + 1) + random.random() * 2
-            logger.info(f"Backing off for {backoff_time:.1f} seconds before retry {retry_count + 1}")
-            time.sleep(backoff_time)
-            return capture_screenshot_sync(url, retry_count + 1)
+        return None, None, None
 
-def capture_screenshot(url, lottery_type=None, increased_timeout=False):
+def capture_screenshot(url, lottery_type=None):
     """
-    Capture HTML content from the specified URL and save metadata to database.
+    Capture screenshot of the specified URL and save metadata to database.
     
-    This function tries multiple methods to capture screenshots:
-    1. First it attempts to use Playwright (if available)
-    2. If Playwright fails, falls back to requests and BeautifulSoup
+    This function captures a screenshot using Playwright with Chromium to bypass 
+    anti-scraping measures on lottery websites.
     
     Args:
         url (str): The URL to capture
         lottery_type (str, optional): The type of lottery. If None, extracted from URL.
-        increased_timeout (bool): Whether to use increased timeout for requests
         
     Returns:
-        tuple: (filepath, screenshot_data, img_filepath) or (None, None, None) if failed
+        tuple: (filepath, screenshot_data, zoom_filepath) or (None, None, None) if failed
     """
     if not lottery_type:
         lottery_type = extract_lottery_type_from_url(url)
     
-    logger.info(f"Starting capture process for {lottery_type} from {url}")
-    
-    # Use semaphore to limit concurrent requests
-    # This prevents too many simultaneous connections
+    # Use semaphore to limit concurrent screenshot captures
+    # This prevents "can't start new thread" errors
     if not screenshot_semaphore.acquire(blocking=True, timeout=300):
         logger.error(f"Could not acquire screenshot semaphore for {lottery_type} after waiting 5 minutes")
         return None, None, None
     
     try:
-        # Try to use Playwright first (synchronous version)
-        if is_playwright_available():
-            logger.info(f"Attempting to capture {lottery_type} with Playwright")
+        # Use the sync method instead of async to avoid event loop issues
+        filepath, screenshot_data, zoom_filepath = capture_screenshot_sync(url)
+        
+        # Verify that screenshot files actually exist before proceeding
+        if filepath and screenshot_data and os.path.isfile(filepath):
+            logger.info(f"Screenshot file verified at {filepath}")
+            
+            # Also verify zoomed screenshot if applicable
+            if zoom_filepath and not os.path.isfile(zoom_filepath):
+                logger.warning(f"Zoomed screenshot file not found at {zoom_filepath}")
+                zoom_filepath = None
+                
             try:
-                # Try our improved sync version first (more reliable)
-                result = capture_screenshot_sync(url, retry_count=0)
-                if result and all(result):
-                    filepath, screenshot_data, img_filepath = result
-                    logger.info(f"Successfully captured screenshot with Playwright sync for {url}")
-                    
-                    # Save to database
-                    try:
-                        save_screenshot_to_database(url, lottery_type, filepath, img_filepath)
-                    except Exception as db_error:
-                        logger.error(f"Database error when saving screenshot: {str(db_error)}")
-                        logger.error(traceback.format_exc())
-                        # Continue anyway as we have the files
-                        
-                    return filepath, screenshot_data, img_filepath
-            except Exception as e:
-                logger.warning(f"Playwright sync capture failed: {str(e)}")
-                logger.warning(traceback.format_exc())
-                
-                # Traditional Playwright approach as backup
-                logger.info(f"Attempting to capture screenshot using traditional Playwright for {url}")
-                
-                # Generate timestamp for filename
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                unique_id = str(uuid.uuid4())[:8]
-                
-                # Create image filename
-                img_filename = f"{lottery_type.replace(' ', '_')}_{timestamp}_{unique_id}.png"
-                img_filepath = os.path.join(SCREENSHOT_DIR, img_filename)
-                
-                # Try to use synchronous Playwright
-                with sync_playwright() as p:
-                    browser_type = p.chromium
-                    
-                    # Launch with specific arguments to prevent detection
-                    browser = browser_type.launch(
-                        headless=True,
-                        args=["--no-sandbox", "--disable-setuid-sandbox"]
-                    )
-                    
-                    try:
-                        # Create a new context with specific settings
-                        context = browser.new_context(
-                            viewport={'width': 1280, 'height': 1024},
-                            user_agent=random.choice(USER_AGENTS)
+                # Check if we need to create an app context
+                from flask import current_app, has_app_context
+                if not has_app_context():
+                    # Import app here to avoid circular imports
+                    from main import app
+                    with app.app_context():
+                        # Save screenshot metadata to database within app context
+                        screenshot = Screenshot(
+                            url=url,
+                            lottery_type=lottery_type,
+                            timestamp=datetime.now(),
+                            path=filepath,
+                            zoomed_path=zoom_filepath,
+                            processed=False
                         )
                         
-                        # Create a new page
-                        page = context.new_page()
+                        db.session.add(screenshot)
+                        db.session.commit()
                         
-                        # Set timeout (increased if needed)
-                        timeout = 60000 if increased_timeout else 30000  # in milliseconds
-                        
-                        # Navigate to URL
-                        page.goto(url, timeout=timeout, wait_until='networkidle')
-                        
-                        # Take screenshot
-                        page.screenshot(path=img_filepath, full_page=True)
-                        
-                        # Read screenshot data
-                        with open(img_filepath, 'rb') as f:
-                            screenshot_data = f.read()
-                        
-                        # Create HTML file
-                        html_content = page.content()
-                        html_filename = f"{lottery_type.replace(' ', '_')}_{timestamp}_{unique_id}.html"
-                        filepath = os.path.join(SCREENSHOT_DIR, html_filename)
-                        
-                        with open(filepath, 'w', encoding='utf-8') as f:
-                            f.write(html_content)
-                        
-                        # Close browser
-                        browser.close()
-                        
-                        logger.info(f"Successfully captured screenshot with Playwright from {url}")
-                        
-                        # Save to database
-                        try:
-                            # Check if we need to create an app context
-                            from flask import current_app, has_app_context
-                            if not has_app_context():
-                                # Import app here to avoid circular imports
-                                from main import app
-                                with app.app_context():
-                                    # Save screenshot metadata to database within app context
-                                    screenshot = Screenshot(
-                                        url=url,
-                                        lottery_type=lottery_type,
-                                        timestamp=datetime.now(),
-                                        path=filepath,
-                                        processed=False
-                                    )
-                                    
-                                    db.session.add(screenshot)
-                                    db.session.commit()
-                                    
-                                    logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
-                            else:
-                                # We already have an app context, proceed normally
-                                screenshot = Screenshot(
-                                    url=url,
-                                    lottery_type=lottery_type,
-                                    timestamp=datetime.now(),
-                                    path=filepath,
-                                    processed=False
-                                )
-                                
-                                db.session.add(screenshot)
-                                db.session.commit()
-                                
-                                logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
-                        except Exception as e:
-                            logger.error(f"Error saving Playwright screenshot to database: {str(e)}")
-                            traceback.print_exc()
-                            # Still return the filepath so OCR can be attempted
-                        
-                        return filepath, screenshot_data, img_filepath
-                    finally:
-                        # Make sure the browser is closed
-                        if 'browser' in locals():
-                            browser.close()
+                        logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
+                else:
+                    # We already have an app context, proceed normally
+                    screenshot = Screenshot(
+                        url=url,
+                        lottery_type=lottery_type,
+                        timestamp=datetime.now(),
+                        path=filepath,
+                        zoomed_path=zoom_filepath,
+                        processed=False
+                    )
                     
-            except Exception as playwright_error:
-                logger.warning(f"Failed to capture with Playwright: {str(playwright_error)}. Falling back to requests.")
-                # Fall through to the fallback method
+                    db.session.add(screenshot)
+                    db.session.commit()
+                    
+                    logger.info(f"Screenshot record saved to database with ID {screenshot.id}")
+            except Exception as e:
+                logger.error(f"Error saving screenshot to database: {str(e)}")
+                traceback.print_exc()
+                # Still return the filepath so OCR can be attempted
+            
+            return filepath, None, zoom_filepath  # Return None for extracted data to use OCR
         else:
-            logger.info("Playwright not available, using requests for screenshot capture")
-        
-        # Fallback to using requests and BeautifulSoup
-        logger.info(f"Using fallback method (requests) to capture data from {url}")
-        
-        # Import required libraries
-        import requests
-        from bs4 import BeautifulSoup
-        import uuid
-        from PIL import Image
-        import io
-        
-        # Headers to mimic a real browser with random user agent
-        headers = {
-            'User-Agent': random.choice(USER_AGENTS),
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Referer': 'https://www.google.com/',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'max-age=0',
-            'DNT': '1'  # Do Not Track header for privacy-focused appearance
-        }
-        
-        # Request the page with a timeout (increased if needed)
-        timeout = 60 if increased_timeout else 30
-        logger.info(f"Requesting URL: {url} with timeout {timeout}s")
-        
-        try:
-            # Modified to handle gzip encoding issues by explicitly disabling content compression
-            # This fixes the "InvalidChunkLength" errors by telling the server not to compress the response
-            headers['Accept-Encoding'] = 'identity'  # Explicitly request uncompressed response
-            
-            response = requests.get(url, headers=headers, timeout=timeout, stream=True)
-            
-            if response.status_code != 200:
-                logger.error(f"Failed to fetch URL {url}: HTTP status {response.status_code}")
-                return None, None, None
-                
-            # Read the entire content with streaming to avoid compression issues
-            content = ""
-            for chunk in response.iter_content(chunk_size=1024, decode_unicode=True):
-                if chunk:
-                    content += chunk
-            
-            # Parse the HTML content
-            soup = BeautifulSoup(content, 'html.parser')
-        except requests.exceptions.ChunkedEncodingError as chunk_error:
-            logger.error(f"Chunked encoding error for {url}: {str(chunk_error)}")
-            # Try again with even more cautious settings
-            logger.info(f"Retrying with more cautious request settings for {url}")
-            
-            # Create a completely new session with different settings
-            with requests.Session() as session:
-                session.headers.update(headers)
-                session.headers['Accept-Encoding'] = 'identity'
-                
-                # Setting lower timeout and disabling keep-alive
-                session.headers['Connection'] = 'close'
-                response = session.get(url, timeout=timeout/2, stream=False)
-                
-                if response.status_code != 200:
-                    logger.error(f"Failed to fetch URL {url} on retry: HTTP status {response.status_code}")
-                    return None, None, None
-                
-                # Parse the HTML content
-                soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Generate timestamp for filename
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        
-        # Generate a unique ID
-        unique_id = str(uuid.uuid4())[:8]
-        
-        # Create filenames
-        screenshot_filename = f"{lottery_type.replace(' ', '_')}_{timestamp}_{unique_id}.html"
-        filepath = os.path.join(SCREENSHOT_DIR, screenshot_filename)
-        
-        # Create a simple image representation of the webpage (for compatibility)
-        img = Image.new('RGB', (1200, 800), color = (255, 255, 255))
-        img_filename = f"{lottery_type.replace(' ', '_')}_{timestamp}_{unique_id}.png"
-        img_filepath = os.path.join(SCREENSHOT_DIR, img_filename)
-        
-        # Save HTML content to file
-        os.makedirs(SCREENSHOT_DIR, exist_ok=True)
-        with open(filepath, 'w', encoding='utf-8') as f:
-            # Use the content variable if we used streaming, otherwise use response.text
-            if 'content' in locals():
-                f.write(content)
-            else:
-                f.write(response.text)
-            
-        # Save image to file
-        img.save(img_filepath)
-        
-        logger.info(f"Successfully captured content from {url} and saved to {filepath}")
-        
-        # Prepare image data for return
-        img_buffer = io.BytesIO()
-        img.save(img_buffer, format='PNG')
-        screenshot_data = img_buffer.getvalue()
-        
-        # Save to database using our helper function
-        try:
-            save_screenshot_to_database(url, lottery_type, filepath, img_filepath)
-        except Exception as e:
-            logger.error(f"Error saving fallback screenshot to database: {str(e)}")
-            logger.error(traceback.format_exc())
-            # Still return the filepath even if DB saving failed
-        
-        return filepath  # Return only the filepath - zoom functionality has been removed
+            if not filepath:
+                logger.error(f"Screenshot capture failed for {lottery_type}: No filepath returned")
+            elif not screenshot_data:
+                logger.error(f"Screenshot capture failed for {lottery_type}: No screenshot data returned")
+            elif not os.path.isfile(filepath):
+                logger.error(f"Screenshot capture failed for {lottery_type}: File not found at {filepath}")
+            return None, None, None
     except Exception as e:
         logger.error(f"Error in capture_screenshot: {str(e)}")
         traceback.print_exc()
-        return None  # Return only None - zoom functionality has been removed
+        return None, None, None
     finally:
         # Always release the semaphore in the finally block
         # to ensure it's released even if an exception occurs
         screenshot_semaphore.release()
         logger.debug(f"Released screenshot semaphore for {lottery_type}")
+    
+    return None, None, None
 
 def extract_lottery_type_from_url(url):
-    """
-    Extract lottery type from the URL using normalization function if available.
+    """Extract lottery type from the URL"""
+    lower_url = url.lower()
     
-    Args:
-        url (str): URL to analyze
-        
-    Returns:
-        str: Normalized lottery type name
-    """
-    # Try to use the normalize_lottery_type function from national_lottery_capture.py
-    try:
-        from national_lottery_capture import normalize_lottery_type
-        normalized_type = normalize_lottery_type(url)
-        logger.info(f"Using normalized lottery type from national_lottery_capture: {normalized_type}")
-        return normalized_type
-    except ImportError:
-        # Fallback to simplified determination if the function isn't available
-        logger.warning("Could not import normalize_lottery_type, using simplified detection")
-        lower_url = url.lower()
-        
-        # Use consistent naming with "Lottery" instead of "Lotto"
-        if "lotto-plus-1" in lower_url:
-            return "Lottery Plus 1"
-        elif "lotto-plus-2" in lower_url:
-            return "Lottery Plus 2"
+    if "lotto-plus-1" in lower_url:
+        return "Lotto Plus 1"
+    elif "lotto-plus-2" in lower_url:
+        return "Lotto Plus 2"
+    elif "powerball-plus" in lower_url:
+        return "Powerball Plus"
+    elif "powerball" in lower_url:
+        return "Powerball"
+    elif "daily-lotto" in lower_url:
+        return "Daily Lotto"
+    elif "lotto" in lower_url:
+        return "Lotto"
+    
+    # For results pages
+    if "results" in lower_url:
+        if "lotto-plus-1-results" in lower_url:
+            return "Lotto Plus 1 Results"
+        elif "lotto-plus-2-results" in lower_url:
+            return "Lotto Plus 2 Results"
         elif "powerball-plus" in lower_url:
-            return "Powerball Plus"
+            return "Powerball Plus Results"
         elif "powerball" in lower_url:
-            return "Powerball"
+            return "Powerball Results"
         elif "daily-lotto" in lower_url:
-            return "Daily Lottery"
+            return "Daily Lotto Results"
         elif "lotto" in lower_url:
-            return "Lottery"
-        
-        # For results pages, still remove the "Results" suffix for consistency
-        if "results" in lower_url:
-            if "lotto-plus-1-results" in lower_url:
-                return "Lottery Plus 1"
-            elif "lotto-plus-2-results" in lower_url:
-                return "Lottery Plus 2"
-            elif "powerball-plus" in lower_url:
-                return "Powerball Plus"
-            elif "powerball" in lower_url:
-                return "Powerball"
-            elif "daily-lotto" in lower_url:
-                return "Daily Lottery"
-            elif "lotto" in lower_url:
-                return "Lottery"
-        
-        return "Unknown"
+            return "Lotto Results"
+    
+    return "Unknown"
 
 def get_unprocessed_screenshots():
     """Get all unprocessed screenshots from the database"""
@@ -1593,48 +733,45 @@ def retake_all_screenshots(app=None, use_threading=False):
             
         logger.info(f"Retaking screenshots for {len(configs)} configurations")
         
-        # Normal screenshot capture logic
+        # Check if playwright browser automation is available
+        try:
+            from playwright.sync_api import sync_playwright
+            import subprocess
+            
+            # Try to create a playwright instance to see if it works
+            with sync_playwright() as p:
+                try:
+                    chromium_available = True
+                    # Try a simple browser launch to see if it works
+                    browser = p.chromium.launch(headless=True)
+                    browser.close()
+                except Exception as browser_error:
+                    chromium_available = False
+                    logger.error(f"Playwright browser automation not available: {browser_error}")
+        except Exception as playwright_error:
+            chromium_available = False
+            logger.error(f"Playwright module not properly installed: {playwright_error}")
+        
+        # If browser automation isn't available, update the database with existing files
+        if not chromium_available:
+            logger.warning("Browser automation not available. Using existing screenshot files instead.")
+            count = _update_screenshot_records_without_capture(configs, app)
+            return count
+        
+        # Normal screenshot capture logic when browser automation is available
         count = 0
         results = []
-        failed_configs = []
         
         # When called from the UI, we want to wait for screenshots to complete
         if not use_threading:
-            # First attempt - try each URL
             for config in configs:
-                try:
-                    # Call the worker function directly, not through a thread
-                    success = _take_screenshot_worker(config.url, config.lottery_type)
-                    if success:
-                        count += 1
-                        logger.info(f"Successfully captured screenshot for {config.lottery_type}")
-                    else:
-                        logger.warning(f"Failed to capture screenshot for {config.lottery_type} - will retry")
-                        failed_configs.append(config)
-                except Exception as url_error:
-                    logger.warning(f"Error capturing screenshot for {config.lottery_type}: {str(url_error)} - will retry")
-                    failed_configs.append(config)
-            
-            # Second attempt - retry failed URLs with increased timeout
-            if failed_configs:
-                logger.info(f"Retrying {len(failed_configs)} failed URLs with increased timeout")
-                for config in failed_configs:
-                    try:
-                        # Try again with increased timeout
-                        logger.info(f"Retrying screenshot capture for {config.lottery_type}")
-                        success = _take_screenshot_worker(config.url, config.lottery_type, increased_timeout=True)
-                        if success:
-                            count += 1
-                            logger.info(f"Successfully captured screenshot for {config.lottery_type} on retry")
-                        else:
-                            # Last resort - update database timestamp but keep existing file
-                            logger.warning(f"Failed to capture screenshot for {config.lottery_type} even with retry")
-                            # Update database record with current timestamp to show we tried
-                            _update_single_screenshot_record(config.url, config.lottery_type, app)
-                    except Exception as retry_error:
-                        logger.error(f"Error in retry for {config.lottery_type}: {str(retry_error)}")
-                        # Update database record with current timestamp to show we tried
-                        _update_single_screenshot_record(config.url, config.lottery_type, app)
+                # Call the worker function directly, not through a thread
+                success = _take_screenshot_worker(config.url, config.lottery_type)
+                if success:
+                    count += 1
+                    logger.info(f"Successfully captured screenshot for {config.lottery_type}")
+                else:
+                    logger.warning(f"Failed to capture screenshot for {config.lottery_type}")
             
             # Run cleanup after all screenshots are processed (for UI operations)
             logger.info("Running screenshot cleanup after sync operation")
@@ -1733,7 +870,7 @@ def _update_screenshot_records_without_capture(configs, app=None):
         traceback.print_exc()
         return count
 
-def take_screenshot_threaded(url, lottery_type, use_thread=True, increased_timeout=False):
+def take_screenshot_threaded(url, lottery_type, use_thread=True):
     """
     Take a screenshot of the specified URL in a separate thread.
     
@@ -1741,7 +878,6 @@ def take_screenshot_threaded(url, lottery_type, use_thread=True, increased_timeo
         url (str): The URL to capture
         lottery_type (str): Type of lottery (used for DB storage)
         use_thread (bool): Whether to use a thread or run synchronously
-        increased_timeout (bool): Whether to use increased timeout for requests
         
     Returns:
         bool: True if the screenshot was successfully scheduled/taken
@@ -1755,19 +891,19 @@ def take_screenshot_threaded(url, lottery_type, use_thread=True, increased_timeo
             # Use a thread to avoid blocking the main thread
             threading.Thread(
                 target=_take_screenshot_worker,
-                args=(url, lottery_type, increased_timeout),
+                args=(url, lottery_type),
                 daemon=True
             ).start()
             return True
         else:
             # Run synchronously
-            return _take_screenshot_worker(url, lottery_type, increased_timeout)
+            return _take_screenshot_worker(url, lottery_type)
     except Exception as e:
         logger.error(f"Error scheduling screenshot for {url}: {str(e)}")
         traceback.print_exc()
         return False
 
-def _take_screenshot_worker(url, lottery_type, increased_timeout=False):
+def _take_screenshot_worker(url, lottery_type):
     """
     Worker function to take a screenshot of the specified URL.
     Intended to be run in a separate thread.
@@ -1775,7 +911,6 @@ def _take_screenshot_worker(url, lottery_type, increased_timeout=False):
     Args:
         url (str): The URL to capture
         lottery_type (str): Type of lottery
-        increased_timeout (bool): Whether to use increased timeout values
         
     Returns:
         bool: True if successful
@@ -1785,10 +920,10 @@ def _take_screenshot_worker(url, lottery_type, increased_timeout=False):
         with screenshot_semaphore:
             logger.info(f"Taking screenshot of {url} ({lottery_type})")
             
-            # Take the screenshot, using increased timeout if specified
-            filepath = capture_screenshot(url, lottery_type, increased_timeout=increased_timeout)
+            # Take the screenshot
+            filepath, screenshot_data, zoom_filepath = capture_screenshot(url, lottery_type)
             
-            if not filepath:
+            if not filepath or not screenshot_data:
                 logger.error(f"Failed to capture screenshot for {url}")
                 return False
                 
@@ -1800,7 +935,7 @@ def _take_screenshot_worker(url, lottery_type, increased_timeout=False):
                 if existing:
                     # Update existing record
                     existing.path = filepath
-                    # Zoom functionality has been removed
+                    existing.zoomed_path = zoom_filepath
                     existing.timestamp = datetime.now()
                     existing.processed = False
                     db.session.commit()
@@ -1813,7 +948,7 @@ def _take_screenshot_worker(url, lottery_type, increased_timeout=False):
                         url=url,
                         lottery_type=lottery_type,
                         path=filepath,
-                        # Zoom functionality has been removed
+                        zoomed_path=zoom_filepath,
                         timestamp=datetime.now(),
                         processed=False
                     )
@@ -1837,165 +972,35 @@ def _take_screenshot_worker(url, lottery_type, increased_timeout=False):
         traceback.print_exc()
         return False
 
-def _update_single_screenshot_record(url, lottery_type, app=None):
-    """
-    Update a screenshot record's timestamp without capturing a new screenshot.
-    This is used as a fallback when screenshot capture fails but we want to update the timestamp.
-    
-    Args:
-        url (str): The URL of the screenshot
-        lottery_type (str): Type of lottery
-        app (Flask): Flask app for context management
-        
-    Returns:
-        bool: True if successful
-    """
-    try:
-        # Set up app context if needed
-        if app:
-            context_func = app.app_context
-        else:
-            # Create a dummy context manager
-            from contextlib import contextmanager
-            @contextmanager
-            def context_func():
-                yield
-        
-        with context_func():
-            # Find existing screenshot
-            screenshot = Screenshot.query.filter_by(url=url).first()
-            
-            if screenshot:
-                # Update timestamp only
-                screenshot.timestamp = datetime.now()
-                db.session.commit()
-                logger.info(f"Updated timestamp for {lottery_type} screenshot record")
-                return True
-            else:
-                # Find a file to use (use any existing screenshot file)
-                screenshot_files = os.listdir(SCREENSHOT_DIR)
-                screenshot_files = [f for f in screenshot_files if f.endswith('.png') and os.path.isfile(os.path.join(SCREENSHOT_DIR, f))]
-                
-                if not screenshot_files:
-                    logger.error(f"No existing screenshot files found for {lottery_type}")
-                    return False
-                
-                # Use the first file
-                filepath = os.path.join(SCREENSHOT_DIR, screenshot_files[0])
-                
-                # Create new record
-                screenshot = Screenshot(
-                    url=url,
-                    lottery_type=lottery_type,
-                    path=filepath,
-                    # Zoom functionality has been removed
-                    timestamp=datetime.now(),
-                    processed=False
-                )
-                
-                db.session.add(screenshot)
-                db.session.commit()
-                logger.info(f"Created new screenshot record for {lottery_type} using existing file")
-                return True
-    except Exception as e:
-        logger.error(f"Error updating screenshot record for {lottery_type}: {str(e)}")
-        traceback.print_exc()
-        return False
-
 def cleanup_old_screenshots():
     """
     Clean up old screenshots to save disk space.
-    Keep only ONE screenshot for each lottery type, regardless of URL or file format.
+    Keep only the most recent screenshot for each URL.
     
-    This ensures we only have exactly 6 screenshots at any time (one per normalized lottery type).
-    Handles all file types (HTML, PNG) and ensures complete cleanup.
+    This ensures we only have 12 screenshots at any given time (one per URL).
     """
     logger.info("Starting screenshot cleanup process")
     
     try:
-        # Step 1: Sync database with filesystem - fix any missing files
-        from data_aggregator import normalize_lottery_type
+        # Get all unique URLs
+        unique_urls = db.session.query(Screenshot.url).distinct().all()
+        urls = [url[0] for url in unique_urls]
         
-        # Step 1a: First check for database records with missing files
-        db_screenshots = Screenshot.query.all()
-        invalid_records = []
+        deleted_count = 0
         
-        for screenshot in db_screenshots:
-            if not screenshot.path or not os.path.exists(screenshot.path):
-                invalid_records.append(screenshot)
-                logger.warning(f"Screenshot ID {screenshot.id} references missing file: {screenshot.path}")
+        from models import LotteryResult
         
-        # If any database records reference missing files, delete them
-        if invalid_records:
-            for screenshot in invalid_records:
-                # Check for references in lottery results
-                from models import LotteryResult
-                referenced_results = LotteryResult.query.filter_by(screenshot_id=screenshot.id).all()
-                
-                if referenced_results:
-                    # Update references to NULL
-                    for result in referenced_results:
-                        result.screenshot_id = None
-                    db.session.commit()
-                
-                # Delete the invalid database record
-                db.session.delete(screenshot)
-                logger.info(f"Deleted invalid database record ID {screenshot.id}")
+        # For each URL, keep only the most recent screenshot
+        for url in urls:
+            # Get all screenshots for this URL ordered by timestamp (newest first)
+            screenshots = Screenshot.query.filter_by(url=url).order_by(Screenshot.timestamp.desc()).all()
             
-            db.session.commit()
-            logger.info(f"Cleaned up {len(invalid_records)} invalid database records")
-        
-        # Step 2: Delete all files not tracked in the database
-        all_files = os.listdir(SCREENSHOT_DIR)
-        db_files = Screenshot.query.with_entities(Screenshot.path).all()
-        db_files = [os.path.basename(f[0]) for f in db_files if f[0]]
-        
-        # Count files deleted
-        untracked_deleted_count = 0
-        
-        # Remove README.md from cleanup
-        if 'README.md' in all_files:
-            all_files.remove('README.md')
-            
-        # Delete any file not in the database
-        for file in all_files:
-            if file not in db_files and file != 'README.md':
-                try:
-                    file_path = os.path.join(SCREENSHOT_DIR, file)
-                    if os.path.isfile(file_path):
-                        os.remove(file_path)
-                        logger.info(f"Deleted untracked file: {file_path}")
-                        untracked_deleted_count += 1
-                except Exception as e:
-                    logger.error(f"Error deleting untracked file {file}: {str(e)}")
-        
-        # Step 3: Group screenshots by normalized lottery type
-        # Use data_aggregator's normalize_lottery_type function to standardize names
-        normalized_types = {}
-        screenshots_by_norm_type = {}
-        
-        # Group all screenshots by their normalized lottery type
-        all_screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
-        for screenshot in all_screenshots:
-            norm_type = normalize_lottery_type(screenshot.lottery_type)
-            normalized_types[screenshot.id] = norm_type
-            
-            if norm_type not in screenshots_by_norm_type:
-                screenshots_by_norm_type[norm_type] = []
-            screenshots_by_norm_type[norm_type].append(screenshot)
-        
-        # For each normalized lottery type, keep only the most recent screenshot
-        db_deleted_count = 0
-        
-        for norm_type, screenshots in screenshots_by_norm_type.items():
-            # Keep the newest screenshot, delete the rest
+            # Keep the most recent one, delete the rest
             if len(screenshots) > 1:
-                logger.info(f"Found {len(screenshots)} screenshots for '{norm_type}' - keeping only the newest one")
-                # First screenshot is newest (we ordered by timestamp desc)
                 for screenshot in screenshots[1:]:
                     try:
                         # First check if screenshot is referenced by lottery results
-                        from models import LotteryResult
+                        # We need to handle the foreign key constraint
                         referenced_results = LotteryResult.query.filter_by(screenshot_id=screenshot.id).all()
                         
                         if referenced_results:
@@ -2005,58 +1010,28 @@ def cleanup_old_screenshots():
                                 result.screenshot_id = None
                             db.session.commit()
                                 
-                        # Delete the file from disk
-                        if screenshot.path and os.path.exists(screenshot.path):
+                        # Delete the files from disk
+                        if os.path.exists(screenshot.path):
                             os.remove(screenshot.path)
                             logger.info(f"Deleted old screenshot file: {screenshot.path}")
                             
-                            # Also check for matching PNG files with same base name
-                            base_name = os.path.splitext(os.path.basename(screenshot.path))[0]
-                            png_path = os.path.join(SCREENSHOT_DIR, f"{base_name}.png")
-                            if os.path.exists(png_path):
-                                os.remove(png_path)
-                                logger.info(f"Deleted matching PNG file: {png_path}")
-                            
+                        # Delete the zoomed screenshot if it exists
+                        if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                            os.remove(screenshot.zoomed_path)
+                            logger.info(f"Deleted old zoomed screenshot file: {screenshot.zoomed_path}")
+                        
                         # Delete the database record
                         db.session.delete(screenshot)
-                        db_deleted_count += 1
+                        deleted_count += 1
                         db.session.commit()  # Commit after each deletion to avoid large transactions
                         
                     except Exception as e:
                         logger.error(f"Error deleting screenshot {screenshot.id}: {str(e)}")
                         logger.error(traceback.format_exc())
-                        db.session.rollback()  # Rollback on error
+                        # Continue with next screenshot
+                        db.session.rollback()
         
-        # Step 4: Ensure there's exactly one screenshot per normalized type
-        # Get the final list of normalized types
-        final_types = set()
-        for screenshot in Screenshot.query.all():
-            norm_type = normalize_lottery_type(screenshot.lottery_type)
-            final_types.add(norm_type)
-            
-        # Log what we ended up with
-        logger.info(f"Final normalized lottery types: {sorted(list(final_types))}")
-        logger.info(f"Expected 6 normalized types: ['Daily Lottery', 'Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 'Powerball', 'Powerball Plus']")
-        
-        # Report total files deleted
-        total_deleted = db_deleted_count + untracked_deleted_count
-        logger.info(f"Cleaned up {total_deleted} old screenshots ({db_deleted_count} from database, {untracked_deleted_count} untracked files)" 
-                   if total_deleted > 0 else "No old screenshots to clean up")
-        
-        # Verify final counts match
-        expected_db_count = len(final_types)  # Should be 6
-        remaining_files = [f for f in os.listdir(SCREENSHOT_DIR) if os.path.isfile(os.path.join(SCREENSHOT_DIR, f)) and f != 'README.md']
-        remaining_db = Screenshot.query.count()
-        
-        if remaining_db != expected_db_count:
-            logger.warning(f"Database records ({remaining_db}) does not match expected count ({expected_db_count})")
-        else:
-            logger.info(f"Database records match expected count: {remaining_db}")
-            
-        if len(remaining_files) != remaining_db:
-            logger.warning(f"Files on disk ({len(remaining_files)}) does not match database records ({remaining_db})")
-        else:
-            logger.info(f"Files on disk match database records: {len(remaining_files)}")
+        logger.info(f"Cleaned up {deleted_count} old screenshots" if deleted_count > 0 else "No old screenshots to clean up")
             
     except Exception as e:
         logger.error(f"Error during screenshot cleanup: {str(e)}")

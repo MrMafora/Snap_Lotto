@@ -5,28 +5,10 @@ import atexit
 import threading
 import time
 import logging
-import os
+from logger import setup_logger
 
 # Set up module-specific logger
-logger = logging.getLogger(__name__)
-if not logger.handlers:
-    # Create logs directory if it doesn't exist
-    logs_dir = os.path.join(os.getcwd(), 'logs')
-    if not os.path.exists(logs_dir):
-        os.makedirs(logs_dir)
-    
-    # Set up file handler
-    file_handler = logging.FileHandler(os.path.join(logs_dir, 'scheduler.log'))
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-    logger.addHandler(file_handler)
-    
-    # Set up console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-    logger.addHandler(console_handler)
-    
-    # Set logging level
-    logger.setLevel(logging.INFO)
+logger = setup_logger(__name__)
 
 # Flag to indicate if we're in Replit environment
 # Used to optimize startup for Replit workflows
@@ -39,121 +21,6 @@ task_semaphore = threading.Semaphore(MAX_CONCURRENT_TASKS)
 
 # Scheduler instance (initialized later)
 scheduler = None
-
-def capture_next_missing_url_job():
-    """
-    Scheduled job to capture the next missing URL.
-    This is run hourly to gradually build up our collection without timing out.
-    Uses specialized National Lottery capture with advanced anti-bot measures.
-    Uses the enhanced capture_single_url.py script with proper timeout handling.
-    """
-    try:
-        import subprocess
-        import random
-        import sys
-        
-        # Add a small random delay to avoid predictable patterns
-        delay = random.randint(1, 300)  # 1-300 seconds (up to 5 minutes)
-        logger.info(f"Delaying next URL capture by {delay} seconds")
-        time.sleep(delay)
-        
-        # Get the next missing URL
-        logger.info("Getting next missing URL")
-        
-        # First get the next missing URL
-        app_context = None
-        try:
-            from flask import current_app
-            if not current_app:
-                from main import app
-                app_context = app.app_context()
-                app_context.push()
-        except:
-            pass
-        
-        # Import here to avoid circular dependencies
-        from capture_next_missing import get_next_missing_url
-        url, lottery_type = get_next_missing_url()
-        
-        if app_context:
-            app_context.pop()
-        
-        if not url or not lottery_type:
-            logger.info("No missing URLs to capture at this time")
-            return
-        
-        logger.info(f"Capturing {lottery_type} from {url}")
-        
-        # Use the enhanced capture_single_url.py script with timeout
-        # Command to run the capture script with a 5-minute timeout
-        cmd = [
-            sys.executable,
-            "capture_single_url.py",
-            "--url", url,
-            "--timeout", "300"  # 5 minutes
-        ]
-        
-        if lottery_type:
-            cmd.extend(["--lottery-type", lottery_type])
-        
-        # Run the capture script
-        try:
-            logger.info(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=360  # 6 minute overall timeout
-            )
-            
-            if result.returncode == 0:
-                logger.info(f"Successfully captured {lottery_type} from {url}")
-                logger.debug(f"Output: {result.stdout}")
-                return
-            else:
-                logger.error(f"Failed to capture {lottery_type} from {url}")
-                logger.error(f"Error: {result.stderr}")
-        except subprocess.TimeoutExpired:
-            logger.error(f"Capture process timed out for {lottery_type} from {url}")
-        
-        # Try with legacy Playwright mode as first fallback
-        logger.info("Trying again with legacy Playwright mode")
-        result = subprocess.run(
-            ["python", "capture_next_missing.py", "--use-legacy"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=600  # 10 minute timeout
-        )
-        
-        if result.returncode == 0:
-            logger.info("Successfully captured next missing URL with legacy Playwright")
-        else:
-            logger.error(f"Failed to capture next missing URL with legacy Playwright. Exit code: {result.returncode}")
-            logger.error(f"Error: {result.stderr}")
-            
-            # Try with simple requests method as final fallback
-            logger.info("Trying simple requests-based capture as final fallback")
-            try:
-                # Import the specialized capture function
-                from national_lottery_capture import capture_national_lottery_url
-                
-                success, html_path, _ = capture_national_lottery_url(url, lottery_type)
-                
-                if success:
-                    logger.info(f"Successfully captured {lottery_type} from {url} with simple requests method")
-                else:
-                    logger.error(f"Failed to capture {lottery_type} from {url} with all methods")
-            except Exception as e:
-                logger.error(f"Error in requests fallback: {str(e)}")
-                logger.error(f"Failed to capture {lottery_type} from {url} with all available methods")
-    except subprocess.TimeoutExpired:
-        logger.error("Timeout expired when capturing next missing URL")
-    except Exception as e:
-        logger.error(f"Error in capture_next_missing_url_job: {str(e)}")
-        import traceback
-        logger.error(traceback.format_exc())
 
 def init_scheduler(app):
     """
@@ -169,32 +36,9 @@ def init_scheduler(app):
     
     # Import heavy modules only when needed
     from apscheduler.schedulers.background import BackgroundScheduler
-    from apscheduler.triggers.cron import CronTrigger
-    from apscheduler.triggers.interval import IntervalTrigger
     
     # Initialize scheduler but don't start it yet
     scheduler = BackgroundScheduler()
-    
-    # Add daily screenshot cleanup job (runs at 4:00 AM SAST)
-    # This ensures we keep our storage clean and organized
-    scheduler.add_job(
-        func=run_screenshot_cleanup,
-        trigger=CronTrigger(hour=4, minute=0),  # 4:00 AM
-        args=[app],
-        id="daily_screenshot_cleanup",
-        replace_existing=True
-    )
-    logger.info("Added daily screenshot cleanup job (runs at 4:00 AM SAST)")
-    
-    # Add hourly job to capture the next missing URL
-    # This will gradually build up our collection over time
-    scheduler.add_job(
-        func=capture_next_missing_url_job,
-        trigger=IntervalTrigger(hours=1),  # Run every hour
-        id="hourly_url_capture",
-        replace_existing=True
-    )
-    logger.info("Added hourly URL capture job (runs every hour)")
     
     # In Replit environment, delay scheduler startup to allow port detection
     if IS_REPLIT_ENV:
@@ -297,41 +141,17 @@ def run_lottery_task(url, lottery_type):
             
             # Ensure we have an application context for all database operations
             with app.app_context():
-                # Step 1: Try to capture screenshot using specialized National Lottery capture
-                try:
-                    from national_lottery_capture import capture_national_lottery_url, normalize_lottery_type
+                # Step 1: Capture screenshot directly using the sm module
+                capture_result = sm.capture_screenshot(url, lottery_type)
+                
+                # Unpack the values - either we get (filepath, screenshot_data, zoom_filepath)
+                # or we get None if the capture failed
+                if not capture_result:
+                    logger.error(f"Failed to capture screenshot for {lottery_type}")
+                    return False
                     
-                    # Normalize the lottery type from the URL
-                    normalized_type = normalize_lottery_type(url)
-                    
-                    # Log the normalization for debugging
-                    if normalized_type != lottery_type:
-                        logger.info(f"Normalized lottery type from '{lottery_type}' to '{normalized_type}'")
-                        lottery_type = normalized_type
-                    
-                    logger.info(f"Attempting specialized National Lottery capture for {lottery_type}")
-                    success, html_path, img_path = capture_national_lottery_url(url, lottery_type, save_to_db=True)
-                    
-                    if success and html_path:
-                        logger.info(f"Specialized National Lottery capture successful for {lottery_type}")
-                        filepath = html_path
-                    else:
-                        # Fall back to standard capture if specialized capture fails
-                        logger.warning(f"Specialized National Lottery capture failed for {lottery_type}, falling back to standard capture")
-                        capture_result = sm.capture_screenshot(url, lottery_type)
-                        if not capture_result:
-                            logger.error(f"Standard capture also failed for {lottery_type}")
-                            return False
-                        filepath = capture_result
-                except Exception as e:
-                    # If specialized capture throws an exception, fall back to standard capture
-                    logger.error(f"Error in specialized capture for {lottery_type}: {str(e)}")
-                    logger.warning(f"Falling back to standard capture for {lottery_type}")
-                    capture_result = sm.capture_screenshot(url, lottery_type)
-                    if not capture_result:
-                        logger.error(f"Standard capture also failed for {lottery_type}")
-                        return False
-                    filepath = capture_result
+                # Unpack the result
+                filepath, screenshot_data, zoom_filepath = capture_result
                 
                 # Only proceed if we have a valid screenshot filepath
                 if not filepath:
@@ -438,7 +258,13 @@ def cleanup_old_screenshots():
                         except Exception as e:
                             logger.error(f"Error deleting file {screenshot.path}: {str(e)}")
                     
-                    # Zoom functionality has been removed
+                    # Delete the zoomed file if it exists
+                    if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                        try:
+                            os.remove(screenshot.zoomed_path)
+                            logger.info(f"Deleted zoomed file: {screenshot.zoomed_path}")
+                        except Exception as e:
+                            logger.error(f"Error deleting zoomed file {screenshot.zoomed_path}: {str(e)}")
                     
                     # Delete the database record
                     db.session.delete(screenshot)
@@ -486,45 +312,21 @@ def retake_screenshot_by_id(screenshot_id, app=None):
                 
             logger.info(f"Retaking screenshot for {screenshot.lottery_type} from {screenshot.url}")
             
-            # Try to use specialized National Lottery capture first
-            try:
-                from national_lottery_capture import capture_national_lottery_url, normalize_lottery_type
-                
-                # Normalize the lottery type from the URL
-                normalized_type = normalize_lottery_type(screenshot.url)
-                
-                # Log the normalization for debugging
-                if normalized_type != screenshot.lottery_type:
-                    logger.info(f"Normalized lottery type from '{screenshot.lottery_type}' to '{normalized_type}'")
-                    screenshot.lottery_type = normalized_type
-                
-                logger.info(f"Attempting specialized National Lottery capture for retake of {screenshot.lottery_type}")
-                success, html_path, img_path = capture_national_lottery_url(
-                    screenshot.url, screenshot.lottery_type, save_to_db=False)
-                
-                if success and html_path:
-                    logger.info(f"Specialized National Lottery capture successful for retake of {screenshot.lottery_type}")
-                    filepath = html_path
-                else:
-                    # Fall back to standard capture
-                    logger.warning(f"Specialized capture failed for retake, falling back to standard capture")
-                    # Import screenshot manager inside the thread to avoid circular imports
-                    import screenshot_manager as sm
-                    filepath = sm.capture_screenshot(screenshot.url, screenshot.lottery_type)
-            except Exception as e:
-                # Fall back to standard capture
-                logger.error(f"Error in specialized capture for retake: {str(e)}")
-                # Import screenshot manager inside the thread to avoid circular imports
-                import screenshot_manager as sm
-                filepath = sm.capture_screenshot(screenshot.url, screenshot.lottery_type)
+            # Import screenshot manager inside the thread to avoid circular imports
+            import screenshot_manager as sm
             
-            if not filepath:
+            # Capture new screenshot with the same URL and lottery type
+            capture_result = sm.capture_screenshot(screenshot.url, screenshot.lottery_type)
+            
+            if not capture_result:
                 logger.error(f"Failed to retake screenshot for {screenshot.lottery_type}")
                 return False
             
-            # Update the existing screenshot record with new path
+            filepath, _, zoom_filepath = capture_result
+            
+            # Update the existing screenshot record with new paths
             screenshot.path = filepath
-            # No longer using zoomed_path since zoom functionality has been removed
+            screenshot.zoomed_path = zoom_filepath
             screenshot.timestamp = db.func.now()  # Update timestamp
             db.session.commit()
             
@@ -538,176 +340,30 @@ def retake_screenshot_by_id(screenshot_id, app=None):
             db.session.rollback()
         return False
 
-def retake_all_screenshots(app=None, use_threading=True, use_specialized_capture=True):
+def retake_all_screenshots(app=None, use_threading=True):
     """
     Retake screenshots for all configured URLs.
-    By default, uses the specialized National Lottery capture function.
+    This function will call screenshot_manager.retake_all_screenshots to handle the screenshot process.
     
     Args:
         app (Flask): Flask application instance (optional)
         use_threading (bool): Whether to use threading for parallel processing
-        use_specialized_capture (bool): Whether to use specialized National Lottery capture
         
     Returns:
         int: Number of successfully captured screenshots
     """
     try:
-        # Create application context if not provided
-        if app is None:
-            from main import app
-            
-        with app.app_context():
-            # Import models
-            from models import db, ScheduleConfig
-            
-            # Get all active schedule configs
-            configs = ScheduleConfig.query.filter_by(active=True).all()
-            logger.info(f"Found {len(configs)} active schedule configurations to retake")
-            
-            success_count = 0
-            
-            # Process configs sequentially or with threading
-            if use_threading:
-                import threading
-                import queue
-                
-                # Define a task queue
-                task_queue = queue.Queue()
-                for config in configs:
-                    task_queue.put((config.url, config.lottery_type))
-                
-                # Define the worker function
-                def worker():
-                    nonlocal success_count
-                    while not task_queue.empty():
-                        try:
-                            url, lottery_type = task_queue.get(block=False)
-                            logger.info(f"Worker processing {lottery_type} from {url}")
-                            
-                            # Use the appropriate capture method
-                            if use_specialized_capture:
-                                try:
-                                    from national_lottery_capture import capture_national_lottery_url
-                                    success, _, _ = capture_national_lottery_url(url, lottery_type)
-                                    if success:
-                                        success_count += 1
-                                except Exception as e:
-                                    logger.error(f"Error in specialized capture for {lottery_type}: {str(e)}")
-                                    # Fall back to standard capture on failure
-                                    import screenshot_manager as sm
-                                    if sm.capture_screenshot(url, lottery_type):
-                                        success_count += 1
-                            else:
-                                # Use standard capture
-                                import screenshot_manager as sm
-                                if sm.capture_screenshot(url, lottery_type):
-                                    success_count += 1
-                            
-                            task_queue.task_done()
-                        except queue.Empty:
-                            break
-                        except Exception as e:
-                            logger.error(f"Error in worker thread: {str(e)}")
-                            task_queue.task_done()
-                
-                # Create and start worker threads (limit to a reasonable number)
-                thread_count = min(4, len(configs))
-                threads = []
-                for _ in range(thread_count):
-                    thread = threading.Thread(target=worker)
-                    thread.daemon = True
-                    thread.start()
-                    threads.append(thread)
-                
-                # Wait for all tasks to complete
-                for thread in threads:
-                    thread.join()
-                
-            else:
-                # Process configs sequentially
-                for config in configs:
-                    url = config.url
-                    lottery_type = config.lottery_type
-                    logger.info(f"Processing {lottery_type} from {url}")
-                    
-                    # Use the appropriate capture method
-                    if use_specialized_capture:
-                        try:
-                            from national_lottery_capture import capture_national_lottery_url
-                            success, _, _ = capture_national_lottery_url(url, lottery_type)
-                            if success:
-                                success_count += 1
-                            else:
-                                # Fall back to standard capture on failure
-                                import screenshot_manager as sm
-                                if sm.capture_screenshot(url, lottery_type):
-                                    success_count += 1
-                        except Exception as e:
-                            logger.error(f"Error in specialized capture for {lottery_type}: {str(e)}")
-                            # Fall back to standard capture on failure
-                            import screenshot_manager as sm
-                            if sm.capture_screenshot(url, lottery_type):
-                                success_count += 1
-                    else:
-                        # Use standard capture
-                        import screenshot_manager as sm
-                        if sm.capture_screenshot(url, lottery_type):
-                            success_count += 1
-            
-            logger.info(f"Successfully retook {success_count} out of {len(configs)} screenshots")
-            return success_count
+        # Import screenshot manager here to avoid circular imports
+        import screenshot_manager as sm
+        
+        # Call the screenshot manager's implementation
+        logger.info("Delegating screenshot capture to screenshot_manager.retake_all_screenshots")
+        result = sm.retake_all_screenshots(app, use_threading=use_threading)
+        
+        # Return the count of screenshots taken
+        return result
     except Exception as e:
         logger.error(f"Error in scheduler.retake_all_screenshots: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
         return 0
-
-def run_screenshot_cleanup(app=None):
-    """
-    Run the screenshot cleanup process to remove old screenshots.
-    This helps maintain disk space by keeping only the latest screenshots.
-    
-    Args:
-        app (Flask): Flask application instance (optional)
-        
-    Returns:
-        bool: True if cleanup was successful, False otherwise
-    """
-    try:
-        # Import screenshot manager here to avoid circular imports
-        import screenshot_manager as sm
-        
-        logger.info("Starting scheduled screenshot cleanup from scheduler")
-        
-        # If no app context is provided but we need one
-        if app is None:
-            # Import Flask app (handle circular imports)
-            from flask import current_app
-            
-            if not current_app:
-                from main import app
-                app_context = app.app_context()
-                app_context.push()
-                created_context = True
-            else:
-                created_context = False
-        else:
-            app_context = app.app_context()
-            app_context.push()
-            created_context = True
-            
-        try:
-            # Execute the cleanup function
-            sm.cleanup_old_screenshots()
-            logger.info("Scheduled screenshot cleanup completed successfully")
-            return True
-        finally:
-            # Only pop the context if we created it
-            if app is not None and created_context:
-                app_context.pop()
-                
-    except Exception as e:
-        logger.error(f"Error in scheduler.run_screenshot_cleanup: {str(e)}")
-        import traceback
-        logger.error(traceback.format_exc())
-        return False

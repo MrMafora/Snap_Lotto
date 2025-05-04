@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 def get_screenshots_safe(order_by_column=None, descending=False):
     """
     Get screenshots without accessing non-existent columns.
-    This function is a workaround for the schema mismatch where the model has columns
-    that don't exist in the actual database.
+    This function is a workaround for the schema mismatch where the model has capture_date
+    but the actual database doesn't.
     
     Args:
         order_by_column: Optional column to order by (e.g., Screenshot.timestamp)
@@ -45,24 +45,28 @@ def get_screenshots_safe(order_by_column=None, descending=False):
     Returns:
         List of Screenshot objects with only existing columns
     """
-    # Only query columns that actually exist in the database
     query = db.session.query(
         Screenshot.id, 
         Screenshot.url, 
         Screenshot.lottery_type, 
         Screenshot.timestamp, 
         Screenshot.path, 
+        Screenshot.filename,
+        Screenshot.zoomed_path,
         Screenshot.processed
     )
     
     # Always apply an order, defaulting to ID if nothing specified
-    if order_by_column is None:
-        order_by_column = Screenshot.id
-        
     if descending:
-        query = query.order_by(order_by_column.desc())
+        if order_by_column:
+            query = query.order_by(order_by_column.desc())
+        else:
+            query = query.order_by(Screenshot.id.desc())
     else:
-        query = query.order_by(order_by_column.asc())
+        if order_by_column:
+            query = query.order_by(order_by_column)
+        else:
+            query = query.order_by(Screenshot.id)
         
     return query.all()
 
@@ -71,8 +75,6 @@ import scheduler  # Import directly at the top level for screenshot functions
 import create_template  # Import directly for template creation
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory, send_file, session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
-from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, SelectField, BooleanField, SubmitField, HiddenField
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -80,7 +82,7 @@ from werkzeug.utils import secure_filename
 from csrf_fix import EnhancedCSRFProtect
 
 # Import models only (lightweight)
-from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, LotteryPrediction, PredictionResult, ModelTrainingHistory, db
+from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, db
 from config import Config
 
 # Import modules
@@ -88,9 +90,12 @@ import ad_management
 import lottery_analysis
 from import_latest_spreadsheet import import_latest_spreadsheet, find_latest_spreadsheet
 
-# Port proxy is now handled directly by gunicorn.conf.py
-# No need for a separate process
-logger.info("Using gunicorn.conf.py for port configuration")
+# Import auto_proxy to start the port proxy in the background
+try:
+    import auto_proxy
+    logger.info("Port proxy auto-starter loaded")
+except Exception as e:
+    logger.error(f"Failed to load port proxy auto-starter: {e}")
 
 # Import template handling
 try:
@@ -113,19 +118,17 @@ app.jinja_env.filters['cos'] = lambda x: math.cos(float(x))
 app.jinja_env.filters['sin'] = lambda x: math.sin(float(x))
 app.jinja_env.filters['format_number'] = lambda x: f"{int(x):,}" if isinstance(x, (int, float)) else x
 
-# Always use PostgreSQL database on Replit via DATABASE_URL environment variable
+# Explicitly set database URI from environment variable
 database_url = os.environ.get('DATABASE_URL')
-if not database_url:
-    logger.error("DATABASE_URL environment variable not found - this is required for the application to work")
-    # Force fail early with a clear error message
-    raise EnvironmentError("DATABASE_URL environment variable is required but was not found")
-
-# Ensure proper PostgreSQL connection string format (convert postgres:// to postgresql://)
-if database_url.startswith('postgres://'):
-    database_url = database_url.replace('postgres://', 'postgresql://', 1)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-logger.info("Using PostgreSQL database from DATABASE_URL environment variable")
+if database_url:
+    # Ensure proper PostgreSQL connection string format
+    # Heroku-style connection strings start with postgres:// but SQLAlchemy requires postgresql://
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    logger.info(f"Using database from DATABASE_URL environment variable")
+else:
+    logger.warning("DATABASE_URL not found, using fallback database configuration")
 
 # Initialize SQLAlchemy with additional connection settings
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -246,113 +249,184 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""
-    # Simplified index route to troubleshoot application issues
-    meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
-    breadcrumbs = []
+    # Ensure data_aggregator is loaded before using it
+    global data_aggregator
     
-    # Provide empty data to template to avoid DB queries for now
-    return render_template('index.html', 
-                        latest_results={},
-                        results=[],
-                        frequent_numbers=[],
-                        cold_numbers=[],
-                        absent_numbers=[],
-                        division_stats={},
-                        title="South African Lottery Results | Latest Winning Numbers",
-                        meta_description=meta_description,
-                        breadcrumbs=breadcrumbs,
-                        maintenance_mode=True)
+    try:
+        # Import if not already loaded
+        if data_aggregator is None:
+            import data_aggregator as da
+            data_aggregator = da
+            logger.info("Loaded data_aggregator module on demand")
+        
+        # First, validate and correct any known draws (adds missing division data)
+        try:
+            corrected = data_aggregator.validate_and_correct_known_draws()
+            if corrected > 0:
+                logger.info(f"Corrected {corrected} lottery draws with verified data")
+        except Exception as e:
+            logger.error(f"Error in validate_and_correct_known_draws: {e}")
+        
+        # Get the latest results for each lottery type
+        try:
+            latest_results = data_aggregator.get_latest_results()
+            
+            # Convert dictionary of results to a list for iteration in the template
+            results_list = []
+            
+            # Use a dictionary to track unique draw numbers per type to avoid duplicates
+            seen_draws = {}
+            normalized_results = {}
+            
+            # First, create a dictionary to group results by normalized type
+            type_groups = {}
+            for lottery_type, result in latest_results.items():
+                # Normalize the lottery type
+                normalized_type = data_aggregator.normalize_lottery_type(lottery_type)
+                
+                # Group all results by normalized type
+                if normalized_type not in type_groups:
+                    type_groups[normalized_type] = []
+                type_groups[normalized_type].append(result)
+            
+            # Now select the newest result for each normalized type
+            for normalized_type, type_results in type_groups.items():
+                # Sort by date (newest first)
+                type_results.sort(key=lambda x: x.draw_date, reverse=True)
+                # Take the newest result only
+                newest_result = type_results[0]
+                normalized_results[normalized_type] = newest_result
+            
+            # Second pass: add results using normalized keys to avoid duplicates
+            for normalized_type, result in normalized_results.items():
+                # Generate a deduplication key using normalized type
+                key = f"{normalized_type}_{result.draw_number}"
+                if key not in seen_draws:
+                    # Clone the result to avoid modifying the database object directly
+                    # This prevents unique constraint violations when adding to results_list
+                    result_clone = LotteryResult(
+                        id=result.id,
+                        lottery_type=normalized_type,  # Use normalized type
+                        draw_number=result.draw_number,
+                        draw_date=result.draw_date,
+                        numbers=result.numbers,
+                        bonus_numbers=result.bonus_numbers,
+                        divisions=result.divisions,
+                        source_url=result.source_url,
+                        screenshot_id=result.screenshot_id,
+                        ocr_provider=result.ocr_provider,
+                        ocr_model=result.ocr_model,
+                        ocr_timestamp=result.ocr_timestamp,
+                        created_at=result.created_at
+                    )
+                    results_list.append(result_clone)
+                    seen_draws[key] = True
+            
+            # Sort results by date (newest first)
+            results_list.sort(key=lambda x: x.draw_date, reverse=True)
+        except Exception as e:
+            logger.error(f"Error getting latest lottery results: {e}")
+            latest_results = {}
+            results_list = []
+        
+        # Get analytics data for the dashboard
+        try:
+            frequent_numbers = data_aggregator.get_most_frequent_numbers(limit=10)
+        except Exception as e:
+            logger.error(f"Error getting frequent numbers: {e}")
+            frequent_numbers = []
+            
+        try:
+            division_stats = data_aggregator.get_division_statistics()
+        except Exception as e:
+            logger.error(f"Error getting division statistics: {e}")
+            division_stats = {}
+            
+        # Get cold numbers (least frequently drawn)
+        try:
+            cold_numbers = data_aggregator.get_least_frequent_numbers(limit=5)
+        except Exception as e:
+            logger.error(f"Error getting cold numbers: {e}")
+            cold_numbers = []
+            
+        # Get numbers not drawn recently
+        try:
+            absent_numbers = data_aggregator.get_numbers_not_drawn_recently(limit=5)
+        except Exception as e:
+            logger.error(f"Error getting absent numbers: {e}")
+            absent_numbers = []
+        
+        # Define rich meta description for SEO
+        meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
+        
+        # Home page doesn't need breadcrumbs (it's the root), but we define an empty list for consistency
+        breadcrumbs = []
+        
+        return render_template('index.html', 
+                            latest_results=latest_results,
+                            results=results_list,
+                            frequent_numbers=frequent_numbers,
+                            cold_numbers=cold_numbers,
+                            absent_numbers=absent_numbers,
+                            division_stats=division_stats,
+                            title="South African Lottery Results | Latest Winning Numbers",
+                            meta_description=meta_description,
+                            breadcrumbs=breadcrumbs)
+    except Exception as e:
+        logger.error(f"Critical error in index route: {e}")
+        # Define rich meta description for SEO even in error case
+        meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
+        
+        # Define empty breadcrumbs for consistency even in error case
+        breadcrumbs = []
+        
+        return render_template('index.html', 
+                            latest_results={},
+                            results=[],
+                            frequent_numbers=[],
+                            cold_numbers=[],
+                            absent_numbers=[],
+                            division_stats={},
+                            title="South African Lottery Results | Latest Winning Numbers",
+                            meta_description=meta_description,
+                            breadcrumbs=breadcrumbs)
 
 @app.route('/admin')
 @login_required
 def admin():
     """Admin dashboard page"""
-    try:
-        logger.info("Admin dashboard accessed by: %s", current_user.username if current_user.is_authenticated else "Unauthenticated user")
-        
-        if not current_user.is_admin:
-            flash('You must be an admin to access this page.', 'danger')
-            logger.warning("Non-admin user attempted to access admin dashboard: %s", current_user.username)
-            return redirect(url_for('index'))
-
-        logger.info("Admin user verified, querying data for dashboard")
-        
-        try:
-            # Use the safe screenshots query function
-            screenshots = get_screenshots_safe(order_by_column=Screenshot.timestamp, descending=True)
-            logger.info("Retrieved %d screenshots", len(screenshots))
-        except Exception as e:
-            logger.error(f"Error retrieving screenshots: {e}")
-            screenshots = []
-            flash(f"Error retrieving screenshots: {str(e)}", "warning")
-        
-        try:
-            # Get schedule configs
-            schedule_configs = ScheduleConfig.query.all()
-            logger.info("Retrieved %d schedule configs", len(schedule_configs))
-        except Exception as e:
-            logger.error(f"Error retrieving schedule configs: {e}")
-            schedule_configs = []
-            flash(f"Error retrieving schedule configs: {str(e)}", "warning")
-
-        # Get recent imports
-        try:
-            recent_imports = ImportHistory.query.order_by(ImportHistory.import_date.desc()).limit(5).all()
-            logger.info("Retrieved %d recent imports", len(recent_imports))
-        except Exception as e:
-            logger.error(f"Error retrieving recent imports: {e}")
-            recent_imports = []
-            flash(f"Error retrieving recent imports: {str(e)}", "warning")
-
-        # Get recent health alerts
-        try:
-            # Import HealthAlert model directly from models
-            from models import HealthAlert
-            recent_alerts = HealthAlert.query.filter_by(resolved=False).order_by(HealthAlert.created_at.desc()).limit(5).all()
-            logger.info("Retrieved %d recent health alerts", len(recent_alerts))
-        except Exception as e:
-            logger.error(f"Error retrieving health alerts: {e}")
-            recent_alerts = []
-            flash(f"Error retrieving health alerts: {str(e)}", "warning")
-
-        # Get prediction counts for each lottery type
-        try:
-            prediction_counts = {}
-            for lottery_type in ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lottery']:
-                try:
-                    count = LotteryPrediction.query.filter_by(lottery_type=lottery_type).count()
-                    prediction_counts[lottery_type] = count
-                except Exception as e:
-                    logger.error(f"Error counting predictions for {lottery_type}: {e}")
-                    prediction_counts[lottery_type] = 0
-            logger.info("Retrieved prediction counts for lottery types")
-        except Exception as e:
-            logger.error(f"Error retrieving prediction counts: {e}")
-            prediction_counts = {}
-
-        # Define breadcrumbs for SEO
-        breadcrumbs = [
-            {"name": "Admin Dashboard", "url": url_for('admin')}
-        ]
-
-        # Define SEO metadata
-        meta_description = "Admin dashboard for the South African lottery results system. Manage data, screenshots, schedule configurations, and system settings."
-        
-        logger.info("Rendering admin dashboard template")
-        return render_template('admin/dashboard.html', 
-                              screenshots=screenshots,
-                              schedule_configs=schedule_configs,
-                              recent_imports=recent_imports,
-                              recent_alerts=recent_alerts,
-                              prediction_counts=prediction_counts,
-                              title="Admin Dashboard | Lottery Results Management",
-                              breadcrumbs=breadcrumbs,
-                              meta_description=meta_description)
-    except Exception as e:
-        logger.error("Error in admin dashboard: %s", str(e))
-        logger.error(traceback.format_exc())
-        flash(f'An error occurred: {str(e)}', 'danger')
+    if not current_user.is_admin:
+        flash('You must be an admin to access this page.', 'danger')
         return redirect(url_for('index'))
+
+    # Query screenshots directly with specific columns to avoid schema mismatch
+    screenshots = db.session.query(
+        Screenshot.id, 
+        Screenshot.url, 
+        Screenshot.lottery_type, 
+        Screenshot.timestamp, 
+        Screenshot.path, 
+        Screenshot.filename,
+        Screenshot.zoomed_path,
+        Screenshot.processed
+    ).order_by(Screenshot.timestamp.desc()).all()
+    
+    schedule_configs = ScheduleConfig.query.all()
+
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Admin Dashboard", "url": url_for('admin')}
+    ]
+
+    # Define SEO metadata
+    meta_description = "Admin dashboard for the South African lottery results system. Manage data, screenshots, schedule configurations, and system settings."
+    
+    return render_template('admin/dashboard.html', 
+                          screenshots=screenshots,
+                          schedule_configs=schedule_configs,
+                          title="Admin Dashboard | Lottery Results Management",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
 
 @app.route('/login', methods=['GET', 'POST'])
 @csrf.exempt
@@ -1252,18 +1326,16 @@ def retake_screenshots():
         return redirect(url_for('index'))
         
     try:
-        # Call scheduler's retake_all_screenshots function
-        # This returns an integer count of successfully captured screenshots
-        success_count = scheduler.retake_all_screenshots(app=app, use_threading=False)
+        result = scheduler.retake_all_screenshots()
         
-        if success_count > 0:
-            flash(f'Screenshot process completed. {success_count} screenshots captured successfully.', 'success')
+        if result:
+            success_count = sum(1 for status in result.values() if status == 'success')
+            fail_count = len(result) - success_count
+            
+            flash(f'Screenshot process started. {success_count} URLs queued successfully. {fail_count} failed.', 'info')
         else:
-            flash('No screenshots could be captured. Please check logs for details.', 'warning')
+            flash('No URLs configured for screenshots.', 'warning')
     except Exception as e:
-        app.logger.error(f"Error in retake_screenshots route: {str(e)}")
-        import traceback
-        app.logger.error(traceback.format_exc())
         flash(f'Error: {str(e)}', 'danger')
     
     return redirect(url_for('admin'))
@@ -1309,178 +1381,19 @@ def settings():
     # Define SEO metadata
     meta_description = "Configure South African lottery system settings and scheduled tasks. Manage data synchronization, screenshot capture timing, and system preferences."
     
-    # Get missing URLs using the enhanced detection logic
-    missing_results_urls, missing_historical_urls, schedule_configs = detect_missing_urls()
+    schedule_configs = ScheduleConfig.query.all()
     
-    # Handle form submission for updating settings or adding missing URLs
+    # Handle form submission for updating settings
     if request.method == 'POST':
-        action = request.form.get('action')
-        
-        if action == 'add_missing_urls':
-            # Add all missing URLs to the schedule
-            added_count = add_missing_urls_to_schedule(missing_results_urls, missing_historical_urls)
-            
-            if added_count > 0:
-                flash(f'Successfully added {added_count} missing URLs to the schedule.', 'success')
-            else:
-                flash('No URLs were added to the schedule.', 'warning')
-                
-            return redirect(url_for('settings'))
-        elif action == 'add_url':
-            # Add a single URL from the form
-            url = request.form.get('url')
-            lottery_type = request.form.get('lottery_type')
-            hour = int(request.form.get('hour', 1))
-            minute = int(request.form.get('minute', 0))
-            frequency = request.form.get('frequency', 'daily')
-            active = request.form.get('active') == 'true'
-            
-            if url and lottery_type:
-                try:
-                    # Convert "Lotto" to "Lottery" for consistency
-                    if "Lotto" in lottery_type and "Lottery" not in lottery_type:
-                        lottery_type = lottery_type.replace("Lotto", "Lottery")
-                    
-                    new_config = ScheduleConfig(
-                        url=url,
-                        lottery_type=lottery_type,
-                        frequency=frequency,
-                        hour=hour,
-                        minute=minute,
-                        active=active
-                    )
-                    db.session.add(new_config)
-                    db.session.commit()
-                    flash('New URL schedule added successfully.', 'success')
-                except Exception as e:
-                    db.session.rollback()
-                    flash(f'Error adding URL: {str(e)}', 'danger')
-            else:
-                flash('URL and lottery type are required.', 'danger')
-                
-            return redirect(url_for('settings'))
-        else:
-            # This would normally handle other form submissions
-            flash('Settings updated successfully.', 'success')
-            return redirect(url_for('settings'))
+        # This would normally handle the form submission
+        flash('Settings updated successfully.', 'success')
+        return redirect(url_for('settings'))
     
-    # Show notification about missing URLs
-    if missing_results_urls or missing_historical_urls:
-        total_missing = len(missing_results_urls) + len(missing_historical_urls)
-        flash(f'Found {total_missing} missing URLs that can be added to the schedule.', 'warning')
-    
-    # Pass all available data to the template
     return render_template('settings.html', 
                           schedule_configs=schedule_configs,
-                          missing_results_urls=missing_results_urls,
-                          missing_historical_urls=missing_historical_urls,
                           title="System Settings | Lottery Data Management",
                           meta_description=meta_description,
                           breadcrumbs=breadcrumbs)
-
-def detect_missing_urls():
-    """
-    Enhanced function to detect missing URLs in the schedule.
-    This function handles both results URLs and historical data URLs.
-    
-    Returns:
-        tuple: (missing_results_urls, missing_historical_urls, schedule_configs)
-    """
-    # Import data_aggregator to normalize lottery types consistently
-    global data_aggregator
-    if data_aggregator is None:
-        import data_aggregator as da
-        data_aggregator = da
-    
-    # Get both current results URLs and historical data URLs from config
-    from config import Config
-    results_urls = Config.RESULTS_URLS.copy()  # Make a copy to avoid modifying the original
-    
-    # Normalize the lottery type names in results URLs to match our consistent format
-    for url_config in results_urls:
-        lottery_type = url_config['lottery_type']
-        url_config['lottery_type'] = data_aggregator.normalize_lottery_type(lottery_type)
-    
-    # Create consistent historical URLs entries
-    historical_urls = []
-    for url in Config.DEFAULT_LOTTERY_URLS:
-        # Extract the base lottery type from the URL
-        base_type = url.split('/')[-1].replace('-history', '').replace('-', ' ').title()
-        # Normalize it according to our standards
-        normalized_type = data_aggregator.normalize_lottery_type(base_type) + ' History'
-        historical_urls.append({
-            'url': url,
-            'lottery_type': normalized_type
-        })
-    
-    # Get existing schedule configurations
-    schedule_configs = ScheduleConfig.query.all()
-    
-    # Check for missing URLs that should be added (both results and historical)
-    existing_urls = {config.url for config in schedule_configs}
-    
-    missing_results_urls = [
-        url_config for url_config in results_urls
-        if url_config['url'] not in existing_urls
-    ]
-    
-    missing_historical_urls = [
-        url_config for url_config in historical_urls
-        if url_config['url'] not in existing_urls
-    ]
-    
-    return missing_results_urls, missing_historical_urls, schedule_configs
-
-def add_missing_urls_to_schedule(missing_results_urls, missing_historical_urls):
-    """
-    Add missing URLs to the schedule.
-    
-    Args:
-        missing_results_urls (list): List of dictionaries with URLs for results pages
-        missing_historical_urls (list): List of dictionaries with URLs for historical data
-        
-    Returns:
-        int: Number of URLs added to the schedule
-    """
-    if not missing_results_urls and not missing_historical_urls:
-        app.logger.info("No missing URLs found to add.")
-        return 0
-    
-    # Add all missing URLs to the schedule
-    added_count = 0
-    for url_config in missing_results_urls + missing_historical_urls:
-        # Create a new schedule config with default time
-        # (1:00 AM for results, 2:00 AM for historical data)
-        is_historical = 'History' in url_config['lottery_type']
-        hour = 2 if is_historical else 1
-        
-        try:
-            new_config = ScheduleConfig(
-                url=url_config['url'],
-                lottery_type=url_config['lottery_type'],
-                frequency='daily',
-                hour=hour,
-                minute=0,
-                active=True
-            )
-            db.session.add(new_config)
-            added_count += 1
-            app.logger.info(f"Added URL to schedule: {url_config['lottery_type']} - {url_config['url']}")
-        except Exception as e:
-            app.logger.error(f"Error adding URL {url_config['url']}: {e}")
-    
-    try:
-        if added_count > 0:
-            db.session.commit()
-            app.logger.info(f"Successfully added {added_count} URLs to the schedule.")
-        else:
-            app.logger.warning("No URLs were added to the schedule.")
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Error committing changes: {e}")
-        return 0
-    
-    return added_count
 
 @app.route('/export-screenshots')
 @login_required
@@ -1506,6 +1419,8 @@ def export_screenshots():
         Screenshot.lottery_type, 
         Screenshot.timestamp, 
         Screenshot.path, 
+        Screenshot.filename,
+        Screenshot.zoomed_path,
         Screenshot.processed
     ).order_by(Screenshot.timestamp.desc()).all()
     
@@ -1547,6 +1462,8 @@ def export_screenshots_zip():
             Screenshot.lottery_type, 
             Screenshot.timestamp, 
             Screenshot.path, 
+            Screenshot.filename,
+            Screenshot.zoomed_path,
             Screenshot.processed
         ).order_by(Screenshot.lottery_type).all()
         
@@ -1561,14 +1478,19 @@ def export_screenshots_zip():
                 if os.path.exists(screenshot.path):
                     # Get the file extension
                     _, ext = os.path.splitext(screenshot.path)
-                    # Create a unique filename for each screenshot based on path and timestamp
-                    # We don't use screenshot.filename since it doesn't exist in the database
+                    # Create a unique filename for each screenshot
                     lottery_type = screenshot.lottery_type.replace(' ', '_')
                     timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
-                    generated_filename = f"{lottery_type}_{timestamp}{ext}"
+                    filename = f"{lottery_type}_{timestamp}{ext}"
                     
                     # Add the screenshot to the ZIP file
-                    zf.write(screenshot.path, generated_filename)
+                    zf.write(screenshot.path, filename)
+                    
+                    # Add zoomed version if it exists
+                    if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                        _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
+                        zoomed_filename = f"{lottery_type}_{timestamp}_zoomed{zoomed_ext}"
+                        zf.write(screenshot.zoomed_path, zoomed_filename)
         
         # Reset the file pointer to the beginning of the file
         memory_file.seek(0)
@@ -1835,40 +1757,37 @@ def view_screenshot(screenshot_id):
     # Normalize path and check if file exists
     screenshot_path = os.path.normpath(screenshot.path)
     
-    # First try the exact path from the database
-    if os.path.isfile(screenshot_path):
-        directory = os.path.dirname(screenshot_path)
-        filename = os.path.basename(screenshot_path)
-        return send_from_directory(directory, filename)
+    if not os.path.isfile(screenshot_path):
+        flash('Screenshot file not found', 'danger')
+        return redirect(url_for('admin'))
     
-    # If that fails, try looking for the file in the screenshots directory
-    base_filename = os.path.basename(screenshot_path)
-    alternative_path = os.path.join('screenshots', base_filename)
+    # Extract directory and filename from path
+    directory = os.path.dirname(screenshot_path)
+    filename = os.path.basename(screenshot_path)
     
-    if os.path.isfile(alternative_path):
-        return send_from_directory('screenshots', base_filename)
-        
-    # As a last resort, search for any file with a similar name pattern in the screenshots directory
-    lottery_type_search = screenshot.lottery_type.replace(' ', '_')
-    matching_files = []
-    
-    try:
-        for file in os.listdir('screenshots'):
-            if lottery_type_search in file and (file.endswith('.html') or file.endswith('.png')):
-                matching_files.append(file)
-                
-        if matching_files:
-            # Sort files by modification time (newest first)
-            matching_files.sort(key=lambda x: os.path.getmtime(os.path.join('screenshots', x)), reverse=True)
-            return send_from_directory('screenshots', matching_files[0])
-    except Exception as e:
-        app.logger.error(f"Error searching for alternative files: {str(e)}")
-    
-    # If we've reached this point, no suitable file was found
-    flash('Screenshot file not found', 'danger')
-    return redirect(url_for('admin'))
+    return send_from_directory(directory, filename)
 
-# Zoom functionality has been removed as per requirements
+@app.route('/screenshot-zoomed/<int:screenshot_id>')
+def view_zoomed_screenshot(screenshot_id):
+    """View a zoomed screenshot image"""
+    screenshot = Screenshot.query.get_or_404(screenshot_id)
+    
+    if not screenshot.zoomed_path:
+        flash('No zoomed screenshot available', 'warning')
+        return redirect(url_for('admin'))
+    
+    # Normalize path and check if file exists
+    zoomed_path = os.path.normpath(screenshot.zoomed_path)
+    
+    if not os.path.isfile(zoomed_path):
+        flash('Zoomed screenshot file not found', 'danger')
+        return redirect(url_for('admin'))
+    
+    # Extract directory and filename from path
+    directory = os.path.dirname(zoomed_path)
+    filename = os.path.basename(zoomed_path)
+    
+    return send_from_directory(directory, filename)
 
 @app.route('/sync-all-screenshots', methods=['GET', 'POST'])
 @login_required
@@ -2028,6 +1947,12 @@ def export_combined_zip():
                         
                         # Add the screenshot to the ZIP file in a screenshots folder
                         zf.write(screenshot.path, f"screenshots/{filename}")
+                        
+                        # Add zoomed version if it exists
+                        if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                            _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
+                            zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
+                            zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
             
             # Reset the file pointer to the beginning of the file
             memory_file.seek(0)
@@ -2648,8 +2573,6 @@ def health_dashboard():
         service_port_map=service_port_map
     )
 
-# Screenshots management is now handled by the screenshot_management_routes blueprint
-
 @app.route('/admin/health-alerts')
 @login_required
 def health_alerts():
@@ -2992,14 +2915,8 @@ def system_metrics():
 # Register advertisement management routes
 ad_management.register_ad_routes(app)
 
-# Register screenshot management routes
-from screenshot_management_routes import register_screenshot_routes
-register_screenshot_routes(app)
-
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
-
-# Screenshot management routes are already registered above
 
 # Register automated lottery extraction routes
 try:
@@ -3143,9 +3060,6 @@ def import_missing_draws_route():
                               success=False,
                               stats={},
                               error=f"Error: {str(e)}")
-
-# Class for lottery prediction generation form - unused now, we're using the existing route
-# from lottery_analysis.py instead
 
 # When running directly, not through gunicorn
 if __name__ == "__main__":
