@@ -187,13 +187,14 @@
                 if (state.uploadResults) {
                     log('Displaying stored upload results');
                     
-                    // Handle the upload results
-                    if (window.handleTicketScanResults && typeof window.handleTicketScanResults === 'function') {
-                        window.handleTicketScanResults(state.uploadResults);
+                    // Handle the upload results with the correct function name
+                    if (window.displayResults && typeof window.displayResults === 'function') {
+                        log('Calling displayResults function with scan results');
+                        window.displayResults(state.uploadResults);
                     }
-                    
-                    // Optional: directly update the results container
-                    if (state.uploadResults.success) {
+                    // Fallback to direct DOM manipulation if the display function is missing
+                    else if (state.uploadResults.success) {
+                        log('displayResults function not found, directly updating container');
                         elements.resultsContainer.innerHTML = '<div class="alert alert-success">Upload successful! Results displayed below.</div>';
                         
                         // Add results content if available
@@ -732,14 +733,13 @@
     function processTicketWithAds() {
         log('Processing ticket with ads');
         
-        // Show first ad (Public Service Announcement)
+        // Show first ad (Public Service Announcement) immediately
         showPublicServiceAd();
         
-        // Process the ticket after a small delay to ensure ad is visible
-        setTimeout(function() {
-            // Process the form directly
-            const form = document.getElementById('ticket-form');
-            if (form) {
+        // Process the form without delay - ads should appear immediately
+        // Process the form directly
+        const form = document.getElementById('ticket-form');
+        if (form) {
                 // Create FormData from form
                 const formData = new FormData(form);
                 
@@ -824,6 +824,5 @@
                     alert('Error scanning ticket. Please try again.');
                 });
             }
-        }, 500); // Reduced to 500ms for better responsiveness
     }
 })();
