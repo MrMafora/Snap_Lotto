@@ -681,11 +681,18 @@ function updateCharts(data) {
         return;
     }
     
-    // Update frequency chart
-    updateFrequencyChart(data);
+    // Get the currently selected lottery type from UI
+    const userSelectedType = document.querySelector('.current-lottery-type').textContent.trim();
     
-    // Update hot and cold numbers section
-    updateHotColdNumbers(data);
+    // Extract frequency data from the response
+    const frequencyData = extractFrequencyData(data, userSelectedType);
+    console.log("Frequency data received:", frequencyData);
+    
+    // Update frequency chart using the extracted data
+    updateFrequencyChart(data, frequencyData);
+    
+    // Update hot and cold numbers section using the same extracted data
+    updateHotColdNumbers(data, frequencyData);
     
     // Update division statistics chart
     updateDivisionChart(data);
@@ -694,59 +701,65 @@ function updateCharts(data) {
     // Keep this section for future chart code but removed the pie chart references
 }
 
-// Function to update the Hot & Cold Numbers section with filtered data
-function updateHotColdNumbers(data) {
-    // Show loading indicator for hot/cold section
-    const hotColdLoading = document.getElementById('hotColdLoading');
-    if (hotColdLoading) {
-        hotColdLoading.classList.remove('d-none');
-    }
-    
-    // Get the currently selected lottery type from UI
-    const userSelectedType = document.querySelector('.current-lottery-type').textContent.trim();
-    
-    // Use the user's selected lottery type instead of automatically finding the one with most data
-    let selectedLotteryType = null;
-    
+// Function to extract frequency data for the selected lottery type
+function extractFrequencyData(data, selectedType) {
     // Normalize user selected type for comparison
-    const normalizedUserType = userSelectedType === 'All Lottery Types' ? 'All Lottery Types' : userSelectedType;
+    const normalizedUserType = selectedType === 'All Lottery Types' ? 'All Lottery Types' : selectedType;
     
     // First try to find an exact match for the user's selection
+    let matchedType = null;
+    
+    // Check for exact match
     for (const lotteryType in data) {
         if (lotteryType === normalizedUserType || 
             (normalizedUserType === 'All Lottery Types' && lotteryType === 'All Lottery Types')) {
-            selectedLotteryType = lotteryType;
+            matchedType = lotteryType;
             break;
         }
     }
     
     // If no exact match, find a close match by comparing case-insensitive
-    if (!selectedLotteryType) {
+    if (!matchedType) {
         for (const lotteryType in data) {
             if (lotteryType.toLowerCase() === normalizedUserType.toLowerCase()) {
-                selectedLotteryType = lotteryType;
+                matchedType = lotteryType;
                 break;
             }
         }
     }
     
     // If still no match, fall back to using the "All Lottery Types" or the first available lottery type
-    if (!selectedLotteryType) {
+    if (!matchedType) {
         if (data['All Lottery Types']) {
-            selectedLotteryType = 'All Lottery Types';
+            matchedType = 'All Lottery Types';
         } else {
             // Find the first lottery type with data as a last resort
             for (const lotteryType in data) {
-                if (data[lotteryType] && data[lotteryType].frequency) {
-                    selectedLotteryType = lotteryType;
+                if (data[lotteryType] && !data[lotteryType].has_error) {
+                    matchedType = lotteryType;
                     break;
                 }
             }
         }
     }
     
-    // If we have no data, show error message
-    if (!selectedLotteryType) {
+    // Return both the matched type and its data
+    return matchedType ? {
+        lotteryType: matchedType,
+        data: data[matchedType]
+    } : null;
+}
+
+// Function to update the Hot & Cold Numbers section with filtered data
+function updateHotColdNumbers(data, frequencyData) {
+    // Show loading indicator for hot/cold section
+    const hotColdLoading = document.getElementById('hotColdLoading');
+    if (hotColdLoading) {
+        hotColdLoading.classList.remove('d-none');
+    }
+    
+    // If we have no data from the shared frequency data, show error message
+    if (!frequencyData || !frequencyData.data || !frequencyData.lotteryType) {
         document.getElementById('hotNumbersContainer').innerHTML = '<div class="text-muted">No hot numbers data available for the selected filters</div>';
         document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available for the selected filters</div>';
         document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available for the selected filters</div>';
@@ -758,15 +771,18 @@ function updateHotColdNumbers(data) {
         return;
     }
     
-    // Get the frequency data for the selected lottery type
-    const frequencyData = data[selectedLotteryType].frequency || [];
+    const selectedLotteryType = frequencyData.lotteryType;
+    const lotteryData = frequencyData.data;
+    
+    // Get the frequency data array for the selected lottery type
+    const frequencyArray = lotteryData.frequency || [];
     
     // Create a list of numbers with their frequencies
     const numberFrequencies = [];
-    for (let i = 0; i < frequencyData.length; i++) {
+    for (let i = 0; i < frequencyArray.length; i++) {
         numberFrequencies.push({
             number: i + 1,
-            frequency: frequencyData[i] || 0
+            frequency: frequencyArray[i] || 0
         });
     }
     
@@ -774,7 +790,7 @@ function updateHotColdNumbers(data) {
     const sortedByFrequency = [...numberFrequencies].sort((a, b) => b.frequency - a.frequency);
     
     // Get the top numbers (most frequent)
-    const topNumbers = data[selectedLotteryType].top_numbers || 
+    const topNumbers = lotteryData.top_numbers || 
         sortedByFrequency.slice(0, 10).map(item => [item.number, item.frequency]);
     
     // Get the cold numbers (least frequent - we derive this from the frequency data)
@@ -868,7 +884,7 @@ function updateHotColdNumbers(data) {
 }
 
 // Function to update the frequency chart
-function updateFrequencyChart(data) {
+function updateFrequencyChart(data, frequencyData) {
     // Get the bar chart container
     const barChartContainer = document.querySelector('.bar-chart-container');
     if (!barChartContainer) return;
@@ -879,57 +895,23 @@ function updateFrequencyChart(data) {
     barChartContainer.style.width = '100%';
     barChartContainer.style.overflow = 'hidden';
     
-    // Get the currently selected lottery type from UI
-    const userSelectedType = document.querySelector('.current-lottery-type').textContent.trim();
-    
-    // Use the user's selected lottery type instead of automatically finding the one with most data
-    let selectedLotteryType = null;
-    
-    // Normalize user selected type for comparison
-    const normalizedUserType = userSelectedType === 'All Lottery Types' ? 'All Lottery Types' : userSelectedType;
-    
-    // First try to find an exact match for the user's selection
-    for (const lotteryType in data) {
-        if (lotteryType === normalizedUserType || 
-            (normalizedUserType === 'All Lottery Types' && lotteryType === 'All Lottery Types')) {
-            selectedLotteryType = lotteryType;
-            break;
-        }
+    // If we don't have frequency data from the shared extraction, show an error
+    if (!frequencyData || !frequencyData.data || !frequencyData.lotteryType) {
+        barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
+        return;
     }
     
-    // If no exact match, find a close match by comparing case-insensitive
-    if (!selectedLotteryType) {
-        for (const lotteryType in data) {
-            if (lotteryType.toLowerCase() === normalizedUserType.toLowerCase()) {
-                selectedLotteryType = lotteryType;
-                break;
-            }
-        }
-    }
-    
-    // If still no match, fall back to using the "All Lottery Types" or the first available lottery type
-    if (!selectedLotteryType) {
-        if (data['All Lottery Types']) {
-            selectedLotteryType = 'All Lottery Types';
-        } else {
-            // Find the first lottery type with data as a last resort
-            for (const lotteryType in data) {
-                if (data[lotteryType] && data[lotteryType].frequency) {
-                    selectedLotteryType = lotteryType;
-                    break;
-                }
-            }
-        }
-    }
+    const selectedLotteryType = frequencyData.lotteryType;
+    const lotteryData = frequencyData.data;
     
     // If we have no data, show a message and return
-    if (!selectedLotteryType) {
+    if (!lotteryData) {
         barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
         return;
     }
     
     // Get the top numbers for this lottery type
-    const topNumbers = data[selectedLotteryType].top_numbers;
+    const topNumbers = lotteryData.top_numbers;
     
     // If no top numbers, show a message and return
     if (!topNumbers || !topNumbers.length) {
