@@ -695,22 +695,48 @@ function updateCharts(data) {
     
     // Extract frequency data from the response
     const frequencyData = extractFrequencyData(data, userSelectedType);
-    console.log("Frequency data received:", frequencyData);
     
-    // Update frequency chart using the extracted data
-    updateFrequencyChart(data, frequencyData);
+    // Log the matched lottery type for debugging  
+    console.log(`Frequency data received for: ${userSelectedType} → matched to: ${frequencyData.lotteryType}`);
     
-    // Update hot and cold numbers section using the same extracted data
-    updateHotColdNumbers(data, frequencyData);
-    
-    // Update division statistics chart with the same shared data
-    updateDivisionChart(data, frequencyData);
-    
-    // Log completion of chart updates
-    console.log("All chart components updated with shared frequency data:", frequencyData.lotteryType);
-    
-    // Charts are now ready - we no longer use the pie chart container
-    // Keep this section for future chart code but removed the pie chart references
+    // Force a delay for DOM updates to ensure all containers are available
+    // This helps with race conditions in element discovery
+    setTimeout(() => {
+        // Make sure DOM elements are ready again after any dynamic updates
+        ensureDomElementsExist();
+        
+        // First, show the loading indicators to indicate updates in progress
+        document.querySelectorAll('.chart-loading').forEach(indicator => {
+            indicator.classList.remove('d-none');
+        });
+        
+        try {
+            // Update frequency chart using the extracted data
+            updateFrequencyChart(data, frequencyData);
+            
+            // Update hot and cold numbers section using the same extracted data
+            // This updates the static HTML hot/cold container (.hot-cold-container)
+            updateHotColdNumbers(data, frequencyData);
+            
+            // Update division statistics chart with the same shared data
+            // This updates the dynamic hot/cold chart (.temperature-chart-container)
+            updateDivisionChart(data, frequencyData);
+            
+            // IMPORTANT: Make sure the Hot & Cold section gets properly updated with the selected lottery type
+            // We directly call the hot & cold numbers update function with the correct data
+            updateHotColdNumbers(data, frequencyData);
+            
+            // Log completion of chart updates
+            console.log(`All chart components updated with shared frequency data: ${frequencyData.lotteryType}`);
+        } catch (error) {
+            console.error("Error updating chart components:", error);
+        }
+        
+        // Finally hide all loading indicators when updates are complete
+        document.querySelectorAll('.chart-loading').forEach(indicator => {
+            indicator.classList.add('d-none');
+        });
+    }, 200); // Increased delay to ensure DOM is ready
 }
 
 // Function to extract frequency data for the selected lottery type
@@ -1395,32 +1421,43 @@ function updateDivisionChart(data, frequencyData) {
 
 // Function to ensure critical DOM elements exist and are properly identified
 function ensureDomElementsExist() {
-    // Create a map of element IDs to fallback selectors
+    // Create a map of element IDs to fallback selectors with enhanced options
     const elementSelectors = {
-        // Static Hot/cold numbers containers from the HTML section
-        'hotNumbersContainer': '.hot-numbers .d-flex',
-        'coldNumbersContainer': '.cold-numbers .d-flex',
-        'absentNumbersContainer': '.absent-numbers .d-flex',
+        // Static Hot/cold numbers containers with multiple fallback options
+        'hotNumbersContainer': ['.hot-numbers .d-flex', '.hot-numbers-container', '.hot-numbers-section .number-list', '.hot-numbers'],
+        'coldNumbersContainer': ['.cold-numbers .d-flex', '.cold-numbers-container', '.cold-numbers-section .number-list', '.cold-numbers'],
+        'absentNumbersContainer': ['.absent-numbers .d-flex', '.absent-numbers-container', '.absent-numbers-section .number-list', '.absent-numbers'],
         
-        // Stats elements
-        'statsContainer': '.stats-summary',
-        'statsTable': '.stats-summary table',
+        // Stats elements with enhanced fallbacks
+        'statsContainer': ['.stats-summary', '.data-analytics-preview .row:first-child', '.lottery-stats'],
+        'statsTable': ['.stats-summary table', '.data-analytics-preview table', '.lottery-stats-table'],
         
-        // Filters and controls
-        'lotteryTypeDropdown': '.lottery-type-filter',
-        'hotColdLoading': '.hot-cold-container .chart-loading',
+        // Filters and controls with improved fallback options
+        'lotteryTypeDropdown': ['.lottery-type-filter', '.lottery-type-dropdown', '.filter-dropdown', '.dropdown-menu.lottery-type', '.filter-data'],
+        'hotColdLoading': ['.hot-cold-container .chart-loading', '#hotColdLoading', '.chart-loading'],
         
         // Ensure we can find the containers for all visualization components
-        'barChartContainer': '.bar-chart-container', 
-        'hotColdContainer': '.hot-cold-container'
+        'barChartContainer': ['.bar-chart-container', '.frequency-chart', '#barChartContainer'], 
+        'hotColdContainer': ['.hot-cold-container', '#hotColdContainer', '.temperature-chart-container']
     };
     
     // Check for each element and try fallback selectors if direct ID lookup fails
-    for (const [elementId, fallbackSelector] of Object.entries(elementSelectors)) {
+    for (const [elementId, fallbackSelectors] of Object.entries(elementSelectors)) {
         if (!document.getElementById(elementId)) {
-            console.log(`Element with ID ${elementId} not found, trying fallback selector ${fallbackSelector}`);
+            console.log(`Element with ID ${elementId} not found, trying fallback selector ${Array.isArray(fallbackSelectors) ? fallbackSelectors[0] : fallbackSelectors}`);
             
-            const fallbackElement = document.querySelector(fallbackSelector);
+            // Handle both single selectors and arrays of selectors
+            const selectorList = Array.isArray(fallbackSelectors) ? fallbackSelectors : [fallbackSelectors];
+            
+            // Try each selector in order until we find an element
+            let fallbackElement = null;
+            for (const selector of selectorList) {
+                fallbackElement = document.querySelector(selector);
+                if (fallbackElement) {
+                    break;
+                }
+            }
+            
             if (fallbackElement && !fallbackElement.id) {
                 fallbackElement.id = elementId;
                 console.log(`Found element using fallback selector, assigned ID ${elementId}`);
@@ -1432,6 +1469,7 @@ function ensureDomElementsExist() {
         }
     }
     
+    // Return true to enable method chaining
     return true;
 }
 
