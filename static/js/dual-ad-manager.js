@@ -399,25 +399,36 @@
 
     // Start countdown for the monetization advertisement
     function startMonetizationCountdown(callback) {
-        // Clear any existing timer
+        // Clear any existing timer to ensure we don't have multiple countdowns
         if (state.monetizationCountdownTimer) {
             clearInterval(state.monetizationCountdownTimer);
         }
         
         // Start with the full countdown time
         let secondsLeft = config.monetizationAdDuration;
+        
+        // Update the SINGLE countdown display
         if (elements.monetizationCountdown) {
             elements.monetizationCountdown.textContent = secondsLeft;
         }
         
         log(`Starting monetization ad countdown: ${secondsLeft} seconds`);
         
-        // Make sure button is properly set up initially - grey with no lock icon
+        // Make sure button starts in properly disabled state with no lock icon
         if (elements.viewResultsButton) {
+            // Set disabled state
             elements.viewResultsButton.disabled = true;
-            elements.viewResultsButton.classList.remove('btn-success', 'btn-pulse', 'btn-pulse-subtle');
+            
+            // Remove any existing styling classes
+            elements.viewResultsButton.classList.remove(
+                'btn-success', 'btn-pulse', 'btn-pulse-subtle', 'btn-glow'
+            );
+            
+            // Add disabled appearance
             elements.viewResultsButton.classList.add('btn-secondary');
-            elements.viewResultsButton.innerHTML = `Continue to Results (Wait ${secondsLeft}s)`; // No lock icon
+            
+            // Set initial button text - NO lock icon, just text with timer
+            elements.viewResultsButton.innerHTML = `Continue to Results (Wait ${secondsLeft}s)`;
         }
         
         // Show button container
@@ -429,14 +440,15 @@
         state.monetizationCountdownTimer = setInterval(function() {
             secondsLeft--;
             
-            // Update the countdown display
+            // Always synchronize the countdown display
             if (elements.monetizationCountdown) {
                 elements.monetizationCountdown.textContent = secondsLeft;
             }
             
-            // Update button text but WITHOUT lock icon
+            // Keep button text clean and consistent - no countdown in the button text
             if (elements.viewResultsButton && secondsLeft > 0) {
-                elements.viewResultsButton.innerHTML = `Continue to Results (Wait ${secondsLeft}s)`;
+                // Just show 'Continue to Results' without the wait time
+                elements.viewResultsButton.innerHTML = 'Continue to Results';
             }
             
             // Start visual transition during the last 3 seconds
@@ -456,6 +468,11 @@
                 // Update state
                 state.viewResultsEnabled = true;
                 
+                // Hide the countdown container once it reaches zero
+                if (document.getElementById('countdown-container')) {
+                    document.getElementById('countdown-container').style.display = 'none';
+                }
+                
                 // Ensure button is properly enabled with correct appearance
                 if (elements.viewResultsButton) {
                     // First remove all classes that might interfere
@@ -464,25 +481,31 @@
                     // Force the button to be enabled
                     elements.viewResultsButton.disabled = false;
                     
-                    // Add success styling and pulse effect
-                    elements.viewResultsButton.classList.add('btn-success', 'btn-pulse');
+                    // First add only success styling (no animation yet)
+                    elements.viewResultsButton.classList.add('btn-success');
                     
-                    // Update button text - no lock icon, just checkmark
+                    // Update button text - ONLY a checkmark icon and "View Results" text
                     elements.viewResultsButton.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results';
                     
                     log('View Results button enabled by countdown');
                     
-                    // Force a second update to ensure button is enabled
-                    // This helps with browser rendering issues
+                    // Force a second update to add animations after a small delay
+                    // This creates a cleaner visual transition from disabled to enabled
                     setTimeout(function() {
                         if (elements.viewResultsButton) {
+                            // Double-check disabled state is false
                             elements.viewResultsButton.disabled = false;
                             
-                            // Add an additional class to ensure the change is noticeable
-                            elements.viewResultsButton.classList.add('btn-glow');
+                            // Add pulse and glow effects in sequence
+                            elements.viewResultsButton.classList.add('btn-pulse');
                             
-                            // Force a redraw by accessing offsetHeight
+                            // Force browser to repaint the button
                             elements.viewResultsButton.offsetHeight;
+                            
+                            // Add glow effect after a tiny delay for better visual effect
+                            setTimeout(function() {
+                                elements.viewResultsButton.classList.add('btn-glow');
+                            }, 200);
                         }
                     }, 50);
                 }
@@ -504,12 +527,25 @@
         state.monetizationAdComplete = true;
         state.viewResultsEnabled = true;
         
-        // Enable the View Results button
+        // Hide the countdown container completely
+        if (document.getElementById('countdown-container')) {
+            document.getElementById('countdown-container').style.display = 'none';
+        }
+        
+        // Enable the View Results button with proper styling
         if (elements.viewResultsButton) {
+            // Ensure button is enabled
             elements.viewResultsButton.disabled = false;
-            elements.viewResultsButton.classList.remove('btn-secondary');
-            elements.viewResultsButton.classList.add('btn-success', 'btn-pulse');
+            
+            // Remove disabled appearance
+            elements.viewResultsButton.classList.remove('btn-secondary', 'btn-pulse-subtle');
+            
+            // Add active/enabled styling
+            elements.viewResultsButton.classList.add('btn-success', 'btn-pulse', 'btn-glow');
+            
+            // Set final button text - only checkmark icon and "View Results" text
             elements.viewResultsButton.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results';
+            
             log('View Results button enabled');
         }
     }
@@ -568,6 +604,11 @@
             elements.monetizationCountdown.textContent = config.monetizationAdDuration;
         }
         
+        // Show the countdown container and ensure it's visible
+        if (document.getElementById('countdown-container')) {
+            document.getElementById('countdown-container').style.display = 'block';
+        }
+        
         // Reset CSS transitions
         if (elements.publicServiceAdOverlay) {
             elements.publicServiceAdOverlay.style.transition = '';
@@ -593,8 +634,8 @@
             // Add only the initial classes
             elements.viewResultsButton.classList.add('btn-secondary');
             
-            // Reset button text to initial state without lock icon
-            elements.viewResultsButton.innerHTML = `Continue to Results (Wait ${config.monetizationAdDuration}s)`;
+            // Reset button text to initial state - simple text, no icons
+            elements.viewResultsButton.innerHTML = 'Continue to Results';
         }
         
         // Hide button container

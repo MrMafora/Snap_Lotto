@@ -246,26 +246,63 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         padding: 20px;
     }
     
-    /* Button pulse animation */
+    /* Button animations and effects */
     @keyframes btn-pulse {
         0% { transform: scale(1); }
         50% { transform: scale(1.05); box-shadow: 0 0 15px rgba(40, 167, 69, 0.7); }
         100% { transform: scale(1); }
     }
     
+    @keyframes btn-pulse-subtle {
+        0% { box-shadow: 0 0 0 0 rgba(108, 117, 125, 0.5); }
+        70% { box-shadow: 0 0 0 8px rgba(108, 117, 125, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(108, 117, 125, 0); }
+    }
+    
+    @keyframes btn-glow {
+        0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.9); }
+        50% { box-shadow: 0 0 20px 10px rgba(40, 167, 69, 0.6); }
+        100% { box-shadow: 0 0 10px 5px rgba(40, 167, 69, 0.4); }
+    }
+    
     .btn-pulse {
         animation: btn-pulse 1.5s infinite;
+        transform: translateZ(0); /* Hardware acceleration */
+    }
+    
+    .btn-pulse-subtle {
+        animation: btn-pulse-subtle 1.5s infinite;
     }
     
     /* Button glow effect for enabled state */
     .btn-glow {
-        box-shadow: 0 0 15px rgba(40, 167, 69, 0.7);
-        transition: all 0.3s ease;
+        animation: btn-glow 1.5s 1 forwards;
+        transform: translateZ(0); /* Hardware acceleration */
     }
     
     /* Button state transitions */
-    .btn-secondary, .btn-success {
+    .btn-secondary {
+        opacity: 0.85;
         transition: all 0.3s ease;
+    }
+    
+    .btn-success {
+        transition: all 0.3s ease;
+        transform: scale(1.03);
+    }
+    
+    /* Improving button visuals */
+    #view-results-btn:disabled {
+        cursor: not-allowed;
+    }
+    
+    #view-results-btn:not(:disabled) {
+        cursor: pointer;
+    }
+    
+    #view-results-btn.btn-success:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
     }
     
     /* Fix for spinner animation */
@@ -290,10 +327,11 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <!-- Ad overlay - Loading screen (First ad - Public Service) -->
 <div id="ad-overlay-loading" class="interstitial-view">
     <h4 class="mb-4">Processing your ticket...</h4>
-    <div id="ad-container-loader" class="ad-container">
+    <div id="ad-container-loader" class="ad-container" style="padding: 15px; background-color: #f8f9fa; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.1); margin-bottom: 15px;">
         <div class="ad-placeholder">
-            <p><i class="fas fa-ad mb-2"></i></p>
-            <p class="mb-1">Advertisement</p>
+            <p><i class="fas fa-ad mb-2 fa-2x text-primary"></i></p>
+            <p class="mb-1 fw-bold">Advertisement</p>
+            <small class="text-muted">Your ticket is being processed</small>
             <p class="small text-muted mt-2">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
         </div>
     </div>
@@ -323,14 +361,17 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         </div>
     </div>
     
-    <!-- Single unified countdown container -->
-    <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;">
-        Please wait <span id="countdown">15</span> seconds
+    <!-- Single unified countdown container with enhanced styling -->
+    <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 10px; border-radius: 8px; max-width: 350px; margin-left: auto; margin-right: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <div class="d-flex align-items-center justify-content-center">
+            <i class="fas fa-hourglass-half me-2 text-primary"></i>
+            Please wait <span id="countdown" class="mx-2" style="color: #dc3545; font-size: 1.2em;">15</span> seconds
+        </div>
     </div>
     
-    <!-- Button container -->
+    <!-- Button container with improved button styling -->
     <div id="view-results-btn-container" style="display: none;">
-        <button class="btn btn-secondary btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px; transition: all 0.3s ease;" disabled>
+        <button class="btn btn-secondary btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px; transition: all 0.3s ease; position: relative;" disabled>
             Continue to Results
         </button>
     </div>
