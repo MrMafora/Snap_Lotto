@@ -1,0 +1,5 @@
+Sheet 1: Lottery Games
+
+Game Name	Draw Number	Draw Date	Winning Numbers	Bonus Number	Division 1 Description	Division 1 Winners	Division 1 Prize	Division 2 Description	Division 2 Winners	Division 2 Prize	Division 3 Description	Division 3 Winners	Division 3 Prize	Division 4 Description	Division 4 Winners	Division 4 Prize	Division 5 Description	Division 5 Winners	Division 5 Prize	Division 6 Description	Division 6 Winners	Division 6 Prize	Division 7 Description	Division 7 Winners	Division 7 Prize	Division 8 Description	Division 8 Winners	Division 8 Prize
+Lottery Plus 1	2538	2025-05-03	03 19 27 35 40 46	12	Match 6	0	R0	Match 5 + Bonus	1	R141,934.20	Match 5	23	R3,977.40	Match 4 + Bonus	73	R1,945.80	Match 4	1,415	R155.70	Match 3 + Bonus	2,151	R121.50	Match 3	26,985	R25.00	Match 2 + Bonus	21,857	R15.00
+Lottery Plus 2	2538	2025-05-03	15 22 29 31 34 49	41	Match 6	0	R0	Match 5 + Bonus	0	R0	Match 5	11	R5,143.80	Match 4 + Bonus	50	R1,741.40	Match 4	1,087	R138.50	Match 3 + Bonus	1,584	R109.80	Match 3	21,657	R25.00	Match 2 + Bonus	15,982	R15.00
