@@ -451,14 +451,26 @@ def ticket_scanner():
 @csrf.exempt
 def scan_ticket():
     """Process uploaded ticket image and return results"""
+    logger.info("Scan ticket request received")
+    
+    # Enhanced request debugging
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"Request content type: {request.content_type}")
+    logger.info(f"Request files keys: {list(request.files.keys()) if request.files else 'No files'}")
+    logger.info(f"Request form keys: {list(request.form.keys()) if request.form else 'No form data'}")
+    
     # Check if file is included in the request
     if 'ticket_image' not in request.files:
+        logger.error("No ticket_image in request.files")
+        logger.error(f"Request files: {request.files}")
         return jsonify({"error": "No ticket image provided"}), 400
         
     file = request.files['ticket_image']
+    logger.info(f"Received file: {file.filename}, Content type: {file.content_type}")
     
     # If user does not select file, browser also submits an empty part without filename
     if file.filename == '':
+        logger.error("Empty filename submitted")
         return jsonify({"error": "No selected file"}), 400
         
     # Get the lottery type if specified (optional)
@@ -470,16 +482,24 @@ def scan_ticket():
     # Get file extension
     file_extension = os.path.splitext(file.filename)[1].lower()
     if not file_extension:
+        logger.info("No file extension found, defaulting to .jpeg")
         file_extension = '.jpeg'  # Default to JPEG if no extension
     
     try:
         # Read the file data
         image_data = file.read()
+        file_size = len(image_data)
+        logger.info(f"Read file data successfully, file size: {file_size} bytes")
+        
+        if file_size == 0:
+            logger.error("File data is empty")
+            return jsonify({"error": "Empty file uploaded"}), 400
         
         # Import the ticket scanner module
         import ticket_scanner as ts
         
         # Process the ticket image using existing function
+        logger.info(f"Processing ticket image: lottery_type={lottery_type}, draw_number={draw_number}")
         result = ts.process_ticket_image(
             image_data=image_data,
             lottery_type=lottery_type,
@@ -487,11 +507,24 @@ def scan_ticket():
             file_extension=file_extension
         )
         
+        # Logging the success
+        logger.info(f"Ticket processed successfully: {result.get('status', 'unknown')}")
+        
         # Return JSON response with results
         return jsonify(result)
     except Exception as e:
         logger.exception(f"Error processing ticket: {str(e)}")
-        return jsonify({"error": f"Error processing ticket: {str(e)}"}), 500
+        # Include more details in the error response
+        return jsonify({
+            "error": f"Error processing ticket: {str(e)}",
+            "status": "error",
+            "request_details": {
+                "filename": file.filename if file else "No file",
+                "content_type": file.content_type if file else "Unknown content type",
+                "lottery_type": lottery_type,
+                "draw_number": draw_number
+            }
+        }), 500
 
 # Guides Routes
 @app.route('/guides')

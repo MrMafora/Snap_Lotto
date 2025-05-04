@@ -691,7 +691,39 @@
             // Process the form directly
             const form = document.getElementById('ticket-form');
             if (form) {
+                // Create FormData from form
                 const formData = new FormData(form);
+                
+                // DEBUG: Log the file input and formData values
+                const fileInput = document.getElementById('ticket-image');
+                console.log('DEBUG: File input value:', fileInput ? fileInput.value : 'not found');
+                console.log('DEBUG: File input files:', fileInput && fileInput.files ? fileInput.files.length : 'no files');
+                
+                // Ensuring file data is included
+                // First check if we have a file from the unified handler
+                if (window.lastSelectedTicketFile) {
+                    // Remove any previous file entries
+                    formData.delete('ticket_image');
+                    // Add the file from our unified handler
+                    formData.append('ticket_image', window.lastSelectedTicketFile);
+                    console.log('DEBUG: File from unified handler added to FormData:', window.lastSelectedTicketFile.name);
+                }
+                // Fallback to regular file input if needed
+                else if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                    // Remove any previous file entries (just in case)
+                    formData.delete('ticket_image');
+                    // Re-add the file explicitly
+                    formData.append('ticket_image', fileInput.files[0]);
+                    console.log('DEBUG: File added to FormData from file input:', fileInput.files[0].name);
+                } else {
+                    console.error('DEBUG: No file selected, submission will likely fail');
+                }
+                
+                // Log all form data for debugging
+                console.log('DEBUG: Form data contents:');
+                for (const pair of formData.entries()) {
+                    console.log(`DEBUG: ${pair[0]}: ${pair[1] instanceof File ? pair[1].name : pair[1]}`);
+                }
                 
                 // Get CSRF token - critical for Snap Lotto security
                 const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
