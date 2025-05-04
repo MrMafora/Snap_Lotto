@@ -555,15 +555,7 @@ def capture_screenshot(url, lottery_type=None):
         # Use the sync method instead of async to avoid event loop issues
         filepath, screenshot_data, zoom_filepath = capture_screenshot_sync(url)
         
-        # Verify that screenshot files actually exist before proceeding
-        if filepath and screenshot_data and os.path.isfile(filepath):
-            logger.info(f"Screenshot file verified at {filepath}")
-            
-            # Also verify zoomed screenshot if applicable
-            if zoom_filepath and not os.path.isfile(zoom_filepath):
-                logger.warning(f"Zoomed screenshot file not found at {zoom_filepath}")
-                zoom_filepath = None
-                
+        if filepath and screenshot_data:
             try:
                 # Check if we need to create an app context
                 from flask import current_app, has_app_context
@@ -606,14 +598,6 @@ def capture_screenshot(url, lottery_type=None):
                 # Still return the filepath so OCR can be attempted
             
             return filepath, None, zoom_filepath  # Return None for extracted data to use OCR
-        else:
-            if not filepath:
-                logger.error(f"Screenshot capture failed for {lottery_type}: No filepath returned")
-            elif not screenshot_data:
-                logger.error(f"Screenshot capture failed for {lottery_type}: No screenshot data returned")
-            elif not os.path.isfile(filepath):
-                logger.error(f"Screenshot capture failed for {lottery_type}: File not found at {filepath}")
-            return None, None, None
     except Exception as e:
         logger.error(f"Error in capture_screenshot: {str(e)}")
         traceback.print_exc()
@@ -732,33 +716,6 @@ def retake_all_screenshots(app=None, use_threading=False):
             configs = ScheduleConfig.query.filter_by(active=True).all()
             
         logger.info(f"Retaking screenshots for {len(configs)} configurations")
-        
-        # Check if playwright browser automation is available
-        try:
-            from playwright.sync_api import sync_playwright
-            import subprocess
-            
-            # Try to create a playwright instance to see if it works
-            with sync_playwright() as p:
-                try:
-                    chromium_available = True
-                    # Try a simple browser launch to see if it works
-                    browser = p.chromium.launch(headless=True)
-                    browser.close()
-                except Exception as browser_error:
-                    chromium_available = False
-                    logger.error(f"Playwright browser automation not available: {browser_error}")
-        except Exception as playwright_error:
-            chromium_available = False
-            logger.error(f"Playwright module not properly installed: {playwright_error}")
-        
-        # If browser automation isn't available, update the database with existing files
-        if not chromium_available:
-            logger.warning("Browser automation not available. Using existing screenshot files instead.")
-            count = _update_screenshot_records_without_capture(configs, app)
-            return count
-        
-        # Normal screenshot capture logic when browser automation is available
         count = 0
         results = []
         
@@ -792,83 +749,6 @@ def retake_all_screenshots(app=None, use_threading=False):
         logger.error(f"Error retaking all screenshots: {str(e)}")
         traceback.print_exc()
         return 0
-
-def _update_screenshot_records_without_capture(configs, app=None):
-    """
-    Update screenshot records in the database using existing files when browser automation is unavailable.
-    
-    Args:
-        configs: List of ScheduleConfig objects
-        app: Flask app context (optional)
-        
-    Returns:
-        int: Number of updated records
-    """
-    count = 0
-    try:
-        # Get all existing screenshot files
-        screenshot_files = os.listdir(SCREENSHOT_DIR)
-        screenshot_files = [f for f in screenshot_files if f.endswith('.png') and os.path.isfile(os.path.join(SCREENSHOT_DIR, f))]
-        
-        # Sort by timestamp (newest first)
-        screenshot_files.sort(reverse=True)
-        
-        # Create a mapping of lottery type to latest screenshot file
-        type_to_file = {}
-        for filename in screenshot_files:
-            for config in configs:
-                lottery_type = config.lottery_type
-                url_part = config.url.split('/')[-1]
-                
-                # Check if filename contains the URL part and is for this lottery type
-                if url_part in filename:
-                    if lottery_type not in type_to_file:
-                        type_to_file[lottery_type] = filename
-                    break
-        
-        # Update database records
-        if app:
-            context_func = app.app_context
-        else:
-            # Create a dummy context manager
-            from contextlib import contextmanager
-            @contextmanager
-            def context_func():
-                yield
-        
-        with context_func():
-            for lottery_type, filename in type_to_file.items():
-                filepath = os.path.join(SCREENSHOT_DIR, filename)
-                
-                # Get or create screenshot record
-                screenshot = Screenshot.query.filter_by(lottery_type=lottery_type).first()
-                if not screenshot:
-                    # Find the corresponding config
-                    config = next((c for c in configs if c.lottery_type == lottery_type), None)
-                    if not config:
-                        continue
-                    
-                    screenshot = Screenshot(
-                        url=config.url,
-                        lottery_type=lottery_type,
-                        timestamp=datetime.now(),
-                        path=filepath,
-                        processed=False
-                    )
-                    db.session.add(screenshot)
-                else:
-                    screenshot.path = filepath
-                    screenshot.timestamp = datetime.now()
-                
-                db.session.commit()
-                count += 1
-                logger.info(f"Updated screenshot record for {lottery_type} using existing file: {filename}")
-        
-        return count
-    except Exception as e:
-        logger.error(f"Error updating screenshot records without capture: {str(e)}")
-        traceback.print_exc()
-        return count
 
 def take_screenshot_threaded(url, lottery_type, use_thread=True):
     """

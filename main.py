@@ -31,45 +31,6 @@ def admin_required(f):
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Define a helper function to get Screenshots without accessing non-existent columns
-def get_screenshots_safe(order_by_column=None, descending=False):
-    """
-    Get screenshots without accessing non-existent columns.
-    This function is a workaround for the schema mismatch where the model has capture_date
-    but the actual database doesn't.
-    
-    Args:
-        order_by_column: Optional column to order by (e.g., Screenshot.timestamp)
-        descending: Whether to order in descending order
-        
-    Returns:
-        List of Screenshot objects with only existing columns
-    """
-    query = db.session.query(
-        Screenshot.id, 
-        Screenshot.url, 
-        Screenshot.lottery_type, 
-        Screenshot.timestamp, 
-        Screenshot.path, 
-        Screenshot.filename,
-        Screenshot.zoomed_path,
-        Screenshot.processed
-    )
-    
-    # Always apply an order, defaulting to ID if nothing specified
-    if descending:
-        if order_by_column:
-            query = query.order_by(order_by_column.desc())
-        else:
-            query = query.order_by(Screenshot.id.desc())
-    else:
-        if order_by_column:
-            query = query.order_by(order_by_column)
-        else:
-            query = query.order_by(Screenshot.id)
-        
-    return query.all()
-
 # Now that logger is defined, import other modules
 import scheduler  # Import directly at the top level for screenshot functions
 import create_template  # Import directly for template creation
@@ -173,12 +134,6 @@ csrf.exempt('api_correlation_analysis')
 csrf.exempt('api_winner_analysis')
 csrf.exempt('api_lottery_prediction')
 csrf.exempt('api_full_analysis')
-
-# Exempt automated extraction API endpoints
-csrf.exempt('automated_extraction.api_pending_extractions')
-csrf.exempt('automated_extraction.api_approve_extraction')
-csrf.exempt('automated_extraction.api_reject_extraction')
-csrf.exempt('automated_extraction.api_run_extraction_now')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -399,18 +354,7 @@ def admin():
         flash('You must be an admin to access this page.', 'danger')
         return redirect(url_for('index'))
 
-    # Query screenshots directly with specific columns to avoid schema mismatch
-    screenshots = db.session.query(
-        Screenshot.id, 
-        Screenshot.url, 
-        Screenshot.lottery_type, 
-        Screenshot.timestamp, 
-        Screenshot.path, 
-        Screenshot.filename,
-        Screenshot.zoomed_path,
-        Screenshot.processed
-    ).order_by(Screenshot.timestamp.desc()).all()
-    
+    screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
     schedule_configs = ScheduleConfig.query.all()
 
     # Define breadcrumbs for SEO
@@ -1412,17 +1356,7 @@ def export_screenshots():
     # Define SEO metadata
     meta_description = "Export and manage South African lottery screenshots. Download captured lottery result images in various formats for analysis and record-keeping."
     
-    # Query screenshots directly with specific columns to avoid schema mismatch
-    screenshots = db.session.query(
-        Screenshot.id, 
-        Screenshot.url, 
-        Screenshot.lottery_type, 
-        Screenshot.timestamp, 
-        Screenshot.path, 
-        Screenshot.filename,
-        Screenshot.zoomed_path,
-        Screenshot.processed
-    ).order_by(Screenshot.timestamp.desc()).all()
+    screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
     
     # Check for sync status in session
     sync_status = None
@@ -1455,17 +1389,8 @@ def export_screenshots_zip():
         import zipfile
         from datetime import datetime
         
-        # Query screenshots directly with specific columns to avoid schema mismatch
-        screenshots = db.session.query(
-            Screenshot.id, 
-            Screenshot.url, 
-            Screenshot.lottery_type, 
-            Screenshot.timestamp, 
-            Screenshot.path, 
-            Screenshot.filename,
-            Screenshot.zoomed_path,
-            Screenshot.processed
-        ).order_by(Screenshot.lottery_type).all()
+        # Get all screenshots
+        screenshots = Screenshot.query.order_by(Screenshot.lottery_type).all()
         
         if not screenshots:
             flash('No screenshots available to export.', 'warning')
@@ -1789,7 +1714,7 @@ def view_zoomed_screenshot(screenshot_id):
     
     return send_from_directory(directory, filename)
 
-@app.route('/sync-all-screenshots', methods=['GET', 'POST'])
+@app.route('/sync-all-screenshots', methods=['POST'])
 @login_required
 @csrf.exempt
 def sync_all_screenshots():
@@ -1798,18 +1723,10 @@ def sync_all_screenshots():
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
     
-    # For GET requests, just redirect to the export screenshots page
-    if request.method == 'GET':
-        return redirect(url_for('export_screenshots'))
-    
-    # For POST requests, perform the sync operation
     try:
-        app.logger.info("Starting screenshot sync process")
         # Use the scheduler module imported at the top level to retake all screenshots
         # Don't use threading for UI operations to ensure synchronous behavior
         count = scheduler.retake_all_screenshots(app, use_threading=False)
-        
-        app.logger.info(f"Screenshot sync completed with count: {count}")
         
         # Store status in session for display on next page load
         if count > 0:
@@ -1824,8 +1741,6 @@ def sync_all_screenshots():
             }
     except Exception as e:
         app.logger.error(f"Error syncing screenshots: {str(e)}")
-        import traceback
-        app.logger.error(traceback.format_exc())
         session['sync_status'] = {
             'status': 'danger',
             'message': f'Error syncing screenshots: {str(e)}'
@@ -2917,15 +2832,6 @@ ad_management.register_ad_routes(app)
 
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
-
-# Register automated lottery extraction routes
-try:
-    from automated_lottery_extraction import register_extraction_routes
-    register_extraction_routes(app)
-    logger.info("Automated lottery extraction system registered successfully")
-except Exception as e:
-    logger.error(f"Failed to register automated lottery extraction system: {e}")
-    logger.error(traceback.format_exc())
 
 # API Request Tracking routes
 @app.route('/admin/api-tracking')

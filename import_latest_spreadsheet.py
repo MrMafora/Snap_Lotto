@@ -85,8 +85,6 @@ def import_latest_spreadsheet(directory="attached_assets", pattern="lottery_data
     import main
     from import_excel import import_excel_data
     from import_snap_lotto_data import import_snap_lotto_data
-    from models import ImportHistory, ImportedRecord, db
-    from flask_login import current_user
     
     latest_file = find_latest_spreadsheet(directory, pattern)
     
@@ -111,93 +109,17 @@ def import_latest_spreadsheet(directory="attached_assets", pattern="lottery_data
                 logger.info(f"Records before: {result.get('initial_count', 0)}, after: {result.get('final_count', 0)}")
                 logger.info(f"Added {result.get('added', 0)} new records with {result.get('errors', 0)} errors")
                 
-                # Create import history record
-                try:
-                    # Create import history record
-                    import_history = ImportHistory(
-                        import_type='excel',
-                        file_name=os.path.basename(latest_file),
-                        records_added=result.get('added', 0),
-                        records_updated=result.get('updated', 0),
-                        total_processed=result.get('total', 0),
-                        errors=result.get('errors', 0),
-                        user_id=current_user.id if hasattr(current_user, 'id') else None
-                    )
-                    db.session.add(import_history)
-                    db.session.commit()
-                    
-                    # Save individual imported records if available
-                    imported = result.get('imported_records', [])
-                    if imported and len(imported) > 0:
-                        logger.info(f"First imported record: {imported[0]}")
-                        
-                        for record_data in imported:
-                            if 'lottery_result_id' in record_data and record_data['lottery_result_id']:
-                                imported_record = ImportedRecord(
-                                    import_id=import_history.id,
-                                    lottery_type=record_data.get('lottery_type', ''),
-                                    draw_number=record_data.get('draw_number', ''),
-                                    draw_date=record_data.get('draw_date'),
-                                    is_new=record_data.get('is_new', True),
-                                    lottery_result_id=record_data['lottery_result_id']
-                                )
-                                db.session.add(imported_record)
-                        
-                        db.session.commit()
-                        logger.info(f"Saved {len(imported)} records to import history")
-                except Exception as e:
-                    logger.error(f"Error creating import history: {str(e)}")
-                    db.session.rollback()
-                
+                # Log the first few imported records for verification
+                imported = result.get('imported_records', [])
+                if imported and len(imported) > 0:
+                    logger.info(f"First imported record: {imported[0]}")
             return result
             
         elif import_type.lower() == "snap_lotto":
             result = import_snap_lotto_data(latest_file, main.app)
-            
             # Add more detailed logging for snap_lotto imports
-            if result and isinstance(result, dict):
-                logger.info(f"Successfully imported {result.get('total', 0)} records")
-                logger.info(f"Records before: {result.get('initial_count', 0)}, after: {result.get('final_count', 0)}")
-                logger.info(f"Added {result.get('added', 0)} new records with {result.get('errors', 0)} errors")
-                
-                # Create import history record
-                try:
-                    # Create import history record
-                    import_history = ImportHistory(
-                        import_type='snap_lotto',
-                        file_name=os.path.basename(latest_file),
-                        records_added=result.get('added', 0),
-                        records_updated=result.get('updated', 0),
-                        total_processed=result.get('total', 0),
-                        errors=result.get('errors', 0),
-                        user_id=current_user.id if hasattr(current_user, 'id') else None
-                    )
-                    db.session.add(import_history)
-                    db.session.commit()
-                    
-                    # Save individual imported records if available
-                    imported = result.get('imported_records', [])
-                    if imported and len(imported) > 0:
-                        logger.info(f"First imported record: {imported[0]}")
-                        
-                        for record_data in imported:
-                            if 'lottery_result_id' in record_data and record_data['lottery_result_id']:
-                                imported_record = ImportedRecord(
-                                    import_id=import_history.id,
-                                    lottery_type=record_data.get('lottery_type', ''),
-                                    draw_number=record_data.get('draw_number', ''),
-                                    draw_date=record_data.get('draw_date'),
-                                    is_new=record_data.get('is_new', True),
-                                    lottery_result_id=record_data['lottery_result_id']
-                                )
-                                db.session.add(imported_record)
-                        
-                        db.session.commit()
-                        logger.info(f"Saved {len(imported)} records to import history")
-                except Exception as e:
-                    logger.error(f"Error creating import history: {str(e)}")
-                    db.session.rollback()
-            
+            if result:
+                logger.info("Successfully imported Snap Lotto data")
             return result
             
         else:
