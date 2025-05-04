@@ -1825,17 +1825,21 @@ def export_combined_zip():
         import io
         import zipfile
         import tempfile
+        import glob
         from datetime import datetime
         
         # Create a timestamp for filenames
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        # Get all screenshots
+        # Get all screenshots from database
         screenshots = Screenshot.query.order_by(Screenshot.lottery_type).all()
         
         if not screenshots:
             flash('No screenshots available to export.', 'warning')
             return redirect(url_for('export_screenshots'))
+        
+        # Log some information about the screenshots
+        logger.info(f"Found {len(screenshots)} screenshots in database to export")
         
         # Create a temporary directory for the template
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1843,36 +1847,78 @@ def export_combined_zip():
             template_filename = f"lottery_data_template_{timestamp}.xlsx"
             template_path = os.path.join(temp_dir, template_filename)
             create_template.create_template(template_path)
+            logger.info(f"Created template file at {template_path}")
+            
+            # Get all screenshots from the directory
+            screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
+            all_screenshot_files = []
+            if os.path.exists(screenshot_dir):
+                all_screenshot_files = glob.glob(os.path.join(screenshot_dir, '*.png'))
+                all_screenshot_files.extend(glob.glob(os.path.join(screenshot_dir, '*.jpg')))
+                all_screenshot_files.extend(glob.glob(os.path.join(screenshot_dir, '*.jpeg')))
+                logger.info(f"Found {len(all_screenshot_files)} screenshot files in directory")
             
             # Create a ZIP file in memory
             memory_file = io.BytesIO()
             with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
                 # Add the template to the ZIP file
                 zf.write(template_path, f"template/{template_filename}")
+                logger.info(f"Added template to ZIP file")
                 
-                # Add screenshots to the ZIP file
+                # Track the number of screenshots added
+                screenshots_added = 0
+                
+                # Add screenshots from the database first
                 for screenshot in screenshots:
-                    if os.path.exists(screenshot.path):
-                        # Get the file extension
-                        _, ext = os.path.splitext(screenshot.path)
-                        # Create a unique filename for each screenshot
-                        lottery_type = screenshot.lottery_type.replace(' ', '_')
-                        ss_timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
-                        filename = f"{lottery_type}_{ss_timestamp}{ext}"
-                        
-                        # Add the screenshot to the ZIP file in a screenshots folder
-                        zf.write(screenshot.path, f"screenshots/{filename}")
-                        
-                        # Add zoomed version if it exists
-                        if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
-                            _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
-                            zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
-                            zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
+                    try:
+                        if os.path.exists(screenshot.path):
+                            # Get the file extension
+                            _, ext = os.path.splitext(screenshot.path)
+                            # Create a unique filename for each screenshot
+                            lottery_type = screenshot.lottery_type.replace(' ', '_')
+                            ss_timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
+                            filename = f"{lottery_type}_{ss_timestamp}{ext}"
+                            
+                            # Add the screenshot to the ZIP file in a screenshots folder
+                            zf.write(screenshot.path, f"screenshots/{filename}")
+                            screenshots_added += 1
+                            
+                            # Add zoomed version if it exists
+                            if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                                _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
+                                zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
+                                zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
+                                screenshots_added += 1
+                        else:
+                            logger.warning(f"Screenshot file not found: {screenshot.path}")
+                    except Exception as e:
+                        logger.error(f"Error adding screenshot to ZIP: {str(e)}, path: {screenshot.path}")
+                
+                # If no screenshots were added from database paths, include all files from screenshots directory
+                if screenshots_added == 0 and all_screenshot_files:
+                    logger.info(f"No screenshots were added from database paths, adding all files from screenshots directory")
+                    for screenshot_file in all_screenshot_files:
+                        try:
+                            # Get filename only
+                            filename = os.path.basename(screenshot_file)
+                            # Add to ZIP file
+                            zf.write(screenshot_file, f"screenshots/{filename}")
+                            screenshots_added += 1
+                        except Exception as e:
+                            logger.error(f"Error adding screenshot file to ZIP: {str(e)}, path: {screenshot_file}")
+            
+                logger.info(f"Added {screenshots_added} screenshot files to the ZIP archive")
             
             # Reset the file pointer to the beginning of the file
             memory_file.seek(0)
             
+            # Check if any screenshots were added
+            if screenshots_added == 0:
+                logger.warning("No screenshots were added to the ZIP archive")
+                flash('No screenshots were found to include in the ZIP file. Only the template will be included.', 'warning')
+            
             # Send the ZIP file as a response
+            logger.info(f"Sending combined ZIP file with {screenshots_added} screenshots")
             return send_file(
                 memory_file,
                 mimetype='application/zip',
@@ -1880,7 +1926,8 @@ def export_combined_zip():
                 download_name=f'lottery_data_combined_{timestamp}.zip'
             )
     except Exception as e:
-        app.logger.error(f"Error creating combined ZIP file: {str(e)}")
+        logger.error(f"Error creating combined ZIP file: {str(e)}")
+        traceback.print_exc()  # Print full traceback for better debugging
         flash(f'Error creating combined ZIP file: {str(e)}', 'danger')
         return redirect(url_for('export_screenshots'))
 
