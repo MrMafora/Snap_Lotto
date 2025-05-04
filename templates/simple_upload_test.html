@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple File Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .preview-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+        }
+        .upload-result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-height: 100px;
+        }
+        .debug-info {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple File Upload Test</h1>
+    <p>This page tests the basic file upload functionality in isolation.</p>
+
+    <form id="simple-upload-form" action="/simple-upload-test" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="form-group">
+            <label for="test-image">Select Image:</label>
+            <input type="file" id="test-image" name="test_image" accept="image/*">
+        </div>
+        
+        <div class="form-group">
+            <label for="test-type">Test Type:</label>
+            <select id="test-type" name="test_type">
+                <option value="basic">Basic Upload</option>
+                <option value="ajax">AJAX Upload</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn" id="upload-btn">Upload Image</button>
+    </form>
+
+    <div class="preview-container" id="preview-container" style="display: none;">
+        <h3>Image Preview:</h3>
+        <img src="" alt="Preview" class="preview-image" id="preview-image">
+    </div>
+
+    <div class="upload-result" id="result-container">
+        <h3>Upload Result:</h3>
+        <div id="result-content">No upload performed yet.</div>
+    </div>
+
+    <div class="debug-info" id="debug-info">
+        <h3>Debug Information:</h3>
+        <pre id="debug-content"></pre>
+    </div>
+
+    <script>
+        // Simple upload test script
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('simple-upload-form');
+            const fileInput = document.getElementById('test-image');
+            const testType = document.getElementById('test-type');
+            const previewContainer = document.getElementById('preview-container');
+            const previewImage = document.getElementById('preview-image');
+            const resultContainer = document.getElementById('result-container');
+            const resultContent = document.getElementById('result-content');
+            const debugContent = document.getElementById('debug-content');
+            
+            // Log to both console and debug info area
+            function log(message, data) {
+                const timestamp = new Date().toISOString();
+                let logMessage = `[${timestamp}] ${message}`;
+                
+                if (data !== undefined) {
+                    console.log(logMessage, data);
+                    
+                    if (typeof data === 'object') {
+                        logMessage += "\n" + JSON.stringify(data, null, 2);
+                    } else {
+                        logMessage += ` ${data}`;
+                    }
+                } else {
+                    console.log(logMessage);
+                }
+                
+                debugContent.textContent += logMessage + "\n";
+                // Auto-scroll to bottom
+                debugContent.scrollTop = debugContent.scrollHeight;
+            }
+            
+            // Show image preview when file selected
+            fileInput.addEventListener('change', function(e) {
+                log('File input change event fired');
+                
+                if (fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    log('File selected', {
+                        name: file.name,
+                        type: file.type,
+                        size: file.size + ' bytes'
+                    });
+                    
+                    // Create file preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImage.src = e.target.result;
+                        previewContainer.style.display = 'block';
+                        log('Preview created');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    log('No file selected');
+                    previewContainer.style.display = 'none';
+                }
+            });
+            
+            // Handle form submission
+            form.addEventListener('submit', function(e) {
+                log('Form submit event fired');
+                
+                // Check if a file is selected
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    log('Error: No file selected');
+                    resultContent.innerHTML = '<span style="color: red;">Error: Please select a file first.</span>';
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // If using AJAX, prevent default form submission
+                if (testType.value === 'ajax') {
+                    e.preventDefault();
+                    
+                    log('Using AJAX upload');
+                    
+                    // Create FormData object
+                    const formData = new FormData(form);
+                    
+                    // Log all form data
+                    log('Form data contents:');
+                    for (const pair of formData.entries()) {
+                        log(`- ${pair[0]}: ${pair[1] instanceof File ? pair[1].name : pair[1]}`);
+                    }
+                    
+                    // Get CSRF token
+                    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
+                    
+                    // Perform AJAX upload
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': csrfToken || ''
+                        }
+                    })
+                    .then(response => {
+                        log('Response received', { status: response.status });
+                        if (!response.ok) {
+                            throw new Error(`HTTP error ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        log('Upload successful', data);
+                        resultContent.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                    })
+                    .catch(error => {
+                        log('Error during upload', error.message);
+                        resultContent.innerHTML = `<span style="color: red;">Error: ${error.message}</span>`;
+                    });
+                    
+                    return false;
+                } else {
+                    log('Using standard form submission');
+                    return true;
+                }
+            });
+            
+            log('Simple upload test initialized');
+        });
+    </script>
+</body>
+</html>

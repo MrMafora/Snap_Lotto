@@ -12,6 +12,7 @@ port 8080 required by Replit for public access.
 """
 import logging
 import os
+import io
 import threading
 import traceback
 from datetime import datetime, timedelta
@@ -444,6 +445,23 @@ def ticket_scanner():
     
     return render_template('ticket_scanner.html', 
                           title="Lottery Ticket Scanner | Check If You've Won",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
+                          
+@app.route('/clean-ticket-scanner')
+def clean_ticket_scanner():
+    """Clean implementation of the ticket scanner interface"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Lottery Ticket Scanner", "url": url_for('scanner_landing')},
+        {"name": "Clean Scanner", "url": url_for('clean_ticket_scanner')}
+    ]
+    
+    # Additional SEO metadata
+    meta_description = "Check if your South African lottery ticket is a winner with our simplified, reliable scanner. Our clean implementation ensures reliable uploads and accurate results."
+    
+    return render_template('clean_ticket_scanner.html', 
+                          title="Clean Lottery Ticket Scanner | Reliable Implementation",
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
 
