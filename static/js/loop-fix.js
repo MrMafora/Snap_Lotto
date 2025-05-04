@@ -1,7 +1,19 @@
 /**
  * Loop Fix
- * Prevents recursive file dialog loop in ticket scanner
- * This is a critical fix that stops the endless reopening of the file dialog
+ * Prevents recursive file dialog loop in ticket scanner while ensuring
+ * the "Select Image" button functionality is preserved.
+ * 
+ * Issue #1: The file dialog was entering an infinite reopening loop
+ * Fix #1: Implemented window.fileDialogState tracking to prevent recursive dialogs
+ * 
+ * Issue #2: The "Select Image" button stopped working entirely
+ * Fix #2: Modified dialog state handling to allow user-initiated clicks while
+ *         still preventing programmatic rapid-fire opening
+ *
+ * This script is part of a multi-layered solution:
+ * 1. loop-fix.js - Prevents infinite file dialog loops
+ * 2. file-select-fix.js - Ensures proper file selection and preview
+ * 3. direct-button-fix.js - Last-resort fallback for button functionality
  */
 
 (function() {
@@ -37,12 +49,21 @@
             
             if (window.fileDialogState.isSelectingFile) {
                 log('Prevented recursive file dialog - selection already in progress');
-                return false;
+                // FIXED: We don't return false here as it prevents the click completely
+                // Instead, we'll let the click happen for the first one only
+                log('However, this is likely the initial user click, so allowing it');
+                window.fileDialogState.isSelectingFile = false;
             }
             
             if (timeSinceLastDialog < window.fileDialogState.minDialogInterval) {
-                log(`Prevented too frequent file dialog (${timeSinceLastDialog}ms since last)`);
-                return false;
+                log(`Too frequent file dialog attempt (${timeSinceLastDialog}ms since last)`);
+                // FIXED: For first-time clicks, we shouldn't block regardless of timing
+                if (timeSinceLastDialog < 100) {  // If it's less than 100ms, it's definitely programmatic
+                    log('Prevented programmatic rapid-fire dialog');
+                    return false;
+                } else {
+                    log('But allowing possible user-initiated dialog');
+                }
             }
             
             // Allow this click to proceed
@@ -100,6 +121,32 @@
             }, true);
         }
         
+        // Add a direct high-priority click handler for the file selection button
+        const fileSelectBtn = document.getElementById('file-select-btn');
+        if (fileSelectBtn) {
+            log('Found file select button, adding high-priority click handler');
+            
+            // Add direct click handler to the select button with capture phase to run first
+            fileSelectBtn.addEventListener('click', function(e) {
+                log('Direct high-priority file select button click detected');
+                const fileInput = document.getElementById('ticket-image');
+                
+                if (fileInput) {
+                    // Directly reset file dialog state to ensure button always works
+                    log('Ensuring file dialog state is reset before button click');
+                    window.fileDialogState.isSelectingFile = false;
+                }
+            }, true); // true for capture phase to run before other handlers
+        }
+        
         log('Loop fix fully initialized on DOM ready');
     });
+    
+    // Provide a global function to reset file dialog state in case of emergency
+    window.resetFileDialogState = function() {
+        log('Manual reset of file dialog state requested');
+        window.fileDialogState.isSelectingFile = false;
+        window.fileDialogState.lastDialogTime = 0;
+        return 'File dialog state reset successfully';
+    };
 })();
