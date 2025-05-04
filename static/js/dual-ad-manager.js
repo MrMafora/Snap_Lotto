@@ -295,21 +295,13 @@
         state.publicServiceAdActive = false;
         state.publicServiceAdComplete = true;
         
-        // Only hide the first ad overlay if we're not immediately showing the second one
-        // This prevents the flicker/gap between ads
-        if (!window.lastResultsData || window.resultsDisplayed) {
-            if (elements.publicServiceAdOverlay) {
-                elements.publicServiceAdOverlay.style.display = 'none';
-            }
-        }
+        // IMPORTANT: Always show the second ad immediately after the first completes
+        // This eliminates any gap between advertisements
+        log('Transitioning directly to monetization ad');
+        showMonetizationAd();
         
-        // Show the second ad if results are ready
-        if (window.lastResultsData && !window.resultsDisplayed) {
-            log('Ticket results ready, showing monetization ad');
-            showMonetizationAd();
-        } else {
-            log('Waiting for ticket results before showing monetization ad');
-        }
+        // We'll handle the results later when they're available
+        // The monetization ad will be visible during the entire processing time
     }
 
     // Show the second ad (Monetization Advertisement)
@@ -473,13 +465,20 @@
                     document.getElementById('countdown-container').style.display = 'none';
                 }
                 
-                // Ensure button is properly enabled with correct appearance
+                // ENHANCED: Multiple approaches to ensure button is enabled
                 if (elements.viewResultsButton) {
-                    // First remove all classes that might interfere
-                    elements.viewResultsButton.classList.remove('btn-secondary', 'btn-pulse-subtle');
+                    // First, aggressively remove all classes that might interfere
+                    elements.viewResultsButton.classList.remove(
+                        'btn-secondary', 'btn-pulse-subtle', 'disabled'
+                    );
                     
-                    // Force the button to be enabled
+                    // Force the button to be enabled using multiple approaches
                     elements.viewResultsButton.disabled = false;
+                    elements.viewResultsButton.removeAttribute('disabled');
+                    
+                    // Remove any inline styles that might override
+                    elements.viewResultsButton.style.pointerEvents = 'auto';
+                    elements.viewResultsButton.style.opacity = '1';
                     
                     // First add only success styling (no animation yet)
                     elements.viewResultsButton.classList.add('btn-success');
@@ -487,14 +486,18 @@
                     // Update button text - ONLY a checkmark icon and "View Results" text
                     elements.viewResultsButton.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results';
                     
-                    log('View Results button enabled by countdown');
+                    log('View Results button FORCEFULLY enabled by countdown');
+                    
+                    // Log the current state of the button for debugging
+                    log(`Button state check: disabled=${elements.viewResultsButton.disabled}, classList=${elements.viewResultsButton.className}`);
                     
                     // Force a second update to add animations after a small delay
                     // This creates a cleaner visual transition from disabled to enabled
                     setTimeout(function() {
                         if (elements.viewResultsButton) {
-                            // Double-check disabled state is false
+                            // Double-check disabled state is false and add event listener
                             elements.viewResultsButton.disabled = false;
+                            elements.viewResultsButton.removeAttribute('disabled');
                             
                             // Add pulse and glow effects in sequence
                             elements.viewResultsButton.classList.add('btn-pulse');
@@ -505,6 +508,14 @@
                             // Add glow effect after a tiny delay for better visual effect
                             setTimeout(function() {
                                 elements.viewResultsButton.classList.add('btn-glow');
+                                
+                                // Add a direct click handler as backup
+                                elements.viewResultsButton.addEventListener('click', function clickHandler(e) {
+                                    log('Direct click handler engaged');
+                                    hideAllAds();
+                                    // Remove this event listener after first use
+                                    elements.viewResultsButton.removeEventListener('click', clickHandler);
+                                });
                             }, 200);
                         }
                     }, 50);

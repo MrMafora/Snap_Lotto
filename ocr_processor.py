@@ -21,13 +21,24 @@ def get_anthropic_client():
     if anthropic_client is not None:
         return anthropic_client
     
-    # Initialize API key from environment variable
-    ANTHROPIC_API_KEY = os.environ.get("Lotto_scape_ANTHROPIC_KEY")
+    # First try the new standardized environment variable
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+    if ANTHROPIC_API_KEY:
+        logger.info("Using ANTHROPIC_API_KEY environment variable")
     
-    # Log if key is missing
+    # If not found, try the legacy environment variable as fallback
     if not ANTHROPIC_API_KEY:
-        logger.warning("Lotto_scape_ANTHROPIC_KEY environment variable not set.")
+        ANTHROPIC_API_KEY = os.environ.get("Lotto_scape_ANTHROPIC_KEY")
+        if ANTHROPIC_API_KEY:
+            logger.info("Using Lotto_scape_ANTHROPIC_KEY environment variable")
+    
+    # Log if key is missing from both locations
+    if not ANTHROPIC_API_KEY:
+        logger.warning("Neither ANTHROPIC_API_KEY nor Lotto_scape_ANTHROPIC_KEY environment variables are set.")
         return None
+    
+    # Log that we have a key (without showing it)
+    logger.info("Found valid Anthropic API key, initializing client")
     
     # Initialize Anthropic client if ANTHROPIC_API_KEY is available
     try:
