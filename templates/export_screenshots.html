@@ -14,19 +14,96 @@
         overflow-y: visible !important;
     }
     
-    /* Fix for image containers preventing scroll */
+    /* Enhanced styling for gallery cards */
+    .gallery-card {
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .gallery-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        transform: translateY(-3px);
+    }
+    
+    /* Fix for image containers */
     .gallery-image-container {
         pointer-events: auto;
+        overflow: hidden;
+        position: relative;
+        flex-grow: 1;
+        min-height: 230px;
+        max-height: 280px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #eee;
     }
     
     .gallery-image-container img {
         pointer-events: auto;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        transition: transform 0.3s ease;
+    }
+    
+    .gallery-image-container img:hover {
+        transform: scale(1.02);
+    }
+    
+    /* Source URL display */
+    .screenshot-source {
+        font-size: 0.75rem;
+        color: #6c757d;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        max-width: 100%;
+        display: block;
+    }
+    
+    /* Preview iframe for live content */
+    .preview-iframe-container {
+        position: relative;
+        width: 100%;
+        height: 230px;
+        overflow: hidden;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    /* Loading spinner for preview */
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        border-top-color: var(--lottery-red);
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .preview-iframe {
+        width: 100%;
+        height: 100%;
+        transform: scale(0.5);
+        transform-origin: 0 0;
+        border: none;
     }
 </style>
 <script>
-    // Fix for scrolling issues on export-screenshots page
     document.addEventListener('DOMContentLoaded', function() {
-        // Remove any scroll-blocking event listeners
+        // Fix for scrolling issues on export-screenshots page
         document.addEventListener('wheel', function(event) {
             event.stopPropagation();
         }, true);
@@ -52,7 +129,140 @@
         // Add prevention for any other event handlers that might block scrolling
         document.body.style.overflowY = 'scroll';
         document.documentElement.style.overflowY = 'scroll';
+        
+        // Initialize preview functionality for cards
+        initializePreviewFunctionality();
+        
+        // Make cards responsive to window size changes
+        window.addEventListener('resize', adjustCardLayout);
+        // Initial adjustment
+        adjustCardLayout();
     });
+    
+    function initializePreviewFunctionality() {
+        // Get all preview toggle buttons
+        const previewButtons = document.querySelectorAll('.btn-preview-toggle');
+        
+        previewButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const card = this.closest('.gallery-card');
+                const imageContainer = card.querySelector('.gallery-image-container');
+                const previewContainer = card.querySelector('.preview-iframe-container');
+                const sourceUrl = this.dataset.sourceUrl;
+                
+                // Toggle between image and preview
+                if (previewContainer.style.display === 'none' || !previewContainer.style.display) {
+                    // Show preview
+                    imageContainer.style.display = 'none';
+                    previewContainer.style.display = 'block';
+                    this.innerHTML = '<i class="fas fa-image me-1"></i> Show Image';
+                    
+                    // If iframe doesn't exist, create it
+                    if (!previewContainer.querySelector('iframe')) {
+                        // Add loading spinner
+                        const spinner = document.createElement('div');
+                        spinner.className = 'loading-spinner';
+                        previewContainer.appendChild(spinner);
+                        
+                        // Create iframe
+                        const iframe = document.createElement('iframe');
+                        iframe.className = 'preview-iframe';
+                        iframe.style.display = 'none'; // Hide until loaded
+                        iframe.src = sourceUrl;
+                        iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts');
+                        
+                        // Listen for load event
+                        iframe.addEventListener('load', function() {
+                            try {
+                                // Check if the iframe loaded content
+                                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                                if (!iframeDoc.body.innerHTML) {
+                                    handlePreviewError(previewContainer, "Error: Empty content");
+                                } else {
+                                    // Remove spinner, show iframe
+                                    if (previewContainer.querySelector('.loading-spinner')) {
+                                        previewContainer.querySelector('.loading-spinner').remove();
+                                    }
+                                    iframe.style.display = 'block';
+                                }
+                            } catch (error) {
+                                // Cross-origin error - this is expected if the site has correct security
+                                // We still show the iframe as it might be displaying content
+                                console.log("Cross-origin limitation detected - preview may be limited");
+                                
+                                // Remove spinner, show iframe anyway
+                                if (previewContainer.querySelector('.loading-spinner')) {
+                                    previewContainer.querySelector('.loading-spinner').remove();
+                                }
+                                iframe.style.display = 'block';
+                            }
+                        });
+                        
+                        // Handle iframe load errors
+                        iframe.addEventListener('error', function() {
+                            handlePreviewError(previewContainer, "Failed to load preview");
+                        });
+                        
+                        // Add timeout in case the iframe never triggers load event
+                        setTimeout(function() {
+                            if (previewContainer.querySelector('.loading-spinner')) {
+                                // If spinner still exists after 8 seconds, iframe probably failed to load properly
+                                handlePreviewError(previewContainer, "Preview timed out. The website may be unavailable or blocking iframe embedding.");
+                            }
+                        }, 8000);
+                        
+                        previewContainer.appendChild(iframe);
+                    }
+                } else {
+                    // Show image
+                    imageContainer.style.display = 'flex';
+                    previewContainer.style.display = 'none';
+                    this.innerHTML = '<i class="fas fa-globe me-1"></i> Live Preview';
+                }
+            });
+        });
+    }
+    
+    function handlePreviewError(container, message) {
+        // Clear loading animation
+        container.style.backgroundImage = 'none';
+        
+        // Display error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'alert alert-warning m-2';
+        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${message}`;
+        
+        // Clear container and add error message
+        container.innerHTML = '';
+        container.appendChild(errorDiv);
+    }
+    
+    function adjustCardLayout() {
+        // Get all gallery cards
+        const cards = document.querySelectorAll('.gallery-card');
+        const windowWidth = window.innerWidth;
+        
+        // Adjust layout based on window size
+        cards.forEach(card => {
+            const imageContainer = card.querySelector('.gallery-image-container');
+            
+            if (windowWidth > 1200) {
+                // Extra large screens
+                imageContainer.style.minHeight = '300px';
+            } else if (windowWidth > 992) {
+                // Large screens
+                imageContainer.style.minHeight = '250px';
+            } else if (windowWidth > 768) {
+                // Medium screens
+                imageContainer.style.minHeight = '230px';
+            } else {
+                // Small screens
+                imageContainer.style.minHeight = '200px';
+            }
+        });
+    }
 </script>
 {% endblock %}
 
@@ -177,22 +387,38 @@
                 
                 <div class="row gallery-container">
                     {% for screenshot in screenshots %}
-                    <div class="col-md-4 mb-4">
+                    <div class="col-lg-4 col-md-6 mb-4">
                         <div class="card h-100 gallery-card" style="user-select: none;">
+                            <!-- Standard image container -->
                             <div class="gallery-image-container">
                                 <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" target="_blank">
                                     <img src="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
                                          alt="{{ screenshot.lottery_type }} screenshot">
                                 </a>
                             </div>
+                            
+                            <!-- Preview iframe container (initially hidden) -->
+                            <div class="preview-iframe-container" style="display: none;">
+                                <!-- Iframe will be inserted here by JS when preview is activated -->
+                            </div>
+                            
                             <div class="card-body d-flex flex-column">
-                                <h5 class="card-title">{{ screenshot.lottery_type }}</h5>
-                                <p class="card-text">
-                                    <small class="text-muted">
-                                        {{ screenshot.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
-                                    </small>
-                                </p>
-                                <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <h5 class="card-title mb-0">{{ screenshot.lottery_type }}</h5>
+                                    <span class="badge bg-secondary">{{ screenshot.timestamp.strftime('%Y-%m-%d') }}</span>
+                                </div>
+                                
+                                <span class="screenshot-source" title="{{ screenshot.url }}">
+                                    <i class="fas fa-link me-1 small"></i>{{ screenshot.url }}
+                                </span>
+                                
+                                <div class="mt-auto pt-3">
+                                    <!-- Preview toggle button -->
+                                    <button class="btn btn-sm btn-info w-100 mb-2 btn-preview-toggle" 
+                                           data-source-url="{{ screenshot.url }}">
+                                        <i class="fas fa-globe me-1"></i> Live Preview
+                                    </button>
+                                            
                                     <div class="d-flex justify-content-between gap-1 mb-2">
                                         <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
                                            class="btn btn-sm btn-primary flex-fill" 
@@ -207,6 +433,7 @@
                                         </a>
                                         {% endif %}
                                     </div>
+                                    
                                     <form action="{{ url_for('sync_single_screenshot', screenshot_id=screenshot.id) }}" method="POST">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-sm btn-warning w-100">
