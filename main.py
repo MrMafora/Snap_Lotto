@@ -1790,51 +1790,81 @@ def preview_website(screenshot_id):
     """
     Generate and serve a real-time preview image of the website.
     This approach bypasses iframe restrictions by rendering the site server-side.
+    Uses the optimized generate_preview_image function with extended timeouts.
     """
     from io import BytesIO
     import base64
+    import time
+
+    # Record start time to monitor overall preview generation time
+    start_time = time.time()
     
     try:
         # Retrieve the screenshot object
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # For faster loading, first try to return the existing screenshot if available
+        # First try to use an existing screenshot if it's fresh (less than 1 hour old)
         if screenshot.path and os.path.exists(screenshot.path):
             try:
-                with open(screenshot.path, 'rb') as f:
-                    existing_img_data = f.read()
-                
-                return send_file(
-                    BytesIO(existing_img_data),
-                    mimetype='image/png',
-                    download_name=f'preview_{screenshot_id}.png',
-                    as_attachment=False,
-                    etag=False,
-                    cache_timeout=300  # Cache for 5 minutes
-                )
+                # Check file modification time
+                file_mod_time = os.path.getmtime(screenshot.path)
+                if time.time() - file_mod_time < 3600:  # 1 hour cache
+                    app.logger.info(f"Using cached screenshot for preview of {screenshot.lottery_type}")
+                    with open(screenshot.path, 'rb') as f:
+                        existing_img_data = f.read()
+                    
+                    return send_file(
+                        BytesIO(existing_img_data),
+                        mimetype='image/png',
+                        download_name=f'preview_{screenshot_id}.png',
+                        as_attachment=False,
+                        etag=True,
+                        cache_timeout=3600  # Cache for 1 hour
+                    )
+                else:
+                    app.logger.info(f"Cached screenshot for {screenshot.lottery_type} is too old, generating new preview")
             except Exception as file_error:
                 app.logger.warning(f"Could not use existing screenshot, trying live capture: {str(file_error)}")
-                # Continue to live capture if file access fails
         
-        # Use the existing screenshot capture function to generate a fresh preview
-        # This leverages our existing Playwright setup which already handles anti-bot measures
-        from screenshot_manager import capture_screenshot_sync
-        filepath, img_data, _ = capture_screenshot_sync(screenshot.url)
+        # Use the specialized preview function with extended timeouts
+        from screenshot_manager import generate_preview_image
+        img_data, error_message = generate_preview_image(screenshot.url, is_preview=True)
         
         if img_data:
-            app.logger.info(f"Successfully captured preview for {screenshot.lottery_type}")
+            elapsed_time = time.time() - start_time
+            app.logger.info(f"Successfully captured preview for {screenshot.lottery_type} in {elapsed_time:.2f} seconds")
+            
             # Return the image data with appropriate headers
             return send_file(
                 BytesIO(img_data),
                 mimetype='image/png',
                 download_name=f'preview_{screenshot_id}.png',
                 as_attachment=False,
-                etag=False,
-                cache_timeout=300  # Cache for 5 minutes
+                etag=True,
+                cache_timeout=3600  # Cache for 1 hour
             )
         else:
-            app.logger.warning(f"Failed to capture preview for {screenshot.lottery_type}, generating error image")
-            # If capture failed, return a placeholder error image
+            # Optimization: Try once more with a different approach if we failed
+            if error_message and "timeout" in error_message.lower():
+                app.logger.warning(f"Timeout occurred during preview for {screenshot.lottery_type}, trying backup approach")
+                
+                # Try again with the standard screenshot function as backup
+                from screenshot_manager import capture_screenshot_sync
+                _, backup_img_data, _ = capture_screenshot_sync(screenshot.url)
+                
+                if backup_img_data:
+                    elapsed_time = time.time() - start_time
+                    app.logger.info(f"Backup approach succeeded for {screenshot.lottery_type} in {elapsed_time:.2f} seconds")
+                    return send_file(
+                        BytesIO(backup_img_data),
+                        mimetype='image/png',
+                        download_name=f'preview_{screenshot_id}.png',
+                        as_attachment=False
+                    )
+            
+            # If all approaches failed, return an error image
+            app.logger.warning(f"Failed to capture preview for {screenshot.lottery_type}: {error_message}")
+            
             # Generate a simple error message image
             from PIL import Image, ImageDraw, ImageFont
             
@@ -1852,13 +1882,15 @@ def preview_website(screenshot_id):
                 font_medium = None
                 font_small = None
             
-            # Draw error text
-            d.text((20, 20), f"Preview Error: Could not load {screenshot.url}", 
+            # Draw error text with more specific message
+            d.text((20, 20), f"Preview generation timed out. The website may be unavailable.", 
                   fill=(200, 50, 50), font=font)
-            d.text((20, 60), "The website may be blocking access or experiencing issues.", 
+            d.text((20, 60), f"URL: {screenshot.url[:50]}...",
                   fill=(50, 50, 50), font=font_medium)
             d.text((20, 100), f"Try using the 'Resync' button to capture a full screenshot.", 
                   fill=(50, 50, 50), font=font_small)
+            d.text((20, 140), f"Error details: {error_message[:100] if error_message else 'Unknown error'}", 
+                  fill=(100, 100, 100), font=font_small)
             
             # Save to buffer
             buffer = BytesIO()
