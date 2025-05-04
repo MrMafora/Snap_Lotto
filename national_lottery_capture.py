@@ -490,9 +490,24 @@ def detect_blocking(page):
     return False
 
 def save_screenshot_to_database(url, lottery_type, html_path, img_path=None):
-    """Save screenshot information to the database."""
+    """
+    Save screenshot information to the database, ensuring lottery type is properly normalized.
+    
+    Args:
+        url (str): URL of the lottery page
+        lottery_type (str): Type of lottery (will be normalized)
+        html_path (str): Path to the HTML file
+        img_path (str, optional): Path to the image file
+        
+    Returns:
+        bool: Success status
+    """
     try:
         from models import db, Screenshot
+        
+        # Ensure lottery type is normalized using our standard function
+        normalized_type = normalize_lottery_type(lottery_type)
+        logger.info(f"Normalized lottery type from {lottery_type} to {normalized_type}")
         
         # Check if a record already exists for this URL
         existing = Screenshot.query.filter_by(url=url).first()
@@ -500,25 +515,44 @@ def save_screenshot_to_database(url, lottery_type, html_path, img_path=None):
         if existing:
             # Update existing record
             existing.path = html_path
-            existing.image_path = img_path
+            # Update lottery_type to ensure consistency
+            existing.lottery_type = normalized_type
+            # image_path attribute may not exist in some versions of the model
+            try:
+                if hasattr(existing, 'image_path'):
+                    existing.image_path = img_path
+            except:
+                pass
             existing.timestamp = datetime.now()
-            logger.info(f"Updated existing screenshot record for {lottery_type}")
+            logger.info(f"Updated existing screenshot record for {normalized_type} from URL: {url}")
         else:
             # Create new record
-            screenshot = Screenshot(
-                url=url,
-                lottery_type=lottery_type,
-                path=html_path,
-                image_path=img_path,
-                timestamp=datetime.now()
-            )
+            screenshot_data = {
+                'url': url,
+                'lottery_type': normalized_type,
+                'path': html_path,
+                'timestamp': datetime.now()
+            }
+            
+            # Only add image_path if the model supports it
+            try:
+                # Check if the Screenshot model has an image_path attribute
+                from sqlalchemy import inspect
+                inspector = inspect(Screenshot)
+                if 'image_path' in [c.key for c in inspector.columns]:
+                    screenshot_data['image_path'] = img_path
+            except:
+                pass
+                
+            screenshot = Screenshot(**screenshot_data)
             db.session.add(screenshot)
         
         db.session.commit()
-        logger.info(f"Saved screenshot to database: {lottery_type}")
+        logger.info(f"Saved screenshot to database: {normalized_type}")
         return True
     except Exception as e:
         logger.error(f"Error saving screenshot to database: {str(e)}")
+        traceback.print_exc()
         return False
 
 def capture_with_undetected_chromedriver(url, lottery_type, save_to_db=True):
