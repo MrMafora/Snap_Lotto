@@ -8,4 +8,5 @@ dependencies = [
     "playwright>=1.52.0",
     "psycopg2-binary>=2.9.10",
     "selenium>=4.32.0",
+    "undetected-chromedriver>=3.5.5",
 ]

@@ -40,6 +40,58 @@ task_semaphore = threading.Semaphore(MAX_CONCURRENT_TASKS)
 # Scheduler instance (initialized later)
 scheduler = None
 
+def capture_next_missing_url_job():
+    """
+    Scheduled job to capture the next missing URL.
+    This is run hourly to gradually build up our collection without timing out.
+    """
+    try:
+        import subprocess
+        import random
+        
+        # Add a small random delay to avoid predictable patterns
+        delay = random.randint(1, 300)  # 1-300 seconds (up to 5 minutes)
+        logger.info(f"Delaying next URL capture by {delay} seconds")
+        time.sleep(delay)
+        
+        # Run the capture_next_missing.py script using Playwright (default)
+        logger.info("Running capture_next_missing.py to capture the next missing URL")
+        result = subprocess.run(
+            ["python", "capture_next_missing.py"],  # Now uses Playwright by default
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=600  # 10 minute timeout
+        )
+        
+        if result.returncode == 0:
+            logger.info("Successfully captured next missing URL with Playwright")
+        else:
+            logger.error(f"Failed to capture next missing URL. Exit code: {result.returncode}")
+            logger.error(f"Error: {result.stderr}")
+            
+            # Try with undetected_chromedriver as fallback
+            logger.info("Trying again with undetected_chromedriver")
+            result = subprocess.run(
+                ["python", "capture_next_missing.py", "--use-undetected"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=600  # 10 minute timeout
+            )
+            
+            if result.returncode == 0:
+                logger.info("Successfully captured next missing URL with undetected_chromedriver")
+            else:
+                logger.error(f"Failed to capture next missing URL with undetected_chromedriver. Exit code: {result.returncode}")
+                logger.error(f"Error: {result.stderr}")
+    except subprocess.TimeoutExpired:
+        logger.error("Timeout expired when capturing next missing URL")
+    except Exception as e:
+        logger.error(f"Error in capture_next_missing_url_job: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+
 def init_scheduler(app):
     """
     Initialize the APScheduler for scheduled tasks.
@@ -55,6 +107,7 @@ def init_scheduler(app):
     # Import heavy modules only when needed
     from apscheduler.schedulers.background import BackgroundScheduler
     from apscheduler.triggers.cron import CronTrigger
+    from apscheduler.triggers.interval import IntervalTrigger
     
     # Initialize scheduler but don't start it yet
     scheduler = BackgroundScheduler()
@@ -69,6 +122,16 @@ def init_scheduler(app):
         replace_existing=True
     )
     logger.info("Added daily screenshot cleanup job (runs at 4:00 AM SAST)")
+    
+    # Add hourly job to capture the next missing URL
+    # This will gradually build up our collection over time
+    scheduler.add_job(
+        func=capture_next_missing_url_job,
+        trigger=IntervalTrigger(hours=1),  # Run every hour
+        id="hourly_url_capture",
+        replace_existing=True
+    )
+    logger.info("Added hourly URL capture job (runs every hour)")
     
     # In Replit environment, delay scheduler startup to allow port detection
     if IS_REPLIT_ENV:

@@ -141,11 +141,16 @@ USER_AGENTS = [
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
     # Firefox (Linux)
     'Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0',
-    # Mobile browsers (for variety)
+    # Mobile browsers (with South African devices - Samsung is very popular in SA)
     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
     'Mozilla/5.0 (iPad; CPU OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-    'Mozilla/5.0 (Linux; Android 14; SM-S908U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
-    'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36'
+    'Mozilla/5.0 (Linux; Android 14; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36', # Galaxy S23 Ultra (South African model)
+    'Mozilla/5.0 (Linux; Android 14; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36', # Galaxy S21 Ultra (South African model)
+    'Mozilla/5.0 (Linux; Android 14; SM-A546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36', # Galaxy A54 (popular in SA)
+    'Mozilla/5.0 (Linux; Android 13; SM-A536B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Mobile Safari/537.36', # Galaxy A53 (popular in SA)
+    'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+    'Mozilla/5.0 (Linux; Android 13; HUAWEI P40 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Mobile Safari/537.36', # Huawei (common in SA)
+    'Mozilla/5.0 (Linux; Android 13; moto g72) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36' # Motorola (budget option in SA)
 ]
 
 # Human-like scroll behavior parameters with more natural patterns
@@ -304,28 +309,66 @@ BROWSER_FINGERPRINT_MODIFICATIONS = {
     # Device memory (GB) distribution
     'device_memory': [2, 4, 4, 4, 8, 8, 8, 16, 16, 32],
     
-    # WebGL vendor and renderer combinations
+    # WebGL vendor and renderer combinations - with South African hardware focus
+    # South Africa has older hardware on average than US/EU markets
     'webgl_vendors': [
+        # Common Intel integrated graphics (35% of South African market)
         {
             'vendor': 'Google Inc. (Intel)',
-            'renderer': 'ANGLE (Intel, Intel(R) UHD Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)'
+            'renderer': 'ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)'
+        },
+        {
+            'vendor': 'Google Inc. (Intel)',
+            'renderer': 'ANGLE (Intel, Intel(R) HD Graphics 520 Direct3D11 vs_5_0 ps_5_0, D3D11)'
+        },
+        {
+            'vendor': 'Google Inc. (Intel)',
+            'renderer': 'ANGLE (Intel, Intel(R) HD Graphics 4000 Direct3D11 vs_5_0 ps_5_0, D3D11)'
+        },
+        # NVIDIA GPUs (25% of South African market, older models more common)
+        {
+            'vendor': 'Google Inc. (NVIDIA)',
+            'renderer': 'ANGLE (NVIDIA, NVIDIA GeForce GTX 1050 Direct3D11 vs_5_0 ps_5_0, D3D11)'
         },
         {
             'vendor': 'Google Inc. (NVIDIA)',
-            'renderer': 'ANGLE (NVIDIA, NVIDIA GeForce GTX 1650 Direct3D11 vs_5_0 ps_5_0, D3D11)'
+            'renderer': 'ANGLE (NVIDIA, NVIDIA GeForce MX150 Direct3D11 vs_5_0 ps_5_0, D3D11)'
+        },
+        {
+            'vendor': 'Google Inc. (NVIDIA)',
+            'renderer': 'ANGLE (NVIDIA, NVIDIA GeForce GTX 970 Direct3D11 vs_5_0 ps_5_0, D3D11)'
+        },
+        # AMD GPUs (15% of South African market)
+        {
+            'vendor': 'Google Inc. (AMD)',
+            'renderer': 'ANGLE (AMD, AMD Radeon(TM) Vega 8 Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)'
         },
         {
             'vendor': 'Google Inc. (AMD)',
-            'renderer': 'ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)'
+            'renderer': 'ANGLE (AMD, AMD Radeon R7 Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)'
         },
+        # Mobile GPUs (20% of South African market, growing segment)
+        {
+            'vendor': 'Google Inc. (Qualcomm)',
+            'renderer': 'ANGLE (Qualcomm, Adreno (TM) 650, OpenGL ES 3.2 V@475.0)'
+        },
+        {
+            'vendor': 'Google Inc. (ARM)',
+            'renderer': 'ANGLE (ARM, Mali-G78 MP14, OpenGL ES 3.2)'
+        },
+        {
+            'vendor': 'Google Inc. (Samsung)',
+            'renderer': 'ANGLE (Samsung, Mali-G78 MP10, OpenGL ES 3.2)'
+        },
+        # Apple (5% of South African market - lower than global average)
         {
             'vendor': 'Apple Inc.',
             'renderer': 'Apple M1'
         },
         {
-            'vendor': 'Intel Inc.',
-            'renderer': 'Intel Iris OpenGL Engine'
-        }
+            'vendor': 'Apple Inc.',
+            'renderer': 'Intel Iris Plus Graphics 655'
+        },
     ],
 }
 
@@ -716,11 +759,90 @@ def capture_screenshot_sync(url, retry_count=0):
                             referer=referrer
                         )
                         
-                        # Wait a randomized amount of time for additional resources to load
-                        # This makes it appear more human-like
-                        human_wait = random.randint(1500, 3000)
-                        logger.debug(f"Human wait after page load: {human_wait}ms")
-                        page.wait_for_timeout(human_wait)
+                        # Enhanced wait strategy for dynamic content loading
+                        # This is critical for modern sites with lazy loading and AJAX
+                        
+                        # Initial human-like wait (people pause to look at the page when it first loads)
+                        initial_wait = random.randint(1500, 3000)
+                        logger.debug(f"Initial human wait after page load: {initial_wait}ms")
+                        page.wait_for_timeout(initial_wait)
+                        
+                        # Look for common loading indicators and wait for them to disappear
+                        loading_selectors = [
+                            ".loading", ".spinner", ".loader", ".progress", 
+                            "[role='progressbar']", ".loading-spinner", "#loading",
+                            ".loading-animation", ".ajax-loader", ".loading-indicator",
+                            "[aria-busy='true']", ".buffering", ".sitewide-spinner",
+                            "svg[class*='spinner']", "svg[class*='loading']",
+                            "img[src*='spinner']", "img[src*='loading']",
+                            ".skeleton-loader", ".shimmer", ".skeleton"
+                        ]
+                        
+                        # Check for loading elements
+                        for selector in loading_selectors:
+                            try:
+                                loading_elements = page.query_selector_all(selector)
+                                if loading_elements and len(loading_elements) > 0:
+                                    logger.info(f"Found loading indicators matching {selector}, waiting for them to disappear")
+                                    # Wait for loading elements to disappear (max 20 seconds)
+                                    max_wait_time = 20000  # 20 seconds
+                                    start_time = time.time() * 1000  # convert to ms
+                                    
+                                    while time.time() * 1000 - start_time < max_wait_time:
+                                        # Check again if loading elements are still visible
+                                        still_loading = False
+                                        for elem in loading_elements:
+                                            try:
+                                                if elem.is_visible():
+                                                    still_loading = True
+                                                    break
+                                            except:
+                                                pass
+                                        
+                                        if not still_loading:
+                                            logger.info("Loading indicators have disappeared")
+                                            break
+                                            
+                                        # Wait a bit before checking again
+                                        page.wait_for_timeout(500)
+                                    
+                                    # Additional wait after loading disappears
+                                    page.wait_for_timeout(random.randint(500, 1500))
+                            except Exception as e:
+                                logger.debug(f"Error checking loading selector {selector}: {str(e)}")
+                        
+                        # Wait for network activity to settle
+                        try:
+                            # Check if there are active network connections
+                            for _ in range(5):  # Check a few times with small pauses
+                                # Evaluate if there are active XHR or fetch requests
+                                pending_requests = page.evaluate("""() => {
+                                    // Look for active network requests
+                                    const performance = window.performance;
+                                    if (performance && performance.getEntriesByType) {
+                                        const resources = performance.getEntriesByType('resource');
+                                        const currentTime = performance.now();
+                                        // Check for resources loaded in the last 2 seconds
+                                        const recentResources = resources.filter(r => 
+                                            (currentTime - r.startTime) < 2000 &&
+                                            !r.responseEnd);
+                                        return recentResources.length;
+                                    }
+                                    return 0;
+                                }""")
+                                
+                                if pending_requests > 0:
+                                    logger.info(f"Detected {pending_requests} pending network requests, waiting...")
+                                    page.wait_for_timeout(1000)
+                                else:
+                                    break
+                        except Exception as e:
+                            logger.debug(f"Error checking network activity: {str(e)}")
+                        
+                        # Additional human-like random wait before continuing with interactions
+                        post_load_wait = random.randint(1000, 2500)
+                        logger.debug(f"Post-load wait: {post_load_wait}ms")
+                        page.wait_for_timeout(post_load_wait)
                         
                         # Check response status
                         if response and response.status >= 200 and response.status < 300:
@@ -893,10 +1015,121 @@ def capture_screenshot_sync(url, retry_count=0):
                 except Exception as e:
                     logger.warning(f"Error during human-like interaction: {str(e)}")
                 
-                # Wait a final random delay before taking the screenshot
-                page.wait_for_timeout(random.randint(500, 1500))
+                # Handle cookie consent and other popup dialogs before screenshot
+                await_time = random.randint(2000, 4000)  # 2-4 seconds to wait for popups
+                logger.info(f"Waiting {await_time}ms for cookie consent popups to appear")
+                page.wait_for_timeout(await_time)
                 
-                # Save the full page screenshot
+                # Try to find and accept cookie consent buttons with different patterns
+                # Common cookie consent button selectors
+                cookie_button_selectors = [
+                    # Generic consent buttons
+                    "button:has-text('Accept')",
+                    "button:has-text('Accept all')",
+                    "button:has-text('Accept cookies')",
+                    "button:has-text('I agree')",
+                    "button:has-text('Agree')",
+                    "button:has-text('Allow')",
+                    "button:has-text('Allow all')",
+                    "button:has-text('Continue')",
+                    "button:has-text('OK')",
+                    "button:has-text('Got it')",
+                    "[aria-label='Accept cookies']",
+                    # South African specific (include Afrikaans)
+                    "button:has-text('Aanvaar')",  # Afrikaans
+                    "button:has-text('Aanvaar koekies')",  # Afrikaans
+                    "button:has-text('Ek stem in')",  # Afrikaans
+                    # Div/span with roles that might be clickable
+                    "div[role='button']:has-text('Accept')",
+                    "div[role='button']:has-text('Accept all')",
+                    "div[role='button']:has-text('I agree')",
+                    "span[role='button']:has-text('Accept')",
+                    # Links that might be consent buttons
+                    "a:has-text('Accept')",
+                    "a:has-text('Accept all')",
+                    "a:has-text('I agree')",
+                    # Lottery site specific (based on structure)
+                    ".cmpboxbtn:has-text('Accept')",
+                    ".cmpboxbtn:has-text('Accept all')",
+                    ".cookiesBtn",
+                    "#onetrust-accept-btn-handler",
+                    "#accept-all-cookies-button",
+                    "[data-testid='cookie-accept-all']",
+                    ".cookie-consent-buttons button",
+                    "[aria-label='Allow cookies']",
+                    ".cc_btn.cc_btn_accept_all",
+                    ".butterBar-close",
+                    ".js-accept-cookies",
+                    ".js-cookie-consent-agree"
+                ]
+                
+                # Try each selector and click the first one found
+                cookie_button_clicked = False
+                for selector in cookie_button_selectors:
+                    try:
+                        if page.query_selector(selector):
+                            logger.info(f"Found cookie consent button with selector: {selector}")
+                            page.click(selector)
+                            logger.info("Clicked cookie consent button")
+                            cookie_button_clicked = True
+                            # Wait to ensure popup is gone
+                            page.wait_for_timeout(random.randint(1000, 2000))
+                            break
+                    except Exception as e:
+                        logger.debug(f"Failed to click selector {selector}: {str(e)}")
+                
+                # If no specific buttons found, try clicking on the general cookie banner
+                if not cookie_button_clicked:
+                    cookie_banner_selectors = [
+                        ".cookie-banner", "#cookie-banner", "#cookie-consent", 
+                        ".cookie-consent", ".cookie-notice", "#cookie-notice",
+                        "#cookiebanner", ".cookies-banner", "#cookies-notice",
+                        ".privacy-banner", "#privacy-banner", ".gdpr-banner",
+                        "#gdpr-banner", ".consent-banner", "#consent-banner",
+                        "#onetrust-banner-sdk", ".cc_banner", "#pn-gdpr-banner",
+                        ".optanon-alert-box-wrapper", "#cookieConsentBar",
+                        ".qc-cmp2-container", ".butterBar"
+                    ]
+                    
+                    for selector in cookie_banner_selectors:
+                        try:
+                            banner_elements = page.query_selector_all(f"{selector} button")
+                            if banner_elements and len(banner_elements) > 0:
+                                # Try to find the most likely "accept" button in the banner
+                                for elem in banner_elements:
+                                    text = elem.inner_text().lower()
+                                    if any(keyword in text for keyword in ['accept', 'agree', 'allow', 'continue', 'ok']):
+                                        elem.click()
+                                        logger.info(f"Clicked likely accept button in {selector}")
+                                        cookie_button_clicked = True
+                                        page.wait_for_timeout(random.randint(1000, 2000))
+                                        break
+                                        
+                                # If no obvious accept button, just click the first button
+                                if not cookie_button_clicked and banner_elements:
+                                    banner_elements[0].click()
+                                    logger.info(f"Clicked first button in {selector}")
+                                    cookie_button_clicked = True
+                                    page.wait_for_timeout(random.randint(1000, 2000))
+                                    break
+                        except Exception as e:
+                            logger.debug(f"Failed to interact with cookie banner {selector}: {str(e)}")
+                
+                # Log whether we successfully handled cookie consent
+                if cookie_button_clicked:
+                    logger.info("Successfully handled cookie consent popup")
+                else:
+                    logger.info("No cookie consent popup detected or unable to interact with it")
+                
+                # Wait a final random delay before taking the screenshot
+                page.wait_for_timeout(random.randint(1500, 3000))
+                
+                # Additional check: In case there are other dialogs, press ESC to clear them
+                page.keyboard.press('Escape')
+                page.wait_for_timeout(500)
+                
+                # Final wait and screenshot
+                logger.info("Taking full page screenshot")
                 page.screenshot(path=filepath, full_page=True)
                 logger.info(f"Full screenshot saved to {filepath}")
                 
