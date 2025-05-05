@@ -318,8 +318,10 @@
     }
 
     // Mark the public service announcement as complete
+    // NOTE: This function is no longer used in the main flow as PSA is shown during navigation
+    // It remains here for backward compatibility with legacy code paths
     function completePublicServiceAd() {
-        log('Completing public service announcement ad');
+        log('Completing public service announcement ad (legacy function)');
         
         // Update state
         state.publicServiceAdActive = false;
@@ -337,7 +339,7 @@
     // Function to show ads and then display results
     // This function is called by the file uploader after successful upload
     function showResultsWithAd(results) {
-        log('Starting ad sequence before showing results');
+        log('Starting streamlined ad sequence before showing results');
         
         // Store the results for later use
         state.uploadResults = results;
@@ -345,11 +347,12 @@
         // Reset ad state
         resetAdState();
         
-        // Start with the public service ad
-        showPublicServiceAd();
+        // Skip the public service ad and go directly to monetization ad
+        // This is the new streamlined flow where PSA is shown during navigation
+        log('Skipping PSA (now shown during navigation) and showing monetization ad directly');
+        showMonetizationAd();
         
-        // The second ad will be triggered automatically from completePublicServiceAd()
-        // Results will be shown when user clicks the View Results button after ads
+        // Results will be shown when user clicks the View Results button after the monetization ad
     }
 
     // CRITICAL FIX: Function to kill all timers to prevent ad flashing

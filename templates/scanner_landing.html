@@ -50,9 +50,32 @@ Snap Scan and Win = Phanda Phusha Play. Upload your ticket photo and get instant
   ]
 }
 </script>
+
+<!-- Navigation Ad Manager -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/navigation-ad.css') }}">
+<script src="{{ url_for('static', filename='js/navigation-ad-manager.js') }}" defer></script>
 {% endblock %}
 
 {% block content %}
+<!-- PSA Advertisement Overlay -->
+<div id="psa-ad-overlay" class="psa-ad-overlay">
+    <div class="psa-content">
+        <h2>MISSING CHILDREN ALERT</h2>
+        <div>
+            <p>Help us find missing children in South Africa. If you have any information, please contact the South African Police Service immediately.</p>
+            <div class="image-container">
+                <img src="{{ url_for('static', filename='img/psa-missing-children.jpg') }}" alt="Missing Children Alert">
+            </div>
+            <p>This message is brought to you by Snap Lotto in partnership with Missing Children South Africa.</p>
+        </div>
+        <div class="countdown-container">
+            <span>Advertisement: </span>
+            <span id="psa-countdown">5</span>
+            <span> seconds</span>
+        </div>
+    </div>
+</div>
+
 <!-- Hero Section -->
 <div class="scanner-hero mb-5">
     <div class="row align-items-center">
