@@ -81,13 +81,24 @@
         overlay.style.color = 'white';
         overlay.style.textAlign = 'center';
         
-        // Public service announcement content
+        // Public service announcement content with enhanced contact information
         const content = document.createElement('div');
         content.className = 'psa-content';
         content.innerHTML = `
             <h2 style="margin-bottom: 20px; font-size: 24px; color: white;">MISSING CHILDREN ALERT</h2>
             <div style="max-width: 600px; margin: 0 auto;">
-                <p style="margin-bottom: 15px; font-size: 16px;">Help us find missing children in South Africa. If you have any information, please contact the South African Police Service immediately.</p>
+                <p style="margin-bottom: 15px; font-size: 16px;">Help us find missing children in South Africa. If you have any information, please contact:</p>
+                
+                <div style="background-color: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left;">
+                    <p style="margin-bottom: 10px; font-weight: bold;">Contact Information:</p>
+                    <ul style="list-style-type: none; padding-left: 0; margin-bottom: 10px;">
+                        <li style="margin-bottom: 5px;"><i class="fas fa-phone-alt" style="width: 20px; text-align: center; margin-right: 8px;"></i> Emergency Hotline: <strong>116 000</strong></li>
+                        <li style="margin-bottom: 5px;"><i class="fas fa-phone-alt" style="width: 20px; text-align: center; margin-right: 8px;"></i> SAPS: <strong>08600 10111</strong></li>
+                        <li style="margin-bottom: 5px;"><i class="fas fa-envelope" style="width: 20px; text-align: center; margin-right: 8px;"></i> Email: <strong>info@missingchildren.org.za</strong></li>
+                    </ul>
+                    <p style="margin-bottom: 0;">To report a missing child or submit information about a missing child case, please <a href="/missing-children-form" style="color: #fff; text-decoration: underline; font-weight: bold;">click here</a> to use our secure online form.</p>
+                </div>
+                
                 <div style="margin: 20px 0;">
                     <img src="/static/img/psa-missing-children.jpg" alt="Missing Children Alert" style="max-width: 100%; height: auto; border-radius: 8px;">
                 </div>
@@ -242,11 +253,40 @@
     }
     
     // Initialize when DOM is ready
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        setTimeout(initialize, 1);
-    } else {
-        document.addEventListener('DOMContentLoaded', initialize);
+    function initializeWithRetry() {
+        initialize();
+        
+        // Check if we found any links - if not, we'll retry after a short delay
+        // This helps with dynamically loaded content or slower page loads
+        const links = document.querySelectorAll('a');
+        if (links.length > 0) {
+            log(`Found ${links.length} total links on page`);
+            
+            // If we couldn't find any scanner links but we know there should be some,
+            // schedule a delayed initialization
+            if (document.querySelector('a[href="/ticket-scanner"]') || 
+                document.querySelector(`a[href*="ticket_scanner"]`) || 
+                document.querySelector(`a[href*="ticket-scanner"]`)) {
+                log('Found scanner links in document - scheduling delayed initialization');
+                setTimeout(initialize, 500); // Try again after 500ms
+            }
+        } else {
+            log('No links found on page yet - scheduling delayed initialization');
+            setTimeout(initialize, 500); // Try again after 500ms
+        }
     }
+    
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(initializeWithRetry, 1);
+    } else {
+        document.addEventListener('DOMContentLoaded', initializeWithRetry);
+    }
+    
+    // Also initialize on window load to catch any dynamically added links
+    window.addEventListener('load', function() {
+        log('Window loaded - running final initialization');
+        setTimeout(initialize, 100);
+    });
     
     // Export API for global access
     window.NavigationAdManager = {

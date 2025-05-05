@@ -451,6 +451,22 @@ def scanner_landing():
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
 
+@app.route('/missing-children-form')
+def missing_children_form():
+    """Display a form for reporting missing children or submitting information about missing children cases"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Missing Children", "url": url_for('missing_children_form')}
+    ]
+    
+    # Additional SEO metadata
+    meta_description = "Report a missing child or submit information about a missing child case. This form is provided in partnership with Missing Children South Africa."
+    
+    return render_template('missing_children_form.html',
+                          title="Report Missing Children | Submit Information About Missing Children",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
+
 @app.route('/ticket-scanner')
 def ticket_scanner():
     """Ticket scanner page - Allows users to scan and validate their lottery tickets"""
