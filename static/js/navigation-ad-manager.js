@@ -34,9 +34,13 @@
     };
 
     // Debug logging helper
-    function log(message) {
+    function log(message, obj) {
         if (config.debug && console && console.log) {
-            console.log(`[NavigationAd] ${message}`);
+            if (obj !== undefined) {
+                console.log(`[NavigationAd] ${message}`, obj);
+            } else {
+                console.log(`[NavigationAd] ${message}`);
+            }
         }
     }
 
@@ -105,8 +109,26 @@
 
     // Set up event listeners for scanner links
     function setupScannerLinks() {
-        // Find links to the ticket scanner
-        const scannerLinks = document.querySelectorAll('a[href="/ticket-scanner"]');
+        // Find all links that might lead to the ticket scanner
+        // This handles both direct "/ticket-scanner" links and Flask's url_for() generated links
+        const allLinks = document.querySelectorAll('a');
+        const scannerLinks = [];
+        
+        // Filter links that point to the ticket scanner page
+        allLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href) {
+                // Check for direct match or URL ending with /ticket-scanner
+                // Also check for Flask's url_for generated paths which might include a domain
+                if (href === '/ticket-scanner' || 
+                    href.endsWith('/ticket-scanner') || 
+                    href.includes('/ticket_scanner') ||
+                    href.includes('/ticket-scanner')) {
+                    scannerLinks.push(link);
+                    log(`Found scanner link: ${href}`, link);
+                }
+            }
+        });
         
         log(`Found ${scannerLinks.length} scanner links to intercept`);
         
