@@ -108,8 +108,16 @@ def instrument_ticket_scanner(ticket_scanner_module):
         
         # Get request session ID if available
         session_id = None
-        if HAS_FLASK and hasattr(g, 'monitoring_session_id'):
-            session_id = g.monitoring_session_id
+        if HAS_FLASK:
+            try:
+                # Import Flask request context only when needed
+                from flask import g, has_request_context
+                
+                # Only access g if we're in a request context
+                if has_request_context() and hasattr(g, 'monitoring_session_id'):
+                    session_id = g.monitoring_session_id
+            except Exception as e:
+                logger.error(f"Error accessing Flask request context: {e}")
         
         resource_data = {
             'ticket_size_bytes': image_size,
@@ -154,8 +162,16 @@ def instrument_ticket_scanner(ticket_scanner_module):
         
         # Get request session ID if available
         session_id = None
-        if HAS_FLASK and hasattr(g, 'monitoring_session_id'):
-            session_id = g.monitoring_session_id
+        if HAS_FLASK:
+            try:
+                # Import Flask request context only when needed
+                from flask import g, has_request_context
+                
+                # Only access g if we're in a request context
+                if has_request_context() and hasattr(g, 'monitoring_session_id'):
+                    session_id = g.monitoring_session_id
+            except Exception as e:
+                logger.error(f"Error accessing Flask request context: {e}")
         
         resource_data = {
             'lottery_type': lottery_type,
