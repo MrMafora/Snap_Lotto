@@ -35,3 +35,4 @@ pandas
 trafilatura
 playwright
 anthropic
+psutil

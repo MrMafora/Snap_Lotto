@@ -43,6 +43,15 @@ from werkzeug.utils import secure_filename
 # Import EnhancedCSRFProtect instead of CSRFProtect
 from csrf_fix import EnhancedCSRFProtect
 
+# Import process monitoring (conditionally)
+try:
+    import process_monitor
+    HAS_PROCESS_MONITOR = True
+    logger.info("Process monitoring module imported successfully")
+except ImportError:
+    HAS_PROCESS_MONITOR = False
+    logger.warning("Process monitoring module not available")
+
 # Import models only (lightweight)
 from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, db
 from config import Config
@@ -159,10 +168,12 @@ ocr_processor = None
 screenshot_manager = None
 # scheduler is imported at the top level to ensure screenshot functions work
 health_monitor = None
+# Process monitoring module
+process_monitoring = None
 
 def init_lazy_modules():
     """Initialize modules in a background thread with timeout"""
-    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, health_monitor
+    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, health_monitor, process_monitoring
     
     # Prioritize core modules
     try:
@@ -189,10 +200,27 @@ def init_lazy_modules():
     screenshot_manager = sm
     health_monitor = hm
     
+    # Initialize process monitoring if available
+    if HAS_PROCESS_MONITOR:
+        try:
+            import integrate_monitoring
+            process_monitoring = integrate_monitoring
+            logger.info("Process monitoring module reference created")
+        except Exception as e:
+            logger.error(f"Error loading process monitoring: {e}")
+    
     # Initialize scheduler and health monitoring in background after imports are complete
     with app.app_context():
         scheduler.init_scheduler(app)
         health_monitor.init_health_monitor(app, db)
+        
+        # Initialize process monitoring if available
+        if HAS_PROCESS_MONITOR and process_monitoring:
+            try:
+                process_monitoring.integrate_monitoring(app)
+                logger.info("Process monitoring system successfully integrated")
+            except Exception as e:
+                logger.error(f"Error integrating process monitoring: {e}")
     
     logger.info("All modules lazy-loaded successfully")
 
