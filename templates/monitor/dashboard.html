@@ -1,1416 +1,489 @@
-{% extends "layout.html" %}
+{% extends "admin/base.html" %}
 
-{% block title %}Process Monitor Dashboard{% endblock %}
-
-{% block head %}
-{{ super() }}
-<style>
-  .dashboard-container {
-    padding: 20px;
-  }
-  .card {
-    margin-bottom: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-  .card-header {
-    background-color: #f8f9fa;
-    font-weight: bold;
-  }
-  .timeline-container {
-    height: 400px;
-    overflow-y: auto;
-  }
-  .process-row {
-    padding: 8px;
-    margin-bottom: 4px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-  }
-  .process-row.error {
-    background-color: #f8d7da;
-  }
-  .process-row.warning {
-    background-color: #fff3cd;
-  }
-  .process-row.success {
-    background-color: #d4edda;
-  }
-  .process-bar {
-    height: 24px;
-    background-color: #6c757d;
-    border-radius: 4px;
-    position: relative;
-    margin-right: 10px;
-  }
-  .process-info {
-    flex: 1;
-  }
-  .process-duration {
-    min-width: 100px;
-    text-align: right;
-  }
-  .stat-value {
-    font-size: 24px;
-    font-weight: bold;
-  }
-  .stat-label {
-    font-size: 14px;
-    color: #6c757d;
-  }
-  .filter-controls {
-    margin-bottom: 15px;
-  }
-  .btn-filter {
-    margin-right: 5px;
-    margin-bottom: 5px;
-  }
-  .btn-filter.active {
-    background-color: #0d6efd;
-    color: white;
-  }
-  .gantt-chart {
-    position: relative;
-    height: 600px;
-    overflow-y: auto;
-    margin-top: 20px;
-  }
-  .gantt-row {
-    height: 30px;
-    margin-bottom: 2px;
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-  .gantt-label {
-    width: 200px;
-    padding-right: 10px;
-    text-align: right;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12px;
-  }
-  .gantt-timeline {
-    flex: 1;
-    position: relative;
-    height: 20px;
-    background-color: #f8f9fa;
-  }
-  .gantt-bar {
-    position: absolute;
-    height: 20px;
-    background-color: #0d6efd;
-    border-radius: 4px;
-  }
-  .gantt-bar.error {
-    background-color: #dc3545;
-  }
-  .gantt-bar.warning {
-    background-color: #ffc107;
-  }
-  .gantt-hover {
-    position: absolute;
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 5px;
-    border-radius: 3px;
-    font-size: 12px;
-    z-index: 1000;
-    display: none;
-  }
-  .timestamp-axis {
-    height: 20px;
-    position: relative;
-    margin-bottom: 10px;
-    border-bottom: 1px solid #dee2e6;
-  }
-  .timestamp-mark {
-    position: absolute;
-    font-size: 10px;
-    color: #6c757d;
-    transform: translateX(-50%);
-  }
-  .timestamp-tick {
-    position: absolute;
-    height: 5px;
-    border-left: 1px solid #dee2e6;
-    bottom: 0;
-  }
-  .resource-chart {
-    height: 200px;
-    margin-top: 20px;
-  }
-  .legend {
-    display: flex;
-    justify-content: center;
-    margin-top: 10px;
-  }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    margin-right: 20px;
-    font-size: 12px;
-  }
-  .legend-color {
-    width: 15px;
-    height: 15px;
-    margin-right: 5px;
-    border-radius: 3px;
-  }
-  .time-range-selector {
-    margin-bottom: 15px;
-  }
-  .dual-range-slider {
-    width: 100%;
-  }
-  #processTable tbody tr:hover {
-    background-color: rgba(0,0,0,0.075);
-    cursor: pointer;
-  }
-  .nav-tabs .nav-link.active {
-    font-weight: bold;
-    border-bottom: 3px solid #0d6efd;
-  }
-  #refreshBtn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  }
-  .loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(255,255,255,0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1001;
-  }
-  .tickets-analysis-container {
-    margin-top: 20px;
-  }
-  .tickets-analysis-container h4 {
-    margin-bottom: 15px;
-  }
-  .ad-sequence-container {
-    margin-top: 20px;
-  }
-  .ad-sequence-bar {
-    height: 40px;
-    position: relative;
-    background-color: #f8f9fa;
-    margin-bottom: 10px;
-    border-radius: 4px;
-  }
-  .ad-event-marker {
-    position: absolute;
-    width: 2px;
-    height: 40px;
-    background-color: #212529;
-  }
-  .ad-event-marker::after {
-    content: '';
-    position: absolute;
-    top: -5px;
-    left: -4px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
-  .ad-event-marker.show {
-    background-color: #0d6efd;
-  }
-  .ad-event-marker.show::after {
-    background-color: #0d6efd;
-  }
-  .ad-event-marker.complete {
-    background-color: #28a745;
-  }
-  .ad-event-marker.complete::after {
-    background-color: #28a745;
-  }
-  .ad-event-marker.error {
-    background-color: #dc3545;
-  }
-  .ad-event-marker.error::after {
-    background-color: #dc3545;
-  }
-</style>
-{% endblock %}
+{% block title %}Process Monitoring Dashboard{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-  <h1>Process Monitoring Dashboard</h1>
-  <p class="lead">Analyze application performance and diagnose issues</p>
-  
-  <div class="row">
-    <div class="col-md-3">
-      <div class="card">
-        <div class="card-body text-center">
-          <div class="stat-value" id="totalProcesses">-</div>
-          <div class="stat-label">Total Processes</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card">
-        <div class="card-body text-center">
-          <div class="stat-value" id="avgDuration">-</div>
-          <div class="stat-label">Avg Process Duration</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card">
-        <div class="card-body text-center">
-          <div class="stat-value" id="slowProcesses">-</div>
-          <div class="stat-label">Slow Processes (>1s)</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card">
-        <div class="card-body text-center">
-          <div class="stat-value" id="errorProcesses">-</div>
-          <div class="stat-label">Error Processes</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <div class="filter-controls mt-4">
+<div class="container-fluid mt-4">
     <div class="row">
-      <div class="col-md-8">
-        <h5>Filters</h5>
-        <div id="categoryFilters">
-          <button class="btn btn-sm btn-filter active" data-category="all">All</button>
+        <div class="col-12">
+            <h1 class="mb-4">Process Monitoring Dashboard</h1>
+            <p class="text-muted">View real-time performance metrics and process data for various components of the application.</p>
+            
+            <!-- System Metrics Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">System Metrics <small class="float-end">Last updated: <span id="last-update-time">{{ system_metrics.timestamp }}</span></small></h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-muted">CPU Usage</h6>
+                                    <div class="progress mb-2" style="height: 20px;">
+                                        <div class="progress-bar" role="progressbar" id="cpu-bar"
+                                            style="width: {{ system_metrics.cpu.percent }}%;" 
+                                            aria-valuenow="{{ system_metrics.cpu.percent }}" 
+                                            aria-valuemin="0" aria-valuemax="100">
+                                            <span id="cpu-text">{{ system_metrics.cpu.percent|round(1) }}%</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">System: <span id="cpu-system-text">{{ system_metrics.cpu.system_percent|round(1) }}%</span></small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-muted">Memory Usage</h6>
+                                    <div class="progress mb-2" style="height: 20px;">
+                                        <div class="progress-bar bg-success" role="progressbar" id="memory-bar"
+                                            style="width: {{ system_metrics.memory.percent }}%;" 
+                                            aria-valuenow="{{ system_metrics.memory.percent }}" 
+                                            aria-valuemin="0" aria-valuemax="100">
+                                            <span id="memory-text">{{ system_metrics.memory.percent|round(1) }}%</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        RSS: <span id="memory-rss">{{ (system_metrics.memory.rss / 1024 / 1024)|round(1) }} MB</span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-muted">Disk Usage</h6>
+                                    <div class="progress mb-2" style="height: 20px;">
+                                        <div class="progress-bar bg-warning" role="progressbar" id="disk-bar"
+                                            style="width: {{ system_metrics.disk.percent }}%;" 
+                                            aria-valuenow="{{ system_metrics.disk.percent }}" 
+                                            aria-valuemin="0" aria-valuemax="100">
+                                            <span id="disk-text">{{ system_metrics.disk.percent|round(1) }}%</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        Free: <span id="disk-free">{{ (system_metrics.disk.free / 1024 / 1024 / 1024)|round(1) }} GB</span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-muted">Network I/O</h6>
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <i class="fas fa-arrow-down text-success"></i>
+                                            <span id="network-recv">{{ (system_metrics.network.bytes_recv / 1024 / 1024)|round(2) }} MB</span>
+                                        </div>
+                                        <div>
+                                            <i class="fas fa-arrow-up text-danger"></i>
+                                            <span id="network-sent">{{ (system_metrics.network.bytes_sent / 1024 / 1024)|round(2) }} MB</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="refresh-metrics" class="btn btn-sm btn-outline-primary mt-2">
+                        <i class="fas fa-sync-alt"></i> Refresh Metrics
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Performance Stats Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Performance Summary (Last 24 Hours)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="display-4">{{ stats.count }}</h5>
+                                    <h6 class="text-muted">Total Processes</h6>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="display-4">{{ stats.avg_duration|round(2) }}s</h5>
+                                    <h6 class="text-muted">Average Duration</h6>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="display-4">{{ stats.success_rate|round(1) }}%</h5>
+                                    <h6 class="text-muted">Success Rate</h6>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="display-4">{{ stats.error_count }}</h5>
+                                    <h6 class="text-muted">Total Errors</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if stats.by_name %}
+                    <div class="mt-4">
+                        <h5>Process Performance by Name</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Process Name</th>
+                                        <th>Count</th>
+                                        <th>Avg. Duration (s)</th>
+                                        <th>Min Duration (s)</th>
+                                        <th>Max Duration (s)</th>
+                                        <th>Success Rate</th>
+                                        <th>Errors</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for name, data in stats.by_name.items() %}
+                                    <tr>
+                                        <td>{{ name }}</td>
+                                        <td>{{ data.count }}</td>
+                                        <td>{{ data.avg_duration|round(3) }}</td>
+                                        <td>{{ data.min_duration|round(3) }}</td>
+                                        <td>{{ data.max_duration|round(3) }}</td>
+                                        <td>{{ data.success_rate|round(1) }}%</td>
+                                        <td>{{ data.error_count }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Recent Processes Tab Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Recent Processes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Name</th>
+                                    <th>Timestamp</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for process in processes %}
+                                <tr>
+                                    <td>{{ process.category }}</td>
+                                    <td>{{ process.name }}</td>
+                                    <td>{{ process.timestamp }}</td>
+                                    <td>
+                                        {% if process.data.duration %}
+                                            {{ process.data.duration|round(3) }}s
+                                        {% else %}
+                                            <span class="badge bg-warning">Running</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if process.data.success is defined %}
+                                            {% if process.data.success %}
+                                                <span class="badge bg-success">Success</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Error</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary process-details-btn" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#processDetailsModal"
+                                                data-process="{{ process|tojson }}">
+                                            <i class="fas fa-info-circle"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <a href="{{ url_for('process_monitor.monitor_processes') }}" class="btn btn-outline-info">
+                        <i class="fas fa-list"></i> View All Processes
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Recent Events Tab Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Recent Events</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Event Name</th>
+                                    <th>Timestamp</th>
+                                    <th>Severity</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in events %}
+                                <tr>
+                                    <td>{{ event.name }}</td>
+                                    <td>{{ event.timestamp }}</td>
+                                    <td>
+                                        {% if event.severity == 'error' %}
+                                            <span class="badge bg-danger">Error</span>
+                                        {% elif event.severity == 'warning' %}
+                                            <span class="badge bg-warning">Warning</span>
+                                        {% elif event.severity == 'critical' %}
+                                            <span class="badge bg-dark">Critical</span>
+                                        {% else %}
+                                            <span class="badge bg-info">Info</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-secondary event-details-btn" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#eventDetailsModal"
+                                                data-event="{{ event|tojson }}">
+                                            <i class="fas fa-info-circle"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <a href="{{ url_for('process_monitor.monitor_events') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list"></i> View All Events
+                    </a>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="col-md-4">
-        <h5>Time Range</h5>
-        <div class="time-range-selector">
-          <input type="text" class="dual-range-slider" id="timeRangeSlider">
-        </div>
-      </div>
     </div>
-  </div>
-  
-  <ul class="nav nav-tabs mt-4" id="monitorTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-      <a class="nav-link active" id="timeline-tab" data-bs-toggle="tab" href="#timeline" role="tab">Timeline</a>
-    </li>
-    <li class="nav-item" role="presentation">
-      <a class="nav-link" id="gantt-tab" data-bs-toggle="tab" href="#gantt" role="tab">Gantt Chart</a>
-    </li>
-    <li class="nav-item" role="presentation">
-      <a class="nav-link" id="ticket-tab" data-bs-toggle="tab" href="#ticket" role="tab">Ticket Scanner</a>
-    </li>
-    <li class="nav-item" role="presentation">
-      <a class="nav-link" id="ads-tab" data-bs-toggle="tab" href="#ads" role="tab">Advertisements</a>
-    </li>
-    <li class="nav-item" role="presentation">
-      <a class="nav-link" id="api-tab" data-bs-toggle="tab" href="#api" role="tab">API Calls</a>
-    </li>
-    <li class="nav-item" role="presentation">
-      <a class="nav-link" id="resources-tab" data-bs-toggle="tab" href="#resources" role="tab">Resources</a>
-    </li>
-  </ul>
-  
-  <div class="tab-content mt-3">
-    <!-- Timeline Tab -->
-    <div class="tab-pane fade show active" id="timeline" role="tabpanel">
-      <div class="card">
-        <div class="card-header">
-          Process Timeline
-        </div>
-        <div class="card-body timeline-container">
-          <div class="table-responsive">
-            <table class="table table-hover" id="processTable">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Name</th>
-                  <th>Start Time</th>
-                  <th>Duration</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="processTableBody">
-                <!-- Rows will be added dynamically -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Gantt Chart Tab -->
-    <div class="tab-pane fade" id="gantt" role="tabpanel">
-      <div class="card">
-        <div class="card-header">
-          Process Gantt Chart
-        </div>
-        <div class="card-body">
-          <div class="timestamp-axis" id="timeAxis">
-            <!-- Timestamp markers will be added dynamically -->
-          </div>
-          <div class="gantt-chart" id="ganttChart">
-            <!-- Gantt rows will be added dynamically -->
-          </div>
-          <div class="gantt-hover" id="ganttHover"></div>
-          <div class="legend">
-            <div class="legend-item">
-              <div class="legend-color" style="background-color: #0d6efd;"></div>
-              <span>Normal</span>
-            </div>
-            <div class="legend-item">
-              <div class="legend-color" style="background-color: #ffc107;"></div>
-              <span>Slow (>1s)</span>
-            </div>
-            <div class="legend-item">
-              <div class="legend-color" style="background-color: #dc3545;"></div>
-              <span>Error</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Ticket Scanner Tab -->
-    <div class="tab-pane fade" id="ticket" role="tabpanel">
-      <div class="card">
-        <div class="card-header">
-          Ticket Scanner Analysis
-        </div>
-        <div class="card-body">
-          <div class="tickets-analysis-container">
-            <h4>Ticket Upload to Processing Timeline</h4>
-            <div id="ticketTimelineContainer"></div>
-          </div>
-          
-          <div class="tickets-analysis-container">
-            <h4>Ticket Processing Statistics</h4>
-            <div class="row">
-              <div class="col-md-4">
-                <div class="card">
-                  <div class="card-body text-center">
-                    <div class="stat-value" id="avgTicketProcessTime">-</div>
-                    <div class="stat-label">Avg Processing Time</div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="card">
-                  <div class="card-body text-center">
-                    <div class="stat-value" id="ticketProcessCount">-</div>
-                    <div class="stat-label">Tickets Processed</div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="card">
-                  <div class="card-body text-center">
-                    <div class="stat-value" id="ticketErrorCount">-</div>
-                    <div class="stat-label">Processing Errors</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="tickets-analysis-container">
-            <h4>Recent Ticket Processing</h4>
-            <div class="table-responsive">
-              <table class="table table-hover" id="ticketTable">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Lottery Type</th>
-                    <th>Draw Number</th>
-                    <th>Processing Time</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody id="ticketTableBody">
-                  <!-- Rows will be added dynamically -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Advertisements Tab -->
-    <div class="tab-pane fade" id="ads" role="tabpanel">
-      <div class="card">
-        <div class="card-header">
-          Advertisement Performance
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="card">
-                <div class="card-body text-center">
-                  <div class="stat-value" id="publicServiceAdAvgTime">-</div>
-                  <div class="stat-label">Avg Public Service Ad Duration</div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="card">
-                <div class="card-body text-center">
-                  <div class="stat-value" id="monetizationAdAvgTime">-</div>
-                  <div class="stat-label">Avg Monetization Ad Duration</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="ad-sequence-container">
-            <h4>Advertisement Sequence Timeline</h4>
-            <div id="adSequenceContainer">
-              <!-- Ad sequences will be added dynamically -->
-            </div>
-          </div>
-          
-          <div class="ad-sequence-container">
-            <h4>Recent Ad Events</h4>
-            <div class="table-responsive">
-              <table class="table table-hover" id="adEventsTable">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Function</th>
-                    <th>Phase</th>
-                    <th>Duration</th>
-                  </tr>
-                </thead>
-                <tbody id="adEventsTableBody">
-                  <!-- Rows will be added dynamically -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- API Calls Tab -->
-    <div class="tab-pane fade" id="api" role="tabpanel">
-      <div class="card">
-        <div class="card-header">
-          API Call Performance
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-4">
-              <div class="card">
-                <div class="card-body text-center">
-                  <div class="stat-value" id="totalApiCalls">-</div>
-                  <div class="stat-label">Total API Calls</div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="card">
-                <div class="card-body text-center">
-                  <div class="stat-value" id="avgApiTime">-</div>
-                  <div class="stat-label">Avg API Response Time</div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="card">
-                <div class="card-body text-center">
-                  <div class="stat-value" id="apiErrorCount">-</div>
-                  <div class="stat-label">API Errors</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="tickets-analysis-container">
-            <h4>Recent API Calls</h4>
-            <div class="table-responsive">
-              <table class="table table-hover" id="apiTable">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Method</th>
-                    <th>URL</th>
-                    <th>Status</th>
-                    <th>Duration</th>
-                  </tr>
-                </thead>
-                <tbody id="apiTableBody">
-                  <!-- Rows will be added dynamically -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Resources Tab -->
-    <div class="tab-pane fade" id="resources" role="tabpanel">
-      <div class="card">
-        <div class="card-header">
-          Resource Usage
-        </div>
-        <div class="card-body">
-          <div class="resource-chart" id="resourceChart">
-            <!-- Resource chart will be added dynamically -->
-          </div>
-          
-          <div class="tickets-analysis-container">
-            <h4>Slow Resource Loads</h4>
-            <div class="table-responsive">
-              <table class="table table-hover" id="resourceTable">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Size</th>
-                    <th>Load Time</th>
-                  </tr>
-                </thead>
-                <tbody id="resourceTableBody">
-                  <!-- Rows will be added dynamically -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
 
-<button id="refreshBtn" class="btn btn-primary btn-lg rounded-circle">
-  <i class="fas fa-sync-alt"></i>
-</button>
-
-<!-- Detail Modal -->
-<div class="modal fade" id="processDetailModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Process Details</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div id="processDetailContent">
-          <!-- Process details will be added dynamically -->
+<!-- Process Details Modal -->
+<div class="modal fade" id="processDetailsModal" tabindex="-1" aria-labelledby="processDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="processDetailsModalLabel">Process Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Category:</strong> <span id="process-category"></span></p>
+                        <p><strong>Name:</strong> <span id="process-name"></span></p>
+                        <p><strong>ID:</strong> <span id="process-id"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Timestamp:</strong> <span id="process-timestamp"></span></p>
+                        <p><strong>Duration:</strong> <span id="process-duration"></span></p>
+                        <p><strong>Status:</strong> <span id="process-status"></span></p>
+                    </div>
+                </div>
+                
+                <h6>Process Data</h6>
+                <pre id="process-data" class="bg-light p-3" style="max-height: 300px; overflow-y: auto;"></pre>
+                
+                <div id="process-error-container" class="d-none">
+                    <h6 class="text-danger">Error Information</h6>
+                    <p id="process-error-message"></p>
+                    <pre id="process-error-traceback" class="bg-light p-3" style="max-height: 200px; overflow-y: auto;"></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 </div>
 
-<!-- Actions Card -->
-<div class="card mt-4">
-  <div class="card-header">
-    Dashboard Actions
-  </div>
-  <div class="card-body">
-    <div class="row">
-      <div class="col-md-4">
-        <button id="clearDataBtn" class="btn btn-danger">Clear Monitoring Data</button>
-      </div>
-      <div class="col-md-4">
-        <button id="downloadJsonBtn" class="btn btn-secondary">Download JSON Report</button>
-      </div>
-      <div class="col-md-4">
-        <button id="downloadHtmlBtn" class="btn btn-secondary">Download HTML Report</button>
-      </div>
+<!-- Event Details Modal -->
+<div class="modal fade" id="eventDetailsModal" tabindex="-1" aria-labelledby="eventDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventDetailsModalLabel">Event Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Name:</strong> <span id="event-name"></span></p>
+                        <p><strong>ID:</strong> <span id="event-id"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Timestamp:</strong> <span id="event-timestamp"></span></p>
+                        <p><strong>Severity:</strong> <span id="event-severity"></span></p>
+                    </div>
+                </div>
+                
+                <h6>Event Details</h6>
+                <pre id="event-details" class="bg-light p-3" style="max-height: 300px; overflow-y: auto;"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 {% endblock %}
 
-{% block scripts %}
-{{ super() }}
+{% block extra_scripts %}
 <script>
-  // Dashboard JavaScript
-  $(document).ready(function() {
-    // Variables to store monitoring data
-    let monitoringData = {};
-    let timelineData = [];
-    let filteredTimeline = [];
-    let minTime = 0;
-    let maxTime = 0;
-    let categories = [];
-    let selectedCategory = 'all';
-    let timeRange = [0, 100]; // Percentage
-    
-    // Load initial data
-    loadData();
-    
-    // Set up refresh interval
-    const refreshInterval = setInterval(loadData, 30000); // Refresh every 30 seconds
-    
-    // Set up refresh button
-    $('#refreshBtn').click(function() {
-      $(this).addClass('fa-spin');
-      loadData().then(function() {
-        $('#refreshBtn').removeClass('fa-spin');
-      });
+    document.addEventListener('DOMContentLoaded', function() {
+        // Process Details Modal
+        const processButtons = document.querySelectorAll('.process-details-btn');
+        processButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const process = JSON.parse(this.getAttribute('data-process'));
+                
+                // Populate modal fields
+                document.getElementById('process-category').textContent = process.category || 'N/A';
+                document.getElementById('process-name').textContent = process.name || 'N/A';
+                document.getElementById('process-id').textContent = process.id || 'N/A';
+                document.getElementById('process-timestamp').textContent = process.timestamp || 'N/A';
+                
+                // Duration
+                if (process.data && process.data.duration !== undefined) {
+                    document.getElementById('process-duration').textContent = (process.data.duration).toFixed(3) + ' seconds';
+                } else {
+                    document.getElementById('process-duration').textContent = 'Running or unknown';
+                }
+                
+                // Status
+                const statusElement = document.getElementById('process-status');
+                if (process.data && process.data.success !== undefined) {
+                    if (process.data.success) {
+                        statusElement.textContent = 'Success';
+                        statusElement.className = 'badge bg-success';
+                    } else {
+                        statusElement.textContent = 'Error';
+                        statusElement.className = 'badge bg-danger';
+                    }
+                } else {
+                    statusElement.textContent = 'Unknown';
+                    statusElement.className = 'badge bg-secondary';
+                }
+                
+                // Process data (prettified JSON)
+                const dataElement = document.getElementById('process-data');
+                try {
+                    dataElement.textContent = JSON.stringify(process.data || {}, null, 2);
+                } catch (e) {
+                    dataElement.textContent = 'Error displaying data';
+                }
+                
+                // Error information if available
+                const errorContainer = document.getElementById('process-error-container');
+                if (process.data && process.data.error) {
+                    errorContainer.classList.remove('d-none');
+                    document.getElementById('process-error-message').textContent = process.data.error;
+                    
+                    if (process.data.traceback) {
+                        document.getElementById('process-error-traceback').textContent = process.data.traceback;
+                    } else {
+                        document.getElementById('process-error-traceback').textContent = 'No traceback available';
+                    }
+                } else {
+                    errorContainer.classList.add('d-none');
+                }
+            });
+        });
+        
+        // Event Details Modal
+        const eventButtons = document.querySelectorAll('.event-details-btn');
+        eventButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const event = JSON.parse(this.getAttribute('data-event'));
+                
+                // Populate modal fields
+                document.getElementById('event-name').textContent = event.name || 'N/A';
+                document.getElementById('event-id').textContent = event.id || 'N/A';
+                document.getElementById('event-timestamp').textContent = event.timestamp || 'N/A';
+                
+                // Severity
+                const severityElement = document.getElementById('event-severity');
+                severityElement.textContent = event.severity || 'info';
+                
+                if (event.severity === 'error') {
+                    severityElement.className = 'badge bg-danger';
+                } else if (event.severity === 'warning') {
+                    severityElement.className = 'badge bg-warning';
+                } else if (event.severity === 'critical') {
+                    severityElement.className = 'badge bg-dark';
+                } else {
+                    severityElement.className = 'badge bg-info';
+                }
+                
+                // Event details (prettified JSON)
+                const detailsElement = document.getElementById('event-details');
+                try {
+                    detailsElement.textContent = JSON.stringify(event.details || {}, null, 2);
+                } catch (e) {
+                    detailsElement.textContent = 'Error displaying details';
+                }
+            });
+        });
+        
+        // Refresh system metrics
+        document.getElementById('refresh-metrics').addEventListener('click', function() {
+            fetch('/api/process-monitor/system-metrics')
+                .then(response => response.json())
+                .then(data => {
+                    const metrics = data.metrics;
+                    
+                    // Update CPU
+                    document.getElementById('cpu-bar').style.width = metrics.cpu.percent + '%';
+                    document.getElementById('cpu-text').textContent = metrics.cpu.percent.toFixed(1) + '%';
+                    document.getElementById('cpu-system-text').textContent = metrics.cpu.system_percent.toFixed(1) + '%';
+                    
+                    // Update memory
+                    document.getElementById('memory-bar').style.width = metrics.memory.percent + '%';
+                    document.getElementById('memory-text').textContent = metrics.memory.percent.toFixed(1) + '%';
+                    document.getElementById('memory-rss').textContent = (metrics.memory.rss / 1024 / 1024).toFixed(1) + ' MB';
+                    
+                    // Update disk
+                    document.getElementById('disk-bar').style.width = metrics.disk.percent + '%';
+                    document.getElementById('disk-text').textContent = metrics.disk.percent.toFixed(1) + '%';
+                    document.getElementById('disk-free').textContent = (metrics.disk.free / 1024 / 1024 / 1024).toFixed(1) + ' GB';
+                    
+                    // Update network
+                    document.getElementById('network-recv').textContent = (metrics.network.bytes_recv / 1024 / 1024).toFixed(2) + ' MB';
+                    document.getElementById('network-sent').textContent = (metrics.network.bytes_sent / 1024 / 1024).toFixed(2) + ' MB';
+                    
+                    // Update timestamp
+                    document.getElementById('last-update-time').textContent = metrics.timestamp;
+                })
+                .catch(error => console.error('Error refreshing metrics:', error));
+        });
     });
-    
-    // Set up clear data button
-    $('#clearDataBtn').click(function() {
-      if (confirm('Are you sure you want to clear all monitoring data? This cannot be undone.')) {
-        clearData();
-      }
-    });
-    
-    // Set up download buttons
-    $('#downloadJsonBtn').click(function() {
-      window.location.href = '/process-monitor/report/download?format=json';
-    });
-    
-    $('#downloadHtmlBtn').click(function() {
-      window.location.href = '/process-monitor/report/download?format=html';
-    });
-    
-    // Load monitoring data from the server
-    function loadData() {
-      // Show loading overlay
-      $('.tab-pane.active').append('<div class="loading-overlay"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
-      
-      return $.getJSON('/process-monitor/data')
-        .done(function(data) {
-          monitoringData = data;
-          
-          // Load timeline data
-          return $.getJSON('/process-monitor/timeline');
-        })
-        .done(function(data) {
-          timelineData = data;
-          
-          // Process the data
-          processData();
-          
-          // Update the UI
-          updateDashboard();
-        })
-        .fail(function(error) {
-          console.error('Error loading monitoring data:', error);
-        })
-        .always(function() {
-          // Remove loading overlay
-          $('.loading-overlay').remove();
-        });
-    }
-    
-    // Process the monitoring data
-    function processData() {
-      // Extract categories
-      categories = ['all'];
-      timelineData.forEach(function(process) {
-        if (categories.indexOf(process.category) === -1) {
-          categories.push(process.category);
-        }
-      });
-      
-      // Sort timeline data by start time
-      timelineData.sort(function(a, b) {
-        return a.start_time - b.start_time;
-      });
-      
-      // Calculate time range
-      if (timelineData.length > 0) {
-        minTime = timelineData[0].start_time;
-        maxTime = timelineData[timelineData.length - 1].end_time || Date.now() / 1000;
-      }
-      
-      // Apply filters
-      applyFilters();
-    }
-    
-    // Apply category and time range filters
-    function applyFilters() {
-      filteredTimeline = timelineData.filter(function(process) {
-        // Apply category filter
-        const categoryMatch = selectedCategory === 'all' || process.category === selectedCategory;
-        
-        // Apply time range filter
-        const timeMin = minTime + (maxTime - minTime) * (timeRange[0] / 100);
-        const timeMax = minTime + (maxTime - minTime) * (timeRange[1] / 100);
-        const timeMatch = process.start_time >= timeMin && process.start_time <= timeMax;
-        
-        return categoryMatch && timeMatch;
-      });
-    }
-    
-    // Update the dashboard UI with the current data
-    function updateDashboard() {
-      // Update category filters
-      updateCategoryFilters();
-      
-      // Update summary statistics
-      updateSummaryStats();
-      
-      // Update timeline table
-      updateTimelineTable();
-      
-      // Update Gantt chart
-      updateGanttChart();
-      
-      // Update ticket scanner analysis
-      updateTicketAnalysis();
-      
-      // Update advertisement analysis
-      updateAdAnalysis();
-      
-      // Update API call analysis
-      updateApiAnalysis();
-      
-      // Update resource usage
-      updateResourceUsage();
-    }
-    
-    // Update category filter buttons
-    function updateCategoryFilters() {
-      const filterContainer = $('#categoryFilters');
-      filterContainer.empty();
-      
-      categories.forEach(function(category) {
-        const isActive = category === selectedCategory;
-        const button = $('<button>')
-          .addClass('btn btn-sm btn-filter')
-          .addClass(isActive ? 'active' : '')
-          .attr('data-category', category)
-          .text(category);
-        
-        filterContainer.append(button);
-      });
-      
-      // Add click handler to filter buttons
-      $('.btn-filter').click(function() {
-        $('.btn-filter').removeClass('active');
-        $(this).addClass('active');
-        
-        selectedCategory = $(this).data('category');
-        applyFilters();
-        updateDashboard();
-      });
-    }
-    
-    // Update summary statistics
-    function updateSummaryStats() {
-      const totalProcesses = filteredTimeline.length;
-      
-      // Calculate average duration
-      let totalDuration = 0;
-      let slowCount = 0;
-      let errorCount = 0;
-      
-      filteredTimeline.forEach(function(process) {
-        if (process.duration) {
-          totalDuration += process.duration;
-          
-          if (process.duration > 1) {
-            slowCount++;
-          }
-          
-          if (process.status === 'error') {
-            errorCount++;
-          }
-        }
-      });
-      
-      const avgDuration = totalProcesses > 0 ? totalDuration / totalProcesses : 0;
-      
-      // Update summary cards
-      $('#totalProcesses').text(totalProcesses);
-      $('#avgDuration').text(formatDuration(avgDuration));
-      $('#slowProcesses').text(slowCount);
-      $('#errorProcesses').text(errorCount);
-    }
-    
-    // Update timeline table
-    function updateTimelineTable() {
-      const tableBody = $('#processTableBody');
-      tableBody.empty();
-      
-      filteredTimeline.forEach(function(process, index) {
-        const row = $('<tr>');
-        
-        // Set row class based on status and duration
-        if (process.status === 'error') {
-          row.addClass('table-danger');
-        } else if (process.duration > 1) {
-          row.addClass('table-warning');
-        }
-        
-        // Store process data for modal display
-        row.data('process', process);
-        
-        // Create cells
-        row.append($('<td>').text(process.category));
-        row.append($('<td>').text(process.name));
-        row.append($('<td>').text(formatTimestamp(process.start_time)));
-        row.append($('<td>').text(formatDuration(process.duration)));
-        row.append($('<td>').text(process.status));
-        
-        tableBody.append(row);
-      });
-      
-      // Add click handler to show details
-      $('#processTable tbody tr').click(function() {
-        const process = $(this).data('process');
-        showProcessDetails(process);
-      });
-    }
-    
-    // Update Gantt chart
-    function updateGanttChart() {
-      const ganttContainer = $('#ganttChart');
-      ganttContainer.empty();
-      
-      const timeAxis = $('#timeAxis');
-      timeAxis.empty();
-      
-      // Create time axis
-      const timeSpan = maxTime - minTime;
-      const numTicks = 10;
-      
-      for (let i = 0; i <= numTicks; i++) {
-        const percentage = i / numTicks * 100;
-        const time = minTime + (timeSpan * (i / numTicks));
-        
-        const tick = $('<div>')
-          .addClass('timestamp-tick')
-          .css('left', `${percentage}%`);
-        
-        const label = $('<div>')
-          .addClass('timestamp-mark')
-          .css('left', `${percentage}%`)
-          .text(formatShortTimestamp(time));
-        
-        timeAxis.append(tick);
-        timeAxis.append(label);
-      }
-      
-      // Group processes by category and name for better visualization
-      const processGroups = {};
-      
-      filteredTimeline.forEach(function(process) {
-        const groupKey = `${process.category}:${process.name}`;
-        
-        if (!processGroups[groupKey]) {
-          processGroups[groupKey] = {
-            category: process.category,
-            name: process.name,
-            processes: []
-          };
-        }
-        
-        processGroups[groupKey].processes.push(process);
-      });
-      
-      // Sort groups by category and name
-      const sortedGroupKeys = Object.keys(processGroups).sort();
-      
-      // Add rows for each group
-      sortedGroupKeys.forEach(function(groupKey) {
-        const group = processGroups[groupKey];
-        
-        const ganttRow = $('<div>').addClass('gantt-row');
-        
-        const label = $('<div>')
-          .addClass('gantt-label')
-          .text(`${group.category}: ${group.name}`);
-        
-        const timeline = $('<div>').addClass('gantt-timeline');
-        
-        // Add bars for each process in the group
-        group.processes.forEach(function(process) {
-          if (!process.start_time || !process.end_time) return;
-          
-          const startPercentage = ((process.start_time - minTime) / timeSpan) * 100;
-          const duration = process.end_time - process.start_time;
-          const widthPercentage = (duration / timeSpan) * 100;
-          
-          // Skip processes that are too small to display
-          if (widthPercentage < 0.1) return;
-          
-          const bar = $('<div>')
-            .addClass('gantt-bar')
-            .css('left', `${startPercentage}%`)
-            .css('width', `${widthPercentage}%`);
-          
-          // Set bar class based on status and duration
-          if (process.status === 'error') {
-            bar.addClass('error');
-          } else if (process.duration > 1) {
-            bar.addClass('warning');
-          }
-          
-          // Store process data for hover
-          bar.data('process', process);
-          
-          // Add hover effect
-          bar.hover(
-            function() {
-              const position = $(this).offset();
-              const hover = $('#ganttHover');
-              
-              hover.html(`
-                <div>${process.name}</div>
-                <div>Start: ${formatTimestamp(process.start_time)}</div>
-                <div>Duration: ${formatDuration(process.duration)}</div>
-                <div>Status: ${process.status}</div>
-              `);
-              
-              hover.css({
-                top: position.top - hover.outerHeight() - 10,
-                left: position.left + ($(this).width() / 2) - (hover.outerWidth() / 2),
-                display: 'block'
-              });
-            },
-            function() {
-              $('#ganttHover').css('display', 'none');
-            }
-          );
-          
-          // Add click event to show details
-          bar.click(function() {
-            showProcessDetails(process);
-          });
-          
-          timeline.append(bar);
-        });
-        
-        ganttRow.append(label);
-        ganttRow.append(timeline);
-        ganttContainer.append(ganttRow);
-      });
-    }
-    
-    // Update ticket scanner analysis
-    function updateTicketAnalysis() {
-      // Find ticket scan events
-      const ticketUploads = monitoringData.fileUploads || [];
-      const ticketScans = (monitoringData.apiCalls || []).filter(function(call) {
-        return call.data && call.data.url && call.data.url.includes('/scan-ticket');
-      });
-      const ticketResults = (monitoringData.user_interactions || []).filter(function(interaction) {
-        return interaction.data && interaction.data.type === 'ticket_scan_response';
-      });
-      
-      // Calculate statistics
-      let totalProcessTime = 0;
-      let processCount = 0;
-      let errorCount = 0;
-      
-      ticketScans.forEach(function(scan) {
-        if (scan.data && scan.data.duration) {
-          totalProcessTime += scan.data.duration;
-          processCount++;
-          
-          if (scan.data.status >= 400 || scan.data.phase === 'error') {
-            errorCount++;
-          }
-        }
-      });
-      
-      const avgProcessTime = processCount > 0 ? totalProcessTime / processCount : 0;
-      
-      // Update statistics
-      $('#avgTicketProcessTime').text(formatDuration(avgProcessTime / 1000)); // Convert ms to seconds
-      $('#ticketProcessCount').text(processCount);
-      $('#ticketErrorCount').text(errorCount);
-      
-      // Update recent ticket table
-      const ticketTable = $('#ticketTableBody');
-      ticketTable.empty();
-      
-      ticketResults.slice(0, 10).forEach(function(result) {
-        const data = result.data;
-        const timestamp = new Date(data.timestamp);
-        
-        // Find matching scan request
-        const matchingScan = ticketScans.find(function(scan) {
-          // Simple time-based matching
-          return scan.data && Math.abs(scan.data.endTime - data.timestamp) < 1000;
-        });
-        
-        const row = $('<tr>');
-        
-        // Set row class based on status
-        if (data.hasError) {
-          row.addClass('table-danger');
-        }
-        
-        // Create cells
-        row.append($('<td>').text(formatTimestamp(timestamp / 1000)));
-        row.append($('<td>').text(data.lottery_type || 'Unknown'));
-        row.append($('<td>').text(data.draw_number || 'Unknown'));
-        row.append($('<td>').text(matchingScan ? formatDuration(matchingScan.data.duration / 1000) : 'N/A'));
-        row.append($('<td>').text(data.hasError ? 'Error' : 'Success'));
-        
-        ticketTable.append(row);
-      });
-    }
-    
-    // Update advertisement analysis
-    function updateAdAnalysis() {
-      const adEvents = monitoringData.advertisements || [];
-      
-      // Group events by session to create sequences
-      const adSessions = {};
-      
-      adEvents.forEach(function(event) {
-        if (!event.data || !event.data.id) return;
-        
-        const sessionId = event.data.sessionId || event.data.id.split('-')[0];
-        
-        if (!adSessions[sessionId]) {
-          adSessions[sessionId] = [];
-        }
-        
-        adSessions[sessionId].push(event);
-      });
-      
-      // Calculate ad durations
-      let publicServiceAdTotal = 0;
-      let publicServiceAdCount = 0;
-      let monetizationAdTotal = 0;
-      let monetizationAdCount = 0;
-      
-      Object.values(adSessions).forEach(function(session) {
-        // Find pairs of start/complete events
-        session.forEach(function(event) {
-          if (!event.data || !event.data.function || !event.data.phase) return;
-          
-          const func = event.data.function;
-          const phase = event.data.phase;
-          
-          if (phase === 'complete' && event.data.duration) {
-            if (func === 'completePublicServiceAd' || func === 'showPublicServiceAd') {
-              publicServiceAdTotal += event.data.duration;
-              publicServiceAdCount++;
-            } else if (func === 'completeMonetizationAd' || func === 'showMonetizationAd') {
-              monetizationAdTotal += event.data.duration;
-              monetizationAdCount++;
-            }
-          }
-        });
-      });
-      
-      const avgPublicServiceTime = publicServiceAdCount > 0 ? publicServiceAdTotal / publicServiceAdCount : 0;
-      const avgMonetizationTime = monetizationAdCount > 0 ? monetizationAdTotal / monetizationAdCount : 0;
-      
-      // Update statistics
-      $('#publicServiceAdAvgTime').text(formatDuration(avgPublicServiceTime / 1000));
-      $('#monetizationAdAvgTime').text(formatDuration(avgMonetizationTime / 1000));
-      
-      // Create ad sequence timeline
-      const adSequenceContainer = $('#adSequenceContainer');
-      adSequenceContainer.empty();
-      
-      // Take most recent 5 sessions
-      const recentSessionIds = Object.keys(adSessions).sort().slice(-5);
-      
-      recentSessionIds.forEach(function(sessionId) {
-        const session = adSessions[sessionId];
-        
-        // Sort events by timestamp
-        session.sort(function(a, b) {
-          return a.data.startTime - b.data.startTime;
-        });
-        
-        // Find the time range
-        const startTime = session[0].data.startTime;
-        const endTime = session[session.length - 1].data.endTime || startTime + 60000; // Default 60s if no end
-        const duration = endTime - startTime;
-        
-        // Create sequence bar
-        const sequenceContainer = $('<div>').addClass('mb-4');
-        sequenceContainer.append($('<h6>').text(`Session ${sessionId}`));
-        
-        const sequenceBar = $('<div>').addClass('ad-sequence-bar');
-        
-        // Add event markers
-        session.forEach(function(event) {
-          if (!event.data.startTime) return;
-          
-          const position = ((event.data.startTime - startTime) / duration) * 100;
-          
-          const marker = $('<div>')
-            .addClass('ad-event-marker')
-            .addClass(event.data.phase || '')
-            .css('left', `${position}%`);
-          
-          // Add tooltip
-          marker.attr('title', `${event.data.function || 'event'} - ${event.data.phase || 'unknown'}`);
-          
-          sequenceBar.append(marker);
-        });
-        
-        sequenceContainer.append(sequenceBar);
-        adSequenceContainer.append(sequenceContainer);
-      });
-      
-      // Update recent ad events table
-      const adEventsTable = $('#adEventsTableBody');
-      adEventsTable.empty();
-      
-      adEvents.slice(0, 10).forEach(function(event) {
-        if (!event.data) return;
-        
-        const row = $('<tr>');
-        
-        // Set row class based on phase
-        if (event.data.phase === 'error') {
-          row.addClass('table-danger');
-        }
-        
-        // Create cells
-        row.append($('<td>').text(formatTimestamp(event.data.startTime / 1000)));
-        row.append($('<td>').text(event.data.function || 'Unknown'));
-        row.append($('<td>').text(event.data.phase || 'Unknown'));
-        row.append($('<td>').text(event.data.duration ? formatDuration(event.data.duration / 1000) : 'N/A'));
-        
-        adEventsTable.append(row);
-      });
-    }
-    
-    // Update API call analysis
-    function updateApiAnalysis() {
-      const apiCalls = monitoringData.apiCalls || [];
-      
-      // Filter completed calls
-      const completedCalls = apiCalls.filter(function(call) {
-        return call.data && call.data.phase === 'complete';
-      });
-      
-      // Calculate statistics
-      let totalDuration = 0;
-      let callCount = 0;
-      let errorCount = 0;
-      
-      apiCalls.forEach(function(call) {
-        if (call.data && call.data.duration) {
-          totalDuration += call.data.duration;
-          callCount++;
-          
-          if (call.data.status >= 400 || call.data.phase === 'error') {
-            errorCount++;
-          }
-        }
-      });
-      
-      const avgDuration = callCount > 0 ? totalDuration / callCount : 0;
-      
-      // Update statistics
-      $('#totalApiCalls').text(callCount);
-      $('#avgApiTime').text(formatDuration(avgDuration / 1000));
-      $('#apiErrorCount').text(errorCount);
-      
-      // Update recent API calls table
-      const apiTable = $('#apiTableBody');
-      apiTable.empty();
-      
-      completedCalls.slice(0, 10).forEach(function(call) {
-        const data = call.data;
-        
-        const row = $('<tr>');
-        
-        // Set row class based on status
-        if ((data.status >= 400) || data.phase === 'error') {
-          row.addClass('table-danger');
-        } else if (data.duration > 1000) {
-          row.addClass('table-warning');
-        }
-        
-        // Create cells
-        row.append($('<td>').text(formatTimestamp(data.endTime / 1000)));
-        row.append($('<td>').text(data.method || 'GET'));
-        row.append($('<td>').text(data.url || 'Unknown'));
-        row.append($('<td>').text(data.status || 'Unknown'));
-        row.append($('<td>').text(data.duration ? formatDuration(data.duration / 1000) : 'N/A'));
-        
-        apiTable.append(row);
-      });
-    }
-    
-    // Update resource usage
-    function updateResourceUsage() {
-      const resourceLoads = monitoringData.resourceLoads || [];
-      
-      // Filter script resources
-      const scriptResources = resourceLoads.filter(function(resource) {
-        return resource.data && resource.data.type === 'script_load';
-      });
-      
-      // Sort by duration
-      scriptResources.sort(function(a, b) {
-        const aDuration = a.data && a.data.duration ? a.data.duration : 0;
-        const bDuration = b.data && b.data.duration ? b.data.duration : 0;
-        return bDuration - aDuration;
-      });
-      
-      // Update resource table
-      const resourceTable = $('#resourceTableBody');
-      resourceTable.empty();
-      
-      scriptResources.slice(0, 10).forEach(function(resource) {
-        const data = resource.data;
-        
-        const row = $('<tr>');
-        
-        // Set row class based on load time
-        if (data.duration > 1000) {
-          row.addClass('table-danger');
-        } else if (data.duration > 500) {
-          row.addClass('table-warning');
-        }
-        
-        // Create cells
-        row.append($('<td>').text(formatResourceName(data.name || 'Unknown')));
-        row.append($('<td>').text('JavaScript'));
-        row.append($('<td>').text(formatFileSize(data.size || 0)));
-        row.append($('<td>').text(formatDuration(data.duration / 1000)));
-        
-        resourceTable.append(row);
-      });
-    }
-    
-    // Show process details in modal
-    function showProcessDetails(process) {
-      const modal = $('#processDetailModal');
-      const content = $('#processDetailContent');
-      
-      content.empty();
-      
-      // Create detail HTML
-      let html = '<div class="process-details">';
-      
-      // Basic info
-      html += `<h4>${process.name}</h4>`;
-      html += `<div class="process-category badge bg-secondary mb-3">${process.category}</div>`;
-      
-      // Timing info
-      html += '<div class="row mb-3">';
-      html += `<div class="col-md-4"><strong>Start Time:</strong> ${formatTimestamp(process.start_time)}</div>`;
-      html += `<div class="col-md-4"><strong>End Time:</strong> ${formatTimestamp(process.end_time)}</div>`;
-      html += `<div class="col-md-4"><strong>Duration:</strong> ${formatDuration(process.duration)}</div>`;
-      html += '</div>';
-      
-      // Status
-      let statusClass = 'bg-primary';
-      if (process.status === 'error') {
-        statusClass = 'bg-danger';
-      } else if (process.status === 'warning') {
-        statusClass = 'bg-warning';
-      }
-      
-      html += `<div class="process-status badge ${statusClass} mb-3">${process.status}</div>`;
-      
-      // Additional data if available
-      if (process.caller) {
-        html += '<div class="caller-info card mb-3">';
-        html += '<div class="card-header">Caller Information</div>';
-        html += '<div class="card-body">';
-        html += `<div><strong>File:</strong> ${process.caller.file}</div>`;
-        html += `<div><strong>Function:</strong> ${process.caller.function}</div>`;
-        html += `<div><strong>Line:</strong> ${process.caller.line}</div>`;
-        html += '</div>';
-        html += '</div>';
-      }
-      
-      // Resource usage if available
-      if (process.resource_usage) {
-        html += '<div class="resource-info card mb-3">';
-        html += '<div class="card-header">Resource Usage</div>';
-        html += '<div class="card-body">';
-        html += `<div><strong>CPU Delta:</strong> ${process.resource_usage.cpu_delta.toFixed(2)}%</div>`;
-        html += `<div><strong>Memory Delta:</strong> ${process.resource_usage.memory_delta.toFixed(2)}%</div>`;
-        html += '</div>';
-        html += '</div>';
-      }
-      
-      // Raw data (collapsed)
-      html += '<div class="raw-data card mb-3">';
-      html += '<div class="card-header">Raw Process Data</div>';
-      html += '<div class="card-body">';
-      html += '<pre class="process-json">' + JSON.stringify(process, null, 2) + '</pre>';
-      html += '</div>';
-      html += '</div>';
-      
-      html += '</div>';
-      
-      content.html(html);
-      modal.modal('show');
-    }
-    
-    // Clear monitoring data
-    function clearData() {
-      return $.post('/process-monitor/clear')
-        .done(function() {
-          alert('Monitoring data cleared successfully.');
-          loadData();
-        })
-        .fail(function(error) {
-          console.error('Error clearing monitoring data:', error);
-          alert('Error clearing monitoring data: ' + error.responseJSON?.error || 'Unknown error');
-        });
-    }
-    
-    // Helper functions
-    function formatTimestamp(timestamp) {
-      const date = new Date(timestamp * 1000);
-      return date.toLocaleString();
-    }
-    
-    function formatShortTimestamp(timestamp) {
-      const date = new Date(timestamp * 1000);
-      return date.toLocaleTimeString();
-    }
-    
-    function formatDuration(seconds) {
-      if (seconds < 0.001) {
-        return `${(seconds * 1000000).toFixed(2)}µs`;
-      } else if (seconds < 1) {
-        return `${(seconds * 1000).toFixed(2)}ms`;
-      } else if (seconds < 60) {
-        return `${seconds.toFixed(2)}s`;
-      } else {
-        const mins = Math.floor(seconds / 60);
-        const secs = (seconds % 60).toFixed(2);
-        return `${mins}m ${secs}s`;
-      }
-    }
-    
-    function formatFileSize(bytes) {
-      if (bytes === 0) return '0 B';
-      if (bytes < 0) return 'Unknown';
-      
-      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(1024));
-      return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-    
-    function formatResourceName(url) {
-      // Extract the filename from URL
-      try {
-        const urlObj = new URL(url);
-        const pathParts = urlObj.pathname.split('/');
-        return pathParts[pathParts.length - 1];
-      } catch (e) {
-        return url;
-      }
-    }
-  });
 </script>
 {% endblock %}

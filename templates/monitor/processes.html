@@ -1,0 +1,304 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Process Monitoring | Processes{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin') }}">Admin</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('process_monitor.monitor_dashboard') }}">Monitoring</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Processes</li>
+                </ol>
+            </nav>
+            
+            <h1 class="mb-4">Processes</h1>
+            
+            <!-- Filter Form -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Filter Processes</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="category" class="form-label">Category</label>
+                            <input type="text" class="form-control" id="category" name="category" value="{{ category or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="name" class="form-label">Process Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ name or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="">All Statuses</option>
+                                <option value="success" {% if status == 'success' %}selected{% endif %}>Success</option>
+                                <option value="error" {% if status == 'error' %}selected{% endif %}>Error</option>
+                                <option value="running" {% if status == 'running' %}selected{% endif %}>Running</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-filter"></i> Apply Filters
+                            </button>
+                            <a href="{{ url_for('process_monitor.monitor_processes') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Clear Filters
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Processes Table -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Process List</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Name</th>
+                                    <th>Timestamp</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                    <th>Session ID</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for process in processes %}
+                                <tr>
+                                    <td>{{ process.category }}</td>
+                                    <td>{{ process.name }}</td>
+                                    <td>{{ process.timestamp }}</td>
+                                    <td>
+                                        {% if process.data and process.data.duration %}
+                                            {{ process.data.duration|round(3) }}s
+                                        {% else %}
+                                            <span class="badge bg-warning">Running</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if process.data and process.data.success is defined %}
+                                            {% if process.data.success %}
+                                                <span class="badge bg-success">Success</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Error</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if process.data and process.data.session_id %}
+                                            <a href="{{ url_for('process_monitor.monitor_session', session_id=process.data.session_id) }}">
+                                                {{ process.data.session_id[:8] }}...
+                                            </a>
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info process-details-btn" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#processDetailsModal"
+                                                data-process="{{ process|tojson }}">
+                                            <i class="fas fa-info-circle"></i> Details
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <nav aria-label="Process pagination">
+                        <ul class="pagination justify-content-center">
+                            {% if page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('process_monitor.monitor_processes', page=page-1, per_page=per_page, category=category, name=name, status=status) }}">Previous</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1">Previous</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for p in range(max(1, page-2), min(page+3, (processes|length // per_page) + 2)) %}
+                            <li class="page-item {% if p == page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('process_monitor.monitor_processes', page=p, per_page=per_page, category=category, name=name, status=status) }}">{{ p }}</a>
+                            </li>
+                            {% endfor %}
+                            
+                            {% if processes|length >= per_page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('process_monitor.monitor_processes', page=page+1, per_page=per_page, category=category, name=name, status=status) }}">Next</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Process Details Modal -->
+<div class="modal fade" id="processDetailsModal" tabindex="-1" aria-labelledby="processDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="processDetailsModalLabel">Process Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Category:</strong> <span id="process-category"></span></p>
+                        <p><strong>Name:</strong> <span id="process-name"></span></p>
+                        <p><strong>ID:</strong> <span id="process-id"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Timestamp:</strong> <span id="process-timestamp"></span></p>
+                        <p><strong>Duration:</strong> <span id="process-duration"></span></p>
+                        <p><strong>Status:</strong> <span id="process-status"></span></p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Start Time:</strong> <span id="process-start-time">-</span></p>
+                        <p><strong>End Time:</strong> <span id="process-end-time">-</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Session ID:</strong> <span id="process-session-id">-</span></p>
+                    </div>
+                </div>
+                
+                <h6>Process Data</h6>
+                <pre id="process-data" class="bg-light p-3" style="max-height: 300px; overflow-y: auto;"></pre>
+                
+                <div id="process-error-container" class="d-none">
+                    <h6 class="text-danger">Error Information</h6>
+                    <p id="process-error-message"></p>
+                    <pre id="process-error-traceback" class="bg-light p-3" style="max-height: 200px; overflow-y: auto;"></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a id="session-link" href="#" class="btn btn-primary d-none">
+                    <i class="fas fa-filter"></i> View Session
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Process Details Modal
+        const processButtons = document.querySelectorAll('.process-details-btn');
+        processButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const process = JSON.parse(this.getAttribute('data-process'));
+                
+                // Populate modal fields
+                document.getElementById('process-category').textContent = process.category || 'N/A';
+                document.getElementById('process-name').textContent = process.name || 'N/A';
+                document.getElementById('process-id').textContent = process.id || 'N/A';
+                document.getElementById('process-timestamp').textContent = process.timestamp || 'N/A';
+                
+                // Session link
+                const sessionLink = document.getElementById('session-link');
+                if (process.data && process.data.session_id) {
+                    document.getElementById('process-session-id').textContent = process.data.session_id;
+                    sessionLink.href = "{{ url_for('process_monitor.monitor_session', session_id='SESSION_ID') }}".replace('SESSION_ID', process.data.session_id);
+                    sessionLink.classList.remove('d-none');
+                } else {
+                    document.getElementById('process-session-id').textContent = 'N/A';
+                    sessionLink.classList.add('d-none');
+                }
+                
+                // Start and end times
+                if (process.data && process.data.start_time) {
+                    document.getElementById('process-start-time').textContent = process.data.start_time;
+                } else {
+                    document.getElementById('process-start-time').textContent = 'N/A';
+                }
+                
+                if (process.data && process.data.end_time) {
+                    document.getElementById('process-end-time').textContent = process.data.end_time;
+                } else {
+                    document.getElementById('process-end-time').textContent = 'N/A';
+                }
+                
+                // Duration
+                if (process.data && process.data.duration !== undefined) {
+                    document.getElementById('process-duration').textContent = (process.data.duration).toFixed(3) + ' seconds';
+                } else {
+                    document.getElementById('process-duration').textContent = 'Running or unknown';
+                }
+                
+                // Status
+                const statusElement = document.getElementById('process-status');
+                if (process.data && process.data.success !== undefined) {
+                    if (process.data.success) {
+                        statusElement.textContent = 'Success';
+                        statusElement.className = 'badge bg-success';
+                    } else {
+                        statusElement.textContent = 'Error';
+                        statusElement.className = 'badge bg-danger';
+                    }
+                } else {
+                    statusElement.textContent = 'Unknown';
+                    statusElement.className = 'badge bg-secondary';
+                }
+                
+                // Process data (prettified JSON)
+                const dataElement = document.getElementById('process-data');
+                try {
+                    // Create a copy of the data to remove some verbose fields for display
+                    const displayData = {...process.data};
+                    
+                    // Remove traceback from display data (it's shown separately)
+                    if (displayData.traceback) {
+                        delete displayData.traceback;
+                    }
+                    
+                    dataElement.textContent = JSON.stringify(displayData || {}, null, 2);
+                } catch (e) {
+                    dataElement.textContent = 'Error displaying data';
+                }
+                
+                // Error information if available
+                const errorContainer = document.getElementById('process-error-container');
+                if (process.data && process.data.error) {
+                    errorContainer.classList.remove('d-none');
+                    document.getElementById('process-error-message').textContent = process.data.error;
+                    
+                    if (process.data.traceback) {
+                        document.getElementById('process-error-traceback').textContent = process.data.traceback;
+                    } else {
+                        document.getElementById('process-error-traceback').textContent = 'No traceback available';
+                    }
+                } else {
+                    errorContainer.classList.add('d-none');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
