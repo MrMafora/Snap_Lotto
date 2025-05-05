@@ -56,12 +56,21 @@ def instrument_ticket_scanner(ticket_scanner_module):
         session_id = process_monitor.get_new_session_id()
         
         # Set session ID in flask request context if available
-        if HAS_FLASK and hasattr(g, 'monitoring_session_id'):
-            # Use existing session ID if available
-            session_id = g.monitoring_session_id
-        elif HAS_FLASK:
-            # Set new session ID if not available
-            g.monitoring_session_id = session_id
+        if HAS_FLASK:
+            try:
+                # Import Flask request context only when needed
+                from flask import g, has_request_context
+                
+                # Only access g if we're in a request context
+                if has_request_context():
+                    if hasattr(g, 'monitoring_session_id'):
+                        # Use existing session ID if available
+                        session_id = g.monitoring_session_id
+                    else:
+                        # Set new session ID if not available
+                        g.monitoring_session_id = session_id
+            except Exception as e:
+                logger.error(f"Error accessing Flask request context: {e}")
         
         resource_data['session_id'] = session_id
         

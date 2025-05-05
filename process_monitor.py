@@ -120,18 +120,23 @@ def _record_process(category, name, data=None):
         data['timestamp'] = datetime.now().isoformat()
     
     # Add request information if available
-    if HAS_FLASK and request:
+    if HAS_FLASK:
         try:
-            data['request'] = {
-                'path': request.path,
-                'method': request.method,
-                'ip': request.remote_addr,
-                'user_agent': request.user_agent.string if hasattr(request, 'user_agent') else 'Unknown'
-            }
+            # Import Flask request and g objects for this specific function
+            from flask import request, g, has_request_context
             
-            # Add session ID if available
-            if hasattr(g, 'monitoring_session_id'):
-                data['session_id'] = g.monitoring_session_id
+            # Only access request object if we're in a request context
+            if has_request_context():
+                data['request'] = {
+                    'path': request.path,
+                    'method': request.method,
+                    'ip': request.remote_addr,
+                    'user_agent': request.user_agent.string if hasattr(request, 'user_agent') else 'Unknown'
+                }
+                
+                # Add session ID if available in the current request context
+                if hasattr(g, 'monitoring_session_id'):
+                    data['session_id'] = g.monitoring_session_id
         except Exception as e:
             logger.error(f"Error capturing request data: {e}")
     
@@ -180,8 +185,16 @@ def _record_event(name, details=None, severity='info'):
         details['timestamp'] = datetime.now().isoformat()
     
     # Add session ID if available
-    if HAS_FLASK and hasattr(g, 'monitoring_session_id'):
-        details['session_id'] = g.monitoring_session_id
+    if HAS_FLASK:
+        try:
+            # Import Flask g object here to avoid issues
+            from flask import g, has_request_context
+            
+            # Only access g if we're in a request context
+            if has_request_context() and hasattr(g, 'monitoring_session_id'):
+                details['session_id'] = g.monitoring_session_id
+        except Exception as e:
+            logger.error(f"Error accessing Flask request context: {e}")
     
     # Create the event record
     event_record = {
@@ -336,8 +349,16 @@ def record_client_event(event_type, event_data, session_id=None):
     # Add session ID if provided or available
     if session_id:
         data['session_id'] = session_id
-    elif HAS_FLASK and hasattr(g, 'monitoring_session_id'):
-        data['session_id'] = g.monitoring_session_id
+    elif HAS_FLASK:
+        try:
+            # Import Flask g object here to avoid issues
+            from flask import g, has_request_context
+            
+            # Only access g if we're in a request context
+            if has_request_context() and hasattr(g, 'monitoring_session_id'):
+                data['session_id'] = g.monitoring_session_id
+        except Exception as e:
+            logger.error(f"Error accessing Flask request context in client event: {e}")
     
     # Record the event
     return _record_event(f"client_{event_type}", data)
