@@ -104,12 +104,18 @@ def add_monitoring_js(app):
     
     def inject_monitoring_js(response):
         """Inject monitoring JS into HTML responses"""
+        # Import Flask's global request context only when needed
+        from flask import g, request
+        
         if response.content_type and 'text/html' in response.content_type:
             # Make sure we don't inject into JSON or other non-HTML responses
             response_data = response.get_data(as_text=True)
             
             # Check if the response has a </body> tag and monitoring script isn't already included
             if '</body>' in response_data and 'process-monitor.js' not in response_data:
+                # Get session ID or use a fallback
+                session_id = getattr(g, 'monitoring_session_id', 'unknown') if hasattr(g, 'monitoring_session_id') else 'unknown'
+                
                 # Create script tag to load the monitoring JS
                 monitoring_script = """
                 <!-- Process Monitoring -->
@@ -128,7 +134,7 @@ def add_monitoring_js(app):
                     }
                   });
                 </script>
-                """ % (getattr(g, 'monitoring_session_id', 'unknown'), getattr(g, 'monitoring_session_id', 'unknown'))
+                """ % (session_id, session_id)
                 
                 # Inject the script before the closing body tag
                 response_data = response_data.replace('</body>', monitoring_script + '</body>')
