@@ -518,26 +518,23 @@
             }
         }
         
-        // Store the transition timer globally so we can cancel it if needed
-        window.adTransitionTimer = setTimeout(function() {
-            // Hide first ad completely first, so there's no possibility of overlap
-            if (elements.publicServiceAdOverlay) {
-                elements.publicServiceAdOverlay.style.transition = '';
-                elements.publicServiceAdOverlay.style.display = 'none';
-                log('First ad hidden (clean transition)');
-            }
+        // FIXED: Immediately hide first ad and show second ad without any delays
+        // We don't need to wait - just transition directly between ads
+        if (elements.publicServiceAdOverlay) {
+            elements.publicServiceAdOverlay.style.transition = '';
+            elements.publicServiceAdOverlay.style.display = 'none';
+            log('First ad hidden (immediate transition)');
+        }
+        
+        // FIXED: Show second ad IMMEDIATELY - remove unnecessary setTimeout
+        if (elements.monetizationAdOverlay) {
+            // Use a fresh, clean transition
+            elements.monetizationAdOverlay.style.transition = 'opacity 0.3s ease';
+            elements.monetizationAdOverlay.style.opacity = '1';
+            log('Monetization ad overlay displayed (immediate transition)');
             
-            // CRITICAL FIX: Small pause before showing second ad to avoid visual overlap
-            setTimeout(function() {
-                // Show second ad with clean display approach
-                if (elements.monetizationAdOverlay) {
-                    // Use a fresh, clean transition
-                    elements.monetizationAdOverlay.style.transition = 'opacity 0.3s ease';
-                    elements.monetizationAdOverlay.style.opacity = '1';
-                    log('Monetization ad overlay displayed (clean transition)');
-                    
-                    // Start the countdown after ensuring smooth transition
-                    startMonetizationCountdown(function() {
+            // Start the countdown right away
+            startMonetizationCountdown(function() {
                         // When countdown completes
                         completeMonetizationAd();
                         
@@ -549,8 +546,6 @@
                 } else {
                     log('ERROR: Monetization ad overlay element not found');
                 }
-            }, 100); // Brief pause for clean sequence
-        }, 100); // Very brief initial timer
     }
 
     // Start countdown for the monetization advertisement
