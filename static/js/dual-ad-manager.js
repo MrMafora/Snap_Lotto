@@ -807,18 +807,34 @@
                 .then(data => {
                     log('Ticket scan successful, results received');
                     
-                    // Store the results globally for later display
+                    // Store the results in both locations to ensure they're available
                     window.lastResultsData = data;
+                    state.uploadResults = data;
                     
-                    // Check if the first ad is complete
-                    if (state.publicServiceAdComplete) {
-                        // If first ad is already done, show second ad immediately
-                        log('First ad already complete, showing monetization ad now');
-                        showMonetizationAd();
-                    } else {
-                        // Otherwise wait for first ad to complete
-                        log('Waiting for public service announcement to complete before showing monetization ad');
+                    // Critical change: Show monetization ad IMMEDIATELY without waiting
+                    // even if the first ad is still running
+                    
+                    // If the first ad is still showing, hide it immediately
+                    if (!state.publicServiceAdComplete && state.publicServiceAdActive) {
+                        log('Force-completing first ad to immediately show monetization ad');
+                        
+                        // Force-complete first ad
+                        if (state.publicServiceCountdownTimer) {
+                            clearInterval(state.publicServiceCountdownTimer);
+                            state.publicServiceCountdownTimer = null;
+                        }
+                        state.publicServiceAdActive = false;
+                        state.publicServiceAdComplete = true;
+                        
+                        // Hide first ad overlay immediately
+                        if (elements.publicServiceAdOverlay) {
+                            elements.publicServiceAdOverlay.style.display = 'none';
+                        }
                     }
+                    
+                    // Show second ad immediately in all cases
+                    log('Showing monetization ad immediately upon receiving results');
+                    showMonetizationAd();
                 })
                 .catch(error => {
                     console.error('Error scanning ticket:', error);
