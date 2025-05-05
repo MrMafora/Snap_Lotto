@@ -153,7 +153,7 @@
     function handleViewResultsClick(event) {
         event.preventDefault();
         
-        // Check if the button is currently disabled or not enabled by state
+        // CRITICAL FIX: Prevent any click when button is disabled
         if (this.disabled || !state.viewResultsEnabled) {
             log('View Results button clicked while disabled or not enabled, ignoring');
             return false;
@@ -183,22 +183,61 @@
                 elements.resultsContainer.style.display = 'block';
                 log('Results container displayed');
                 
-                // ENHANCED: Check multiple possible locations for the results
-                // First try our internal state
-                const resultsData = state.uploadResults || window.lastResultsData || null;
+                // CRITICAL FIX: Try all possible data sources in order of reliability
+                // Include sessionStorage as fallback for better reliability
+                let resultsData = null;
                 
-                // Log which source we're using
+                // First try our internal state
                 if (state.uploadResults) {
+                    resultsData = state.uploadResults;
                     log('Using results from state.uploadResults');
-                } else if (window.lastResultsData) {
+                } 
+                // Second, try window variable
+                else if (window.lastResultsData) {
+                    resultsData = window.lastResultsData;
                     log('Using results from window.lastResultsData');
-                } else {
+                }
+                // Third, try session storage as last resort
+                else {
+                    try {
+                        const storedData = sessionStorage.getItem('lastTicketResults');
+                        if (storedData) {
+                            resultsData = JSON.parse(storedData);
+                            log('Using results from sessionStorage backup');
+                            
+                            // Restore to our main variables to ensure consistency for any future operations
+                            state.uploadResults = resultsData;
+                            window.lastResultsData = resultsData;
+                        }
+                    } catch (err) {
+                        log('Could not retrieve from sessionStorage: ' + err);
+                    }
+                }
+                
+                // If we still don't have results, check for alternative global variables
+                // that might have been set by other script components
+                if (!resultsData && window.ticketScanResults) {
+                    resultsData = window.ticketScanResults;
+                    log('Using results from window.ticketScanResults');
+                }
+                
+                if (!resultsData && window.currentTicketResults) {
+                    resultsData = window.currentTicketResults;
+                    log('Using results from window.currentTicketResults');
+                }
+                
+                // Final fallback for completely missing data
+                if (!resultsData) {
                     log('WARNING: No results data found in any location');
                 }
                 
                 // Display the results if available
                 if (resultsData) {
                     log('Displaying ticket scan results');
+                    
+                    // CRITICAL FIX: Force results container to be fully visible
+                    elements.resultsContainer.style.opacity = '1';
+                    elements.resultsContainer.style.visibility = 'visible';
                     
                     // Handle the results with the correct function name
                     if (window.displayResults && typeof window.displayResults === 'function') {
@@ -793,6 +832,10 @@
     function processTicketWithAds() {
         log('Processing ticket with ads');
         
+        // CRITICAL FIX: Reset state and storage to ensure clean start
+        state.uploadResults = null;
+        window.lastResultsData = null;
+        
         // Show first ad (Public Service Announcement) immediately
         showPublicServiceAd(() => {
             // IMPORTANT: This callback will run when PSA completes
@@ -873,12 +916,19 @@
                 .then(data => {
                     log('Ticket scan successful, results received');
                     
-                    // Store the results in both locations to ensure they're available
+                    // CRITICAL FIX: Store the results in BOTH locations consistently
+                    // This is essential for the "View Results" button to work properly
                     window.lastResultsData = data;
                     state.uploadResults = data;
                     
-                    // Note: We don't need to show the monetization ad here anymore
-                    // It's already being shown by the PSA completion callback
+                    // CRITICAL FIX: Also store in sessionStorage as another backup
+                    try {
+                        sessionStorage.setItem('lastTicketResults', JSON.stringify(data));
+                        log('Results also stored in sessionStorage as backup');
+                    } catch (err) {
+                        log('Could not store in sessionStorage: ' + err);
+                    }
+                    
                     log('Results received and stored for later display');
                 })
                 .catch(error => {
