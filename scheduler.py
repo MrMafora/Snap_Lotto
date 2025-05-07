@@ -131,18 +131,19 @@ def run_lottery_task(url, lottery_type):
             from flask import current_app
             from main import app
             
-            # Get all the required functions
-            import screenshot_manager as sm  # Import as module to avoid name conflicts
+            # Use simple screenshot manager instead of the complex one to avoid circular imports
+            # This also uses our new playwright wrapper to prevent the error
+            import simple_screenshot_manager as ssm
             from ocr_processor import process_screenshot
             from data_aggregator import aggregate_data
             from datetime import datetime
             
-            logger.info(f"Starting lottery task for {lottery_type}")
+            logger.info(f"Starting lottery task for {lottery_type} using improved safe screenshot capture")
             
             # Ensure we have an application context for all database operations
             with app.app_context():
-                # Step 1: Capture screenshot directly using the sm module
-                capture_result = sm.capture_screenshot(url, lottery_type)
+                # Step 1: Capture screenshot using our simple manager that avoids circular imports
+                capture_result = ssm.capture_screenshot(url)
                 
                 # Unpack the values - either we get (filepath, screenshot_data, zoom_filepath)
                 # or we get None if the capture failed
