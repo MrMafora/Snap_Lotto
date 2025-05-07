@@ -397,7 +397,7 @@
                                 <!-- Loading spinner shown until preview loads -->
                                 <div class="loading-spinner"></div>
                                 <!-- Using server-side rendering to bypass iframe restrictions -->
-                                <img data-src="{{ url_for('preview_website', screenshot_id=screenshot.id) }}" 
+                                <img data-src="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
                                      class="preview-image"
                                      alt="{{ screenshot.lottery_type }} live preview"
                                      style="display: none; max-width: 100%; height: auto;"
