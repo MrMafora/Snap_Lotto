@@ -179,13 +179,28 @@ def run_lottery_task(url, lottery_type):
                 
                 # Update last run time
                 # Import models here to avoid circular imports
-                from models import ScheduleConfig, db
+                from models import ScheduleConfig, Screenshot, db
                 
+                # Update ScheduleConfig record
                 config = ScheduleConfig.query.filter_by(url=url).first()
                 if config:
                     config.last_run = datetime.now()
-                    db.session.commit()
-                    logger.info(f"Updated last run time for {lottery_type}")
+                    logger.info(f"Updated ScheduleConfig record for {lottery_type}")
+                else:
+                    logger.warning(f"No ScheduleConfig record found for {lottery_type}")
+                
+                # Update Screenshot record
+                screenshot = Screenshot.query.filter_by(url=url).first()
+                if screenshot and filepath:
+                    screenshot.path = filepath
+                    screenshot.timestamp = datetime.now()
+                    logger.info(f"Updated Screenshot record for {lottery_type}")
+                else:
+                    logger.warning(f"No Screenshot record found for {lottery_type} or no filepath available")
+                
+                # Commit all updates
+                db.session.commit()
+                logger.info(f"Updated database records for {lottery_type}")
                 
                 # Step 4: Clean up old screenshots to save space
                 try:
@@ -355,7 +370,8 @@ def retake_all_screenshots(app=None, use_threading=True):
         int: Number of successfully captured screenshots
     """
     import threading
-    from models import ScheduleConfig
+    from datetime import datetime
+    from models import ScheduleConfig, Screenshot, db
     from flask import current_app
     from main import app
     
@@ -392,12 +408,33 @@ def retake_all_screenshots(app=None, use_threading=True):
                 
                 filepath, screenshot_data, _ = capture_result
                 
+                # Update Results dictionary
                 results[url] = {
                     'status': 'success',
                     'lottery_type': lottery_type,
                     'filepath': filepath,
                     'zoom_filepath': None
                 }
+                
+                # Update Screenshot record
+                screenshot = Screenshot.query.filter_by(url=url).first()
+                if screenshot:
+                    screenshot.path = filepath
+                    screenshot.timestamp = datetime.now()
+                    logger.info(f"Updated Screenshot record for {lottery_type}")
+                else:
+                    logger.warning(f"No Screenshot record found for {lottery_type}")
+                
+                # Update ScheduleConfig record
+                config = ScheduleConfig.query.filter_by(url=url).first()
+                if config:
+                    config.last_run = datetime.now()
+                    logger.info(f"Updated ScheduleConfig record for {lottery_type}")
+                else:
+                    logger.warning(f"No ScheduleConfig record found for {lottery_type}")
+                    
+                # Commit all updates
+                db.session.commit()
                 
                 logger.info(f"Successfully retook screenshot for {lottery_type}")
         except Exception as e:
