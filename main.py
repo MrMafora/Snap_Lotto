@@ -1685,6 +1685,9 @@ def draw_details(lottery_type, draw_number):
 @app.route('/screenshot/<int:screenshot_id>')
 def view_screenshot(screenshot_id):
     """View a screenshot image"""
+    import tempfile
+    import subprocess
+    
     screenshot = Screenshot.query.get_or_404(screenshot_id)
     
     # Normalize path and check if file exists
@@ -1694,7 +1697,69 @@ def view_screenshot(screenshot_id):
         flash('Screenshot file not found', 'danger')
         return redirect(url_for('admin'))
     
-    # Extract directory and filename from path
+    # Extract file extension
+    _, ext = os.path.splitext(screenshot_path)
+    
+    # If it's a TXT file (HTML content), convert it to PNG on-the-fly
+    if ext.lower() == '.txt':
+        app.logger.info(f"Converting HTML content to PNG image for {screenshot_path}")
+        
+        try:
+            # Create a temporary PNG file
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                temp_png_path = temp_file.name
+                
+            # Read the HTML content
+            with open(screenshot_path, 'r') as f:
+                html_content = f.read()
+                
+            # Save to a temporary HTML file
+            with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp_html:
+                temp_html_path = temp_html.name
+                temp_html.write(html_content.encode('utf-8'))
+                
+            # Use wkhtmltoimage to convert HTML to PNG
+            cmd = [
+                'wkhtmltoimage',
+                '--quality', '100',
+                '--width', '1200',
+                '--height', '1500',
+                '--javascript-delay', '2000',  # Wait for JavaScript execution
+                '--no-stop-slow-scripts',  # Don't stop slow running JavaScript
+                temp_html_path,
+                temp_png_path
+            ]
+            
+            # Execute the command
+            app.logger.info(f"Running command: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            if os.path.exists(temp_png_path) and os.path.getsize(temp_png_path) > 1000:
+                # Serve the temporary PNG file
+                response = send_file(temp_png_path, mimetype='image/png')
+                
+                # Set up a cleanup function to delete the temporary files
+                @after_this_request
+                def cleanup(response):
+                    try:
+                        if os.path.exists(temp_png_path):
+                            os.unlink(temp_png_path)
+                        if os.path.exists(temp_html_path):
+                            os.unlink(temp_html_path)
+                    except Exception as e:
+                        app.logger.error(f"Error cleaning up temp files: {str(e)}")
+                    return response
+                
+                return response
+            else:
+                app.logger.error(f"Failed to convert HTML to PNG: {result.stderr}")
+                # Fallback: serve the original HTML as text
+                
+        except Exception as e:
+            app.logger.error(f"Error converting HTML to PNG: {str(e)}")
+            # Fallback: serve the original HTML as text
+    
+    # For regular image files or fallback from failed conversion
     directory = os.path.dirname(screenshot_path)
     filename = os.path.basename(screenshot_path)
     
@@ -1703,6 +1768,9 @@ def view_screenshot(screenshot_id):
 @app.route('/screenshot-zoomed/<int:screenshot_id>')
 def view_zoomed_screenshot(screenshot_id):
     """View a zoomed screenshot image"""
+    import tempfile
+    import subprocess
+    
     screenshot = Screenshot.query.get_or_404(screenshot_id)
     
     if not screenshot.zoomed_path:
@@ -1716,7 +1784,69 @@ def view_zoomed_screenshot(screenshot_id):
         flash('Zoomed screenshot file not found', 'danger')
         return redirect(url_for('admin'))
     
-    # Extract directory and filename from path
+    # Extract file extension
+    _, ext = os.path.splitext(zoomed_path)
+    
+    # If it's a TXT file (HTML content), convert it to PNG on-the-fly
+    if ext.lower() == '.txt':
+        app.logger.info(f"Converting HTML content to PNG image for zoomed {zoomed_path}")
+        
+        try:
+            # Create a temporary PNG file
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                temp_png_path = temp_file.name
+                
+            # Read the HTML content
+            with open(zoomed_path, 'r') as f:
+                html_content = f.read()
+                
+            # Save to a temporary HTML file
+            with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp_html:
+                temp_html_path = temp_html.name
+                temp_html.write(html_content.encode('utf-8'))
+                
+            # Use wkhtmltoimage to convert HTML to PNG
+            cmd = [
+                'wkhtmltoimage',
+                '--quality', '100',
+                '--width', '1200',
+                '--height', '1500',
+                '--javascript-delay', '2000',  # Wait for JavaScript execution
+                '--no-stop-slow-scripts',  # Don't stop slow running JavaScript
+                temp_html_path,
+                temp_png_path
+            ]
+            
+            # Execute the command
+            app.logger.info(f"Running command: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            if os.path.exists(temp_png_path) and os.path.getsize(temp_png_path) > 1000:
+                # Serve the temporary PNG file
+                response = send_file(temp_png_path, mimetype='image/png')
+                
+                # Set up a cleanup function to delete the temporary files
+                @after_this_request
+                def cleanup(response):
+                    try:
+                        if os.path.exists(temp_png_path):
+                            os.unlink(temp_png_path)
+                        if os.path.exists(temp_html_path):
+                            os.unlink(temp_html_path)
+                    except Exception as e:
+                        app.logger.error(f"Error cleaning up temp files: {str(e)}")
+                    return response
+                
+                return response
+            else:
+                app.logger.error(f"Failed to convert HTML to PNG: {result.stderr}")
+                # Fallback: serve the original HTML as text
+                
+        except Exception as e:
+            app.logger.error(f"Error converting HTML to PNG: {str(e)}")
+            # Fallback: serve the original HTML as text
+    
+    # For regular image files or fallback from failed conversion
     directory = os.path.dirname(zoomed_path)
     filename = os.path.basename(zoomed_path)
     
