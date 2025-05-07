@@ -2022,7 +2022,12 @@ def export_combined_zip():
                         # Get the file extension
                         _, ext = os.path.splitext(screenshot.path)
                         
-                        # Skip files that aren't proper image files (like .txt)
+                        # Skip HTML files saved with .txt extension - these aren't actual images
+                        if ext.lower() == '.txt':
+                            app.logger.warning(f"Skipping HTML content file: {screenshot.path}")
+                            continue
+                        
+                        # Ensure we only include actual image files
                         if ext.lower() not in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
                             app.logger.warning(f"Skipping non-image file: {screenshot.path}")
                             continue

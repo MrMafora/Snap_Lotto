@@ -247,7 +247,7 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
             # Log the attempt as successful but note we're using a text file
             diag.log_sync_attempt(lottery_name, url, True, "Saved HTML content as text file")
             
-            # Return the filepath and data - using the txt filepath instead
+            # Return the txt_filepath as the actual filepath that should be used in the database
             return txt_filepath, html_content, None
             
     except urllib.request.HTTPError as e:
