@@ -32,7 +32,6 @@ screenshot_semaphore = threading.Semaphore(MAX_CONCURRENT_THREADS)
 
 # Queue system for processing screenshots
 # This ensures all screenshots get processed even if we hit thread limits
-import queue
 screenshot_queue = queue.Queue()
 
 # Screenshot capture settings
@@ -101,187 +100,188 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
             ]
             user_agent = random.choice(user_agents)
-                
-                logger.debug(f"[{lottery_name}] Launching playwright with User-Agent: {user_agent}")
-                
-                # Try to find chromium in common locations
-                chromium_paths = [
-                    "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium",
-                    "/usr/bin/chromium-browser",
-                    "/usr/bin/chromium",
-                    "/nix/store/chromium/bin/chromium"
-                ]
-                
-                chromium_path = None
-                for path in chromium_paths:
-                    if os.path.exists(path):
-                        logger.debug(f"Using Chromium from: {path}")
-                        chromium_path = path
-                        break
-                
-                # Use sync playwright to capture screenshot
-                with sync_playwright() as p:
-                    browser_type = p.chromium
-                    browser = browser_type.launch(
-                        headless=True,
-                        executable_path=chromium_path if chromium_path else None
-                    )
-                    
-                    # Create browser context with custom viewport and user agent
-                    context = browser.new_context(
-                        viewport={'width': 1280, 'height': 1600},
-                        user_agent=user_agent
-                    )
-                    
-                    # Create a new page and navigate to the URL
-                    page = context.new_page()
-                    page.goto(url, timeout=NAVIGATION_TIMEOUT * 1000)  # Playwright uses ms
-                    
-                    # Wait for page content to stabilize
-                    page.wait_for_load_state('networkidle')
-                    
-                    # Take screenshot and save it to file
-                    screenshot_data = page.screenshot(path=filepath, full_page=True)
-                    
-                    # Close resources
-                    page.close()
-                    context.close()
-                    browser.close()
-                    
-                    logger.info(f"[{lottery_name}] Screenshot successfully saved to {filepath}")
-                    
-                    # Log the successful attempt
-                    diag.log_sync_attempt(lottery_name, url, True)
-                    
-                    # Return the result
-                    return filepath, screenshot_data, None
-                
-            except ImportError:
-                logger.warning(f"[{lottery_name}] Playwright not available, falling back to HTML capture")
-                # Fallback to HTML method below
-
-            # Fallback: Use urllib to get the HTML content and generate an image with HTML
-            # Choose a user agent for the fallback method
-            user_agent = random.choice([
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
-            ])
             
-            headers = {
-                'User-Agent': user_agent,
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'DNT': '1',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Cache-Control': 'max-age=0'
-            }
+            logger.debug(f"[{lottery_name}] Launching playwright with User-Agent: {user_agent}")
             
-            logger.debug(f"[{lottery_name}] Sending request with headers: {headers['User-Agent']}")
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=NAVIGATION_TIMEOUT) as response:
-                html_content = response.read()
+            # Try to find chromium in common locations
+            chromium_paths = [
+                "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium",
+                "/usr/bin/chromium-browser",
+                "/usr/bin/chromium",
+                "/nix/store/chromium/bin/chromium"
+            ]
+            
+            chromium_path = None
+            for path in chromium_paths:
+                if os.path.exists(path):
+                    logger.debug(f"Using Chromium from: {path}")
+                    chromium_path = path
+                    break
+            
+            # Use sync playwright to capture screenshot
+            with sync_playwright() as p:
+                browser_type = p.chromium
+                browser = browser_type.launch(
+                    headless=True,
+                    executable_path=chromium_path if chromium_path else None
+                )
                 
-                # Try using a different method to generate an image from HTML (Pillow)
+                # Create browser context with custom viewport and user agent
+                context = browser.new_context(
+                    viewport={'width': 1280, 'height': 1600},
+                    user_agent=user_agent
+                )
+                
+                # Create a new page and navigate to the URL
+                page = context.new_page()
+                page.goto(url, timeout=NAVIGATION_TIMEOUT * 1000)  # Playwright uses ms
+                
+                # Wait for page content to stabilize
+                page.wait_for_load_state('networkidle')
+                
+                # Take screenshot and save it to file
+                screenshot_data = page.screenshot(path=filepath, full_page=True)
+                
+                # Close resources
+                page.close()
+                context.close()
+                browser.close()
+                
+                logger.info(f"[{lottery_name}] Screenshot successfully saved to {filepath}")
+                
+                # Log the successful attempt
+                diag.log_sync_attempt(lottery_name, url, True)
+                
+                # Return the result
+                return filepath, screenshot_data, None
+                
+        except ImportError:
+            logger.warning(f"[{lottery_name}] Playwright not available, falling back to HTML capture")
+            # Fallback to HTML method below
+        
+        # Fallback: Use urllib to get the HTML content and generate an image with HTML
+        # Choose a user agent for the fallback method
+        user_agent = random.choice([
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
+        ])
+        
+        headers = {
+            'User-Agent': user_agent,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'max-age=0'
+        }
+        
+        logger.debug(f"[{lottery_name}] Sending request with headers: {headers['User-Agent']}")
+        req = urllib.request.Request(url, headers=headers)
+        
+        with urllib.request.urlopen(req, timeout=NAVIGATION_TIMEOUT) as response:
+            html_content = response.read()
+            
+            # Try using a different method to generate an image from HTML (Pillow)
+            try:
+                from PIL import Image, ImageDraw, ImageFont
+                import tempfile
+                import hashlib
+                
+                # Create a simplistic "screenshot" image with some basic info
+                # This is a fallback method when we can't get a real screenshot
+                img_width = 1200
+                img_height = 800
+                
+                # Create a simple image with text info about the lottery
+                img = Image.new('RGB', (img_width, img_height), color=(240, 240, 240))
+                draw = ImageDraw.Draw(img)
+                
+                # Use default font
                 try:
-                    from PIL import Image, ImageDraw, ImageFont
-                    import tempfile
-                    import hashlib
-                    
-                    # Create a simplistic "screenshot" image with some basic info
-                    # This is a fallback method when we can't get a real screenshot
-                    img_width = 1200
-                    img_height = 800
-                    
-                    # Create a simple image with text info about the lottery
-                    img = Image.new('RGB', (img_width, img_height), color=(240, 240, 240))
-                    draw = ImageDraw.Draw(img)
-                    
-                    # Use default font
-                    try:
-                        font = ImageFont.truetype("arial.ttf", 16)
-                    except IOError:
-                        font = ImageFont.load_default()
-                    
-                    # Draw header
-                    draw.rectangle(((0, 0), (img_width, 60)), fill=(0, 102, 204))
-                    draw.text((20, 20), f"Lottery Data: {lottery_name}", 
-                              fill=(255, 255, 255), font=font)
-                    
-                    # Draw URL and timestamp
-                    draw.text((20, 80), f"Source URL: {url}", fill=(0, 0, 0), font=font)
-                    draw.text((20, 110), f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 
-                              fill=(0, 0, 0), font=font)
-                    
-                    # Generate a hash of the HTML content
-                    content_hash = hashlib.md5(html_content).hexdigest()
-                    draw.text((20, 140), f"Content Hash: {content_hash}", fill=(0, 0, 0), font=font)
-                    
-                    # Draw border
-                    draw.rectangle(((0, 0), (img_width-1, img_height-1)), outline=(200, 200, 200))
-                    
-                    # Save image
-                    img.save(filepath)
-                    
-                    with open(filepath, 'rb') as f:
-                        screenshot_data = f.read()
-                    
-                    logger.info(f"[{lottery_name}] Created synthetic image with lottery data at {filepath}")
-                    
-                    # Log the successful attempt but note this is a generated image
-                    diag.log_sync_attempt(lottery_name, url, True, "Created synthetic image from HTML data")
-                    
-                    return filepath, screenshot_data, None
-                    
-                except Exception as e:
-                    logger.warning(f"[{lottery_name}] Failed to generate image with Pillow: {str(e)}")
+                    font = ImageFont.truetype("arial.ttf", 16)
+                except IOError:
+                    font = ImageFont.load_default()
                 
-                # Last resort: Save HTML with .png extension and log a warning
-                with open(filepath, 'wb') as f:
-                    f.write(html_content)
+                # Draw header
+                draw.rectangle(((0, 0), (img_width, 60)), fill=(0, 102, 204))
+                draw.text((20, 20), f"Lottery Data: {lottery_name}", 
+                          fill=(255, 255, 255), font=font)
                 
-                logger.warning(f"[{lottery_name}] Saved HTML content with .png extension to {filepath} (not a real image)")
+                # Draw URL and timestamp
+                draw.text((20, 80), f"Source URL: {url}", fill=(0, 0, 0), font=font)
+                draw.text((20, 110), f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 
+                          fill=(0, 0, 0), font=font)
                 
-                # Log the attempt as successful but note the issue
-                diag.log_sync_attempt(lottery_name, url, True, "Saved HTML content instead of real image")
+                # Generate a hash of the HTML content
+                content_hash = hashlib.md5(html_content).hexdigest()
+                draw.text((20, 140), f"Content Hash: {content_hash}", fill=(0, 0, 0), font=font)
                 
-                # Return the filepath and data
-                return filepath, html_content, None
+                # Draw border
+                draw.rectangle(((0, 0), (img_width-1, img_height-1)), outline=(200, 200, 200))
                 
-        except urllib.request.HTTPError as e:
-            error_msg = f"HTTP Error {e.code}: {e.reason}"
-            logger.error(f"[{lottery_name}] {error_msg} for {url}")
+                # Save image
+                img.save(filepath)
+                
+                with open(filepath, 'rb') as f:
+                    screenshot_data = f.read()
+                
+                logger.info(f"[{lottery_name}] Created synthetic image with lottery data at {filepath}")
+                
+                # Log the successful attempt but note this is a generated image
+                diag.log_sync_attempt(lottery_name, url, True, "Created synthetic image from HTML data")
+                
+                return filepath, screenshot_data, None
+                
+            except Exception as e:
+                logger.warning(f"[{lottery_name}] Failed to generate image with Pillow: {str(e)}")
             
-            # Retry on certain HTTP errors
-            if retry_count < MAX_RETRIES - 1:
-                # Wait before retry with exponential backoff
-                wait_time = (2 ** retry_count) * 5 + random.uniform(1, 3)  # Exponential backoff with jitter
-                logger.info(f"[{lottery_name}] Waiting {wait_time:.2f} seconds before retry...")
-                time.sleep(wait_time)
-                return capture_screenshot(url, retry_count + 1, lottery_type)
+            # Last resort: Save HTML with .png extension and log a warning
+            with open(filepath, 'wb') as f:
+                f.write(html_content)
             
-            diag.log_sync_attempt(lottery_name, url, False, error_msg)
-            return None, None, None
+            logger.warning(f"[{lottery_name}] Saved HTML content with .png extension to {filepath} (not a real image)")
             
-        except Exception as e:
-            # Handle any URL errors generically
-            if hasattr(e, 'reason'):
-                error_msg = f"URL Error: {str(e.reason)}"
-            else:
-                error_msg = f"Error during URL fetch: {str(e)}"
+            # Log the attempt as successful but note the issue
+            diag.log_sync_attempt(lottery_name, url, True, "Saved HTML content instead of real image")
             
-            logger.error(f"[{lottery_name}] {error_msg} for {url}")
+            # Return the filepath and data
+            return filepath, html_content, None
             
-            # Retry on errors
-            if retry_count < MAX_RETRIES - 1:
-                wait_time = (2 ** retry_count) * 5 + random.uniform(1, 3)
-                logger.info(f"[{lottery_name}] Waiting {wait_time:.2f} seconds before retry...")
-                time.sleep(wait_time)
-                return capture_screenshot(url, retry_count + 1, lottery_type)
-            
-            diag.log_sync_attempt(lottery_name, url, False, error_msg)
-            return None, None, None
+    except urllib.request.HTTPError as e:
+        error_msg = f"HTTP Error {e.code}: {e.reason}"
+        logger.error(f"[{lottery_name}] {error_msg} for {url}")
+        
+        # Retry on certain HTTP errors
+        if retry_count < MAX_RETRIES - 1:
+            # Wait before retry with exponential backoff
+            wait_time = (2 ** retry_count) * 5 + random.uniform(1, 3)  # Exponential backoff with jitter
+            logger.info(f"[{lottery_name}] Waiting {wait_time:.2f} seconds before retry...")
+            time.sleep(wait_time)
+            return capture_screenshot(url, retry_count + 1, lottery_type)
+        
+        diag.log_sync_attempt(lottery_name, url, False, error_msg)
+        return None, None, None
+        
+    except Exception as e:
+        # Handle any URL errors generically
+        if hasattr(e, 'reason'):
+            error_msg = f"URL Error: {str(e.reason)}"
+        else:
+            error_msg = f"Error during URL fetch: {str(e)}"
+        
+        logger.error(f"[{lottery_name}] {error_msg} for {url}")
+        
+        # Retry on errors
+        if retry_count < MAX_RETRIES - 1:
+            wait_time = (2 ** retry_count) * 5 + random.uniform(1, 3)
+            logger.info(f"[{lottery_name}] Waiting {wait_time:.2f} seconds before retry...")
+            time.sleep(wait_time)
+            return capture_screenshot(url, retry_count + 1, lottery_type)
+        
+        diag.log_sync_attempt(lottery_name, url, False, error_msg)
+        return None, None, None
 
 def process_screenshot_task(screenshot):
     """
@@ -344,284 +344,141 @@ def process_screenshot_task(screenshot):
             logger.warning(f"Failed to capture data for {lottery_type}: {url}")
             diag.log_sync_attempt(lottery_type, url, False, "Capture returned no filepath")
             return (False, lottery_type, url)
-            
+    
     except Exception as e:
-        error_msg = f"Error processing data: {str(e)}"
+        # Handle any unexpected errors
+        error_msg = f"Error processing screenshot task: {str(e)}"
+        logger.error(error_msg)
+        logger.error(traceback.format_exc())
+        
+        # Try to get lottery_type from screenshot if it exists
         try:
-            lottery_type = screenshot.lottery_type
-            url = screenshot.url
+            lottery_type = screenshot.lottery_type if screenshot else "Unknown"
+            url = screenshot.url if screenshot else "Unknown URL"
         except:
             lottery_type = "Unknown"
-            url = "Unknown"
+            url = "Unknown URL"
             
-        logger.error(f"Error processing data for {lottery_type}: {str(e)}")
-        logger.error(traceback.format_exc())
         diag.log_sync_attempt(lottery_type, url, False, error_msg)
-        
-        # Try to rollback any failed transaction
-        try:
-            db.session.rollback()
-        except:
-            pass
-            
         return (False, lottery_type, url)
 
-@diag.track_sync
 def capture_all_screenshots():
     """
     Capture screenshots for all lottery URLs in the database with enhanced diagnostics.
     Uses a queue system to ensure all screenshots are processed even with thread limits.
     Returns the number of successful captures or a results dictionary.
     """
-    success_count = 0
-    failed_urls = []
-    results = {}
+    results = {
+        'total': 0,
+        'success': 0,
+        'failure': 0,
+        'lottery_types': {}
+    }
     
     try:
-        # Diagnose any existing inconsistencies before starting new captures
-        diag.diagnose_sync_issues()
-        
-        # Get all screenshot records from database
+        # Get all active screenshot configs
         screenshots = Screenshot.query.all()
-        logger.info(f"Found {len(screenshots)} screenshot records to capture")
         
-        # Shuffle the order of screenshots to prevent predictable patterns
-        # This helps avoid being blocked by anti-scraping measures
-        import random
-        random_screenshots = list(screenshots)
-        random.shuffle(random_screenshots)
-        
-        # Track starting time for overall process
-        start_time = datetime.now()
-        
-        # Clear the queue and add all screenshots to it
-        while not screenshot_queue.empty():
-            try:
-                screenshot_queue.get_nowait()
-            except:
-                break
-                
-        # Add all screenshots to the queue
-        for screenshot in random_screenshots:
-            screenshot_queue.put(screenshot)
-            
-        logger.info(f"Added {len(random_screenshots)} screenshots to processing queue")
-        
-        # Create worker threads to process the queue
-        worker_threads = []
-        max_workers = MAX_CONCURRENT_THREADS
-        
-        def worker():
-            """Worker thread to process screenshots from the queue"""
-            nonlocal success_count, failed_urls
-            
-            while True:
-                try:
-                    # Get the next screenshot from the queue with a timeout
-                    try:
-                        screenshot = screenshot_queue.get(timeout=5)
-                    except queue.Empty:
-                        # Queue is empty, exit this worker
-                        break
-                        
-                    # Add a small random delay to avoid rate limiting
-                    time.sleep(random.uniform(0.5, 2.0))
-                    
-                    # Process the screenshot
-                    success, lottery_type, url = process_screenshot_task(screenshot)
-                    
-                    # Track result
-                    if success:
-                        success_count += 1
-                    else:
-                        failed_urls.append((lottery_type, url))
-                        
-                    # Mark task as done
-                    screenshot_queue.task_done()
-                    
-                except Exception as e:
-                    logger.error(f"Worker thread error: {str(e)}")
-                    traceback.print_exc()
-                    
-                    # Ensure we mark the task as done even on error
-                    try:
-                        screenshot_queue.task_done()
-                    except:
-                        pass
-        
-        # Start worker threads
-        logger.info(f"Starting {max_workers} worker threads")
-        for i in range(max_workers):
-            thread = threading.Thread(target=worker)
-            thread.daemon = True
-            thread.start()
-            worker_threads.append(thread)
-            
-        # Wait for all screenshots to be processed or timeout
-        # Use a reasonable timeout to ensure we don't wait forever
-        timeout = max(300, len(screenshots) * 5)  # 5 seconds per screenshot or minimum 5 minutes
-        logger.info(f"Waiting up to {timeout} seconds for all screenshots to be processed")
-        
-        # Join the queue with timeout
-        try:
-            screenshot_queue.join()
-            logger.info("All tasks completed successfully")
-        except:
-            logger.warning("Timed out waiting for screenshots to process")
-        
-        # Wait for worker threads to exit
-        for thread in worker_threads:
-            thread.join(timeout=5)
-            
-        # Calculate total duration
-        duration = (datetime.now() - start_time).total_seconds()
-        
-        # Log summary of results
-        logger.info(f"Data capture complete: {success_count} successful, {len(failed_urls)} failed in {duration:.2f} seconds")
-        for lottery_type, url in failed_urls:
-            logger.warning(f"Failed: {lottery_type} - {url}")
-        
-        # Check for any remaining inconsistencies after captures
-        diag.diagnose_sync_issues()
-        
-        # Build results dictionary for modern return format
-        for screenshot in screenshots:
-            lottery_type = screenshot.lottery_type
-            url = screenshot.url
-            if (lottery_type, url) in failed_urls:
-                results[lottery_type] = {
-                    'status': 'error', 
-                    'message': f"Failed to capture {lottery_type}"
-                }
-            else:
-                results[lottery_type] = {
-                    'status': 'success',
-                    'message': f"Successfully captured {lottery_type}"
-                }
-        
-        # Return the results dictionary for modern format
-        if results:
+        if not screenshots:
+            logger.warning("No screenshot records found in database")
             return results
         
-        # Or legacy success count for backward compatibility
-        return success_count
+        results['total'] = len(screenshots)
+        logger.info(f"Found {len(screenshots)} screenshot URLs to process")
         
-    except Exception as e:
-        logger.error(f"Error in capture_all_screenshots: {str(e)}")
-        logger.error(traceback.format_exc())
+        # Create a queue of screenshots to process
+        for screenshot in screenshots:
+            screenshot_queue.put(screenshot)
         
-        # Try to rollback any failed transaction
-        try:
-            db.session.rollback()
-        except:
-            pass
+        # Create worker threads
+        threads = []
+        for i in range(min(MAX_CONCURRENT_THREADS, len(screenshots))):
+            thread = threading.Thread(target=worker)
+            thread.daemon = True
+            threads.append(thread)
+            thread.start()
+        
+        # Wait for all threads to complete
+        # Add a timeout to prevent hanging indefinitely
+        max_wait_time = 300  # 5 minutes max wait time
+        start_time = time.time()
+        
+        while not screenshot_queue.empty() and time.time() - start_time < max_wait_time:
+            # Calculate approximate percentage complete
+            approx_complete = results['success'] + results['failure']
+            if results['total'] > 0:
+                percent_complete = (approx_complete / results['total']) * 100
+                logger.debug(f"Progress: {percent_complete:.1f}% complete ({approx_complete}/{results['total']})")
+            time.sleep(5)  # Check every 5 seconds
+        
+        # Check if we timed out
+        if not screenshot_queue.empty():
+            remaining = screenshot_queue.qsize()
+            logger.warning(f"Timed out waiting for screenshots to complete. {remaining} screenshots still in queue.")
+            results['timeout'] = True
+            results['remaining'] = remaining
+        
+        # Join threads with timeout
+        for thread in threads:
+            thread.join(timeout=1.0)
             
-        return 0
+        return results
+    
+    except Exception as e:
+        logger.error(f"Error during capture_all_screenshots: {str(e)}")
+        logger.error(traceback.format_exc())
+        results['error'] = str(e)
+        return results
+    
+    def worker():
+        """Worker thread to process screenshots from the queue"""
+        while True:
+            try:
+                # Get the next screenshot from the queue with a timeout
+                try:
+                    screenshot = screenshot_queue.get(timeout=1)
+                except queue.Empty:
+                    # No more items to process
+                    break
+                
+                # Process the screenshot
+                success, lottery_type, url = process_screenshot_task(screenshot)
+                
+                # Update results
+                if lottery_type not in results['lottery_types']:
+                    results['lottery_types'][lottery_type] = {'success': 0, 'failure': 0}
+                
+                if success:
+                    results['success'] += 1
+                    results['lottery_types'][lottery_type]['success'] += 1
+                else:
+                    results['failure'] += 1
+                    results['lottery_types'][lottery_type]['failure'] += 1
+                
+                # Mark task as done
+                screenshot_queue.task_done()
+                
+            except Exception as e:
+                logger.error(f"Error in worker thread: {str(e)}")
+                logger.error(traceback.format_exc())
+                continue
 
-@diag.track_sync
 def sync_single_screenshot(screenshot_id):
     """
     Sync a single screenshot by ID with enhanced diagnostics.
     Returns True if successful, False otherwise.
     """
     try:
-        # Find the screenshot by ID
         screenshot = Screenshot.query.get(screenshot_id)
         if not screenshot:
-            logger.error(f"Screenshot with ID {screenshot_id} not found")
-            diag.log_sync_attempt("Unknown", f"Screenshot ID: {screenshot_id}", False, "Screenshot ID not found")
+            logger.error(f"No screenshot found with ID {screenshot_id}")
             return False
-            
-        lottery_type = screenshot.lottery_type
-        url = screenshot.url
-            
-        logger.info(f"Syncing data for {lottery_type} from {url}")
         
-        with screenshot_semaphore:
-            # Pass lottery_type for better error tracking
-            filepath, _, _ = capture_screenshot(url, lottery_type=lottery_type)
-            
-        if filepath:
-            # Use the same timestamp for both updates
-            now = datetime.now()
-            
-            # Update the Screenshot record
-            screenshot.path = filepath
-            screenshot.timestamp = now
-            logger.debug(f"Updated Screenshot timestamp for {lottery_type} to {now}")
-            
-            # Also update the corresponding ScheduleConfig record if it exists
-            config = ScheduleConfig.query.filter_by(url=url).first()
-            if config:
-                # Use the exact same timestamp for consistency
-                config.last_run = now
-                logger.debug(f"Updated ScheduleConfig timestamp for {lottery_type} to {now}")
-            else:
-                logger.warning(f"No ScheduleConfig record found for {lottery_type}")
-                
-                # Create a new ScheduleConfig record if it doesn't exist
-                try:
-                    new_config = ScheduleConfig(
-                        url=url,
-                        lottery_type=lottery_type,
-                        last_run=now,
-                        active=True
-                    )
-                    db.session.add(new_config)
-                    logger.info(f"Created new ScheduleConfig record for {lottery_type}")
-                except Exception as config_err:
-                    logger.error(f"Failed to create ScheduleConfig for {lottery_type}: {str(config_err)}")
-            
-            # Commit all updates in a single transaction
-            try:
-                db.session.commit()
-                
-                # Run diagnostics to verify timestamp consistency
-                consistency_check = all([
-                    screenshot.timestamp == now,
-                    (not config or config.last_run == now)
-                ])
-                
-                if consistency_check:
-                    logger.info(f"Successfully synced data for {lottery_type} with consistent timestamps")
-                else:
-                    logger.warning(f"Data synced for {lottery_type} but timestamps may be inconsistent")
-                
-                diag.log_sync_attempt(lottery_type, url, True)
-                return True
-            except Exception as commit_err:
-                db.session.rollback()
-                error_msg = f"Database commit error: {str(commit_err)}"
-                logger.error(f"{error_msg} for {lottery_type}")
-                diag.log_sync_attempt(lottery_type, url, False, error_msg)
-                return False
-        else:
-            error_msg = "Capture returned no filepath"
-            logger.warning(f"Failed to sync data for {lottery_type}: {error_msg}")
-            diag.log_sync_attempt(lottery_type, url, False, error_msg)
-            return False
-            
+        # Process the screenshot
+        success, lottery_type, url = process_screenshot_task(screenshot)
+        return success
+        
     except Exception as e:
-        error_msg = f"Error syncing data: {str(e)}"
-        logger.error(f"{error_msg} for screenshot ID {screenshot_id}")
+        logger.error(f"Error syncing screenshot ID {screenshot_id}: {str(e)}")
         logger.error(traceback.format_exc())
-        
-        # Try to extract lottery type and URL for better logging
-        lottery_type = "Unknown"
-        url = f"Screenshot ID: {screenshot_id}"
-        try:
-            if 'screenshot' in locals() and screenshot:
-                lottery_type = screenshot.lottery_type
-                url = screenshot.url
-        except:
-            pass
-        
-        diag.log_sync_attempt(lottery_type, url, False, error_msg)
-        
-        # Try to rollback any failed transaction
-        try:
-            db.session.rollback()
-        except:
-            pass
-            
         return False
