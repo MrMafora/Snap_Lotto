@@ -172,14 +172,99 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
         diag.log_sync_attempt(lottery_name, url, False, error_msg)
         return None, None, None
 
+def process_screenshot_task(screenshot):
+    """
+    Process a single screenshot in the queue
+    Returns a tuple of (success, lottery_type, url)
+    """
+    try:
+        lottery_type = screenshot.lottery_type
+        url = screenshot.url
+        
+        logger.info(f"Processing {lottery_type} from {url}")
+        
+        # Pass the lottery_type to capture_screenshot for better error reporting
+        with screenshot_semaphore:
+            filepath, _, _ = capture_screenshot(url, lottery_type=lottery_type)
+            
+        if filepath:
+            # Get the current time for both updates to ensure they match exactly
+            now = datetime.now()
+            
+            # Update Screenshot record
+            screenshot.path = filepath
+            screenshot.timestamp = now
+            logger.debug(f"Updated Screenshot timestamp for {lottery_type} to {now}")
+            
+            # Also update the corresponding ScheduleConfig record if it exists
+            config = ScheduleConfig.query.filter_by(url=url).first()
+            if config:
+                # Use the exact same timestamp for consistency
+                config.last_run = now
+                logger.debug(f"Updated ScheduleConfig timestamp for {lottery_type} to {now}")
+            else:
+                logger.warning(f"No ScheduleConfig record found for {lottery_type}")
+                
+                # Create a ScheduleConfig record if it doesn't exist
+                try:
+                    new_config = ScheduleConfig(
+                        url=url,
+                        lottery_type=lottery_type,
+                        last_run=now,
+                        active=True
+                    )
+                    db.session.add(new_config)
+                    logger.info(f"Created new ScheduleConfig record for {lottery_type}")
+                except Exception as e:
+                    logger.error(f"Failed to create ScheduleConfig for {lottery_type}: {str(e)}")
+            
+            # Commit all updates
+            try:
+                db.session.commit()
+                logger.info(f"Successfully captured and updated data for {lottery_type}")
+                return (True, lottery_type, url)
+            except Exception as e:
+                db.session.rollback()
+                error_msg = f"Database commit error: {str(e)}"
+                logger.error(f"{error_msg} for {lottery_type}")
+                diag.log_sync_attempt(lottery_type, url, False, error_msg)
+                return (False, lottery_type, url)
+        else:
+            logger.warning(f"Failed to capture data for {lottery_type}: {url}")
+            diag.log_sync_attempt(lottery_type, url, False, "Capture returned no filepath")
+            return (False, lottery_type, url)
+            
+    except Exception as e:
+        error_msg = f"Error processing data: {str(e)}"
+        try:
+            lottery_type = screenshot.lottery_type
+            url = screenshot.url
+        except:
+            lottery_type = "Unknown"
+            url = "Unknown"
+            
+        logger.error(f"Error processing data for {lottery_type}: {str(e)}")
+        logger.error(traceback.format_exc())
+        diag.log_sync_attempt(lottery_type, url, False, error_msg)
+        
+        # Try to rollback any failed transaction
+        try:
+            db.session.rollback()
+        except:
+            pass
+            
+        return (False, lottery_type, url)
+
 @diag.track_sync
 def capture_all_screenshots():
     """
     Capture screenshots for all lottery URLs in the database with enhanced diagnostics.
-    Returns the number of successful captures.
+    Uses a queue system to ensure all screenshots are processed even with thread limits.
+    Returns the number of successful captures or a results dictionary.
     """
     success_count = 0
     failed_urls = []
+    results = {}
     
     try:
         # Diagnose any existing inconsistencies before starting new captures
@@ -191,87 +276,92 @@ def capture_all_screenshots():
         
         # Shuffle the order of screenshots to prevent predictable patterns
         # This helps avoid being blocked by anti-scraping measures
-        random.shuffle(screenshots)
+        import random
+        random_screenshots = list(screenshots)
+        random.shuffle(random_screenshots)
         
         # Track starting time for overall process
         start_time = datetime.now()
         
-        for i, screenshot in enumerate(screenshots):
-            lottery_type = screenshot.lottery_type
-            url = screenshot.url
-            
+        # Clear the queue and add all screenshots to it
+        while not screenshot_queue.empty():
             try:
-                logger.info(f"Processing {i+1}/{len(screenshots)}: {lottery_type} from {url}")
+                screenshot_queue.get_nowait()
+            except:
+                break
                 
-                # Add slight delay between requests to avoid overwhelming the target server
-                if i > 0:
-                    delay = random.uniform(1.0, 3.0)
-                    logger.debug(f"Waiting {delay:.2f} seconds before next request")
-                    time.sleep(delay)
-                
-                with screenshot_semaphore:
-                    # Pass the lottery_type to capture_screenshot for better error reporting
-                    filepath, _, _ = capture_screenshot(url, lottery_type=lottery_type)
-                    
-                if filepath:
-                    # Get the current time for both updates to ensure they match exactly
-                    now = datetime.now()
-                    
-                    # Update Screenshot record
-                    screenshot.path = filepath
-                    screenshot.timestamp = now
-                    logger.debug(f"Updated Screenshot timestamp for {lottery_type} to {now}")
-                    
-                    # Also update the corresponding ScheduleConfig record if it exists
-                    config = ScheduleConfig.query.filter_by(url=url).first()
-                    if config:
-                        # Use the exact same timestamp for consistency
-                        config.last_run = now
-                        logger.debug(f"Updated ScheduleConfig timestamp for {lottery_type} to {now}")
-                    else:
-                        logger.warning(f"No ScheduleConfig record found for {lottery_type}")
-                        
-                        # Create a ScheduleConfig record if it doesn't exist
-                        try:
-                            new_config = ScheduleConfig(
-                                url=url,
-                                lottery_type=lottery_type,
-                                last_run=now,
-                                active=True
-                            )
-                            db.session.add(new_config)
-                            logger.info(f"Created new ScheduleConfig record for {lottery_type}")
-                        except Exception as e:
-                            logger.error(f"Failed to create ScheduleConfig for {lottery_type}: {str(e)}")
-                    
-                    # Commit all updates
-                    try:
-                        db.session.commit()
-                        success_count += 1
-                        logger.info(f"Successfully captured and updated data for {lottery_type}")
-                    except Exception as e:
-                        db.session.rollback()
-                        logger.error(f"Database commit error for {lottery_type}: {str(e)}")
-                        failed_urls.append((lottery_type, url))
-                        diag.log_sync_attempt(lottery_type, url, False, f"Database commit error: {str(e)}")
-                else:
-                    failed_urls.append((lottery_type, url))
-                    logger.warning(f"Failed to capture data for {lottery_type}: {url}")
-                    diag.log_sync_attempt(lottery_type, url, False, "Capture returned no filepath")
-                    
-            except Exception as e:
-                error_msg = f"Error processing data: {str(e)}"
-                failed_urls.append((lottery_type, url))
-                logger.error(f"Error processing data for {lottery_type}: {str(e)}")
-                logger.error(traceback.format_exc())
-                diag.log_sync_attempt(lottery_type, url, False, error_msg)
-                
-                # Try to rollback any failed transaction
-                try:
-                    db.session.rollback()
-                except:
-                    pass
+        # Add all screenshots to the queue
+        for screenshot in random_screenshots:
+            screenshot_queue.put(screenshot)
+            
+        logger.info(f"Added {len(random_screenshots)} screenshots to processing queue")
         
+        # Create worker threads to process the queue
+        worker_threads = []
+        max_workers = MAX_CONCURRENT_THREADS
+        
+        def worker():
+            """Worker thread to process screenshots from the queue"""
+            nonlocal success_count, failed_urls
+            
+            while True:
+                try:
+                    # Get the next screenshot from the queue with a timeout
+                    try:
+                        screenshot = screenshot_queue.get(timeout=5)
+                    except queue.Empty:
+                        # Queue is empty, exit this worker
+                        break
+                        
+                    # Add a small random delay to avoid rate limiting
+                    time.sleep(random.uniform(0.5, 2.0))
+                    
+                    # Process the screenshot
+                    success, lottery_type, url = process_screenshot_task(screenshot)
+                    
+                    # Track result
+                    if success:
+                        success_count += 1
+                    else:
+                        failed_urls.append((lottery_type, url))
+                        
+                    # Mark task as done
+                    screenshot_queue.task_done()
+                    
+                except Exception as e:
+                    logger.error(f"Worker thread error: {str(e)}")
+                    traceback.print_exc()
+                    
+                    # Ensure we mark the task as done even on error
+                    try:
+                        screenshot_queue.task_done()
+                    except:
+                        pass
+        
+        # Start worker threads
+        logger.info(f"Starting {max_workers} worker threads")
+        for i in range(max_workers):
+            thread = threading.Thread(target=worker)
+            thread.daemon = True
+            thread.start()
+            worker_threads.append(thread)
+            
+        # Wait for all screenshots to be processed or timeout
+        # Use a reasonable timeout to ensure we don't wait forever
+        timeout = max(300, len(screenshots) * 5)  # 5 seconds per screenshot or minimum 5 minutes
+        logger.info(f"Waiting up to {timeout} seconds for all screenshots to be processed")
+        
+        # Join the queue with timeout
+        try:
+            screenshot_queue.join()
+            logger.info("All tasks completed successfully")
+        except:
+            logger.warning("Timed out waiting for screenshots to process")
+        
+        # Wait for worker threads to exit
+        for thread in worker_threads:
+            thread.join(timeout=5)
+            
         # Calculate total duration
         duration = (datetime.now() - start_time).total_seconds()
         
@@ -282,7 +372,27 @@ def capture_all_screenshots():
         
         # Check for any remaining inconsistencies after captures
         diag.diagnose_sync_issues()
-            
+        
+        # Build results dictionary for modern return format
+        for screenshot in screenshots:
+            lottery_type = screenshot.lottery_type
+            url = screenshot.url
+            if (lottery_type, url) in failed_urls:
+                results[lottery_type] = {
+                    'status': 'error', 
+                    'message': f"Failed to capture {lottery_type}"
+                }
+            else:
+                results[lottery_type] = {
+                    'status': 'success',
+                    'message': f"Successfully captured {lottery_type}"
+                }
+        
+        # Return the results dictionary for modern format
+        if results:
+            return results
+        
+        # Or legacy success count for backward compatibility
         return success_count
         
     except Exception as e:
