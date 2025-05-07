@@ -1387,7 +1387,12 @@ def export_screenshots_zip():
                     # Get the file extension
                     _, ext = os.path.splitext(screenshot.path)
                     
-                    # Skip files that aren't proper image files (like .txt)
+                    # Skip HTML files saved with .txt extension - these aren't actual images
+                    if ext.lower() == '.txt':
+                        app.logger.warning(f"Skipping HTML content file: {screenshot.path}")
+                        continue
+                        
+                    # Skip any other files that aren't proper image files
                     if ext.lower() not in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
                         app.logger.warning(f"Skipping non-image file in screenshots zip: {screenshot.path}")
                         continue
@@ -1404,6 +1409,11 @@ def export_screenshots_zip():
                     if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
                         _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
                         
+                        # Skip HTML files saved with .txt extension - these aren't actual images
+                        if zoomed_ext.lower() == '.txt':
+                            app.logger.warning(f"Skipping HTML content file (zoomed): {screenshot.zoomed_path}")
+                            continue
+                            
                         # Skip zoomed files that aren't proper image files
                         if zoomed_ext.lower() not in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
                             app.logger.warning(f"Skipping non-image zoomed file: {screenshot.zoomed_path}")
