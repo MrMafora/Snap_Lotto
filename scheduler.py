@@ -181,22 +181,53 @@ def run_lottery_task(url, lottery_type):
                 # Import models here to avoid circular imports
                 from models import ScheduleConfig, Screenshot, db
                 
+                # Get the current time - IMPORTANT: use the same timestamp for all updates
+                now = datetime.now()
+                
                 # Update ScheduleConfig record
                 config = ScheduleConfig.query.filter_by(url=url).first()
                 if config:
-                    config.last_run = datetime.now()
+                    config.last_run = now  # Use the exact same timestamp
                     logger.info(f"Updated ScheduleConfig record for {lottery_type}")
                 else:
                     logger.warning(f"No ScheduleConfig record found for {lottery_type}")
+                    # Create a new config if it doesn't exist (this shouldn't happen in normal operation)
+                    try:
+                        new_config = ScheduleConfig(
+                            url=url,
+                            lottery_type=lottery_type,
+                            last_run=now,
+                            active=True,
+                            frequency='daily',
+                            hour=1,
+                            minute=0
+                        )
+                        db.session.add(new_config)
+                        logger.info(f"Created new ScheduleConfig record for {lottery_type}")
+                    except Exception as config_err:
+                        logger.error(f"Failed to create ScheduleConfig for {lottery_type}: {str(config_err)}")
                 
                 # Update Screenshot record
                 screenshot = Screenshot.query.filter_by(url=url).first()
                 if screenshot and filepath:
                     screenshot.path = filepath
-                    screenshot.timestamp = datetime.now()
+                    screenshot.timestamp = now  # Use the exact same timestamp
                     logger.info(f"Updated Screenshot record for {lottery_type}")
                 else:
                     logger.warning(f"No Screenshot record found for {lottery_type} or no filepath available")
+                    # Create a new screenshot record if it doesn't exist (this shouldn't happen in normal operation)
+                    if filepath and not screenshot:
+                        try:
+                            new_screenshot = Screenshot(
+                                url=url,
+                                lottery_type=lottery_type,
+                                path=filepath,
+                                timestamp=now
+                            )
+                            db.session.add(new_screenshot)
+                            logger.info(f"Created new Screenshot record for {lottery_type}")
+                        except Exception as screenshot_err:
+                            logger.error(f"Failed to create Screenshot for {lottery_type}: {str(screenshot_err)}")
                 
                 # Commit all updates
                 db.session.commit()
@@ -339,19 +370,38 @@ def retake_screenshot_by_id(screenshot_id, app=None):
             
             filepath, screenshot_data, _ = capture_result
             
+            # Use the same timestamp for both updates - this is critical for consistency
+            from datetime import datetime
+            now = datetime.now()
+            
             # Update the existing screenshot record with the new path
             # In simple_screenshot_manager, we don't have zoom_filepath
             screenshot.path = filepath
             screenshot.zoomed_path = None
-            screenshot.timestamp = db.func.now()  # Update timestamp
+            screenshot.timestamp = now  # Use the same timestamp object
             
             # Also update the corresponding ScheduleConfig record if it exists
             config = ScheduleConfig.query.filter_by(url=screenshot.url).first()
             if config:
-                config.last_run = db.func.now()
+                config.last_run = now  # Use the same timestamp object
                 logger.info(f"Updated ScheduleConfig record for {screenshot.lottery_type}")
             else:
                 logger.warning(f"No ScheduleConfig record found for {screenshot.lottery_type}")
+                # Create a new config if it doesn't exist
+                try:
+                    new_config = ScheduleConfig(
+                        url=screenshot.url,
+                        lottery_type=screenshot.lottery_type,
+                        last_run=now,
+                        active=True,
+                        frequency='daily',
+                        hour=1,
+                        minute=0
+                    )
+                    db.session.add(new_config)
+                    logger.info(f"Created new ScheduleConfig record for {screenshot.lottery_type}")
+                except Exception as config_err:
+                    logger.error(f"Failed to create ScheduleConfig for {screenshot.lottery_type}: {str(config_err)}")
             
             db.session.commit()
             
@@ -425,22 +475,52 @@ def retake_all_screenshots(app=None, use_threading=True):
                     'zoom_filepath': None
                 }
                 
+                # Use the exact same timestamp for all updates
+                now = datetime.now()
+                
                 # Update Screenshot record
                 screenshot = Screenshot.query.filter_by(url=url).first()
                 if screenshot:
                     screenshot.path = filepath
-                    screenshot.timestamp = datetime.now()
+                    screenshot.timestamp = now  # Use same timestamp
                     logger.info(f"Updated Screenshot record for {lottery_type}")
                 else:
                     logger.warning(f"No Screenshot record found for {lottery_type}")
+                    # Create a new screenshot record if it doesn't exist
+                    try:
+                        new_screenshot = Screenshot(
+                            url=url,
+                            lottery_type=lottery_type,
+                            path=filepath,
+                            timestamp=now
+                        )
+                        db.session.add(new_screenshot)
+                        logger.info(f"Created new Screenshot record for {lottery_type}")
+                    except Exception as screenshot_err:
+                        logger.error(f"Failed to create Screenshot for {lottery_type}: {str(screenshot_err)}")
                 
                 # Update ScheduleConfig record
                 config = ScheduleConfig.query.filter_by(url=url).first()
                 if config:
-                    config.last_run = datetime.now()
+                    config.last_run = now  # Use same timestamp
                     logger.info(f"Updated ScheduleConfig record for {lottery_type}")
                 else:
                     logger.warning(f"No ScheduleConfig record found for {lottery_type}")
+                    # Create a new config if it doesn't exist
+                    try:
+                        new_config = ScheduleConfig(
+                            url=url,
+                            lottery_type=lottery_type,
+                            last_run=now,
+                            active=True,
+                            frequency='daily',
+                            hour=1,
+                            minute=0
+                        )
+                        db.session.add(new_config)
+                        logger.info(f"Created new ScheduleConfig record for {lottery_type}")
+                    except Exception as config_err:
+                        logger.error(f"Failed to create ScheduleConfig for {lottery_type}: {str(config_err)}")
                     
                 # Commit all updates
                 db.session.commit()
