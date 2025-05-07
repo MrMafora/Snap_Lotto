@@ -131,9 +131,8 @@ def run_lottery_task(url, lottery_type):
             from flask import current_app
             from main import app
             
-            # Use simple screenshot manager instead of the complex one to avoid circular imports
-            # This also uses our new playwright wrapper to prevent the error
-            import simple_screenshot_manager as ssm
+            # Use selenium screenshot manager which is more reliable in Replit environment
+            import selenium_screenshot_manager as ssm
             from ocr_processor import process_screenshot
             from data_aggregator import aggregate_data
             from datetime import datetime
