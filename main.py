@@ -1890,6 +1890,12 @@ def export_combined_zip():
                     if os.path.exists(screenshot.path):
                         # Get the file extension
                         _, ext = os.path.splitext(screenshot.path)
+                        
+                        # Skip files that aren't proper image files (like .txt)
+                        if ext.lower() not in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
+                            app.logger.warning(f"Skipping non-image file: {screenshot.path}")
+                            continue
+                            
                         # Create a unique filename for each screenshot
                         lottery_type = screenshot.lottery_type.replace(' ', '_')
                         ss_timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
@@ -1901,6 +1907,12 @@ def export_combined_zip():
                         # Add zoomed version if it exists
                         if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
                             _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
+                            
+                            # Skip zoomed files that aren't proper image files
+                            if zoomed_ext.lower() not in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
+                                app.logger.warning(f"Skipping non-image zoomed file: {screenshot.zoomed_path}")
+                                continue
+                                
                             zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
                             zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
             
