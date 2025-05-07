@@ -72,34 +72,35 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
         diag.log_sync_attempt(lottery_name, url, False, error_msg)
         return None, None, None
         
+    # Prepare the file path for the screenshot
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    url_filename = url.split('/')[-1] or 'index'
+    filename = f"{timestamp}_{url_filename}.png"  # Changed to .png for image files
+    filepath = os.path.join(SCREENSHOT_DIR, filename)
+    
+    logger.debug(f"[{lottery_name}] Capturing screenshot from {url} - Attempt {retry_count + 1}/{MAX_RETRIES}")
+    
+    # Add jitter to avoid synchronized anti-bot detection
+    jitter_delay = random.uniform(0.5, 2.0)
+    if retry_count > 0:
+        logger.debug(f"[{lottery_name}] Adding jitter delay of {jitter_delay:.2f}s")
+        time.sleep(jitter_delay)
+    
+    # Main try block for capturing the screenshot
     try:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        url_filename = url.split('/')[-1] or 'index'
-        filename = f"{timestamp}_{url_filename}.png"  # Changed to .png for image files
-        filepath = os.path.join(SCREENSHOT_DIR, filename)
-        
-        logger.debug(f"[{lottery_name}] Capturing screenshot from {url} - Attempt {retry_count + 1}/{MAX_RETRIES}")
-        
+        # First attempt to use playwright for proper screenshots
         try:
-            # Add jitter to avoid synchronized anti-bot detection
-            jitter_delay = random.uniform(0.5, 2.0)
-            if retry_count > 0:
-                logger.debug(f"[{lottery_name}] Adding jitter delay of {jitter_delay:.2f}s")
-                time.sleep(jitter_delay)
+            # Try to import playwright here
+            from playwright.sync_api import sync_playwright
             
-            # First attempt to use playwright for proper screenshots
-            try:
-                # Try to import playwright here
-                from playwright.sync_api import sync_playwright
-                
-                # Use a custom User-Agent to avoid being blocked
-                # Rotate between different user agents for variety
-                user_agents = [
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
-                ]
-                user_agent = random.choice(user_agents)
+            # Use a custom User-Agent to avoid being blocked
+            # Rotate between different user agents for variety
+            user_agents = [
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
+            ]
+            user_agent = random.choice(user_agents)
                 
                 logger.debug(f"[{lottery_name}] Launching playwright with User-Agent: {user_agent}")
                 
