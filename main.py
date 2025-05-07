@@ -12,21 +12,10 @@ port 8080 required by Replit for public access.
 """
 import logging
 import os
-import io
 import threading
 import traceback
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import abort
-
-# Admin required decorator
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            abort(403)
-        return f(*args, **kwargs)
-    return decorated_function
 
 # Set up logging first
 logging.basicConfig(level=logging.DEBUG)
@@ -43,15 +32,6 @@ from werkzeug.utils import secure_filename
 # Import EnhancedCSRFProtect instead of CSRFProtect
 from csrf_fix import EnhancedCSRFProtect
 
-# Import process monitoring (conditionally)
-try:
-    import process_monitor
-    HAS_PROCESS_MONITOR = True
-    logger.info("Process monitoring module imported successfully")
-except ImportError:
-    HAS_PROCESS_MONITOR = False
-    logger.warning("Process monitoring module not available")
-
 # Import models only (lightweight)
 from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, db
 from config import Config
@@ -67,13 +47,6 @@ try:
     logger.info("Port proxy auto-starter loaded")
 except Exception as e:
     logger.error(f"Failed to load port proxy auto-starter: {e}")
-
-# Import template handling
-try:
-    import import_latest_template
-    logger.info("Template import module loaded")
-except Exception as e:
-    logger.error(f"Failed to load template import module: {e}")
 
 # Create the Flask application
 app = Flask(__name__)
@@ -156,17 +129,6 @@ def init_database():
         db.create_all()
         logger.info("Database tables created/verified")
         
-        # Run timestamp synchronization check
-        try:
-            from ensure_timestamp_sync import ensure_sync_on_startup
-            sync_result = ensure_sync_on_startup()
-            if sync_result:
-                logger.info("Screenshot and ScheduleConfig timestamps synchronized successfully")
-            else:
-                logger.warning("Some timestamp synchronization issues could not be fixed - see logs for details")
-        except Exception as sync_err:
-            logger.error(f"Error running timestamp sync: {str(sync_err)}")
-        
 # Start database initialization in background to avoid blocking startup
 threading.Thread(target=init_database, daemon=True).start()
 
@@ -179,12 +141,10 @@ ocr_processor = None
 screenshot_manager = None
 # scheduler is imported at the top level to ensure screenshot functions work
 health_monitor = None
-# Process monitoring module
-process_monitoring = None
 
 def init_lazy_modules():
     """Initialize modules in a background thread with timeout"""
-    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, health_monitor, process_monitoring
+    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, health_monitor
     
     # Prioritize core modules
     try:
@@ -211,27 +171,10 @@ def init_lazy_modules():
     screenshot_manager = sm
     health_monitor = hm
     
-    # Initialize process monitoring if available
-    if HAS_PROCESS_MONITOR:
-        try:
-            import integrate_monitoring
-            process_monitoring = integrate_monitoring
-            logger.info("Process monitoring module reference created")
-        except Exception as e:
-            logger.error(f"Error loading process monitoring: {e}")
-    
     # Initialize scheduler and health monitoring in background after imports are complete
     with app.app_context():
         scheduler.init_scheduler(app)
         health_monitor.init_health_monitor(app, db)
-        
-        # Initialize process monitoring if available
-        if HAS_PROCESS_MONITOR and process_monitoring:
-            try:
-                process_monitoring.integrate_monitoring(app)
-                logger.info("Process monitoring system successfully integrated")
-            except Exception as e:
-                logger.error(f"Error integrating process monitoring: {e}")
     
     logger.info("All modules lazy-loaded successfully")
 
@@ -317,28 +260,8 @@ def index():
                     results_list.append(result_clone)
                     seen_draws[key] = True
             
-            # Define standard order of lottery types for consistent display
-            lottery_type_order = [
-                'Lottery', 
-                'Lottery Plus 1', 
-                'Lottery Plus 2', 
-                'Powerball', 
-                'Powerball Plus', 
-                'Daily Lottery'
-            ]
-            
-            # Create an order lookup dictionary for sorting (lower value = higher priority)
-            lottery_order_lookup = {lottery_type: index for index, lottery_type in enumerate(lottery_type_order)}
-            
-            # Sort by lottery type order first, then by date (newest first) for same lottery type
-            def sort_key(result):
-                # If the lottery type isn't in our predefined order, put it at the end
-                order_position = lottery_order_lookup.get(result.lottery_type, len(lottery_type_order))
-                # Return a tuple to allow sortable comparison
-                return (order_position, -int(result.draw_number) if result.draw_number.isdigit() else 0)
-                
-            # Apply the sorting
-            results_list.sort(key=sort_key)
+            # Sort results by date (newest first)
+            results_list.sort(key=lambda x: x.draw_date, reverse=True)
         except Exception as e:
             logger.error(f"Error getting latest lottery results: {e}")
             latest_results = {}
@@ -490,22 +413,6 @@ def scanner_landing():
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
 
-@app.route('/missing-children-form')
-def missing_children_form():
-    """Display a form for reporting missing children or submitting information about missing children cases"""
-    # Define breadcrumbs for SEO
-    breadcrumbs = [
-        {"name": "Missing Children", "url": url_for('missing_children_form')}
-    ]
-    
-    # Additional SEO metadata
-    meta_description = "Report a missing child or submit information about a missing child case. This form is provided in partnership with Missing Children South Africa."
-    
-    return render_template('missing_children_form.html',
-                          title="Report Missing Children | Submit Information About Missing Children",
-                          breadcrumbs=breadcrumbs,
-                          meta_description=meta_description)
-
 @app.route('/ticket-scanner')
 def ticket_scanner():
     """Ticket scanner page - Allows users to scan and validate their lottery tickets"""
@@ -522,48 +429,19 @@ def ticket_scanner():
                           title="Lottery Ticket Scanner | Check If You've Won",
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
-                          
-@app.route('/clean-ticket-scanner')
-def clean_ticket_scanner():
-    """Clean implementation of the ticket scanner interface"""
-    # Define breadcrumbs for SEO
-    breadcrumbs = [
-        {"name": "Lottery Ticket Scanner", "url": url_for('scanner_landing')},
-        {"name": "Clean Scanner", "url": url_for('clean_ticket_scanner')}
-    ]
-    
-    # Additional SEO metadata
-    meta_description = "Check if your South African lottery ticket is a winner with our simplified, reliable scanner. Our clean implementation ensures reliable uploads and accurate results."
-    
-    return render_template('clean_ticket_scanner.html', 
-                          title="Clean Lottery Ticket Scanner | Reliable Implementation",
-                          breadcrumbs=breadcrumbs,
-                          meta_description=meta_description)
 
 @app.route('/scan-ticket', methods=['POST'])
 @csrf.exempt
 def scan_ticket():
     """Process uploaded ticket image and return results"""
-    logger.info("Scan ticket request received")
-    
-    # Enhanced request debugging
-    logger.info(f"Request method: {request.method}")
-    logger.info(f"Request content type: {request.content_type}")
-    logger.info(f"Request files keys: {list(request.files.keys()) if request.files else 'No files'}")
-    logger.info(f"Request form keys: {list(request.form.keys()) if request.form else 'No form data'}")
-    
     # Check if file is included in the request
     if 'ticket_image' not in request.files:
-        logger.error("No ticket_image in request.files")
-        logger.error(f"Request files: {request.files}")
         return jsonify({"error": "No ticket image provided"}), 400
         
     file = request.files['ticket_image']
-    logger.info(f"Received file: {file.filename}, Content type: {file.content_type}")
     
     # If user does not select file, browser also submits an empty part without filename
     if file.filename == '':
-        logger.error("Empty filename submitted")
         return jsonify({"error": "No selected file"}), 400
         
     # Get the lottery type if specified (optional)
@@ -575,24 +453,16 @@ def scan_ticket():
     # Get file extension
     file_extension = os.path.splitext(file.filename)[1].lower()
     if not file_extension:
-        logger.info("No file extension found, defaulting to .jpeg")
         file_extension = '.jpeg'  # Default to JPEG if no extension
     
     try:
         # Read the file data
         image_data = file.read()
-        file_size = len(image_data)
-        logger.info(f"Read file data successfully, file size: {file_size} bytes")
-        
-        if file_size == 0:
-            logger.error("File data is empty")
-            return jsonify({"error": "Empty file uploaded"}), 400
         
         # Import the ticket scanner module
         import ticket_scanner as ts
         
         # Process the ticket image using existing function
-        logger.info(f"Processing ticket image: lottery_type={lottery_type}, draw_number={draw_number}")
         result = ts.process_ticket_image(
             image_data=image_data,
             lottery_type=lottery_type,
@@ -600,24 +470,11 @@ def scan_ticket():
             file_extension=file_extension
         )
         
-        # Logging the success
-        logger.info(f"Ticket processed successfully: {result.get('status', 'unknown')}")
-        
         # Return JSON response with results
         return jsonify(result)
     except Exception as e:
         logger.exception(f"Error processing ticket: {str(e)}")
-        # Include more details in the error response
-        return jsonify({
-            "error": f"Error processing ticket: {str(e)}",
-            "status": "error",
-            "request_details": {
-                "filename": file.filename if file else "No file",
-                "content_type": file.content_type if file else "Unknown content type",
-                "lottery_type": lottery_type,
-                "draw_number": draw_number
-            }
-        }), 500
+        return jsonify({"error": f"Error processing ticket: {str(e)}"}), 500
 
 # Guides Routes
 @app.route('/guides')
@@ -1844,36 +1701,32 @@ def view_zoomed_screenshot(screenshot_id):
 @login_required
 @csrf.exempt
 def sync_all_screenshots():
-    """Sync all screenshots from their source URLs using simplified approach"""
+    """Sync all screenshots from their source URLs"""
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
     
     try:
-        # Import our simplified scheduler to use the basic screenshot approach
-        import simple_scheduler
-        
-        # Use the simplified screenshot approach without any data extraction
-        # This focuses solely on getting basic screenshots without complex interactions
-        count = simple_scheduler.retake_all_screenshots(app)
+        # Use the scheduler module imported at the top level to retake all screenshots
+        # Don't use threading for UI operations to ensure synchronous behavior
+        count = scheduler.retake_all_screenshots(app, use_threading=False)
         
         # Store status in session for display on next page load
         if count > 0:
             session['sync_status'] = {
                 'status': 'success',
-                'message': f'Successfully captured {count} screenshots using simplified approach (no data extraction).'
+                'message': f'Successfully synced {count} screenshots.'
             }
         else:
             session['sync_status'] = {
                 'status': 'warning',
-                'message': 'No screenshots were captured. Check configured URLs.'
+                'message': 'No screenshots were synced. Check configured URLs.'
             }
     except Exception as e:
-        app.logger.error(f"Error capturing screenshots: {str(e)}")
-        traceback.print_exc()
+        app.logger.error(f"Error syncing screenshots: {str(e)}")
         session['sync_status'] = {
             'status': 'danger',
-            'message': f'Error capturing screenshots: {str(e)}'
+            'message': f'Error syncing screenshots: {str(e)}'
         }
     
     return redirect(url_for('export_screenshots'))
@@ -1882,7 +1735,7 @@ def sync_all_screenshots():
 @login_required
 @csrf.exempt
 def sync_single_screenshot(screenshot_id):
-    """Sync a single screenshot by its ID using the simplified approach"""
+    """Sync a single screenshot by its ID"""
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
@@ -1891,236 +1744,46 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Import our simplified scheduler to use the basic screenshot approach
-        import simple_scheduler
-        
-        # Use the simplified approach that focuses solely on screenshot capture
-        success = simple_scheduler.sync_single_screenshot(screenshot_id, app)
+        # Use the scheduler module imported at the top level to retake this screenshot
+        success = scheduler.retake_screenshot_by_id(screenshot_id, app)
         
         # Store status in session for display on next page load
         if success:
             session['sync_status'] = {
                 'status': 'success',
-                'message': f'Successfully captured screenshot for {screenshot.lottery_type} using simplified approach.'
+                'message': f'Successfully synced screenshot for {screenshot.lottery_type}.'
             }
         else:
             session['sync_status'] = {
                 'status': 'warning',
-                'message': f'Failed to capture screenshot for {screenshot.lottery_type}.'
+                'message': f'Failed to sync screenshot for {screenshot.lottery_type}.'
             }
     except Exception as e:
-        app.logger.error(f"Error capturing screenshot: {str(e)}")
-        traceback.print_exc()
+        app.logger.error(f"Error syncing screenshot: {str(e)}")
         session['sync_status'] = {
             'status': 'danger',
-            'message': f'Error capturing screenshot: {str(e)}'
+            'message': f'Error syncing screenshot: {str(e)}'
         }
     
     return redirect(url_for('export_screenshots'))
-
-@app.route('/preview-website/<int:screenshot_id>')
-@login_required
-def preview_website(screenshot_id):
-    """
-    Serve the most recent screenshot as a preview image.
-    
-    Instead of attempting to generate a real-time preview (which often fails due to anti-scraping),
-    this simplified approach displays the most recently captured screenshot with timestamp information.
-    This provides a reliable preview experience without triggering anti-scraping measures.
-    """
-    from io import BytesIO
-    import time
-    from datetime import datetime, timedelta
-    from PIL import Image, ImageDraw, ImageFont
-
-    try:
-        # Retrieve the screenshot object
-        screenshot = Screenshot.query.get_or_404(screenshot_id)
-        
-        # If we have a valid existing screenshot, use it directly
-        if screenshot.path and os.path.exists(screenshot.path):
-            try:
-                # Get file modification time and format it
-                file_mod_time = os.path.getmtime(screenshot.path)
-                capture_time = datetime.fromtimestamp(file_mod_time)
-                time_ago = datetime.now() - capture_time
-                
-                # Read the existing screenshot
-                with open(screenshot.path, 'rb') as f:
-                    existing_img_data = f.read()
-                
-                # Create a PIL Image from the screenshot
-                img = Image.open(BytesIO(existing_img_data))
-                
-                # Add timestamp overlay at the top
-                draw = ImageDraw.Draw(img)
-                
-                # Try to use a default font
-                try:
-                    font = ImageFont.load_default()
-                except Exception:
-                    font = None
-                
-                # Create semi-transparent background for text
-                # Get image width for the background rectangle
-                img_width = img.width
-                draw.rectangle(((0, 0), (img_width, 30)), fill=(0, 0, 0, 128))
-                
-                # Format time ago in a human-readable way
-                if time_ago < timedelta(minutes=1):
-                    time_text = "Captured just now"
-                elif time_ago < timedelta(hours=1):
-                    time_text = f"Captured {int(time_ago.total_seconds() / 60)} minutes ago"
-                elif time_ago < timedelta(days=1):
-                    time_text = f"Captured {int(time_ago.total_seconds() / 3600)} hours ago"
-                else:
-                    time_text = f"Captured {int(time_ago.days)} days ago"
-                
-                # Add timestamp text
-                timestamp_text = f"{time_text} ({capture_time.strftime('%Y-%m-%d %H:%M:%S')})"
-                draw.text((10, 8), timestamp_text, fill=(255, 255, 255), font=font)
-
-                # Add indicator that this is not a live preview
-                draw.text((img_width - 150, 8), "CAPTURED PREVIEW", fill=(255, 200, 200), font=font)
-                
-                # Convert back to bytes
-                buffer = BytesIO()
-                img.save(buffer, format='PNG')
-                buffer.seek(0)
-                
-                app.logger.info(f"Using last successful screenshot for preview of {screenshot.lottery_type} from {time_ago.total_seconds():.0f} seconds ago")
-                
-                return send_file(
-                    buffer,
-                    mimetype='image/png',
-                    download_name=f'preview_{screenshot_id}.png',
-                    as_attachment=False
-                )
-            except Exception as file_error:
-                app.logger.warning(f"Could not process existing screenshot for preview: {str(file_error)}")
-        
-        # If we don't have a screenshot or couldn't process it, create an informative image
-        app.logger.warning(f"No valid screenshot found for {screenshot.lottery_type} ({screenshot_id})")
-        
-        # Create an informative image indicating no screenshot is available
-        img = Image.new('RGB', (800, 600), color=(248, 249, 250))
-        d = ImageDraw.Draw(img)
-        
-        # Try to use a default font
-        try:
-            font = ImageFont.load_default()
-            font_medium = ImageFont.load_default()
-            font_small = ImageFont.load_default()
-        except Exception:
-            font = None
-            font_medium = None
-            font_small = None
-        
-        # Draw informative text
-        d.text((20, 20), f"No screenshot available for {screenshot.lottery_type}", 
-              fill=(50, 50, 50), font=font)
-        d.text((20, 60), f"URL: {screenshot.url[:80]}...",
-              fill=(100, 100, 100), font=font_medium)
-        d.text((20, 100), f"Use the 'Sync All Screenshots' or 'Resync' button to capture a screenshot.", 
-              fill=(50, 50, 200), font=font_small)
-        
-        # Save to buffer
-        buffer = BytesIO()
-        img.save(buffer, 'PNG')
-        buffer.seek(0)
-        
-        # Return the informative image
-        return send_file(
-            buffer,
-            mimetype='image/png',
-            download_name=f'preview_info_{screenshot_id}.png',
-            as_attachment=False
-        )
-    
-    except Exception as e:
-        app.logger.error(f"Error serving preview for {screenshot_id}: {str(e)}")
-        # Generate a simple error message image
-        from PIL import Image, ImageDraw
-        
-        img = Image.new('RGB', (800, 600), color=(255, 240, 240))
-        d = ImageDraw.Draw(img)
-        
-        # Draw error text
-        d.text((20, 20), f"Server Error: Preview generation failed", fill=(200, 0, 0))
-        d.text((20, 60), f"Error details: {str(e)[:200]}", fill=(100, 0, 0))
-        
-        # Save to buffer
-        buffer = BytesIO()
-        img.save(buffer, 'PNG')
-        buffer.seek(0)
-        
-        # Return the error image instead of JSON error
-        return send_file(
-            buffer,
-            mimetype='image/png',
-            download_name=f'preview_error_{screenshot_id}.png',
-            as_attachment=False
-        )
 
 @app.route('/cleanup-screenshots', methods=['POST'])
 @login_required
 @csrf.exempt
 def cleanup_screenshots():
-    """Route to cleanup old screenshots with simplified approach"""
+    """Route to cleanup old screenshots"""
     if not current_user.is_admin:
         flash('You must be an admin to clean up screenshots.', 'danger')
         return redirect(url_for('index'))
         
     try:
-        # Simple approach to cleanup - just keep the latest screenshot per URL
-        # This is a direct implementation rather than relying on the complex scheduler module
-        from models import Screenshot, db
-        import os
-        from sqlalchemy import func
-        
-        # Group screenshots by URL and find the latest for each
-        subquery = db.session.query(
-            Screenshot.url,
-            func.max(Screenshot.timestamp).label('max_timestamp')
-        ).group_by(Screenshot.url).subquery()
-        
-        # Find all screenshots that aren't the latest for their URL
-        screenshots_to_delete = Screenshot.query.join(
-            subquery,
-            db.and_(
-                Screenshot.url == subquery.c.url,
-                Screenshot.timestamp < subquery.c.max_timestamp
-            )
-        ).all()
-        
-        # Delete files and database records
-        deleted_count = 0
-        for screenshot in screenshots_to_delete:
-            # Try to delete the file if it exists
-            if screenshot.path and os.path.exists(screenshot.path):
-                try:
-                    os.remove(screenshot.path)
-                except Exception as file_error:
-                    app.logger.warning(f"Could not delete screenshot file {screenshot.path}: {str(file_error)}")
-            
-            # Try to delete zoomed file if it exists
-            if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
-                try:
-                    os.remove(screenshot.zoomed_path)
-                except Exception as file_error:
-                    app.logger.warning(f"Could not delete zoomed screenshot file {screenshot.zoomed_path}: {str(file_error)}")
-            
-            # Delete the database record
-            db.session.delete(screenshot)
-            deleted_count += 1
-        
-        # Commit changes
-        db.session.commit()
+        # Run the cleanup function from scheduler module imported at the top level
+        scheduler.cleanup_old_screenshots()
         
         # Store success message in session
         session['sync_status'] = {
             'status': 'success',
-            'message': f'Successfully cleaned up {deleted_count} old screenshots. Only the latest screenshot for each URL is kept.'
+            'message': 'Successfully cleaned up old screenshots. Only the latest screenshot for each URL is kept.'
         }
     except Exception as e:
         app.logger.error(f"Error cleaning up screenshots: {str(e)}")
@@ -2145,21 +1808,17 @@ def export_combined_zip():
         import io
         import zipfile
         import tempfile
-        import glob
         from datetime import datetime
         
         # Create a timestamp for filenames
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        # Get all screenshots from database
+        # Get all screenshots
         screenshots = Screenshot.query.order_by(Screenshot.lottery_type).all()
         
         if not screenshots:
             flash('No screenshots available to export.', 'warning')
             return redirect(url_for('export_screenshots'))
-        
-        # Log some information about the screenshots
-        logger.info(f"Found {len(screenshots)} screenshots in database to export")
         
         # Create a temporary directory for the template
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -2167,78 +1826,36 @@ def export_combined_zip():
             template_filename = f"lottery_data_template_{timestamp}.xlsx"
             template_path = os.path.join(temp_dir, template_filename)
             create_template.create_template(template_path)
-            logger.info(f"Created template file at {template_path}")
-            
-            # Get all screenshots from the directory
-            screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
-            all_screenshot_files = []
-            if os.path.exists(screenshot_dir):
-                all_screenshot_files = glob.glob(os.path.join(screenshot_dir, '*.png'))
-                all_screenshot_files.extend(glob.glob(os.path.join(screenshot_dir, '*.jpg')))
-                all_screenshot_files.extend(glob.glob(os.path.join(screenshot_dir, '*.jpeg')))
-                logger.info(f"Found {len(all_screenshot_files)} screenshot files in directory")
             
             # Create a ZIP file in memory
             memory_file = io.BytesIO()
             with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
                 # Add the template to the ZIP file
                 zf.write(template_path, f"template/{template_filename}")
-                logger.info(f"Added template to ZIP file")
                 
-                # Track the number of screenshots added
-                screenshots_added = 0
-                
-                # Add screenshots from the database first
+                # Add screenshots to the ZIP file
                 for screenshot in screenshots:
-                    try:
-                        if os.path.exists(screenshot.path):
-                            # Get the file extension
-                            _, ext = os.path.splitext(screenshot.path)
-                            # Create a unique filename for each screenshot
-                            lottery_type = screenshot.lottery_type.replace(' ', '_')
-                            ss_timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
-                            filename = f"{lottery_type}_{ss_timestamp}{ext}"
-                            
-                            # Add the screenshot to the ZIP file in a screenshots folder
-                            zf.write(screenshot.path, f"screenshots/{filename}")
-                            screenshots_added += 1
-                            
-                            # Add zoomed version if it exists
-                            if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
-                                _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
-                                zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
-                                zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
-                                screenshots_added += 1
-                        else:
-                            logger.warning(f"Screenshot file not found: {screenshot.path}")
-                    except Exception as e:
-                        logger.error(f"Error adding screenshot to ZIP: {str(e)}, path: {screenshot.path}")
-                
-                # If no screenshots were added from database paths, include all files from screenshots directory
-                if screenshots_added == 0 and all_screenshot_files:
-                    logger.info(f"No screenshots were added from database paths, adding all files from screenshots directory")
-                    for screenshot_file in all_screenshot_files:
-                        try:
-                            # Get filename only
-                            filename = os.path.basename(screenshot_file)
-                            # Add to ZIP file
-                            zf.write(screenshot_file, f"screenshots/{filename}")
-                            screenshots_added += 1
-                        except Exception as e:
-                            logger.error(f"Error adding screenshot file to ZIP: {str(e)}, path: {screenshot_file}")
-            
-                logger.info(f"Added {screenshots_added} screenshot files to the ZIP archive")
+                    if os.path.exists(screenshot.path):
+                        # Get the file extension
+                        _, ext = os.path.splitext(screenshot.path)
+                        # Create a unique filename for each screenshot
+                        lottery_type = screenshot.lottery_type.replace(' ', '_')
+                        ss_timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
+                        filename = f"{lottery_type}_{ss_timestamp}{ext}"
+                        
+                        # Add the screenshot to the ZIP file in a screenshots folder
+                        zf.write(screenshot.path, f"screenshots/{filename}")
+                        
+                        # Add zoomed version if it exists
+                        if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                            _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
+                            zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
+                            zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
             
             # Reset the file pointer to the beginning of the file
             memory_file.seek(0)
             
-            # Check if any screenshots were added
-            if screenshots_added == 0:
-                logger.warning("No screenshots were added to the ZIP archive")
-                flash('No screenshots were found to include in the ZIP file. Only the template will be included.', 'warning')
-            
             # Send the ZIP file as a response
-            logger.info(f"Sending combined ZIP file with {screenshots_added} screenshots")
             return send_file(
                 memory_file,
                 mimetype='application/zip',
@@ -2246,8 +1863,7 @@ def export_combined_zip():
                 download_name=f'lottery_data_combined_{timestamp}.zip'
             )
     except Exception as e:
-        logger.error(f"Error creating combined ZIP file: {str(e)}")
-        traceback.print_exc()  # Print full traceback for better debugging
+        app.logger.error(f"Error creating combined ZIP file: {str(e)}")
         flash(f'Error creating combined ZIP file: {str(e)}', 'danger')
         return redirect(url_for('export_screenshots'))
 
@@ -2665,78 +2281,6 @@ def record_click():
         db.session.rollback()
         logger.exception(f"Error recording click: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
-@app.route('/admin/fix-timestamp-sync', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def fix_timestamp_sync_route():
-    """Admin endpoint to check and fix timestamp synchronization issues"""
-    if not current_user.is_admin:
-        flash('You must be an admin to access this page.', 'danger')
-        return redirect(url_for('index'))
-        
-    # Define breadcrumbs for navigation
-    breadcrumbs = [
-        {"name": "Admin Dashboard", "url": url_for('admin')},
-        {"name": "Fix Timestamp Sync", "url": "#"}
-    ]
-    
-    # If POST request, run the fix operation
-    if request.method == 'POST':
-        try:
-            from check_timestamp_sync import check_timestamp_sync as check_sync
-            from check_timestamp_sync import fix_timestamp_sync as fix_sync
-            
-            # Run the check first to get initial status
-            check_results = check_sync()
-            
-            # Fix any issues
-            fixed_count = fix_sync()
-            
-            # Run another check to verify the fixes
-            new_check = check_sync()
-            
-            # Prepare template data
-            return render_template(
-                'admin/fix_timestamp_sync.html',
-                title="Fix Timestamp Sync",
-                breadcrumbs=breadcrumbs,
-                before=check_results,
-                after=new_check,
-                fixed_count=fixed_count,
-                success=True
-            )
-        except Exception as e:
-            flash(f'Error fixing timestamp sync: {str(e)}', 'danger')
-            return render_template(
-                'admin/fix_timestamp_sync.html',
-                title="Fix Timestamp Sync",
-                breadcrumbs=breadcrumbs,
-                error=str(e),
-                success=False
-            )
-    
-    # For GET request, just check the current status
-    try:
-        from check_timestamp_sync import check_timestamp_sync as check_sync
-        check_results = check_sync()
-        
-        return render_template(
-            'admin/fix_timestamp_sync.html',
-            title="Fix Timestamp Sync",
-            breadcrumbs=breadcrumbs,
-            current=check_results,
-            success=True
-        )
-    except Exception as e:
-        flash(f'Error checking timestamp sync: {str(e)}', 'danger')
-        return render_template(
-            'admin/fix_timestamp_sync.html',
-            title="Fix Timestamp Sync",
-            breadcrumbs=breadcrumbs,
-            error=str(e),
-            success=False
-        )
 
 @app.route('/admin/system_status')
 @login_required
@@ -3272,151 +2816,6 @@ ad_management.register_ad_routes(app)
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
 
-# Screenshot diagnostics routes
-@app.route('/admin/screenshot-diagnostics')
-@login_required
-@admin_required
-def screenshot_diagnostics_dashboard():
-    """Admin dashboard for screenshot diagnostics and troubleshooting"""
-    if not current_user.is_admin:
-        flash('You must be an admin to access this page.', 'danger')
-        return redirect(url_for('index'))
-    
-    # Get screenshot status
-    try:
-        import screenshot_diagnostics as diag
-        status = diag.get_screenshot_status()
-        
-        # Format timestamps for display
-        for screenshot in status.get('screenshots', []):
-            if screenshot.get('timestamp'):
-                try:
-                    timestamp = datetime.fromisoformat(screenshot['timestamp'])
-                    screenshot['timestamp_formatted'] = timestamp.strftime('%Y-%m-%d %H:%M:%S')
-                    screenshot['timestamp_ago'] = get_time_ago(timestamp)
-                except:
-                    screenshot['timestamp_formatted'] = screenshot['timestamp']
-                    screenshot['timestamp_ago'] = 'Unknown'
-        
-        for config in status.get('configs', []):
-            if config.get('last_run'):
-                try:
-                    last_run = datetime.fromisoformat(config['last_run'])
-                    config['last_run_formatted'] = last_run.strftime('%Y-%m-%d %H:%M:%S')
-                    config['last_run_ago'] = get_time_ago(last_run)
-                except:
-                    config['last_run_formatted'] = config['last_run']
-                    config['last_run_ago'] = 'Unknown'
-        
-        # Check for inconsistencies
-        issues = diag.diagnose_sync_issues()
-        
-        return render_template(
-            'admin/screenshot_diagnostics.html',
-            status=status,
-            issues=issues,
-            title="Screenshot Diagnostics"
-        )
-    except Exception as e:
-        flash(f'Error loading screenshot diagnostics: {str(e)}', 'danger')
-        return redirect(url_for('admin'))
-
-@app.route('/api/admin/screenshots/fix', methods=['POST'])
-@login_required
-@admin_required
-@csrf.exempt  # Exempt from CSRF for API usage
-def fix_screenshots_api():
-    """API endpoint to fix screenshot synchronization issues"""
-    if not current_user.is_admin:
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
-    
-    try:
-        import fix_lottery_screenshots as fix
-        
-        # Get the fix type from request
-        fix_type = request.json.get('fix_type', 'inspect')
-        
-        if fix_type == 'inspect':
-            results = fix.inspect_database_records()
-        elif fix_type == 'fix-configs':
-            results = {'fixed': fix.fix_missing_configs()}
-        elif fix_type == 'fix-screenshots':
-            results = {'fixed': fix.fix_missing_screenshots()}
-        elif fix_type == 'fix-timestamps':
-            results = {'fixed': fix.fix_timestamp_inconsistencies()}
-        elif fix_type == 'sync':
-            lottery_type = request.json.get('lottery_type')
-            if not lottery_type:
-                return jsonify({'success': False, 'error': 'Missing lottery_type parameter'}), 400
-            results = {'success': fix.sync_specific_lottery_type(lottery_type)}
-        elif fix_type == 'resync-failed':
-            results = {'success': fix.resync_failed_games()}
-        elif fix_type == 'complete-fix':
-            results = {'success': fix.complete_fix()}
-        else:
-            return jsonify({'success': False, 'error': f'Unknown fix type: {fix_type}'}), 400
-        
-        return jsonify({'success': True, 'results': results})
-    
-    except Exception as e:
-        logger.error(f"Error in screenshot fix API: {str(e)}")
-        logger.error(traceback.format_exc())
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/admin/screenshots/status')
-@login_required
-@admin_required
-def screenshots_status_api():
-    """API endpoint to get screenshot status for monitoring"""
-    if not current_user.is_admin:
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
-    
-    try:
-        import screenshot_diagnostics as diag
-        status = diag.get_screenshot_status()
-        
-        # Add analysis to status
-        status['analysis'] = {
-            'lottery_types': [],
-            'has_inconsistencies': False
-        }
-        
-        # Check for lottery types with inconsistent timestamps
-        issues = diag.diagnose_sync_issues()
-        status['issues'] = issues
-        
-        # Group by lottery type
-        lottery_types = {}
-        for screenshot in status.get('screenshots', []):
-            lottery_type = screenshot.get('lottery_type')
-            if lottery_type not in lottery_types:
-                lottery_types[lottery_type] = {'screenshots': [], 'configs': []}
-            lottery_types[lottery_type]['screenshots'].append(screenshot)
-        
-        for config in status.get('configs', []):
-            lottery_type = config.get('lottery_type')
-            if lottery_type not in lottery_types:
-                lottery_types[lottery_type] = {'screenshots': [], 'configs': []}
-            lottery_types[lottery_type]['configs'].append(config)
-        
-        # Convert to list and add to status
-        for lottery_type, data in lottery_types.items():
-            status['analysis']['lottery_types'].append({
-                'name': lottery_type,
-                'screenshots': len(data['screenshots']),
-                'configs': len(data['configs']),
-                'has_inconsistency': len(issues) > 0 and any(issue.get('lottery_type') == lottery_type for issue in issues)
-            })
-        
-        status['analysis']['has_inconsistencies'] = len(issues) > 0
-        
-        return jsonify({'success': True, 'status': status})
-    
-    except Exception as e:
-        logger.error(f"Error in screenshot status API: {str(e)}")
-        logger.error(traceback.format_exc())
-        return jsonify({'success': False, 'error': str(e)}), 500
-
 # API Request Tracking routes
 @app.route('/admin/api-tracking')
 @login_required
@@ -3501,55 +2900,6 @@ def api_tracking_dashboard():
         service_counts=service_counts,
         service_tokens=service_tokens
     )
-
-# Route for importing latest template file
-@app.route('/admin/import-latest-template')
-@login_required
-@admin_required
-def import_latest_template_route():
-    """Import the latest lottery data template file"""
-    try:
-        result = import_latest_template.import_latest_template()
-        return render_template('import_status.html', 
-                               success=result.get('success', False),
-                               stats=result.get('stats', {}),
-                               error=result.get('error', 'Unknown error'))
-    except Exception as e:
-        logger.error(f"Error importing template: {str(e)}")
-        return render_template('import_status.html', 
-                               success=False,
-                               stats={},
-                               error=f"Error: {str(e)}")
-
-# Route for viewing import history
-@app.route('/admin/import-history')
-@login_required
-@admin_required
-def admin_import_history():
-    """Display import history in admin panel"""
-    history = ImportHistory.query.order_by(ImportHistory.import_date.desc()).all()
-    return render_template('import_history.html', history=history)
-
-# Route for importing missing draws
-@app.route('/admin/import-missing-draws')
-@login_required
-@admin_required
-def import_missing_draws_route():
-    """Import specific missing lottery draws"""
-    try:
-        from import_missing_draws import import_missing_draws
-        result = import_missing_draws("attached_assets/missing_draws.xlsx")
-        
-        return render_template('import_status.html', 
-                              success=result.get('success', False),
-                              stats=result.get('stats', {}),
-                              error=result.get('error', 'Unknown error'))
-    except Exception as e:
-        logger.error(f"Error importing missing draws: {str(e)}")
-        return render_template('import_status.html', 
-                              success=False,
-                              stats={},
-                              error=f"Error: {str(e)}")
 
 # When running directly, not through gunicorn
 if __name__ == "__main__":

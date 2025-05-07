@@ -72,6 +72,15 @@ mode = "sequential"
 task = "shell.exec"
 args = "gunicorn -c gunicorn.conf.py main:app"
 
+[[workflows.workflow]]
+name = "Web Server"
+author = 40744859
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "gunicorn -c gunicorn.conf.py main:app"
+
 [[ports]]
 localPort = 5000
 externalPort = 5000
