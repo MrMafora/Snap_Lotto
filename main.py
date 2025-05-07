@@ -1767,6 +1767,41 @@ def sync_single_screenshot(screenshot_id):
     
     return redirect(url_for('export_screenshots'))
 
+@app.route('/fix-screenshot-sync', methods=['POST'])
+@login_required
+@csrf.exempt
+def fix_screenshot_sync():
+    """Fix inconsistent screenshot synchronization across all lottery types"""
+    if not current_user.is_admin:
+        flash('You must be an admin to fix screenshot synchronization.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        # Import the screenshot sync fix module
+        import fix_screenshot_sync
+        
+        # Run the comprehensive fix
+        results = fix_screenshot_sync.fix_lottery_sync_issues(app)
+        
+        if 'error' in results:
+            flash(f'Error fixing screenshot synchronization: {results["error"]}', 'danger')
+            app.logger.error(f"Error in fix_screenshot_sync: {results['error']}")
+        else:
+            # Count successful syncs
+            success_count = sum(1 for status in results.get('sync_results', {}).values() if status == 'Success')
+            total_count = len(results.get('sync_results', {}))
+            
+            if success_count == total_count:
+                flash(f'Successfully synchronized all {total_count} lottery types.', 'success')
+            else:
+                flash(f'Partially synchronized lottery types ({success_count}/{total_count} successful).', 'warning')
+    
+    except Exception as e:
+        app.logger.error(f"Error fixing screenshot synchronization: {str(e)}")
+        flash(f'Error fixing screenshot synchronization: {str(e)}', 'danger')
+    
+    return redirect(url_for('export_screenshots'))
+
 @app.route('/cleanup-screenshots', methods=['POST'])
 @login_required
 @csrf.exempt
