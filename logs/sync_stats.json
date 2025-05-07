@@ -1,93 +1,249 @@
 {
-  "last_run": "2025-05-07T02:28:36.230435",
-  "total_attempts": 18,
+  "last_run": "2025-05-07T19:40:50.781052",
+  "total_attempts": 31,
   "successful": 18,
-  "failed": 0,
+  "failed": 13,
   "by_lottery_type": {
     "Lotto": {
-      "attempts": 2,
+      "attempts": 3,
       "successful": 2,
-      "failed": 0,
+      "failed": 1,
       "last_success": "2025-05-07T02:28:21.046240",
-      "errors": []
+      "errors": [
+        {
+          "timestamp": "2025-05-07T19:37:56.449738",
+          "url": "https://www.nationallottery.co.za/lotto-history",
+          "error": "Error during URL fetch: invalid state"
+        }
+      ]
     },
     "Lotto Plus 1": {
-      "attempts": 2,
+      "attempts": 3,
       "successful": 2,
-      "failed": 0,
+      "failed": 1,
       "last_success": "2025-05-07T02:28:20.978577",
-      "errors": []
+      "errors": [
+        {
+          "timestamp": "2025-05-07T19:40:29.967799",
+          "url": "https://www.nationallottery.co.za/lotto-plus-1-history",
+          "error": "Error during URL fetch: invalid state"
+        }
+      ]
     },
     "Lotto Plus 2": {
-      "attempts": 2,
+      "attempts": 3,
       "successful": 2,
-      "failed": 0,
+      "failed": 1,
       "last_success": "2025-05-07T02:28:24.153470",
-      "errors": []
+      "errors": [
+        {
+          "timestamp": "2025-05-07T19:37:00.317537",
+          "url": "https://www.nationallottery.co.za/lotto-plus-2-history",
+          "error": "Error during URL fetch: [Errno 11] Resource temporarily unavailable"
+        }
+      ]
     },
     "Powerball": {
-      "attempts": 2,
+      "attempts": 4,
       "successful": 2,
-      "failed": 0,
+      "failed": 2,
       "last_success": "2025-05-07T02:28:24.230749",
-      "errors": []
+      "errors": [
+        {
+          "timestamp": "2025-05-07T19:38:16.054297",
+          "url": "https://www.nationallottery.co.za/powerball-history",
+          "error": "Error during URL fetch: invalid state"
+        },
+        {
+          "timestamp": "2025-05-07T19:40:50.780327",
+          "url": "https://www.nationallottery.co.za/powerball-history",
+          "error": "Error during URL fetch: invalid state"
+        }
+      ]
     },
     "Powerball Plus": {
-      "attempts": 2,
+      "attempts": 3,
       "successful": 2,
-      "failed": 0,
+      "failed": 1,
       "last_success": "2025-05-07T02:28:27.187674",
-      "errors": []
+      "errors": [
+        {
+          "timestamp": "2025-05-07T19:37:55.976789",
+          "url": "https://www.nationallottery.co.za/powerball-plus-history",
+          "error": "Error during URL fetch: invalid state"
+        }
+      ]
     },
     "Daily Lotto": {
-      "attempts": 2,
+      "attempts": 3,
       "successful": 2,
-      "failed": 0,
+      "failed": 1,
       "last_success": "2025-05-07T02:28:27.221307",
-      "errors": []
+      "errors": [
+        {
+          "timestamp": "2025-05-07T19:40:14.579955",
+          "url": "https://www.nationallottery.co.za/daily-lotto-history",
+          "error": "Error during URL fetch: invalid state"
+        }
+      ]
     },
     "Lotto Plus 1 Results": {
-      "attempts": 1,
+      "attempts": 2,
       "successful": 1,
-      "failed": 0,
+      "failed": 1,
       "last_success": "2025-05-07T02:28:30.208731",
-      "errors": []
+      "errors": [
+        {
+          "timestamp": "2025-05-07T19:38:38.635776",
+          "url": "https://www.nationallottery.co.za/results/lotto-plus-1-results",
+          "error": "Error during URL fetch: invalid state"
+        }
+      ]
     },
     "Powerball Results": {
-      "attempts": 1,
+      "attempts": 2,
       "successful": 1,
-      "failed": 0,
+      "failed": 1,
       "last_success": "2025-05-07T02:28:30.249165",
-      "errors": []
+      "errors": [
+        {
+          "timestamp": "2025-05-07T19:37:57.978823",
+          "url": "https://www.nationallottery.co.za/results/powerball",
+          "error": "Error during URL fetch: invalid state"
+        }
+      ]
     },
     "Powerball Plus Results": {
-      "attempts": 1,
+      "attempts": 2,
       "successful": 1,
-      "failed": 0,
+      "failed": 1,
       "last_success": "2025-05-07T02:28:33.221510",
-      "errors": []
+      "errors": [
+        {
+          "timestamp": "2025-05-07T19:40:11.578810",
+          "url": "https://www.nationallottery.co.za/results/powerball-plus",
+          "error": "Error during URL fetch: invalid state"
+        }
+      ]
     },
     "Lotto Results": {
-      "attempts": 1,
+      "attempts": 2,
       "successful": 1,
-      "failed": 0,
+      "failed": 1,
       "last_success": "2025-05-07T02:28:33.244905",
-      "errors": []
+      "errors": [
+        {
+          "timestamp": "2025-05-07T19:39:57.240027",
+          "url": "https://www.nationallottery.co.za/results/lotto",
+          "error": "Error during URL fetch: invalid state"
+        }
+      ]
     },
     "Daily Lotto Results": {
-      "attempts": 1,
+      "attempts": 2,
       "successful": 1,
-      "failed": 0,
+      "failed": 1,
       "last_success": "2025-05-07T02:28:36.192155",
-      "errors": []
+      "errors": [
+        {
+          "timestamp": "2025-05-07T19:40:12.571369",
+          "url": "https://www.nationallottery.co.za/results/daily-lotto",
+          "error": "Error during URL fetch: invalid state"
+        }
+      ]
     },
     "Lotto Plus 2 Results": {
-      "attempts": 1,
+      "attempts": 2,
       "successful": 1,
-      "failed": 0,
+      "failed": 1,
       "last_success": "2025-05-07T02:28:36.230338",
-      "errors": []
+      "errors": [
+        {
+          "timestamp": "2025-05-07T19:37:42.495523",
+          "url": "https://www.nationallottery.co.za/results/lotto-plus-2-results",
+          "error": "Error during URL fetch: 'PlaywrightContextManager' object has no attribute '_playwright'"
+        }
+      ]
     }
   },
-  "errors": []
+  "errors": [
+    {
+      "lottery_type": "Lotto Plus 2",
+      "timestamp": "2025-05-07T19:37:00.317560",
+      "url": "https://www.nationallottery.co.za/lotto-plus-2-history",
+      "error": "Error during URL fetch: [Errno 11] Resource temporarily unavailable"
+    },
+    {
+      "lottery_type": "Lotto Plus 2 Results",
+      "timestamp": "2025-05-07T19:37:42.495535",
+      "url": "https://www.nationallottery.co.za/results/lotto-plus-2-results",
+      "error": "Error during URL fetch: 'PlaywrightContextManager' object has no attribute '_playwright'"
+    },
+    {
+      "lottery_type": "Powerball Plus",
+      "timestamp": "2025-05-07T19:37:55.976799",
+      "url": "https://www.nationallottery.co.za/powerball-plus-history",
+      "error": "Error during URL fetch: invalid state"
+    },
+    {
+      "lottery_type": "Lotto",
+      "timestamp": "2025-05-07T19:37:56.449749",
+      "url": "https://www.nationallottery.co.za/lotto-history",
+      "error": "Error during URL fetch: invalid state"
+    },
+    {
+      "lottery_type": "Powerball Results",
+      "timestamp": "2025-05-07T19:37:57.978834",
+      "url": "https://www.nationallottery.co.za/results/powerball",
+      "error": "Error during URL fetch: invalid state"
+    },
+    {
+      "lottery_type": "Powerball",
+      "timestamp": "2025-05-07T19:38:16.054305",
+      "url": "https://www.nationallottery.co.za/powerball-history",
+      "error": "Error during URL fetch: invalid state"
+    },
+    {
+      "lottery_type": "Lotto Plus 1 Results",
+      "timestamp": "2025-05-07T19:38:38.635786",
+      "url": "https://www.nationallottery.co.za/results/lotto-plus-1-results",
+      "error": "Error during URL fetch: invalid state"
+    },
+    {
+      "lottery_type": "Lotto Results",
+      "timestamp": "2025-05-07T19:39:57.240038",
+      "url": "https://www.nationallottery.co.za/results/lotto",
+      "error": "Error during URL fetch: invalid state"
+    },
+    {
+      "lottery_type": "Powerball Plus Results",
+      "timestamp": "2025-05-07T19:40:11.578817",
+      "url": "https://www.nationallottery.co.za/results/powerball-plus",
+      "error": "Error during URL fetch: invalid state"
+    },
+    {
+      "lottery_type": "Daily Lotto Results",
+      "timestamp": "2025-05-07T19:40:12.571380",
+      "url": "https://www.nationallottery.co.za/results/daily-lotto",
+      "error": "Error during URL fetch: invalid state"
+    },
+    {
+      "lottery_type": "Daily Lotto",
+      "timestamp": "2025-05-07T19:40:14.579964",
+      "url": "https://www.nationallottery.co.za/daily-lotto-history",
+      "error": "Error during URL fetch: invalid state"
+    },
+    {
+      "lottery_type": "Lotto Plus 1",
+      "timestamp": "2025-05-07T19:40:29.967809",
+      "url": "https://www.nationallottery.co.za/lotto-plus-1-history",
+      "error": "Error during URL fetch: invalid state"
+    },
+    {
+      "lottery_type": "Powerball",
+      "timestamp": "2025-05-07T19:40:50.780338",
+      "url": "https://www.nationallottery.co.za/powerball-history",
+      "error": "Error during URL fetch: invalid state"
+    }
+  ]
 }

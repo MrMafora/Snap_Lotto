@@ -1763,7 +1763,21 @@ def view_screenshot(screenshot_id):
     directory = os.path.dirname(screenshot_path)
     filename = os.path.basename(screenshot_path)
     
-    return send_from_directory(directory, filename)
+    # Always ensure files are sent with the correct MIME type
+    if ext.lower() == '.txt':
+        # Force download instead of display for text files
+        return send_from_directory(
+            directory, 
+            filename, 
+            mimetype='application/octet-stream',
+            as_attachment=True,
+            download_name=f"screenshot_{screenshot_id}.txt"
+        )
+    elif ext.lower() == '.png':
+        return send_from_directory(directory, filename, mimetype='image/png')
+    else:
+        # Generic handler for other file types
+        return send_from_directory(directory, filename)
 
 @app.route('/screenshot-zoomed/<int:screenshot_id>')
 def view_zoomed_screenshot(screenshot_id):
@@ -1850,7 +1864,21 @@ def view_zoomed_screenshot(screenshot_id):
     directory = os.path.dirname(zoomed_path)
     filename = os.path.basename(zoomed_path)
     
-    return send_from_directory(directory, filename)
+    # Always ensure files are sent with the correct MIME type
+    if ext.lower() == '.txt':
+        # Force download instead of display for text files
+        return send_from_directory(
+            directory, 
+            filename, 
+            mimetype='application/octet-stream',
+            as_attachment=True,
+            download_name=f"screenshot_zoomed_{screenshot_id}.txt"
+        )
+    elif ext.lower() == '.png':
+        return send_from_directory(directory, filename, mimetype='image/png')
+    else:
+        # Generic handler for other file types
+        return send_from_directory(directory, filename)
 
 @app.route('/sync-all-screenshots', methods=['POST'])
 @login_required
