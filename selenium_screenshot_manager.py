@@ -10,6 +10,7 @@ import time
 import traceback
 import threading
 import random
+import queue
 from datetime import datetime
 import urllib.request
 from models import db, Screenshot, ScheduleConfig
@@ -262,11 +263,16 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
             diag.log_sync_attempt(lottery_name, url, False, error_msg)
             return None, None, None
             
-        except urllib.request.URLError as e:
-            error_msg = f"URL Error: {str(e.reason)}"
+        except Exception as e:
+            # Handle any URL errors generically
+            if hasattr(e, 'reason'):
+                error_msg = f"URL Error: {str(e.reason)}"
+            else:
+                error_msg = f"Error during URL fetch: {str(e)}"
+            
             logger.error(f"[{lottery_name}] {error_msg} for {url}")
             
-            # Retry on URL errors (often network-related)
+            # Retry on errors
             if retry_count < MAX_RETRIES - 1:
                 wait_time = (2 ** retry_count) * 5 + random.uniform(1, 3)
                 logger.info(f"[{lottery_name}] Waiting {wait_time:.2f} seconds before retry...")
@@ -275,28 +281,6 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
             
             diag.log_sync_attempt(lottery_name, url, False, error_msg)
             return None, None, None
-            
-        except Exception as e:
-            error_msg = f"Error during URL fetch: {str(e)}"
-            logger.error(f"[{lottery_name}] {error_msg}")
-            
-            # Retry on general errors
-            if retry_count < MAX_RETRIES - 1:
-                wait_time = (2 ** retry_count) * 5 + random.uniform(1, 3)
-                logger.info(f"[{lottery_name}] Waiting {wait_time:.2f} seconds before retry...")
-                time.sleep(wait_time)
-                return capture_screenshot(url, retry_count + 1, lottery_type)
-            
-            diag.log_sync_attempt(lottery_name, url, False, error_msg)
-            return None, None, None
-            
-    except Exception as e:
-        error_msg = f"Critical error capturing data: {str(e)}"
-        logger.error(f"[{lottery_name}] {error_msg}")
-        traceback.print_exc()
-        
-        diag.log_sync_attempt(lottery_name, url, False, error_msg)
-        return None, None, None
 
 def process_screenshot_task(screenshot):
     """
