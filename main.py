@@ -1860,6 +1860,53 @@ def cleanup_screenshots():
     
     return redirect(url_for('export_screenshots'))
 
+@app.route('/fix-screenshot-extensions', methods=['POST'])
+@login_required
+@csrf.exempt
+def fix_screenshot_extensions_route():
+    """Fix screenshot file extensions - rename HTML files with .png extensions to .txt"""
+    if not current_user.is_admin:
+        flash('You must be an admin to fix screenshot extensions.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        # Import the extension fix module
+        from fix_screenshot_extensions import fix_screenshot_extensions
+        
+        # Run the extension fix
+        results = fix_screenshot_extensions()
+        
+        if 'error' not in results:
+            message = (f"Successfully examined {results.get('screenshots_checked', 0)} screenshots. "
+                      f"Fixed {results.get('fixed_count', 0)} HTML files with incorrect extensions. "
+                      f"{results.get('error_count', 0)} errors occurred.")
+            
+            # Store success message in session
+            session['sync_status'] = {
+                'status': 'success',
+                'message': message
+            }
+        else:
+            error_msg = results.get('error', 'Unknown error')
+            app.logger.error(f"Error fixing screenshot extensions: {error_msg}")
+            
+            # Store error message in session
+            session['sync_status'] = {
+                'status': 'danger',
+                'message': f'Error fixing screenshot extensions: {error_msg}'
+            }
+    except Exception as e:
+        app.logger.error(f"Error in fix_screenshot_extensions route: {str(e)}")
+        traceback.print_exc()
+        
+        # Store error message in session
+        session['sync_status'] = {
+            'status': 'danger',
+            'message': f'Error fixing screenshot extensions: {str(e)}'
+        }
+    
+    return redirect(url_for('export_screenshots'))
+
 @app.route('/export-combined-zip')
 @login_required
 def export_combined_zip():
