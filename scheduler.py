@@ -16,7 +16,8 @@ IS_REPLIT_ENV = True
 
 # Thread semaphore to limit concurrent lottery tasks
 # This prevents "can't start new thread" errors
-MAX_CONCURRENT_TASKS = 2
+# Increased from 2 to 6 to handle all 12 lottery types (6 history, 6 results pages)
+MAX_CONCURRENT_TASKS = 6
 task_semaphore = threading.Semaphore(MAX_CONCURRENT_TASKS)
 
 # Scheduler instance (initialized later)
@@ -545,22 +546,66 @@ def retake_all_screenshots(app=None, use_threading=True):
             configs = ScheduleConfig.query.all()
             threads = []
             
-            for config in configs:
+            # Limit the number of concurrent threads to avoid resource issues
+            max_threads = MAX_CONCURRENT_TASKS
+            active_threads = []
+            
+            logger.info(f"Starting screenshot sync for {len(configs)} configs with max {max_threads} concurrent threads")
+            
+            # Shuffle the configs to randomize which ones get processed first
+            # This helps prevent having the same ones fail each time if there's a timeout
+            import random
+            configs_list = list(configs)
+            random.shuffle(configs_list)
+            
+            for config in configs_list:
                 # Skip duplicate URLs to avoid redundant work
                 if config.url in processed_urls:
                     continue
                 
                 processed_urls.add(config.url)
                 
-                # Start a new thread for each URL
+                # Manage active threads to keep within our limits
+                # Wait for an active thread to complete if we're at maximum
+                while len(active_threads) >= max_threads:
+                    # Remove any completed threads from our active list
+                    active_threads = [t for t in active_threads if t.is_alive()]
+                    if len(active_threads) >= max_threads:
+                        # Sleep briefly before checking again
+                        time.sleep(0.5)
+                
+                # Start a new thread for this URL
+                logger.info(f"Starting thread for {config.lottery_type} from {config.url}")
                 thread = threading.Thread(target=process_url, args=(config.url, config.lottery_type))
                 thread.daemon = True
                 thread.start()
+                
+                # Add to both tracking lists
                 threads.append(thread)
+                active_threads.append(thread)
             
-            # Wait for all threads to complete
+            # Wait for all threads to complete with a reasonable total timeout
+            total_wait_start = time.time()
+            max_total_wait = 300  # 5 minutes max total wait time
+            
+            logger.info(f"Waiting for all {len(threads)} threads to complete...")
+            
             for thread in threads:
-                thread.join(timeout=60)  # Wait up to 60 seconds per thread
+                # Calculate remaining time for this thread
+                elapsed = time.time() - total_wait_start
+                if elapsed >= max_total_wait:
+                    logger.warning(f"Exceeded maximum total wait time of {max_total_wait} seconds")
+                    break
+                    
+                # Wait for this thread with the remaining time (or a per-thread limit)
+                per_thread_timeout = min(60, max_total_wait - elapsed)
+                thread.join(timeout=per_thread_timeout)
+            
+            # Count successful results
+            success_count = sum(1 for result in results.values() if isinstance(result, dict) and result.get('status') == 'success')
+            total_count = len(results)
+            
+            logger.info(f"Screenshot capture completed: {success_count}/{total_count} successful")
             
             # Run cleanup to remove old screenshots
             cleanup_old_screenshots() # Call our local implementation

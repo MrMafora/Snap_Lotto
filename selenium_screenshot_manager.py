@@ -25,8 +25,14 @@ os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 # Thread semaphore to limit concurrent screenshots
 # This prevents "can't start new thread" errors by limiting resource usage
-MAX_CONCURRENT_THREADS = 2
+# Increased from 2 to 6 to handle all 12 lottery types (6 history, 6 results pages)
+MAX_CONCURRENT_THREADS = 6
 screenshot_semaphore = threading.Semaphore(MAX_CONCURRENT_THREADS)
+
+# Queue system for processing screenshots
+# This ensures all screenshots get processed even if we hit thread limits
+import queue
+screenshot_queue = queue.Queue()
 
 # Screenshot capture settings
 MAX_RETRIES = 3  # Number of retry attempts for failed screenshots
