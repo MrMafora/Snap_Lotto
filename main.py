@@ -1713,46 +1713,118 @@ def view_zoomed_screenshot(screenshot_id):
 @login_required
 @csrf.exempt
 def sync_all_screenshots():
-    """Sync all screenshots from their source URLs"""
+    """
+    Comprehensive screenshot synchronization function that:
+    1. Syncs all screenshots from their source URLs
+    2. Fixes any synchronization issues between lottery types
+    3. Corrects file extensions for any HTML files saved with .png extensions
+    """
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
     
+    # Track all operations for comprehensive status reporting
+    sync_results = {}
+    
     try:
-        # Use the scheduler module imported at the top level to retake all screenshots
+        app.logger.info("Step 1/3: Syncing all screenshots from source URLs")
+        
+        # Step 1: Use the scheduler module to retake all screenshots
         # Don't use threading for UI operations to ensure synchronous behavior
         count = scheduler.retake_all_screenshots(app, use_threading=False)
         
-        # Store status in session for display on next page load
         if isinstance(count, dict):
             # Handle dictionary result (new format)
             success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
             total_count = len(count)
             
-            if success_count > 0:
-                session['sync_status'] = {
-                    'status': 'success',
-                    'message': f'Successfully synced {success_count} of {total_count} screenshots.'
-                }
-            else:
-                session['sync_status'] = {
-                    'status': 'warning',
-                    'message': 'No screenshots were synced. Check configured URLs.'
-                }
+            sync_results['screenshot_sync'] = {
+                'success': success_count > 0,
+                'details': f"Synced {success_count} of {total_count} screenshots"
+            }
         else:
             # Handle integer result (legacy format)
-            if count > 0:
-                session['sync_status'] = {
-                    'status': 'success',
-                    'message': f'Successfully synced {count} screenshots.'
+            sync_results['screenshot_sync'] = {
+                'success': count > 0,
+                'details': f"Synced {count} screenshots"
+            }
+        
+        # Step 2: Fix any sync issues using fix_screenshot_sync module
+        app.logger.info("Step 2/3: Fixing any synchronization issues between lottery types")
+        try:
+            import fix_screenshot_sync
+            sync_fix_results = fix_screenshot_sync.fix_lottery_sync_issues(app)
+            
+            if 'error' not in sync_fix_results:
+                # Count successful syncs from fix operation
+                success_count = sum(1 for status in sync_fix_results.get('sync_results', {}).values() if status == 'Success')
+                total_count = len(sync_fix_results.get('sync_results', {}))
+                
+                sync_results['sync_fix'] = {
+                    'success': success_count > 0,
+                    'details': f"Fixed synchronization for {success_count} of {total_count} lottery types"
                 }
             else:
-                session['sync_status'] = {
-                    'status': 'warning',
-                    'message': 'No screenshots were synced. Check configured URLs.'
+                sync_results['sync_fix'] = {
+                    'success': False,
+                    'details': f"Error fixing sync issues: {sync_fix_results.get('error', 'Unknown error')}"
                 }
+                app.logger.warning(f"Sync fix error: {sync_fix_results.get('error', 'Unknown error')}")
+        except Exception as sync_fix_error:
+            sync_results['sync_fix'] = {
+                'success': False,
+                'details': f"Error in sync fix: {str(sync_fix_error)}"
+            }
+            app.logger.error(f"Error in sync fix step: {str(sync_fix_error)}")
+        
+        # Step 3: Fix any file extension issues using fix_screenshot_extensions module
+        app.logger.info("Step 3/3: Fixing any file extension issues")
+        try:
+            from fix_screenshot_extensions import fix_screenshot_extensions
+            extension_results = fix_screenshot_extensions()
+            
+            if 'error' not in extension_results:
+                sync_results['extension_fix'] = {
+                    'success': extension_results.get('fixed_count', 0) > 0 or extension_results.get('error_count', 0) == 0,
+                    'details': f"Checked {extension_results.get('screenshots_checked', 0)} screenshots, fixed {extension_results.get('fixed_count', 0)} file extensions"
+                }
+            else:
+                sync_results['extension_fix'] = {
+                    'success': False,
+                    'details': f"Error fixing file extensions: {extension_results.get('error', 'Unknown error')}"
+                }
+                app.logger.warning(f"Extension fix error: {extension_results.get('error', 'Unknown error')}")
+        except Exception as extension_error:
+            sync_results['extension_fix'] = {
+                'success': False,
+                'details': f"Error in extension fix: {str(extension_error)}"
+            }
+            app.logger.error(f"Error in extension fix step: {str(extension_error)}")
+        
+        # Compile a comprehensive status message
+        all_successful = all(result.get('success', False) for result in sync_results.values())
+        main_operation_successful = sync_results.get('screenshot_sync', {}).get('success', False)
+        
+        if all_successful:
+            status = 'success'
+            message = "All operations completed successfully: "
+            message += ", ".join(result.get('details', '') for result in sync_results.values())
+        elif main_operation_successful:
+            status = 'warning'
+            message = "Main sync successful but some additional operations had issues: "
+            message += ", ".join(result.get('details', '') for result in sync_results.values())
+        else:
+            status = 'danger'
+            message = "Synchronization failed: "
+            message += ", ".join(result.get('details', '') for result in sync_results.values())
+        
+        session['sync_status'] = {
+            'status': status,
+            'message': message
+        }
+        
     except Exception as e:
-        app.logger.error(f"Error syncing screenshots: {str(e)}")
+        app.logger.error(f"Error in comprehensive screenshot sync process: {str(e)}")
         session['sync_status'] = {
             'status': 'danger',
             'message': f'Error syncing screenshots: {str(e)}'
