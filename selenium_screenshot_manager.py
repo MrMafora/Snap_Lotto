@@ -408,38 +408,7 @@ def capture_all_screenshots():
         results['error'] = str(e)
         return results
     
-def worker():
-    """Worker thread to process screenshots from the queue"""
-    while True:
-        try:
-            # Get the next screenshot from the queue with a timeout
-            try:
-                screenshot = screenshot_queue.get(timeout=1)
-            except queue.Empty:
-                # No more items to process
-                break
-            
-            # Process the screenshot
-            success, lottery_type, url = process_screenshot_task(screenshot)
-            
-            # Update results
-            if lottery_type not in results['lottery_types']:
-                results['lottery_types'][lottery_type] = {'success': 0, 'failure': 0}
-            
-            if success:
-                results['success'] += 1
-                results['lottery_types'][lottery_type]['success'] += 1
-            else:
-                results['failure'] += 1
-                results['lottery_types'][lottery_type]['failure'] += 1
-            
-            # Mark task as done
-            screenshot_queue.task_done()
-            
-        except Exception as e:
-            logger.error(f"Error in worker thread: {str(e)}")
-            logger.error(traceback.format_exc())
-            continue
+# Removed standalone worker function as it's now properly defined within capture_all_screenshots
 
 def sync_single_screenshot(screenshot_id):
     """
