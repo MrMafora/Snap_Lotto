@@ -237,17 +237,18 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
             except Exception as e:
                 logger.warning(f"[{lottery_name}] Failed to generate image with Pillow: {str(e)}")
             
-            # Last resort: Save HTML with .png extension and log a warning
-            with open(filepath, 'wb') as f:
+            # Last resort: Save HTML with .txt extension instead of pretending it's a PNG
+            txt_filepath = filepath.replace('.png', '.txt')
+            with open(txt_filepath, 'wb') as f:
                 f.write(html_content)
             
-            logger.warning(f"[{lottery_name}] Saved HTML content with .png extension to {filepath} (not a real image)")
+            logger.warning(f"[{lottery_name}] Saved HTML content to {txt_filepath} with proper .txt extension")
             
-            # Log the attempt as successful but note the issue
-            diag.log_sync_attempt(lottery_name, url, True, "Saved HTML content instead of real image")
+            # Log the attempt as successful but note we're using a text file
+            diag.log_sync_attempt(lottery_name, url, True, "Saved HTML content as text file")
             
-            # Return the filepath and data
-            return filepath, html_content, None
+            # Return the filepath and data - using the txt filepath instead
+            return txt_filepath, html_content, None
             
     except urllib.request.HTTPError as e:
         error_msg = f"HTTP Error {e.code}: {e.reason}"
