@@ -313,8 +313,8 @@ def retake_screenshot_by_id(screenshot_id, app=None):
                 
             logger.info(f"Retaking screenshot for {screenshot.lottery_type} from {screenshot.url}")
             
-            # Use our simple screenshot manager that avoids circular imports through the playwright wrapper
-            import simple_screenshot_manager as ssm
+            # Use selenium screenshot manager which is more reliable in Replit environment
+            import selenium_screenshot_manager as ssm
             
             # Capture new screenshot with the URL
             capture_result = ssm.capture_screenshot(screenshot.url)
@@ -377,8 +377,8 @@ def retake_all_screenshots(app=None, use_threading=True):
         try:
             logger.info(f"Retaking screenshot for {lottery_type} from {url}")
             
-            # Use simple screenshot manager to avoid circular imports
-            import simple_screenshot_manager as ssm
+            # Use selenium screenshot manager which is more reliable in Replit environment
+            import selenium_screenshot_manager as ssm
             
             with app.app_context():
                 # Capture new screenshot using the simplified manager

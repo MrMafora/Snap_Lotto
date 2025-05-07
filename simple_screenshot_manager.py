@@ -68,7 +68,13 @@ def capture_screenshot(url, retry_count=0):
             
         # Use Playwright to capture screenshot with standard settings
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            # Try to use Firefox instead of Chrome as it might already be installed
+            try:
+                browser = p.firefox.launch(headless=True)
+                logger.info("Using Firefox browser for screenshots")
+            except Exception as e:
+                logger.warning(f"Could not launch Firefox, falling back to Chrome: {str(e)}")
+                browser = p.chromium.launch(headless=True)
             
             try:
                 # Create page with standard viewport size that fits most content

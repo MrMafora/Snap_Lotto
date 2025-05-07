@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.playwright
     pkgs.jq
     pkgs.tk
     pkgs.tcl
