@@ -339,12 +339,23 @@
                                 <div class="alert alert-info small">
                                     <i class="fas fa-info-circle me-1"></i> This process may take a minute or two to complete. Please be patient as all screenshots are synchronized.
                                 </div>
-                                <form action="{{ url_for('sync_all_screenshots') }}" method="POST">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-warning">
-                                        <i class="fas fa-sync me-2"></i> Sync All Screenshots
-                                    </button>
-                                </form>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <form action="{{ url_for('sync_all_screenshots') }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-warning">
+                                            <i class="fas fa-sync me-2"></i> Sync All Screenshots
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('fix_screenshot_sync') }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-info">
+                                            <i class="fas fa-tools me-2"></i> Fix Sync Issues
+                                        </button>
+                                    </form>
+                                </div>
+                                <div class="alert alert-info small mt-2">
+                                    <i class="fas fa-info-circle me-1"></i> The "Fix Sync Issues" button will solve inconsistent synchronization where only some lottery types show current data.
+                                </div>
                             </div>
                         </div>
                     </div>
