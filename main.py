@@ -156,6 +156,17 @@ def init_database():
         db.create_all()
         logger.info("Database tables created/verified")
         
+        # Run timestamp synchronization check
+        try:
+            from ensure_timestamp_sync import ensure_sync_on_startup
+            sync_result = ensure_sync_on_startup()
+            if sync_result:
+                logger.info("Screenshot and ScheduleConfig timestamps synchronized successfully")
+            else:
+                logger.warning("Some timestamp synchronization issues could not be fixed - see logs for details")
+        except Exception as sync_err:
+            logger.error(f"Error running timestamp sync: {str(sync_err)}")
+        
 # Start database initialization in background to avoid blocking startup
 threading.Thread(target=init_database, daemon=True).start()
 
@@ -2654,6 +2665,78 @@ def record_click():
         db.session.rollback()
         logger.exception(f"Error recording click: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/fix-timestamp-sync', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def fix_timestamp_sync_route():
+    """Admin endpoint to check and fix timestamp synchronization issues"""
+    if not current_user.is_admin:
+        flash('You must be an admin to access this page.', 'danger')
+        return redirect(url_for('index'))
+        
+    # Define breadcrumbs for navigation
+    breadcrumbs = [
+        {"name": "Admin Dashboard", "url": url_for('admin')},
+        {"name": "Fix Timestamp Sync", "url": "#"}
+    ]
+    
+    # If POST request, run the fix operation
+    if request.method == 'POST':
+        try:
+            from check_timestamp_sync import check_timestamp_sync as check_sync
+            from check_timestamp_sync import fix_timestamp_sync as fix_sync
+            
+            # Run the check first to get initial status
+            check_results = check_sync()
+            
+            # Fix any issues
+            fixed_count = fix_sync()
+            
+            # Run another check to verify the fixes
+            new_check = check_sync()
+            
+            # Prepare template data
+            return render_template(
+                'admin/fix_timestamp_sync.html',
+                title="Fix Timestamp Sync",
+                breadcrumbs=breadcrumbs,
+                before=check_results,
+                after=new_check,
+                fixed_count=fixed_count,
+                success=True
+            )
+        except Exception as e:
+            flash(f'Error fixing timestamp sync: {str(e)}', 'danger')
+            return render_template(
+                'admin/fix_timestamp_sync.html',
+                title="Fix Timestamp Sync",
+                breadcrumbs=breadcrumbs,
+                error=str(e),
+                success=False
+            )
+    
+    # For GET request, just check the current status
+    try:
+        from check_timestamp_sync import check_timestamp_sync as check_sync
+        check_results = check_sync()
+        
+        return render_template(
+            'admin/fix_timestamp_sync.html',
+            title="Fix Timestamp Sync",
+            breadcrumbs=breadcrumbs,
+            current=check_results,
+            success=True
+        )
+    except Exception as e:
+        flash(f'Error checking timestamp sync: {str(e)}', 'danger')
+        return render_template(
+            'admin/fix_timestamp_sync.html',
+            title="Fix Timestamp Sync",
+            breadcrumbs=breadcrumbs,
+            error=str(e),
+            success=False
+        )
 
 @app.route('/admin/system_status')
 @login_required
