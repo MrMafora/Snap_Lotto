@@ -183,72 +183,14 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
         with urllib.request.urlopen(req, timeout=NAVIGATION_TIMEOUT) as response:
             html_content = response.read()
             
-            # Try using a different method to generate an image from HTML (Pillow)
-            try:
-                from PIL import Image, ImageDraw, ImageFont
-                import tempfile
-                import hashlib
-                
-                # Create a simplistic "screenshot" image with some basic info
-                # This is a fallback method when we can't get a real screenshot
-                img_width = 1200
-                img_height = 800
-                
-                # Create a simple image with text info about the lottery
-                img = Image.new('RGB', (img_width, img_height), color=(240, 240, 240))
-                draw = ImageDraw.Draw(img)
-                
-                # Use default font
-                try:
-                    font = ImageFont.truetype("arial.ttf", 16)
-                except IOError:
-                    font = ImageFont.load_default()
-                
-                # Draw header
-                draw.rectangle(((0, 0), (img_width, 60)), fill=(0, 102, 204))
-                draw.text((20, 20), f"Lottery Data: {lottery_name}", 
-                          fill=(255, 255, 255), font=font)
-                
-                # Draw URL and timestamp
-                draw.text((20, 80), f"Source URL: {url}", fill=(0, 0, 0), font=font)
-                draw.text((20, 110), f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 
-                          fill=(0, 0, 0), font=font)
-                
-                # Generate a hash of the HTML content
-                content_hash = hashlib.md5(html_content).hexdigest()
-                draw.text((20, 140), f"Content Hash: {content_hash}", fill=(0, 0, 0), font=font)
-                
-                # Draw border
-                draw.rectangle(((0, 0), (img_width-1, img_height-1)), outline=(200, 200, 200))
-                
-                # Save image
-                img.save(filepath)
-                
-                with open(filepath, 'rb') as f:
-                    screenshot_data = f.read()
-                
-                logger.info(f"[{lottery_name}] Created synthetic image with lottery data at {filepath}")
-                
-                # Log the successful attempt but note this is a generated image
-                diag.log_sync_attempt(lottery_name, url, True, "Created synthetic image from HTML data")
-                
-                return filepath, screenshot_data, None
-                
-            except Exception as e:
-                logger.warning(f"[{lottery_name}] Failed to generate image with Pillow: {str(e)}")
+            # Removed all fallback methods as per user's request
+            logger.error(f"[{lottery_name}] Failed to capture screenshot with Playwright, no fallbacks will be attempted")
             
-            # Last resort: Save HTML with .txt extension instead of pretending it's a PNG
-            txt_filepath = filepath.replace('.png', '.txt')
-            with open(txt_filepath, 'wb') as f:
-                f.write(html_content)
+            # Log the attempt as failed
+            diag.log_sync_attempt(lottery_name, url, False, "Screenshot capture failed and fallbacks are disabled")
             
-            logger.warning(f"[{lottery_name}] Saved HTML content to {txt_filepath} with proper .txt extension")
-            
-            # Log the attempt as successful but note we're using a text file
-            diag.log_sync_attempt(lottery_name, url, True, "Saved HTML content as text file")
-            
-            # Return the txt_filepath as the actual filepath that should be used in the database
-            return txt_filepath, html_content, None
+            # Return failure
+            return None, None, "Screenshot capture failed and fallbacks are disabled"
             
     except urllib.request.HTTPError as e:
         error_msg = f"HTTP Error {e.code}: {e.reason}"
@@ -376,6 +318,41 @@ def capture_all_screenshots():
         'lottery_types': {}
     }
     
+    # Define worker function within the capture_all_screenshots scope
+    # so it has access to the results dictionary
+    def worker_thread():
+        """Worker thread to process screenshots from the queue"""
+        while True:
+            try:
+                # Get the next screenshot from the queue with a timeout
+                try:
+                    screenshot = screenshot_queue.get(timeout=1)
+                except queue.Empty:
+                    # No more items to process
+                    break
+                
+                # Process the screenshot
+                success, lottery_type, url = process_screenshot_task(screenshot)
+                
+                # Update results
+                if lottery_type not in results['lottery_types']:
+                    results['lottery_types'][lottery_type] = {'success': 0, 'failure': 0}
+                
+                if success:
+                    results['success'] += 1
+                    results['lottery_types'][lottery_type]['success'] += 1
+                else:
+                    results['failure'] += 1
+                    results['lottery_types'][lottery_type]['failure'] += 1
+                
+                # Mark task as done
+                screenshot_queue.task_done()
+                
+            except Exception as e:
+                logger.error(f"Error in worker thread: {str(e)}")
+                logger.error(traceback.format_exc())
+                continue
+    
     try:
         # Get all active screenshot configs
         screenshots = Screenshot.query.all()
@@ -394,7 +371,7 @@ def capture_all_screenshots():
         # Create worker threads
         threads = []
         for i in range(min(MAX_CONCURRENT_THREADS, len(screenshots))):
-            thread = threading.Thread(target=worker)
+            thread = threading.Thread(target=worker_thread)
             thread.daemon = True
             threads.append(thread)
             thread.start()
@@ -431,38 +408,38 @@ def capture_all_screenshots():
         results['error'] = str(e)
         return results
     
-    def worker():
-        """Worker thread to process screenshots from the queue"""
-        while True:
+def worker():
+    """Worker thread to process screenshots from the queue"""
+    while True:
+        try:
+            # Get the next screenshot from the queue with a timeout
             try:
-                # Get the next screenshot from the queue with a timeout
-                try:
-                    screenshot = screenshot_queue.get(timeout=1)
-                except queue.Empty:
-                    # No more items to process
-                    break
-                
-                # Process the screenshot
-                success, lottery_type, url = process_screenshot_task(screenshot)
-                
-                # Update results
-                if lottery_type not in results['lottery_types']:
-                    results['lottery_types'][lottery_type] = {'success': 0, 'failure': 0}
-                
-                if success:
-                    results['success'] += 1
-                    results['lottery_types'][lottery_type]['success'] += 1
-                else:
-                    results['failure'] += 1
-                    results['lottery_types'][lottery_type]['failure'] += 1
-                
-                # Mark task as done
-                screenshot_queue.task_done()
-                
-            except Exception as e:
-                logger.error(f"Error in worker thread: {str(e)}")
-                logger.error(traceback.format_exc())
-                continue
+                screenshot = screenshot_queue.get(timeout=1)
+            except queue.Empty:
+                # No more items to process
+                break
+            
+            # Process the screenshot
+            success, lottery_type, url = process_screenshot_task(screenshot)
+            
+            # Update results
+            if lottery_type not in results['lottery_types']:
+                results['lottery_types'][lottery_type] = {'success': 0, 'failure': 0}
+            
+            if success:
+                results['success'] += 1
+                results['lottery_types'][lottery_type]['success'] += 1
+            else:
+                results['failure'] += 1
+                results['lottery_types'][lottery_type]['failure'] += 1
+            
+            # Mark task as done
+            screenshot_queue.task_done()
+            
+        except Exception as e:
+            logger.error(f"Error in worker thread: {str(e)}")
+            logger.error(traceback.format_exc())
+            continue
 
 def sync_single_screenshot(screenshot_id):
     """
