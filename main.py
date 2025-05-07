@@ -1712,16 +1712,33 @@ def sync_all_screenshots():
         count = scheduler.retake_all_screenshots(app, use_threading=False)
         
         # Store status in session for display on next page load
-        if count > 0:
-            session['sync_status'] = {
-                'status': 'success',
-                'message': f'Successfully synced {count} screenshots.'
-            }
+        if isinstance(count, dict):
+            # Handle dictionary result (new format)
+            success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
+            total_count = len(count)
+            
+            if success_count > 0:
+                session['sync_status'] = {
+                    'status': 'success',
+                    'message': f'Successfully synced {success_count} of {total_count} screenshots.'
+                }
+            else:
+                session['sync_status'] = {
+                    'status': 'warning',
+                    'message': 'No screenshots were synced. Check configured URLs.'
+                }
         else:
-            session['sync_status'] = {
-                'status': 'warning',
-                'message': 'No screenshots were synced. Check configured URLs.'
-            }
+            # Handle integer result (legacy format)
+            if count > 0:
+                session['sync_status'] = {
+                    'status': 'success',
+                    'message': f'Successfully synced {count} screenshots.'
+                }
+            else:
+                session['sync_status'] = {
+                    'status': 'warning',
+                    'message': 'No screenshots were synced. Check configured URLs.'
+                }
     except Exception as e:
         app.logger.error(f"Error syncing screenshots: {str(e)}")
         session['sync_status'] = {
