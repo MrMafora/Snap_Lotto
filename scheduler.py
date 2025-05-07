@@ -344,6 +344,15 @@ def retake_screenshot_by_id(screenshot_id, app=None):
             screenshot.path = filepath
             screenshot.zoomed_path = None
             screenshot.timestamp = db.func.now()  # Update timestamp
+            
+            # Also update the corresponding ScheduleConfig record if it exists
+            config = ScheduleConfig.query.filter_by(url=screenshot.url).first()
+            if config:
+                config.last_run = db.func.now()
+                logger.info(f"Updated ScheduleConfig record for {screenshot.lottery_type}")
+            else:
+                logger.warning(f"No ScheduleConfig record found for {screenshot.lottery_type}")
+            
             db.session.commit()
             
             logger.info(f"Successfully retook screenshot for {screenshot.lottery_type}")

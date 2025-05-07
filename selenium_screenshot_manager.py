@@ -11,7 +11,7 @@ import traceback
 import threading
 from datetime import datetime
 import urllib.request
-from models import db, Screenshot
+from models import db, Screenshot, ScheduleConfig
 from logger import setup_logger
 
 # Set up module-specific logger
@@ -112,9 +112,19 @@ def capture_all_screenshots():
                     filepath, _, _ = capture_screenshot(screenshot.url)
                     
                 if filepath:
-                    # Update the database record
+                    # Update the Screenshot record
                     screenshot.path = filepath
                     screenshot.timestamp = datetime.now()
+                    
+                    # Also update the corresponding ScheduleConfig record if it exists
+                    config = ScheduleConfig.query.filter_by(url=screenshot.url).first()
+                    if config:
+                        config.last_run = datetime.now()
+                        logger.info(f"Updated ScheduleConfig record for {screenshot.lottery_type}")
+                    else:
+                        logger.warning(f"No ScheduleConfig record found for {screenshot.lottery_type}")
+                    
+                    # Commit all updates
                     db.session.commit()
                     success_count += 1
                     logger.info(f"Successfully captured and updated data for {screenshot.lottery_type}")
@@ -156,9 +166,18 @@ def sync_single_screenshot(screenshot_id):
             filepath, _, _ = capture_screenshot(screenshot.url)
             
         if filepath:
-            # Update the database record
+            # Update the Screenshot record
             screenshot.path = filepath
             screenshot.timestamp = datetime.now()
+            
+            # Also update the corresponding ScheduleConfig record if it exists
+            config = ScheduleConfig.query.filter_by(url=screenshot.url).first()
+            if config:
+                config.last_run = datetime.now()
+                logger.info(f"Updated ScheduleConfig record for {screenshot.lottery_type}")
+            else:
+                logger.warning(f"No ScheduleConfig record found for {screenshot.lottery_type}")
+            
             db.session.commit()
             logger.info(f"Successfully synced data for {screenshot.lottery_type}")
             return True
