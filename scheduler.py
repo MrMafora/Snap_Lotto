@@ -151,8 +151,8 @@ def run_lottery_task(url, lottery_type):
                     logger.error(f"Failed to capture screenshot for {lottery_type}")
                     return False
                     
-                # Unpack the result
-                filepath, screenshot_data, zoom_filepath = capture_result
+                # Unpack the result - in the simple screenshot manager, the third return value is None, not zoom_filepath
+                filepath, screenshot_data, _ = capture_result
                 
                 # Only proceed if we have a valid screenshot filepath
                 if not filepath:
@@ -313,21 +313,22 @@ def retake_screenshot_by_id(screenshot_id, app=None):
                 
             logger.info(f"Retaking screenshot for {screenshot.lottery_type} from {screenshot.url}")
             
-            # Import screenshot manager inside the thread to avoid circular imports
-            import screenshot_manager as sm
+            # Use our simple screenshot manager that avoids circular imports through the playwright wrapper
+            import simple_screenshot_manager as ssm
             
-            # Capture new screenshot with the same URL and lottery type
-            capture_result = sm.capture_screenshot(screenshot.url, screenshot.lottery_type)
+            # Capture new screenshot with the URL
+            capture_result = ssm.capture_screenshot(screenshot.url)
             
             if not capture_result:
                 logger.error(f"Failed to retake screenshot for {screenshot.lottery_type}")
                 return False
             
-            filepath, _, zoom_filepath = capture_result
+            filepath, screenshot_data, _ = capture_result
             
-            # Update the existing screenshot record with new paths
+            # Update the existing screenshot record with the new path
+            # In simple_screenshot_manager, we don't have zoom_filepath
             screenshot.path = filepath
-            screenshot.zoomed_path = zoom_filepath
+            screenshot.zoomed_path = None
             screenshot.timestamp = db.func.now()  # Update timestamp
             db.session.commit()
             
@@ -376,12 +377,12 @@ def retake_all_screenshots(app=None, use_threading=True):
         try:
             logger.info(f"Retaking screenshot for {lottery_type} from {url}")
             
-            # Import screenshot manager inside the thread to avoid circular imports
-            import screenshot_manager as sm
+            # Use simple screenshot manager to avoid circular imports
+            import simple_screenshot_manager as ssm
             
             with app.app_context():
-                # Capture new screenshot
-                capture_result = sm.capture_screenshot(url, lottery_type)
+                # Capture new screenshot using the simplified manager
+                capture_result = ssm.capture_screenshot(url)
                 
                 if not capture_result:
                     results[url] = {
@@ -390,13 +391,13 @@ def retake_all_screenshots(app=None, use_threading=True):
                     }
                     return
                 
-                filepath, _, zoom_filepath = capture_result
+                filepath, screenshot_data, _ = capture_result
                 
                 results[url] = {
                     'status': 'success',
                     'lottery_type': lottery_type,
                     'filepath': filepath,
-                    'zoom_filepath': zoom_filepath
+                    'zoom_filepath': None
                 }
                 
                 logger.info(f"Successfully retook screenshot for {lottery_type}")

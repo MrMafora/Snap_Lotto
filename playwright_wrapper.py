@@ -30,8 +30,10 @@ def get_sync_playwright():
         return _sync_playwright
         
     try:
-        from playwright.sync_api import sync_playwright as sp
-        _sync_playwright = sp
+        # Import using a try-except block to handle any import errors gracefully
+        # This helps prevent the circular import issue
+        import playwright.sync_api
+        _sync_playwright = playwright.sync_api.sync_playwright
         _playwright_imported = True
         logger.info("Successfully imported sync_playwright")
         return _sync_playwright
@@ -57,8 +59,10 @@ def get_async_playwright():
         return _async_playwright
         
     try:
-        from playwright.async_api import async_playwright as ap
-        _async_playwright = ap
+        # Import using a try-except block to handle any import errors gracefully
+        # This helps prevent the circular import issue
+        import playwright.async_api
+        _async_playwright = playwright.async_api.async_playwright
         _playwright_imported = True
         logger.info("Successfully imported async_playwright")
         return _async_playwright
