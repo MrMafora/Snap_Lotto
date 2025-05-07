@@ -1387,20 +1387,21 @@ def export_screenshots_zip():
                     # Get the file extension
                     _, ext = os.path.splitext(screenshot.path)
                     
-                    # Skip HTML files saved with .txt extension - these aren't actual images
+                    # Include HTML/TXT files since they contain the latest data
                     if ext.lower() == '.txt':
-                        app.logger.warning(f"Skipping HTML content file: {screenshot.path}")
-                        continue
-                        
-                    # Skip any other files that aren't proper image files
-                    if ext.lower() not in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
-                        app.logger.warning(f"Skipping non-image file in screenshots zip: {screenshot.path}")
-                        continue
-                        
-                    # Create a unique filename for each screenshot
-                    lottery_type = screenshot.lottery_type.replace(' ', '_')
-                    timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
-                    filename = f"{lottery_type}_{timestamp}{ext}"
+                        app.logger.info(f"Including TXT/HTML file: {screenshot.path}")
+                        # For TXT files, use the filename as is
+                        filename = os.path.basename(screenshot.path)
+                    else:
+                        # Skip any other files that aren't proper image files
+                        if ext.lower() not in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
+                            app.logger.warning(f"Skipping non-image file in screenshots zip: {screenshot.path}")
+                            continue
+                            
+                        # Create a unique filename for each proper image file
+                        lottery_type = screenshot.lottery_type.replace(' ', '_')
+                        timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
+                        filename = f"{lottery_type}_{timestamp}{ext}"
                     
                     # Add the screenshot to the ZIP file
                     zf.write(screenshot.path, filename)
@@ -1409,9 +1410,11 @@ def export_screenshots_zip():
                     if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
                         _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
                         
-                        # Skip HTML files saved with .txt extension - these aren't actual images
+                        # Include HTML/TXT files for zoomed images as well
                         if zoomed_ext.lower() == '.txt':
-                            app.logger.warning(f"Skipping HTML content file (zoomed): {screenshot.zoomed_path}")
+                            app.logger.info(f"Including TXT/HTML file (zoomed): {screenshot.zoomed_path}")
+                            zoomed_filename = os.path.basename(screenshot.zoomed_path)
+                            zf.write(screenshot.zoomed_path, zoomed_filename)
                             continue
                             
                         # Skip zoomed files that aren't proper image files
