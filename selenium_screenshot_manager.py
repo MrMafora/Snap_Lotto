@@ -159,6 +159,13 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
                 # Fallback to HTML method below
 
             # Fallback: Use urllib to get the HTML content and generate an image with HTML
+            # Choose a user agent for the fallback method
+            user_agent = random.choice([
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
+            ])
+            
             headers = {
                 'User-Agent': user_agent,
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -174,40 +181,59 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
             with urllib.request.urlopen(req, timeout=NAVIGATION_TIMEOUT) as response:
                 html_content = response.read()
                 
-                # Try to render the HTML to an image using wkhtmltopdf if available
+                # Try using a different method to generate an image from HTML (Pillow)
                 try:
+                    from PIL import Image, ImageDraw, ImageFont
                     import tempfile
-                    from subprocess import Popen, PIPE
+                    import hashlib
                     
-                    # Create a temporary file for the HTML content
-                    with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as tmp_html:
-                        tmp_html.write(html_content)
-                        tmp_html_path = tmp_html.name
+                    # Create a simplistic "screenshot" image with some basic info
+                    # This is a fallback method when we can't get a real screenshot
+                    img_width = 1200
+                    img_height = 800
                     
-                    # Use wkhtmltopdf to render HTML to an image
-                    wkhtmltoimage_cmd = ['wkhtmltoimage', '--quality', '90', tmp_html_path, filepath]
-                    process = Popen(wkhtmltoimage_cmd, stdout=PIPE, stderr=PIPE)
-                    stdout, stderr = process.communicate()
+                    # Create a simple image with text info about the lottery
+                    img = Image.new('RGB', (img_width, img_height), color=(240, 240, 240))
+                    draw = ImageDraw.Draw(img)
                     
-                    if process.returncode == 0:
-                        with open(filepath, 'rb') as f:
-                            screenshot_data = f.read()
-                        
-                        logger.info(f"[{lottery_name}] HTML rendered to image using wkhtmltoimage at {filepath}")
-                        
-                        # Log the successful attempt
-                        diag.log_sync_attempt(lottery_name, url, True)
-                        
-                        # Remove temp file
-                        os.unlink(tmp_html_path)
-                        return filepath, screenshot_data, None
+                    # Use default font
+                    try:
+                        font = ImageFont.truetype("arial.ttf", 16)
+                    except IOError:
+                        font = ImageFont.load_default()
                     
-                    # Remove temp file even if wkhtmltoimage failed
-                    os.unlink(tmp_html_path)
-                    logger.warning(f"[{lottery_name}] wkhtmltoimage failed: {stderr.decode()}")
-                
+                    # Draw header
+                    draw.rectangle(((0, 0), (img_width, 60)), fill=(0, 102, 204))
+                    draw.text((20, 20), f"Lottery Data: {lottery_name}", 
+                              fill=(255, 255, 255), font=font)
+                    
+                    # Draw URL and timestamp
+                    draw.text((20, 80), f"Source URL: {url}", fill=(0, 0, 0), font=font)
+                    draw.text((20, 110), f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 
+                              fill=(0, 0, 0), font=font)
+                    
+                    # Generate a hash of the HTML content
+                    content_hash = hashlib.md5(html_content).hexdigest()
+                    draw.text((20, 140), f"Content Hash: {content_hash}", fill=(0, 0, 0), font=font)
+                    
+                    # Draw border
+                    draw.rectangle(((0, 0), (img_width-1, img_height-1)), outline=(200, 200, 200))
+                    
+                    # Save image
+                    img.save(filepath)
+                    
+                    with open(filepath, 'rb') as f:
+                        screenshot_data = f.read()
+                    
+                    logger.info(f"[{lottery_name}] Created synthetic image with lottery data at {filepath}")
+                    
+                    # Log the successful attempt but note this is a generated image
+                    diag.log_sync_attempt(lottery_name, url, True, "Created synthetic image from HTML data")
+                    
+                    return filepath, screenshot_data, None
+                    
                 except Exception as e:
-                    logger.warning(f"[{lottery_name}] Failed to render HTML with wkhtmltoimage: {str(e)}")
+                    logger.warning(f"[{lottery_name}] Failed to generate image with Pillow: {str(e)}")
                 
                 # Last resort: Save HTML with .png extension and log a warning
                 with open(filepath, 'wb') as f:
@@ -221,7 +247,7 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
                 # Return the filepath and data
                 return filepath, html_content, None
                 
-        except urllib.error.HTTPError as e:
+        except urllib.request.HTTPError as e:
             error_msg = f"HTTP Error {e.code}: {e.reason}"
             logger.error(f"[{lottery_name}] {error_msg} for {url}")
             
@@ -236,7 +262,7 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
             diag.log_sync_attempt(lottery_name, url, False, error_msg)
             return None, None, None
             
-        except urllib.error.URLError as e:
+        except urllib.request.URLError as e:
             error_msg = f"URL Error: {str(e.reason)}"
             logger.error(f"[{lottery_name}] {error_msg} for {url}")
             

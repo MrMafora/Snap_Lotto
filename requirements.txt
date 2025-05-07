@@ -36,3 +36,5 @@ trafilatura
 playwright
 anthropic
 psutil
+python-dateutil
+pillow
