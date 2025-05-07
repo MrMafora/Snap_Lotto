@@ -3189,6 +3189,151 @@ ad_management.register_ad_routes(app)
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
 
+# Screenshot diagnostics routes
+@app.route('/admin/screenshot-diagnostics')
+@login_required
+@admin_required
+def screenshot_diagnostics_dashboard():
+    """Admin dashboard for screenshot diagnostics and troubleshooting"""
+    if not current_user.is_admin:
+        flash('You must be an admin to access this page.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Get screenshot status
+    try:
+        import screenshot_diagnostics as diag
+        status = diag.get_screenshot_status()
+        
+        # Format timestamps for display
+        for screenshot in status.get('screenshots', []):
+            if screenshot.get('timestamp'):
+                try:
+                    timestamp = datetime.fromisoformat(screenshot['timestamp'])
+                    screenshot['timestamp_formatted'] = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                    screenshot['timestamp_ago'] = get_time_ago(timestamp)
+                except:
+                    screenshot['timestamp_formatted'] = screenshot['timestamp']
+                    screenshot['timestamp_ago'] = 'Unknown'
+        
+        for config in status.get('configs', []):
+            if config.get('last_run'):
+                try:
+                    last_run = datetime.fromisoformat(config['last_run'])
+                    config['last_run_formatted'] = last_run.strftime('%Y-%m-%d %H:%M:%S')
+                    config['last_run_ago'] = get_time_ago(last_run)
+                except:
+                    config['last_run_formatted'] = config['last_run']
+                    config['last_run_ago'] = 'Unknown'
+        
+        # Check for inconsistencies
+        issues = diag.diagnose_sync_issues()
+        
+        return render_template(
+            'admin/screenshot_diagnostics.html',
+            status=status,
+            issues=issues,
+            title="Screenshot Diagnostics"
+        )
+    except Exception as e:
+        flash(f'Error loading screenshot diagnostics: {str(e)}', 'danger')
+        return redirect(url_for('admin'))
+
+@app.route('/api/admin/screenshots/fix', methods=['POST'])
+@login_required
+@admin_required
+@csrf.exempt  # Exempt from CSRF for API usage
+def fix_screenshots_api():
+    """API endpoint to fix screenshot synchronization issues"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        import fix_lottery_screenshots as fix
+        
+        # Get the fix type from request
+        fix_type = request.json.get('fix_type', 'inspect')
+        
+        if fix_type == 'inspect':
+            results = fix.inspect_database_records()
+        elif fix_type == 'fix-configs':
+            results = {'fixed': fix.fix_missing_configs()}
+        elif fix_type == 'fix-screenshots':
+            results = {'fixed': fix.fix_missing_screenshots()}
+        elif fix_type == 'fix-timestamps':
+            results = {'fixed': fix.fix_timestamp_inconsistencies()}
+        elif fix_type == 'sync':
+            lottery_type = request.json.get('lottery_type')
+            if not lottery_type:
+                return jsonify({'success': False, 'error': 'Missing lottery_type parameter'}), 400
+            results = {'success': fix.sync_specific_lottery_type(lottery_type)}
+        elif fix_type == 'resync-failed':
+            results = {'success': fix.resync_failed_games()}
+        elif fix_type == 'complete-fix':
+            results = {'success': fix.complete_fix()}
+        else:
+            return jsonify({'success': False, 'error': f'Unknown fix type: {fix_type}'}), 400
+        
+        return jsonify({'success': True, 'results': results})
+    
+    except Exception as e:
+        logger.error(f"Error in screenshot fix API: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/screenshots/status')
+@login_required
+@admin_required
+def screenshots_status_api():
+    """API endpoint to get screenshot status for monitoring"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        import screenshot_diagnostics as diag
+        status = diag.get_screenshot_status()
+        
+        # Add analysis to status
+        status['analysis'] = {
+            'lottery_types': [],
+            'has_inconsistencies': False
+        }
+        
+        # Check for lottery types with inconsistent timestamps
+        issues = diag.diagnose_sync_issues()
+        status['issues'] = issues
+        
+        # Group by lottery type
+        lottery_types = {}
+        for screenshot in status.get('screenshots', []):
+            lottery_type = screenshot.get('lottery_type')
+            if lottery_type not in lottery_types:
+                lottery_types[lottery_type] = {'screenshots': [], 'configs': []}
+            lottery_types[lottery_type]['screenshots'].append(screenshot)
+        
+        for config in status.get('configs', []):
+            lottery_type = config.get('lottery_type')
+            if lottery_type not in lottery_types:
+                lottery_types[lottery_type] = {'screenshots': [], 'configs': []}
+            lottery_types[lottery_type]['configs'].append(config)
+        
+        # Convert to list and add to status
+        for lottery_type, data in lottery_types.items():
+            status['analysis']['lottery_types'].append({
+                'name': lottery_type,
+                'screenshots': len(data['screenshots']),
+                'configs': len(data['configs']),
+                'has_inconsistency': len(issues) > 0 and any(issue.get('lottery_type') == lottery_type for issue in issues)
+            })
+        
+        status['analysis']['has_inconsistencies'] = len(issues) > 0
+        
+        return jsonify({'success': True, 'status': status})
+    
+    except Exception as e:
+        logger.error(f"Error in screenshot status API: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # API Request Tracking routes
 @app.route('/admin/api-tracking')
 @login_required

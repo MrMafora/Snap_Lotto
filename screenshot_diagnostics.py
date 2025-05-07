@@ -9,9 +9,50 @@ import os
 import logging
 import traceback
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 from models import db, Screenshot, ScheduleConfig
+
+def get_time_ago(past_time):
+    """Get a human-readable string representing time elapsed since the given time"""
+    now = datetime.now()
+    diff = now - past_time
+    
+    # Convert to total seconds
+    seconds = diff.total_seconds()
+    
+    # Less than a minute
+    if seconds < 60:
+        return f"{int(seconds)} seconds ago"
+    
+    # Less than an hour
+    minutes = seconds / 60
+    if minutes < 60:
+        return f"{int(minutes)} minutes ago"
+    
+    # Less than a day
+    hours = minutes / 60
+    if hours < 24:
+        return f"{int(hours)} hours ago"
+    
+    # Less than a week
+    days = hours / 24
+    if days < 7:
+        return f"{int(days)} days ago"
+    
+    # Less than a month
+    if days < 30:
+        weeks = days / 7
+        return f"{int(weeks)} weeks ago"
+    
+    # Less than a year
+    if days < 365:
+        months = days / 30
+        return f"{int(months)} months ago"
+    
+    # More than a year
+    years = days / 365
+    return f"{int(years)} years ago"
 
 # Set up specialized logger for diagnostics
 logging.basicConfig(level=logging.DEBUG)

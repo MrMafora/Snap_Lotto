@@ -1,0 +1,331 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Screenshot Diagnostics - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Screenshot Diagnostics Dashboard</h1>
+            
+            <div class="alert alert-info">
+                <p><strong>This dashboard helps diagnose and fix screenshot synchronization issues.</strong></p>
+                <p>You can use the tools below to analyze and repair inconsistencies between Screenshot and ScheduleConfig records.</p>
+            </div>
+            
+            <!-- Action buttons -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Screenshot Synchronization Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <button class="btn btn-info btn-block" id="inspect-button">
+                                <i class="fas fa-search mr-2"></i> Inspect Records
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <button class="btn btn-warning btn-block" id="fix-timestamps-button">
+                                <i class="fas fa-clock mr-2"></i> Fix Timestamp Inconsistencies
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <button class="btn btn-success btn-block" id="complete-fix-button">
+                                <i class="fas fa-wrench mr-2"></i> Perform Complete Fix
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-4 mb-3">
+                            <button class="btn btn-outline-primary btn-block" id="fix-configs-button">
+                                <i class="fas fa-cogs mr-2"></i> Fix Missing Configs
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <button class="btn btn-outline-primary btn-block" id="fix-screenshots-button">
+                                <i class="fas fa-image mr-2"></i> Fix Missing Screenshots
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <button class="btn btn-outline-primary btn-block" id="resync-failed-button">
+                                <i class="fas fa-sync mr-2"></i> Resync Failed Games
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status message area -->
+            <div id="status-message" style="display: none;"></div>
+            
+            <!-- Status summary -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Screenshot Status Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Screenshots</h5>
+                                    <p class="card-text display-4">{{ status.total_screenshots }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Configs</h5>
+                                    <p class="card-text display-4">{{ status.total_configs }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Inconsistencies</h5>
+                                    <p class="card-text display-4">{{ issues|length }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Last Sync</h5>
+                                    <p class="card-text" id="last-sync-time">Unknown</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Issues -->
+            {% if issues and issues|length > 0 %}
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Synchronization Issues ({{ issues|length }})</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Lottery Type</th>
+                                    <th>Issue</th>
+                                    <th>Screenshot Time</th>
+                                    <th>Config Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for issue in issues %}
+                                <tr>
+                                    <td>{{ issue.lottery_type }}</td>
+                                    <td>{{ issue.issue }}</td>
+                                    <td>{{ issue.screenshot_time or "Missing" }}</td>
+                                    <td>{{ issue.config_time or "Missing" }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary sync-specific-button" 
+                                                data-lottery-type="{{ issue.lottery_type }}">
+                                            <i class="fas fa-sync-alt"></i> Sync
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Screenshot Records -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Screenshot Records</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Lottery Type</th>
+                                    <th>Last Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for screenshot in status.screenshots %}
+                                <tr>
+                                    <td>{{ screenshot.id }}</td>
+                                    <td>{{ screenshot.lottery_type }}</td>
+                                    <td>{{ screenshot.timestamp_formatted if screenshot.timestamp else "Never" }}
+                                        {% if screenshot.timestamp %}
+                                        <small class="text-muted d-block">{{ screenshot.timestamp_ago }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary sync-specific-button" 
+                                                data-lottery-type="{{ screenshot.lottery_type }}">
+                                            <i class="fas fa-sync-alt"></i> Sync
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ScheduleConfig Records -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Schedule Config Records</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Lottery Type</th>
+                                    <th>Last Run</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for config in status.configs %}
+                                <tr>
+                                    <td>{{ config.id }}</td>
+                                    <td>{{ config.lottery_type }}</td>
+                                    <td>{{ config.last_run_formatted if config.last_run else "Never" }}
+                                        {% if config.last_run %}
+                                        <small class="text-muted d-block">{{ config.last_run_ago }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if config.active %}
+                                        <span class="badge badge-success">Active</span>
+                                        {% else %}
+                                        <span class="badge badge-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for screenshot diagnostic actions -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to show status message
+    function showStatus(message, type) {
+        const statusDiv = document.getElementById('status-message');
+        statusDiv.className = `alert alert-${type} mb-4`;
+        statusDiv.innerHTML = message;
+        statusDiv.style.display = 'block';
+        
+        // Scroll to status message
+        statusDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Function to make API call to fix endpoint
+    function callFixAPI(fixType, lotteryType = null) {
+        showStatus(`<i class="fas fa-spinner fa-spin mr-2"></i> Running ${fixType} operation...`, 'info');
+        
+        const data = { fix_type: fixType };
+        if (lotteryType) {
+            data.lottery_type = lotteryType;
+        }
+        
+        fetch('/api/admin/screenshots/fix', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showStatus(`<i class="fas fa-check-circle mr-2"></i> ${fixType} operation completed successfully.`, 'success');
+                // Refresh the page after a delay to show updated data
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            } else {
+                showStatus(`<i class="fas fa-exclamation-triangle mr-2"></i> Error: ${data.error}`, 'danger');
+            }
+        })
+        .catch(error => {
+            showStatus(`<i class="fas fa-exclamation-triangle mr-2"></i> Error: ${error.message}`, 'danger');
+        });
+    }
+    
+    // Set up button event listeners
+    document.getElementById('inspect-button').addEventListener('click', function() {
+        callFixAPI('inspect');
+    });
+    
+    document.getElementById('fix-configs-button').addEventListener('click', function() {
+        callFixAPI('fix-configs');
+    });
+    
+    document.getElementById('fix-screenshots-button').addEventListener('click', function() {
+        callFixAPI('fix-screenshots');
+    });
+    
+    document.getElementById('fix-timestamps-button').addEventListener('click', function() {
+        callFixAPI('fix-timestamps');
+    });
+    
+    document.getElementById('resync-failed-button').addEventListener('click', function() {
+        callFixAPI('resync-failed');
+    });
+    
+    document.getElementById('complete-fix-button').addEventListener('click', function() {
+        if (confirm('This will perform a complete fix of all screenshot synchronization issues. Continue?')) {
+            callFixAPI('complete-fix');
+        }
+    });
+    
+    // Set up sync-specific buttons
+    const syncButtons = document.querySelectorAll('.sync-specific-button');
+    syncButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const lotteryType = this.getAttribute('data-lottery-type');
+            callFixAPI('sync', lotteryType);
+        });
+    });
+    
+    // Fetch sync status periodically
+    function updateSyncStatus() {
+        fetch('/api/admin/screenshots/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.status.last_run) {
+                document.getElementById('last-sync-time').textContent = data.status.last_run;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching sync status:', error);
+        });
+    }
+    
+    // Update sync status every 30 seconds
+    updateSyncStatus();
+    setInterval(updateSyncStatus, 30000);
+});
+</script>
+{% endblock %}
