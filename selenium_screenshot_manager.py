@@ -74,12 +74,11 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
     try:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         url_filename = url.split('/')[-1] or 'index'
-        filename = f"{timestamp}_{url_filename}.txt"
+        filename = f"{timestamp}_{url_filename}.png"  # Changed to .png for image files
         filepath = os.path.join(SCREENSHOT_DIR, filename)
         
-        logger.debug(f"[{lottery_name}] Capturing data from {url} - Attempt {retry_count + 1}/{MAX_RETRIES}")
+        logger.debug(f"[{lottery_name}] Capturing screenshot from {url} - Attempt {retry_count + 1}/{MAX_RETRIES}")
         
-        # Use urllib to get the HTML content
         try:
             # Add jitter to avoid synchronized anti-bot detection
             jitter_delay = random.uniform(0.5, 2.0)
@@ -87,15 +86,81 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
                 logger.debug(f"[{lottery_name}] Adding jitter delay of {jitter_delay:.2f}s")
                 time.sleep(jitter_delay)
             
-            # Use a custom User-Agent to avoid being blocked
-            # Rotate between different user agents for variety
-            user_agents = [
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
-            ]
+            # First attempt to use playwright for proper screenshots
+            try:
+                # Try to import playwright here
+                from playwright.sync_api import sync_playwright
+                
+                # Use a custom User-Agent to avoid being blocked
+                # Rotate between different user agents for variety
+                user_agents = [
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
+                ]
+                user_agent = random.choice(user_agents)
+                
+                logger.debug(f"[{lottery_name}] Launching playwright with User-Agent: {user_agent}")
+                
+                # Try to find chromium in common locations
+                chromium_paths = [
+                    "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium",
+                    "/usr/bin/chromium-browser",
+                    "/usr/bin/chromium",
+                    "/nix/store/chromium/bin/chromium"
+                ]
+                
+                chromium_path = None
+                for path in chromium_paths:
+                    if os.path.exists(path):
+                        logger.debug(f"Using Chromium from: {path}")
+                        chromium_path = path
+                        break
+                
+                # Use sync playwright to capture screenshot
+                with sync_playwright() as p:
+                    browser_type = p.chromium
+                    browser = browser_type.launch(
+                        headless=True,
+                        executable_path=chromium_path if chromium_path else None
+                    )
+                    
+                    # Create browser context with custom viewport and user agent
+                    context = browser.new_context(
+                        viewport={'width': 1280, 'height': 1600},
+                        user_agent=user_agent
+                    )
+                    
+                    # Create a new page and navigate to the URL
+                    page = context.new_page()
+                    page.goto(url, timeout=NAVIGATION_TIMEOUT * 1000)  # Playwright uses ms
+                    
+                    # Wait for page content to stabilize
+                    page.wait_for_load_state('networkidle')
+                    
+                    # Take screenshot and save it to file
+                    screenshot_data = page.screenshot(path=filepath, full_page=True)
+                    
+                    # Close resources
+                    page.close()
+                    context.close()
+                    browser.close()
+                    
+                    logger.info(f"[{lottery_name}] Screenshot successfully saved to {filepath}")
+                    
+                    # Log the successful attempt
+                    diag.log_sync_attempt(lottery_name, url, True)
+                    
+                    # Return the result
+                    return filepath, screenshot_data, None
+                
+            except ImportError:
+                logger.warning(f"[{lottery_name}] Playwright not available, falling back to HTML capture")
+                # Fallback to HTML method below
+
+            # Fallback: Use urllib to get the HTML content and generate an image with HTML
             headers = {
-                'User-Agent': random.choice(user_agents),
+                'User-Agent': user_agent,
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5',
                 'DNT': '1',
@@ -109,14 +174,49 @@ def capture_screenshot(url, retry_count=0, lottery_type=None):
             with urllib.request.urlopen(req, timeout=NAVIGATION_TIMEOUT) as response:
                 html_content = response.read()
                 
-                # Save the HTML content to a file
+                # Try to render the HTML to an image using wkhtmltopdf if available
+                try:
+                    import tempfile
+                    from subprocess import Popen, PIPE
+                    
+                    # Create a temporary file for the HTML content
+                    with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as tmp_html:
+                        tmp_html.write(html_content)
+                        tmp_html_path = tmp_html.name
+                    
+                    # Use wkhtmltopdf to render HTML to an image
+                    wkhtmltoimage_cmd = ['wkhtmltoimage', '--quality', '90', tmp_html_path, filepath]
+                    process = Popen(wkhtmltoimage_cmd, stdout=PIPE, stderr=PIPE)
+                    stdout, stderr = process.communicate()
+                    
+                    if process.returncode == 0:
+                        with open(filepath, 'rb') as f:
+                            screenshot_data = f.read()
+                        
+                        logger.info(f"[{lottery_name}] HTML rendered to image using wkhtmltoimage at {filepath}")
+                        
+                        # Log the successful attempt
+                        diag.log_sync_attempt(lottery_name, url, True)
+                        
+                        # Remove temp file
+                        os.unlink(tmp_html_path)
+                        return filepath, screenshot_data, None
+                    
+                    # Remove temp file even if wkhtmltoimage failed
+                    os.unlink(tmp_html_path)
+                    logger.warning(f"[{lottery_name}] wkhtmltoimage failed: {stderr.decode()}")
+                
+                except Exception as e:
+                    logger.warning(f"[{lottery_name}] Failed to render HTML with wkhtmltoimage: {str(e)}")
+                
+                # Last resort: Save HTML with .png extension and log a warning
                 with open(filepath, 'wb') as f:
                     f.write(html_content)
                 
-                logger.info(f"[{lottery_name}] HTML content successfully saved to {filepath}")
+                logger.warning(f"[{lottery_name}] Saved HTML content with .png extension to {filepath} (not a real image)")
                 
-                # Log the successful attempt
-                diag.log_sync_attempt(lottery_name, url, True)
+                # Log the attempt as successful but note the issue
+                diag.log_sync_attempt(lottery_name, url, True, "Saved HTML content instead of real image")
                 
                 # Return the filepath and data
                 return filepath, html_content, None
