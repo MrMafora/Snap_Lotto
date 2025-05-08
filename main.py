@@ -1896,55 +1896,77 @@ def view_zoomed_screenshot(screenshot_id):
         # Generic handler for other file types
         return send_from_directory(directory, filename)
 
-@app.route('/download-screenshot/<int:screenshot_id>')
-@login_required
-def download_screenshot(screenshot_id):
-    """
-    Download a screenshot as an attachment
+# Import and set up the improved download route using our new module
+try:
+    app.logger.info("Registering improved download route")
+    import download_route
+    download_route.add_download_route_to_app(app)
+    app.logger.info("Improved download route registered successfully")
+except Exception as e:
+    app.logger.error(f"Failed to register improved download route: {str(e)}")
     
-    Args:
-        screenshot_id (int): ID of the screenshot
+    # Fall back to the default download route if the improved one fails
+    @app.route('/download-screenshot/<int:screenshot_id>')
+    @login_required
+    def download_screenshot(screenshot_id):
+        """
+        Download a screenshot as an attachment (fallback method)
         
-    Returns:
-        Response: File download response
-    """
-    try:
-        # Get the screenshot
-        screenshot = Screenshot.query.get_or_404(screenshot_id)
-        
-        # Create a proper filename for the download
-        filename = f"{screenshot.lottery_type.replace(' ', '_')}_{screenshot.timestamp.strftime('%Y%m%d')}.png"
-        
-        # Check if file exists and has content
-        if not screenshot.path:
-            flash(f"Screenshot path is missing for {screenshot.lottery_type}", "warning")
+        Args:
+            screenshot_id (int): ID of the screenshot
+            
+        Returns:
+            Response: File download response
+        """
+        try:
+            # Get the screenshot
+            screenshot = Screenshot.query.get_or_404(screenshot_id)
+            
+            # Check if file exists and has content
+            if not screenshot.path:
+                flash(f"Screenshot path is missing for {screenshot.lottery_type}", "warning")
+                return redirect(url_for('export_screenshots'))
+                
+            if not os.path.exists(screenshot.path):
+                flash(f"Screenshot file not found: {screenshot.path}", "warning")
+                return redirect(url_for('export_screenshots'))
+                
+            if os.path.getsize(screenshot.path) == 0:
+                flash(f"Screenshot file is empty: {screenshot.path}", "warning")
+                return redirect(url_for('export_screenshots'))
+            
+            # Get file extension
+            _, ext = os.path.splitext(screenshot.path)
+            
+            # Set appropriate content type based on extension
+            content_type = 'image/png'  # Default to PNG
+            if ext.lower() == '.jpg' or ext.lower() == '.jpeg':
+                content_type = 'image/jpeg'
+            elif ext.lower() == '.gif':
+                content_type = 'image/gif'
+            elif ext.lower() == '.txt':
+                content_type = 'text/plain'
+            
+            # Create a better filename for the download
+            filename = f"{screenshot.lottery_type.replace(' ', '_')}_{screenshot.timestamp.strftime('%Y%m%d')}{ext}"
+                
+            # Get directory and basename for send_from_directory
+            directory = os.path.dirname(screenshot.path)
+            basename = os.path.basename(screenshot.path)
+            
+            # Use send_from_directory for reliable delivery
+            return send_from_directory(
+                directory, 
+                basename,
+                as_attachment=True,
+                download_name=filename,
+                mimetype=content_type
+            )
+                
+        except Exception as e:
+            app.logger.error(f"Error downloading screenshot {screenshot_id}: {str(e)}")
+            flash(f"Error downloading screenshot: {str(e)}", "danger")
             return redirect(url_for('export_screenshots'))
-            
-        if not os.path.exists(screenshot.path):
-            flash(f"Screenshot file not found: {screenshot.path}", "warning")
-            return redirect(url_for('export_screenshots'))
-            
-        if os.path.getsize(screenshot.path) == 0:
-            flash(f"Screenshot file is empty: {screenshot.path}", "warning")
-            return redirect(url_for('export_screenshots'))
-            
-        # Get directory and basename for send_from_directory
-        directory = os.path.dirname(screenshot.path)
-        basename = os.path.basename(screenshot.path)
-        
-        # Use send_from_directory for reliable delivery
-        return send_from_directory(
-            directory, 
-            basename,
-            as_attachment=True,
-            download_name=filename,
-            mimetype='image/png'
-        )
-            
-    except Exception as e:
-        app.logger.error(f"Error downloading screenshot {screenshot_id}: {str(e)}")
-        flash(f"Error downloading screenshot: {str(e)}", "danger")
-        return redirect(url_for('export_screenshots'))
 
 @app.route('/sync-all-screenshots', methods=['POST'])
 @login_required
@@ -1966,14 +1988,14 @@ def sync_all_screenshots():
     try:
         app.logger.info("Step 1/3: Capturing actual screenshots from lottery websites")
         
-        # Step 1: First try using the real screenshots capture module
+        # Step 1: First try using our direct screenshot capture module
         try:
-            import capture_real_screenshots
+            import direct_screenshot_capture
             # This captures actual screenshots from the websites
-            capture_results = capture_real_screenshots.capture_screenshots_from_database()
+            capture_results = direct_screenshot_capture.capture_all_screenshots()
             
             # Count successful captures
-            success_count = sum(1 for result in capture_results.values() if result.get('status') == 'success')
+            success_count = sum(1 for result in capture_results.values() if isinstance(result, dict) and result.get('status') == 'success')
             total_count = len(capture_results)
             
             if success_count > 0:
@@ -1984,30 +2006,61 @@ def sync_all_screenshots():
                 }
                 app.logger.info(f"Successfully captured {success_count} screenshots from websites")
             else:
-                # Fall back to scheduler method if real captures failed
-                app.logger.warning("Website screenshot capture failed, falling back to scheduler method")
+                # Fall back to old method if direct captures failed
+                app.logger.warning("Direct screenshot capture failed, falling back to older methods")
                 
-                # Use the scheduler module to retake all screenshots
-                # Don't use threading for UI operations to ensure synchronous behavior
-                count = scheduler.retake_all_screenshots(app, use_threading=False)
-                
-                if isinstance(count, dict):
-                    # Handle dictionary result (new format)
-                    success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
-                    total_count = len(count)
+                # Try using capture_real_screenshots as a fallback
+                try:
+                    import capture_real_screenshots
+                    fallback_results = capture_real_screenshots.capture_screenshots_from_database()
+                    fallback_success_count = sum(1 for result in fallback_results.values() if result == 'success' or (isinstance(result, dict) and result.get('status') == 'success'))
+                    fallback_total_count = len(fallback_results)
                     
-                    sync_results['screenshot_sync'] = {
-                        'success': success_count > 0,
-                        'details': f"Synced {success_count} of {total_count} screenshots with scheduler"
-                    }
-                else:
-                    # Handle integer result (legacy format)
-                    sync_results['screenshot_sync'] = {
-                        'success': count > 0,
-                        'details': f"Synced {count} screenshots with scheduler"
-                    }
+                    if fallback_success_count > 0:
+                        sync_results['screenshot_sync'] = {
+                            'success': True,
+                            'details': f"Captured {fallback_success_count} of {fallback_total_count} screenshots with fallback method"
+                        }
+                        app.logger.info(f"Successfully captured {fallback_success_count} screenshots with fallback method")
+                    else:
+                        # Use the scheduler module as last resort
+                        count = scheduler.retake_all_screenshots(app, use_threading=False)
+                        
+                        if isinstance(count, dict):
+                            # Handle dictionary result (new format)
+                            scheduler_success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
+                            scheduler_total_count = len(count)
+                            
+                            sync_results['screenshot_sync'] = {
+                                'success': scheduler_success_count > 0,
+                                'details': f"Synced {scheduler_success_count} of {scheduler_total_count} screenshots with scheduler (last resort)"
+                            }
+                        else:
+                            # Handle integer result (legacy format)
+                            sync_results['screenshot_sync'] = {
+                                'success': count > 0,
+                                'details': f"Synced {count} screenshots with scheduler (last resort)"
+                            }
+                except Exception as fallback_error:
+                    app.logger.error(f"Error with fallback capture method: {str(fallback_error)}")
+                    # Use the scheduler module as last resort
+                    count = scheduler.retake_all_screenshots(app, use_threading=False)
+                    
+                    if isinstance(count, dict):
+                        scheduler_success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
+                        scheduler_total_count = len(count)
+                        
+                        sync_results['screenshot_sync'] = {
+                            'success': scheduler_success_count > 0,
+                            'details': f"Synced {scheduler_success_count} of {scheduler_total_count} screenshots with scheduler (fallbacks failed)"
+                        }
+                    else:
+                        sync_results['screenshot_sync'] = {
+                            'success': count > 0,
+                            'details': f"Synced {count} screenshots with scheduler (fallbacks failed)"
+                        }
         except Exception as capture_error:
-            app.logger.error(f"Error capturing screenshots: {str(capture_error)}")
+            app.logger.error(f"Error with direct screenshot capture: {str(capture_error)}")
             
             # Fall back to scheduler method
             count = scheduler.retake_all_screenshots(app, use_threading=False)
@@ -2019,13 +2072,13 @@ def sync_all_screenshots():
                 
                 sync_results['screenshot_sync'] = {
                     'success': success_count > 0,
-                    'details': f"Synced {success_count} of {total_count} screenshots with scheduler (capture failed)"
+                    'details': f"Synced {success_count} of {total_count} screenshots with scheduler (direct capture failed)"
                 }
             else:
                 # Handle integer result (legacy format)
                 sync_results['screenshot_sync'] = {
                     'success': count > 0,
-                    'details': f"Synced {count} screenshots with scheduler (capture failed)"
+                    'details': f"Synced {count} screenshots with scheduler (direct capture failed)"
                 }
         
         # Step 2: Fix any sync issues using fix_screenshot_sync module
@@ -2124,10 +2177,10 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # First try using our actual website screenshot capture
+        # First try using our direct screenshot capture
         try:
-            import capture_real_screenshots
-            result = capture_real_screenshots.capture_screenshot_by_id(screenshot_id)
+            import direct_screenshot_capture
+            result = direct_screenshot_capture.capture_screenshot_by_id(screenshot_id)
             
             if result['status'] == 'success':
                 session['sync_status'] = {
@@ -2136,13 +2189,31 @@ def sync_single_screenshot(screenshot_id):
                 }
                 return redirect(url_for('export_screenshots'))
             else:
-                app.logger.warning(f"Real screenshot capture failed: {result.get('message', 'Unknown error')}")
-                # Fall back to scheduler method
+                app.logger.warning(f"Direct screenshot capture failed: {result.get('message', 'Unknown error')}")
+                # Try the fallback method
         except Exception as capture_error:
-            app.logger.error(f"Error using real screenshot capture: {str(capture_error)}")
+            app.logger.error(f"Error using direct screenshot capture: {str(capture_error)}")
+            # Try the fallback method
+        
+        # Try using capture_real_screenshots as a fallback
+        try:
+            import capture_real_screenshots
+            fallback_result = capture_real_screenshots.capture_screenshot_by_id(screenshot_id)
+            
+            if fallback_result['status'] == 'success':
+                session['sync_status'] = {
+                    'status': 'success',
+                    'message': f'Successfully captured screenshot for {screenshot.lottery_type} using fallback method.'
+                }
+                return redirect(url_for('export_screenshots'))
+            else:
+                app.logger.warning(f"Fallback screenshot capture failed: {fallback_result.get('message', 'Unknown error')}")
+                # Fall back to scheduler method
+        except Exception as fallback_error:
+            app.logger.error(f"Error using fallback screenshot capture: {str(fallback_error)}")
             # Fall back to scheduler method
         
-        # Fall back to scheduler as backup method
+        # Fall back to scheduler as last resort method
         app.logger.info("Falling back to scheduler method for screenshot capture")
         success = scheduler.retake_screenshot_by_id(screenshot_id, app)
         

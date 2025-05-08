@@ -38,3 +38,6 @@ anthropic
 psutil
 python-dateutil
 pillow
+pillow
+requests
+selenium
