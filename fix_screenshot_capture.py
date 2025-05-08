@@ -35,7 +35,8 @@ LOTTERY_URLS = [
     {'url': 'https://www.nationallottery.co.za/daily-lotto-history', 'lottery_type': 'Daily Lotto History'}
 ]
 
-def create_placeholder_image(lottery_type, timestamp=None, width=800, height=600):
+def create_placeholder_image(lottery_type, timestamp=None, width=800, height=600, 
+                       error_message=None, status_code=None, url=None):
     """
     Create a placeholder image with lottery information
     
@@ -44,6 +45,9 @@ def create_placeholder_image(lottery_type, timestamp=None, width=800, height=600
         timestamp (datetime, optional): Timestamp for the image
         width (int): Width of the image
         height (int): Height of the image
+        error_message (str, optional): Error message to display
+        status_code (int, optional): HTTP status code
+        url (str, optional): URL that was being captured
         
     Returns:
         tuple: (filepath, image_data)
@@ -61,21 +65,75 @@ def create_placeholder_image(lottery_type, timestamp=None, width=800, height=600
         image = Image.new('RGB', (width, height), color=(255, 255, 255))
         draw = ImageDraw.Draw(image)
         
+        # Try to load a font, fall back to default if not available
+        try:
+            # Try to find a font
+            font_paths = [
+                '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+                '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+                '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+            ]
+            
+            font = None
+            for path in font_paths:
+                if os.path.exists(path):
+                    try:
+                        font = ImageFont.truetype(path, 22)
+                        small_font = ImageFont.truetype(path, 16)
+                        break
+                    except:
+                        pass
+                        
+            if font is None:
+                # Use default font if no truetype font is available
+                font = ImageFont.load_default()
+                small_font = font
+                
+        except Exception as e:
+            logger.warning(f"Could not load font: {str(e)}")
+            font = ImageFont.load_default()
+            small_font = font
+            
         # Draw header background
         draw.rectangle([(0, 0), (width, 60)], fill=(0, 51, 102))  # Dark blue header
         
         # Draw title
         title = f"{lottery_type} Screenshot"
-        draw.text((20, 20), title, fill=(255, 255, 255))  # White text
+        draw.text((20, 20), title, fill=(255, 255, 255), font=font)  # White text
         
         # Draw timestamp
         timestamp_str = ts.strftime("%Y-%m-%d %H:%M:%S")
-        draw.text((20, 80), f"Generated: {timestamp_str}", fill=(0, 0, 0))
+        draw.text((20, 80), f"Generated: {timestamp_str}", fill=(0, 0, 0), font=small_font)
         
+        # Draw URL if provided
+        if url:
+            draw.text((20, 110), f"Source: {url}", fill=(0, 0, 0), font=small_font)
+            y_offset = 140
+        else:
+            y_offset = 110
+            
+        # Draw error message with red color if provided
+        if error_message:
+            status_text = f"Error: {error_message}"
+            if status_code:
+                status_text += f" (HTTP {status_code})"
+            draw.text((20, y_offset), status_text, fill=(255, 0, 0), font=small_font)
+            y_offset += 30
+        elif status_code:
+            draw.text((20, y_offset), f"HTTP Status: {status_code}", fill=(255, 0, 0), font=small_font)
+            y_offset += 30
+            
         # Draw information
-        draw.text((20, 120), "This is a placeholder screenshot.", fill=(0, 0, 0))
-        draw.text((20, 150), "The actual screenshot could not be captured.", fill=(0, 0, 0))
-        draw.text((20, 180), "Please try regenerating the screenshot.", fill=(0, 0, 0))
+        draw.text((20, y_offset), "This is a placeholder screenshot.", fill=(0, 0, 0), font=small_font)
+        draw.text((20, y_offset + 30), "The actual screenshot could not be captured.", fill=(0, 0, 0), font=small_font)
+        draw.text((20, y_offset + 60), "Please try regenerating the screenshot.", fill=(0, 0, 0), font=small_font)
+        
+        # Add instructions
+        y_offset += 100
+        draw.rectangle([(20, y_offset), (width-20, y_offset+100)], outline=(200, 200, 200))
+        draw.text((30, y_offset + 10), "Troubleshooting:", fill=(0, 0, 0), font=font)
+        draw.text((30, y_offset + 40), "1. Check if the website is accessible", fill=(0, 0, 0), font=small_font)
+        draw.text((30, y_offset + 70), "2. Try using the 'Capture New Screenshots' button", fill=(0, 0, 0), font=small_font)
         
         # Save the image
         image.save(filepath)
@@ -91,16 +149,18 @@ def create_placeholder_image(lottery_type, timestamp=None, width=800, height=600
         logger.error(f"Failed to create placeholder image: {str(e)}")
         return None, None
 
-def capture_screenshot_with_playwright(url, lottery_type):
+def capture_screenshot_with_requests(url, lottery_type):
     """
-    Capture a screenshot using Playwright
+    Attempt to download HTML content from the URL and create a more informative placeholder
+    showing the URL and metadata. This approach is more reliable in Replit environments
+    where browser automation can be challenging.
     
     Args:
         url (str): URL to capture
         lottery_type (str): Type of lottery
         
     Returns:
-        tuple: (filepath, screenshot_data, error_message)
+        tuple: (filepath, content_data, error_message)
     """
     try:
         # Create a timestamp for the filename
@@ -109,86 +169,147 @@ def capture_screenshot_with_playwright(url, lottery_type):
         filename = f"{timestamp_str}_{lottery_type.lower().replace(' ', '-').replace('/', '-')}.png"
         filepath = os.path.join('screenshots', filename)
         
-        logger.info(f"Capturing screenshot from {url} for {lottery_type}")
+        logger.info(f"Attempting to get data from {url} for {lottery_type}")
         
-        # Import playwright here to avoid import issues
-        from playwright.sync_api import sync_playwright
+        # Use requests to get HTML content (to check if site is accessible)
+        import requests
         
-        # Define user agents for rotation
-        user_agents = [
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:95.0) Gecko/20100101 Firefox/95.0',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:96.0) Gecko/20100101 Firefox/96.0'
-        ]
-        import random
-        user_agent = random.choice(user_agents)
+        # Define headers for the request with a user agent
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'max-age=0'
+        }
         
-        with sync_playwright() as p:
-            # Launch browser with additional arguments to improve stability
-            browser = p.chromium.launch(
-                headless=True,
-                args=[
-                    '--no-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-setuid-sandbox',
-                    '--disable-gpu',
-                    '--disable-software-rasterizer'
-                ]
-            )
+        # Make the request with a timeout
+        response = requests.get(url, headers=headers, timeout=30)
+        
+        # Check if request was successful
+        if response.status_code == 200:
+            logger.info(f"Successfully retrieved content from {url}")
             
-            # Create a context with viewport and user agent
-            context = browser.new_context(
-                viewport={'width': 1280, 'height': 1600},
-                user_agent=user_agent
-            )
+            # Get title from HTML if possible
+            import re
+            title_match = re.search('<title>(.*?)</title>', response.text, re.IGNORECASE)
+            page_title = title_match.group(1) if title_match else lottery_type
             
-            # Create a new page
-            page = context.new_page()
+            # Create an enhanced placeholder image with metadata
+            width, height = 1280, 800
+            image = Image.new('RGB', (width, height), color=(255, 255, 255))
+            draw = ImageDraw.Draw(image)
             
-            # Set a timeout for navigation (30 seconds)
-            # A longer timeout helps with slower sites
-            page.set_default_timeout(30000)
+            # Draw header
+            draw.rectangle([(0, 0), (width, 60)], fill=(0, 51, 102))  # Dark blue header
             
+            # Try to load a font, fall back to default if not available
             try:
-                # Navigate to the URL
-                logger.info(f"Navigating to {url}")
-                page.goto(url, wait_until='networkidle')
+                # Try to find a font
+                font_paths = [
+                    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+                    '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+                    '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+                ]
                 
-                # Wait for content to load (additional waiting)
-                logger.info(f"Waiting for page to stabilize")
-                page.wait_for_load_state('networkidle')
-                
-                # Additional wait for JavaScript rendering
-                time.sleep(3)
-                
-                # Take the screenshot
-                logger.info(f"Taking screenshot")
-                screenshot_data = page.screenshot(path=filepath, full_page=True)
-                
-                # Verify the screenshot was saved
-                if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                    logger.info(f"Screenshot successfully saved to {filepath}")
-                    return filepath, screenshot_data, None
-                else:
-                    logger.error(f"Screenshot file missing or empty: {filepath}")
-                    return None, None, "Screenshot file missing or empty"
-                
+                font = None
+                for path in font_paths:
+                    if os.path.exists(path):
+                        try:
+                            font = ImageFont.truetype(path, 22)
+                            small_font = ImageFont.truetype(path, 16)
+                            break
+                        except:
+                            pass
+                            
+                if font is None:
+                    # Use default font if no truetype font is available
+                    font = ImageFont.load_default()
+                    small_font = font
+                    
             except Exception as e:
-                logger.error(f"Error during screenshot capture: {str(e)}")
-                return None, None, str(e)
-            finally:
-                # Always close these resources
-                page.close()
-                context.close()
-                browser.close()
+                logger.warning(f"Could not load font: {str(e)}")
+                font = ImageFont.load_default()
+                small_font = font
                 
+            # Draw title
+            title = f"{lottery_type} - {page_title}"
+            draw.text((20, 15), title, fill=(255, 255, 255), font=font)
+            
+            # Draw URL
+            draw.text((20, 70), f"Source: {url}", fill=(0, 0, 0), font=small_font)
+            
+            # Draw timestamp
+            timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            draw.text((20, 100), f"Generated: {timestamp_str}", fill=(0, 0, 0), font=small_font)
+            
+            # Draw status info
+            draw.text((20, 130), f"Status: Content available (HTTP {response.status_code})", fill=(0, 128, 0), font=small_font)
+            
+            # Draw content length info
+            content_length = len(response.text)
+            draw.text((20, 160), f"Content Size: {content_length} bytes", fill=(0, 0, 0), font=small_font)
+            
+            # Draw content preview
+            preview_lines = response.text[:1000].split('\n')[:10]
+            preview_text = '\n'.join(preview_lines) + '...'
+            
+            # Draw a box for content preview
+            draw.rectangle([(20, 200), (width-20, height-20)], outline=(200, 200, 200))
+            
+            # Draw content preview title
+            draw.text((30, 210), "Content Preview:", fill=(0, 0, 0), font=small_font)
+            
+            # Draw the content preview text
+            y_pos = 240
+            for line in preview_lines:
+                truncated_line = line[:120] + '...' if len(line) > 120 else line
+                draw.text((30, y_pos), truncated_line, fill=(50, 50, 50), font=small_font)
+                y_pos += 25
+                if y_pos > height - 40:
+                    break
+            
+            # Save the image
+            image.save(filepath)
+            
+            # Read the image data
+            with open(filepath, 'rb') as f:
+                image_data = f.read()
+                
+            logger.info(f"Enhanced metadata image created and saved to {filepath}")
+            
+            return filepath, image_data, None
+        else:
+            logger.warning(f"Failed to retrieve content from {url} (HTTP {response.status_code})")
+            error_msg = f"HTTP Error: {response.status_code}"
+            
+            # Create a placeholder with error information
+            filepath, image_data = create_placeholder_image(
+                lottery_type, 
+                timestamp=timestamp,
+                width=1280,
+                height=800,
+                error_message=error_msg,
+                status_code=response.status_code,
+                url=url
+            )
+            
+            return filepath, image_data, error_msg
+            
     except Exception as e:
-        logger.error(f"Error in capture_screenshot_with_playwright: {str(e)}")
+        logger.error(f"Error capturing content from {url}: {str(e)}")
         import traceback
         traceback.print_exc()
-        return None, None, str(e)
+        
+        # Create a placeholder with error information
+        filepath, image_data = create_placeholder_image(
+            lottery_type,
+            error_message=str(e),
+            url=url
+        )
+        
+        return filepath, image_data, str(e)
 
 def update_screenshot_in_db(lottery_type, url, filepath):
     """
@@ -239,7 +360,7 @@ def update_screenshot_in_db(lottery_type, url, filepath):
 
 def capture_all_screenshots():
     """
-    Capture screenshots for all lottery types
+    Capture screenshots for all lottery types using requests-based approach
     
     Returns:
         dict: Results of the capture process
@@ -257,64 +378,57 @@ def capture_all_screenshots():
         
         logger.info(f"Processing {lottery_type}: {url}")
         
-        # Try to capture the screenshot
-        filepath, data, error = capture_screenshot_with_playwright(url, lottery_type)
+        # Try to capture the data and create an information-rich screenshot
+        try:
+            filepath, data, error = capture_screenshot_with_requests(url, lottery_type)
+        except Exception as e:
+            logger.error(f"Error in screenshot capture process: {str(e)}")
+            filepath, data = create_placeholder_image(
+                lottery_type,
+                error_message=f"Exception: {str(e)}",
+                url=url
+            )
+            error = str(e)
         
         if filepath and data:
-            # Screenshot captured successfully
+            # Screenshot created successfully (either with content preview or as placeholder)
             update_success = update_screenshot_in_db(lottery_type, url, filepath)
             
             if update_success:
-                results['success'] += 1
-                results['details'].append({
-                    'lottery_type': lottery_type,
-                    'url': url,
-                    'filepath': filepath,
-                    'status': 'success'
-                })
-            else:
-                results['failure'] += 1
-                results['details'].append({
-                    'lottery_type': lottery_type,
-                    'url': url,
-                    'filepath': filepath,
-                    'status': 'database_error'
-                })
-        else:
-            # Failed to capture screenshot, create placeholder
-            logger.warning(f"Failed to capture screenshot for {lottery_type}. Creating placeholder.")
-            placeholder_path, placeholder_data = create_placeholder_image(lottery_type)
-            
-            if placeholder_path:
-                update_success = update_screenshot_in_db(lottery_type, url, placeholder_path)
-                
-                if update_success:
-                    results['failure'] += 1  # Still count as failure since real capture failed
-                    results['details'].append({
-                        'lottery_type': lottery_type,
-                        'url': url,
-                        'filepath': placeholder_path,
-                        'status': 'placeholder_created',
-                        'error': error
-                    })
+                # Only count as success if no error was reported
+                if error is None:
+                    results['success'] += 1
+                    status = 'success'
                 else:
                     results['failure'] += 1
-                    results['details'].append({
-                        'lottery_type': lottery_type,
-                        'url': url,
-                        'filepath': placeholder_path,
-                        'status': 'database_error',
-                        'error': error
-                    })
+                    status = 'content_error'
+                    
+                results['details'].append({
+                    'lottery_type': lottery_type,
+                    'url': url,
+                    'filepath': filepath,
+                    'status': status,
+                    'error': error
+                })
             else:
                 results['failure'] += 1
                 results['details'].append({
                     'lottery_type': lottery_type,
                     'url': url,
-                    'filepath': None,
-                    'status': 'complete_failure',
-                    'error': error
+                    'filepath': filepath,
+                    'status': 'database_error',
+                    'error': 'Failed to update database'
                 })
+        else:
+            # Complete failure - could not create even a placeholder
+            results['failure'] += 1
+            results['details'].append({
+                'lottery_type': lottery_type,
+                'url': url,
+                'filepath': None,
+                'status': 'complete_failure',
+                'error': error or 'Unknown error'
+            })
     
     return results
 
