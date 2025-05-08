@@ -2103,6 +2103,51 @@ def cleanup_screenshots():
     
     return redirect(url_for('export_screenshots'))
 
+@app.route('/fix-screenshot-rendering', methods=['POST'])
+@login_required
+@csrf.exempt
+def fix_screenshot_rendering_route():
+    """Fix screenshot rendering by ensuring all screenshots are proper PNG files"""
+    if not current_user.is_admin:
+        flash('You must be an admin to fix screenshot rendering.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        # Import the rendering fix module
+        import fix_screenshot_rendering
+        
+        # Run the comprehensive fix
+        with app.app_context():
+            results = fix_screenshot_rendering.fix_all_screenshots()
+        
+        if results.get('success', False):
+            message = f"Successfully fixed {results.get('fixed', 0)} of {results.get('total', 0)} screenshots."
+            
+            # Store success message in session
+            session['sync_status'] = {
+                'status': 'success',
+                'message': message
+            }
+        else:
+            error_msg = results.get('error', 'Unknown error')
+            app.logger.error(f"Error fixing screenshot rendering: {error_msg}")
+            
+            # Store error message in session
+            session['sync_status'] = {
+                'status': 'danger',
+                'message': f'Error fixing screenshot rendering: {error_msg}'
+            }
+    except Exception as e:
+        app.logger.error(f"Error in fix_screenshot_rendering route: {str(e)}")
+        traceback.print_exc()
+        
+        session['sync_status'] = {
+            'status': 'danger',
+            'message': f'Error fixing screenshot rendering: {str(e)}'
+        }
+    
+    return redirect(url_for('export_screenshots'))
+
 @app.route('/fix-screenshot-extensions', methods=['POST'])
 @login_required
 @csrf.exempt
