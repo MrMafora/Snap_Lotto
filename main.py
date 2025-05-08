@@ -1896,6 +1896,56 @@ def view_zoomed_screenshot(screenshot_id):
         # Generic handler for other file types
         return send_from_directory(directory, filename)
 
+@app.route('/download-screenshot/<int:screenshot_id>')
+@login_required
+def download_screenshot(screenshot_id):
+    """
+    Download a screenshot as an attachment
+    
+    Args:
+        screenshot_id (int): ID of the screenshot
+        
+    Returns:
+        Response: File download response
+    """
+    try:
+        # Get the screenshot
+        screenshot = Screenshot.query.get_or_404(screenshot_id)
+        
+        # Create a proper filename for the download
+        filename = f"{screenshot.lottery_type.replace(' ', '_')}_{screenshot.timestamp.strftime('%Y%m%d')}.png"
+        
+        # Check if file exists and has content
+        if not screenshot.path:
+            flash(f"Screenshot path is missing for {screenshot.lottery_type}", "warning")
+            return redirect(url_for('export_screenshots'))
+            
+        if not os.path.exists(screenshot.path):
+            flash(f"Screenshot file not found: {screenshot.path}", "warning")
+            return redirect(url_for('export_screenshots'))
+            
+        if os.path.getsize(screenshot.path) == 0:
+            flash(f"Screenshot file is empty: {screenshot.path}", "warning")
+            return redirect(url_for('export_screenshots'))
+            
+        # Get directory and basename for send_from_directory
+        directory = os.path.dirname(screenshot.path)
+        basename = os.path.basename(screenshot.path)
+        
+        # Use send_from_directory for reliable delivery
+        return send_from_directory(
+            directory, 
+            basename,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='image/png'
+        )
+            
+    except Exception as e:
+        app.logger.error(f"Error downloading screenshot {screenshot_id}: {str(e)}")
+        flash(f"Error downloading screenshot: {str(e)}", "danger")
+        return redirect(url_for('export_screenshots'))
+
 @app.route('/sync-all-screenshots', methods=['POST'])
 @login_required
 @csrf.exempt
