@@ -184,8 +184,47 @@ def capture_screenshot_with_requests(url, lottery_type):
             'Cache-Control': 'max-age=0'
         }
         
-        # Make the request with a timeout
-        response = requests.get(url, headers=headers, timeout=30)
+        # Make the request with a timeout and disable automatic decompression
+        # to avoid issues with gzip content
+        try:
+            session = requests.Session()
+            # Disable automatic content decompression to avoid chunk errors
+            session.mount('https://', requests.adapters.HTTPAdapter(max_retries=3))
+            session.headers.update(headers)
+            response = session.get(url, timeout=30, stream=True)
+            
+            # Manually read the response content without allowing auto-decompression
+            content = b''
+            for chunk in response.raw.read(1024):
+                if not chunk:
+                    break
+                content += chunk
+                
+            # Convert bytes to string for content preview, handling encoding issues
+            try:
+                response.encoding = response.apparent_encoding
+                response._content = content  # Set the content manually
+                response.text  # Access text property to decode content
+            except:
+                # If decoding fails, create a basic string representation
+                response._content = content
+                response.text = str(content)
+                
+        except (requests.exceptions.RequestException, requests.exceptions.ConnectionError,
+                requests.exceptions.ChunkedEncodingError, requests.exceptions.Timeout) as e:
+            # Handle request errors with a detailed error message
+            logger.error(f"Request error: {type(e).__name__}: {str(e)}")
+            error_msg = f"Connection error: {type(e).__name__}"
+            
+            # Create a placeholder with the connection error information
+            filepath, image_data = create_placeholder_image(
+                lottery_type, 
+                timestamp=timestamp,
+                error_message=error_msg,
+                url=url
+            )
+            
+            return filepath, image_data, error_msg
         
         # Check if request was successful
         if response.status_code == 200:
