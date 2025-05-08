@@ -430,7 +430,7 @@
                                 <!-- Loading spinner shown until preview loads -->
                                 <div class="loading-spinner"></div>
                                 <!-- Using server-side rendering to bypass iframe restrictions -->
-                                <img data-src="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
+                                <img data-src="{{ url_for('download_screenshot', screenshot_id=screenshot.id) }}" 
                                      class="preview-image"
                                      alt="{{ screenshot.lottery_type }} live preview"
                                      style="display: none; max-width: 100%; height: auto;"
@@ -451,9 +451,8 @@
                                 <div class="mt-auto pt-3">
                                             
                                     <div class="d-flex justify-content-between gap-1 mb-2">
-                                        <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
-                                           class="btn btn-sm btn-primary flex-fill" 
-                                           download="{{ screenshot.lottery_type|replace(' ', '_') }}_{{ screenshot.timestamp.strftime('%Y%m%d') }}.png">
+                                        <a href="{{ url_for('download_screenshot', screenshot_id=screenshot.id) }}" 
+                                           class="btn btn-sm btn-primary flex-fill">
                                             <i class="fas fa-download me-1"></i> Download
                                         </a>
                                         {% if screenshot.zoomed_path %}
