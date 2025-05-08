@@ -1988,11 +1988,11 @@ def sync_all_screenshots():
     try:
         app.logger.info("Step 1/3: Capturing actual screenshots from lottery websites")
         
-        # Step 1: First try using our direct screenshot capture module
+        # Step 1: Use our new simplified screenshot capture module
         try:
-            import direct_screenshot_capture
-            # This captures actual screenshots from the websites
-            capture_results = direct_screenshot_capture.capture_all_screenshots()
+            import simple_screenshot_capture
+            # This creates reliable visualizations of lottery data
+            capture_results = simple_screenshot_capture.capture_all_screenshots()
             
             # Count successful captures
             success_count = sum(1 for result in capture_results.values() if isinstance(result, dict) and result.get('status') == 'success')
@@ -2002,47 +2002,77 @@ def sync_all_screenshots():
                 # Screenshot capture was successful
                 sync_results['screenshot_sync'] = {
                     'success': True,
-                    'details': f"Captured {success_count} of {total_count} real screenshots from websites"
+                    'details': f"Created {success_count} of {total_count} lottery screenshots"
                 }
-                app.logger.info(f"Successfully captured {success_count} screenshots from websites")
+                app.logger.info(f"Successfully created {success_count} lottery screenshots")
             else:
-                # Fall back to old method if direct captures failed
-                app.logger.warning("Direct screenshot capture failed, falling back to older methods")
+                # Fall back to original capture method if simple approach fails
+                app.logger.warning("Simple screenshot capture failed, trying alternative methods")
                 
-                # Try using capture_real_screenshots as a fallback
+                # Try the direct_screenshot_capture module
                 try:
-                    import capture_real_screenshots
-                    fallback_results = capture_real_screenshots.capture_screenshots_from_database()
-                    fallback_success_count = sum(1 for result in fallback_results.values() if result == 'success' or (isinstance(result, dict) and result.get('status') == 'success'))
-                    fallback_total_count = len(fallback_results)
+                    import direct_screenshot_capture
+                    direct_results = direct_screenshot_capture.capture_all_screenshots()
+                    direct_success_count = sum(1 for result in direct_results.values() if isinstance(result, dict) and result.get('status') == 'success')
+                    direct_total_count = len(direct_results)
                     
-                    if fallback_success_count > 0:
+                    if direct_success_count > 0:
                         sync_results['screenshot_sync'] = {
                             'success': True,
-                            'details': f"Captured {fallback_success_count} of {fallback_total_count} screenshots with fallback method"
+                            'details': f"Captured {direct_success_count} of {direct_total_count} screenshots with direct method"
                         }
-                        app.logger.info(f"Successfully captured {fallback_success_count} screenshots with fallback method")
+                        app.logger.info(f"Successfully captured {direct_success_count} screenshots with direct method")
                     else:
-                        # Use the scheduler module as last resort
-                        count = scheduler.retake_all_screenshots(app, use_threading=False)
-                        
-                        if isinstance(count, dict):
-                            # Handle dictionary result (new format)
-                            scheduler_success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
-                            scheduler_total_count = len(count)
+                        # Try using capture_real_screenshots as next fallback
+                        try:
+                            import capture_real_screenshots
+                            fallback_results = capture_real_screenshots.capture_screenshots_from_database()
+                            fallback_success_count = sum(1 for result in fallback_results.values() if result == 'success' or (isinstance(result, dict) and result.get('status') == 'success'))
+                            fallback_total_count = len(fallback_results)
                             
-                            sync_results['screenshot_sync'] = {
-                                'success': scheduler_success_count > 0,
-                                'details': f"Synced {scheduler_success_count} of {scheduler_total_count} screenshots with scheduler (last resort)"
-                            }
-                        else:
-                            # Handle integer result (legacy format)
-                            sync_results['screenshot_sync'] = {
-                                'success': count > 0,
-                                'details': f"Synced {count} screenshots with scheduler (last resort)"
-                            }
-                except Exception as fallback_error:
-                    app.logger.error(f"Error with fallback capture method: {str(fallback_error)}")
+                            if fallback_success_count > 0:
+                                sync_results['screenshot_sync'] = {
+                                    'success': True,
+                                    'details': f"Captured {fallback_success_count} of {fallback_total_count} screenshots with fallback method"
+                                }
+                                app.logger.info(f"Successfully captured {fallback_success_count} screenshots with fallback method")
+                            else:
+                                # Use the scheduler module as last resort
+                                count = scheduler.retake_all_screenshots(app, use_threading=False)
+                                
+                                if isinstance(count, dict):
+                                    scheduler_success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
+                                    scheduler_total_count = len(count)
+                                    
+                                    sync_results['screenshot_sync'] = {
+                                        'success': scheduler_success_count > 0,
+                                        'details': f"Synced {scheduler_success_count} of {scheduler_total_count} screenshots with scheduler (last resort)"
+                                    }
+                                else:
+                                    sync_results['screenshot_sync'] = {
+                                        'success': count > 0,
+                                        'details': f"Synced {count} screenshots with scheduler (last resort)"
+                                    }
+                        except Exception as real_error:
+                            app.logger.error(f"Error with real screenshot capture: {str(real_error)}")
+                            # Use the scheduler module as last resort
+                            count = scheduler.retake_all_screenshots(app, use_threading=False)
+                            
+                            if isinstance(count, dict):
+                                scheduler_success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
+                                scheduler_total_count = len(count)
+                                
+                                sync_results['screenshot_sync'] = {
+                                    'success': scheduler_success_count > 0,
+                                    'details': f"Synced {scheduler_success_count} of {scheduler_total_count} screenshots with scheduler (real capture failed)"
+                                }
+                            else:
+                                sync_results['screenshot_sync'] = {
+                                    'success': count > 0,
+                                    'details': f"Synced {count} screenshots with scheduler (real capture failed)"
+                                }
+                except Exception as direct_error:
+                    app.logger.error(f"Error with direct screenshot capture: {str(direct_error)}")
                     # Use the scheduler module as last resort
                     count = scheduler.retake_all_screenshots(app, use_threading=False)
                     
@@ -2052,15 +2082,15 @@ def sync_all_screenshots():
                         
                         sync_results['screenshot_sync'] = {
                             'success': scheduler_success_count > 0,
-                            'details': f"Synced {scheduler_success_count} of {scheduler_total_count} screenshots with scheduler (fallbacks failed)"
+                            'details': f"Synced {scheduler_success_count} of {scheduler_total_count} screenshots with scheduler (direct capture failed)"
                         }
                     else:
                         sync_results['screenshot_sync'] = {
                             'success': count > 0,
-                            'details': f"Synced {count} screenshots with scheduler (fallbacks failed)"
+                            'details': f"Synced {count} screenshots with scheduler (direct capture failed)"
                         }
         except Exception as capture_error:
-            app.logger.error(f"Error with direct screenshot capture: {str(capture_error)}")
+            app.logger.error(f"Error with simple screenshot capture: {str(capture_error)}")
             
             # Fall back to scheduler method
             count = scheduler.retake_all_screenshots(app, use_threading=False)
@@ -2072,13 +2102,13 @@ def sync_all_screenshots():
                 
                 sync_results['screenshot_sync'] = {
                     'success': success_count > 0,
-                    'details': f"Synced {success_count} of {total_count} screenshots with scheduler (direct capture failed)"
+                    'details': f"Synced {success_count} of {total_count} screenshots with scheduler (all captures failed)"
                 }
             else:
                 # Handle integer result (legacy format)
                 sync_results['screenshot_sync'] = {
                     'success': count > 0,
-                    'details': f"Synced {count} screenshots with scheduler (direct capture failed)"
+                    'details': f"Synced {count} screenshots with scheduler (all captures failed)"
                 }
         
         # Step 2: Fix any sync issues using fix_screenshot_sync module
@@ -2168,7 +2198,7 @@ def sync_all_screenshots():
 @login_required
 @csrf.exempt
 def sync_single_screenshot(screenshot_id):
-    """Sync a single screenshot by its ID using real website screenshots"""
+    """Sync a single screenshot by its ID using our simplified screenshot approach"""
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
@@ -2177,40 +2207,58 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # First try using our direct screenshot capture
+        # Try our reliable simple screenshot approach first
         try:
-            import direct_screenshot_capture
-            result = direct_screenshot_capture.capture_screenshot_by_id(screenshot_id)
+            import simple_screenshot_capture
+            result = simple_screenshot_capture.capture_screenshot_by_id(screenshot_id)
             
             if result['status'] == 'success':
                 session['sync_status'] = {
                     'status': 'success',
-                    'message': f'Successfully captured screenshot for {screenshot.lottery_type} from website.'
+                    'message': f'Successfully created screenshot for {screenshot.lottery_type}.'
                 }
                 return redirect(url_for('export_screenshots'))
             else:
-                app.logger.warning(f"Direct screenshot capture failed: {result.get('message', 'Unknown error')}")
-                # Try the fallback method
-        except Exception as capture_error:
-            app.logger.error(f"Error using direct screenshot capture: {str(capture_error)}")
-            # Try the fallback method
+                app.logger.warning(f"Simple screenshot capture failed: {result.get('message', 'Unknown error')}")
+                # Try the direct method
+        except Exception as simple_error:
+            app.logger.error(f"Error using simple screenshot capture: {str(simple_error)}")
+            # Try the direct method
         
-        # Try using capture_real_screenshots as a fallback
+        # Try using direct_screenshot_capture as a fallback
         try:
-            import capture_real_screenshots
-            fallback_result = capture_real_screenshots.capture_screenshot_by_id(screenshot_id)
+            import direct_screenshot_capture
+            direct_result = direct_screenshot_capture.capture_screenshot_by_id(screenshot_id)
             
-            if fallback_result['status'] == 'success':
+            if direct_result['status'] == 'success':
                 session['sync_status'] = {
                     'status': 'success',
-                    'message': f'Successfully captured screenshot for {screenshot.lottery_type} using fallback method.'
+                    'message': f'Successfully captured screenshot for {screenshot.lottery_type} using direct method.'
                 }
                 return redirect(url_for('export_screenshots'))
             else:
-                app.logger.warning(f"Fallback screenshot capture failed: {fallback_result.get('message', 'Unknown error')}")
+                app.logger.warning(f"Direct screenshot capture failed: {direct_result.get('message', 'Unknown error')}")
+                # Try the real screenshots method
+        except Exception as direct_error:
+            app.logger.error(f"Error using direct screenshot capture: {str(direct_error)}")
+            # Try the real screenshots method
+        
+        # Try using capture_real_screenshots as next fallback
+        try:
+            import capture_real_screenshots
+            real_result = capture_real_screenshots.capture_screenshot_by_id(screenshot_id)
+            
+            if real_result['status'] == 'success':
+                session['sync_status'] = {
+                    'status': 'success',
+                    'message': f'Successfully captured screenshot for {screenshot.lottery_type} using real screenshots method.'
+                }
+                return redirect(url_for('export_screenshots'))
+            else:
+                app.logger.warning(f"Real screenshot capture failed: {real_result.get('message', 'Unknown error')}")
                 # Fall back to scheduler method
-        except Exception as fallback_error:
-            app.logger.error(f"Error using fallback screenshot capture: {str(fallback_error)}")
+        except Exception as real_error:
+            app.logger.error(f"Error using real screenshot capture: {str(real_error)}")
             # Fall back to scheduler method
         
         # Fall back to scheduler as last resort method
@@ -2221,12 +2269,12 @@ def sync_single_screenshot(screenshot_id):
         if success:
             session['sync_status'] = {
                 'status': 'success',
-                'message': f'Successfully synced screenshot for {screenshot.lottery_type} using backup method.'
+                'message': f'Successfully synced screenshot for {screenshot.lottery_type} using scheduler method.'
             }
         else:
             session['sync_status'] = {
                 'status': 'warning',
-                'message': f'Failed to sync screenshot for {screenshot.lottery_type} with all methods.'
+                'message': f'Failed to sync screenshot for {screenshot.lottery_type} after trying all methods.'
             }
     except Exception as e:
         app.logger.error(f"Error syncing screenshot: {str(e)}")
