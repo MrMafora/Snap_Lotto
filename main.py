@@ -3240,6 +3240,25 @@ ad_management.register_ad_routes(app)
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
 
+# Screenshot Fix Route
+@app.route('/fix-screenshot-capture', methods=['GET', 'POST'])
+@login_required
+def fix_screenshot_capture_route():
+    """Route to fix screenshot capture issues"""
+    from fix_screenshot_capture import capture_all_screenshots
+    
+    # Capture screenshots for all lottery types
+    results = capture_all_screenshots()
+    
+    # Log results
+    app.logger.info(f"Screenshot capture results: {results['success']} successful, {results['failure']} failed")
+    
+    # Flash message to user
+    flash(f"Screenshot capture completed: {results['success']} successful, {results['failure']} failed", "info")
+    
+    # Redirect back to screenshots page
+    return redirect(url_for('export_screenshots'))
+
 # API Request Tracking routes
 @app.route('/admin/api-tracking')
 @login_required

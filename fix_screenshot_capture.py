@@ -1,239 +1,367 @@
 """
-Fix screenshot capture to ensure PNG images are saved
+Fix Screenshot Capture
 
-This script:
-1. Updates the selenium_screenshot_manager.py to use wkhtmltoimage for PNG generation
-2. Ensures screenshots are always saved as proper images, not text files
-3. Manually triggers new screenshot captures to update all images
+This script directly captures screenshots using Playwright and updates the database
 """
 import os
 import sys
 import logging
-import subprocess
-from datetime import datetime
 import time
-import shutil
-from flask import Flask
+from datetime import datetime
+from PIL import Image, ImageDraw, ImageFont
 from config import Config
-from models import db, Screenshot
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging
+logging.basicConfig(level=logging.INFO, 
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def install_wkhtmltoimage():
-    """Install wkhtmltoimage if not already installed"""
-    try:
-        # Check if wkhtmltoimage is already installed
-        result = subprocess.run(['which', 'wkhtmltoimage'], capture_output=True)
-        if result.returncode == 0:
-            logger.info("wkhtmltoimage is already installed")
-            return True
-            
-        # Install wkhtmltoimage if not installed
-        logger.info("Installing wkhtmltoimage...")
-        subprocess.run(['apt-get', 'update'], check=True)
-        subprocess.run(['apt-get', 'install', '-y', 'wkhtmltopdf'], check=True)
-        logger.info("wkhtmltoimage installed successfully")
-        return True
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Error installing wkhtmltoimage: {str(e)}")
-        return False
+# Ensure screenshot directory exists
+os.makedirs('screenshots', exist_ok=True)
 
-def update_screenshot_capture_function():
+# URLs to capture
+LOTTERY_URLS = [
+    {'url': 'https://www.nationallottery.co.za/results/lotto', 'lottery_type': 'Lotto'},
+    {'url': 'https://www.nationallottery.co.za/results/lotto-plus-1-results', 'lottery_type': 'Lotto Plus 1'},
+    {'url': 'https://www.nationallottery.co.za/results/lotto-plus-2-results', 'lottery_type': 'Lotto Plus 2'},
+    {'url': 'https://www.nationallottery.co.za/results/powerball', 'lottery_type': 'Powerball'},
+    {'url': 'https://www.nationallottery.co.za/results/powerball-plus', 'lottery_type': 'Powerball Plus'},
+    {'url': 'https://www.nationallottery.co.za/results/daily-lotto', 'lottery_type': 'Daily Lotto'},
+    {'url': 'https://www.nationallottery.co.za/lotto-history', 'lottery_type': 'Lotto History'},
+    {'url': 'https://www.nationallottery.co.za/lotto-plus-1-history', 'lottery_type': 'Lotto Plus 1 History'},
+    {'url': 'https://www.nationallottery.co.za/lotto-plus-2-history', 'lottery_type': 'Lotto Plus 2 History'},
+    {'url': 'https://www.nationallottery.co.za/powerball-history', 'lottery_type': 'Powerball History'},
+    {'url': 'https://www.nationallottery.co.za/powerball-plus-history', 'lottery_type': 'Powerball Plus History'},
+    {'url': 'https://www.nationallottery.co.za/daily-lotto-history', 'lottery_type': 'Daily Lotto History'}
+]
+
+def create_placeholder_image(lottery_type, timestamp=None, width=800, height=600):
     """
-    Update selenium_screenshot_manager.py to ensure it always saves PNG images
-    by using wkhtmltoimage as a backup method
+    Create a placeholder image with lottery information
+    
+    Args:
+        lottery_type (str): Type of lottery
+        timestamp (datetime, optional): Timestamp for the image
+        width (int): Width of the image
+        height (int): Height of the image
+        
+    Returns:
+        tuple: (filepath, image_data)
     """
     try:
-        file_path = "selenium_screenshot_manager.py"
-        # Make a backup first
-        backup_path = f"{file_path}.backup_{int(time.time())}"
-        shutil.copy2(file_path, backup_path)
-        logger.info(f"Created backup at {backup_path}")
+        # Create a timestamp if not provided
+        ts = timestamp or datetime.now()
+        ts_str = ts.strftime("%Y%m%d_%H%M%S")
         
-        # Read the file contents
-        with open(file_path, 'r') as f:
-            content = f.read()
-            
-        # Check if the file already has the wkhtmltoimage function
-        if "def capture_with_wkhtmltoimage(" in content:
-            logger.info("wkhtmltoimage function already exists in the file")
-            return True
-            
-        # Add the wkhtmltoimage function and update the capture function
-        wkhtmltoimage_function = """
-# Added wkhtmltoimage capture function
-def capture_with_wkhtmltoimage(url, output_path, lottery_type=None):
-    '''
-    Capture a screenshot using wkhtmltoimage command line tool
-    This is a more reliable method for capturing screenshots
-    '''
+        # Create filename
+        filename = f"{ts_str}_{lottery_type.lower().replace(' ', '-').replace('/', '-')}.png"
+        filepath = os.path.join('screenshots', filename)
+        
+        # Create a blank image with white background
+        image = Image.new('RGB', (width, height), color=(255, 255, 255))
+        draw = ImageDraw.Draw(image)
+        
+        # Draw header background
+        draw.rectangle([(0, 0), (width, 60)], fill=(0, 51, 102))  # Dark blue header
+        
+        # Draw title
+        title = f"{lottery_type} Screenshot"
+        draw.text((20, 20), title, fill=(255, 255, 255))  # White text
+        
+        # Draw timestamp
+        timestamp_str = ts.strftime("%Y-%m-%d %H:%M:%S")
+        draw.text((20, 80), f"Generated: {timestamp_str}", fill=(0, 0, 0))
+        
+        # Draw information
+        draw.text((20, 120), "This is a placeholder screenshot.", fill=(0, 0, 0))
+        draw.text((20, 150), "The actual screenshot could not be captured.", fill=(0, 0, 0))
+        draw.text((20, 180), "Please try regenerating the screenshot.", fill=(0, 0, 0))
+        
+        # Save the image
+        image.save(filepath)
+        
+        # Read the image data
+        with open(filepath, 'rb') as f:
+            image_data = f.read()
+        
+        logger.info(f"Created placeholder image: {filepath}")
+        
+        return filepath, image_data
+    except Exception as e:
+        logger.error(f"Failed to create placeholder image: {str(e)}")
+        return None, None
+
+def capture_screenshot_with_playwright(url, lottery_type):
+    """
+    Capture a screenshot using Playwright
+    
+    Args:
+        url (str): URL to capture
+        lottery_type (str): Type of lottery
+        
+    Returns:
+        tuple: (filepath, screenshot_data, error_message)
+    """
     try:
-        lottery_name = lottery_type or "Unknown"
-        logger.info(f"[{lottery_name}] Capturing screenshot with wkhtmltoimage: {url}")
+        # Create a timestamp for the filename
+        timestamp = datetime.now()
+        timestamp_str = timestamp.strftime("%Y%m%d_%H%M%S")
+        filename = f"{timestamp_str}_{lottery_type.lower().replace(' ', '-').replace('/', '-')}.png"
+        filepath = os.path.join('screenshots', filename)
         
-        # Create a temporary HTML file to store any cookies or headers needed
-        cookie_file = os.path.join(os.getcwd(), 'cookies.txt')
+        logger.info(f"Capturing screenshot from {url} for {lottery_type}")
         
-        # Run wkhtmltoimage command
-        cmd = [
-            'wkhtmltoimage',
-            '--quality', '100',
-            '--width', '1200',
-            '--height', '1500',
-            '--javascript-delay', '5000',  # Wait for JavaScript execution (5 seconds)
-            '--no-stop-slow-scripts',  # Don't stop slow running JavaScript
-            url,
-            output_path
+        # Import playwright here to avoid import issues
+        from playwright.sync_api import sync_playwright
+        
+        # Define user agents for rotation
+        user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:95.0) Gecko/20100101 Firefox/95.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:96.0) Gecko/20100101 Firefox/96.0'
         ]
+        import random
+        user_agent = random.choice(user_agents)
         
-        # Add cookie file if it exists
-        if os.path.exists(cookie_file):
-            cmd.insert(1, f'--cookie-jar')
-            cmd.insert(2, cookie_file)
+        with sync_playwright() as p:
+            # Launch browser with additional arguments to improve stability
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    '--no-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-setuid-sandbox',
+                    '--disable-gpu',
+                    '--disable-software-rasterizer'
+                ]
+            )
             
-        # Execute the command
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        
-        if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-            logger.info(f"[{lottery_name}] Successfully captured screenshot with wkhtmltoimage")
-            with open(output_path, 'rb') as f:
-                screenshot_data = f.read()
-            return output_path, screenshot_data, None
-        else:
-            error_msg = f"wkhtmltoimage failed or created an empty file: {result.stderr}"
-            logger.error(f"[{lottery_name}] {error_msg}")
-            return None, None, error_msg
-    except Exception as e:
-        error_msg = f"Error using wkhtmltoimage: {str(e)}"
-        logger.error(f"[{lottery_name}] {error_msg}")
-        return None, None, error_msg
-"""
-
-        # Update the fallback method in the capture_screenshot function to use wkhtmltoimage
-        # Replace the part that saves HTML content as text files with wkhtmltoimage capture
-        html_fallback_old = """            # Last resort: Save HTML with .txt extension instead of pretending it's a PNG
-            txt_filepath = filepath.replace('.png', '.txt')
-            with open(txt_filepath, 'wb') as f:
-                f.write(html_content)
+            # Create a context with viewport and user agent
+            context = browser.new_context(
+                viewport={'width': 1280, 'height': 1600},
+                user_agent=user_agent
+            )
             
-            logger.warning(f"[{lottery_name}] Saved HTML content to {txt_filepath} with proper .txt extension")
+            # Create a new page
+            page = context.new_page()
             
-            # Log the attempt as successful but note we're using a text file
-            diag.log_sync_attempt(lottery_name, url, True, "Saved HTML content as text file")
+            # Set a timeout for navigation (30 seconds)
+            # A longer timeout helps with slower sites
+            page.set_default_timeout(30000)
             
-            # Return the txt_filepath as the actual filepath that should be used in the database
-            return txt_filepath, html_content, None"""
-            
-        html_fallback_new = """            # Try one more approach using wkhtmltoimage (more reliable HTML to image conversion)
-            logger.info(f"[{lottery_name}] Attempting to capture with wkhtmltoimage")
-            wk_result = capture_with_wkhtmltoimage(url, filepath, lottery_type=lottery_name)
-            
-            if wk_result[0]:
-                logger.info(f"[{lottery_name}] Successfully captured with wkhtmltoimage")
-                diag.log_sync_attempt(lottery_name, url, True, "Captured with wkhtmltoimage")
-                return wk_result
+            try:
+                # Navigate to the URL
+                logger.info(f"Navigating to {url}")
+                page.goto(url, wait_until='networkidle')
                 
-            # Last resort: Save HTML with .txt extension instead of pretending it's a PNG
-            txt_filepath = filepath.replace('.png', '.txt')
-            with open(txt_filepath, 'wb') as f:
-                f.write(html_content)
-            
-            logger.warning(f"[{lottery_name}] Saved HTML content to {txt_filepath} with proper .txt extension")
-            
-            # Log the attempt as successful but note we're using a text file
-            diag.log_sync_attempt(lottery_name, url, True, "Saved HTML content as text file")
-            
-            # Return the txt_filepath as the actual filepath that should be used in the database
-            return txt_filepath, html_content, None"""
-            
-        # Insert the wkhtmltoimage function after the imports
-        import_section_end = "MAX_CONCURRENT_THREADS = 6"
-        updated_content = content.replace(import_section_end, f"{import_section_end}\n\n{wkhtmltoimage_function}")
-        
-        # Update the fallback method
-        updated_content = updated_content.replace(html_fallback_old, html_fallback_new)
-        
-        # Write the updated content
-        with open(file_path, 'w') as f:
-            f.write(updated_content)
-            
-        logger.info("Updated selenium_screenshot_manager.py with wkhtmltoimage support")
-        return True
+                # Wait for content to load (additional waiting)
+                logger.info(f"Waiting for page to stabilize")
+                page.wait_for_load_state('networkidle')
+                
+                # Additional wait for JavaScript rendering
+                time.sleep(3)
+                
+                # Take the screenshot
+                logger.info(f"Taking screenshot")
+                screenshot_data = page.screenshot(path=filepath, full_page=True)
+                
+                # Verify the screenshot was saved
+                if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                    logger.info(f"Screenshot successfully saved to {filepath}")
+                    return filepath, screenshot_data, None
+                else:
+                    logger.error(f"Screenshot file missing or empty: {filepath}")
+                    return None, None, "Screenshot file missing or empty"
+                
+            except Exception as e:
+                logger.error(f"Error during screenshot capture: {str(e)}")
+                return None, None, str(e)
+            finally:
+                # Always close these resources
+                page.close()
+                context.close()
+                browser.close()
+                
     except Exception as e:
-        logger.error(f"Error updating selenium_screenshot_manager.py: {str(e)}")
+        logger.error(f"Error in capture_screenshot_with_playwright: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None, None, str(e)
+
+def update_screenshot_in_db(lottery_type, url, filepath):
+    """
+    Update or create screenshot record in database
+    
+    Args:
+        lottery_type (str): Type of lottery
+        url (str): URL of the screenshot
+        filepath (str): Path to the screenshot file
+        
+    Returns:
+        bool: Success status
+    """
+    try:
+        # Import DB models
+        from models import db, Screenshot
+        from main import app
+        
+        with app.app_context():
+            # Check if a screenshot record already exists for this lottery type
+            existing_screenshot = Screenshot.query.filter_by(lottery_type=lottery_type).first()
+            
+            if existing_screenshot:
+                # Update existing screenshot
+                existing_screenshot.url = url
+                existing_screenshot.path = filepath
+                existing_screenshot.timestamp = datetime.now()
+                db.session.commit()
+                logger.info(f"Updated existing screenshot record for {lottery_type}")
+                return True
+            else:
+                # Create new screenshot record
+                new_screenshot = Screenshot(
+                    lottery_type=lottery_type,
+                    url=url,
+                    path=filepath,
+                    timestamp=datetime.now()
+                )
+                db.session.add(new_screenshot)
+                db.session.commit()
+                logger.info(f"Created new screenshot record for {lottery_type}")
+                return True
+    except Exception as e:
+        logger.error(f"Database error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
-def trigger_new_screenshots():
-    """Trigger new screenshots for all lottery types"""
-    try:
-        # Import the updated module to ensure we use the new version
-        from importlib import reload
-        import selenium_screenshot_manager
-        reload(selenium_screenshot_manager)
-        import fix_screenshot_sync
-        reload(fix_screenshot_sync)
+def capture_all_screenshots():
+    """
+    Capture screenshots for all lottery types
+    
+    Returns:
+        dict: Results of the capture process
+    """
+    results = {
+        'total': len(LOTTERY_URLS),
+        'success': 0,
+        'failure': 0,
+        'details': []
+    }
+    
+    for item in LOTTERY_URLS:
+        url = item['url']
+        lottery_type = item['lottery_type']
         
-        logger.info("Triggering new screenshots for all lottery types")
+        logger.info(f"Processing {lottery_type}: {url}")
         
-        # Get all screenshot records
-        screenshots = Screenshot.query.all()
-        logger.info(f"Found {len(screenshots)} screenshot records")
+        # Try to capture the screenshot
+        filepath, data, error = capture_screenshot_with_playwright(url, lottery_type)
         
-        success_count = 0
-        for screenshot in screenshots:
-            try:
-                logger.info(f"Syncing screenshot for {screenshot.lottery_type}...")
-                result = selenium_screenshot_manager.sync_single_screenshot(screenshot.id)
-                if result:
-                    success_count += 1
-                    logger.info(f"Successfully synced screenshot for {screenshot.lottery_type}")
-                else:
-                    logger.warning(f"Failed to sync screenshot for {screenshot.lottery_type}")
-            except Exception as e:
-                logger.error(f"Error syncing screenshot for {screenshot.lottery_type}: {str(e)}")
+        if filepath and data:
+            # Screenshot captured successfully
+            update_success = update_screenshot_in_db(lottery_type, url, filepath)
+            
+            if update_success:
+                results['success'] += 1
+                results['details'].append({
+                    'lottery_type': lottery_type,
+                    'url': url,
+                    'filepath': filepath,
+                    'status': 'success'
+                })
+            else:
+                results['failure'] += 1
+                results['details'].append({
+                    'lottery_type': lottery_type,
+                    'url': url,
+                    'filepath': filepath,
+                    'status': 'database_error'
+                })
+        else:
+            # Failed to capture screenshot, create placeholder
+            logger.warning(f"Failed to capture screenshot for {lottery_type}. Creating placeholder.")
+            placeholder_path, placeholder_data = create_placeholder_image(lottery_type)
+            
+            if placeholder_path:
+                update_success = update_screenshot_in_db(lottery_type, url, placeholder_path)
                 
-        # Reload the application to update all images
-        logger.info("Fixing any screenshot synchronization issues")
-        fix_results = fix_screenshot_sync.fix_lottery_sync_issues()
+                if update_success:
+                    results['failure'] += 1  # Still count as failure since real capture failed
+                    results['details'].append({
+                        'lottery_type': lottery_type,
+                        'url': url,
+                        'filepath': placeholder_path,
+                        'status': 'placeholder_created',
+                        'error': error
+                    })
+                else:
+                    results['failure'] += 1
+                    results['details'].append({
+                        'lottery_type': lottery_type,
+                        'url': url,
+                        'filepath': placeholder_path,
+                        'status': 'database_error',
+                        'error': error
+                    })
+            else:
+                results['failure'] += 1
+                results['details'].append({
+                    'lottery_type': lottery_type,
+                    'url': url,
+                    'filepath': None,
+                    'status': 'complete_failure',
+                    'error': error
+                })
+    
+    return results
+
+def add_routes_to_app():
+    """
+    Add routes to Flask app for screenshot operations
+    """
+    from main import app
+    from flask import jsonify, redirect, url_for, flash
+    from flask_login import login_required
+    
+    @app.route('/fix-screenshot-capture', methods=['GET', 'POST'])
+    @login_required
+    def fix_screenshot_capture_route():
+        """Route to manually fix screenshot capture"""
+        results = capture_all_screenshots()
         
-        return {
-            'screenshots_synced': success_count,
-            'total_screenshots': len(screenshots),
-            'sync_fix_results': fix_results
-        }
-    except Exception as e:
-        logger.error(f"Error triggering new screenshots: {str(e)}")
-        return {
-            'error': str(e)
-        }
+        # Log results
+        logger.info(f"Screenshot capture results: {results['success']} successful, {results['failure']} failed")
+        
+        # Flash message to user
+        flash(f"Screenshot capture completed: {results['success']} successful, {results['failure']} failed", "info")
+        
+        # Redirect back to screenshots page
+        return redirect(url_for('export_screenshots'))
 
 if __name__ == "__main__":
-    # Create a Flask app context
-    app = Flask(__name__)
-    app.config.from_object(Config)
-    db.init_app(app)
+    print("Starting screenshot capture...")
+    results = capture_all_screenshots()
     
-    with app.app_context():
-        print("Starting screenshot capture fix process...")
+    # Print results summary
+    print("\nScreenshot Capture Results:")
+    print(f"Total: {results['total']}")
+    print(f"Success: {results['success']}")
+    print(f"Failure: {results['failure']}")
+    
+    # Print details for each item
+    print("\nDetails:")
+    for item in results['details']:
+        status = item['status']
+        lottery_type = item['lottery_type']
         
-        # Step 1: Install wkhtmltoimage if needed
-        if not install_wkhtmltoimage():
-            print("Failed to install wkhtmltoimage. Proceeding anyway...")
-        
-        # Step 2: Update the screenshot capture function
-        if not update_screenshot_capture_function():
-            print("Failed to update the screenshot capture function")
-            sys.exit(1)
-            
-        # Step 3: Trigger new screenshots
-        print("Triggering new screenshots...")
-        results = trigger_new_screenshots()
-        print(f"Results: {results}")
-        
-        if 'error' in results:
-            print(f"Error triggering new screenshots: {results['error']}")
+        if status == 'success':
+            print(f"✓ {lottery_type}: Screenshot captured successfully")
+        elif status == 'placeholder_created':
+            print(f"⚠ {lottery_type}: Used placeholder image. Error: {item.get('error', 'Unknown')}")
+        elif status == 'database_error':
+            print(f"✗ {lottery_type}: Database update failed")
         else:
-            print(f"Successfully synced {results['screenshots_synced']} of {results['total_screenshots']} screenshots")
-            print("Now the system should be using the latest screenshots with proper PNG images.")
+            print(f"✗ {lottery_type}: Complete failure. Error: {item.get('error', 'Unknown')}")
