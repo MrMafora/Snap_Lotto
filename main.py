@@ -2107,36 +2107,28 @@ def cleanup_screenshots():
 @login_required
 @csrf.exempt
 def fix_screenshot_rendering_route():
-    """Fix screenshot rendering by ensuring all screenshots are proper PNG files"""
+    """Fix screenshot rendering by ensuring all screenshots have correct file extensions"""
     if not current_user.is_admin:
         flash('You must be an admin to fix screenshot rendering.', 'danger')
         return redirect(url_for('index'))
     
     try:
-        # Import the rendering fix module
-        import fix_screenshot_rendering
+        # Use the simpler approach to fix file extensions
+        import simple_fix_download
         
-        # Run the comprehensive fix
+        # Run the fix within app context
         with app.app_context():
-            results = fix_screenshot_rendering.fix_all_screenshots()
+            results = simple_fix_download.fix_file_extensions()
         
-        if results.get('success', False):
-            message = f"Successfully fixed {results.get('fixed', 0)} of {results.get('total', 0)} screenshots."
-            
-            # Store success message in session
-            session['sync_status'] = {
-                'status': 'success',
-                'message': message
-            }
-        else:
-            error_msg = results.get('error', 'Unknown error')
-            app.logger.error(f"Error fixing screenshot rendering: {error_msg}")
-            
-            # Store error message in session
-            session['sync_status'] = {
-                'status': 'danger',
-                'message': f'Error fixing screenshot rendering: {error_msg}'
-            }
+        message = f"Successfully analyzed {results.get('total', 0)} screenshots. "
+        message += f"Fixed {results.get('fixed', 0)} file extensions. "
+        message += f"Found {results.get('html_files', 0)} HTML files and {results.get('png_files', 0)} PNG files."
+        
+        # Store success message in session
+        session['sync_status'] = {
+            'status': 'success',
+            'message': message
+        }
     except Exception as e:
         app.logger.error(f"Error in fix_screenshot_rendering route: {str(e)}")
         traceback.print_exc()
