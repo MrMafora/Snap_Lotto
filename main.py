@@ -1964,27 +1964,69 @@ def sync_all_screenshots():
     sync_results = {}
     
     try:
-        app.logger.info("Step 1/3: Syncing all screenshots from source URLs")
+        app.logger.info("Step 1/3: Capturing actual screenshots from lottery websites")
         
-        # Step 1: Use the scheduler module to retake all screenshots
-        # Don't use threading for UI operations to ensure synchronous behavior
-        count = scheduler.retake_all_screenshots(app, use_threading=False)
-        
-        if isinstance(count, dict):
-            # Handle dictionary result (new format)
-            success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
-            total_count = len(count)
+        # Step 1: First try using the real screenshots capture module
+        try:
+            import capture_real_screenshots
+            # This captures actual screenshots from the websites
+            capture_results = capture_real_screenshots.capture_screenshots_from_database()
             
-            sync_results['screenshot_sync'] = {
-                'success': success_count > 0,
-                'details': f"Synced {success_count} of {total_count} screenshots"
-            }
-        else:
-            # Handle integer result (legacy format)
-            sync_results['screenshot_sync'] = {
-                'success': count > 0,
-                'details': f"Synced {count} screenshots"
-            }
+            # Count successful captures
+            success_count = sum(1 for result in capture_results.values() if result.get('status') == 'success')
+            total_count = len(capture_results)
+            
+            if success_count > 0:
+                # Screenshot capture was successful
+                sync_results['screenshot_sync'] = {
+                    'success': True,
+                    'details': f"Captured {success_count} of {total_count} real screenshots from websites"
+                }
+                app.logger.info(f"Successfully captured {success_count} screenshots from websites")
+            else:
+                # Fall back to scheduler method if real captures failed
+                app.logger.warning("Website screenshot capture failed, falling back to scheduler method")
+                
+                # Use the scheduler module to retake all screenshots
+                # Don't use threading for UI operations to ensure synchronous behavior
+                count = scheduler.retake_all_screenshots(app, use_threading=False)
+                
+                if isinstance(count, dict):
+                    # Handle dictionary result (new format)
+                    success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
+                    total_count = len(count)
+                    
+                    sync_results['screenshot_sync'] = {
+                        'success': success_count > 0,
+                        'details': f"Synced {success_count} of {total_count} screenshots with scheduler"
+                    }
+                else:
+                    # Handle integer result (legacy format)
+                    sync_results['screenshot_sync'] = {
+                        'success': count > 0,
+                        'details': f"Synced {count} screenshots with scheduler"
+                    }
+        except Exception as capture_error:
+            app.logger.error(f"Error capturing screenshots: {str(capture_error)}")
+            
+            # Fall back to scheduler method
+            count = scheduler.retake_all_screenshots(app, use_threading=False)
+            
+            if isinstance(count, dict):
+                # Handle dictionary result (new format)
+                success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
+                total_count = len(count)
+                
+                sync_results['screenshot_sync'] = {
+                    'success': success_count > 0,
+                    'details': f"Synced {success_count} of {total_count} screenshots with scheduler (capture failed)"
+                }
+            else:
+                # Handle integer result (legacy format)
+                sync_results['screenshot_sync'] = {
+                    'success': count > 0,
+                    'details': f"Synced {count} screenshots with scheduler (capture failed)"
+                }
         
         # Step 2: Fix any sync issues using fix_screenshot_sync module
         app.logger.info("Step 2/3: Fixing any synchronization issues between lottery types")
