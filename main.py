@@ -48,6 +48,14 @@ try:
 except Exception as e:
     logger.error(f"Failed to load port proxy auto-starter: {e}")
 
+# Apply screenshot enhancements
+try:
+    import enhance_screenshots
+    # Screenshot enhancements will be loaded after app initialization
+    logger.info("Screenshot enhancement module loaded")
+except Exception as e:
+    logger.error(f"Failed to load screenshot enhancements: {str(e)}")
+
 # Create the Flask application
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -175,6 +183,14 @@ def init_lazy_modules():
     with app.app_context():
         scheduler.init_scheduler(app)
         health_monitor.init_health_monitor(app, db)
+        
+        # Apply screenshot enhancements after app initialization
+        try:
+            import enhance_screenshots
+            enhance_screenshots.register_view_enhancements()
+            logger.info("Screenshot enhancements applied")
+        except Exception as e:
+            logger.error(f"Failed to apply screenshot enhancements: {str(e)}")
     
     logger.info("All modules lazy-loaded successfully")
 
