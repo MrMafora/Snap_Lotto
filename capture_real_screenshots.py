@@ -110,6 +110,64 @@ def sync_wrapper_for_capture(url, output_path, lottery_type=None):
         logger.error(f"Error in sync wrapper: {str(e)}")
         return False
 
+def capture_screenshot_by_id(screenshot_id):
+    """
+    Capture a single screenshot by its ID
+    
+    Args:
+        screenshot_id (int): ID of the screenshot to capture
+        
+    Returns:
+        dict: Result of the operation
+    """
+    try:
+        from main import app
+        from models import Screenshot, db
+        
+        with app.app_context():
+            # Get the screenshot
+            screenshot = Screenshot.query.get(screenshot_id)
+            
+            if not screenshot:
+                logger.error(f"Screenshot with ID {screenshot_id} not found")
+                return {'status': 'error', 'message': f'Screenshot with ID {screenshot_id} not found'}
+            
+            # Skip if URL is missing
+            if not screenshot.url:
+                logger.warning(f"Screenshot {screenshot.id} has no URL")
+                return {'status': 'error', 'message': f'Screenshot has no URL'}
+            
+            # Generate output path
+            timestamp_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+            clean_lottery_type = screenshot.lottery_type.replace(' ', '_').lower()
+            filename = f"{timestamp_str}_{clean_lottery_type}.png"
+            output_path = os.path.join(SCREENSHOT_DIR, filename)
+            
+            # Capture the screenshot
+            success = sync_wrapper_for_capture(
+                screenshot.url,
+                output_path,
+                screenshot.lottery_type
+            )
+            
+            if success:
+                # Update the database record
+                screenshot.path = output_path
+                screenshot.timestamp = datetime.now()
+                db.session.commit()
+                
+                logger.info(f"Successfully captured screenshot for {screenshot.lottery_type}")
+                return {'status': 'success', 'path': output_path, 'lottery_type': screenshot.lottery_type}
+            else:
+                logger.error(f"Failed to capture screenshot for {screenshot.lottery_type}")
+                return {'status': 'error', 'message': f'Failed to capture screenshot for {screenshot.lottery_type}'}
+    
+    except Exception as e:
+        logger.error(f"Error capturing screenshot by ID {screenshot_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {'status': 'error', 'message': str(e)}
+
 def capture_screenshots_from_database():
     """
     Capture screenshots for all URLs in the database

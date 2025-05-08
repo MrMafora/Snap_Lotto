@@ -2115,7 +2115,7 @@ def sync_all_screenshots():
 @login_required
 @csrf.exempt
 def sync_single_screenshot(screenshot_id):
-    """Sync a single screenshot by its ID"""
+    """Sync a single screenshot by its ID using real website screenshots"""
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
@@ -2124,19 +2124,38 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Use the scheduler module imported at the top level to retake this screenshot
+        # First try using our actual website screenshot capture
+        try:
+            import capture_real_screenshots
+            result = capture_real_screenshots.capture_screenshot_by_id(screenshot_id)
+            
+            if result['status'] == 'success':
+                session['sync_status'] = {
+                    'status': 'success',
+                    'message': f'Successfully captured screenshot for {screenshot.lottery_type} from website.'
+                }
+                return redirect(url_for('export_screenshots'))
+            else:
+                app.logger.warning(f"Real screenshot capture failed: {result.get('message', 'Unknown error')}")
+                # Fall back to scheduler method
+        except Exception as capture_error:
+            app.logger.error(f"Error using real screenshot capture: {str(capture_error)}")
+            # Fall back to scheduler method
+        
+        # Fall back to scheduler as backup method
+        app.logger.info("Falling back to scheduler method for screenshot capture")
         success = scheduler.retake_screenshot_by_id(screenshot_id, app)
         
         # Store status in session for display on next page load
         if success:
             session['sync_status'] = {
                 'status': 'success',
-                'message': f'Successfully synced screenshot for {screenshot.lottery_type}.'
+                'message': f'Successfully synced screenshot for {screenshot.lottery_type} using backup method.'
             }
         else:
             session['sync_status'] = {
                 'status': 'warning',
-                'message': f'Failed to sync screenshot for {screenshot.lottery_type}.'
+                'message': f'Failed to sync screenshot for {screenshot.lottery_type} with all methods.'
             }
     except Exception as e:
         app.logger.error(f"Error syncing screenshot: {str(e)}")
