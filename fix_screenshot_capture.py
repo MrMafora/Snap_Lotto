@@ -94,8 +94,8 @@ def create_placeholder_image(lottery_type, timestamp=None, width=800, height=600
             font = ImageFont.load_default()
             small_font = font
             
-        # Draw header background
-        draw.rectangle([(0, 0), (width, 60)], fill=(0, 51, 102))  # Dark blue header
+        # Draw header background - use tuples for rectangle coordinates
+        draw.rectangle(((0, 0), (width, 60)), fill=(0, 51, 102))  # Dark blue header
         
         # Draw title
         title = f"{lottery_type} Screenshot"
@@ -130,7 +130,7 @@ def create_placeholder_image(lottery_type, timestamp=None, width=800, height=600
         
         # Add instructions
         y_offset += 100
-        draw.rectangle([(20, y_offset), (width-20, y_offset+100)], outline=(200, 200, 200))
+        draw.rectangle(((20, y_offset), (width-20, y_offset+100)), outline=(200, 200, 200))
         draw.text((30, y_offset + 10), "Troubleshooting:", fill=(0, 0, 0), font=font)
         draw.text((30, y_offset + 40), "1. Check if the website is accessible", fill=(0, 0, 0), font=small_font)
         draw.text((30, y_offset + 70), "2. Try using the 'Capture New Screenshots' button", fill=(0, 0, 0), font=small_font)
@@ -202,7 +202,7 @@ def capture_screenshot_with_requests(url, lottery_type):
             draw = ImageDraw.Draw(image)
             
             # Draw header
-            draw.rectangle([(0, 0), (width, 60)], fill=(0, 51, 102))  # Dark blue header
+            draw.rectangle(((0, 0), (width, 60)), fill=(0, 51, 102))  # Dark blue header
             
             # Try to load a font, fall back to default if not available
             try:
@@ -256,7 +256,7 @@ def capture_screenshot_with_requests(url, lottery_type):
             preview_text = '\n'.join(preview_lines) + '...'
             
             # Draw a box for content preview
-            draw.rectangle([(20, 200), (width-20, height-20)], outline=(200, 200, 200))
+            draw.rectangle(((20, 200), (width-20, height-20)), outline=(200, 200, 200))
             
             # Draw content preview title
             draw.text((30, 210), "Content Preview:", fill=(0, 0, 0), font=small_font)
