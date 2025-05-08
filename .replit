@@ -2,7 +2,7 @@ modules = ["python-3.11", "python3", "postgresql-16"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "gitFull", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "playwright-driver", "qhull", "tcl", "tk", "xsimd", "zlib"]
+packages = ["cairo", "ffmpeg-full", "freetype", "ghostscript", "gitFull", "glibcLocales", "gobject-introspection", "gtk3", "libxcrypt", "pkg-config", "playwright-driver", "qhull", "tcl", "tk", "xsimd"]
 
 [deployment]
 deploymentTarget = "cloudrun"
@@ -62,15 +62,6 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = ""
-
-[[workflows.workflow]]
-name = "Web Server"
-author = 40744859
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "gunicorn -c gunicorn.conf.py main:app"
 
 [[workflows.workflow]]
 name = "Web Server"

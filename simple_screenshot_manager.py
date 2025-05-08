@@ -12,9 +12,9 @@ import time
 from datetime import datetime
 import traceback
 import threading
-from models import db, Screenshot, ScheduleConfig
+from playwright.sync_api import sync_playwright
+from models import db, Screenshot
 from logger import setup_logger
-from playwright_wrapper import get_sync_playwright, handle_playwright_error, ensure_playwright_browsers
 
 # Set up module-specific logger
 logger = setup_logger(__name__, level=logging.INFO)
@@ -33,8 +33,17 @@ MAX_RETRIES = 3  # Number of retry attempts for failed screenshots
 NAVIGATION_TIMEOUT = 60000  # 60 seconds timeout for page navigation
 WAIT_AFTER_LOAD = 5000  # Wait 5 seconds after page load before taking screenshot
 
-# Use the ensure_playwright_browsers function from our wrapper module
-# This is already imported at the top of the file
+def ensure_playwright_browsers():
+    """
+    Ensure that Playwright browsers are installed.
+    This should be run once at the start of the application.
+    """
+    try:
+        import subprocess
+        subprocess.check_call(['playwright', 'install', 'chromium'])
+        logger.info("Playwright browsers installed successfully")
+    except Exception as e:
+        logger.error(f"Error installing Playwright browsers: {str(e)}")
 
 def capture_screenshot(url, retry_count=0):
     """
@@ -60,21 +69,9 @@ def capture_screenshot(url, retry_count=0):
         
         logger.info(f"Capturing screenshot from {url} - Attempt {retry_count + 1}/{MAX_RETRIES}")
         
-        # Get sync_playwright from our wrapper to avoid circular imports
-        sync_playwright = get_sync_playwright()
-        if not sync_playwright:
-            logger.error("Failed to import sync_playwright, cannot capture screenshot")
-            return None, None, None
-            
         # Use Playwright to capture screenshot with standard settings
         with sync_playwright() as p:
-            # Try to use Firefox instead of Chrome as it might already be installed
-            try:
-                browser = p.firefox.launch(headless=True)
-                logger.info("Using Firefox browser for screenshots")
-            except Exception as e:
-                logger.warning(f"Could not launch Firefox, falling back to Chrome: {str(e)}")
-                browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(headless=True)
             
             try:
                 # Create page with standard viewport size that fits most content
@@ -139,43 +136,12 @@ def capture_all_screenshots():
                     filepath, _, _ = capture_screenshot(screenshot.url)
                     
                 if filepath:
-                    # Use the same timestamp for all updates
-                    now = datetime.now()
-                    
-                    # Update Screenshot record
+                    # Update the database record
                     screenshot.path = filepath
-                    screenshot.timestamp = now  # Use same timestamp
-                    
-                    # Update ScheduleConfig record if it exists
-                    try:
-                        config = ScheduleConfig.query.filter_by(url=screenshot.url).first()
-                        if config:
-                            config.last_run = now  # Use same timestamp
-                            logger.info(f"Updated ScheduleConfig record for {screenshot.lottery_type}")
-                        else:
-                            logger.warning(f"No ScheduleConfig record found for {screenshot.lottery_type}")
-                            # Create a new config if it doesn't exist
-                            try:
-                                new_config = ScheduleConfig(
-                                    url=screenshot.url,
-                                    lottery_type=screenshot.lottery_type,
-                                    last_run=now,
-                                    active=True,
-                                    frequency='daily',
-                                    hour=1,
-                                    minute=0
-                                )
-                                db.session.add(new_config)
-                                logger.info(f"Created new ScheduleConfig record for {screenshot.lottery_type}")
-                            except Exception as config_err:
-                                logger.error(f"Failed to create ScheduleConfig for {screenshot.lottery_type}: {str(config_err)}")
-                    except Exception as e:
-                        logger.error(f"Error updating ScheduleConfig: {str(e)}")
-                    
-                    # Commit all updates
+                    screenshot.timestamp = datetime.now()
                     db.session.commit()
                     success_count += 1
-                    logger.info(f"Successfully captured and updated all records for {screenshot.lottery_type}")
+                    logger.info(f"Successfully captured and updated screenshot for {screenshot.lottery_type}")
                 else:
                     failed_urls.append((screenshot.lottery_type, screenshot.url))
                     logger.warning(f"Failed to capture screenshot for {screenshot.lottery_type}: {screenshot.url}")
@@ -214,42 +180,11 @@ def sync_single_screenshot(screenshot_id):
             filepath, _, _ = capture_screenshot(screenshot.url)
             
         if filepath:
-            # Use the same timestamp for all updates
-            now = datetime.now()
-            
-            # Update Screenshot record
+            # Update the database record
             screenshot.path = filepath
-            screenshot.timestamp = now  # Use same timestamp
-            
-            # Update ScheduleConfig record if it exists
-            try:
-                config = ScheduleConfig.query.filter_by(url=screenshot.url).first()
-                if config:
-                    config.last_run = now  # Use same timestamp
-                    logger.info(f"Updated ScheduleConfig record for {screenshot.lottery_type}")
-                else:
-                    logger.warning(f"No ScheduleConfig record found for {screenshot.lottery_type}")
-                    # Create a new config if it doesn't exist
-                    try:
-                        new_config = ScheduleConfig(
-                            url=screenshot.url,
-                            lottery_type=screenshot.lottery_type,
-                            last_run=now,
-                            active=True,
-                            frequency='daily',
-                            hour=1,
-                            minute=0
-                        )
-                        db.session.add(new_config)
-                        logger.info(f"Created new ScheduleConfig record for {screenshot.lottery_type}")
-                    except Exception as config_err:
-                        logger.error(f"Failed to create ScheduleConfig for {screenshot.lottery_type}: {str(config_err)}")
-            except Exception as e:
-                logger.error(f"Error updating ScheduleConfig: {str(e)}")
-            
-            # Commit all updates
+            screenshot.timestamp = datetime.now()
             db.session.commit()
-            logger.info(f"Successfully synced screenshot and config for {screenshot.lottery_type}")
+            logger.info(f"Successfully synced screenshot for {screenshot.lottery_type}")
             return True
         else:
             logger.warning(f"Failed to sync screenshot for {screenshot.lottery_type}")

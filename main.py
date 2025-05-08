@@ -12,10 +12,21 @@ port 8080 required by Replit for public access.
 """
 import logging
 import os
+import io
 import threading
 import traceback
 from datetime import datetime, timedelta
 from functools import wraps
+from flask import abort
+
+# Admin required decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Set up logging first
 logging.basicConfig(level=logging.DEBUG)
@@ -48,13 +59,12 @@ try:
 except Exception as e:
     logger.error(f"Failed to load port proxy auto-starter: {e}")
 
-# Apply screenshot enhancements
+# Import template handling
 try:
-    import enhance_screenshots
-    # Screenshot enhancements will be loaded after app initialization
-    logger.info("Screenshot enhancement module loaded")
+    import import_latest_template
+    logger.info("Template import module loaded")
 except Exception as e:
-    logger.error(f"Failed to load screenshot enhancements: {str(e)}")
+    logger.error(f"Failed to load template import module: {e}")
 
 # Create the Flask application
 app = Flask(__name__)
@@ -183,14 +193,6 @@ def init_lazy_modules():
     with app.app_context():
         scheduler.init_scheduler(app)
         health_monitor.init_health_monitor(app, db)
-        
-        # Apply screenshot enhancements after app initialization
-        try:
-            import enhance_screenshots
-            enhance_screenshots.register_view_enhancements()
-            logger.info("Screenshot enhancements applied")
-        except Exception as e:
-            logger.error(f"Failed to apply screenshot enhancements: {str(e)}")
     
     logger.info("All modules lazy-loaded successfully")
 
@@ -276,8 +278,28 @@ def index():
                     results_list.append(result_clone)
                     seen_draws[key] = True
             
-            # Sort results by date (newest first)
-            results_list.sort(key=lambda x: x.draw_date, reverse=True)
+            # Define standard order of lottery types for consistent display
+            lottery_type_order = [
+                'Lottery', 
+                'Lottery Plus 1', 
+                'Lottery Plus 2', 
+                'Powerball', 
+                'Powerball Plus', 
+                'Daily Lottery'
+            ]
+            
+            # Create an order lookup dictionary for sorting (lower value = higher priority)
+            lottery_order_lookup = {lottery_type: index for index, lottery_type in enumerate(lottery_type_order)}
+            
+            # Sort by lottery type order first, then by date (newest first) for same lottery type
+            def sort_key(result):
+                # If the lottery type isn't in our predefined order, put it at the end
+                order_position = lottery_order_lookup.get(result.lottery_type, len(lottery_type_order))
+                # Return a tuple to allow sortable comparison
+                return (order_position, -int(result.draw_number) if result.draw_number.isdigit() else 0)
+                
+            # Apply the sorting
+            results_list.sort(key=sort_key)
         except Exception as e:
             logger.error(f"Error getting latest lottery results: {e}")
             latest_results = {}
@@ -445,19 +467,48 @@ def ticket_scanner():
                           title="Lottery Ticket Scanner | Check If You've Won",
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
+                          
+@app.route('/clean-ticket-scanner')
+def clean_ticket_scanner():
+    """Clean implementation of the ticket scanner interface"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Lottery Ticket Scanner", "url": url_for('scanner_landing')},
+        {"name": "Clean Scanner", "url": url_for('clean_ticket_scanner')}
+    ]
+    
+    # Additional SEO metadata
+    meta_description = "Check if your South African lottery ticket is a winner with our simplified, reliable scanner. Our clean implementation ensures reliable uploads and accurate results."
+    
+    return render_template('clean_ticket_scanner.html', 
+                          title="Clean Lottery Ticket Scanner | Reliable Implementation",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
 
 @app.route('/scan-ticket', methods=['POST'])
 @csrf.exempt
 def scan_ticket():
     """Process uploaded ticket image and return results"""
+    logger.info("Scan ticket request received")
+    
+    # Enhanced request debugging
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"Request content type: {request.content_type}")
+    logger.info(f"Request files keys: {list(request.files.keys()) if request.files else 'No files'}")
+    logger.info(f"Request form keys: {list(request.form.keys()) if request.form else 'No form data'}")
+    
     # Check if file is included in the request
     if 'ticket_image' not in request.files:
+        logger.error("No ticket_image in request.files")
+        logger.error(f"Request files: {request.files}")
         return jsonify({"error": "No ticket image provided"}), 400
         
     file = request.files['ticket_image']
+    logger.info(f"Received file: {file.filename}, Content type: {file.content_type}")
     
     # If user does not select file, browser also submits an empty part without filename
     if file.filename == '':
+        logger.error("Empty filename submitted")
         return jsonify({"error": "No selected file"}), 400
         
     # Get the lottery type if specified (optional)
@@ -469,16 +520,24 @@ def scan_ticket():
     # Get file extension
     file_extension = os.path.splitext(file.filename)[1].lower()
     if not file_extension:
+        logger.info("No file extension found, defaulting to .jpeg")
         file_extension = '.jpeg'  # Default to JPEG if no extension
     
     try:
         # Read the file data
         image_data = file.read()
+        file_size = len(image_data)
+        logger.info(f"Read file data successfully, file size: {file_size} bytes")
+        
+        if file_size == 0:
+            logger.error("File data is empty")
+            return jsonify({"error": "Empty file uploaded"}), 400
         
         # Import the ticket scanner module
         import ticket_scanner as ts
         
         # Process the ticket image using existing function
+        logger.info(f"Processing ticket image: lottery_type={lottery_type}, draw_number={draw_number}")
         result = ts.process_ticket_image(
             image_data=image_data,
             lottery_type=lottery_type,
@@ -486,11 +545,24 @@ def scan_ticket():
             file_extension=file_extension
         )
         
+        # Logging the success
+        logger.info(f"Ticket processed successfully: {result.get('status', 'unknown')}")
+        
         # Return JSON response with results
         return jsonify(result)
     except Exception as e:
         logger.exception(f"Error processing ticket: {str(e)}")
-        return jsonify({"error": f"Error processing ticket: {str(e)}"}), 500
+        # Include more details in the error response
+        return jsonify({
+            "error": f"Error processing ticket: {str(e)}",
+            "status": "error",
+            "request_details": {
+                "filename": file.filename if file else "No file",
+                "content_type": file.content_type if file else "Unknown content type",
+                "lottery_type": lottery_type,
+                "draw_number": draw_number
+            }
+        }), 500
 
 # Guides Routes
 @app.route('/guides')
@@ -1402,22 +1474,10 @@ def export_screenshots_zip():
                 if os.path.exists(screenshot.path):
                     # Get the file extension
                     _, ext = os.path.splitext(screenshot.path)
-                    
-                    # Include HTML/TXT files since they contain the latest data
-                    if ext.lower() == '.txt':
-                        app.logger.info(f"Including TXT/HTML file: {screenshot.path}")
-                        # For TXT files, use the filename as is
-                        filename = os.path.basename(screenshot.path)
-                    else:
-                        # Skip any other files that aren't proper image files
-                        if ext.lower() not in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
-                            app.logger.warning(f"Skipping non-image file in screenshots zip: {screenshot.path}")
-                            continue
-                            
-                        # Create a unique filename for each proper image file
-                        lottery_type = screenshot.lottery_type.replace(' ', '_')
-                        timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
-                        filename = f"{lottery_type}_{timestamp}{ext}"
+                    # Create a unique filename for each screenshot
+                    lottery_type = screenshot.lottery_type.replace(' ', '_')
+                    timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
+                    filename = f"{lottery_type}_{timestamp}{ext}"
                     
                     # Add the screenshot to the ZIP file
                     zf.write(screenshot.path, filename)
@@ -1425,19 +1485,6 @@ def export_screenshots_zip():
                     # Add zoomed version if it exists
                     if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
                         _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
-                        
-                        # Include HTML/TXT files for zoomed images as well
-                        if zoomed_ext.lower() == '.txt':
-                            app.logger.info(f"Including TXT/HTML file (zoomed): {screenshot.zoomed_path}")
-                            zoomed_filename = os.path.basename(screenshot.zoomed_path)
-                            zf.write(screenshot.zoomed_path, zoomed_filename)
-                            continue
-                            
-                        # Skip zoomed files that aren't proper image files
-                        if zoomed_ext.lower() not in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
-                            app.logger.warning(f"Skipping non-image zoomed file: {screenshot.zoomed_path}")
-                            continue
-                            
                         zoomed_filename = f"{lottery_type}_{timestamp}_zoomed{zoomed_ext}"
                         zf.write(screenshot.zoomed_path, zoomed_filename)
         
@@ -1701,9 +1748,6 @@ def draw_details(lottery_type, draw_number):
 @app.route('/screenshot/<int:screenshot_id>')
 def view_screenshot(screenshot_id):
     """View a screenshot image"""
-    import tempfile
-    import subprocess
-    
     screenshot = Screenshot.query.get_or_404(screenshot_id)
     
     # Normalize path and check if file exists
@@ -1713,94 +1757,15 @@ def view_screenshot(screenshot_id):
         flash('Screenshot file not found', 'danger')
         return redirect(url_for('admin'))
     
-    # Extract file extension
-    _, ext = os.path.splitext(screenshot_path)
-    
-    # If it's a TXT file (HTML content), convert it to PNG on-the-fly
-    if ext.lower() == '.txt':
-        app.logger.info(f"Converting HTML content to PNG image for {screenshot_path}")
-        
-        try:
-            # Create a temporary PNG file
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-                temp_png_path = temp_file.name
-                
-            # Read the HTML content
-            with open(screenshot_path, 'r') as f:
-                html_content = f.read()
-                
-            # Save to a temporary HTML file
-            with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp_html:
-                temp_html_path = temp_html.name
-                temp_html.write(html_content.encode('utf-8'))
-                
-            # Use wkhtmltoimage to convert HTML to PNG
-            cmd = [
-                'wkhtmltoimage',
-                '--quality', '100',
-                '--width', '1200',
-                '--height', '1500',
-                '--javascript-delay', '2000',  # Wait for JavaScript execution
-                '--no-stop-slow-scripts',  # Don't stop slow running JavaScript
-                temp_html_path,
-                temp_png_path
-            ]
-            
-            # Execute the command
-            app.logger.info(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            
-            if os.path.exists(temp_png_path) and os.path.getsize(temp_png_path) > 1000:
-                # Serve the temporary PNG file
-                response = send_file(temp_png_path, mimetype='image/png')
-                
-                # Set up a cleanup function to delete the temporary files
-                @after_this_request
-                def cleanup(response):
-                    try:
-                        if os.path.exists(temp_png_path):
-                            os.unlink(temp_png_path)
-                        if os.path.exists(temp_html_path):
-                            os.unlink(temp_html_path)
-                    except Exception as e:
-                        app.logger.error(f"Error cleaning up temp files: {str(e)}")
-                    return response
-                
-                return response
-            else:
-                app.logger.error(f"Failed to convert HTML to PNG: {result.stderr}")
-                # Fallback: serve the original HTML as text
-                
-        except Exception as e:
-            app.logger.error(f"Error converting HTML to PNG: {str(e)}")
-            # Fallback: serve the original HTML as text
-    
-    # For regular image files or fallback from failed conversion
+    # Extract directory and filename from path
     directory = os.path.dirname(screenshot_path)
     filename = os.path.basename(screenshot_path)
     
-    # Always ensure files are sent with the correct MIME type
-    if ext.lower() == '.txt':
-        # Force download instead of display for text files
-        return send_from_directory(
-            directory, 
-            filename, 
-            mimetype='application/octet-stream',
-            as_attachment=True,
-            download_name=f"screenshot_{screenshot_id}.txt"
-        )
-    elif ext.lower() == '.png':
-        return send_from_directory(directory, filename, mimetype='image/png')
-    else:
-        # Generic handler for other file types
-        return send_from_directory(directory, filename)
+    return send_from_directory(directory, filename)
 
 @app.route('/screenshot-zoomed/<int:screenshot_id>')
 def view_zoomed_screenshot(screenshot_id):
     """View a zoomed screenshot image"""
-    import tempfile
-    import subprocess
-    
     screenshot = Screenshot.query.get_or_404(screenshot_id)
     
     if not screenshot.zoomed_path:
@@ -1814,382 +1779,46 @@ def view_zoomed_screenshot(screenshot_id):
         flash('Zoomed screenshot file not found', 'danger')
         return redirect(url_for('admin'))
     
-    # Extract file extension
-    _, ext = os.path.splitext(zoomed_path)
-    
-    # If it's a TXT file (HTML content), convert it to PNG on-the-fly
-    if ext.lower() == '.txt':
-        app.logger.info(f"Converting HTML content to PNG image for zoomed {zoomed_path}")
-        
-        try:
-            # Create a temporary PNG file
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-                temp_png_path = temp_file.name
-                
-            # Read the HTML content
-            with open(zoomed_path, 'r') as f:
-                html_content = f.read()
-                
-            # Save to a temporary HTML file
-            with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp_html:
-                temp_html_path = temp_html.name
-                temp_html.write(html_content.encode('utf-8'))
-                
-            # Use wkhtmltoimage to convert HTML to PNG
-            cmd = [
-                'wkhtmltoimage',
-                '--quality', '100',
-                '--width', '1200',
-                '--height', '1500',
-                '--javascript-delay', '2000',  # Wait for JavaScript execution
-                '--no-stop-slow-scripts',  # Don't stop slow running JavaScript
-                temp_html_path,
-                temp_png_path
-            ]
-            
-            # Execute the command
-            app.logger.info(f"Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            
-            if os.path.exists(temp_png_path) and os.path.getsize(temp_png_path) > 1000:
-                # Serve the temporary PNG file
-                response = send_file(temp_png_path, mimetype='image/png')
-                
-                # Set up a cleanup function to delete the temporary files
-                @after_this_request
-                def cleanup(response):
-                    try:
-                        if os.path.exists(temp_png_path):
-                            os.unlink(temp_png_path)
-                        if os.path.exists(temp_html_path):
-                            os.unlink(temp_html_path)
-                    except Exception as e:
-                        app.logger.error(f"Error cleaning up temp files: {str(e)}")
-                    return response
-                
-                return response
-            else:
-                app.logger.error(f"Failed to convert HTML to PNG: {result.stderr}")
-                # Fallback: serve the original HTML as text
-                
-        except Exception as e:
-            app.logger.error(f"Error converting HTML to PNG: {str(e)}")
-            # Fallback: serve the original HTML as text
-    
-    # For regular image files or fallback from failed conversion
+    # Extract directory and filename from path
     directory = os.path.dirname(zoomed_path)
     filename = os.path.basename(zoomed_path)
     
-    # Always ensure files are sent with the correct MIME type
-    if ext.lower() == '.txt':
-        # Force download instead of display for text files
-        return send_from_directory(
-            directory, 
-            filename, 
-            mimetype='application/octet-stream',
-            as_attachment=True,
-            download_name=f"screenshot_zoomed_{screenshot_id}.txt"
-        )
-    elif ext.lower() == '.png':
-        return send_from_directory(directory, filename, mimetype='image/png')
-    else:
-        # Generic handler for other file types
-        return send_from_directory(directory, filename)
-
-# Import and set up the improved download route using our new module
-try:
-    app.logger.info("Registering improved download route")
-    import download_route
-    download_route.add_download_route_to_app(app)
-    app.logger.info("Improved download route registered successfully")
-except Exception as e:
-    app.logger.error(f"Failed to register improved download route: {str(e)}")
-    
-    # Fall back to the default download route if the improved one fails
-    @app.route('/download-screenshot/<int:screenshot_id>')
-    @login_required
-    def download_screenshot(screenshot_id):
-        """
-        Download a screenshot as an attachment (fallback method)
-        
-        Args:
-            screenshot_id (int): ID of the screenshot
-            
-        Returns:
-            Response: File download response
-        """
-        try:
-            # Get the screenshot
-            screenshot = Screenshot.query.get_or_404(screenshot_id)
-            
-            # Check if file exists and has content
-            if not screenshot.path:
-                flash(f"Screenshot path is missing for {screenshot.lottery_type}", "warning")
-                return redirect(url_for('export_screenshots'))
-                
-            if not os.path.exists(screenshot.path):
-                flash(f"Screenshot file not found: {screenshot.path}", "warning")
-                return redirect(url_for('export_screenshots'))
-                
-            if os.path.getsize(screenshot.path) == 0:
-                flash(f"Screenshot file is empty: {screenshot.path}", "warning")
-                return redirect(url_for('export_screenshots'))
-            
-            # Get file extension
-            _, ext = os.path.splitext(screenshot.path)
-            
-            # Set appropriate content type based on extension
-            content_type = 'image/png'  # Default to PNG
-            if ext.lower() == '.jpg' or ext.lower() == '.jpeg':
-                content_type = 'image/jpeg'
-            elif ext.lower() == '.gif':
-                content_type = 'image/gif'
-            elif ext.lower() == '.txt':
-                content_type = 'text/plain'
-            
-            # Create a better filename for the download
-            filename = f"{screenshot.lottery_type.replace(' ', '_')}_{screenshot.timestamp.strftime('%Y%m%d')}{ext}"
-                
-            # Get directory and basename for send_from_directory
-            directory = os.path.dirname(screenshot.path)
-            basename = os.path.basename(screenshot.path)
-            
-            # Use send_from_directory for reliable delivery
-            return send_from_directory(
-                directory, 
-                basename,
-                as_attachment=True,
-                download_name=filename,
-                mimetype=content_type
-            )
-                
-        except Exception as e:
-            app.logger.error(f"Error downloading screenshot {screenshot_id}: {str(e)}")
-            flash(f"Error downloading screenshot: {str(e)}", "danger")
-            return redirect(url_for('export_screenshots'))
+    return send_from_directory(directory, filename)
 
 @app.route('/sync-all-screenshots', methods=['POST'])
 @login_required
 @csrf.exempt
 def sync_all_screenshots():
-    """
-    Comprehensive screenshot synchronization function that:
-    1. Syncs all screenshots from their source URLs
-    2. Fixes any synchronization issues between lottery types
-    3. Corrects file extensions for any HTML files saved with .png extensions
-    """
+    """Sync all screenshots from their source URLs using simplified approach"""
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
     
-    # Track all operations for comprehensive status reporting
-    sync_results = {}
-    
     try:
-        app.logger.info("Step 1/3: Capturing actual screenshots from lottery websites")
+        # Import our simplified scheduler to use the basic screenshot approach
+        import simple_scheduler
         
-        # Step 1: Use our new simplified screenshot capture module
-        try:
-            import simple_screenshot_capture
-            # This creates reliable visualizations of lottery data
-            capture_results = simple_screenshot_capture.capture_all_screenshots()
-            
-            # Count successful captures
-            success_count = sum(1 for result in capture_results.values() if isinstance(result, dict) and result.get('status') == 'success')
-            total_count = len(capture_results)
-            
-            if success_count > 0:
-                # Screenshot capture was successful
-                sync_results['screenshot_sync'] = {
-                    'success': True,
-                    'details': f"Created {success_count} of {total_count} lottery screenshots"
-                }
-                app.logger.info(f"Successfully created {success_count} lottery screenshots")
-            else:
-                # Fall back to original capture method if simple approach fails
-                app.logger.warning("Simple screenshot capture failed, trying alternative methods")
-                
-                # Try the direct_screenshot_capture module
-                try:
-                    import direct_screenshot_capture
-                    direct_results = direct_screenshot_capture.capture_all_screenshots()
-                    direct_success_count = sum(1 for result in direct_results.values() if isinstance(result, dict) and result.get('status') == 'success')
-                    direct_total_count = len(direct_results)
-                    
-                    if direct_success_count > 0:
-                        sync_results['screenshot_sync'] = {
-                            'success': True,
-                            'details': f"Captured {direct_success_count} of {direct_total_count} screenshots with direct method"
-                        }
-                        app.logger.info(f"Successfully captured {direct_success_count} screenshots with direct method")
-                    else:
-                        # Try using capture_real_screenshots as next fallback
-                        try:
-                            import capture_real_screenshots
-                            fallback_results = capture_real_screenshots.capture_screenshots_from_database()
-                            fallback_success_count = sum(1 for result in fallback_results.values() if result == 'success' or (isinstance(result, dict) and result.get('status') == 'success'))
-                            fallback_total_count = len(fallback_results)
-                            
-                            if fallback_success_count > 0:
-                                sync_results['screenshot_sync'] = {
-                                    'success': True,
-                                    'details': f"Captured {fallback_success_count} of {fallback_total_count} screenshots with fallback method"
-                                }
-                                app.logger.info(f"Successfully captured {fallback_success_count} screenshots with fallback method")
-                            else:
-                                # Use the scheduler module as last resort
-                                count = scheduler.retake_all_screenshots(app, use_threading=False)
-                                
-                                if isinstance(count, dict):
-                                    scheduler_success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
-                                    scheduler_total_count = len(count)
-                                    
-                                    sync_results['screenshot_sync'] = {
-                                        'success': scheduler_success_count > 0,
-                                        'details': f"Synced {scheduler_success_count} of {scheduler_total_count} screenshots with scheduler (last resort)"
-                                    }
-                                else:
-                                    sync_results['screenshot_sync'] = {
-                                        'success': count > 0,
-                                        'details': f"Synced {count} screenshots with scheduler (last resort)"
-                                    }
-                        except Exception as real_error:
-                            app.logger.error(f"Error with real screenshot capture: {str(real_error)}")
-                            # Use the scheduler module as last resort
-                            count = scheduler.retake_all_screenshots(app, use_threading=False)
-                            
-                            if isinstance(count, dict):
-                                scheduler_success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
-                                scheduler_total_count = len(count)
-                                
-                                sync_results['screenshot_sync'] = {
-                                    'success': scheduler_success_count > 0,
-                                    'details': f"Synced {scheduler_success_count} of {scheduler_total_count} screenshots with scheduler (real capture failed)"
-                                }
-                            else:
-                                sync_results['screenshot_sync'] = {
-                                    'success': count > 0,
-                                    'details': f"Synced {count} screenshots with scheduler (real capture failed)"
-                                }
-                except Exception as direct_error:
-                    app.logger.error(f"Error with direct screenshot capture: {str(direct_error)}")
-                    # Use the scheduler module as last resort
-                    count = scheduler.retake_all_screenshots(app, use_threading=False)
-                    
-                    if isinstance(count, dict):
-                        scheduler_success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
-                        scheduler_total_count = len(count)
-                        
-                        sync_results['screenshot_sync'] = {
-                            'success': scheduler_success_count > 0,
-                            'details': f"Synced {scheduler_success_count} of {scheduler_total_count} screenshots with scheduler (direct capture failed)"
-                        }
-                    else:
-                        sync_results['screenshot_sync'] = {
-                            'success': count > 0,
-                            'details': f"Synced {count} screenshots with scheduler (direct capture failed)"
-                        }
-        except Exception as capture_error:
-            app.logger.error(f"Error with simple screenshot capture: {str(capture_error)}")
-            
-            # Fall back to scheduler method
-            count = scheduler.retake_all_screenshots(app, use_threading=False)
-            
-            if isinstance(count, dict):
-                # Handle dictionary result (new format)
-                success_count = sum(1 for result in count.values() if isinstance(result, dict) and result.get('status') == 'success')
-                total_count = len(count)
-                
-                sync_results['screenshot_sync'] = {
-                    'success': success_count > 0,
-                    'details': f"Synced {success_count} of {total_count} screenshots with scheduler (all captures failed)"
-                }
-            else:
-                # Handle integer result (legacy format)
-                sync_results['screenshot_sync'] = {
-                    'success': count > 0,
-                    'details': f"Synced {count} screenshots with scheduler (all captures failed)"
-                }
+        # Use the simplified screenshot approach without any data extraction
+        # This focuses solely on getting basic screenshots without complex interactions
+        count = simple_scheduler.retake_all_screenshots(app)
         
-        # Step 2: Fix any sync issues using fix_screenshot_sync module
-        app.logger.info("Step 2/3: Fixing any synchronization issues between lottery types")
-        try:
-            import fix_screenshot_sync
-            sync_fix_results = fix_screenshot_sync.fix_lottery_sync_issues(app)
-            
-            if 'error' not in sync_fix_results:
-                # Count successful syncs from fix operation
-                success_count = sum(1 for status in sync_fix_results.get('sync_results', {}).values() if status == 'Success')
-                total_count = len(sync_fix_results.get('sync_results', {}))
-                
-                sync_results['sync_fix'] = {
-                    'success': success_count > 0,
-                    'details': f"Fixed synchronization for {success_count} of {total_count} lottery types"
-                }
-            else:
-                sync_results['sync_fix'] = {
-                    'success': False,
-                    'details': f"Error fixing sync issues: {sync_fix_results.get('error', 'Unknown error')}"
-                }
-                app.logger.warning(f"Sync fix error: {sync_fix_results.get('error', 'Unknown error')}")
-        except Exception as sync_fix_error:
-            sync_results['sync_fix'] = {
-                'success': False,
-                'details': f"Error in sync fix: {str(sync_fix_error)}"
+        # Store status in session for display on next page load
+        if count > 0:
+            session['sync_status'] = {
+                'status': 'success',
+                'message': f'Successfully captured {count} screenshots using simplified approach (no data extraction).'
             }
-            app.logger.error(f"Error in sync fix step: {str(sync_fix_error)}")
-        
-        # Step 3: Fix any file extension issues using fix_screenshot_extensions module
-        app.logger.info("Step 3/3: Fixing any file extension issues")
-        try:
-            from fix_screenshot_extensions import fix_screenshot_extensions
-            extension_results = fix_screenshot_extensions()
-            
-            if 'error' not in extension_results:
-                sync_results['extension_fix'] = {
-                    'success': extension_results.get('fixed_count', 0) > 0 or extension_results.get('error_count', 0) == 0,
-                    'details': f"Checked {extension_results.get('screenshots_checked', 0)} screenshots, fixed {extension_results.get('fixed_count', 0)} file extensions"
-                }
-            else:
-                sync_results['extension_fix'] = {
-                    'success': False,
-                    'details': f"Error fixing file extensions: {extension_results.get('error', 'Unknown error')}"
-                }
-                app.logger.warning(f"Extension fix error: {extension_results.get('error', 'Unknown error')}")
-        except Exception as extension_error:
-            sync_results['extension_fix'] = {
-                'success': False,
-                'details': f"Error in extension fix: {str(extension_error)}"
-            }
-            app.logger.error(f"Error in extension fix step: {str(extension_error)}")
-        
-        # Compile a comprehensive status message
-        all_successful = all(result.get('success', False) for result in sync_results.values())
-        main_operation_successful = sync_results.get('screenshot_sync', {}).get('success', False)
-        
-        if all_successful:
-            status = 'success'
-            message = "All operations completed successfully: "
-            message += ", ".join(result.get('details', '') for result in sync_results.values())
-        elif main_operation_successful:
-            status = 'warning'
-            message = "Main sync successful but some additional operations had issues: "
-            message += ", ".join(result.get('details', '') for result in sync_results.values())
         else:
-            status = 'danger'
-            message = "Synchronization failed: "
-            message += ", ".join(result.get('details', '') for result in sync_results.values())
-        
-        session['sync_status'] = {
-            'status': status,
-            'message': message
-        }
-        
+            session['sync_status'] = {
+                'status': 'warning',
+                'message': 'No screenshots were captured. Check configured URLs.'
+            }
     except Exception as e:
-        app.logger.error(f"Error in comprehensive screenshot sync process: {str(e)}")
+        app.logger.error(f"Error capturing screenshots: {str(e)}")
+        traceback.print_exc()
         session['sync_status'] = {
             'status': 'danger',
-            'message': f'Error syncing screenshots: {str(e)}'
+            'message': f'Error capturing screenshots: {str(e)}'
         }
     
     return redirect(url_for('export_screenshots'))
@@ -2198,7 +1827,7 @@ def sync_all_screenshots():
 @login_required
 @csrf.exempt
 def sync_single_screenshot(screenshot_id):
-    """Sync a single screenshot by its ID using our simplified screenshot approach"""
+    """Sync a single screenshot by its ID using the simplified approach"""
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
@@ -2207,136 +1836,236 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Try our reliable simple screenshot approach first
-        try:
-            import simple_screenshot_capture
-            result = simple_screenshot_capture.capture_screenshot_by_id(screenshot_id)
-            
-            if result['status'] == 'success':
-                session['sync_status'] = {
-                    'status': 'success',
-                    'message': f'Successfully created screenshot for {screenshot.lottery_type}.'
-                }
-                return redirect(url_for('export_screenshots'))
-            else:
-                app.logger.warning(f"Simple screenshot capture failed: {result.get('message', 'Unknown error')}")
-                # Try the direct method
-        except Exception as simple_error:
-            app.logger.error(f"Error using simple screenshot capture: {str(simple_error)}")
-            # Try the direct method
+        # Import our simplified scheduler to use the basic screenshot approach
+        import simple_scheduler
         
-        # Try using direct_screenshot_capture as a fallback
-        try:
-            import direct_screenshot_capture
-            direct_result = direct_screenshot_capture.capture_screenshot_by_id(screenshot_id)
-            
-            if direct_result['status'] == 'success':
-                session['sync_status'] = {
-                    'status': 'success',
-                    'message': f'Successfully captured screenshot for {screenshot.lottery_type} using direct method.'
-                }
-                return redirect(url_for('export_screenshots'))
-            else:
-                app.logger.warning(f"Direct screenshot capture failed: {direct_result.get('message', 'Unknown error')}")
-                # Try the real screenshots method
-        except Exception as direct_error:
-            app.logger.error(f"Error using direct screenshot capture: {str(direct_error)}")
-            # Try the real screenshots method
-        
-        # Try using capture_real_screenshots as next fallback
-        try:
-            import capture_real_screenshots
-            real_result = capture_real_screenshots.capture_screenshot_by_id(screenshot_id)
-            
-            if real_result['status'] == 'success':
-                session['sync_status'] = {
-                    'status': 'success',
-                    'message': f'Successfully captured screenshot for {screenshot.lottery_type} using real screenshots method.'
-                }
-                return redirect(url_for('export_screenshots'))
-            else:
-                app.logger.warning(f"Real screenshot capture failed: {real_result.get('message', 'Unknown error')}")
-                # Fall back to scheduler method
-        except Exception as real_error:
-            app.logger.error(f"Error using real screenshot capture: {str(real_error)}")
-            # Fall back to scheduler method
-        
-        # Fall back to scheduler as last resort method
-        app.logger.info("Falling back to scheduler method for screenshot capture")
-        success = scheduler.retake_screenshot_by_id(screenshot_id, app)
+        # Use the simplified approach that focuses solely on screenshot capture
+        success = simple_scheduler.sync_single_screenshot(screenshot_id, app)
         
         # Store status in session for display on next page load
         if success:
             session['sync_status'] = {
                 'status': 'success',
-                'message': f'Successfully synced screenshot for {screenshot.lottery_type} using scheduler method.'
+                'message': f'Successfully captured screenshot for {screenshot.lottery_type} using simplified approach.'
             }
         else:
             session['sync_status'] = {
                 'status': 'warning',
-                'message': f'Failed to sync screenshot for {screenshot.lottery_type} after trying all methods.'
+                'message': f'Failed to capture screenshot for {screenshot.lottery_type}.'
             }
     except Exception as e:
-        app.logger.error(f"Error syncing screenshot: {str(e)}")
+        app.logger.error(f"Error capturing screenshot: {str(e)}")
+        traceback.print_exc()
         session['sync_status'] = {
             'status': 'danger',
-            'message': f'Error syncing screenshot: {str(e)}'
+            'message': f'Error capturing screenshot: {str(e)}'
         }
     
     return redirect(url_for('export_screenshots'))
 
-@app.route('/fix-screenshot-sync', methods=['POST'])
+@app.route('/preview-website/<int:screenshot_id>')
 @login_required
-@csrf.exempt
-def fix_screenshot_sync():
-    """Fix inconsistent screenshot synchronization across all lottery types"""
-    if not current_user.is_admin:
-        flash('You must be an admin to fix screenshot synchronization.', 'danger')
-        return redirect(url_for('index'))
+def preview_website(screenshot_id):
+    """
+    Serve the most recent screenshot as a preview image.
     
+    Instead of attempting to generate a real-time preview (which often fails due to anti-scraping),
+    this simplified approach displays the most recently captured screenshot with timestamp information.
+    This provides a reliable preview experience without triggering anti-scraping measures.
+    """
+    from io import BytesIO
+    import time
+    from datetime import datetime, timedelta
+    from PIL import Image, ImageDraw, ImageFont
+
     try:
-        # Import the screenshot sync fix module
-        import fix_screenshot_sync
+        # Retrieve the screenshot object
+        screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Run the comprehensive fix
-        results = fix_screenshot_sync.fix_lottery_sync_issues(app)
+        # If we have a valid existing screenshot, use it directly
+        if screenshot.path and os.path.exists(screenshot.path):
+            try:
+                # Get file modification time and format it
+                file_mod_time = os.path.getmtime(screenshot.path)
+                capture_time = datetime.fromtimestamp(file_mod_time)
+                time_ago = datetime.now() - capture_time
+                
+                # Read the existing screenshot
+                with open(screenshot.path, 'rb') as f:
+                    existing_img_data = f.read()
+                
+                # Create a PIL Image from the screenshot
+                img = Image.open(BytesIO(existing_img_data))
+                
+                # Add timestamp overlay at the top
+                draw = ImageDraw.Draw(img)
+                
+                # Try to use a default font
+                try:
+                    font = ImageFont.load_default()
+                except Exception:
+                    font = None
+                
+                # Create semi-transparent background for text
+                # Get image width for the background rectangle
+                img_width = img.width
+                draw.rectangle(((0, 0), (img_width, 30)), fill=(0, 0, 0, 128))
+                
+                # Format time ago in a human-readable way
+                if time_ago < timedelta(minutes=1):
+                    time_text = "Captured just now"
+                elif time_ago < timedelta(hours=1):
+                    time_text = f"Captured {int(time_ago.total_seconds() / 60)} minutes ago"
+                elif time_ago < timedelta(days=1):
+                    time_text = f"Captured {int(time_ago.total_seconds() / 3600)} hours ago"
+                else:
+                    time_text = f"Captured {int(time_ago.days)} days ago"
+                
+                # Add timestamp text
+                timestamp_text = f"{time_text} ({capture_time.strftime('%Y-%m-%d %H:%M:%S')})"
+                draw.text((10, 8), timestamp_text, fill=(255, 255, 255), font=font)
+
+                # Add indicator that this is not a live preview
+                draw.text((img_width - 150, 8), "CAPTURED PREVIEW", fill=(255, 200, 200), font=font)
+                
+                # Convert back to bytes
+                buffer = BytesIO()
+                img.save(buffer, format='PNG')
+                buffer.seek(0)
+                
+                app.logger.info(f"Using last successful screenshot for preview of {screenshot.lottery_type} from {time_ago.total_seconds():.0f} seconds ago")
+                
+                return send_file(
+                    buffer,
+                    mimetype='image/png',
+                    download_name=f'preview_{screenshot_id}.png',
+                    as_attachment=False
+                )
+            except Exception as file_error:
+                app.logger.warning(f"Could not process existing screenshot for preview: {str(file_error)}")
         
-        if 'error' in results:
-            flash(f'Error fixing screenshot synchronization: {results["error"]}', 'danger')
-            app.logger.error(f"Error in fix_screenshot_sync: {results['error']}")
-        else:
-            # Count successful syncs
-            success_count = sum(1 for status in results.get('sync_results', {}).values() if status == 'Success')
-            total_count = len(results.get('sync_results', {}))
-            
-            if success_count == total_count:
-                flash(f'Successfully synchronized all {total_count} lottery types.', 'success')
-            else:
-                flash(f'Partially synchronized lottery types ({success_count}/{total_count} successful).', 'warning')
+        # If we don't have a screenshot or couldn't process it, create an informative image
+        app.logger.warning(f"No valid screenshot found for {screenshot.lottery_type} ({screenshot_id})")
+        
+        # Create an informative image indicating no screenshot is available
+        img = Image.new('RGB', (800, 600), color=(248, 249, 250))
+        d = ImageDraw.Draw(img)
+        
+        # Try to use a default font
+        try:
+            font = ImageFont.load_default()
+            font_medium = ImageFont.load_default()
+            font_small = ImageFont.load_default()
+        except Exception:
+            font = None
+            font_medium = None
+            font_small = None
+        
+        # Draw informative text
+        d.text((20, 20), f"No screenshot available for {screenshot.lottery_type}", 
+              fill=(50, 50, 50), font=font)
+        d.text((20, 60), f"URL: {screenshot.url[:80]}...",
+              fill=(100, 100, 100), font=font_medium)
+        d.text((20, 100), f"Use the 'Sync All Screenshots' or 'Resync' button to capture a screenshot.", 
+              fill=(50, 50, 200), font=font_small)
+        
+        # Save to buffer
+        buffer = BytesIO()
+        img.save(buffer, 'PNG')
+        buffer.seek(0)
+        
+        # Return the informative image
+        return send_file(
+            buffer,
+            mimetype='image/png',
+            download_name=f'preview_info_{screenshot_id}.png',
+            as_attachment=False
+        )
     
     except Exception as e:
-        app.logger.error(f"Error fixing screenshot synchronization: {str(e)}")
-        flash(f'Error fixing screenshot synchronization: {str(e)}', 'danger')
-    
-    return redirect(url_for('export_screenshots'))
+        app.logger.error(f"Error serving preview for {screenshot_id}: {str(e)}")
+        # Generate a simple error message image
+        from PIL import Image, ImageDraw
+        
+        img = Image.new('RGB', (800, 600), color=(255, 240, 240))
+        d = ImageDraw.Draw(img)
+        
+        # Draw error text
+        d.text((20, 20), f"Server Error: Preview generation failed", fill=(200, 0, 0))
+        d.text((20, 60), f"Error details: {str(e)[:200]}", fill=(100, 0, 0))
+        
+        # Save to buffer
+        buffer = BytesIO()
+        img.save(buffer, 'PNG')
+        buffer.seek(0)
+        
+        # Return the error image instead of JSON error
+        return send_file(
+            buffer,
+            mimetype='image/png',
+            download_name=f'preview_error_{screenshot_id}.png',
+            as_attachment=False
+        )
 
 @app.route('/cleanup-screenshots', methods=['POST'])
 @login_required
 @csrf.exempt
 def cleanup_screenshots():
-    """Route to cleanup old screenshots"""
+    """Route to cleanup old screenshots with simplified approach"""
     if not current_user.is_admin:
         flash('You must be an admin to clean up screenshots.', 'danger')
         return redirect(url_for('index'))
         
     try:
-        # Run the cleanup function from scheduler module imported at the top level
-        scheduler.cleanup_old_screenshots()
+        # Simple approach to cleanup - just keep the latest screenshot per URL
+        # This is a direct implementation rather than relying on the complex scheduler module
+        from models import Screenshot, db
+        import os
+        from sqlalchemy import func
+        
+        # Group screenshots by URL and find the latest for each
+        subquery = db.session.query(
+            Screenshot.url,
+            func.max(Screenshot.timestamp).label('max_timestamp')
+        ).group_by(Screenshot.url).subquery()
+        
+        # Find all screenshots that aren't the latest for their URL
+        screenshots_to_delete = Screenshot.query.join(
+            subquery,
+            db.and_(
+                Screenshot.url == subquery.c.url,
+                Screenshot.timestamp < subquery.c.max_timestamp
+            )
+        ).all()
+        
+        # Delete files and database records
+        deleted_count = 0
+        for screenshot in screenshots_to_delete:
+            # Try to delete the file if it exists
+            if screenshot.path and os.path.exists(screenshot.path):
+                try:
+                    os.remove(screenshot.path)
+                except Exception as file_error:
+                    app.logger.warning(f"Could not delete screenshot file {screenshot.path}: {str(file_error)}")
+            
+            # Try to delete zoomed file if it exists
+            if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                try:
+                    os.remove(screenshot.zoomed_path)
+                except Exception as file_error:
+                    app.logger.warning(f"Could not delete zoomed screenshot file {screenshot.zoomed_path}: {str(file_error)}")
+            
+            # Delete the database record
+            db.session.delete(screenshot)
+            deleted_count += 1
+        
+        # Commit changes
+        db.session.commit()
         
         # Store success message in session
         session['sync_status'] = {
             'status': 'success',
-            'message': 'Successfully cleaned up old screenshots. Only the latest screenshot for each URL is kept.'
+            'message': f'Successfully cleaned up {deleted_count} old screenshots. Only the latest screenshot for each URL is kept.'
         }
     except Exception as e:
         app.logger.error(f"Error cleaning up screenshots: {str(e)}")
@@ -2345,90 +2074,6 @@ def cleanup_screenshots():
         session['sync_status'] = {
             'status': 'danger',
             'message': f'Error cleaning up screenshots: {str(e)}'
-        }
-    
-    return redirect(url_for('export_screenshots'))
-
-@app.route('/fix-screenshot-rendering', methods=['POST'])
-@login_required
-@csrf.exempt
-def fix_screenshot_rendering_route():
-    """Fix screenshot rendering by ensuring all screenshots have correct file extensions"""
-    if not current_user.is_admin:
-        flash('You must be an admin to fix screenshot rendering.', 'danger')
-        return redirect(url_for('index'))
-    
-    try:
-        # Use the simpler approach to fix file extensions
-        import simple_fix_download
-        
-        # Run the fix within app context
-        with app.app_context():
-            results = simple_fix_download.fix_file_extensions()
-        
-        message = f"Successfully analyzed {results.get('total', 0)} screenshots. "
-        message += f"Fixed {results.get('fixed', 0)} file extensions. "
-        message += f"Found {results.get('html_files', 0)} HTML files and {results.get('png_files', 0)} PNG files."
-        
-        # Store success message in session
-        session['sync_status'] = {
-            'status': 'success',
-            'message': message
-        }
-    except Exception as e:
-        app.logger.error(f"Error in fix_screenshot_rendering route: {str(e)}")
-        traceback.print_exc()
-        
-        session['sync_status'] = {
-            'status': 'danger',
-            'message': f'Error fixing screenshot rendering: {str(e)}'
-        }
-    
-    return redirect(url_for('export_screenshots'))
-
-@app.route('/fix-screenshot-extensions', methods=['POST'])
-@login_required
-@csrf.exempt
-def fix_screenshot_extensions_route():
-    """Fix screenshot file extensions - rename HTML files with .png extensions to .txt"""
-    if not current_user.is_admin:
-        flash('You must be an admin to fix screenshot extensions.', 'danger')
-        return redirect(url_for('index'))
-    
-    try:
-        # Import the extension fix module
-        from fix_screenshot_extensions import fix_screenshot_extensions
-        
-        # Run the extension fix
-        results = fix_screenshot_extensions()
-        
-        if 'error' not in results:
-            message = (f"Successfully examined {results.get('screenshots_checked', 0)} screenshots. "
-                      f"Fixed {results.get('fixed_count', 0)} HTML files with incorrect extensions. "
-                      f"{results.get('error_count', 0)} errors occurred.")
-            
-            # Store success message in session
-            session['sync_status'] = {
-                'status': 'success',
-                'message': message
-            }
-        else:
-            error_msg = results.get('error', 'Unknown error')
-            app.logger.error(f"Error fixing screenshot extensions: {error_msg}")
-            
-            # Store error message in session
-            session['sync_status'] = {
-                'status': 'danger',
-                'message': f'Error fixing screenshot extensions: {error_msg}'
-            }
-    except Exception as e:
-        app.logger.error(f"Error in fix_screenshot_extensions route: {str(e)}")
-        traceback.print_exc()
-        
-        # Store error message in session
-        session['sync_status'] = {
-            'status': 'danger',
-            'message': f'Error fixing screenshot extensions: {str(e)}'
         }
     
     return redirect(url_for('export_screenshots'))
@@ -2445,17 +2090,21 @@ def export_combined_zip():
         import io
         import zipfile
         import tempfile
+        import glob
         from datetime import datetime
         
         # Create a timestamp for filenames
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        # Get all screenshots
+        # Get all screenshots from database
         screenshots = Screenshot.query.order_by(Screenshot.lottery_type).all()
         
         if not screenshots:
             flash('No screenshots available to export.', 'warning')
             return redirect(url_for('export_screenshots'))
+        
+        # Log some information about the screenshots
+        logger.info(f"Found {len(screenshots)} screenshots in database to export")
         
         # Create a temporary directory for the template
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -2463,53 +2112,78 @@ def export_combined_zip():
             template_filename = f"lottery_data_template_{timestamp}.xlsx"
             template_path = os.path.join(temp_dir, template_filename)
             create_template.create_template(template_path)
+            logger.info(f"Created template file at {template_path}")
+            
+            # Get all screenshots from the directory
+            screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
+            all_screenshot_files = []
+            if os.path.exists(screenshot_dir):
+                all_screenshot_files = glob.glob(os.path.join(screenshot_dir, '*.png'))
+                all_screenshot_files.extend(glob.glob(os.path.join(screenshot_dir, '*.jpg')))
+                all_screenshot_files.extend(glob.glob(os.path.join(screenshot_dir, '*.jpeg')))
+                logger.info(f"Found {len(all_screenshot_files)} screenshot files in directory")
             
             # Create a ZIP file in memory
             memory_file = io.BytesIO()
             with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
                 # Add the template to the ZIP file
                 zf.write(template_path, f"template/{template_filename}")
+                logger.info(f"Added template to ZIP file")
                 
-                # Add screenshots to the ZIP file
+                # Track the number of screenshots added
+                screenshots_added = 0
+                
+                # Add screenshots from the database first
                 for screenshot in screenshots:
-                    if os.path.exists(screenshot.path):
-                        # Get the file extension
-                        _, ext = os.path.splitext(screenshot.path)
-                        
-                        # Skip HTML files saved with .txt extension - these aren't actual images
-                        if ext.lower() == '.txt':
-                            app.logger.warning(f"Skipping HTML content file: {screenshot.path}")
-                            continue
-                        
-                        # Ensure we only include actual image files
-                        if ext.lower() not in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
-                            app.logger.warning(f"Skipping non-image file: {screenshot.path}")
-                            continue
+                    try:
+                        if os.path.exists(screenshot.path):
+                            # Get the file extension
+                            _, ext = os.path.splitext(screenshot.path)
+                            # Create a unique filename for each screenshot
+                            lottery_type = screenshot.lottery_type.replace(' ', '_')
+                            ss_timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
+                            filename = f"{lottery_type}_{ss_timestamp}{ext}"
                             
-                        # Create a unique filename for each screenshot
-                        lottery_type = screenshot.lottery_type.replace(' ', '_')
-                        ss_timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
-                        filename = f"{lottery_type}_{ss_timestamp}{ext}"
-                        
-                        # Add the screenshot to the ZIP file in a screenshots folder
-                        zf.write(screenshot.path, f"screenshots/{filename}")
-                        
-                        # Add zoomed version if it exists
-                        if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
-                            _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
+                            # Add the screenshot to the ZIP file in a screenshots folder
+                            zf.write(screenshot.path, f"screenshots/{filename}")
+                            screenshots_added += 1
                             
-                            # Skip zoomed files that aren't proper image files
-                            if zoomed_ext.lower() not in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
-                                app.logger.warning(f"Skipping non-image zoomed file: {screenshot.zoomed_path}")
-                                continue
-                                
-                            zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
-                            zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
+                            # Add zoomed version if it exists
+                            if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                                _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
+                                zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
+                                zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
+                                screenshots_added += 1
+                        else:
+                            logger.warning(f"Screenshot file not found: {screenshot.path}")
+                    except Exception as e:
+                        logger.error(f"Error adding screenshot to ZIP: {str(e)}, path: {screenshot.path}")
+                
+                # If no screenshots were added from database paths, include all files from screenshots directory
+                if screenshots_added == 0 and all_screenshot_files:
+                    logger.info(f"No screenshots were added from database paths, adding all files from screenshots directory")
+                    for screenshot_file in all_screenshot_files:
+                        try:
+                            # Get filename only
+                            filename = os.path.basename(screenshot_file)
+                            # Add to ZIP file
+                            zf.write(screenshot_file, f"screenshots/{filename}")
+                            screenshots_added += 1
+                        except Exception as e:
+                            logger.error(f"Error adding screenshot file to ZIP: {str(e)}, path: {screenshot_file}")
+            
+                logger.info(f"Added {screenshots_added} screenshot files to the ZIP archive")
             
             # Reset the file pointer to the beginning of the file
             memory_file.seek(0)
             
+            # Check if any screenshots were added
+            if screenshots_added == 0:
+                logger.warning("No screenshots were added to the ZIP archive")
+                flash('No screenshots were found to include in the ZIP file. Only the template will be included.', 'warning')
+            
             # Send the ZIP file as a response
+            logger.info(f"Sending combined ZIP file with {screenshots_added} screenshots")
             return send_file(
                 memory_file,
                 mimetype='application/zip',
@@ -2517,7 +2191,8 @@ def export_combined_zip():
                 download_name=f'lottery_data_combined_{timestamp}.zip'
             )
     except Exception as e:
-        app.logger.error(f"Error creating combined ZIP file: {str(e)}")
+        logger.error(f"Error creating combined ZIP file: {str(e)}")
+        traceback.print_exc()  # Print full traceback for better debugging
         flash(f'Error creating combined ZIP file: {str(e)}', 'danger')
         return redirect(url_for('export_screenshots'))
 
@@ -3470,25 +3145,6 @@ ad_management.register_ad_routes(app)
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
 
-# Screenshot Fix Route
-@app.route('/fix-screenshot-capture', methods=['GET', 'POST'])
-@login_required
-def fix_screenshot_capture_route():
-    """Route to fix screenshot capture issues"""
-    from fix_screenshot_capture import capture_all_screenshots
-    
-    # Capture screenshots for all lottery types
-    results = capture_all_screenshots()
-    
-    # Log results
-    app.logger.info(f"Screenshot capture results: {results['success']} successful, {results['failure']} failed")
-    
-    # Flash message to user
-    flash(f"Screenshot capture completed: {results['success']} successful, {results['failure']} failed", "info")
-    
-    # Redirect back to screenshots page
-    return redirect(url_for('export_screenshots'))
-
 # API Request Tracking routes
 @app.route('/admin/api-tracking')
 @login_required
@@ -3573,6 +3229,55 @@ def api_tracking_dashboard():
         service_counts=service_counts,
         service_tokens=service_tokens
     )
+
+# Route for importing latest template file
+@app.route('/admin/import-latest-template')
+@login_required
+@admin_required
+def import_latest_template_route():
+    """Import the latest lottery data template file"""
+    try:
+        result = import_latest_template.import_latest_template()
+        return render_template('import_status.html', 
+                               success=result.get('success', False),
+                               stats=result.get('stats', {}),
+                               error=result.get('error', 'Unknown error'))
+    except Exception as e:
+        logger.error(f"Error importing template: {str(e)}")
+        return render_template('import_status.html', 
+                               success=False,
+                               stats={},
+                               error=f"Error: {str(e)}")
+
+# Route for viewing import history
+@app.route('/admin/import-history')
+@login_required
+@admin_required
+def admin_import_history():
+    """Display import history in admin panel"""
+    history = ImportHistory.query.order_by(ImportHistory.import_date.desc()).all()
+    return render_template('import_history.html', history=history)
+
+# Route for importing missing draws
+@app.route('/admin/import-missing-draws')
+@login_required
+@admin_required
+def import_missing_draws_route():
+    """Import specific missing lottery draws"""
+    try:
+        from import_missing_draws import import_missing_draws
+        result = import_missing_draws("attached_assets/missing_draws.xlsx")
+        
+        return render_template('import_status.html', 
+                              success=result.get('success', False),
+                              stats=result.get('stats', {}),
+                              error=result.get('error', 'Unknown error'))
+    except Exception as e:
+        logger.error(f"Error importing missing draws: {str(e)}")
+        return render_template('import_status.html', 
+                              success=False,
+                              stats={},
+                              error=f"Error: {str(e)}")
 
 # When running directly, not through gunicorn
 if __name__ == "__main__":

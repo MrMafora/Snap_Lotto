@@ -153,7 +153,7 @@
     function handleViewResultsClick(event) {
         event.preventDefault();
         
-        // CRITICAL FIX: Prevent any click when button is disabled
+        // Check if the button is currently disabled or not enabled by state
         if (this.disabled || !state.viewResultsEnabled) {
             log('View Results button clicked while disabled or not enabled, ignoring');
             return false;
@@ -183,125 +183,28 @@
                 elements.resultsContainer.style.display = 'block';
                 log('Results container displayed');
                 
-                // CRITICAL FIX: Try all possible data sources in order of reliability
-                // Include sessionStorage as fallback for better reliability
-                let resultsData = null;
-                
-                // First try our internal state
+                // Display the stored upload results if available
                 if (state.uploadResults) {
-                    resultsData = state.uploadResults;
-                    log('Using results from state.uploadResults');
-                } 
-                // Second, try window variable
-                else if (window.lastResultsData) {
-                    resultsData = window.lastResultsData;
-                    log('Using results from window.lastResultsData');
-                }
-                // Third, try session storage as last resort
-                else {
-                    try {
-                        const storedData = sessionStorage.getItem('lastTicketResults');
-                        if (storedData) {
-                            resultsData = JSON.parse(storedData);
-                            log('Using results from sessionStorage backup');
-                            
-                            // Restore to our main variables to ensure consistency for any future operations
-                            state.uploadResults = resultsData;
-                            window.lastResultsData = resultsData;
-                        }
-                    } catch (err) {
-                        log('Could not retrieve from sessionStorage: ' + err);
-                    }
-                }
-                
-                // If we still don't have results, check for alternative global variables
-                // that might have been set by other script components
-                if (!resultsData && window.ticketScanResults) {
-                    resultsData = window.ticketScanResults;
-                    log('Using results from window.ticketScanResults');
-                }
-                
-                if (!resultsData && window.currentTicketResults) {
-                    resultsData = window.currentTicketResults;
-                    log('Using results from window.currentTicketResults');
-                }
-                
-                // Final fallback for completely missing data
-                if (!resultsData) {
-                    log('WARNING: No results data found in any location');
-                }
-                
-                // Display the results if available
-                if (resultsData) {
-                    log('Displaying ticket scan results');
+                    log('Displaying stored upload results');
                     
-                    // CRITICAL FIX: Force results container to be fully visible
-                    elements.resultsContainer.style.opacity = '1';
-                    elements.resultsContainer.style.visibility = 'visible';
-                    
-                    // Handle the results with the correct function name
-                    if (window.displayResults && typeof window.displayResults === 'function') {
-                        log('Calling displayResults function with scan results');
-                        window.displayResults(resultsData);
-                    } 
-                    // Try an alternative display function if it exists
-                    else if (window.showTicketResults && typeof window.showTicketResults === 'function') {
-                        log('Calling showTicketResults function with scan results');
-                        window.showTicketResults(resultsData);
+                    // Handle the upload results
+                    if (window.handleTicketScanResults && typeof window.handleTicketScanResults === 'function') {
+                        window.handleTicketScanResults(state.uploadResults);
                     }
-                    // Fallback to direct DOM manipulation if the display functions are missing
-                    else if (resultsData.success) {
-                        log('Display functions not found, directly updating container');
+                    
+                    // Optional: directly update the results container
+                    if (state.uploadResults.success) {
                         elements.resultsContainer.innerHTML = '<div class="alert alert-success">Upload successful! Results displayed below.</div>';
                         
                         // Add results content if available
-                        if (resultsData.html) {
-                            elements.resultsContainer.innerHTML += resultsData.html;
+                        if (state.uploadResults.html) {
+                            elements.resultsContainer.innerHTML += state.uploadResults.html;
                         }
-                    } else if (resultsData.error) {
-                        elements.resultsContainer.innerHTML = `<div class="alert alert-danger">Error: ${resultsData.error || 'Unknown error'}</div>`;
                     } else {
-                        // If we have lottery results but no specific success/error indicator
-                        // Directly construct result display
-                        try {
-                            log('Attempting to construct result display from raw data');
-                            let resultHtml = '<div class="lottery-results p-3">';
-                            resultHtml += `<h3 class="mb-3">${resultsData.lottery_type || 'Lottery'} Results</h3>`;
-                            
-                            if (resultsData.draw_number) {
-                                resultHtml += `<p><strong>Draw:</strong> ${resultsData.draw_number}</p>`;
-                            }
-                            
-                            if (resultsData.draw_date) {
-                                resultHtml += `<p><strong>Date:</strong> ${resultsData.draw_date}</p>`;
-                            }
-                            
-                            if (resultsData.winning_numbers && resultsData.winning_numbers.length) {
-                                resultHtml += '<div class="winning-numbers my-3"><h4>Winning Numbers</h4><div class="d-flex flex-wrap">';
-                                resultsData.winning_numbers.forEach(num => {
-                                    resultHtml += `<div class="winning-ball mx-1 my-1">${num}</div>`;
-                                });
-                                resultHtml += '</div></div>';
-                            }
-                            
-                            if (resultsData.bonus_numbers && resultsData.bonus_numbers.length) {
-                                resultHtml += '<div class="bonus-numbers my-3"><h4>Bonus Numbers</h4><div class="d-flex flex-wrap">';
-                                resultsData.bonus_numbers.forEach(num => {
-                                    resultHtml += `<div class="bonus-ball mx-1 my-1">${num}</div>`;
-                                });
-                                resultHtml += '</div></div>';
-                            }
-                            
-                            resultHtml += '</div>';
-                            elements.resultsContainer.innerHTML = resultHtml;
-                        } catch (err) {
-                            log('Error constructing result display: ' + err);
-                            elements.resultsContainer.innerHTML = '<div class="alert alert-warning">Results received but display format unknown.</div>';
-                        }
+                        elements.resultsContainer.innerHTML = `<div class="alert alert-danger">Error: ${state.uploadResults.error || 'Unknown error'}</div>`;
                     }
                 } else {
-                    log('No results data available to display');
-                    elements.resultsContainer.innerHTML = '<div class="alert alert-warning">No results data available. Please try scanning your ticket again.</div>';
+                    log('No upload results available to display');
                 }
             } else {
                 log('ERROR: Results container not found!');
@@ -414,10 +317,8 @@
     }
 
     // Mark the public service announcement as complete
-    // NOTE: This function is no longer used in the main flow as PSA is shown during navigation
-    // It remains here for backward compatibility with legacy code paths
     function completePublicServiceAd() {
-        log('Completing public service announcement ad (legacy function)');
+        log('Completing public service announcement ad');
         
         // Update state
         state.publicServiceAdActive = false;
@@ -435,7 +336,7 @@
     // Function to show ads and then display results
     // This function is called by the file uploader after successful upload
     function showResultsWithAd(results) {
-        log('Starting streamlined ad sequence before showing results');
+        log('Starting ad sequence before showing results');
         
         // Store the results for later use
         state.uploadResults = results;
@@ -443,12 +344,11 @@
         // Reset ad state
         resetAdState();
         
-        // Skip the public service ad and go directly to monetization ad
-        // This is the new streamlined flow where PSA is shown during navigation
-        log('Skipping PSA (now shown during navigation) and showing monetization ad directly');
-        showMonetizationAd();
+        // Start with the public service ad
+        showPublicServiceAd();
         
-        // Results will be shown when user clicks the View Results button after the monetization ad
+        // The second ad will be triggered automatically from completePublicServiceAd()
+        // Results will be shown when user clicks the View Results button after ads
     }
 
     // CRITICAL FIX: Function to kill all timers to prevent ad flashing
@@ -518,23 +418,26 @@
             }
         }
         
-        // FIXED: Immediately hide first ad and show second ad without any delays
-        // We don't need to wait - just transition directly between ads
-        if (elements.publicServiceAdOverlay) {
-            elements.publicServiceAdOverlay.style.transition = '';
-            elements.publicServiceAdOverlay.style.display = 'none';
-            log('First ad hidden (immediate transition)');
-        }
-        
-        // FIXED: Show second ad IMMEDIATELY - remove unnecessary setTimeout
-        if (elements.monetizationAdOverlay) {
-            // Use a fresh, clean transition
-            elements.monetizationAdOverlay.style.transition = 'opacity 0.3s ease';
-            elements.monetizationAdOverlay.style.opacity = '1';
-            log('Monetization ad overlay displayed (immediate transition)');
+        // Store the transition timer globally so we can cancel it if needed
+        window.adTransitionTimer = setTimeout(function() {
+            // Hide first ad completely first, so there's no possibility of overlap
+            if (elements.publicServiceAdOverlay) {
+                elements.publicServiceAdOverlay.style.transition = '';
+                elements.publicServiceAdOverlay.style.display = 'none';
+                log('First ad hidden (clean transition)');
+            }
             
-            // Start the countdown right away
-            startMonetizationCountdown(function() {
+            // CRITICAL FIX: Small pause before showing second ad to avoid visual overlap
+            setTimeout(function() {
+                // Show second ad with clean display approach
+                if (elements.monetizationAdOverlay) {
+                    // Use a fresh, clean transition
+                    elements.monetizationAdOverlay.style.transition = 'opacity 0.3s ease';
+                    elements.monetizationAdOverlay.style.opacity = '1';
+                    log('Monetization ad overlay displayed (clean transition)');
+                    
+                    // Start the countdown after ensuring smooth transition
+                    startMonetizationCountdown(function() {
                         // When countdown completes
                         completeMonetizationAd();
                         
@@ -546,6 +449,8 @@
                 } else {
                     log('ERROR: Monetization ad overlay element not found');
                 }
+            }, 100); // Brief pause for clean sequence
+        }, 100); // Very brief initial timer
     }
 
     // Start countdown for the monetization advertisement
@@ -827,24 +732,14 @@
     function processTicketWithAds() {
         log('Processing ticket with ads');
         
-        // CRITICAL FIX: Reset state and storage to ensure clean start
-        state.uploadResults = null;
-        window.lastResultsData = null;
+        // Show first ad (Public Service Announcement)
+        showPublicServiceAd();
         
-        // Show first ad (Public Service Announcement) immediately
-        showPublicServiceAd(() => {
-            // IMPORTANT: This callback will run when PSA completes
-            log('Public service announcement complete, showing monetization ad IMMEDIATELY');
-            
-            // Show the monetization ad IMMEDIATELY when PSA completes
-            // WITHOUT waiting for OCR/ticket processing to finish
-            showMonetizationAd();
-        });
-        
-        // Process the form WITHOUT waiting - this is CRITICAL
-        // The ticket scanning happens in parallel with the ad display
-        const form = document.getElementById('ticket-form');
-        if (form) {
+        // Process the ticket after a small delay to ensure ad is visible
+        setTimeout(function() {
+            // Process the form directly
+            const form = document.getElementById('ticket-form');
+            if (form) {
                 // Create FormData from form
                 const formData = new FormData(form);
                 
@@ -895,8 +790,6 @@
                     log('WARNING: No CSRF token found!');
                 }
                 
-                // Start the fetch request in parallel with the ad display
-                // This ensures we don't wait for ticket scanning to show ads
                 fetch(form.action || '/scan-ticket', {
                     method: 'POST',
                     body: formData,
@@ -911,20 +804,18 @@
                 .then(data => {
                     log('Ticket scan successful, results received');
                     
-                    // CRITICAL FIX: Store the results in BOTH locations consistently
-                    // This is essential for the "View Results" button to work properly
+                    // Store the results globally for later display
                     window.lastResultsData = data;
-                    state.uploadResults = data;
                     
-                    // CRITICAL FIX: Also store in sessionStorage as another backup
-                    try {
-                        sessionStorage.setItem('lastTicketResults', JSON.stringify(data));
-                        log('Results also stored in sessionStorage as backup');
-                    } catch (err) {
-                        log('Could not store in sessionStorage: ' + err);
+                    // Check if the first ad is complete
+                    if (state.publicServiceAdComplete) {
+                        // If first ad is already done, show second ad immediately
+                        log('First ad already complete, showing monetization ad now');
+                        showMonetizationAd();
+                    } else {
+                        // Otherwise wait for first ad to complete
+                        log('Waiting for public service announcement to complete before showing monetization ad');
                     }
-                    
-                    log('Results received and stored for later display');
                 })
                 .catch(error => {
                     console.error('Error scanning ticket:', error);
@@ -933,5 +824,6 @@
                     alert('Error scanning ticket. Please try again.');
                 });
             }
+        }, 500); // Reduced to 500ms for better responsiveness
     }
 })();

@@ -545,41 +545,21 @@ def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
         logger.info(f"Using image format {image_format} for ticket scanning")
         
         # Process the image with the correct format
-        logger.info(f"Calling OCR process with Anthropic for ticket scan: {lottery_type}")
         response = process_with_anthropic(image_base64, lottery_type, system_prompt, image_format)
-        
-        # Check if we received a valid response
-        if not response:
-            logger.error("OCR processing failed - received no response from Anthropic")
-            return {
-                "game_type": lottery_type if lottery_type else "unknown",
-                "draw_date": "unknown",
-                "draw_number": "unknown",
-                "plays_powerball_plus": False,
-                "plays_lottery_plus_1": False,
-                "plays_lottery_plus_2": False,
-                "selected_numbers": {},
-                "raw_selected_numbers": {},
-                "error": "OCR processing failed - received no response from Anthropic"
-            }
         
         # Extract the text content
         raw_response = response.get('raw_response', '')
-        logger.info(f"Received raw OCR response length: {len(raw_response)} characters")
         
         # Try to parse the response as JSON
         try:
             # Clean up the response to handle different formats
             cleaned_response = raw_response.strip()
-            logger.debug(f"Cleaned response length: {len(cleaned_response)} characters")
             
             # If response is wrapped in code blocks, extract just the content
             if '```' in cleaned_response:
-                logger.debug("Detected code block format in response, extracting content")
                 match = re.search(r'```(?:json)?(.*?)```', cleaned_response, re.DOTALL)
                 if match:
                     cleaned_response = match.group(1).strip()
-                    logger.debug(f"Extracted code block content, length: {len(cleaned_response)} characters")
             
             # Try to extract just the JSON portion (Claude sometimes adds explanations after JSON)
             try:

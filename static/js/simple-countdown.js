@@ -142,18 +142,9 @@
         // (The button container is now hidden by default in HTML)
         if (viewResultsBtn) {
             viewResultsBtn.disabled = true;
-            viewResultsBtn.setAttribute('disabled', 'disabled'); // Double ensure disabled state
             viewResultsBtn.classList.remove('btn-success', 'btn-pulse');
-            viewResultsBtn.classList.add('btn-secondary', 'disabled'); // Add disabled class for visual indication
-            viewResultsBtn.style.pointerEvents = 'none'; // Prevent any click events
+            viewResultsBtn.classList.add('btn-secondary');
             viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${secondAdCountdownTime}s)`;
-            
-            // Force browser to recognize disabled state
-            viewResultsBtn.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            };
         }
         
         // Start with full countdown time
@@ -179,12 +170,6 @@
             
             // Only update text - button activation is now handled by ad-countdown-fix.js
             if (viewResultsBtn && secondsLeft > 0) {
-                // Ensure button remains disabled during countdown
-                viewResultsBtn.disabled = true;
-                viewResultsBtn.setAttribute('disabled', 'disabled');
-                viewResultsBtn.classList.remove('btn-success', 'btn-pulse');
-                viewResultsBtn.classList.add('btn-secondary', 'disabled');
-                viewResultsBtn.style.pointerEvents = 'none';
                 viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${secondsLeft}s)`;
             }
             

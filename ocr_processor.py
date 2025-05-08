@@ -206,54 +206,30 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
         
         # Process as image using Anthropic Claude
         logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
-        
-        # Enhanced error handling around API call
-        try:
-            # Use the latest Claude model - claude-3-5-sonnet-20241022 was released after the knowledge cutoff
-            logger.info("Using claude-3-5-sonnet-20241022 model for image processing")
-            response = client.messages.create(
-                model="claude-3-5-sonnet-20241022", # Latest Claude model as of October 2024
-                max_tokens=3000,  # Increased token limit to handle multiple draw results
-                system=system_prompt,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": f"Extract the lottery results from this {lottery_type} screenshot. Return the data in the specified JSON format. This is critical data for a financial application."
-                            },
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": media_type,
-                                    "data": base64_content
-                                }
+        response = client.messages.create(
+            model="claude-3-5-sonnet-20241022", # Latest Claude model
+            max_tokens=3000,  # Increased token limit to handle multiple draw results
+            system=system_prompt,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Extract the lottery results from this {lottery_type} screenshot. Return the data in the specified JSON format."
+                        },
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": base64_content
                             }
-                        ]
-                    }
-                ]
-            )
-            logger.info("Successfully received response from Anthropic API")
-        except Exception as api_error:
-            # Detailed error logging
-            error_message = f"Error calling Anthropic API: {str(api_error)}"
-            logger.error(error_message)
-            
-            # Log the failed API request
-            APIRequestLog.log_request(
-                service='anthropic',
-                endpoint='messages.create',
-                model='claude-3-5-sonnet-20241022',
-                status='error',
-                error_message=error_message,
-                screenshot_id=screenshot_id,
-                lottery_type=lottery_type
-            )
-            
-            # Return None to indicate failure
-            return None
+                        }
+                    ]
+                }
+            ]
+        )
         
         # Calculate duration
         end_time = datetime.utcnow()

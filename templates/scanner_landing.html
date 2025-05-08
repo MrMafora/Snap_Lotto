@@ -50,32 +50,9 @@ Snap Scan and Win = Phanda Phusha Play. Upload your ticket photo and get instant
   ]
 }
 </script>
-
-<!-- Navigation Ad Manager -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/navigation-ad.css') }}">
-<script src="{{ url_for('static', filename='js/navigation-ad-manager.js') }}" defer></script>
 {% endblock %}
 
 {% block content %}
-<!-- PSA Advertisement Overlay -->
-<div id="psa-ad-overlay" class="psa-ad-overlay">
-    <div class="psa-content">
-        <h2>MISSING CHILDREN ALERT</h2>
-        <div>
-            <p>Help us find missing children in South Africa. If you have any information, please contact the South African Police Service immediately.</p>
-            <div class="image-container">
-                <img src="{{ url_for('static', filename='img/psa-missing-children.jpg') }}" alt="Missing Children Alert">
-            </div>
-            <p>This message is brought to you by Snap Lotto in partnership with Missing Children South Africa.</p>
-        </div>
-        <div class="countdown-container">
-            <span>Advertisement: </span>
-            <span id="psa-countdown">5</span>
-            <span> seconds</span>
-        </div>
-    </div>
-</div>
-
 <!-- Hero Section -->
 <div class="scanner-hero mb-5">
     <div class="row align-items-center">
@@ -83,7 +60,7 @@ Snap Scan and Win = Phanda Phusha Play. Upload your ticket photo and get instant
             <h1 class="display-4 fw-bold mb-3">South Africa's <span class="text-primary">ONLY</span><br>Lottery Ticket Scanner</h1>
             <p class="lead mb-4">Instantly check if your lottery ticket is a winner with our exclusive scanner technology. No more waiting in lines or checking numbers manually!</p>
             <div class="d-grid gap-2 d-md-flex mb-4">
-                <a href="{{ url_for('ticket_scanner') }}" class="btn btn-primary btn-lg px-4 me-md-2">Use Our Scanner</a>
+                <a href="/ticket-scanner" class="btn btn-primary btn-lg px-4 me-md-2">Use Our Scanner</a>
                 <a href="/guides/how-to-play-lotto" class="btn btn-outline-primary btn-lg px-4">How It Works</a>
             </div>
             <div class="features-list">
@@ -312,7 +289,7 @@ Snap Scan and Win = Phanda Phusha Play. Upload your ticket photo and get instant
         <div class="card-body p-5 text-center">
             <h2 class="mb-3">Ready to scan your lottery ticket?</h2>
             <p class="lead mb-4">It's free, fast, and the only ticket scanner available in South Africa!</p>
-            <a href="{{ url_for('ticket_scanner') }}" class="btn btn-light btn-lg px-5">Scan Your Ticket Now</a>
+            <a href="/ticket-scanner" class="btn btn-light btn-lg px-5">Scan Your Ticket Now</a>
         </div>
     </div>
 </div>

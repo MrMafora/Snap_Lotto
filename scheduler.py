@@ -16,8 +16,7 @@ IS_REPLIT_ENV = True
 
 # Thread semaphore to limit concurrent lottery tasks
 # This prevents "can't start new thread" errors
-# Increased from 2 to 6 to handle all 12 lottery types (6 history, 6 results pages)
-MAX_CONCURRENT_TASKS = 6
+MAX_CONCURRENT_TASKS = 2
 task_semaphore = threading.Semaphore(MAX_CONCURRENT_TASKS)
 
 # Scheduler instance (initialized later)
@@ -132,18 +131,18 @@ def run_lottery_task(url, lottery_type):
             from flask import current_app
             from main import app
             
-            # Use selenium screenshot manager which is more reliable in Replit environment
-            import selenium_screenshot_manager as ssm
+            # Get all the required functions
+            import screenshot_manager as sm  # Import as module to avoid name conflicts
             from ocr_processor import process_screenshot
             from data_aggregator import aggregate_data
             from datetime import datetime
             
-            logger.info(f"Starting lottery task for {lottery_type} using improved safe screenshot capture")
+            logger.info(f"Starting lottery task for {lottery_type}")
             
             # Ensure we have an application context for all database operations
             with app.app_context():
-                # Step 1: Capture screenshot using our simple manager that avoids circular imports
-                capture_result = ssm.capture_screenshot(url)
+                # Step 1: Capture screenshot directly using the sm module
+                capture_result = sm.capture_screenshot(url, lottery_type)
                 
                 # Unpack the values - either we get (filepath, screenshot_data, zoom_filepath)
                 # or we get None if the capture failed
@@ -151,8 +150,8 @@ def run_lottery_task(url, lottery_type):
                     logger.error(f"Failed to capture screenshot for {lottery_type}")
                     return False
                     
-                # Unpack the result - in the simple screenshot manager, the third return value is None, not zoom_filepath
-                filepath, screenshot_data, _ = capture_result
+                # Unpack the result
+                filepath, screenshot_data, zoom_filepath = capture_result
                 
                 # Only proceed if we have a valid screenshot filepath
                 if not filepath:
@@ -180,59 +179,13 @@ def run_lottery_task(url, lottery_type):
                 
                 # Update last run time
                 # Import models here to avoid circular imports
-                from models import ScheduleConfig, Screenshot, db
+                from models import ScheduleConfig, db
                 
-                # Get the current time - IMPORTANT: use the same timestamp for all updates
-                now = datetime.now()
-                
-                # Update ScheduleConfig record
                 config = ScheduleConfig.query.filter_by(url=url).first()
                 if config:
-                    config.last_run = now  # Use the exact same timestamp
-                    logger.info(f"Updated ScheduleConfig record for {lottery_type}")
-                else:
-                    logger.warning(f"No ScheduleConfig record found for {lottery_type}")
-                    # Create a new config if it doesn't exist (this shouldn't happen in normal operation)
-                    try:
-                        new_config = ScheduleConfig(
-                            url=url,
-                            lottery_type=lottery_type,
-                            last_run=now,
-                            active=True,
-                            frequency='daily',
-                            hour=1,
-                            minute=0
-                        )
-                        db.session.add(new_config)
-                        logger.info(f"Created new ScheduleConfig record for {lottery_type}")
-                    except Exception as config_err:
-                        logger.error(f"Failed to create ScheduleConfig for {lottery_type}: {str(config_err)}")
-                
-                # Update Screenshot record
-                screenshot = Screenshot.query.filter_by(url=url).first()
-                if screenshot and filepath:
-                    screenshot.path = filepath
-                    screenshot.timestamp = now  # Use the exact same timestamp
-                    logger.info(f"Updated Screenshot record for {lottery_type}")
-                else:
-                    logger.warning(f"No Screenshot record found for {lottery_type} or no filepath available")
-                    # Create a new screenshot record if it doesn't exist (this shouldn't happen in normal operation)
-                    if filepath and not screenshot:
-                        try:
-                            new_screenshot = Screenshot(
-                                url=url,
-                                lottery_type=lottery_type,
-                                path=filepath,
-                                timestamp=now
-                            )
-                            db.session.add(new_screenshot)
-                            logger.info(f"Created new Screenshot record for {lottery_type}")
-                        except Exception as screenshot_err:
-                            logger.error(f"Failed to create Screenshot for {lottery_type}: {str(screenshot_err)}")
-                
-                # Commit all updates
-                db.session.commit()
-                logger.info(f"Updated database records for {lottery_type}")
+                    config.last_run = datetime.now()
+                    db.session.commit()
+                    logger.info(f"Updated last run time for {lottery_type}")
                 
                 # Step 4: Clean up old screenshots to save space
                 try:
@@ -359,51 +312,22 @@ def retake_screenshot_by_id(screenshot_id, app=None):
                 
             logger.info(f"Retaking screenshot for {screenshot.lottery_type} from {screenshot.url}")
             
-            # Use selenium screenshot manager which is more reliable in Replit environment
-            import selenium_screenshot_manager as ssm
+            # Import screenshot manager inside the thread to avoid circular imports
+            import screenshot_manager as sm
             
-            # Capture new screenshot with the URL
-            capture_result = ssm.capture_screenshot(screenshot.url)
+            # Capture new screenshot with the same URL and lottery type
+            capture_result = sm.capture_screenshot(screenshot.url, screenshot.lottery_type)
             
             if not capture_result:
                 logger.error(f"Failed to retake screenshot for {screenshot.lottery_type}")
                 return False
             
-            filepath, screenshot_data, _ = capture_result
+            filepath, _, zoom_filepath = capture_result
             
-            # Use the same timestamp for both updates - this is critical for consistency
-            from datetime import datetime
-            now = datetime.now()
-            
-            # Update the existing screenshot record with the new path
-            # In simple_screenshot_manager, we don't have zoom_filepath
+            # Update the existing screenshot record with new paths
             screenshot.path = filepath
-            screenshot.zoomed_path = None
-            screenshot.timestamp = now  # Use the same timestamp object
-            
-            # Also update the corresponding ScheduleConfig record if it exists
-            config = ScheduleConfig.query.filter_by(url=screenshot.url).first()
-            if config:
-                config.last_run = now  # Use the same timestamp object
-                logger.info(f"Updated ScheduleConfig record for {screenshot.lottery_type}")
-            else:
-                logger.warning(f"No ScheduleConfig record found for {screenshot.lottery_type}")
-                # Create a new config if it doesn't exist
-                try:
-                    new_config = ScheduleConfig(
-                        url=screenshot.url,
-                        lottery_type=screenshot.lottery_type,
-                        last_run=now,
-                        active=True,
-                        frequency='daily',
-                        hour=1,
-                        minute=0
-                    )
-                    db.session.add(new_config)
-                    logger.info(f"Created new ScheduleConfig record for {screenshot.lottery_type}")
-                except Exception as config_err:
-                    logger.error(f"Failed to create ScheduleConfig for {screenshot.lottery_type}: {str(config_err)}")
-            
+            screenshot.zoomed_path = zoom_filepath
+            screenshot.timestamp = db.func.now()  # Update timestamp
             db.session.commit()
             
             logger.info(f"Successfully retook screenshot for {screenshot.lottery_type}")
@@ -430,8 +354,7 @@ def retake_all_screenshots(app=None, use_threading=True):
         int: Number of successfully captured screenshots
     """
     import threading
-    from datetime import datetime
-    from models import ScheduleConfig, Screenshot, db
+    from models import ScheduleConfig
     from flask import current_app
     from main import app
     
@@ -452,12 +375,12 @@ def retake_all_screenshots(app=None, use_threading=True):
         try:
             logger.info(f"Retaking screenshot for {lottery_type} from {url}")
             
-            # Use selenium screenshot manager which is more reliable in Replit environment
-            import selenium_screenshot_manager as ssm
+            # Import screenshot manager inside the thread to avoid circular imports
+            import screenshot_manager as sm
             
             with app.app_context():
-                # Capture new screenshot using the simplified manager
-                capture_result = ssm.capture_screenshot(url)
+                # Capture new screenshot
+                capture_result = sm.capture_screenshot(url, lottery_type)
                 
                 if not capture_result:
                     results[url] = {
@@ -466,65 +389,14 @@ def retake_all_screenshots(app=None, use_threading=True):
                     }
                     return
                 
-                filepath, screenshot_data, _ = capture_result
+                filepath, _, zoom_filepath = capture_result
                 
-                # Update Results dictionary
                 results[url] = {
                     'status': 'success',
                     'lottery_type': lottery_type,
                     'filepath': filepath,
-                    'zoom_filepath': None
+                    'zoom_filepath': zoom_filepath
                 }
-                
-                # Use the exact same timestamp for all updates
-                now = datetime.now()
-                
-                # Update Screenshot record
-                screenshot = Screenshot.query.filter_by(url=url).first()
-                if screenshot:
-                    screenshot.path = filepath
-                    screenshot.timestamp = now  # Use same timestamp
-                    logger.info(f"Updated Screenshot record for {lottery_type}")
-                else:
-                    logger.warning(f"No Screenshot record found for {lottery_type}")
-                    # Create a new screenshot record if it doesn't exist
-                    try:
-                        new_screenshot = Screenshot(
-                            url=url,
-                            lottery_type=lottery_type,
-                            path=filepath,
-                            timestamp=now
-                        )
-                        db.session.add(new_screenshot)
-                        logger.info(f"Created new Screenshot record for {lottery_type}")
-                    except Exception as screenshot_err:
-                        logger.error(f"Failed to create Screenshot for {lottery_type}: {str(screenshot_err)}")
-                
-                # Update ScheduleConfig record
-                config = ScheduleConfig.query.filter_by(url=url).first()
-                if config:
-                    config.last_run = now  # Use same timestamp
-                    logger.info(f"Updated ScheduleConfig record for {lottery_type}")
-                else:
-                    logger.warning(f"No ScheduleConfig record found for {lottery_type}")
-                    # Create a new config if it doesn't exist
-                    try:
-                        new_config = ScheduleConfig(
-                            url=url,
-                            lottery_type=lottery_type,
-                            last_run=now,
-                            active=True,
-                            frequency='daily',
-                            hour=1,
-                            minute=0
-                        )
-                        db.session.add(new_config)
-                        logger.info(f"Created new ScheduleConfig record for {lottery_type}")
-                    except Exception as config_err:
-                        logger.error(f"Failed to create ScheduleConfig for {lottery_type}: {str(config_err)}")
-                    
-                # Commit all updates
-                db.session.commit()
                 
                 logger.info(f"Successfully retook screenshot for {lottery_type}")
         except Exception as e:
@@ -546,66 +418,22 @@ def retake_all_screenshots(app=None, use_threading=True):
             configs = ScheduleConfig.query.all()
             threads = []
             
-            # Limit the number of concurrent threads to avoid resource issues
-            max_threads = MAX_CONCURRENT_TASKS
-            active_threads = []
-            
-            logger.info(f"Starting screenshot sync for {len(configs)} configs with max {max_threads} concurrent threads")
-            
-            # Shuffle the configs to randomize which ones get processed first
-            # This helps prevent having the same ones fail each time if there's a timeout
-            import random
-            configs_list = list(configs)
-            random.shuffle(configs_list)
-            
-            for config in configs_list:
+            for config in configs:
                 # Skip duplicate URLs to avoid redundant work
                 if config.url in processed_urls:
                     continue
                 
                 processed_urls.add(config.url)
                 
-                # Manage active threads to keep within our limits
-                # Wait for an active thread to complete if we're at maximum
-                while len(active_threads) >= max_threads:
-                    # Remove any completed threads from our active list
-                    active_threads = [t for t in active_threads if t.is_alive()]
-                    if len(active_threads) >= max_threads:
-                        # Sleep briefly before checking again
-                        time.sleep(0.5)
-                
-                # Start a new thread for this URL
-                logger.info(f"Starting thread for {config.lottery_type} from {config.url}")
+                # Start a new thread for each URL
                 thread = threading.Thread(target=process_url, args=(config.url, config.lottery_type))
                 thread.daemon = True
                 thread.start()
-                
-                # Add to both tracking lists
                 threads.append(thread)
-                active_threads.append(thread)
             
-            # Wait for all threads to complete with a reasonable total timeout
-            total_wait_start = time.time()
-            max_total_wait = 300  # 5 minutes max total wait time
-            
-            logger.info(f"Waiting for all {len(threads)} threads to complete...")
-            
+            # Wait for all threads to complete
             for thread in threads:
-                # Calculate remaining time for this thread
-                elapsed = time.time() - total_wait_start
-                if elapsed >= max_total_wait:
-                    logger.warning(f"Exceeded maximum total wait time of {max_total_wait} seconds")
-                    break
-                    
-                # Wait for this thread with the remaining time (or a per-thread limit)
-                per_thread_timeout = min(60, max_total_wait - elapsed)
-                thread.join(timeout=per_thread_timeout)
-            
-            # Count successful results
-            success_count = sum(1 for result in results.values() if isinstance(result, dict) and result.get('status') == 'success')
-            total_count = len(results)
-            
-            logger.info(f"Screenshot capture completed: {success_count}/{total_count} successful")
+                thread.join(timeout=60)  # Wait up to 60 seconds per thread
             
             # Run cleanup to remove old screenshots
             cleanup_old_screenshots() # Call our local implementation
