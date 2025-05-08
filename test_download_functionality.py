@@ -10,8 +10,10 @@ This script:
 import os
 import logging
 from datetime import datetime
+from flask import Flask
 from models import Screenshot, db
 from config import Config
+from main import app  # Import the app from main.py
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -135,37 +137,39 @@ def fix_screenshot_paths_in_db():
 if __name__ == "__main__":
     print("Testing screenshot download functionality...")
     
-    # First, test current screenshots
-    initial_test = test_screenshot_downloads()
-    
-    print(f"Initial Test Results:")
-    print(f"  Total screenshots: {initial_test['total']}")
-    print(f"  Valid for download: {initial_test['valid']}")
-    print(f"  Invalid screenshots: {initial_test['invalid']}")
-    
-    # If there are invalid screenshots, try to fix their paths
-    if initial_test['invalid'] > 0:
-        print("\nAttempting to fix invalid screenshot paths...")
-        fix_results = fix_screenshot_paths_in_db()
+    # Use Flask app context for database operations
+    with app.app_context():
+        # First, test current screenshots
+        initial_test = test_screenshot_downloads()
         
-        print(f"Path Fix Results:")
-        print(f"  Total screenshots: {fix_results['total']}")
-        print(f"  Updated paths: {fix_results['updated']}")
+        print(f"Initial Test Results:")
+        print(f"  Total screenshots: {initial_test['total']}")
+        print(f"  Valid for download: {initial_test['valid']}")
+        print(f"  Invalid screenshots: {initial_test['invalid']}")
         
-        # Test again after fixes
-        final_test = test_screenshot_downloads()
-        
-        print(f"\nFinal Test Results:")
-        print(f"  Total screenshots: {final_test['total']}")
-        print(f"  Valid for download: {final_test['valid']}")
-        print(f"  Invalid screenshots: {final_test['invalid']}")
-        
-        # List remaining invalid screenshots
-        if final_test['invalid'] > 0:
-            print("\nRemaining invalid screenshots:")
-            for detail in final_test['details']:
-                if detail['status'] == 'invalid':
-                    print(f"  ID {detail['id']}: {detail['lottery_type']} - {detail['error']}")
+        # If there are invalid screenshots, try to fix their paths
+        if initial_test['invalid'] > 0:
+            print("\nAttempting to fix invalid screenshot paths...")
+            fix_results = fix_screenshot_paths_in_db()
+            
+            print(f"Path Fix Results:")
+            print(f"  Total screenshots: {fix_results['total']}")
+            print(f"  Updated paths: {fix_results['updated']}")
+            
+            # Test again after fixes
+            final_test = test_screenshot_downloads()
+            
+            print(f"\nFinal Test Results:")
+            print(f"  Total screenshots: {final_test['total']}")
+            print(f"  Valid for download: {final_test['valid']}")
+            print(f"  Invalid screenshots: {final_test['invalid']}")
+            
+            # List remaining invalid screenshots
+            if final_test['invalid'] > 0:
+                print("\nRemaining invalid screenshots:")
+                for detail in final_test['details']:
+                    if detail['status'] == 'invalid':
+                        print(f"  ID {detail['id']}: {detail['lottery_type']} - {detail['error']}")
     
     print("\nDownload Route:")
     print("  To download a valid screenshot, use the URL: /download-screenshot/<screenshot_id>")
