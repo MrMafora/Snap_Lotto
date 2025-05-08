@@ -376,10 +376,24 @@
                                     </button>
                                 </form>
                                 
-                                <form action="{{ url_for('fix_screenshot_rendering_route') }}" method="POST">
+                                <form action="{{ url_for('fix_screenshot_rendering_route') }}" method="POST" class="mb-2">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-image me-1"></i> Fix Screenshot Rendering
+                                    </button>
+                                </form>
+                                
+                                <form action="{{ url_for('fix_html_screenshots') }}" method="POST" class="mb-2">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-file-image me-1"></i> Convert HTML to PNG
+                                    </button>
+                                </form>
+                                
+                                <form action="{{ url_for('regenerate_missing_screenshots') }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-redo-alt me-1"></i> Regenerate Missing Screenshots
                                     </button>
                                 </form>
                             </div>
