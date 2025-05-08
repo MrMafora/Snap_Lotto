@@ -149,7 +149,7 @@ def capture_with_wkhtmltoimage(url, output_path, lottery_type=None):
 
 def capture_screenshot(url, lottery_type):
     """
-    Capture a screenshot using available methods
+    Capture a screenshot using Playwright
     
     Args:
         url (str): URL to capture
@@ -164,15 +164,37 @@ def capture_screenshot(url, lottery_type):
     filename = f"{clean_type}_{timestamp}.png"
     output_path = os.path.join(Config.SCREENSHOT_DIR, filename)
     
-    # Try Playwright first
+    # Use Playwright to capture the screenshot
     if capture_with_playwright(url, output_path, lottery_type):
         return True, output_path
-        
-    # If Playwright fails, try wkhtmltoimage
-    if capture_with_wkhtmltoimage(url, output_path, lottery_type):
-        return True, output_path
     
-    # Both methods failed
+    # Playwright failed, try again with a different browser
+    try:
+        from playwright.sync_api import sync_playwright
+        
+        # Try with Firefox instead of Chromium
+        logger.info(f"Retrying {lottery_type} with Firefox browser")
+        
+        with sync_playwright() as p:
+            try:
+                browser = p.firefox.launch(timeout=60000)
+                page = browser.new_page(viewport={"width": 1200, "height": 1600})
+                page.goto(url, wait_until="networkidle", timeout=60000)
+                page.wait_for_timeout(3000)
+                page.screenshot(path=output_path, full_page=True)
+                browser.close()
+                
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                    logger.info(f"Successfully captured {lottery_type} with Firefox")
+                    return True, output_path
+            except Exception as e:
+                logger.error(f"Firefox capture failed: {str(e)}")
+                if 'browser' in locals():
+                    browser.close()
+    except Exception as e:
+        logger.error(f"Error setting up Firefox capture: {str(e)}")
+    
+    # All methods failed
     logger.error(f"Failed to capture screenshot for {lottery_type}")
     return False, None
 
