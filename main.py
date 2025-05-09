@@ -161,13 +161,13 @@ data_aggregator = None
 import_excel = None
 import_snap_lotto_data = None
 ocr_processor = None
-screenshot_manager = None
+puppeteer_service = None
 # scheduler is imported at the top level to ensure screenshot functions work
 health_monitor = None
 
 def init_lazy_modules():
     """Initialize modules in a background thread with timeout"""
-    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, health_monitor
+    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, puppeteer_service, health_monitor
     
     # Prioritize core modules
     try:
@@ -191,7 +191,7 @@ def init_lazy_modules():
     import_excel = ie
     import_snap_lotto_data = isld
     ocr_processor = op
-    screenshot_manager = sm
+    puppeteer_service = ps
     health_monitor = hm
     
     # Initialize scheduler and health monitoring in background after imports are complete
