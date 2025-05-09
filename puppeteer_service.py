@@ -757,25 +757,34 @@ def capture_single_screenshot(lottery_type, url):
         # Create a safe filename from lottery type
         safe_filename = lottery_type.replace(' ', '_').lower()
         
-        # Create a new event loop for thread safety
-        try:
-            # First try to get the current event loop
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            # If we're in a thread without an event loop, create a new one
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        # Use a safer approach to run async code in a separate thread
+        # First, define a helper function that doesn't rely on signals
+        def run_async_capture():
+            # Create a new event loop specific to this thread
+            new_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(new_loop)
+            
+            try:
+                # Run the async function with the new loop
+                result = new_loop.run_until_complete(
+                    PuppeteerService.capture_screenshot(url, safe_filename)
+                )
+                new_loop.close()
+                return result
+            except Exception as inner_e:
+                logger.error(f"Error in thread-local async capture for {lottery_type}: {str(inner_e)}")
+                new_loop.close()
+                return (False, None, None, f"Thread-local async error: {str(inner_e)}")
         
-        # Capture the screenshot using our async method directly with the event loop
-        try:
-            success, filepath, html_filepath, error_message = loop.run_until_complete(
-                PuppeteerService.capture_screenshot(url, safe_filename)
-            )
-        except Exception as e:
-            logger.error(f"Error in async capture for {lottery_type}: {str(e)}")
+        # Execute the capture in the current thread, but with proper async handling
+        # This avoids the signal handling issue in threads
+        success, filepath, html_filepath, error_message = run_async_capture()
+        
+        if not success:
+            logger.error(f"Failed to capture screenshot for {lottery_type}: {error_message}")
             return {
                 'status': 'failed',
-                'error': f"Async capture error: {str(e)}",
+                'error': error_message,
                 'url': url
             }
         
@@ -811,20 +820,29 @@ def capture_multiple_screenshots(urls_with_types):
     Returns:
         dict: Results for each lottery type
     """
-    # Create a new event loop for thread safety
-    try:
-        # First try to get the current event loop
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        # If we're in a thread without an event loop, create a new one
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    # Use a safer approach to run async code in a separate thread
+    # Define a helper function that doesn't rely on signals
+    def run_async_multiple_capture():
+        # Create a new event loop specific to this thread
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        
+        try:
+            # Run the async function with the new loop
+            result = new_loop.run_until_complete(
+                PuppeteerService.capture_multiple_screenshots(urls_with_types)
+            )
+            new_loop.close()
+            return result
+        except Exception as inner_e:
+            logger.error(f"Error in thread-local async capture for multiple screenshots: {str(inner_e)}")
+            new_loop.close()
+            return {}
     
-    # Run the async function and return results
+    # Execute the capture in the current thread, but with proper async handling
+    # This avoids the signal handling issue in threads
     try:
-        return loop.run_until_complete(
-            PuppeteerService.capture_multiple_screenshots(urls_with_types)
-        )
+        return run_async_multiple_capture()
     except Exception as e:
         logger.error(f"Error in capture_multiple_screenshots: {str(e)}")
         return {}
