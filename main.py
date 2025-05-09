@@ -1799,79 +1799,163 @@ def view_zoomed_screenshot(screenshot_id):
 @csrf.exempt
 def sync_all_screenshots():
     """Sync all screenshots from their source URLs using Puppeteer"""
+    global puppeteer_capture_status
+    
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
+    
+    # Check if there's already a capture in progress
+    if puppeteer_capture_status['in_progress']:
+        flash('A screenshot capture operation is already in progress. Please wait for it to complete.', 'warning')
+        return redirect(url_for('export_screenshots'))
     
     try:
         # Use Puppeteer service for capturing screenshots
         from puppeteer_service import capture_multiple_screenshots, LOTTERY_URLS
         
+        # Reset and initialize status
+        puppeteer_capture_status.update({
+            'in_progress': True,
+            'total_screenshots': len(LOTTERY_URLS),
+            'completed_screenshots': 0,
+            'start_time': datetime.now(),
+            'last_updated': datetime.now(),
+            'success_count': 0,
+            'error_count': 0,
+            'status_message': 'Starting screenshot capture with Puppeteer...',
+            'errors': []
+        })
+        
         app.logger.info(f"Starting synchronization of {len(LOTTERY_URLS)} screenshots using Puppeteer service...")
         
-        # Start the capture process
-        start_time = time.time()
-        results = capture_multiple_screenshots(LOTTERY_URLS)
-        elapsed_time = time.time() - start_time
-        
-        app.logger.info(f"Puppeteer screenshot capture completed in {elapsed_time:.2f} seconds")
-        
-        # Count successes and failures
-        success_count = sum(1 for result in results.values() if result.get('status') == 'success')
-        error_count = sum(1 for result in results.values() if result.get('status') != 'success')
-        
-        # Update database
-        db_updates = 0
-        db_creates = 0
-        
-        for lottery_type, result in results.items():
-            if result.get('status') == 'success' and result.get('path'):
-                # Find or create screenshot record
-                screenshot = Screenshot.query.filter_by(lottery_type=lottery_type).first()
+        # Use threading to process screenshots without blocking
+        def process_screenshots():
+            global puppeteer_capture_status
+            
+            try:
+                # Start the capture process
+                start_time = time.time()
                 
-                if screenshot:
-                    # Update existing record
-                    screenshot.path = result.get('path')
-                    screenshot.source_url = result.get('url', '')
-                    screenshot.timestamp = datetime.now()
-                    db_updates += 1
+                # Initialize tracking
+                results = {}
+                db_updates = 0
+                db_creates = 0
+                
+                # Process each URL individually to update status as we go
+                for i, (lottery_type, url) in enumerate(LOTTERY_URLS.items()):
+                    # Update status
+                    puppeteer_capture_status['status_message'] = f"Capturing {lottery_type} screenshot ({i+1}/{len(LOTTERY_URLS)})..."
+                    puppeteer_capture_status['last_updated'] = datetime.now()
+                    
+                    try:
+                        # Capture individual screenshot
+                        from puppeteer_service import capture_single_screenshot
+                        result = capture_single_screenshot(lottery_type, url)
+                        results[lottery_type] = result
+                        
+                        # Update progress
+                        puppeteer_capture_status['completed_screenshots'] = i + 1
+                        
+                        if result.get('status') == 'success':
+                            puppeteer_capture_status['success_count'] += 1
+                            
+                            # Find or create screenshot record
+                            screenshot = Screenshot.query.filter_by(lottery_type=lottery_type).first()
+                            
+                            if screenshot:
+                                # Update existing record
+                                screenshot.path = result.get('path')
+                                screenshot.source_url = url
+                                screenshot.timestamp = datetime.now()
+                                db_updates += 1
+                            else:
+                                # Create new record
+                                screenshot = Screenshot(
+                                    lottery_type=lottery_type,
+                                    path=result.get('path'),
+                                    source_url=url,
+                                    timestamp=datetime.now()
+                                )
+                                db.session.add(screenshot)
+                                db_creates += 1
+                                
+                            # Commit after each successful screenshot
+                            db.session.commit()
+                        else:
+                            puppeteer_capture_status['error_count'] += 1
+                            error_msg = result.get('error', 'Unknown error')
+                            puppeteer_capture_status['errors'].append(f"{lottery_type}: {error_msg}")
+                            app.logger.error(f"Error capturing {lottery_type} screenshot: {error_msg}")
+                    
+                    except Exception as e:
+                        # Handle individual screenshot errors
+                        puppeteer_capture_status['error_count'] += 1
+                        puppeteer_capture_status['errors'].append(f"{lottery_type}: {str(e)}")
+                        app.logger.error(f"Error capturing {lottery_type} screenshot: {str(e)}")
+                
+                # All screenshots processed - finalize
+                elapsed_time = time.time() - start_time
+                app.logger.info(f"Puppeteer screenshot capture completed in {elapsed_time:.2f} seconds")
+                
+                # Update final status
+                success_count = puppeteer_capture_status['success_count']
+                error_count = puppeteer_capture_status['error_count']
+                
+                # Prepare status message
+                if success_count > 0 and error_count == 0:
+                    status_message = f'Successfully synchronized {success_count} screenshots with Puppeteer. Updated {db_updates} records, created {db_creates} new records.'
+                    session['sync_status'] = {
+                        'status': 'success',
+                        'message': status_message
+                    }
+                    puppeteer_capture_status['status_message'] = status_message
+                elif success_count > 0 and error_count > 0:
+                    status_message = f'Partially synchronized. {success_count} successful, {error_count} failed with Puppeteer. Database: {db_updates} updated, {db_creates} created.'
+                    session['sync_status'] = {
+                        'status': 'warning',
+                        'message': status_message
+                    }
+                    puppeteer_capture_status['status_message'] = status_message
                 else:
-                    # Create new record
-                    screenshot = Screenshot(
-                        lottery_type=lottery_type,
-                        path=result.get('path'),
-                        source_url=result.get('url', ''),
-                        timestamp=datetime.now()
-                    )
-                    db.session.add(screenshot)
-                    db_creates += 1
+                    status_message = f'Failed to synchronize screenshots with Puppeteer. {error_count} errors encountered.'
+                    session['sync_status'] = {
+                        'status': 'danger',
+                        'message': status_message
+                    }
+                    puppeteer_capture_status['status_message'] = status_message
+                    
+            except Exception as e:
+                app.logger.error(f"Error in screenshot processing thread: {str(e)}")
+                traceback.print_exc()
+                session['sync_status'] = {
+                    'status': 'danger',
+                    'message': f'Error capturing screenshots with Puppeteer: {str(e)}'
+                }
+                puppeteer_capture_status['status_message'] = f'Error: {str(e)}'
+                puppeteer_capture_status['errors'].append(f"General error: {str(e)}")
+            
+            finally:
+                # Mark process as completed
+                puppeteer_capture_status['in_progress'] = False
+                puppeteer_capture_status['last_updated'] = datetime.now()
         
-        # Commit database changes
-        db.session.commit()
+        # Start processing in background thread
+        threading.Thread(target=process_screenshots, daemon=True).start()
         
-        # Prepare status message
-        if success_count > 0 and error_count == 0:
-            session['sync_status'] = {
-                'status': 'success',
-                'message': f'Successfully synchronized {success_count} screenshots with Puppeteer. Updated {db_updates} records, created {db_creates} new records.'
-            }
-        elif success_count > 0 and error_count > 0:
-            session['sync_status'] = {
-                'status': 'warning',
-                'message': f'Partially synchronized. {success_count} successful, {error_count} failed with Puppeteer. Database: {db_updates} updated, {db_creates} created.'
-            }
-        else:
-            session['sync_status'] = {
-                'status': 'danger',
-                'message': f'Failed to synchronize screenshots with Puppeteer. {error_count} errors encountered.'
-            }
+        # Return immediately, processing continues in background
+        flash('Screenshot synchronization started in the background. Check status for updates.', 'info')
+    
     except Exception as e:
-        app.logger.error(f"Error capturing screenshots with Puppeteer: {str(e)}")
+        app.logger.error(f"Error initiating screenshot capture with Puppeteer: {str(e)}")
         traceback.print_exc()
         session['sync_status'] = {
             'status': 'danger',
-            'message': f'Error capturing screenshots with Puppeteer: {str(e)}'
+            'message': f'Error initiating screenshot capture with Puppeteer: {str(e)}'
         }
+        # Reset status in case of error
+        puppeteer_capture_status['in_progress'] = False
+        puppeteer_capture_status['status_message'] = f'Error: {str(e)}'
     
     return redirect(url_for('export_screenshots'))
 
@@ -3160,6 +3244,49 @@ def health_port_check():
         'message': 'Port health check successful',
         'port': request.environ.get('SERVER_PORT', '5000'),
         'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
+
+# Global variable to store Puppeteer screenshot capture status
+puppeteer_capture_status = {
+    'in_progress': False,
+    'total_screenshots': 0,
+    'completed_screenshots': 0,
+    'start_time': None,
+    'last_updated': None,
+    'success_count': 0,
+    'error_count': 0,
+    'status_message': 'No capture in progress',
+    'errors': []
+}
+
+@app.route('/puppeteer-status')
+@csrf.exempt
+def puppeteer_status():
+    """API endpoint to check the status of Puppeteer screenshot capture"""
+    global puppeteer_capture_status
+    
+    # Calculate progress percentage
+    progress = 0
+    if puppeteer_capture_status['total_screenshots'] > 0:
+        progress = (puppeteer_capture_status['completed_screenshots'] / 
+                   puppeteer_capture_status['total_screenshots']) * 100
+    
+    # Add elapsed time if in progress
+    elapsed_time = None
+    if puppeteer_capture_status['in_progress'] and puppeteer_capture_status['start_time']:
+        elapsed_time = (datetime.now() - puppeteer_capture_status['start_time']).total_seconds()
+    
+    # Return the current status
+    return jsonify({
+        'in_progress': puppeteer_capture_status['in_progress'],
+        'progress': round(progress, 1),
+        'status_message': puppeteer_capture_status['status_message'],
+        'success_count': puppeteer_capture_status['success_count'],
+        'error_count': puppeteer_capture_status['error_count'],
+        'total_screenshots': puppeteer_capture_status['total_screenshots'],
+        'completed_screenshots': puppeteer_capture_status['completed_screenshots'],
+        'elapsed_time': elapsed_time,
+        'errors': puppeteer_capture_status['errors'][:5]  # Limit the number of errors returned
     })
 
 @app.route('/admin/run-health-checks', methods=['POST', 'GET'])

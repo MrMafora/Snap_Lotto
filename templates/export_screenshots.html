@@ -521,16 +521,88 @@
                 }
                 
                 // Continue with form submission (we don't prevent default)
-                // The progress will be shown until page reloads
                 
-                // Simulate progress while waiting for reload
-                simulateProgressUntilReload();
+                // Wait a moment for the server to initialize the process
+                setTimeout(function() {
+                    // Start checking the status API for real progress updates
+                    checkCaptureStatus();
+                }, 1500);
             });
         }
+        
+        // Check if there's an active capture process on page load
+        fetch('/puppeteer-status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.in_progress) {
+                    // There's an active capture process, show the progress UI
+                    const progressSection = document.getElementById('captureProgressSection');
+                    if (progressSection) {
+                        progressSection.classList.remove('d-none');
+                    }
+                    
+                    // Disable the submit button
+                    const submitButton = syncForm?.querySelector('button[type="submit"]');
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processing...';
+                    }
+                    
+                    // Start monitoring progress
+                    checkCaptureStatus();
+                }
+            })
+            .catch(error => {
+                console.error('Error checking initial capture status:', error);
+            });
     }
     
     /**
-     * Simulate progress bar movement until page reloads
+     * Check the status of the Puppeteer screenshot capture process
+     * via the API endpoint
+     */
+    function checkCaptureStatus() {
+        const progressBar = document.getElementById('captureProgressBar');
+        const statusElement = document.getElementById('captureProgressStatus');
+        
+        if (!progressBar || !statusElement) return;
+        
+        // Fetch current status
+        fetch('/puppeteer-status')
+            .then(response => response.json())
+            .then(data => {
+                // If the process is complete, refresh the page to show results
+                if (data.in_progress === false && data.completed_screenshots > 0) {
+                    window.location.reload();
+                    return;
+                }
+                
+                // Update the progress bar
+                const progressPercent = data.progress;
+                progressBar.style.width = `${progressPercent}%`;
+                
+                // Update the status message
+                statusElement.textContent = data.status_message;
+                
+                // Display any errors if present
+                if (data.error_count > 0 && data.errors.length > 0) {
+                    console.error('Screenshot capture errors:', data.errors);
+                }
+                
+                // If still in progress, check again after a delay
+                if (data.in_progress) {
+                    setTimeout(checkCaptureStatus, 1000);
+                }
+            })
+            .catch(error => {
+                console.error('Error checking capture status:', error);
+                // If there's an error, use the simulation as fallback
+                simulateProgressUntilReload();
+            });
+    }
+    
+    /**
+     * Simulate progress bar movement as fallback
      */
     function simulateProgressUntilReload() {
         const progressBar = document.getElementById('captureProgressBar');
@@ -556,6 +628,8 @@
             
             if (progress >= maxProgress) {
                 clearInterval(interval);
+                // Refresh the page after a delay
+                setTimeout(() => window.location.reload(), 2000);
             }
         }, 800);
     }
