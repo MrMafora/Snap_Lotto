@@ -31,7 +31,7 @@ class PuppeteerService:
     @staticmethod
     async def capture_screenshot(url, filename_prefix, fullpage=True):
         """
-        Capture a screenshot from a URL
+        Capture a screenshot from a URL with advanced anti-blocking techniques
         
         Args:
             url (str): URL to capture
@@ -42,142 +42,382 @@ class PuppeteerService:
             tuple: (success, filepath, html_filepath, error_message)
         """
         browser = None
+        max_attempts = 3
+        current_attempt = 0
         
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # List of diverse modern user agents to rotate
+        user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 Edg/116.0.1938.69',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/117.0',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 OPR/102.0.0.0',
+        ]
+        
+        # Set different wait strategies for retry attempts
+        wait_strategies = ['networkidle0', 'domcontentloaded', 'networkidle2', 'load']
+        
+        while current_attempt < max_attempts:
+            current_attempt += 1
             
-            # Define PNG file path (primary screenshot)
-            filename = f"{timestamp}_{filename_prefix}.png"
-            filepath = os.path.join(SCREENSHOTS_DIR, filename)
-            
-            # Define HTML file path (stored in HTML_DIR subfolder)
-            html_filename = f"{timestamp}_{filename_prefix}.html"
-            html_filepath = os.path.join(HTML_DIR, html_filename)
-            
-            logger.info(f"Capturing screenshot from {url}")
-            
-            # Launch browser with appropriate settings for screenshot capture
-            browser = await launch(
-                headless=True,
-                args=[
+            try:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                
+                # Define PNG file path (primary screenshot)
+                filename = f"{timestamp}_{filename_prefix}.png"
+                filepath = os.path.join(SCREENSHOTS_DIR, filename)
+                
+                # Define HTML file path (stored in HTML_DIR subfolder)
+                html_filename = f"{timestamp}_{filename_prefix}.html"
+                html_filepath = os.path.join(HTML_DIR, html_filename)
+                
+                # Log the attempt number
+                logger.info(f"Capturing screenshot from {url} (Attempt {current_attempt}/{max_attempts})")
+                
+                # Add random delay to appear more human-like
+                await asyncio.sleep(0.5 + (current_attempt - 1) * 1.5)
+                
+                # Select different browser arguments for each attempt
+                browser_args = [
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
                     '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
                     '--disable-gpu',
-                    '--window-size=1280,1024'
+                    '--hide-scrollbars',  # Hide scrollbars in screenshots
                 ]
-            )
-            
-            # Open new page
-            page = await browser.newPage()
-            
-            # Set viewport size for consistent screenshots
-            await page.setViewport({'width': 1280, 'height': 1024})
-            
-            # Set user agent to avoid detection
-            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
-            
-            # Navigate to the URL with appropriate wait conditions
-            response = await page.goto(url, {'waitUntil': 'networkidle0', 'timeout': 60000})
-            
-            # Check response status if available
-            if response and hasattr(response, 'ok') and not response.ok:
-                if hasattr(response, 'status'):
-                    logger.warning(f"Page response not OK: {response.status} for {url}")
-                else:
-                    logger.warning(f"Page response not OK for {url}")
-            
-            # Wait for content to be fully loaded
-            await page.waitForSelector('body', {'visible': True, 'timeout': 30000})
-            
-            # Wait a moment for any dynamic content to render
-            await asyncio.sleep(2)
-            
-            # Take screenshot - THIS IS THE CRITICAL PART
-            # First, make sure all content is fully loaded and visible
-            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            await page.evaluate("window.scrollTo(0, 0)")
-            await asyncio.sleep(1)  # Give it time to settle after scrolling
-            
-            # Enhanced screenshot options with improved settings
-            screenshot_options = {
-                'path': filepath,
-                'fullPage': fullpage,
-                'type': 'png',
-                'omitBackground': False,
-                'encoding': 'binary',
-                'quality': 100  # Maximum quality for PNG
-            }
-            
-            # Take the screenshot with a larger timeout
-            logger.info(f"Taking screenshot with fullPage={fullpage} option")
-            try:
-                await page.screenshot(screenshot_options)
-            except Exception as e:
-                logger.error(f"Error with fullPage screenshot: {str(e)}")
-            
-            # Verify the file was created successfully
-            if os.path.exists(filepath) and os.path.getsize(filepath) > 10000:  # Ensure file is not tiny
-                logger.info(f"✅ Screenshot successfully saved to {filepath} ({os.path.getsize(filepath)} bytes)")
-            else:
-                logger.error(f"❌ Screenshot file not created or too small: {filepath}")
-                # Try a second approach with different settings
-                logger.info("Trying alternate screenshot approach")
-                try:
-                    # Reset scroll position
-                    await page.evaluate("window.scrollTo(0, 0)")
+                
+                # Add more anti-detection flags for aggressive anti-blocking
+                anti_detection_args = [
+                    '--disable-blink-features=AutomationControlled',  # Critical to avoid detection
+                    '--disable-features=IsolateOrigins,site-per-process',  # Better for iframe handling
+                    '--disable-web-security',  # Bypass CORS restrictions
+                    f'--window-size={1280 + current_attempt * 50},{1024 + current_attempt * 30}',  # Randomize window size
+                ]
+                
+                # Add randomized window size
+                browser_args.extend(anti_detection_args)
+                
+                # Launch browser with appropriate settings for screenshot capture
+                browser = await launch(
+                    headless=True,
+                    ignoreHTTPSErrors=True,  # Bypass SSL errors
+                    args=browser_args,
+                    ignoreDefaultArgs=['--enable-automation']  # Critical for avoiding detection
+                )
+                
+                # Open new page
+                page = await browser.newPage()
+                
+                # Randomize viewport size slightly with each attempt
+                viewport_width = 1280 + int((current_attempt - 1) * 50)
+                viewport_height = 1024 + int((current_attempt - 1) * 40)
+                await page.setViewport({
+                    'width': viewport_width, 
+                    'height': viewport_height,
+                    'deviceScaleFactor': 1 + (current_attempt - 1) * 0.25,  # Increase scale factor with each attempt
+                })
+                
+                # Choose a random user agent
+                selected_user_agent = user_agents[current_attempt % len(user_agents)]
+                await page.setUserAgent(selected_user_agent)
+                logger.info(f"Using user agent: {selected_user_agent}")
+                
+                # Set extra HTTP headers to appear more like a real browser
+                await page.setExtraHTTPHeaders({
+                    'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8,de;q=0.7',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+                    'Cache-Control': 'max-age=0',
+                    'Connection': 'keep-alive', 
+                    'Upgrade-Insecure-Requests': '1',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-User': '?1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                })
+                
+                # Add JavaScript to mask being a headless browser
+                await page.evaluateOnNewDocument("""
+                // Overwrite properties that could detect automation
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => false
+                });
+                Object.defineProperty(navigator, 'plugins', {
+                    get: () => [
+                        { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
+                        { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
+                        { name: 'Native Client', filename: 'internal-nacl-plugin' }
+                    ]
+                });
+                Object.defineProperty(navigator, 'languages', {
+                    get: () => ['en-US', 'en', 'es']
+                });
+                
+                // Overwrite permissions
+                const originalQuery = window.navigator.permissions?.query;
+                if (originalQuery) {
+                    window.navigator.permissions.query = (parameters) => (
+                        parameters.name === 'notifications' ?
+                            Promise.resolve({ state: Notification.permission }) :
+                            originalQuery(parameters)
+                    );
+                }
+                
+                // Add randomized timing functions to make detection harder
+                const originalSetTimeout = window.setTimeout;
+                const originalSetInterval = window.setInterval;
+                window.setTimeout = function(cb, time, ...args) {
+                    const randomOffset = Math.floor(Math.random() * 10); 
+                    return originalSetTimeout(cb, time + randomOffset, ...args);
+                };
+                window.setInterval = function(cb, time, ...args) {
+                    const randomOffset = Math.floor(Math.random() * 10);
+                    return originalSetInterval(cb, time + randomOffset, ...args);
+                };
+                """)
+                
+                # Intercept and block tracking scripts and bot detection
+                await page.setRequestInterception(True)
+                
+                async def intercept_request(request):
+                    # Block known tracking and bot detection scripts
+                    blocked_resources = ['google-analytics', 'googletagmanager', 'gtm.js', 
+                                       'fingerprint', 'bot-detection', 'captcha']
+                    url = request.url.lower()
                     
-                    # Try clipping to viewport
-                    viewport = await page.evaluate("""() => {
-                        return {
-                            width: Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
-                            height: Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
-                        }
-                    }""")
-                    
-                    screenshot_options = {
-                        'path': filepath,
-                        'fullPage': False,
-                        'clip': {
-                            'x': 0,
-                            'y': 0,
-                            'width': viewport['width'],
-                            'height': viewport['height']
-                        },
-                        'type': 'png'
-                    }
-                    await page.screenshot(screenshot_options)
-                    if os.path.exists(filepath) and os.path.getsize(filepath) > 10000:
-                        logger.info(f"✅ Viewport screenshot successful: {filepath} ({os.path.getsize(filepath)} bytes)")
+                    if any(resource in url for resource in blocked_resources):
+                        await request.abort()
+                    # Allow all other requests
                     else:
-                        # Last resort - most basic screenshot
+                        await request.continue_()
+                
+                page.on('request', lambda req: asyncio.ensure_future(intercept_request(req)))
+                
+                # Select different wait strategy based on attempt number
+                wait_strategy = wait_strategies[current_attempt % len(wait_strategies)]
+                
+                # Add increasing timeout for successive attempts
+                timeout = 60000 + (current_attempt - 1) * 15000
+                
+                # Navigate to the URL with appropriate wait conditions
+                logger.info(f"Navigating to {url} with strategy: {wait_strategy}, timeout: {timeout}ms")
+                response = await page.goto(url, {'waitUntil': wait_strategy, 'timeout': timeout})
+                
+                # Check response status if available
+                if response:
+                    status = response.status if hasattr(response, 'status') else 'unknown'
+                    logger.info(f"Response status: {status}")
+                    
+                    if status != 200:
+                        logger.warning(f"Non-200 response: {status}")
+                
+                # Wait for content to be fully loaded
+                try:
+                    await page.waitForSelector('body', {'visible': True, 'timeout': 30000})
+                except Exception as e:
+                    logger.warning(f"Error waiting for body: {e}. Will try to continue anyway.")
+                
+                # Perform some human-like interactions
+                random_scroll_count = min(3 + current_attempt, 6)  # More scrolls with each attempt
+                
+                for i in range(random_scroll_count):
+                    # Scroll down in chunks like a human would
+                    scroll_amount = 300 + (i * 100)
+                    await page.evaluate(f"window.scrollBy(0, {scroll_amount})")
+                    await asyncio.sleep(0.3 + (0.1 * i))  # Gradually slower scrolls
+                
+                # Scroll back to the top
+                await page.evaluate("window.scrollTo(0, 0)")
+                await asyncio.sleep(0.8)
+                
+                # Hide cookie banners and other overlays that might block content
+                await page.evaluate("""
+                () => {
+                    // Remove cookie banners and overlays
+                    const elementsToRemove = [
+                        '.cookie-banner', '#cookie-banner', '.cookie-consent', '#cookie-consent',
+                        '.modal', '.modal-backdrop', '.popup', '#popup', '.overlay', '#overlay',
+                        '[class*="cookie"]', '[id*="cookie"]', '[class*="consent"]', '[id*="consent"]',
+                        '[class*="popup"]', '[id*="popup"]'
+                    ];
+                    
+                    // Remove elements that match selectors
+                    elementsToRemove.forEach(selector => {
+                        document.querySelectorAll(selector).forEach(el => {
+                            el.style.display = 'none';
+                            el.style.visibility = 'hidden';
+                            el.style.opacity = '0';
+                        });
+                    });
+                    
+                    // Remove fixed position elements that might be overlays
+                    document.querySelectorAll('body > *').forEach(el => {
+                        const style = window.getComputedStyle(el);
+                        if (style.position === 'fixed' && 
+                            (style.zIndex === 'auto' || parseInt(style.zIndex) > 100)) {
+                            el.style.display = 'none';
+                        }
+                    });
+                    
+                    // Auto-click cookie accept buttons if they exist
+                    ['Accept', 'Accept All', 'I Agree', 'I Accept', 'Continue'].forEach(text => {
+                        document.querySelectorAll('button, a, div').forEach(el => {
+                            if (el.textContent && el.textContent.includes(text) && 
+                                (el.tagName === 'BUTTON' || el.tagName === 'A' || 
+                                 el.getAttribute('role') === 'button')) {
+                                try { el.click(); } catch (e) {}
+                            }
+                        });
+                    });
+                }
+                """)
+                
+                # Wait after manipulations
+                await asyncio.sleep(1)
+                
+                # Take screenshot - THIS IS THE CRITICAL PART
+                # First, make sure all content is fully loaded and visible
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                await page.evaluate("window.scrollTo(0, 0)")
+                await asyncio.sleep(1.5)  # Give it more time to settle after scrolling
+                
+                # Enhanced screenshot options with improved settings
+                screenshot_options = {
+                    'path': filepath,
+                    'fullPage': fullpage,
+                    'type': 'png',
+                    'omitBackground': False,
+                    'encoding': 'binary',
+                    'quality': 100  # Maximum quality for PNG
+                }
+                
+                # Take the screenshot with a larger timeout
+                logger.info(f"Taking screenshot with fullPage={fullpage} option")
+                try:
+                    await page.screenshot(screenshot_options)
+                except Exception as e:
+                    logger.error(f"Error with fullPage screenshot: {str(e)}")
+                
+                # Verify the file was created successfully
+                if os.path.exists(filepath) and os.path.getsize(filepath) > 10000:  # Ensure file is not tiny
+                    logger.info(f"✅ Screenshot successfully saved to {filepath} ({os.path.getsize(filepath)} bytes)")
+                    
+                    # Save HTML content for backup/debugging
+                    try:
+                        html_content = await page.content()
+                        with open(html_filepath, 'w', encoding='utf-8') as f:
+                            f.write(html_content)
+                        logger.info(f"HTML content saved to {html_filepath}")
+                        
+                        # Close the browser
+                        await browser.close()
+                        browser = None
+                        
+                        # Success - return file paths
+                        return True, filepath, html_filepath, None
+                    except Exception as html_error:
+                        logger.error(f"Error saving HTML content: {str(html_error)}")
+                else:
+                    logger.error(f"❌ Screenshot file not created or too small: {filepath}")
+                    # Try a second approach with different settings
+                    logger.info("Trying alternate screenshot approach")
+                    try:
+                        # Reset scroll position
+                        await page.evaluate("window.scrollTo(0, 0)")
+                        
+                        # Try with device emulation for different attempt
+                        if current_attempt == 2:
+                            # Try as mobile device on second attempt
+                            await page.emulate({
+                                'viewport': {
+                                    'width': 375,
+                                    'height': 812,
+                                    'deviceScaleFactor': 3,
+                                    'isMobile': True,
+                                    'hasTouch': True,
+                                    'isLandscape': False
+                                },
+                                'userAgent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1'
+                            })
+                        elif current_attempt >= 3:
+                            # Try with a tablet for third attempt
+                            await page.emulate({
+                                'viewport': {
+                                    'width': 768,
+                                    'height': 1024,
+                                    'deviceScaleFactor': 2,
+                                    'isMobile': True,
+                                    'hasTouch': True,
+                                    'isLandscape': False
+                                },
+                                'userAgent': 'Mozilla/5.0 (iPad; CPU OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1'
+                            })
+                        
+                        # Try clipping to viewport for more reliable capture
+                        viewport = await page.evaluate("""() => {
+                            return {
+                                width: Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
+                                height: Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
+                            }
+                        }""")
+                        
                         screenshot_options = {
                             'path': filepath,
                             'fullPage': False,
+                            'clip': {
+                                'x': 0,
+                                'y': 0,
+                                'width': viewport['width'],
+                                'height': viewport['height']
+                            },
                             'type': 'png'
                         }
                         await page.screenshot(screenshot_options)
-                        logger.info(f"✅ Basic screenshot approach: {filepath} ({os.path.getsize(filepath)} bytes)")
-                except Exception as e:
-                    logger.error(f"All screenshot attempts failed: {str(e)}")
+                        
+                        if os.path.exists(filepath) and os.path.getsize(filepath) > 5000:
+                            logger.info(f"✅ Viewport screenshot successful: {filepath} ({os.path.getsize(filepath)} bytes)")
+                            
+                            # Save HTML even for the fallback approach
+                            html_content = await page.content()
+                            with open(html_filepath, 'w', encoding='utf-8') as f:
+                                f.write(html_content)
+                            
+                            # Close browser
+                            await browser.close()
+                            browser = None
+                            
+                            # Return with success
+                            return True, filepath, html_filepath, None
+                    except Exception as e:
+                        logger.error(f"Alternate screenshot method failed: {str(e)}")
             
-            # Save HTML content for backup/debugging
-            html_content = await page.content()
-            with open(html_filepath, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-            logger.info(f"HTML content saved to {html_filepath}")
-            
-            return True, filepath, html_filepath, None
-        except Exception as e:
-            error_message = f"Error capturing screenshot: {str(e)}"
-            logger.error(error_message)
-            traceback.print_exc()
-            return False, None, None, error_message
-        finally:
-            # Ensure browser is closed
-            if browser:
-                await browser.close()
+            except Exception as e:
+                logger.error(f"Error in attempt {current_attempt}/{max_attempts}: {str(e)}")
+                
+                # Try to close browser if it exists
+                if browser:
+                    try:
+                        await browser.close()
+                    except:
+                        pass
+                    browser = None
+                
+                # If this was the last attempt, we failed
+                if current_attempt >= max_attempts:
+                    logger.error(f"All {max_attempts} attempts to capture screenshot failed")
+                    return False, None, None, f"Failed after {max_attempts} attempts: {str(e)}"
+                
+                # Otherwise, continue to next attempt
+                logger.info(f"Retrying... Attempt {current_attempt + 1}/{max_attempts}")
+                
+                # Add increasing delay between retries
+                await asyncio.sleep(3 * current_attempt)
+        
+        # This should never be reached due to the returns in the loop
+        return False, None, None, "Unknown error occurred"
     
     @staticmethod
     async def capture_multiple_screenshots(urls_with_types):
