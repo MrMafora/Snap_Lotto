@@ -253,7 +253,7 @@
         helpDiv.className = 'mt-2 small text-center';
         
         // Get the screenshot URL
-        const screenshotUrl = `/view_screenshot/${screenshotId}`;
+        const screenshotUrl = `/screenshot/${screenshotId}`;
         
         // Add a direct view link to the help message
         helpDiv.innerHTML = `<a href="${screenshotUrl}" target="_blank" class="text-primary" style="text-decoration: underline;">
@@ -283,7 +283,7 @@
             container.appendChild(overlayLink);
         } else {
             // If there was no overlay link (maybe it was removed), recreate it using the data from container
-            const linkUrl = container.dataset.href || `/view_screenshot/${screenshotId}`;
+            const linkUrl = container.dataset.href || `/screenshot/${screenshotId}`;
             if (linkUrl) {
                 const newOverlayLink = document.createElement('a');
                 newOverlayLink.href = linkUrl;
