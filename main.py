@@ -2053,9 +2053,35 @@ def view_screenshot(screenshot_id):
             # Remove any overlay messages or error boxes that might block content
             html_content = html_content.replace('class="error_tooltip manual_tooltip_error"', 'class="error_tooltip manual_tooltip_error" style="display:none;"')
             
-            # Specifically remove the "Oops!" error popup
+            # Specifically remove the "Oops!" error popup and all related elements
             html_content = html_content.replace('<div class="popup-content">Oops!</div>', '')
             html_content = html_content.replace("Something went wrong! Please check your network connectivity.", "")
+            
+            # Target specific popup dialog elements from the screenshot
+            html_content = html_content.replace('<div role="dialog"', '<div style="display:none!important;" role="dialog"')
+            html_content = html_content.replace('<div class="popup-background"', '<div style="display:none!important;" class="popup-background"')
+            html_content = html_content.replace('<div class="popup-container"', '<div style="display:none!important;" class="popup-container"')
+            
+            # Add more specific selectors for the popup shown in the screenshot
+            popup_patterns = [
+                'class="popup-background"',
+                'class="popup-container"',
+                'class="popup-content"',
+                'role="dialog"',
+                'id="popup"',
+                'id="modal"',
+                'id="dialog"',
+                'id="overlay"',
+                'class="overlay"',
+                'class="modal"',
+                'class="dialog"'
+            ]
+            
+            # Replace each pattern with a hidden version
+            for pattern in popup_patterns:
+                open_tag = f'<div {pattern}'
+                hidden_open_tag = f'<div style="display:none!important;visibility:hidden!important;opacity:0!important;height:0!important;width:0!important;" {pattern}'
+                html_content = html_content.replace(open_tag, hidden_open_tag)
             
             # Add a custom CSS style to hide overlays and popups
             style_tag = '''
@@ -2126,12 +2152,98 @@ def view_screenshot(screenshot_id):
             </style>
             '''
             
+            # Create dynamic script to remove popups on load
+            popup_script = '''
+            <script>
+                // Run immediately when loaded
+                (function() {
+                    // Hide all possible popup elements
+                    function hidePopups() {
+                        // Target common popup selectors
+                        var popupSelectors = [
+                            'div[role="dialog"]',
+                            'div.popup-background',
+                            'div.popup-container',
+                            'div.popup-content',
+                            'div.modal',
+                            'div.overlay',
+                            'div.dialog',
+                            '#overlay',
+                            '#popup',
+                            '#modal',
+                            '#dialog',
+                            '.error_tooltip',
+                            '.manual_tooltip_error',
+                            '.tooltip_error',
+                            '[class*="error"]',
+                            '[id*="error"]',
+                            '[class*="popup"]',
+                            '[id*="popup"]',
+                            '[class*="modal"]',
+                            '[id*="modal"]',
+                            '[class*="overlay"]',
+                            '[id*="overlay"]'
+                        ];
+                        
+                        // Apply removal to each selector
+                        popupSelectors.forEach(function(selector) {
+                            var elements = document.querySelectorAll(selector);
+                            for (var i = 0; i < elements.length; i++) {
+                                var el = elements[i];
+                                el.style.display = 'none';
+                                el.style.visibility = 'hidden';
+                                el.style.opacity = '0';
+                                el.style.pointerEvents = 'none';
+                                el.style.zIndex = '-9999';
+                                el.style.position = 'absolute';
+                                el.style.height = '0';
+                                el.style.width = '0';
+                                el.style.overflow = 'hidden';
+                                
+                                // Optionally remove completely
+                                if (el.parentNode) {
+                                    try {
+                                        el.parentNode.removeChild(el);
+                                    } catch(e) {}
+                                }
+                            }
+                        });
+                        
+                        // Set all body content to be visible
+                        document.body.style.overflow = 'auto';
+                        
+                        // Specifically target Ithuba popup message
+                        var oopsElements = document.querySelectorAll('div.popup-content');
+                        for (var i = 0; i < oopsElements.length; i++) {
+                            if (oopsElements[i].textContent.indexOf('Oops') !== -1) {
+                                if (oopsElements[i].parentNode) {
+                                    try {
+                                        var parent = oopsElements[i].parentNode;
+                                        parent.parentNode.removeChild(parent);
+                                    } catch(e) {}
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Run immediately
+                    hidePopups();
+                    
+                    // Also run after window load
+                    window.addEventListener('load', hidePopups);
+                    
+                    // And run periodically to catch any delayed popups
+                    setInterval(hidePopups, 500);
+                })();
+            </script>
+            '''
+            
             # Insert our custom styles at the end of the head section
             if '<head>' in html_content:
-                html_content = html_content.replace('</head>', f'{style_tag}</head>')
+                html_content = html_content.replace('</head>', f'{style_tag}{popup_script}</head>')
             else:
                 # If no head tag, insert one at the beginning
-                html_content = f'<head>{style_tag}</head>{html_content}'
+                html_content = f'<head>{style_tag}{popup_script}</head>{html_content}'
             
             # If forcing download, just send the file
             if force_download:
