@@ -1955,21 +1955,71 @@ def view_screenshot(screenshot_id):
     else:
         attempts.append(f"PNG file missing or invalid: {getattr(screenshot, 'path', None)}")
     
-    # Third fallback: If HTML exists and not forcing download, show HTML directly
-    if not force_download and screenshot.html_path and os.path.isfile(screenshot.html_path):
+    # Prioritize direct HTML display for better user experience
+    if screenshot.html_path and os.path.isfile(screenshot.html_path):
         html_size = os.path.getsize(screenshot.html_path)
-        app.logger.info(f"Falling back to direct HTML display: {screenshot.html_path} ({html_size} bytes)")
-        attempts.append(f"Falling back to direct HTML: {html_size} bytes")
+        app.logger.info(f"Displaying HTML content directly: {screenshot.html_path} ({html_size} bytes)")
+        attempts.append(f"Displaying HTML content: {html_size} bytes")
         
         try:
-            # Use send_file instead of send_from_directory for more reliability
-            return send_file(
-                screenshot.html_path,
-                mimetype='text/html',
-                download_name=f"{screenshot.lottery_type.replace(' ', '_')}.html"
-            )
+            # Instead of sending the raw HTML file, let's process it to remove problematic elements
+            with open(screenshot.html_path, 'r', encoding='utf-8', errors='ignore') as f:
+                html_content = f.read()
+            
+            # Remove any overlay messages or error boxes that might block content
+            html_content = html_content.replace('class="error_tooltip manual_tooltip_error"', 'class="error_tooltip manual_tooltip_error" style="display:none;"')
+            
+            # Add a custom CSS style to hide overlays and popups
+            style_tag = '''
+            <style>
+                /* Hide overlay elements that might block content */
+                .overlay, .popup, .modal, #overlay, #popup, #modal,
+                div[class*="overlay"], div[id*="overlay"],
+                div[class*="popup"], div[id*="popup"],
+                div[class*="modal"], div[id*="modal"],
+                .cookie-banner, #cookie-banner, .cookie-consent, #cookie-consent,
+                [class*="cookie"], [id*="cookie"], [class*="consent"], [id*="consent"],
+                .error_tooltip, .manual_tooltip_error, .tooltip_error,
+                div[class*="error"], div[id*="error"] {
+                    display: none !important;
+                    visibility: hidden !important;
+                    opacity: 0 !important;
+                    z-index: -1 !important;
+                }
+                
+                /* Ensure content is visible */
+                body, html {
+                    overflow: auto !important;
+                }
+            </style>
+            '''
+            
+            # Insert our custom styles at the end of the head section
+            if '<head>' in html_content:
+                html_content = html_content.replace('</head>', f'{style_tag}</head>')
+            else:
+                # If no head tag, insert one at the beginning
+                html_content = f'<head>{style_tag}</head>{html_content}'
+            
+            # If forcing download, just send the file
+            if force_download:
+                # Create a temporary file with the modified content
+                import tempfile
+                temp_file = tempfile.NamedTemporaryFile(suffix='.html', delete=False)
+                temp_file.write(html_content.encode('utf-8'))
+                temp_file.close()
+                
+                return send_file(
+                    temp_file.name,
+                    mimetype='text/html',
+                    as_attachment=True,
+                    download_name=f"{screenshot.lottery_type.replace(' ', '_')}.html"
+                )
+            
+            # Return the modified HTML content directly
+            return html_content, 200, {'Content-Type': 'text/html'}
         except Exception as e:
-            error_msg = f"Error sending HTML file: {str(e)}"
+            error_msg = f"Error processing HTML file: {str(e)}"
             app.logger.error(error_msg)
             attempts.append(error_msg)
     

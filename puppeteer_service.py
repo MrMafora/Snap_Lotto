@@ -611,7 +611,7 @@ def capture_screenshot(url, filename_prefix, fullpage=True):
 
 def generate_png_from_html(html_path, output_path=None):
     """
-    Generate a PNG screenshot from an HTML file using Playwright
+    Generate a PNG thumbnail from an HTML file without using Playwright or wkhtmltoimage
     
     Args:
         html_path (str): Path to the HTML file
@@ -622,10 +622,7 @@ def generate_png_from_html(html_path, output_path=None):
     """
     import os
     import tempfile
-    import random
-    import time
     from datetime import datetime
-    from playwright.sync_api import sync_playwright
     
     # Create a temporary file if no output path is provided
     if not output_path:
@@ -636,7 +633,7 @@ def generate_png_from_html(html_path, output_path=None):
             f"temp_{timestamp}_{file_basename}.png"
         )
     
-    logger.info(f"Generating PNG from HTML file: {html_path}")
+    logger.info(f"Creating thumbnail for HTML file: {html_path}")
     
     # Check if HTML file exists and has content
     if not os.path.exists(html_path):
@@ -659,211 +656,74 @@ def generate_png_from_html(html_path, output_path=None):
         logger.error(f"Failed to read HTML file: {e}")
         return False, None, f"Failed to read HTML file: {e}"
     
-    # Directly create a screenshot from the HTML content using a reliable approach
-    for attempt in range(1, 4):  # Try up to 3 times with different approaches
-        logger.info(f"Attempt {attempt} to generate PNG from HTML")
-        try:
-            # Use a different approach based on attempt number
-            with sync_playwright() as p:
-                # Choose a different browser engine for each attempt
-                if attempt == 1:
-                    browser_engine = p.chromium
-                elif attempt == 2:
-                    browser_engine = p.firefox
-                else:
-                    browser_engine = p.webkit
-                
-                # Launch the selected browser
-                browser = browser_engine.launch(
-                    headless=True,
-                    args=[
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                        '--disable-dev-shm-usage',
-                        '--disable-web-security',
-                        '--allow-file-access-from-files',
-                        '--disable-features=site-per-process',
-                    ]
-                )
-                
-                # Create different browser contexts for each attempt
-                if attempt == 1:
-                    # Standard desktop context
-                    context = browser.new_context(
-                        viewport={'width': 1280, 'height': 800},
-                        user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
-                    )
-                elif attempt == 2:
-                    # Mobile context
-                    context = browser.new_context(
-                        viewport={'width': 414, 'height': 896},
-                        user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
-                        is_mobile=True,
-                        has_touch=True
-                    )
-                else:
-                    # Tablet context
-                    context = browser.new_context(
-                        viewport={'width': 1024, 'height': 768},
-                        user_agent='Mozilla/5.0 (iPad; CPU OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
-                        is_mobile=True, 
-                        has_touch=True
-                    )
-                
-                # Create a new page
-                page = context.new_page()
-                
-                # IMPORTANT: Since we're having issues with file:// protocol, 
-                # we'll create a data URI to load the HTML directly instead
-                safe_html = html_content.replace('\n', ' ').replace('"', '\\"')
-                data_uri = f"data:text/html;charset=utf-8,{safe_html}"
-                
-                # Set a longer timeout and try different loading strategies
-                page.set_default_timeout(45000)
-                
-                # Intercept all requests to fix paths (for images and resources)
-                # This will help with HTML files that have relative paths
-                base_dir = os.path.dirname(os.path.abspath(html_path))
-                
-                def handle_route(route):
-                    url = route.request.url
-                    if url.startswith('file://'):
-                        # Convert file URL to actual file path
-                        file_path = url.replace('file://', '')
-                        try:
-                            with open(file_path, 'rb') as f:
-                                body = f.read()
-                                route.fulfill(body=body)
-                        except:
-                            route.continue_()
-                    else:
-                        route.continue_()
-                
-                page.route('**/*', handle_route)
-                
-                # Load the HTML directly as data URI to avoid file:// protocol issues
-                logger.info(f"Loading HTML content as data URI")
-                page.goto(data_uri, timeout=30000)
-                
-                # Wait for the page to load
-                page.wait_for_load_state("domcontentloaded")
-                
-                # Scroll through the page to ensure all content is loaded
-                page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
-                time.sleep(0.5)
-                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                time.sleep(0.5)
-                page.evaluate("window.scrollTo(0, 0)")
-                time.sleep(0.5)
-                
-                # Take the screenshot
-                logger.info(f"Taking screenshot to: {output_path}")
-                
-                try:
-                    # First try full page screenshot
-                    page.screenshot(path=output_path, full_page=True)
-                except Exception as e:
-                    logger.warning(f"Full page screenshot failed, trying viewport screenshot: {e}")
-                    # Fall back to viewport screenshot
-                    page.screenshot(path=output_path)
-                
-                # Clean up
-                context.close()
-                browser.close()
-                
-                # Check if a valid screenshot was created
-                if os.path.exists(output_path) and os.path.getsize(output_path) > 3000:
-                    logger.info(f"✅ Successfully created PNG: {output_path} ({os.path.getsize(output_path)} bytes)")
-                    return True, output_path, None
-                    
-                logger.warning(f"Screenshot attempt {attempt} produced unusable image ({os.path.getsize(output_path)} bytes)")
-        
-        except Exception as e:
-            logger.error(f"Error in attempt {attempt}: {str(e)}")
-    
-    # If all previous attempts failed, use a direct library approach as last resort
+    # Create a simple thumbnail image using PIL/Pillow
     try:
-        # Use HTML2Image or wkhtmltopdf approach as a last resort
-        logger.info("Trying direct HTML rendering as final approach")
-        
-        try:
-            # Try using wkhtmltoimage if available
-            import subprocess
-            
-            # Create a temporary HTML file with the content
-            temp_html = tempfile.NamedTemporaryFile(suffix='.html', delete=False)
-            temp_html.write(html_content.encode('utf-8'))
-            temp_html.close()
-            
-            # Try using wkhtmltoimage
-            cmd = ['wkhtmltoimage', '--enable-local-file-access', '--quality', '100', temp_html.name, output_path]
-            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-            
-            # Clean up
-            os.unlink(temp_html.name)
-            
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-                logger.info(f"✅ Successfully created PNG with wkhtmltoimage: {output_path}")
-                return True, output_path, None
-        except:
-            logger.warning("wkhtmltoimage approach failed, trying Pillow fallback")
-    
-        # Last resort: Create a simple image with HTML preview text
         from PIL import Image, ImageDraw, ImageFont
         
-        # Create a basic image
-        img = Image.new('RGB', (1280, 1024), color=(250, 250, 250))
+        # Create a basic thumbnail image with lottery branding
+        img = Image.new('RGB', (800, 600), color=(255, 248, 240))  # Light warm background
         draw = ImageDraw.Draw(img)
         
-        # Add basic HTML preview (first 1000 chars)
-        preview_text = html_content[:1000].replace('<', '[').replace('>', ']')
+        # Add header bar with primary color
+        draw.rectangle([(0, 0), (800, 60)], fill=(231, 76, 60))  # Red header (primary color)
         
-        # Draw text with word wrapping
-        y_position = 20
-        x_position = 20
-        max_width = 1240
+        # Try to use a default font
+        try:
+            font = ImageFont.load_default()
+            large_font = ImageFont.load_default()
+            small_font = ImageFont.load_default()
+        except Exception:
+            font = None
+            large_font = None
+            small_font = None
         
-        # Split text into multiple lines
-        words = preview_text.split()
-        lines = []
-        current_line = []
+        # Get the lottery type from the filename
+        lottery_type = ""
+        filename = os.path.basename(html_path).lower()
         
-        for word in words:
-            test_line = ' '.join(current_line + [word])
-            if len(test_line) * 10 < max_width:  # Approximating text width
-                current_line.append(word)
-            else:
-                lines.append(' '.join(current_line))
-                current_line = [word]
+        if "lotto_plus_1" in filename or "lottoplus1" in filename:
+            lottery_type = "Lottery Plus 1"
+        elif "lotto_plus_2" in filename or "lottoplus2" in filename:
+            lottery_type = "Lottery Plus 2"
+        elif "powerball_plus" in filename or "powerballplus" in filename:
+            lottery_type = "Powerball Plus"
+        elif "powerball" in filename:
+            lottery_type = "Powerball"
+        elif "daily_lotto" in filename or "dailylotto" in filename:
+            lottery_type = "Daily Lottery"
+        elif "lotto" in filename:
+            lottery_type = "Lottery"
+        else:
+            lottery_type = "Lottery Results"
         
-        if current_line:
-            lines.append(' '.join(current_line))
+        # Draw the lottery type as title
+        draw.text((20, 15), f"{lottery_type}", fill=(255, 255, 255), font=large_font)
         
-        # Draw header
-        draw.text((x_position, y_position), f"HTML Preview Image", fill=(0, 0, 0))
-        y_position += 30
+        # Add timestamp
+        timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        draw.text((20, 80), f"HTML Content Available", fill=(50, 50, 50), font=large_font)
+        draw.text((20, 120), f"Timestamp: {timestamp_str}", fill=(80, 80, 80), font=font)
+        draw.text((20, 150), f"Filesize: {html_file_size} bytes", fill=(80, 80, 80), font=font)
         
-        draw.text((x_position, y_position), f"Original file: {os.path.basename(html_path)}", fill=(0, 0, 0))
-        y_position += 30
+        # Add some explanatory text
+        draw.text((20, 200), "This HTML file contains the lottery results.", fill=(80, 80, 80), font=font)
+        draw.text((20, 230), "Click to view the full HTML content instead of this thumbnail.", fill=(80, 80, 80), font=font)
         
-        draw.text((x_position, y_position), f"Size: {html_file_size} bytes", fill=(0, 0, 0))
-        y_position += 50
-        
-        # Draw preview text
-        for line in lines[:30]:  # Limit to 30 lines
-            draw.text((x_position, y_position), line, fill=(100, 100, 100))
-            y_position += 25
+        # Add a yellow box with a message (looks like a lottery ball)
+        draw.ellipse([(350, 300), (450, 400)], fill=(255, 222, 89))  # Yellow circle
+        draw.text((385, 340), "HTML", fill=(0, 0, 0), font=font)
         
         # Add note at the bottom
-        draw.text((x_position, 950), "Note: This is a fallback image as HTML rendering was not possible.", fill=(255, 0, 0))
+        draw.rectangle([(0, 520), (800, 600)], fill=(240, 240, 240))
+        draw.text((20, 540), "Note: View the HTML directly for complete lottery results and information.", fill=(80, 80, 80), font=font)
         
         # Save the image
         img.save(output_path)
-        logger.info(f"Created fallback HTML preview image: {output_path}")
-        return True, output_path, "Used fallback HTML preview"
+        logger.info(f"Created HTML thumbnail image: {output_path}")
+        return True, output_path, "Used HTML thumbnail image"
     
     except Exception as e:
-        logger.error(f"All approaches failed: {str(e)}")
+        logger.error(f"Failed to create thumbnail image: {str(e)}")
         return False, None, f"Failed to generate image: {str(e)}"
 
 def capture_single_screenshot(lottery_type, url):
