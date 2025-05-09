@@ -2071,17 +2071,37 @@ def view_screenshot(screenshot_id):
                 div[class*="error"], div[id*="error"],
                 .popup-background, .popup-container, .popup-content, 
                 [class*="popup-"], [id*="popup-"],
-                div[class*="notification"], div[id*="notification"] {
+                div[class*="notification"], div[id*="notification"],
+                /* Target the specific "Oops!" modal shown in the screenshot */
+                div[role="dialog"],
+                [class*="alert"],
+                [id*="alert"],
+                [class*="dialog"],
+                [id*="dialog"],
+                [aria-labelledby*="modal"],
+                [aria-describedby*="modal"],
+                /* Additional selectors to hide all possible overlays */
+                .error-message, .error-dialog, .error-container,
+                .warning-message, .warning-dialog, .warning-container,
+                .message-container, .message-box, .message-popup,
+                .backdrop, .backdrop-container, .dark-overlay {
                     display: none !important;
                     visibility: hidden !important;
                     opacity: 0 !important;
-                    z-index: -1 !important;
+                    z-index: -9999 !important;
                     pointer-events: none !important;
+                    position: absolute !important;
+                    left: -9999px !important;
+                    top: -9999px !important;
+                    width: 0 !important;
+                    height: 0 !important;
+                    overflow: hidden !important;
                 }
                 
                 /* Ensure content is visible */
                 body, html {
                     overflow: auto !important;
+                    position: relative !important;
                 }
                 
                 /* Remove any overlays in the page */
@@ -2089,6 +2109,19 @@ def view_screenshot(screenshot_id):
                 div::before, div::after {
                     display: none !important;
                     content: none !important;
+                }
+                
+                /* Force all content to be visible */
+                body > * {
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                }
+                
+                /* Prevent any position:fixed elements from blocking content */
+                [style*="position: fixed"], [style*="position:fixed"] {
+                    position: absolute !important;
+                    z-index: -1 !important;
                 }
             </style>
             '''
