@@ -1764,6 +1764,20 @@ def view_screenshot(screenshot_id):
     attempts = []
     app.logger.info(f"Attempting to view screenshot ID {screenshot_id}, type: {screenshot.lottery_type}")
     
+    # Fix for empty image issue - check if url attribute exists and set it if missing
+    if not hasattr(screenshot, 'url') or not screenshot.url:
+        if hasattr(screenshot, 'source_url') and screenshot.source_url:
+            screenshot.url = screenshot.source_url
+            db.session.commit()
+        else:
+            # Try to set a reasonable default URL if none exists
+            from config import Config
+            for url_info in Config.RESULTS_URLS:
+                if url_info['lottery_type'].lower() == screenshot.lottery_type.lower():
+                    screenshot.url = url_info['url']
+                    db.session.commit()
+                    break
+    
     # Always try to generate a fresh PNG from HTML for consistent results
     if screenshot.html_path and os.path.isfile(screenshot.html_path):
         app.logger.info(f"HTML file exists at {screenshot.html_path} ({os.path.getsize(screenshot.html_path)} bytes)")
@@ -1884,7 +1898,7 @@ def view_screenshot(screenshot_id):
                         <h1>Screenshot Preview: {screenshot.lottery_type}</h1>
                         <div class="meta">ID: {screenshot_id}</div>
                         <div class="meta">Timestamp: {screenshot.timestamp}</div>
-                        <div class="meta">URL: {screenshot.url}</div>
+                        <div class="meta">URL: {getattr(screenshot, 'url', 'Unknown URL')}</div>
                         
                         <div class="content">
                             <h3>Screenshot Data</h3>
@@ -1911,28 +1925,53 @@ def view_screenshot(screenshot_id):
         app.logger.error(f"Embedded HTML fallback failed: {str(e)}")
         attempts.append(f"Embedded HTML fallback failed: {str(e)}")
         
-    # If all else fails, generate a simple error image
+    # If all else fails, generate a proper error image with useful information
     try:
         from PIL import Image, ImageDraw, ImageFont
         import tempfile
         
-        # Create a simple error image
-        img = Image.new('RGB', (640, 400), color=(245, 245, 245))
+        # Create a more visually appealing error image with lottery branding
+        img = Image.new('RGB', (800, 500), color=(255, 248, 240))  # Light warm background
         draw = ImageDraw.Draw(img)
         
-        # Draw error message
-        draw.text((20, 20), f"Screenshot Not Available", fill=(0, 0, 0))
-        draw.text((20, 60), f"Screenshot ID: {screenshot_id}", fill=(0, 0, 0))
-        draw.text((20, 100), f"Type: {screenshot.lottery_type}", fill=(0, 0, 0))
+        # Add a header bar
+        draw.rectangle([(0, 0), (800, 60)], fill=(231, 76, 60))  # Red header
         
-        # Add attempt information
-        y_pos = 160
-        draw.text((20, y_pos), "Attempted approaches:", fill=(0, 0, 0))
-        y_pos += 30
+        # Try to use a default font
+        try:
+            font = ImageFont.load_default()
+            large_font = ImageFont.load_default()
+            small_font = ImageFont.load_default()
+        except Exception:
+            font = None
+            large_font = None
+            small_font = None
         
+        # Draw title and details with better formatting
+        draw.text((20, 15), f"Screenshot Preview - {screenshot.lottery_type}", fill=(255, 255, 255), font=large_font)
+        draw.text((20, 80), f"Screenshot Information", fill=(50, 50, 50), font=large_font)
+        
+        draw.text((40, 120), f"• ID: {screenshot_id}", fill=(80, 80, 80), font=font)
+        draw.text((40, 150), f"• Type: {screenshot.lottery_type}", fill=(80, 80, 80), font=font)
+        draw.text((40, 180), f"• Timestamp: {screenshot.timestamp}", fill=(80, 80, 80), font=font)
+        draw.text((40, 210), f"• URL: {getattr(screenshot, 'url', 'Unknown URL')[:60]}", fill=(80, 80, 80), font=font)
+        
+        # Add a section for debug info
+        draw.rectangle([(20, 250), (780, 252)], fill=(200, 200, 200))  # Divider line
+        draw.text((20, 270), "Debug Information", fill=(50, 50, 50), font=font)
+        
+        # Add attempt information with better formatting
+        y_pos = 300
         for i, attempt in enumerate(attempts[:5]):  # Limit to 5 attempts to fit on image
-            draw.text((30, y_pos), f"{i+1}. {attempt[:60]}...", fill=(200, 0, 0))
+            draw.text((40, y_pos), f"• {attempt[:70]}", fill=(180, 60, 60), font=small_font)
             y_pos += 30
+            
+        # Add helpful instructions
+        draw.rectangle([(0, 440), (800, 500)], fill=(240, 240, 240))
+        draw.text((20, 450), "To fix this issue, try using the 'Resync' button on the screenshot gallery page.", 
+                 fill=(50, 50, 50), font=font)
+        draw.text((20, 470), "If the problem persists, check the HTML source or contact the administrator.", 
+                 fill=(50, 50, 50), font=small_font)
         
         # Save to a temp file
         temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
@@ -1946,7 +1985,7 @@ def view_screenshot(screenshot_id):
             temp_file.name,
             mimetype='image/png',
             as_attachment=force_download,
-            download_name=f"error_{screenshot.lottery_type.replace(' ', '_')}.png"
+            download_name=f"preview_{screenshot.lottery_type.replace(' ', '_')}.png"
         )
     except Exception as final_error:
         app.logger.error(f"All image generation attempts failed: {str(final_error)}")
@@ -2267,6 +2306,20 @@ def preview_website(screenshot_id):
     try:
         # Retrieve the screenshot object
         screenshot = Screenshot.query.get_or_404(screenshot_id)
+
+        # Fix for empty image issue - ensure url attribute exists
+        if not hasattr(screenshot, 'url') or not screenshot.url:
+            if hasattr(screenshot, 'source_url') and screenshot.source_url:
+                screenshot.url = screenshot.source_url
+                db.session.commit()
+            else:
+                # Try to set a reasonable default URL if none exists
+                from config import Config
+                for url_info in Config.RESULTS_URLS:
+                    if url_info['lottery_type'].lower() == screenshot.lottery_type.lower():
+                        screenshot.url = url_info['url']
+                        db.session.commit()
+                        break
         
         # First try to generate from HTML if available - this is the most reliable approach
         if screenshot.html_path and os.path.exists(screenshot.html_path):
@@ -2374,12 +2427,15 @@ def preview_website(screenshot_id):
             except Exception as file_error:
                 app.logger.warning(f"Could not process existing screenshot for preview: {str(file_error)}")
         
-        # If we don't have a screenshot or couldn't process it, create an informative image
-        app.logger.warning(f"No valid screenshot found for {screenshot.lottery_type} ({screenshot_id})")
+        # If we don't have a screenshot, create a warning image that is more user-friendly
+        app.logger.warning(f"No valid screenshot found for {screenshot.lottery_type} ({screenshot_id}), creating friendly warning image")
         
-        # Create an informative image indicating no screenshot is available
-        img = Image.new('RGB', (800, 600), color=(248, 249, 250))
+        # Create warning image with clean design
+        img = Image.new('RGB', (800, 450), color=(255, 252, 240))  # Light yellow background
         d = ImageDraw.Draw(img)
+
+        # Add a yellow warning header
+        d.rectangle([(0, 0), (800, 40)], fill=(241, 196, 15))  # Yellow header
         
         # Try to use a default font
         try:
@@ -2391,20 +2447,32 @@ def preview_website(screenshot_id):
             font_medium = None
             font_small = None
         
-        # Draw informative text
-        d.text((20, 20), f"No screenshot available for {screenshot.lottery_type}", 
-              fill=(50, 50, 50), font=font)
-        d.text((20, 60), f"URL: {getattr(screenshot, 'url', 'Unknown URL')[:80]}...",
-              fill=(100, 100, 100), font=font_medium)
-        d.text((20, 100), f"Use the 'Sync All Screenshots' or 'Resync' button to capture a screenshot.", 
-              fill=(50, 50, 200), font=font_small)
+        # Draw warning icon
+        d.rectangle([(30, 60), (70, 100)], fill=(241, 196, 15))  # Warning icon
+        d.text((44, 68), "!", fill=(255, 255, 255), font=font)
+        
+        # Draw warning text with better formatting
+        d.text((10, 10), f"Preview - {screenshot.lottery_type}", fill=(50, 50, 50), font=font)
+        d.text((90, 70), "Preview generation timed out.", fill=(50, 50, 50), font=font)
+        d.text((90, 100), "The website may be unavailable.", fill=(80, 80, 80), font=font_medium)
+        
+        # Add information about the screenshot
+        d.rectangle([(0, 140), (800, 142)], fill=(230, 230, 230))  # Divider line
+        d.text((30, 160), f"Screenshot ID: {screenshot_id}", fill=(100, 100, 100), font=font_small)
+        d.text((30, 190), f"Lottery Type: {screenshot.lottery_type}", fill=(100, 100, 100), font=font_small)
+        d.text((30, 220), f"URL: {getattr(screenshot, 'url', 'Unknown URL')[:60]}", fill=(100, 100, 100), font=font_small)
+        
+        # Add helpful instruction
+        d.rectangle([(0, 380), (800, 450)], fill=(245, 245, 245))
+        d.text((30, 400), "Click the 'Resync' button below to attempt capturing this screenshot again.", 
+               fill=(50, 50, 50), font=font_small)
         
         # Save to buffer
         buffer = BytesIO()
         img.save(buffer, 'PNG')
         buffer.seek(0)
         
-        # Return the informative image
+        # Return the warning image
         return send_file(
             buffer,
             mimetype='image/png',
@@ -2414,15 +2482,27 @@ def preview_website(screenshot_id):
     
     except Exception as e:
         app.logger.error(f"Error serving preview for {screenshot_id}: {str(e)}")
-        # Generate a simple error message image
+        # Generate a better looking error message image
         from PIL import Image, ImageDraw
         
-        img = Image.new('RGB', (800, 600), color=(255, 240, 240))
+        img = Image.new('RGB', (800, 450), color=(255, 235, 235))  # Light red background
         d = ImageDraw.Draw(img)
         
+        # Add a header bar
+        d.rectangle([(0, 0), (800, 40)], fill=(231, 76, 60))  # Red header
+        
+        # Draw warning icon
+        d.rectangle([(30, 60), (70, 100)], fill=(231, 76, 60))  # Error icon
+        d.text((44, 68), "!", fill=(255, 255, 255), font=None)
+        
         # Draw error text
-        d.text((20, 20), f"Server Error: Preview generation failed", fill=(200, 0, 0))
-        d.text((20, 60), f"Error details: {str(e)[:200]}", fill=(100, 0, 0))
+        d.text((10, 10), "Preview Error", fill=(255, 255, 255), font=None)
+        d.text((90, 70), "Preview generation failed", fill=(150, 0, 0), font=None)
+        d.text((90, 100), f"Error details: {str(e)[:60]}", fill=(100, 0, 0), font=None)
+        
+        # Add a helpful message
+        d.rectangle([(0, 380), (800, 450)], fill=(245, 235, 235))
+        d.text((30, 400), "Try clicking the 'Resync' button to fix this issue.", fill=(100, 0, 0), font=None)
         
         # Save to buffer
         buffer = BytesIO()
