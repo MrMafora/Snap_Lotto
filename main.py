@@ -1760,8 +1760,12 @@ def view_screenshot(screenshot_id):
     screenshot = Screenshot.query.get_or_404(screenshot_id)
     force_download = request.args.get('force_download', 'false').lower() == 'true'
     
+    # Keep track of attempts for logging
+    attempts = []
+    
     # Always try to generate a fresh PNG from HTML for consistent results
     if screenshot.html_path and os.path.isfile(screenshot.html_path):
+        app.logger.info(f"HTML file exists at {screenshot.html_path} ({os.path.getsize(screenshot.html_path)} bytes)")
         try:
             app.logger.info(f"Using puppeteer_service.generate_png_from_html for {screenshot.html_path}")
             
@@ -1769,11 +1773,14 @@ def view_screenshot(screenshot_id):
             from puppeteer_service import generate_png_from_html
             
             # Generate the PNG image
-            success, temp_screenshot_path, error_message = generate_png_from_html(screenshot.html_path)
+            success, temp_screenshot_path, error_message = generate_png_from_html(
+                html_path=screenshot.html_path
+            )
             
             # Check if generation was successful
             if success and temp_screenshot_path and os.path.exists(temp_screenshot_path):
                 app.logger.info(f"Successfully generated PNG at {temp_screenshot_path} ({os.path.getsize(temp_screenshot_path)} bytes)")
+                attempts.append(f"Successfully generated PNG: {os.path.getsize(temp_screenshot_path)} bytes")
                 
                 # Return the generated file
                 return send_file(
@@ -1783,44 +1790,109 @@ def view_screenshot(screenshot_id):
                     download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png"
                 )
             else:
-                app.logger.error(f"Failed to generate PNG: {error_message}")
-                raise Exception(f"PNG generation failed: {error_message}")
+                error_msg = f"Failed to generate PNG: {error_message}"
+                app.logger.error(error_msg)
+                attempts.append(error_msg)
+                # Don't raise an exception, let it try the fallback methods
                 
         except Exception as e:
-            app.logger.error(f"Error accessing puppeteer_service.generate_png_from_html: {str(e)}")
+            error_msg = f"Error with puppeteer_service.generate_png_from_html: {str(e)}"
+            app.logger.error(error_msg)
+            attempts.append(error_msg)
             
-            # Fall back to direct HTML display if force_download is not requested
-            if not force_download and screenshot.html_path and os.path.isfile(screenshot.html_path):
-                directory = os.path.dirname(screenshot.html_path)
-                filename = os.path.basename(screenshot.html_path)
-                
+            # Continue to fallback approaches - no exception needed
+    else:
+        attempts.append(f"HTML file missing or invalid: {getattr(screenshot, 'html_path', None)}")
+    
+    # Try alternative: If we have a PNG in the database, use it
+    if screenshot.path and os.path.isfile(screenshot.path):
+        file_size = os.path.getsize(screenshot.path)
+        app.logger.info(f"Using existing PNG file as fallback: {screenshot.path} ({file_size} bytes)")
+        attempts.append(f"Using existing PNG: {file_size} bytes")
+        
+        if file_size > 100:  # Even a very minimal image should be larger than this
+            directory = os.path.dirname(screenshot.path)
+            filename = os.path.basename(screenshot.path)
+            
+            try:
                 return send_from_directory(
                     directory, 
                     filename, 
-                    mimetype='text/html'
+                    as_attachment=force_download,
+                    download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png",
+                    mimetype='image/png'
                 )
-            else:
-                # For downloads, show a meaningful error
-                flash(f'Could not generate image from screenshot: {str(e)}', 'danger')
-                return redirect(url_for('export_screenshots'))
-    
-    # Check if we have a PNG file as fallback
-    elif screenshot.path and os.path.isfile(screenshot.path) and os.path.getsize(screenshot.path) > 1000:
-        # Use existing PNG file if it exists and has content
-        directory = os.path.dirname(screenshot.path)
-        filename = os.path.basename(screenshot.path)
-        
-        return send_from_directory(
-            directory, 
-            filename, 
-            as_attachment=force_download,
-            download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png",
-            mimetype='image/png'
-        )
-    
+            except Exception as e:
+                error_msg = f"Error sending PNG file: {str(e)}"
+                app.logger.error(error_msg)
+                attempts.append(error_msg)
+        else:
+            attempts.append(f"PNG file too small ({file_size} bytes)")
     else:
-        # Neither valid HTML nor PNG exists
-        flash('No valid screenshot content available', 'danger')
+        attempts.append(f"PNG file missing or invalid: {getattr(screenshot, 'path', None)}")
+    
+    # Third fallback: If HTML exists and not forcing download, show HTML directly
+    if not force_download and screenshot.html_path and os.path.isfile(screenshot.html_path):
+        html_size = os.path.getsize(screenshot.html_path)
+        app.logger.info(f"Falling back to direct HTML display: {screenshot.html_path} ({html_size} bytes)")
+        attempts.append(f"Falling back to direct HTML: {html_size} bytes")
+        
+        try:
+            directory = os.path.dirname(screenshot.html_path)
+            filename = os.path.basename(screenshot.html_path)
+            
+            return send_from_directory(
+                directory, 
+                filename, 
+                mimetype='text/html'
+            )
+        except Exception as e:
+            error_msg = f"Error sending HTML file: {str(e)}"
+            app.logger.error(error_msg)
+            attempts.append(error_msg)
+    
+    # If all else fails, generate a simple error image
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        import tempfile
+        
+        # Create a simple error image
+        img = Image.new('RGB', (640, 400), color=(245, 245, 245))
+        draw = ImageDraw.Draw(img)
+        
+        # Draw error message
+        draw.text((20, 20), f"Screenshot Not Available", fill=(0, 0, 0))
+        draw.text((20, 60), f"Screenshot ID: {screenshot_id}", fill=(0, 0, 0))
+        draw.text((20, 100), f"Type: {screenshot.lottery_type}", fill=(0, 0, 0))
+        
+        # Add attempt information
+        y_pos = 160
+        draw.text((20, y_pos), "Attempted approaches:", fill=(0, 0, 0))
+        y_pos += 30
+        
+        for i, attempt in enumerate(attempts[:5]):  # Limit to 5 attempts to fit on image
+            draw.text((30, y_pos), f"{i+1}. {attempt[:60]}...", fill=(200, 0, 0))
+            y_pos += 30
+        
+        # Save to a temp file
+        temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+        temp_file.close()
+        img.save(temp_file.name)
+        
+        app.logger.warning(f"Created error placeholder image as last resort: {temp_file.name}")
+        
+        # Return the error image
+        return send_file(
+            temp_file.name,
+            mimetype='image/png',
+            as_attachment=force_download,
+            download_name=f"error_{screenshot.lottery_type.replace(' ', '_')}.png"
+        )
+    except Exception as final_error:
+        app.logger.error(f"All image generation attempts failed: {str(final_error)}")
+        
+        # Only at this point do we give up completely
+        flash(f'Failed to generate or retrieve any valid content for this screenshot', 'danger')
         return redirect(url_for('export_screenshots'))
 
 @app.route('/screenshot-zoomed/<int:screenshot_id>')

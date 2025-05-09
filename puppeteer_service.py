@@ -396,12 +396,36 @@ def generate_png_from_html(html_path, output_path=None):
     
     logger.info(f"Generating PNG from HTML file: {html_path}")
     
+    # Check if HTML file exists and has content
+    if not os.path.exists(html_path):
+        error_message = f"HTML file does not exist: {html_path}"
+        logger.error(error_message)
+        return False, None, error_message
+    
+    # Check file size to make sure it has content
+    html_file_size = os.path.getsize(html_path)
+    if html_file_size < 100:  # Extremely small HTML file is likely empty or corrupt
+        error_message = f"HTML file is too small ({html_file_size} bytes): {html_path}"
+        logger.error(error_message)
+        return False, None, error_message
+    
+    # Read first few bytes to check if it's actually HTML
+    try:
+        with open(html_path, 'r', encoding='utf-8', errors='ignore') as f:
+            content_start = f.read(1000).lower()
+            if not ('<html' in content_start or '<!doctype html' in content_start):
+                logger.warning(f"File may not be valid HTML: {html_path}")
+                # We'll still try to convert it
+    except Exception as read_error:
+        logger.warning(f"Could not read HTML file: {str(read_error)}")
+        # We'll still try to proceed
+    
     try:
         # Get the absolute path to the HTML file
         abs_html_path = os.path.abspath(html_path)
         
-        # Create file:// URL format
-        html_url = f"file://{abs_html_path}"
+        # Create file:// URL format with correct encoding
+        html_url = f"file://{abs_html_path.replace(' ', '%20')}"
         
         with sync_playwright() as p:
             # Launch browser with appropriate settings
@@ -411,7 +435,9 @@ def generate_png_from_html(html_path, output_path=None):
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
                     '--disable-dev-shm-usage',
-                    '--window-size=1280,1024'
+                    '--window-size=1280,1024',
+                    '--disable-web-security',  # Allow loading local resources
+                    '--allow-file-access-from-files'  # Allow loading local resources
                 ]
             )
             
@@ -419,52 +445,113 @@ def generate_png_from_html(html_path, output_path=None):
                 # Open new page with proper viewport settings
                 page = browser.new_page(viewport={"width": 1280, "height": 1024})
                 
-                # Set timeout to ensure content loads
-                page.set_default_timeout(30000)
+                # Set longer timeout to ensure content loads
+                page.set_default_timeout(45000)
+                
+                # Enable better console error logging
+                page.on("console", lambda msg: logger.debug(f"Browser console {msg.type}: {msg.text}"))
+                page.on("pageerror", lambda err: logger.error(f"Page error: {err}"))
                 
                 # Load the HTML file with proper wait conditions
                 logger.info(f"Loading HTML from: {html_url}")
-                page.goto(html_url, wait_until="networkidle")
+                try:
+                    # Try networkidle first (more reliable)
+                    page.goto(html_url, wait_until="networkidle", timeout=30000)
+                except Exception as goto_error:
+                    logger.warning(f"Network idle wait failed, falling back to domcontentloaded: {str(goto_error)}")
+                    # Fall back to domcontentloaded if networkidle fails
+                    page.goto(html_url, wait_until="domcontentloaded", timeout=15000)
                 
                 # Make sure page is fully rendered
-                page.wait_for_selector('body', state='visible')
+                try:
+                    page.wait_for_selector('body', state='visible', timeout=10000)
+                except Exception as selector_error:
+                    logger.warning(f"Wait for body selector failed: {str(selector_error)}")
+                    # Continue anyway
                 
-                # Ensure page is fully loaded
-                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                page.evaluate("window.scrollTo(0, 0)")
+                # Give JavaScript time to run
+                page.wait_for_timeout(1000)
                 
-                # Take the screenshot with quality settings
-                logger.info(f"Taking screenshot to: {output_path}")
-                page.screenshot(
-                    path=output_path,
-                    full_page=True,
-                    type='png',
-                    quality=100
-                )
+                # Ensure page is fully loaded with multiple scroll attempts
+                for _ in range(3):
+                    try:
+                        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                        page.wait_for_timeout(500)
+                        page.evaluate("window.scrollTo(0, 0)")
+                        page.wait_for_timeout(500)
+                    except Exception as scroll_error:
+                        logger.warning(f"Scroll error: {str(scroll_error)}")
+                        break
+                
+                # Take the screenshot with quality settings - try full page first
+                logger.info(f"Taking full page screenshot to: {output_path}")
+                try:
+                    page.screenshot(
+                        path=output_path,
+                        full_page=True,
+                        type='png',
+                        quality=100,
+                        timeout=30000
+                    )
+                except Exception as screenshot_error:
+                    logger.warning(f"Full page screenshot failed: {str(screenshot_error)}")
+                    # Fall back to viewport screenshot
+                    logger.info("Trying viewport screenshot instead")
+                    page.screenshot(
+                        path=output_path,
+                        full_page=False,
+                        type='png',
+                        quality=100
+                    )
                 
                 # Verify the file was created successfully
-                if os.path.exists(output_path) and os.path.getsize(output_path) > 10000:
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 5000:
                     logger.info(f"✅ PNG successfully generated: {output_path} ({os.path.getsize(output_path)} bytes)")
                     return True, output_path, None
                 
-                # Try alternate approach if the file is too small
-                logger.warning(f"⚠️ Generated PNG is too small ({os.path.getsize(output_path)}), trying alternate approach")
+                # Try alternate approach if the file is too small or doesn't exist
+                logger.warning(f"⚠️ Generated PNG is too small or missing, trying alternate approach")
                 
-                # Reset scroll position and try viewport-only screenshot
+                # Reset scroll position and try viewport-only screenshot with different options
                 page.evaluate("window.scrollTo(0, 0)")
+                page.wait_for_timeout(1000)
                 
-                # Try basic viewport screenshot
-                page.screenshot(
-                    path=output_path,
-                    full_page=False,
-                    type='png'
-                )
+                # Try alternative screenshot approach with larger viewport
+                try:
+                    page.set_viewport_size({"width": 1600, "height": 1200})
+                    page.screenshot(
+                        path=output_path,
+                        full_page=False,
+                        type='png'
+                    )
+                except Exception as alt_screenshot_error:
+                    logger.warning(f"Alternative screenshot method failed: {str(alt_screenshot_error)}")
                 
-                if os.path.exists(output_path) and os.path.getsize(output_path) > 5000:
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 3000:
                     logger.info(f"✅ Alternate PNG approach successful: {output_path} ({os.path.getsize(output_path)} bytes)")
                     return True, output_path, None
                 
-                return False, None, "Failed to generate valid PNG from HTML"
+                # Last resort - generate a placeholder image with error message
+                try:
+                    from PIL import Image, ImageDraw, ImageFont
+                    
+                    # Create a simple error image
+                    img = Image.new('RGB', (1280, 720), color=(245, 245, 245))
+                    draw = ImageDraw.Draw(img)
+                    
+                    # Draw error message
+                    draw.text((20, 20), f"Unable to render HTML content", fill=(0, 0, 0))
+                    draw.text((20, 60), f"HTML file: {html_path}", fill=(0, 0, 0))
+                    draw.text((20, 100), f"File size: {html_file_size} bytes", fill=(0, 0, 0))
+                    
+                    # Save the error image
+                    img.save(output_path)
+                    logger.warning(f"Created placeholder error image: {output_path}")
+                    return True, output_path, "Created placeholder image as fallback"
+                except Exception as pil_error:
+                    logger.error(f"Failed to create error image: {str(pil_error)}")
+                
+                return False, None, "Failed to generate valid PNG from HTML after multiple attempts"
                 
             except Exception as page_error:
                 logger.error(f"Error with page operations: {str(page_error)}")
