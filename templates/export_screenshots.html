@@ -253,7 +253,7 @@
         helpDiv.className = 'mt-2 small text-center';
         
         // Get the screenshot URL
-        const screenshotUrl = `/screenshot/${screenshotId}`;
+        const screenshotUrl = `{{ url_for('view_screenshot', screenshot_id=0) }}`.replace('0', screenshotId);
         
         // Add a direct view link to the help message
         helpDiv.innerHTML = `<a href="${screenshotUrl}" target="_blank" class="text-primary" style="text-decoration: underline;">
@@ -540,7 +540,7 @@
                         <div class="card h-100 gallery-card" style="user-select: none;">
                             <!-- Server-rendered preview container with enhanced error handling and recovery -->
                             <div class="preview-iframe-container" 
-                                 data-href="{{ url_for('screenshot', screenshot_id=screenshot.id) }}"
+                                 data-href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}"
                                  data-id="{{ screenshot.id }}"
                                  data-type="{{ screenshot.lottery_type }}">
                                 <!-- Loading spinner shown until preview loads -->
@@ -552,9 +552,9 @@
                                      style="display: none; max-width: 100%; height: auto;"
                                      title="{{ screenshot.lottery_type }} - Click to view full screenshot"
                                      onerror="handlePreviewError(this.parentNode, 'Preview image failed to load')"
-                                     onclick="window.open('{{ url_for('screenshot', screenshot_id=screenshot.id) }}', '_blank')">
+                                     onclick="window.open('{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}', '_blank')">
                                 <!-- Enhanced overlay link with better error recovery -->
-                                <a href="{{ url_for('screenshot', screenshot_id=screenshot.id) }}" 
+                                <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
                                    class="preview-overlay-link"
                                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"
                                    target="_blank"
@@ -583,7 +583,7 @@
                                             </a>
                                             {% endif %}
                                             
-                                            <a href="{{ url_for('screenshot', screenshot_id=screenshot.id) }}?force_download=true" 
+                                            <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}?force_download=true" 
                                                class="btn btn-sm btn-outline-primary flex-fill" 
                                                download>
                                                 <i class="fas fa-download me-1"></i> Download
