@@ -1764,58 +1764,69 @@ def view_screenshot(screenshot_id):
     screenshot_path = os.path.normpath(screenshot.path)
     
     # Check if the actual PNG file exists
-    if not os.path.isfile(screenshot_path):
-        # If force_download is true, try to create PNG from HTML if possible
-        if force_download and screenshot.html_path and os.path.isfile(screenshot.html_path):
-            try:
-                from playwright.sync_api import sync_playwright
-                import tempfile
+    if os.path.isfile(screenshot_path):
+        # Extract directory and filename from path
+        directory = os.path.dirname(screenshot_path)
+        filename = os.path.basename(screenshot_path)
+        
+        # If force_download, set as attachment
+        if force_download:
+            return send_from_directory(
+                directory, 
+                filename, 
+                as_attachment=True,
+                download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png",
+                mimetype='image/png'
+            )
+        
+        # Return PNG image by default
+        return send_from_directory(directory, filename, mimetype='image/png')
+    
+    # PNG file doesn't exist - check if we can generate it from HTML
+    elif screenshot.html_path and os.path.isfile(screenshot.html_path):
+        try:
+            from playwright.sync_api import sync_playwright
+            import tempfile
+            
+            # Generate PNG from HTML using Playwright
+            with sync_playwright() as p:
+                browser = p.chromium.launch()
+                page = browser.new_page()
                 
-                # Generate PNG from HTML using Playwright
-                with sync_playwright() as p:
-                    browser = p.chromium.launch()
-                    page = browser.new_page()
-                    
-                    # Load the HTML file
-                    page.goto('file://' + screenshot.html_path)
-                    
-                    # Create a temporary file for the screenshot
-                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-                        # Take the screenshot
-                        page.screenshot(path=temp_file.name, full_page=True)
-                        
-                        # Update the screenshot path in memory for this request
-                        temp_screenshot_path = temp_file.name
-                    
-                    browser.close()
+                # Load the HTML file
+                page.goto('file://' + screenshot.html_path)
                 
-                # Return the temporary screenshot file
-                return send_file(temp_screenshot_path, mimetype='image/png',
-                            as_attachment=True, 
-                            download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png")
-            except Exception as e:
-                logging.error(f"Error converting HTML to PNG: {str(e)}")
+                # Create a temporary file for the screenshot
+                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                    # Take the screenshot
+                    page.screenshot(path=temp_file.name, full_page=True)
+                    
+                    # Update the screenshot path in memory for this request
+                    temp_screenshot_path = temp_file.name
+                
+                browser.close()
+            
+            # Return the temporary screenshot file
+            return send_file(temp_screenshot_path, mimetype='image/png',
+                        as_attachment=force_download, 
+                        download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png")
+        except Exception as e:
+            logging.error(f"Error converting HTML to PNG: {str(e)}")
+            
+            # If HTML conversion fails, send the HTML file directly as PNG wasn't available
+            # This ensures users still see content even if PNG generation fails
+            if os.path.isfile(screenshot.html_path):
+                directory = os.path.dirname(screenshot.html_path)
+                filename = os.path.basename(screenshot.html_path)
+                
+                return send_from_directory(directory, filename, mimetype='image/png')
+            else:
                 flash(f'Could not create PNG from HTML: {str(e)}', 'danger')
                 return redirect(url_for('admin'))
-        else:
-            # Regular case where file doesn't exist
-            flash('Screenshot image file not found', 'danger')
-            return redirect(url_for('admin'))
-    
-    # Extract directory and filename from path
-    directory = os.path.dirname(screenshot_path)
-    filename = os.path.basename(screenshot_path)
-    
-    # If force_download, set as attachment
-    if force_download:
-        return send_from_directory(
-            directory, 
-            filename, 
-            as_attachment=True,
-            download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png"
-        )
-    
-    return send_from_directory(directory, filename)
+    else:
+        # Regular case where neither PNG nor HTML file exists
+        flash('Screenshot image file not found', 'danger')
+        return redirect(url_for('admin'))
 
 @app.route('/screenshot-zoomed/<int:screenshot_id>')
 def view_zoomed_screenshot(screenshot_id):
