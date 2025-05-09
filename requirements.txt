@@ -35,3 +35,6 @@ pandas
 trafilatura
 playwright
 anthropic
+logger
+pyppeteer
+pyppeteer

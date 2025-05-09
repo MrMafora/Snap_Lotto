@@ -50,12 +50,15 @@ from config import Config
 # Import modules
 import ad_management
 import lottery_analysis
+import puppeteer_routes
 from import_latest_spreadsheet import import_latest_spreadsheet, find_latest_spreadsheet
 
-# Import auto_proxy to start the port proxy in the background
+# Import port proxy only if needed, but don't start it immediately
+# We'll let it be started as a separate process
 try:
-    import auto_proxy
-    logger.info("Port proxy auto-starter loaded")
+    # Just checking if the module exists
+    import auto_start_proxy
+    logger.info("Port proxy auto-starter module found")
 except Exception as e:
     logger.error(f"Failed to load port proxy auto-starter: {e}")
 
@@ -3144,6 +3147,9 @@ ad_management.register_ad_routes(app)
 
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
+
+# Register puppeteer screenshot routes
+puppeteer_routes.register_puppeteer_routes(app)
 
 # API Request Tracking routes
 @app.route('/admin/api-tracking')

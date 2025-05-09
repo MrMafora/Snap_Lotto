@@ -76,6 +76,12 @@
                     <a href="{{ url_for('export_screenshots') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-download me-2"></i> Export Screenshots & Template
                     </a>
+                    <a href="{{ url_for('puppeteer.capture_screenshots_page') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-camera me-2"></i> Capture Screenshots (Puppeteer)
+                    </a>
+                    <a href="{{ url_for('puppeteer.sync_screenshots') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-sync me-2"></i> Quick Sync Screenshots
+                    </a>
                     <a href="{{ url_for('register') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-user-plus me-2"></i> Add Admin User
                     </a>

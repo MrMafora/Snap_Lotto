@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Sync Screenshots | Snap Lotto Admin{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header lottery-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">SYNC ALL SCREENSHOTS</h4>
+                    <a href="{{ url_for('admin') }}" class="btn btn-sm btn-outline-light">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> This will capture screenshots for all lottery types at once and update the database. The process may take a few minutes to complete.
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i> <strong>Warning:</strong> This will override all existing screenshots in the database.
+                </div>
+                
+                <form method="post" action="{{ url_for('puppeteer.sync_screenshots') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="text-center mb-4">
+                        <button type="submit" class="btn btn-lg btn-primary">
+                            <i class="fas fa-sync me-2"></i> Start Sync Process
+                        </button>
+                    </div>
+                    
+                    <div class="small text-muted mt-3">
+                        <p>This will capture screenshots for the following lottery types:</p>
+                        <ul class="list-unstyled row">
+                            <div class="col-md-6">
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Lotto History</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Lotto Plus 1 History</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Lotto Plus 2 History</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Powerball History</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Powerball Plus History</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Daily Lotto History</li>
+                            </div>
+                            <div class="col-md-6">
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Lotto Results</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Lotto Plus 1 Results</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Lotto Plus 2 Results</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Powerball Results</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Powerball Plus Results</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i> Daily Lotto Results</li>
+                            </div>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

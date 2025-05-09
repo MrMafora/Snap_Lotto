@@ -1,96 +1,110 @@
-#!/usr/bin/env python
-"""
-Direct import tool for the latest lottery template file.
-This will import the most recent template file from attached_assets.
-"""
 
-import os
-import sys
-import logging
 import pandas as pd
+import os
 from datetime import datetime
-import traceback
-import re
-import glob
+import logging
+from models import LotteryResult, ImportHistory, db
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def find_latest_template():
-    """Find the most recent lottery data template file in attached_assets"""
-    template_pattern = "attached_assets/lottery_data_template_*.xlsx"
-    template_files = glob.glob(template_pattern)
-    
-    # Also look for the specific file requested by the user
-    user_template = "attached_assets/lottery_data_template_20250430_011720.xlsx"
-    if os.path.exists(user_template):
-        logger.info(f"Found specific user-requested template: {user_template}")
-        return user_template
-    
-    if not template_files:
-        logger.error("No template files found")
-        return None
-    
-    # Sort by modification time (newest first)
-    latest_file = max(template_files, key=os.path.getmtime)
-    logger.info(f"Found latest template file: {latest_file}")
-    return latest_file
-
 def import_latest_template():
-    """Import the latest lottery data template file"""
-    # Import here to avoid circular imports
-    from main import app
-    
+    """Import lottery data from the latest template file"""
     try:
-        # Find the latest template file
-        template_file = find_latest_template()
-        if not template_file:
-            return {"success": False, "error": "No template files found"}
+        # Find latest template file
+        template_dir = "attached_assets"
+        template_files = [f for f in os.listdir(template_dir) 
+                         if f.endswith('.xlsx') and 'template' in f.lower()]
         
-        # Import the template file
-        logger.info(f"Importing template file: {template_file}")
-        with app.app_context():
-            # Use the fixed import script with corrected column mapping
-            import fixed_excel_import
+        if not template_files:
+            return {
+                'success': False,
+                'error': 'No template files found'
+            }
             
-            # Log found columns for debugging
+        latest_file = max(template_files, 
+                         key=lambda x: os.path.getmtime(os.path.join(template_dir, x)))
+        file_path = os.path.join(template_dir, latest_file)
+        
+        # Import data from template
+        stats = {
+            'total': 0,
+            'added': 0,
+            'updated': 0,
+            'errors': 0
+        }
+        
+        # Read Excel file
+        xls = pd.ExcelFile(file_path)
+        
+        for sheet_name in xls.sheet_names:
             try:
-                import pandas as pd
-                df = pd.read_excel(template_file, engine="openpyxl")
-                logger.info(f"Excel columns: {', '.join(str(col) for col in df.columns)}")
+                df = pd.read_excel(xls, sheet_name)
                 
-                # Verify if our fixed mapping logic works
-                mappings = fixed_excel_import.get_column_mapping(df)
-                logger.info(f"Generated mappings: {mappings}")
+                for _, row in df.iterrows():
+                    try:
+                        stats['total'] += 1
+                        
+                        # Process row data
+                        draw_number = str(row.get('Draw Number', ''))
+                        draw_date = row.get('Draw Date')
+                        
+                        if pd.isna(draw_number) or pd.isna(draw_date):
+                            continue
+                            
+                        # Create or update result
+                        result = LotteryResult.query.filter_by(
+                            lottery_type=sheet_name,
+                            draw_number=draw_number
+                        ).first()
+                        
+                        if result:
+                            stats['updated'] += 1
+                        else:
+                            result = LotteryResult(
+                                lottery_type=sheet_name,
+                                draw_number=draw_number
+                            )
+                            stats['added'] += 1
+                            
+                        # Update result data
+                        result.draw_date = draw_date
+                        result.numbers = row.get('Numbers', '')
+                        result.bonus_numbers = row.get('Bonus Numbers', '')
+                        
+                        db.session.add(result)
+                        
+                    except Exception as row_error:
+                        logger.error(f"Error processing row: {str(row_error)}")
+                        stats['errors'] += 1
+                        
+            except Exception as sheet_error:
+                logger.error(f"Error processing sheet {sheet_name}: {str(sheet_error)}")
+                stats['errors'] += 1
                 
-                # Check if we have the correct mappings
-                if 'draw_number' in mappings and mappings['draw_number'] == 'Draw Number':
-                    logger.info("Column mapping correctly fixed! Draw Number is using the correct column")
-                else:
-                    logger.warning("Column mapping may still be incorrect - check the logs")
-            except Exception as e:
-                logger.error(f"Error checking column mapping: {str(e)}")
-            
-            # Proceed with import
-            import_result = fixed_excel_import.import_excel_data(template_file, flask_app=app)
-            
-            if import_result.get('success', False):
-                logger.info(f"Successfully imported template file.")
-                logger.info(f"Added: {import_result.get('imported', 0)}, "
-                           f"Updated: {import_result.get('updated', 0)}, "
-                           f"Total: {import_result.get('total_processed', 0)}, "
-                           f"Errors: {import_result.get('errors', 0)}")
-            else:
-                logger.error(f"Failed to import template file: {import_result.get('error', 'Unknown error')}")
-            
-            return import_result
+        # Commit changes
+        db.session.commit()
+        
+        # Create import history record
+        history = ImportHistory(
+            import_type='template',
+            file_name=latest_file,
+            records_added=stats['added'],
+            records_updated=stats['updated'],
+            total_processed=stats['total'],
+            errors=stats['errors']
+        )
+        db.session.add(history)
+        db.session.commit()
+        
+        return {
+            'success': True,
+            'stats': stats
+        }
+        
     except Exception as e:
-        logger.error(f"Error importing template file: {str(e)}")
-        logger.error(traceback.format_exc())
-        return {"success": False, "error": str(e)}
-
-if __name__ == "__main__":
-    result = import_latest_template()
-    print(result)
+        logger.error(f"Error importing template: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
