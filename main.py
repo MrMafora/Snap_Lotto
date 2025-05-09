@@ -2086,8 +2086,9 @@ def sync_single_screenshot(screenshot_id):
                            f"HTML Path={result.get('html_path')}")
             
             # Verify the file exists
-            if os.path.exists(result.get('path')) and os.path.getsize(result.get('path')) > 0:
-                app.logger.info(f"Verified PNG file exists: {os.path.getsize(result.get('path'))} bytes")
+            file_path = result.get('path')
+            if file_path and os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                app.logger.info(f"Verified PNG file exists: {os.path.getsize(file_path)} bytes")
             else:
                 app.logger.warning(f"PNG file does not exist or is empty: {result.get('path')}")
             

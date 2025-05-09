@@ -81,8 +81,12 @@ class PuppeteerService:
             # Navigate to the URL with appropriate wait conditions
             response = await page.goto(url, {'waitUntil': 'networkidle0', 'timeout': 60000})
             
-            if not response.ok:
-                logger.warning(f"Page response not OK: {response.status} for {url}")
+            # Check response status if available
+            if response and hasattr(response, 'ok') and not response.ok:
+                if hasattr(response, 'status'):
+                    logger.warning(f"Page response not OK: {response.status} for {url}")
+                else:
+                    logger.warning(f"Page response not OK for {url}")
             
             # Wait for content to be fully loaded
             await page.waitForSelector('body', {'visible': True, 'timeout': 30000})
@@ -190,8 +194,12 @@ class PuppeteerService:
                     # Navigate to the URL with appropriate wait conditions
                     response = await page.goto(url, {'waitUntil': 'networkidle0', 'timeout': 60000})
                     
-                    if not response.ok:
-                        logger.warning(f"Page response not OK: {response.status} for {url}")
+                    # Check response status if available
+                    if response and hasattr(response, 'ok') and not response.ok:
+                        if hasattr(response, 'status'):
+                            logger.warning(f"Page response not OK: {response.status} for {url}")
+                        else:
+                            logger.warning(f"Page response not OK for {url}")
                     
                     # Wait for content to be fully loaded
                     await page.waitForSelector('body', {'visible': True, 'timeout': 30000})
