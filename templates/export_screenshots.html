@@ -257,7 +257,7 @@
         
         // Add a direct view link to the help message
         helpDiv.innerHTML = `<a href="${screenshotUrl}" target="_blank" class="text-primary" style="text-decoration: underline;">
-            Click here to view the full screenshot</a> or use the <b>Resync</b> button below`;
+            Click here to view the full screenshot</a>`;
         
         // Get the overlay link element before clearing container
         const overlayLink = container.querySelector('.preview-overlay-link');
@@ -600,13 +600,6 @@
                                         </div>
                                         {% endif %}
                                     </div>
-                                    
-                                    <form action="{{ url_for('sync_single_screenshot', screenshot_id=screenshot.id) }}" method="POST">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-sm btn-warning w-100">
-                                            <i class="fas fa-sync me-1"></i> Resync
-                                        </button>
-                                    </form>
                                 </div>
                             </div>
                         </div>

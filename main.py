@@ -2053,6 +2053,10 @@ def view_screenshot(screenshot_id):
             # Remove any overlay messages or error boxes that might block content
             html_content = html_content.replace('class="error_tooltip manual_tooltip_error"', 'class="error_tooltip manual_tooltip_error" style="display:none;"')
             
+            # Specifically remove the "Oops!" error popup
+            html_content = html_content.replace('<div class="popup-content">Oops!</div>', '')
+            html_content = html_content.replace("Something went wrong! Please check your network connectivity.", "")
+            
             # Add a custom CSS style to hide overlays and popups
             style_tag = '''
             <style>
@@ -2064,16 +2068,27 @@ def view_screenshot(screenshot_id):
                 .cookie-banner, #cookie-banner, .cookie-consent, #cookie-consent,
                 [class*="cookie"], [id*="cookie"], [class*="consent"], [id*="consent"],
                 .error_tooltip, .manual_tooltip_error, .tooltip_error,
-                div[class*="error"], div[id*="error"] {
+                div[class*="error"], div[id*="error"],
+                .popup-background, .popup-container, .popup-content, 
+                [class*="popup-"], [id*="popup-"],
+                div[class*="notification"], div[id*="notification"] {
                     display: none !important;
                     visibility: hidden !important;
                     opacity: 0 !important;
                     z-index: -1 !important;
+                    pointer-events: none !important;
                 }
                 
                 /* Ensure content is visible */
                 body, html {
                     overflow: auto !important;
+                }
+                
+                /* Remove any overlays in the page */
+                body::before, body::after,
+                div::before, div::after {
+                    display: none !important;
+                    content: none !important;
                 }
             </style>
             '''
@@ -2254,9 +2269,9 @@ def view_screenshot(screenshot_id):
             
         # Add helpful instructions
         draw.rectangle([(0, 440), (800, 500)], fill=(240, 240, 240))
-        draw.text((20, 450), "To fix this issue, try using the 'Resync' button on the screenshot gallery page.", 
+        draw.text((20, 450), "To fix this issue, try using the 'Sync All Screenshots' button on the screenshot gallery page.", 
                  fill=(50, 50, 50), font=font)
-        draw.text((20, 470), "If the problem persists, check the HTML source or contact the administrator.", 
+        draw.text((20, 470), "You can also view the HTML source by clicking the HTML button below each screenshot.", 
                  fill=(50, 50, 50), font=small_font)
         
         # Save to a temp file
