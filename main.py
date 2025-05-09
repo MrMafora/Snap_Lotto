@@ -2225,6 +2225,13 @@ def cleanup_screenshots():
                     os.remove(screenshot.zoomed_path)
                 except Exception as file_error:
                     app.logger.warning(f"Could not delete zoomed screenshot file {screenshot.zoomed_path}: {str(file_error)}")
+                    
+            # Try to delete HTML file if it exists (Puppeteer saves HTML content)
+            if hasattr(screenshot, 'html_path') and screenshot.html_path and os.path.exists(screenshot.html_path):
+                try:
+                    os.remove(screenshot.html_path)
+                except Exception as file_error:
+                    app.logger.warning(f"Could not delete HTML file {screenshot.html_path}: {str(file_error)}")
             
             # Delete the database record
             db.session.delete(screenshot)
@@ -2325,6 +2332,13 @@ def export_combined_zip():
                                 zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
                                 zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
                                 screenshots_added += 1
+                                
+                            # Add HTML content if it exists (from Puppeteer)
+                            if hasattr(screenshot, 'html_path') and screenshot.html_path and os.path.exists(screenshot.html_path):
+                                html_filename = f"{lottery_type}_{ss_timestamp}.html"
+                                zf.write(screenshot.html_path, f"html_content/{html_filename}")
+                                screenshots_added += 1
+                                logger.info(f"Added HTML content for {lottery_type}")
                         else:
                             logger.warning(f"Screenshot file not found: {screenshot.path}")
                     except Exception as e:

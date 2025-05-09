@@ -322,21 +322,31 @@ def update_screenshot_database(results, screenshot_model, db, map_type_to_db=Non
                         screenshot = s
                         break
             
+            # Get HTML path from result if available
+            html_filepath = result.get('html_path')
+            
             if screenshot:
                 # Update existing record
                 old_path = screenshot.path
                 screenshot.path = filepath
+                
+                # Update HTML path if available
+                if html_filepath:
+                    screenshot.html_path = html_filepath
+                    logger.info(f"Updated HTML path: {html_filepath}")
+                
                 screenshot.timestamp = datetime.now()
                 logger.info(f"Updated {db_name} record: {old_path} -> {filepath}")
                 updates += 1
             else:
                 # Create new record
-                url = ''
+                url = result.get('url', '')
                 
                 screenshot = screenshot_model(
                     lottery_type=db_name,
                     url=url,
                     path=filepath,
+                    html_path=html_filepath,  # Set HTML path when creating new record
                     timestamp=datetime.now()
                 )
                 db.session.add(screenshot)
