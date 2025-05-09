@@ -1760,73 +1760,124 @@ def view_screenshot(screenshot_id):
     screenshot = Screenshot.query.get_or_404(screenshot_id)
     force_download = request.args.get('force_download', 'false').lower() == 'true'
     
-    # Normalize path and check if file exists
-    screenshot_path = os.path.normpath(screenshot.path)
-    
-    # Check if the actual PNG file exists
-    if os.path.isfile(screenshot_path):
-        # Extract directory and filename from path
-        directory = os.path.dirname(screenshot_path)
-        filename = os.path.basename(screenshot_path)
-        
-        # If force_download, set as attachment
-        if force_download:
-            return send_from_directory(
-                directory, 
-                filename, 
-                as_attachment=True,
-                download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png",
-                mimetype='image/png'
-            )
-        
-        # Return PNG image by default
-        return send_from_directory(directory, filename, mimetype='image/png')
-    
-    # PNG file doesn't exist - check if we can generate it from HTML
-    elif screenshot.html_path and os.path.isfile(screenshot.html_path):
+    # Always try to generate a fresh PNG from HTML for consistent results
+    if screenshot.html_path and os.path.isfile(screenshot.html_path):
         try:
+            app.logger.info(f"Generating PNG from HTML: {screenshot.html_path}")
             from playwright.sync_api import sync_playwright
             import tempfile
             
-            # Generate PNG from HTML using Playwright
+            # Generate PNG from HTML using Playwright with improved settings
             with sync_playwright() as p:
-                browser = p.chromium.launch()
-                page = browser.new_page()
+                browser = p.chromium.launch(
+                    headless=True,
+                    args=[
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--window-size=1280,1024'
+                    ]
+                )
                 
-                # Load the HTML file
-                page.goto('file://' + screenshot.html_path)
+                # Create a page with proper viewport settings
+                page = browser.new_page(viewport={"width": 1280, "height": 1024})
                 
-                # Create a temporary file for the screenshot
-                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-                    # Take the screenshot
-                    page.screenshot(path=temp_file.name, full_page=True)
+                # Set timeout to ensure content loads
+                page.set_default_timeout(30000)
+                
+                try:
+                    # Load the HTML file with proper wait conditions
+                    app.logger.info(f"Loading HTML file: {screenshot.html_path}")
+                    page.goto('file://' + screenshot.html_path, wait_until="networkidle")
                     
-                    # Update the screenshot path in memory for this request
-                    temp_screenshot_path = temp_file.name
+                    # Make sure page is fully rendered
+                    page.wait_for_selector('body', state='visible')
+                    
+                    # Ensure page is fully loaded
+                    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    page.evaluate("window.scrollTo(0, 0)")
+                    
+                    # Create a temporary file for the screenshot
+                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                        app.logger.info(f"Taking screenshot to {temp_file.name}")
+                        
+                        # Take the screenshot with quality settings
+                        page.screenshot(
+                            path=temp_file.name,
+                            full_page=True,
+                            type='png',
+                            quality=100
+                        )
+                        
+                        # Update the temporary path
+                        temp_screenshot_path = temp_file.name
                 
-                browser.close()
+                except Exception as page_error:
+                    app.logger.error(f"Error with page operations: {str(page_error)}")
+                    # Try fallback approach with viewport screenshot
+                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                        page.screenshot(
+                            path=temp_file.name,
+                            full_page=False,
+                            type='png'
+                        )
+                        temp_screenshot_path = temp_file.name
+                
+                finally:
+                    # Always close the browser
+                    browser.close()
             
-            # Return the temporary screenshot file
-            return send_file(temp_screenshot_path, mimetype='image/png',
-                        as_attachment=force_download, 
-                        download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png")
+            # Verify the generated file exists and has content
+            if os.path.exists(temp_screenshot_path) and os.path.getsize(temp_screenshot_path) > 1000:
+                app.logger.info(f"Successfully generated PNG ({os.path.getsize(temp_screenshot_path)} bytes)")
+                
+                # Return the generated file
+                return send_file(
+                    temp_screenshot_path,
+                    mimetype='image/png',
+                    as_attachment=force_download,
+                    download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png"
+                )
+            else:
+                app.logger.error(f"Generated PNG is empty or too small: {temp_screenshot_path}")
+                raise Exception("Generated screenshot is empty or too small")
+                
         except Exception as e:
-            logging.error(f"Error converting HTML to PNG: {str(e)}")
+            app.logger.error(f"Error generating PNG from HTML: {str(e)}")
             
-            # If HTML conversion fails, send the HTML file directly as PNG wasn't available
-            # This ensures users still see content even if PNG generation fails
-            if os.path.isfile(screenshot.html_path):
+            # Fall back to direct HTML display if force_download is not requested
+            if not force_download and screenshot.html_path and os.path.isfile(screenshot.html_path):
                 directory = os.path.dirname(screenshot.html_path)
                 filename = os.path.basename(screenshot.html_path)
                 
-                return send_from_directory(directory, filename, mimetype='image/png')
+                return send_from_directory(
+                    directory, 
+                    filename, 
+                    mimetype='text/html'
+                )
             else:
-                flash(f'Could not create PNG from HTML: {str(e)}', 'danger')
-                return redirect(url_for('admin'))
+                # For downloads, show a meaningful error
+                flash(f'Could not generate image from screenshot: {str(e)}', 'danger')
+                return redirect(url_for('export_screenshots'))
+    
+    # Check if we have a PNG file as fallback
+    elif screenshot.path and os.path.isfile(screenshot.path) and os.path.getsize(screenshot.path) > 1000:
+        # Use existing PNG file if it exists and has content
+        directory = os.path.dirname(screenshot.path)
+        filename = os.path.basename(screenshot.path)
+        
+        return send_from_directory(
+            directory, 
+            filename, 
+            as_attachment=force_download,
+            download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png",
+            mimetype='image/png'
+        )
+    
     else:
-        # Regular case where neither PNG nor HTML file exists
-        flash('Screenshot image file not found', 'danger')
-        return redirect(url_for('admin'))
+        # Neither valid HTML nor PNG exists
+        flash('No valid screenshot content available', 'danger')
+        return redirect(url_for('export_screenshots'))
 
 @app.route('/screenshot-zoomed/<int:screenshot_id>')
 def view_zoomed_screenshot(screenshot_id):

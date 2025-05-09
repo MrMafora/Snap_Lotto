@@ -418,7 +418,9 @@
                     <div class="col-lg-4 col-md-6 mb-4">
                         <div class="card h-100 gallery-card" style="user-select: none;">
                             <!-- Server-rendered preview container (automatic loading) -->
-                            <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" class="preview-iframe-container" download>
+                            <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
+                               class="preview-iframe-container" 
+                               target="_blank">  <!-- Open in new tab, not as download -->
                                 <!-- Loading spinner shown until preview loads -->
                                 <div class="loading-spinner"></div>
                                 <!-- Using server-side rendering to bypass iframe restrictions -->
@@ -426,7 +428,7 @@
                                      class="preview-image"
                                      alt="{{ screenshot.lottery_type }} live preview"
                                      style="display: none; max-width: 100%; height: auto;"
-                                     title="{{ screenshot.lottery_type }} - {{ screenshot.url }}"
+                                     title="{{ screenshot.lottery_type }} - Click to view PNG image"
                                      onerror="handlePreviewError(this.parentNode, 'Image failed to load. The website may be unavailable.')">
                             </a>
                             
