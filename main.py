@@ -2515,32 +2515,44 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Import Puppeteer service
-        from puppeteer_service import capture_single_screenshot, LOTTERY_URLS
+        # Import Puppeteer service for capture function only
+        from puppeteer_service import capture_single_screenshot
         
-        # Check if the lottery type exists in our URLs dictionary
+        # First check if there's a matching ScheduleConfig entry in the settings
         lottery_type = screenshot.lottery_type
-        if lottery_type in LOTTERY_URLS:
-            url = LOTTERY_URLS[lottery_type]
-        else:
-            # Try fuzzy matching for similar names
-            found_match = False
-            for known_type, known_url in LOTTERY_URLS.items():
-                if known_type.lower() in lottery_type.lower() or lottery_type.lower() in known_type.lower():
-                    lottery_type = known_type
-                    url = known_url
-                    found_match = True
-                    break
-            
-            if not found_match:
-                app.logger.error(f"Could not find matching URL for lottery type: {screenshot.lottery_type}")
-                session['sync_status'] = {
-                    'status': 'danger',
-                    'message': f'Error: Could not find matching URL for lottery type: {screenshot.lottery_type}'
-                }
-                return redirect(url_for('export_screenshots'))
+        config = ScheduleConfig.query.filter_by(lottery_type=lottery_type).first()
         
-        app.logger.info(f"Capturing screenshot for {lottery_type} using Puppeteer...")
+        if config and config.url:
+            # Use URL from settings page
+            url = config.url
+            app.logger.info(f"Using URL from settings page for {lottery_type}: {url}")
+        else:
+            # Fall back to hardcoded URLs if needed
+            from puppeteer_service import LOTTERY_URLS
+            
+            if lottery_type in LOTTERY_URLS:
+                url = LOTTERY_URLS[lottery_type]
+                app.logger.info(f"Using default URL for {lottery_type}: {url}")
+            else:
+                # Try fuzzy matching for similar names
+                found_match = False
+                for known_type, known_url in LOTTERY_URLS.items():
+                    if known_type.lower() in lottery_type.lower() or lottery_type.lower() in known_type.lower():
+                        lottery_type = known_type
+                        url = known_url
+                        found_match = True
+                        app.logger.info(f"Found fuzzy match for {screenshot.lottery_type} → {lottery_type}")
+                        break
+                
+                if not found_match:
+                    app.logger.error(f"Could not find matching URL for lottery type: {screenshot.lottery_type}")
+                    session['sync_status'] = {
+                        'status': 'danger',
+                        'message': f'Error: Could not find URL for {screenshot.lottery_type}. Please add it in Settings.'
+                    }
+                    return redirect(url_for('export_screenshots'))
+        
+        app.logger.info(f"Capturing screenshot for {lottery_type} using Puppeteer from {url}...")
         
         # Capture the screenshot using the new capture_single_screenshot function
         result = capture_single_screenshot(lottery_type, url)
@@ -2548,6 +2560,7 @@ def sync_single_screenshot(screenshot_id):
         if result.get('status') == 'success' and result.get('path'):
             # Update the screenshot record
             screenshot.path = result.get('path')
+            screenshot.url = url  # Store the URL from settings page
             screenshot.timestamp = datetime.now()
             
             # Also update HTML path if available
