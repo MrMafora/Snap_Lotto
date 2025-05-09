@@ -622,6 +622,8 @@ def generate_png_from_html(html_path, output_path=None):
     """
     import os
     import tempfile
+    import random
+    import time
     from datetime import datetime
     from playwright.sync_api import sync_playwright
     
@@ -649,160 +651,220 @@ def generate_png_from_html(html_path, output_path=None):
         logger.error(error_message)
         return False, None, error_message
     
-    # Read first few bytes to check if it's actually HTML
+    # Read file content
     try:
         with open(html_path, 'r', encoding='utf-8', errors='ignore') as f:
-            content_start = f.read(1000).lower()
-            if not ('<html' in content_start or '<!doctype html' in content_start):
-                logger.warning(f"File may not be valid HTML: {html_path}")
-                # We'll still try to convert it
-    except Exception as read_error:
-        logger.warning(f"Could not read HTML file: {str(read_error)}")
-        # We'll still try to proceed
+            html_content = f.read()
+    except Exception as e:
+        logger.error(f"Failed to read HTML file: {e}")
+        return False, None, f"Failed to read HTML file: {e}"
     
-    try:
-        # Get the absolute path to the HTML file
-        abs_html_path = os.path.abspath(html_path)
-        
-        # Create file:// URL format with correct encoding
-        html_url = f"file://{abs_html_path.replace(' ', '%20')}"
-        
-        with sync_playwright() as p:
-            # Launch browser with appropriate settings
-            browser = p.chromium.launch(
-                headless=True,
-                args=[
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--window-size=1280,1024',
-                    '--disable-web-security',  # Allow loading local resources
-                    '--allow-file-access-from-files'  # Allow loading local resources
-                ]
-            )
-            
-            try:
-                # Open new page with proper viewport settings
-                page = browser.new_page(viewport={"width": 1280, "height": 1024})
+    # Directly create a screenshot from the HTML content using a reliable approach
+    for attempt in range(1, 4):  # Try up to 3 times with different approaches
+        logger.info(f"Attempt {attempt} to generate PNG from HTML")
+        try:
+            # Use a different approach based on attempt number
+            with sync_playwright() as p:
+                # Choose a different browser engine for each attempt
+                if attempt == 1:
+                    browser_engine = p.chromium
+                elif attempt == 2:
+                    browser_engine = p.firefox
+                else:
+                    browser_engine = p.webkit
                 
-                # Set longer timeout to ensure content loads
+                # Launch the selected browser
+                browser = browser_engine.launch(
+                    headless=True,
+                    args=[
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-web-security',
+                        '--allow-file-access-from-files',
+                        '--disable-features=site-per-process',
+                    ]
+                )
+                
+                # Create different browser contexts for each attempt
+                if attempt == 1:
+                    # Standard desktop context
+                    context = browser.new_context(
+                        viewport={'width': 1280, 'height': 800},
+                        user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+                    )
+                elif attempt == 2:
+                    # Mobile context
+                    context = browser.new_context(
+                        viewport={'width': 414, 'height': 896},
+                        user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+                        is_mobile=True,
+                        has_touch=True
+                    )
+                else:
+                    # Tablet context
+                    context = browser.new_context(
+                        viewport={'width': 1024, 'height': 768},
+                        user_agent='Mozilla/5.0 (iPad; CPU OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
+                        is_mobile=True, 
+                        has_touch=True
+                    )
+                
+                # Create a new page
+                page = context.new_page()
+                
+                # IMPORTANT: Since we're having issues with file:// protocol, 
+                # we'll create a data URI to load the HTML directly instead
+                safe_html = html_content.replace('\n', ' ').replace('"', '\\"')
+                data_uri = f"data:text/html;charset=utf-8,{safe_html}"
+                
+                # Set a longer timeout and try different loading strategies
                 page.set_default_timeout(45000)
                 
-                # Enable better console error logging
-                page.on("console", lambda msg: logger.debug(f"Browser console {msg.type}: {msg.text}"))
-                page.on("pageerror", lambda err: logger.error(f"Page error: {err}"))
+                # Intercept all requests to fix paths (for images and resources)
+                # This will help with HTML files that have relative paths
+                base_dir = os.path.dirname(os.path.abspath(html_path))
                 
-                # Load the HTML file with proper wait conditions
-                logger.info(f"Loading HTML from: {html_url}")
-                try:
-                    # Try networkidle first (more reliable)
-                    page.goto(html_url, wait_until="networkidle", timeout=30000)
-                except Exception as goto_error:
-                    logger.warning(f"Network idle wait failed, falling back to domcontentloaded: {str(goto_error)}")
-                    # Fall back to domcontentloaded if networkidle fails
-                    page.goto(html_url, wait_until="domcontentloaded", timeout=15000)
+                def handle_route(route):
+                    url = route.request.url
+                    if url.startswith('file://'):
+                        # Convert file URL to actual file path
+                        file_path = url.replace('file://', '')
+                        try:
+                            with open(file_path, 'rb') as f:
+                                body = f.read()
+                                route.fulfill(body=body)
+                        except:
+                            route.continue_()
+                    else:
+                        route.continue_()
                 
-                # Make sure page is fully rendered
-                try:
-                    page.wait_for_selector('body', state='visible', timeout=10000)
-                except Exception as selector_error:
-                    logger.warning(f"Wait for body selector failed: {str(selector_error)}")
-                    # Continue anyway
+                page.route('**/*', handle_route)
                 
-                # Give JavaScript time to run
-                page.wait_for_timeout(1000)
+                # Load the HTML directly as data URI to avoid file:// protocol issues
+                logger.info(f"Loading HTML content as data URI")
+                page.goto(data_uri, timeout=30000)
                 
-                # Ensure page is fully loaded with multiple scroll attempts
-                for _ in range(3):
-                    try:
-                        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                        page.wait_for_timeout(500)
-                        page.evaluate("window.scrollTo(0, 0)")
-                        page.wait_for_timeout(500)
-                    except Exception as scroll_error:
-                        logger.warning(f"Scroll error: {str(scroll_error)}")
-                        break
+                # Wait for the page to load
+                page.wait_for_load_state("domcontentloaded")
                 
-                # Take the screenshot with quality settings - try full page first
-                logger.info(f"Taking full page screenshot to: {output_path}")
-                try:
-                    page.screenshot(
-                        path=output_path,
-                        full_page=True,
-                        type='png',
-                        quality=100,
-                        timeout=30000
-                    )
-                except Exception as screenshot_error:
-                    logger.warning(f"Full page screenshot failed: {str(screenshot_error)}")
-                    # Fall back to viewport screenshot
-                    logger.info("Trying viewport screenshot instead")
-                    page.screenshot(
-                        path=output_path,
-                        full_page=False,
-                        type='png',
-                        quality=100
-                    )
-                
-                # Verify the file was created successfully
-                if os.path.exists(output_path) and os.path.getsize(output_path) > 5000:
-                    logger.info(f"✅ PNG successfully generated: {output_path} ({os.path.getsize(output_path)} bytes)")
-                    return True, output_path, None
-                
-                # Try alternate approach if the file is too small or doesn't exist
-                logger.warning(f"⚠️ Generated PNG is too small or missing, trying alternate approach")
-                
-                # Reset scroll position and try viewport-only screenshot with different options
+                # Scroll through the page to ensure all content is loaded
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
+                time.sleep(0.5)
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                time.sleep(0.5)
                 page.evaluate("window.scrollTo(0, 0)")
-                page.wait_for_timeout(1000)
+                time.sleep(0.5)
                 
-                # Try alternative screenshot approach with larger viewport
+                # Take the screenshot
+                logger.info(f"Taking screenshot to: {output_path}")
+                
                 try:
-                    page.set_viewport_size({"width": 1600, "height": 1200})
-                    page.screenshot(
-                        path=output_path,
-                        full_page=False,
-                        type='png'
-                    )
-                except Exception as alt_screenshot_error:
-                    logger.warning(f"Alternative screenshot method failed: {str(alt_screenshot_error)}")
+                    # First try full page screenshot
+                    page.screenshot(path=output_path, full_page=True)
+                except Exception as e:
+                    logger.warning(f"Full page screenshot failed, trying viewport screenshot: {e}")
+                    # Fall back to viewport screenshot
+                    page.screenshot(path=output_path)
                 
-                if os.path.exists(output_path) and os.path.getsize(output_path) > 3000:
-                    logger.info(f"✅ Alternate PNG approach successful: {output_path} ({os.path.getsize(output_path)} bytes)")
-                    return True, output_path, None
-                
-                # Last resort - generate a placeholder image with error message
-                try:
-                    from PIL import Image, ImageDraw, ImageFont
-                    
-                    # Create a simple error image
-                    img = Image.new('RGB', (1280, 720), color=(245, 245, 245))
-                    draw = ImageDraw.Draw(img)
-                    
-                    # Draw error message
-                    draw.text((20, 20), f"Unable to render HTML content", fill=(0, 0, 0))
-                    draw.text((20, 60), f"HTML file: {html_path}", fill=(0, 0, 0))
-                    draw.text((20, 100), f"File size: {html_file_size} bytes", fill=(0, 0, 0))
-                    
-                    # Save the error image
-                    img.save(output_path)
-                    logger.warning(f"Created placeholder error image: {output_path}")
-                    return True, output_path, "Created placeholder image as fallback"
-                except Exception as pil_error:
-                    logger.error(f"Failed to create error image: {str(pil_error)}")
-                
-                return False, None, "Failed to generate valid PNG from HTML after multiple attempts"
-                
-            except Exception as page_error:
-                logger.error(f"Error with page operations: {str(page_error)}")
-                return False, None, f"Page error: {str(page_error)}"
-            finally:
+                # Clean up
+                context.close()
                 browser.close()
                 
+                # Check if a valid screenshot was created
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 3000:
+                    logger.info(f"✅ Successfully created PNG: {output_path} ({os.path.getsize(output_path)} bytes)")
+                    return True, output_path, None
+                    
+                logger.warning(f"Screenshot attempt {attempt} produced unusable image ({os.path.getsize(output_path)} bytes)")
+        
+        except Exception as e:
+            logger.error(f"Error in attempt {attempt}: {str(e)}")
+    
+    # If all previous attempts failed, use a direct library approach as last resort
+    try:
+        # Use HTML2Image or wkhtmltopdf approach as a last resort
+        logger.info("Trying direct HTML rendering as final approach")
+        
+        try:
+            # Try using wkhtmltoimage if available
+            import subprocess
+            
+            # Create a temporary HTML file with the content
+            temp_html = tempfile.NamedTemporaryFile(suffix='.html', delete=False)
+            temp_html.write(html_content.encode('utf-8'))
+            temp_html.close()
+            
+            # Try using wkhtmltoimage
+            cmd = ['wkhtmltoimage', '--enable-local-file-access', '--quality', '100', temp_html.name, output_path]
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            
+            # Clean up
+            os.unlink(temp_html.name)
+            
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                logger.info(f"✅ Successfully created PNG with wkhtmltoimage: {output_path}")
+                return True, output_path, None
+        except:
+            logger.warning("wkhtmltoimage approach failed, trying Pillow fallback")
+    
+        # Last resort: Create a simple image with HTML preview text
+        from PIL import Image, ImageDraw, ImageFont
+        
+        # Create a basic image
+        img = Image.new('RGB', (1280, 1024), color=(250, 250, 250))
+        draw = ImageDraw.Draw(img)
+        
+        # Add basic HTML preview (first 1000 chars)
+        preview_text = html_content[:1000].replace('<', '[').replace('>', ']')
+        
+        # Draw text with word wrapping
+        y_position = 20
+        x_position = 20
+        max_width = 1240
+        
+        # Split text into multiple lines
+        words = preview_text.split()
+        lines = []
+        current_line = []
+        
+        for word in words:
+            test_line = ' '.join(current_line + [word])
+            if len(test_line) * 10 < max_width:  # Approximating text width
+                current_line.append(word)
+            else:
+                lines.append(' '.join(current_line))
+                current_line = [word]
+        
+        if current_line:
+            lines.append(' '.join(current_line))
+        
+        # Draw header
+        draw.text((x_position, y_position), f"HTML Preview Image", fill=(0, 0, 0))
+        y_position += 30
+        
+        draw.text((x_position, y_position), f"Original file: {os.path.basename(html_path)}", fill=(0, 0, 0))
+        y_position += 30
+        
+        draw.text((x_position, y_position), f"Size: {html_file_size} bytes", fill=(0, 0, 0))
+        y_position += 50
+        
+        # Draw preview text
+        for line in lines[:30]:  # Limit to 30 lines
+            draw.text((x_position, y_position), line, fill=(100, 100, 100))
+            y_position += 25
+        
+        # Add note at the bottom
+        draw.text((x_position, 950), "Note: This is a fallback image as HTML rendering was not possible.", fill=(255, 0, 0))
+        
+        # Save the image
+        img.save(output_path)
+        logger.info(f"Created fallback HTML preview image: {output_path}")
+        return True, output_path, "Used fallback HTML preview"
+    
     except Exception as e:
-        error_message = f"Error generating PNG from HTML: {str(e)}"
-        logger.error(error_message)
-        return False, None, error_message
+        logger.error(f"All approaches failed: {str(e)}")
+        return False, None, f"Failed to generate image: {str(e)}"
 
 def capture_single_screenshot(lottery_type, url):
     """
