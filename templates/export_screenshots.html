@@ -172,18 +172,34 @@
                     previewImage.style.display = 'block';
                 });
                 
-                // Handle image load errors
+                // Handle image load errors with more specificity
                 previewImage.addEventListener('error', function() {
-                    handlePreviewError(container, "Failed to load preview. The website may be unavailable.");
+                    const screenshotType = container.dataset.type || 'Screenshot';
+                    handlePreviewError(container, `Could not load ${screenshotType} preview`);
                 });
                 
                 // Add timeout in case the image never triggers load event
                 setTimeout(function() {
                     if (container.querySelector('.loading-spinner')) {
                         // If spinner still exists after 10 seconds, image probably failed to load
-                        handlePreviewError(container, "Preview generation timed out. The website may be unavailable.");
+                        const screenshotType = container.dataset.type || 'Screenshot';
+                        handlePreviewError(container, `${screenshotType} generation timed out`);
                     }
                 }, 10000);
+                
+                // Make sure the data-src is properly set by double-checking
+                if (!previewImage.getAttribute('data-src') || 
+                    previewImage.getAttribute('data-src').includes('undefined') ||
+                    previewImage.getAttribute('data-src').includes('null')) {
+                    
+                    // Attempt to fix missing or invalid data-src
+                    const screenshotId = container.dataset.id;
+                    if (screenshotId) {
+                        const newSrc = `/preview-website/${screenshotId}`;
+                        console.log(`Fixing invalid data-src for image ${screenshotId}`);
+                        previewImage.setAttribute('data-src', newSrc);
+                    }
+                }
             }
         });
         
@@ -208,17 +224,47 @@
         // Clear loading animation
         container.style.backgroundImage = 'none';
         
-        // Display error message
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'alert alert-warning m-2';
-        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${message}`;
+        // Get screenshot type and ID from container data
+        const screenshotType = container.dataset.type || 'Screenshot';
+        const screenshotId = container.dataset.id || '0';
+        
+        // Create a more visually appealing error display
+        const errorContainer = document.createElement('div');
+        errorContainer.className = 'd-flex flex-column align-items-center justify-content-center w-100 h-100';
+        errorContainer.style.backgroundColor = '#fff8f8';
+        
+        // Create an icon for the error
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'mb-2 text-warning';
+        iconDiv.innerHTML = '<i class="fas fa-exclamation-triangle fa-2x"></i>';
+        
+        // Create a heading with the screenshot type
+        const headingDiv = document.createElement('div');
+        headingDiv.className = 'mb-1 fw-bold';
+        headingDiv.textContent = screenshotType;
+        
+        // Create the error message
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'text-muted small text-center px-3';
+        messageDiv.textContent = message;
+        
+        // Create a help message
+        const helpDiv = document.createElement('div');
+        helpDiv.className = 'mt-2 small text-center';
+        helpDiv.innerHTML = 'Click to view the full screenshot or use the <b>Resync</b> button below';
         
         // Get the overlay link element before clearing container
         const overlayLink = container.querySelector('.preview-overlay-link');
         
-        // Clear container and add error message
+        // Clear container and add new error content
         container.innerHTML = '';
-        container.appendChild(errorDiv);
+        
+        // Add error elements to the container
+        errorContainer.appendChild(iconDiv);
+        errorContainer.appendChild(headingDiv);
+        errorContainer.appendChild(messageDiv);
+        errorContainer.appendChild(helpDiv);
+        container.appendChild(errorContainer);
         
         // Re-add the overlay link if it existed
         if (overlayLink) {
@@ -250,22 +296,52 @@
             if (isElementInViewport(container)) {
                 // Make sure the image is in the active state
                 const previewImage = container.querySelector('.preview-image');
-                if (previewImage && previewImage.getAttribute('data-src') && !previewImage.src) {
-                    console.log("Loading image from data-src:", previewImage.getAttribute('data-src'));
+                
+                // First validate that data-src is valid and not already loaded
+                if (previewImage && !previewImage.src) {
+                    let dataSrc = previewImage.getAttribute('data-src');
+                    
+                    // Check if data-src is missing or invalid
+                    if (!dataSrc || dataSrc.includes('undefined') || dataSrc.includes('null')) {
+                        // Try to fix the source from container data attributes
+                        const screenshotId = container.dataset.id;
+                        if (screenshotId) {
+                            dataSrc = `/preview-website/${screenshotId}`;
+                            console.log(`Fixed invalid data-src for image ${screenshotId}`);
+                            previewImage.setAttribute('data-src', dataSrc);
+                        } else {
+                            console.error("Cannot load image, missing both data-src and screenshot ID");
+                            return;
+                        }
+                    }
+                    
+                    console.log("Loading image from data-src:", dataSrc);
+                    
                     // Load the image source from the data-src attribute
-                    previewImage.src = previewImage.getAttribute('data-src');
+                    previewImage.src = dataSrc;
                     
                     // Force display to block after a slight delay to ensure loading event fires
                     setTimeout(function() {
-                        if (previewImage.complete && previewImage.naturalHeight !== 0) {
-                            console.log("Image already loaded, making visible");
-                            previewImage.style.display = 'block';
-                            // Remove spinner if it exists
-                            if (container.querySelector('.loading-spinner')) {
-                                container.querySelector('.loading-spinner').remove();
+                        if (previewImage.complete) {
+                            if (previewImage.naturalHeight !== 0) {
+                                // Successfully loaded
+                                console.log("Image already loaded, making visible");
+                                previewImage.style.display = 'block';
+                                // Remove spinner if it exists
+                                if (container.querySelector('.loading-spinner')) {
+                                    container.querySelector('.loading-spinner').remove();
+                                }
+                            } else {
+                                // Failed to load but completed
+                                const screenshotType = container.dataset.type || 'Screenshot';
+                                handlePreviewError(container, `${screenshotType} preview unavailable`);
                             }
                         }
                     }, 500);
+                } else if (previewImage && previewImage.src && previewImage.complete && previewImage.naturalHeight === 0) {
+                    // Image already tried to load but failed
+                    const screenshotType = container.dataset.type || 'Screenshot';
+                    handlePreviewError(container, `${screenshotType} preview unavailable`);
                 }
             }
         });
@@ -450,9 +526,11 @@
                     {% for screenshot in screenshots %}
                     <div class="col-lg-4 col-md-6 mb-4">
                         <div class="card h-100 gallery-card" style="user-select: none;">
-                            <!-- Server-rendered preview container (automatic loading) -->
-                            <!-- Improved with error handling and event handling -->
-                            <div class="preview-iframe-container" data-href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}">
+                            <!-- Server-rendered preview container with enhanced error handling and recovery -->
+                            <div class="preview-iframe-container" 
+                                 data-href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}"
+                                 data-id="{{ screenshot.id }}"
+                                 data-type="{{ screenshot.lottery_type }}">
                                 <!-- Loading spinner shown until preview loads -->
                                 <div class="loading-spinner"></div>
                                 <!-- Using server-side rendering to bypass iframe restrictions -->
@@ -460,9 +538,9 @@
                                      class="preview-image"
                                      alt="{{ screenshot.lottery_type }} live preview"
                                      style="display: none; max-width: 100%; height: auto;"
-                                     title="{{ screenshot.lottery_type }} - Click to view PNG image"
-                                     onerror="handlePreviewError(this.parentNode, 'Image failed to load. The website may be unavailable.')">
-                                <!-- Overlay link that handles errors better -->
+                                     title="{{ screenshot.lottery_type }} - Click to view full screenshot"
+                                     onerror="handlePreviewError(this.parentNode, 'Preview image failed to load')">
+                                <!-- Enhanced overlay link with better error recovery -->
                                 <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
                                    class="preview-overlay-link"
                                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"
