@@ -615,27 +615,8 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Fix for scrolling issues on export-screenshots page
-        document.addEventListener('wheel', function(event) {
-            event.stopPropagation();
-        }, true);
-        
-        // Add prevention for any other event handlers that might block scrolling
-        document.body.style.overflowY = 'scroll';
-        document.documentElement.style.overflowY = 'scroll';
-        
-        // Initialize automatic preview functionality
-        initializeAutoPreviewFunctionality();
-        
-        // Make cards responsive to window size changes
-        window.addEventListener('resize', adjustCardLayout);
-        // Initial adjustment
-        adjustCardLayout();
-        
-        // Set up Puppeteer sync form handling
-        setupSyncForm();
-    });
+    // This block is intentionally left empty as we're using the script in the head section
+    // All event handlers have been moved to the head section DOMContentLoaded event
     
     /**
      * Set up the Sync All Screenshots form to show progress indicator
