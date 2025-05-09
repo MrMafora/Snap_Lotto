@@ -13,6 +13,7 @@ port 8080 required by Replit for public access.
 import logging
 import os
 import io
+import time
 import threading
 import traceback
 from datetime import datetime, timedelta
@@ -1796,36 +1797,79 @@ def view_zoomed_screenshot(screenshot_id):
 @login_required
 @csrf.exempt
 def sync_all_screenshots():
-    """Sync all screenshots from their source URLs using simplified approach"""
+    """Sync all screenshots from their source URLs using Puppeteer"""
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
     
     try:
-        # Import our simplified scheduler to use the basic screenshot approach
-        import simple_scheduler
+        # Use Puppeteer service for capturing screenshots
+        from puppeteer_service import capture_multiple_screenshots, LOTTERY_URLS
         
-        # Use the simplified screenshot approach without any data extraction
-        # This focuses solely on getting basic screenshots without complex interactions
-        count = simple_scheduler.retake_all_screenshots(app)
+        app.logger.info(f"Starting synchronization of {len(LOTTERY_URLS)} screenshots using Puppeteer service...")
         
-        # Store status in session for display on next page load
-        if count > 0:
+        # Start the capture process
+        start_time = time.time()
+        results = capture_multiple_screenshots(LOTTERY_URLS)
+        elapsed_time = time.time() - start_time
+        
+        app.logger.info(f"Puppeteer screenshot capture completed in {elapsed_time:.2f} seconds")
+        
+        # Count successes and failures
+        success_count = sum(1 for result in results.values() if result.get('status') == 'success')
+        error_count = sum(1 for result in results.values() if result.get('status') != 'success')
+        
+        # Update database
+        db_updates = 0
+        db_creates = 0
+        
+        for lottery_type, result in results.items():
+            if result.get('status') == 'success' and result.get('path'):
+                # Find or create screenshot record
+                screenshot = Screenshot.query.filter_by(lottery_type=lottery_type).first()
+                
+                if screenshot:
+                    # Update existing record
+                    screenshot.path = result.get('path')
+                    screenshot.source_url = result.get('url', '')
+                    screenshot.timestamp = datetime.now()
+                    db_updates += 1
+                else:
+                    # Create new record
+                    screenshot = Screenshot(
+                        lottery_type=lottery_type,
+                        path=result.get('path'),
+                        source_url=result.get('url', ''),
+                        timestamp=datetime.now()
+                    )
+                    db.session.add(screenshot)
+                    db_creates += 1
+        
+        # Commit database changes
+        db.session.commit()
+        
+        # Prepare status message
+        if success_count > 0 and error_count == 0:
             session['sync_status'] = {
                 'status': 'success',
-                'message': f'Successfully captured {count} screenshots using simplified approach (no data extraction).'
+                'message': f'Successfully synchronized {success_count} screenshots with Puppeteer. Updated {db_updates} records, created {db_creates} new records.'
+            }
+        elif success_count > 0 and error_count > 0:
+            session['sync_status'] = {
+                'status': 'warning',
+                'message': f'Partially synchronized. {success_count} successful, {error_count} failed with Puppeteer. Database: {db_updates} updated, {db_creates} created.'
             }
         else:
             session['sync_status'] = {
-                'status': 'warning',
-                'message': 'No screenshots were captured. Check configured URLs.'
+                'status': 'danger',
+                'message': f'Failed to synchronize screenshots with Puppeteer. {error_count} errors encountered.'
             }
     except Exception as e:
-        app.logger.error(f"Error capturing screenshots: {str(e)}")
+        app.logger.error(f"Error capturing screenshots with Puppeteer: {str(e)}")
         traceback.print_exc()
         session['sync_status'] = {
             'status': 'danger',
-            'message': f'Error capturing screenshots: {str(e)}'
+            'message': f'Error capturing screenshots with Puppeteer: {str(e)}'
         }
     
     return redirect(url_for('export_screenshots'))
@@ -1834,7 +1878,7 @@ def sync_all_screenshots():
 @login_required
 @csrf.exempt
 def sync_single_screenshot(screenshot_id):
-    """Sync a single screenshot by its ID using the simplified approach"""
+    """Sync a single screenshot by its ID using Puppeteer"""
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
@@ -1843,29 +1887,56 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Import our simplified scheduler to use the basic screenshot approach
-        import simple_scheduler
+        # Import Puppeteer service
+        from puppeteer_service import capture_screenshot, LOTTERY_URLS
         
-        # Use the simplified approach that focuses solely on screenshot capture
-        success = simple_scheduler.sync_single_screenshot(screenshot_id, app)
+        # Find the matching URL from LOTTERY_URLS
+        matching_url = None
+        for url_info in LOTTERY_URLS:
+            if url_info.get('type') == screenshot.lottery_type:
+                matching_url = url_info
+                break
         
-        # Store status in session for display on next page load
-        if success:
+        if not matching_url:
+            app.logger.error(f"Could not find matching URL for lottery type: {screenshot.lottery_type}")
+            session['sync_status'] = {
+                'status': 'danger',
+                'message': f'Error: Could not find matching URL for lottery type: {screenshot.lottery_type}'
+            }
+            return redirect(url_for('export_screenshots'))
+        
+        app.logger.info(f"Capturing screenshot for {screenshot.lottery_type} using Puppeteer...")
+        
+        # Capture the screenshot using Puppeteer
+        success, filepath, html_filepath, error_message = capture_screenshot(
+            matching_url['url'], 
+            f"{screenshot.lottery_type.replace(' ', '_').lower()}"
+        )
+        
+        if success and filepath:
+            # Update the screenshot record
+            screenshot.path = filepath
+            screenshot.timestamp = datetime.now()
+            if html_filepath:
+                screenshot.html_path = html_filepath
+            
+            db.session.commit()
+            
             session['sync_status'] = {
                 'status': 'success',
-                'message': f'Successfully captured screenshot for {screenshot.lottery_type} using simplified approach.'
+                'message': f'Successfully captured screenshot for {screenshot.lottery_type} using Puppeteer.'
             }
         else:
             session['sync_status'] = {
                 'status': 'warning',
-                'message': f'Failed to capture screenshot for {screenshot.lottery_type}.'
+                'message': f'Failed to capture screenshot for {screenshot.lottery_type} using Puppeteer. Error: {error_message}'
             }
     except Exception as e:
-        app.logger.error(f"Error capturing screenshot: {str(e)}")
+        app.logger.error(f"Error capturing screenshot with Puppeteer: {str(e)}")
         traceback.print_exc()
         session['sync_status'] = {
             'status': 'danger',
-            'message': f'Error capturing screenshot: {str(e)}'
+            'message': f'Error capturing screenshot with Puppeteer: {str(e)}'
         }
     
     return redirect(url_for('export_screenshots'))
