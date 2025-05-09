@@ -3405,7 +3405,8 @@ puppeteer_capture_status = {
     'success_count': 0,
     'error_count': 0,
     'status_message': 'No capture in progress',
-    'errors': []
+    'errors': [],
+    'progress': 0  # Progress percentage (0-100)
 }
 
 @app.route('/puppeteer-status')
@@ -3414,9 +3415,9 @@ def puppeteer_status():
     """API endpoint to check the status of Puppeteer screenshot capture"""
     global puppeteer_capture_status
     
-    # Calculate progress percentage
-    progress = 0
-    if puppeteer_capture_status['total_screenshots'] > 0:
+    # Use explicit progress value if set, otherwise calculate from completed/total
+    progress = puppeteer_capture_status.get('progress', 0)
+    if progress == 0 and puppeteer_capture_status['total_screenshots'] > 0:
         progress = (puppeteer_capture_status['completed_screenshots'] / 
                    puppeteer_capture_status['total_screenshots']) * 100
     
