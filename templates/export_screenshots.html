@@ -425,19 +425,36 @@
                                 
                                 <div class="mt-auto pt-3">
                                             
-                                    <div class="d-flex justify-content-between gap-1 mb-2">
-                                        <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
-                                           class="btn btn-sm btn-primary flex-fill" 
-                                           download>
-                                            <i class="fas fa-download me-1"></i> Download
-                                        </a>
-                                        {% if screenshot.zoomed_path %}
-                                        <a href="{{ url_for('view_zoomed_screenshot', screenshot_id=screenshot.id) }}" 
-                                           class="btn btn-sm btn-secondary flex-fill" 
-                                           target="_blank">
-                                            <i class="fas fa-search-plus me-1"></i> Zoomed
-                                        </a>
-                                        {% endif %}
+                                    <div class="d-flex flex-column gap-2 mb-2">
+                                        <div class="d-flex justify-content-between gap-1">
+                                            <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
+                                               class="btn btn-sm btn-primary flex-fill" 
+                                               download>
+                                                <i class="fas fa-image me-1"></i> Image
+                                            </a>
+                                            {% if screenshot.html_path %}
+                                            <a href="{{ url_for('view_html_content', screenshot_id=screenshot.id) }}" 
+                                               class="btn btn-sm btn-outline-secondary flex-fill" 
+                                               target="_blank">
+                                                <i class="fas fa-code me-1"></i> HTML
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-between gap-1">
+                                            {% if screenshot.zoomed_path %}
+                                            <a href="{{ url_for('view_zoomed_screenshot', screenshot_id=screenshot.id) }}" 
+                                               class="btn btn-sm btn-secondary flex-fill" 
+                                               target="_blank">
+                                                <i class="fas fa-search-plus me-1"></i> Zoomed
+                                            </a>
+                                            {% endif %}
+                                            <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}?force_download=true" 
+                                               class="btn btn-sm btn-outline-primary flex-fill" 
+                                               download>
+                                                <i class="fas fa-download me-1"></i> Download
+                                            </a>
+                                        </div>
                                     </div>
                                     
                                     <form action="{{ url_for('sync_single_screenshot', screenshot_id=screenshot.id) }}" method="POST">
