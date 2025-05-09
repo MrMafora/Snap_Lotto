@@ -130,6 +130,7 @@ csrf.exempt('record_click')
 csrf.exempt('get_file_upload_progress')
 csrf.exempt('health_check')
 csrf.exempt('health_port_check')
+csrf.exempt('puppeteer_status')
 
 # Exempt all lottery analysis API endpoints
 csrf.exempt('api_frequency_analysis')

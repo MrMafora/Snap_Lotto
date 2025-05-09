@@ -463,3 +463,101 @@
     </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fix for scrolling issues on export-screenshots page
+        document.addEventListener('wheel', function(event) {
+            event.stopPropagation();
+        }, true);
+        
+        // Add prevention for any other event handlers that might block scrolling
+        document.body.style.overflowY = 'scroll';
+        document.documentElement.style.overflowY = 'scroll';
+        
+        // Initialize automatic preview functionality
+        initializeAutoPreviewFunctionality();
+        
+        // Make cards responsive to window size changes
+        window.addEventListener('resize', adjustCardLayout);
+        // Initial adjustment
+        adjustCardLayout();
+        
+        // Set up Puppeteer sync form handling
+        setupSyncForm();
+    });
+    
+    /**
+     * Set up the Sync All Screenshots form to show progress indicator
+     */
+    function setupSyncForm() {
+        const syncForm = document.querySelector('form[action*="sync-all-screenshots"]');
+        if (syncForm) {
+            syncForm.addEventListener('submit', function(event) {
+                // Show progress section
+                const progressSection = document.getElementById('captureProgressSection');
+                if (progressSection) {
+                    progressSection.classList.remove('d-none');
+                }
+                
+                // Show starting progress
+                const progressBar = document.getElementById('captureProgressBar');
+                if (progressBar) {
+                    progressBar.style.width = '10%';
+                }
+                
+                // Update status message
+                const statusElement = document.getElementById('captureProgressStatus');
+                if (statusElement) {
+                    statusElement.textContent = 'Starting Puppeteer screenshot capture...';
+                }
+                
+                // Make the button appear processing
+                const submitButton = syncForm.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processing...';
+                }
+                
+                // Continue with form submission (we don't prevent default)
+                // The progress will be shown until page reloads
+                
+                // Simulate progress while waiting for reload
+                simulateProgressUntilReload();
+            });
+        }
+    }
+    
+    /**
+     * Simulate progress bar movement until page reloads
+     */
+    function simulateProgressUntilReload() {
+        const progressBar = document.getElementById('captureProgressBar');
+        if (!progressBar) return;
+        
+        let progress = 15;
+        const maxProgress = 90; // Cap at 90% until we actually get confirmation
+        const statusElement = document.getElementById('captureProgressStatus');
+        
+        const interval = setInterval(function() {
+            progress += Math.random() * 5;
+            if (progress > maxProgress) progress = maxProgress;
+            
+            progressBar.style.width = `${progress}%`;
+            
+            if (statusElement && progress > 50 && progress < 60) {
+                statusElement.textContent = 'Capturing screenshots with Puppeteer...';
+            } else if (statusElement && progress >= 60 && progress < 80) {
+                statusElement.textContent = 'Processing captured screenshots...';
+            } else if (statusElement && progress >= 80) {
+                statusElement.textContent = 'Finalizing and updating database...';
+            }
+            
+            if (progress >= maxProgress) {
+                clearInterval(interval);
+            }
+        }, 800);
+    }
+</script>
+{% endblock %}
