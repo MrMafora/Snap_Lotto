@@ -248,10 +248,16 @@
         messageDiv.className = 'text-muted small text-center px-3';
         messageDiv.textContent = message;
         
-        // Create a help message
+        // Create a help message with a direct clickable link
         const helpDiv = document.createElement('div');
         helpDiv.className = 'mt-2 small text-center';
-        helpDiv.innerHTML = 'Click to view the full screenshot or use the <b>Resync</b> button below';
+        
+        // Get the screenshot URL
+        const screenshotUrl = `/view_screenshot/${screenshotId}`;
+        
+        // Add a direct view link to the help message
+        helpDiv.innerHTML = `<a href="${screenshotUrl}" target="_blank" class="text-primary" style="text-decoration: underline;">
+            Click here to view the full screenshot</a> or use the <b>Resync</b> button below`;
         
         // Get the overlay link element before clearing container
         const overlayLink = container.querySelector('.preview-overlay-link');
@@ -266,12 +272,18 @@
         errorContainer.appendChild(helpDiv);
         container.appendChild(errorContainer);
         
+        // Make the error container clickable
+        errorContainer.style.cursor = 'pointer';
+        errorContainer.addEventListener('click', function() {
+            window.open(screenshotUrl, '_blank');
+        });
+        
         // Re-add the overlay link if it existed
         if (overlayLink) {
             container.appendChild(overlayLink);
         } else {
             // If there was no overlay link (maybe it was removed), recreate it using the data from container
-            const linkUrl = container.dataset.href || container.closest('.card').querySelector('a[href*="view_screenshot"]').href;
+            const linkUrl = container.dataset.href || `/view_screenshot/${screenshotId}`;
             if (linkUrl) {
                 const newOverlayLink = document.createElement('a');
                 newOverlayLink.href = linkUrl;
@@ -539,7 +551,8 @@
                                      alt="{{ screenshot.lottery_type }} live preview"
                                      style="display: none; max-width: 100%; height: auto;"
                                      title="{{ screenshot.lottery_type }} - Click to view full screenshot"
-                                     onerror="handlePreviewError(this.parentNode, 'Preview image failed to load')">
+                                     onerror="handlePreviewError(this.parentNode, 'Preview image failed to load')"
+                                     onclick="window.open('{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}', '_blank')">
                                 <!-- Enhanced overlay link with better error recovery -->
                                 <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
                                    class="preview-overlay-link"
