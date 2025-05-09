@@ -369,6 +369,114 @@ def capture_screenshot(url, filename_prefix, fullpage=True):
         PuppeteerService.capture_screenshot(url, filename_prefix, fullpage)
     )
 
+def generate_png_from_html(html_path, output_path=None):
+    """
+    Generate a PNG screenshot from an HTML file using Playwright
+    
+    Args:
+        html_path (str): Path to the HTML file
+        output_path (str, optional): Path to save the PNG file. If None, a temporary file is created.
+        
+    Returns:
+        tuple: (success, filepath, error_message)
+    """
+    import os
+    import tempfile
+    from datetime import datetime
+    from playwright.sync_api import sync_playwright
+    
+    # Create a temporary file if no output path is provided
+    if not output_path:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_basename = os.path.basename(html_path).replace('.html', '')
+        output_path = os.path.join(
+            tempfile.gettempdir(),
+            f"temp_{timestamp}_{file_basename}.png"
+        )
+    
+    logger.info(f"Generating PNG from HTML file: {html_path}")
+    
+    try:
+        # Get the absolute path to the HTML file
+        abs_html_path = os.path.abspath(html_path)
+        
+        # Create file:// URL format
+        html_url = f"file://{abs_html_path}"
+        
+        with sync_playwright() as p:
+            # Launch browser with appropriate settings
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--window-size=1280,1024'
+                ]
+            )
+            
+            try:
+                # Open new page with proper viewport settings
+                page = browser.new_page(viewport={"width": 1280, "height": 1024})
+                
+                # Set timeout to ensure content loads
+                page.set_default_timeout(30000)
+                
+                # Load the HTML file with proper wait conditions
+                logger.info(f"Loading HTML from: {html_url}")
+                page.goto(html_url, wait_until="networkidle")
+                
+                # Make sure page is fully rendered
+                page.wait_for_selector('body', state='visible')
+                
+                # Ensure page is fully loaded
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                page.evaluate("window.scrollTo(0, 0)")
+                
+                # Take the screenshot with quality settings
+                logger.info(f"Taking screenshot to: {output_path}")
+                page.screenshot(
+                    path=output_path,
+                    full_page=True,
+                    type='png',
+                    quality=100
+                )
+                
+                # Verify the file was created successfully
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 10000:
+                    logger.info(f"✅ PNG successfully generated: {output_path} ({os.path.getsize(output_path)} bytes)")
+                    return True, output_path, None
+                
+                # Try alternate approach if the file is too small
+                logger.warning(f"⚠️ Generated PNG is too small ({os.path.getsize(output_path)}), trying alternate approach")
+                
+                # Reset scroll position and try viewport-only screenshot
+                page.evaluate("window.scrollTo(0, 0)")
+                
+                # Try basic viewport screenshot
+                page.screenshot(
+                    path=output_path,
+                    full_page=False,
+                    type='png'
+                )
+                
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 5000:
+                    logger.info(f"✅ Alternate PNG approach successful: {output_path} ({os.path.getsize(output_path)} bytes)")
+                    return True, output_path, None
+                
+                return False, None, "Failed to generate valid PNG from HTML"
+                
+            except Exception as page_error:
+                logger.error(f"Error with page operations: {str(page_error)}")
+                return False, None, f"Page error: {str(page_error)}"
+            finally:
+                browser.close()
+                
+    except Exception as e:
+        error_message = f"Error generating PNG from HTML: {str(e)}"
+        logger.error(error_message)
+        return False, None, error_message
+
 def capture_single_screenshot(lottery_type, url):
     """
     Synchronous wrapper for capturing a single screenshot

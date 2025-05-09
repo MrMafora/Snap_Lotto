@@ -1763,73 +1763,17 @@ def view_screenshot(screenshot_id):
     # Always try to generate a fresh PNG from HTML for consistent results
     if screenshot.html_path and os.path.isfile(screenshot.html_path):
         try:
-            app.logger.info(f"Generating PNG from HTML: {screenshot.html_path}")
-            from playwright.sync_api import sync_playwright
-            import tempfile
+            app.logger.info(f"Using puppeteer_service.generate_png_from_html for {screenshot.html_path}")
             
-            # Generate PNG from HTML using Playwright with improved settings
-            with sync_playwright() as p:
-                browser = p.chromium.launch(
-                    headless=True,
-                    args=[
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                        '--disable-dev-shm-usage',
-                        '--window-size=1280,1024'
-                    ]
-                )
-                
-                # Create a page with proper viewport settings
-                page = browser.new_page(viewport={"width": 1280, "height": 1024})
-                
-                # Set timeout to ensure content loads
-                page.set_default_timeout(30000)
-                
-                try:
-                    # Load the HTML file with proper wait conditions
-                    app.logger.info(f"Loading HTML file: {screenshot.html_path}")
-                    page.goto('file://' + screenshot.html_path, wait_until="networkidle")
-                    
-                    # Make sure page is fully rendered
-                    page.wait_for_selector('body', state='visible')
-                    
-                    # Ensure page is fully loaded
-                    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                    page.evaluate("window.scrollTo(0, 0)")
-                    
-                    # Create a temporary file for the screenshot
-                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-                        app.logger.info(f"Taking screenshot to {temp_file.name}")
-                        
-                        # Take the screenshot with quality settings
-                        page.screenshot(
-                            path=temp_file.name,
-                            full_page=True,
-                            type='png',
-                            quality=100
-                        )
-                        
-                        # Update the temporary path
-                        temp_screenshot_path = temp_file.name
-                
-                except Exception as page_error:
-                    app.logger.error(f"Error with page operations: {str(page_error)}")
-                    # Try fallback approach with viewport screenshot
-                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-                        page.screenshot(
-                            path=temp_file.name,
-                            full_page=False,
-                            type='png'
-                        )
-                        temp_screenshot_path = temp_file.name
-                
-                finally:
-                    # Always close the browser
-                    browser.close()
+            # Import the function from our puppeteer_service module
+            from puppeteer_service import generate_png_from_html
             
-            # Verify the generated file exists and has content
-            if os.path.exists(temp_screenshot_path) and os.path.getsize(temp_screenshot_path) > 1000:
-                app.logger.info(f"Successfully generated PNG ({os.path.getsize(temp_screenshot_path)} bytes)")
+            # Generate the PNG image
+            success, temp_screenshot_path, error_message = generate_png_from_html(screenshot.html_path)
+            
+            # Check if generation was successful
+            if success and temp_screenshot_path and os.path.exists(temp_screenshot_path):
+                app.logger.info(f"Successfully generated PNG at {temp_screenshot_path} ({os.path.getsize(temp_screenshot_path)} bytes)")
                 
                 # Return the generated file
                 return send_file(
@@ -1839,11 +1783,11 @@ def view_screenshot(screenshot_id):
                     download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png"
                 )
             else:
-                app.logger.error(f"Generated PNG is empty or too small: {temp_screenshot_path}")
-                raise Exception("Generated screenshot is empty or too small")
+                app.logger.error(f"Failed to generate PNG: {error_message}")
+                raise Exception(f"PNG generation failed: {error_message}")
                 
         except Exception as e:
-            app.logger.error(f"Error generating PNG from HTML: {str(e)}")
+            app.logger.error(f"Error accessing puppeteer_service.generate_png_from_html: {str(e)}")
             
             # Fall back to direct HTML display if force_download is not requested
             if not force_download and screenshot.html_path and os.path.isfile(screenshot.html_path):
@@ -2192,7 +2136,54 @@ def preview_website(screenshot_id):
         # Retrieve the screenshot object
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # If we have a valid existing screenshot, use it directly
+        # First try to generate from HTML if available - this is the most reliable approach
+        if screenshot.html_path and os.path.exists(screenshot.html_path):
+            try:
+                app.logger.info(f"Generating thumbnail preview from HTML: {screenshot.html_path}")
+                
+                # Import the function from our puppeteer_service module
+                from puppeteer_service import generate_png_from_html
+                
+                # Generate a temporary PNG file
+                success, temp_path, error_message = generate_png_from_html(screenshot.html_path)
+                
+                if success and temp_path and os.path.exists(temp_path):
+                    app.logger.info(f"Using freshly generated PNG for preview: {temp_path}")
+                    
+                    # Add timestamp overlay
+                    img = Image.open(temp_path)
+                    draw = ImageDraw.Draw(img)
+                    
+                    # Try to use a default font
+                    try:
+                        font = ImageFont.load_default()
+                    except Exception:
+                        font = None
+                    
+                    # Create semi-transparent background for text
+                    img_width = img.width
+                    draw.rectangle(((0, 0), (img_width, 30)), fill=(0, 0, 0, 128))
+                    
+                    # Add timestamp text
+                    timestamp_text = f"Generated preview ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
+                    draw.text((10, 8), timestamp_text, fill=(255, 255, 255), font=font)
+                    draw.text((img_width - 150, 8), "LIVE PREVIEW", fill=(200, 255, 200), font=font)
+                    
+                    # Convert to bytes for serving
+                    buffer = BytesIO()
+                    img.save(buffer, format='PNG')
+                    buffer.seek(0)
+                    
+                    return send_file(
+                        buffer,
+                        mimetype='image/png',
+                        download_name=f'preview_{screenshot_id}.png',
+                        as_attachment=False
+                    )
+            except Exception as html_error:
+                app.logger.warning(f"Could not generate preview from HTML: {str(html_error)}")
+        
+        # Fallback to using existing screenshot if available
         if screenshot.path and os.path.exists(screenshot.path):
             try:
                 # Get file modification time and format it
@@ -2207,10 +2198,6 @@ def preview_website(screenshot_id):
                 # Create a PIL Image from the screenshot
                 img = Image.open(BytesIO(existing_img_data))
                 
-                # Log the HTML path if available (Puppeteer feature)
-                if hasattr(screenshot, 'html_path') and screenshot.html_path:
-                    app.logger.debug(f"HTML content available at: {screenshot.html_path}")
-                
                 # Add timestamp overlay at the top
                 draw = ImageDraw.Draw(img)
                 
@@ -2221,7 +2208,6 @@ def preview_website(screenshot_id):
                     font = None
                 
                 # Create semi-transparent background for text
-                # Get image width for the background rectangle
                 img_width = img.width
                 draw.rectangle(((0, 0), (img_width, 30)), fill=(0, 0, 0, 128))
                 
@@ -2238,8 +2224,6 @@ def preview_website(screenshot_id):
                 # Add timestamp text
                 timestamp_text = f"{time_text} ({capture_time.strftime('%Y-%m-%d %H:%M:%S')})"
                 draw.text((10, 8), timestamp_text, fill=(255, 255, 255), font=font)
-
-                # Add indicator that this is not a live preview
                 draw.text((img_width - 150, 8), "CAPTURED PREVIEW", fill=(255, 200, 200), font=font)
                 
                 # Convert back to bytes
@@ -2278,7 +2262,7 @@ def preview_website(screenshot_id):
         # Draw informative text
         d.text((20, 20), f"No screenshot available for {screenshot.lottery_type}", 
               fill=(50, 50, 50), font=font)
-        d.text((20, 60), f"URL: {screenshot.url[:80]}...",
+        d.text((20, 60), f"URL: {getattr(screenshot, 'url', 'Unknown URL')[:80]}...",
               fill=(100, 100, 100), font=font_medium)
         d.text((20, 100), f"Use the 'Sync All Screenshots' or 'Resync' button to capture a screenshot.", 
               fill=(50, 50, 200), font=font_small)
