@@ -595,7 +595,8 @@ class PuppeteerService:
 
 def capture_screenshot(url, filename_prefix, fullpage=True):
     """
-    Synchronous wrapper for capturing a screenshot
+    Synchronous wrapper for capturing a screenshot,
+    that works safely in threads by creating a new event loop if needed
     
     Args:
         url (str): URL to capture
@@ -605,9 +606,23 @@ def capture_screenshot(url, filename_prefix, fullpage=True):
     Returns:
         tuple: (success, filepath, html_filepath, error_message)
     """
-    return asyncio.get_event_loop().run_until_complete(
-        PuppeteerService.capture_screenshot(url, filename_prefix, fullpage)
-    )
+    # Create a new event loop for thread safety
+    try:
+        # First try to get the current event loop
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        # If we're in a thread without an event loop, create a new one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    
+    # Run the async function and return results
+    try:
+        return loop.run_until_complete(
+            PuppeteerService.capture_screenshot(url, filename_prefix, fullpage)
+        )
+    except Exception as e:
+        logger.error(f"Error in capture_screenshot: {str(e)}")
+        return False, None, None, f"Error in capture_screenshot: {str(e)}"
 
 def generate_png_from_html(html_path, output_path=None):
     """
@@ -768,7 +783,8 @@ def capture_single_screenshot(lottery_type, url):
 
 def capture_multiple_screenshots(urls_with_types):
     """
-    Synchronous wrapper for capturing multiple screenshots
+    Synchronous wrapper for capturing multiple screenshots,
+    that works safely in threads by creating a new event loop
     
     Args:
         urls_with_types (list): List of dictionaries with 'url' and 'type' keys
@@ -776,9 +792,23 @@ def capture_multiple_screenshots(urls_with_types):
     Returns:
         dict: Results for each lottery type
     """
-    return asyncio.get_event_loop().run_until_complete(
-        PuppeteerService.capture_multiple_screenshots(urls_with_types)
-    )
+    # Create a new event loop for thread safety
+    try:
+        # First try to get the current event loop
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        # If we're in a thread without an event loop, create a new one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    
+    # Run the async function and return results
+    try:
+        return loop.run_until_complete(
+            PuppeteerService.capture_multiple_screenshots(urls_with_types)
+        )
+    except Exception as e:
+        logger.error(f"Error in capture_multiple_screenshots: {str(e)}")
+        return {}
 
 def update_screenshot_database(results, screenshot_model, db, map_type_to_db=None):
     """
