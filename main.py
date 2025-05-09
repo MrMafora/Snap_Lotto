@@ -1465,6 +1465,44 @@ def settings():
                           meta_description=meta_description,
                           breadcrumbs=breadcrumbs)
 
+def ensure_all_screenshot_entries_exist():
+    """
+    Make sure all the URLs from puppeteer_service.py's LOTTERY_URLS 
+    have corresponding entries in the Screenshot table
+    """
+    from puppeteer_service import LOTTERY_URLS
+    
+    # Get all existing screenshots
+    existing_screenshots = Screenshot.query.all()
+    existing_types = {screenshot.lottery_type for screenshot in existing_screenshots}
+    
+    # Track what was created
+    created_count = 0
+    
+    # Create entries for missing lottery types
+    for lottery_type, url in LOTTERY_URLS.items():
+        if lottery_type not in existing_types:
+            app.logger.info(f"Creating missing screenshot entry for {lottery_type}")
+            
+            # Create default placeholder paths
+            screenshot = Screenshot(
+                url=url,
+                lottery_type=lottery_type,
+                path="placeholder",  # Will be updated when screenshots are captured
+                html_path="placeholder",  # Will be updated when screenshots are captured
+                timestamp=datetime.now()
+            )
+            
+            db.session.add(screenshot)
+            created_count += 1
+    
+    # Save changes if any were made
+    if created_count > 0:
+        db.session.commit()
+        app.logger.info(f"Created {created_count} missing screenshot entries")
+    
+    return created_count
+
 @app.route('/export-screenshots')
 @login_required
 def export_screenshots():
@@ -1482,6 +1520,12 @@ def export_screenshots():
     # Define SEO metadata
     meta_description = "Export and manage South African lottery screenshots. Download captured lottery result images in various formats for analysis and record-keeping."
     
+    # Ensure all the needed screenshot entries exist in the database
+    created_count = ensure_all_screenshot_entries_exist()
+    if created_count > 0:
+        flash(f'Added {created_count} missing screenshot entries to the database. Please sync screenshots to capture the content.', 'info')
+    
+    # Get all screenshots, with newest first
     screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
     
     # Create a status object combining both global and session status
