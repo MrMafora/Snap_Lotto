@@ -1973,48 +1973,52 @@ def sync_single_screenshot(screenshot_id):
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
         # Import Puppeteer service
-        from puppeteer_service import capture_screenshot, LOTTERY_URLS
+        from puppeteer_service import capture_single_screenshot, LOTTERY_URLS
         
-        # Find the matching URL from LOTTERY_URLS
-        matching_url = None
-        for url_info in LOTTERY_URLS:
-            if url_info.get('type') == screenshot.lottery_type:
-                matching_url = url_info
-                break
+        # Check if the lottery type exists in our URLs dictionary
+        lottery_type = screenshot.lottery_type
+        if lottery_type in LOTTERY_URLS:
+            url = LOTTERY_URLS[lottery_type]
+        else:
+            # Try fuzzy matching for similar names
+            found_match = False
+            for known_type, known_url in LOTTERY_URLS.items():
+                if known_type.lower() in lottery_type.lower() or lottery_type.lower() in known_type.lower():
+                    lottery_type = known_type
+                    url = known_url
+                    found_match = True
+                    break
+            
+            if not found_match:
+                app.logger.error(f"Could not find matching URL for lottery type: {screenshot.lottery_type}")
+                session['sync_status'] = {
+                    'status': 'danger',
+                    'message': f'Error: Could not find matching URL for lottery type: {screenshot.lottery_type}'
+                }
+                return redirect(url_for('export_screenshots'))
         
-        if not matching_url:
-            app.logger.error(f"Could not find matching URL for lottery type: {screenshot.lottery_type}")
-            session['sync_status'] = {
-                'status': 'danger',
-                'message': f'Error: Could not find matching URL for lottery type: {screenshot.lottery_type}'
-            }
-            return redirect(url_for('export_screenshots'))
+        app.logger.info(f"Capturing screenshot for {lottery_type} using Puppeteer...")
         
-        app.logger.info(f"Capturing screenshot for {screenshot.lottery_type} using Puppeteer...")
+        # Capture the screenshot using the new capture_single_screenshot function
+        result = capture_single_screenshot(lottery_type, url)
         
-        # Capture the screenshot using Puppeteer
-        success, filepath, html_filepath, error_message = capture_screenshot(
-            matching_url['url'], 
-            f"{screenshot.lottery_type.replace(' ', '_').lower()}"
-        )
-        
-        if success and filepath:
+        if result.get('status') == 'success' and result.get('path'):
             # Update the screenshot record
-            screenshot.path = filepath
+            screenshot.path = result.get('path')
             screenshot.timestamp = datetime.now()
-            if html_filepath:
-                screenshot.html_path = html_filepath
+            if result.get('html_path'):
+                screenshot.html_path = result.get('html_path')
             
             db.session.commit()
             
             session['sync_status'] = {
                 'status': 'success',
-                'message': f'Successfully captured screenshot for {screenshot.lottery_type} using Puppeteer.'
+                'message': f'Successfully captured screenshot for {lottery_type} using Puppeteer.'
             }
         else:
             session['sync_status'] = {
                 'status': 'warning',
-                'message': f'Failed to capture screenshot for {screenshot.lottery_type} using Puppeteer. Error: {error_message}'
+                'message': f'Failed to capture screenshot for {lottery_type} using Puppeteer. Error: {result.get("error", "Unknown error")}'
             }
     except Exception as e:
         app.logger.error(f"Error capturing screenshot with Puppeteer: {str(e)}")

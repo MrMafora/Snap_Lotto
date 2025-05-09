@@ -209,6 +209,46 @@ def capture_screenshot(url, filename_prefix, fullpage=True):
         PuppeteerService.capture_screenshot(url, filename_prefix, fullpage)
     )
 
+def capture_single_screenshot(lottery_type, url):
+    """
+    Synchronous wrapper for capturing a single screenshot
+    with lottery type and URL
+    
+    Args:
+        lottery_type (str): Type of lottery (used for filename)
+        url (str): URL to capture
+        
+    Returns:
+        dict: Result dictionary with status, path, etc.
+    """
+    try:
+        # Create a safe filename from lottery type
+        safe_filename = lottery_type.replace(' ', '_').lower()
+        
+        # Capture the screenshot
+        success, filepath, html_filepath, error_message = capture_screenshot(url, safe_filename)
+        
+        if success and filepath:
+            return {
+                'status': 'success',
+                'path': filepath,
+                'html_path': html_filepath,
+                'url': url
+            }
+        else:
+            return {
+                'status': 'failed',
+                'error': error_message or 'Unknown error',
+                'url': url
+            }
+    except Exception as e:
+        logger.error(f"Error in capture_single_screenshot for {lottery_type}: {str(e)}")
+        return {
+            'status': 'failed',
+            'error': str(e),
+            'url': url
+        }
+
 def capture_multiple_screenshots(urls_with_types):
     """
     Synchronous wrapper for capturing multiple screenshots
@@ -311,8 +351,27 @@ def update_screenshot_database(results, screenshot_model, db, map_type_to_db=Non
         logger.error(f"Error updating database: {str(e)}")
         return False, 0, 0
 
-# Default lottery URLs for convenience
-LOTTERY_URLS = [
+# Default lottery URLs for convenience (dictionary format for easier access)
+LOTTERY_URLS = {
+    # History URLs
+    'Lotto': 'https://www.nationallottery.co.za/lotto-history',
+    'Lotto Plus 1': 'https://www.nationallottery.co.za/lotto-plus-1-history',
+    'Lotto Plus 2': 'https://www.nationallottery.co.za/lotto-plus-2-history',
+    'Powerball': 'https://www.nationallottery.co.za/powerball-history',
+    'Powerball Plus': 'https://www.nationallottery.co.za/powerball-plus-history',
+    'Daily Lotto': 'https://www.nationallottery.co.za/daily-lotto-history',
+    
+    # Results URLs
+    'Lotto Results': 'https://www.nationallottery.co.za/results/lotto',
+    'Lotto Plus 1 Results': 'https://www.nationallottery.co.za/results/lotto-plus-1-results',
+    'Lotto Plus 2 Results': 'https://www.nationallottery.co.za/results/lotto-plus-2-results',
+    'Powerball Results': 'https://www.nationallottery.co.za/results/powerball',
+    'Powerball Plus Results': 'https://www.nationallottery.co.za/results/powerball-plus',
+    'Daily Lotto Results': 'https://www.nationallottery.co.za/results/daily-lotto',
+}
+
+# Legacy format for backward compatibility
+LOTTERY_URLS_LIST = [
     # History URLs
     {'url': 'https://www.nationallottery.co.za/lotto-history', 'type': 'lotto_history'},
     {'url': 'https://www.nationallottery.co.za/lotto-plus-1-history', 'type': 'lotto_plus_1_history'},
@@ -343,9 +402,30 @@ if __name__ == "__main__":
             print(f"HTML content saved to: {html_filepath}")
         else:
             print(f"Error: {error}")
+    elif len(sys.argv) > 1 and sys.argv[1] == "single_new":
+        # Test single screenshot capture using new function
+        lottery_type = "Lotto"
+        if lottery_type in LOTTERY_URLS:
+            url = LOTTERY_URLS[lottery_type]
+            result = capture_single_screenshot(lottery_type, url)
+            status = "Success" if result.get('status') == 'success' else "Failed"
+            print(f"{lottery_type}: {status}")
+            if result.get('status') == 'success':
+                print(f"  Screenshot: {result.get('path')}")
+                print(f"  HTML path: {result.get('html_path')}")
+            else:
+                print(f"  Error: {result.get('error')}")
+        else:
+            print(f"Error: Lottery type '{lottery_type}' not found in LOTTERY_URLS")
     else:
-        # Test multiple screenshot capture
-        results = capture_multiple_screenshots(LOTTERY_URLS[:2])  # Just capture first two URLs for testing
+        # Test multiple screenshot capture (using legacy format for compatibility)
+        # Convert first two items from the dictionary to list format
+        test_urls = []
+        for i, (lottery_type, url) in enumerate(LOTTERY_URLS.items()):
+            if i < 2:  # Just test first two
+                test_urls.append({'type': lottery_type, 'url': url})
+        
+        results = capture_multiple_screenshots(test_urls)  # Just capture first two URLs for testing
         
         # Print results
         for lottery_type, result in results.items():
@@ -356,3 +436,16 @@ if __name__ == "__main__":
                 print(f"  HTML content: {result.get('html_path')}")
             else:
                 print(f"  Error: {result.get('message')}")
+                
+        print("\nTesting single_screenshot function:")
+        # Test the single_screenshot function with the first URL
+        first_type = list(LOTTERY_URLS.keys())[0]
+        first_url = LOTTERY_URLS[first_type]
+        result = capture_single_screenshot(first_type, first_url)
+        status = "Success" if result.get('status') == 'success' else "Failed"
+        print(f"{first_type}: {status}")
+        if result.get('status') == 'success':
+            print(f"  Screenshot: {result.get('path')}")
+            print(f"  HTML path: {result.get('html_path')}")
+        else:
+            print(f"  Error: {result.get('error')}")
