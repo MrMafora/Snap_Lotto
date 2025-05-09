@@ -1,0 +1,48 @@
+/* CSS to hide "Oops!" error popups and other dialogs in lottery html view */
+
+/* Hide any popups, error messages, or overlays */
+.popup, .overlay, .modal, .cookie-banner, .consent-banner, 
+div[class*="popup"], div[class*="modal"], div[class*="overlay"], 
+div[class*="cookie"], div[class*="consent"],
+div[role="dialog"], div[aria-modal="true"], .fade {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Target specific Oops message elements */
+div[class*="error"], div[id*="error"],
+[class*="error"], [id*="error"],
+[class*="modal"], [id*="modal"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Remove modal backdrops */
+body.modal-open {
+    overflow: auto !important;
+}
+
+/* Remove fixed position elements that could be popups */
+body > div[style*="position: fixed"],
+body > div[style*="position:fixed"] {
+    display: none !important;
+}
+
+/* Specifically target the "Oops!" popup */
+div.modal, div.popup, div.overlay,
+[class*="modal"], [class*="popup"], [class*="overlay"],
+[aria-modal="true"], [role="dialog"] {
+    display: none !important;
+}
+
+/* For the specific popup structure shown in the example */
+div[aria-modal="true"],
+div.modal-dialog,
+div.modal-content,
+div.modal-header,
+div.modal-body,
+.modal-backdrop {
+    display: none !important;
+}

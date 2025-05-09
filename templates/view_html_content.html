@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ screenshot.lottery_type }} HTML Content</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/popup_remover.css') }}">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .content-header {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .html-container {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        iframe {
+            width: 100%;
+            min-height: 800px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="content-header">
+        <h2>HTML Content: {{ screenshot.lottery_type }}</h2>
+        <p class="timestamp">Captured on: {{ screenshot.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        <p>URL: <a href="{{ screenshot.url }}" target="_blank">{{ screenshot.url }}</a></p>
+        <a href="{{ url_for('export_screenshots') }}" class="btn btn-secondary">Back to Screenshots</a>
+    </div>
+
+    <div class="html-container">
+        <iframe id="content-frame" srcdoc="{{ html_content|safe }}"></iframe>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/popup_remover.js') }}"></script>
+    <script>
+        // Apply popup remover to the iframe content when loaded
+        document.getElementById('content-frame').addEventListener('load', function() {
+            try {
+                // Get the iframe document
+                var iframeDoc = this.contentWindow.document;
+                
+                // Remove popups in the iframe
+                var elementsToRemove = [
+                    '.popup', '.modal', '.overlay', '.cookie-banner',
+                    '[class*="popup"]', '[class*="modal"]', '[class*="overlay"]',
+                    '[class*="cookie"]', '[class*="consent"]', '[class*="error"]',
+                    'div[role="dialog"]', 'div[aria-modal="true"]',
+                    '.fade', '.modal-backdrop'
+                ];
+                
+                elementsToRemove.forEach(function(selector) {
+                    var elements = iframeDoc.querySelectorAll(selector);
+                    elements.forEach(function(el) {
+                        if(el) el.remove();
+                    });
+                });
+                
+                // Remove elements containing "Oops" text
+                var textElements = iframeDoc.querySelectorAll('div, h1, h2, h3, p, span');
+                textElements.forEach(function(el) {
+                    if(el && el.innerText && 
+                      (el.innerText.includes('Oops') || 
+                       el.innerText.includes('Something went wrong') || 
+                       el.innerText.includes('network connectivity'))) {
+                        
+                        // Try to find parent modal/popup container
+                        var parent = el.parentElement;
+                        for(var i=0; i<5 && parent; i++) {
+                            if(parent.tagName === 'BODY') break;
+                            parent = parent.parentElement;
+                        }
+                        
+                        // Hide the parent container if found, otherwise hide the element itself
+                        if(parent && parent.tagName !== 'BODY') {
+                            parent.style.display = 'none';
+                        } else {
+                            el.style.display = 'none';
+                        }
+                    }
+                });
+                
+                // Make sure scrolling is enabled
+                iframeDoc.body.style.overflow = 'auto';
+                
+            } catch(e) {
+                console.error("Error cleaning iframe content:", e);
+            }
+        });
+    </script>
+</body>
+</html>
