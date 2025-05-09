@@ -1384,8 +1384,49 @@ def purge_database():
     
     return redirect(url_for('admin'))
 
-@app.route('/settings', methods=['GET', 'POST'])
-@login_required
+def ensure_screenshots_for_schedules():
+    """
+    Ensure that every URL in ScheduleConfig has a corresponding Screenshot record.
+    This function is called from the settings page to maintain consistency between
+    the settings page URLs and the export-screenshots page thumbnails.
+    
+    Returns:
+        tuple: (created_count, updated_count) - Number of screenshot records created or updated
+    """
+    created_count = 0
+    updated_count = 0
+    
+    # Get all scheduled configurations
+    schedule_configs = ScheduleConfig.query.all()
+    
+    for config in schedule_configs:
+        # Check if a screenshot record exists for this URL
+        existing_screenshot = Screenshot.query.filter_by(url=config.url).first()
+        
+        if existing_screenshot:
+            # Update the existing record if needed
+            if existing_screenshot.lottery_type != config.lottery_type:
+                existing_screenshot.lottery_type = config.lottery_type
+                updated_count += 1
+                app.logger.info(f"Updated screenshot record for {config.lottery_type} ({config.url})")
+        else:
+            # Create a new screenshot record if none exists
+            new_screenshot = Screenshot(
+                url=config.url,
+                lottery_type=config.lottery_type,
+                path="",  # Will be populated when screenshot is taken
+                timestamp=datetime.now()
+            )
+            db.session.add(new_screenshot)
+            created_count += 1
+            app.logger.info(f"Created new screenshot record for {config.lottery_type} ({config.url})")
+    
+    # Commit changes if any were made
+    if created_count > 0 or updated_count > 0:
+        db.session.commit()
+        
+    return created_count, updated_count
+
 def settings():
     """Manage data syncs and system settings"""
     if not current_user.is_admin:
@@ -1400,6 +1441,13 @@ def settings():
     
     # Define SEO metadata
     meta_description = "Configure South African lottery system settings and scheduled tasks. Manage data synchronization, screenshot capture timing, and system preferences."
+    
+    # Ensure screenshots exist for all scheduled configurations
+    created, updated = ensure_screenshots_for_schedules()
+    if created > 0:
+        flash(f'Created {created} new screenshot records for scheduled URLs.', 'info')
+    if updated > 0:
+        flash(f'Updated {updated} existing screenshot records.', 'info')
     
     schedule_configs = ScheduleConfig.query.all()
     
