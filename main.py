@@ -1416,7 +1416,7 @@ def settings():
 @app.route('/export-screenshots')
 @login_required
 def export_screenshots():
-    """Export screenshots"""
+    """Export screenshots with integrated Puppeteer functionality"""
     if not current_user.is_admin:
         flash('You must be an admin to export screenshots.', 'danger')
         return redirect(url_for('index'))
@@ -1442,13 +1442,17 @@ def export_screenshots():
     if screenshots:
         last_updated = screenshots[0].timestamp
     
+    # Import Puppeteer lottery URLs for the integrated capture functionality
+    from puppeteer_service import LOTTERY_URLS
+    
     return render_template('export_screenshots.html',
                           screenshots=screenshots,
                           title="Export Lottery Screenshots | Data Management",
                           meta_description=meta_description,
                           breadcrumbs=breadcrumbs,
                           sync_status=sync_status,
-                          last_updated=last_updated)
+                          last_updated=last_updated,
+                          lottery_urls=LOTTERY_URLS)
 
 @app.route('/export-screenshots-zip')
 @login_required
