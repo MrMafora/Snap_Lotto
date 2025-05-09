@@ -1467,7 +1467,10 @@ def settings():
 
 def ensure_all_screenshot_entries_exist():
     """
-    Make sure all the URLs from puppeteer_service.py's LOTTERY_URLS 
+    Make sure all the URLs from both:
+    1. ScheduleConfig table (settings page)
+    2. puppeteer_service.py's LOTTERY_URLS (hardcoded defaults)
+    
     have corresponding entries in the Screenshot table
     """
     from puppeteer_service import LOTTERY_URLS
@@ -1475,14 +1478,39 @@ def ensure_all_screenshot_entries_exist():
     # Get all existing screenshots
     existing_screenshots = Screenshot.query.all()
     existing_types = {screenshot.lottery_type for screenshot in existing_screenshots}
+    existing_urls = {screenshot.url for screenshot in existing_screenshots}
     
     # Track what was created
     created_count = 0
     
-    # Create entries for missing lottery types
+    # Process configured URLs first (from Settings page)
+    schedule_configs = ScheduleConfig.query.all()
+    scheduled_types = set()
+    
+    # Add entries from ScheduleConfig (settings page)
+    for config in schedule_configs:
+        scheduled_types.add(config.lottery_type)
+        
+        # Check if this URL is already in screenshots
+        if config.url not in existing_urls and config.lottery_type not in existing_types:
+            app.logger.info(f"Creating missing screenshot entry for scheduled URL: {config.lottery_type}")
+            
+            # Create default placeholder paths
+            screenshot = Screenshot(
+                url=config.url,
+                lottery_type=config.lottery_type,
+                path="placeholder",  # Will be updated when screenshots are captured
+                html_path="placeholder",  # Will be updated when screenshots are captured
+                timestamp=datetime.now()
+            )
+            
+            db.session.add(screenshot)
+            created_count += 1
+    
+    # Add entries from hardcoded LOTTERY_URLS as fallback
     for lottery_type, url in LOTTERY_URLS.items():
-        if lottery_type not in existing_types:
-            app.logger.info(f"Creating missing screenshot entry for {lottery_type}")
+        if lottery_type not in existing_types and lottery_type not in scheduled_types:
+            app.logger.info(f"Creating missing screenshot entry from default URLs: {lottery_type}")
             
             # Create default placeholder paths
             screenshot = Screenshot(
@@ -1547,8 +1575,20 @@ def export_screenshots():
     if screenshots:
         last_updated = screenshots[0].timestamp
     
-    # Import Puppeteer lottery URLs for the integrated capture functionality
-    from puppeteer_service import LOTTERY_URLS
+    # Get lottery URLs from the ScheduleConfig table (settings page)
+    # This makes the settings page the source of truth for screenshot URLs
+    schedule_configs = ScheduleConfig.query.all()
+    
+    # Create a dictionary of lottery types to URLs for the template
+    lottery_urls = {}
+    for config in schedule_configs:
+        lottery_urls[config.lottery_type] = config.url
+    
+    # If no URLs found in ScheduleConfig, fall back to defaults from puppeteer_service
+    if not lottery_urls:
+        app.logger.warning("No URLs found in ScheduleConfig table, falling back to defaults")
+        from puppeteer_service import LOTTERY_URLS
+        lottery_urls = LOTTERY_URLS
     
     # Add in-progress status if screenshots are currently being synchronized
     puppeteer_status = {
@@ -1566,7 +1606,7 @@ def export_screenshots():
                           breadcrumbs=breadcrumbs,
                           sync_status=sync_status,
                           last_updated=last_updated,
-                          lottery_urls=LOTTERY_URLS,
+                          lottery_urls=lottery_urls,
                           puppeteer_status=puppeteer_status)
 
 @app.route('/export-screenshots-zip')
@@ -2302,13 +2342,28 @@ def sync_all_screenshots():
         return redirect(url_for('export_screenshots'))
     
     try:
-        # Use Puppeteer service for capturing screenshots
-        from puppeteer_service import capture_multiple_screenshots, LOTTERY_URLS
+        # Import needed functions from puppeteer_service
+        from puppeteer_service import capture_single_screenshot
+        
+        # Get all URL configurations from the ScheduleConfig model (settings page)
+        schedule_configs = ScheduleConfig.query.filter_by(active=True).all()
+        
+        # Create a dictionary of lottery types to URLs for processing
+        config_urls = {}
+        for config in schedule_configs:
+            if config.url:  # Skip any entries with empty URLs
+                config_urls[config.lottery_type] = config.url
+        
+        # If no URLs found in ScheduleConfig, get defaults from puppeteer_service
+        if not config_urls:
+            from puppeteer_service import LOTTERY_URLS
+            app.logger.warning("No URLs found in ScheduleConfig table, falling back to defaults")
+            config_urls = LOTTERY_URLS
         
         # Reset and initialize status
         puppeteer_capture_status.update({
             'in_progress': True,
-            'total_screenshots': len(LOTTERY_URLS),
+            'total_screenshots': len(config_urls),
             'completed_screenshots': 0,
             'start_time': datetime.now(),
             'last_updated': datetime.now(),
@@ -2318,7 +2373,7 @@ def sync_all_screenshots():
             'errors': []
         })
         
-        app.logger.info(f"Starting synchronization of {len(LOTTERY_URLS)} screenshots using Puppeteer service...")
+        app.logger.info(f"Starting synchronization of {len(config_urls)} screenshots from settings page...")
         
         # Use threading to process screenshots without blocking
         def process_screenshots():
@@ -2340,19 +2395,20 @@ def sync_all_screenshots():
                     db_creates = 0
                     
                     # Process each URL individually to update status as we go
-                    for i, (lottery_type, url) in enumerate(LOTTERY_URLS.items()):
+                    for i, (lottery_type, url) in enumerate(config_urls.items()):
                         # Update status - thread-safe, doesn't use session
-                        puppeteer_capture_status['status_message'] = f"Capturing {lottery_type} screenshot ({i+1}/{len(LOTTERY_URLS)})..."
+                        puppeteer_capture_status['status_message'] = f"Capturing {lottery_type} screenshot ({i+1}/{len(config_urls)})..."
                         puppeteer_capture_status['last_updated'] = datetime.now()
                         
                         try:
                             # Capture individual screenshot
-                            from puppeteer_service import capture_single_screenshot
+                            app.logger.info(f"Capturing {lottery_type} from {url}")
                             result = capture_single_screenshot(lottery_type, url)
                             results[lottery_type] = result
                             
                             # Update progress - thread-safe, doesn't use session
                             puppeteer_capture_status['completed_screenshots'] = i + 1
+                            puppeteer_capture_status['progress'] = (i + 1) / len(config_urls) * 100
                             
                             if result.get('status') == 'success':
                                 puppeteer_capture_status['success_count'] += 1
@@ -2364,7 +2420,7 @@ def sync_all_screenshots():
                                     # Update existing record
                                     screenshot.path = result.get('path')
                                     screenshot.html_path = result.get('html_path', '')  # Store HTML path if available
-                                    screenshot.source_url = url
+                                    screenshot.url = url  # Make sure the URL is updated to match the settings
                                     screenshot.timestamp = datetime.now()
                                     db_updates += 1
                                 else:
@@ -2373,7 +2429,7 @@ def sync_all_screenshots():
                                         lottery_type=lottery_type,
                                         path=result.get('path'),
                                         html_path=result.get('html_path', ''),  # Store HTML path if available
-                                        source_url=url,
+                                        url=url,
                                         timestamp=datetime.now()
                                     )
                                     db.session.add(screenshot)
