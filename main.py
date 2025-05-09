@@ -1762,6 +1762,7 @@ def view_screenshot(screenshot_id):
     
     # Keep track of attempts for logging
     attempts = []
+    app.logger.info(f"Attempting to view screenshot ID {screenshot_id}, type: {screenshot.lottery_type}")
     
     # Always try to generate a fresh PNG from HTML for consistent results
     if screenshot.html_path and os.path.isfile(screenshot.html_path):
@@ -1815,12 +1816,12 @@ def view_screenshot(screenshot_id):
             filename = os.path.basename(screenshot.path)
             
             try:
-                return send_from_directory(
-                    directory, 
-                    filename, 
+                # Use send_file instead of send_from_directory for more reliability
+                return send_file(
+                    screenshot.path,
+                    mimetype='image/png',
                     as_attachment=force_download,
-                    download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png",
-                    mimetype='image/png'
+                    download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png"
                 )
             except Exception as e:
                 error_msg = f"Error sending PNG file: {str(e)}"
@@ -1838,19 +1839,78 @@ def view_screenshot(screenshot_id):
         attempts.append(f"Falling back to direct HTML: {html_size} bytes")
         
         try:
-            directory = os.path.dirname(screenshot.html_path)
-            filename = os.path.basename(screenshot.html_path)
-            
-            return send_from_directory(
-                directory, 
-                filename, 
-                mimetype='text/html'
+            # Use send_file instead of send_from_directory for more reliability
+            return send_file(
+                screenshot.html_path,
+                mimetype='text/html',
+                download_name=f"{screenshot.lottery_type.replace(' ', '_')}.html"
             )
         except Exception as e:
             error_msg = f"Error sending HTML file: {str(e)}"
             app.logger.error(error_msg)
             attempts.append(error_msg)
     
+    # Try an embedded/inline response with HTML fallback
+    try:
+        app.logger.info("Trying an embedded HTML response fallback")
+        
+        # First check if we have the HTML file
+        if screenshot.html_path and os.path.isfile(screenshot.html_path):
+            try:
+                with open(screenshot.html_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    html_content = f.read()
+                
+                # Create a nicer fallback HTML with embedded screenshot info
+                fallback_html = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Screenshot: {screenshot.lottery_type}</title>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <style>
+                        body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }}
+                        .container {{ max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
+                        h1 {{ color: #333; }}
+                        .content {{ margin-top: 20px; padding: 20px; border: 1px solid #eee; }}
+                        .meta {{ color: #666; font-size: 0.9em; margin-bottom: 10px; }}
+                        .actions {{ margin-top: 20px; }}
+                        .btn {{ background: #e74c3c; color: white; padding: 10px 15px; text-decoration: none; border-radius: 3px; display: inline-block; }}
+                        .html-preview {{ border: 1px solid #ddd; padding: 15px; background: #f9f9f9; margin-top: 20px; overflow: auto; max-height: 500px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>Screenshot Preview: {screenshot.lottery_type}</h1>
+                        <div class="meta">ID: {screenshot_id}</div>
+                        <div class="meta">Timestamp: {screenshot.timestamp}</div>
+                        <div class="meta">URL: {screenshot.url}</div>
+                        
+                        <div class="content">
+                            <h3>Screenshot Data</h3>
+                            <p>The screenshot image could not be displayed directly, but the HTML content is available below.</p>
+                            <div class="actions">
+                                <a href="{url_for('view_screenshot', screenshot_id=screenshot_id, force_download='true')}" class="btn">Download Raw Content</a>
+                            </div>
+                        </div>
+                        
+                        <div class="html-preview">
+                            <h3>HTML Preview</h3>
+                            <iframe srcdoc="{html_content.replace('"', '&quot;')}" style="width:100%; height:400px; border:1px solid #ddd;"></iframe>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+                
+                return fallback_html, 200, {'Content-Type': 'text/html'}
+            except Exception as e:
+                app.logger.error(f"Failed to create embedded HTML: {str(e)}")
+                attempts.append(f"Failed to create embedded HTML: {str(e)}")
+    except Exception as e:
+        app.logger.error(f"Embedded HTML fallback failed: {str(e)}")
+        attempts.append(f"Embedded HTML fallback failed: {str(e)}")
+        
     # If all else fails, generate a simple error image
     try:
         from PIL import Image, ImageDraw, ImageFont
