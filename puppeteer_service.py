@@ -95,30 +95,72 @@ class PuppeteerService:
             await asyncio.sleep(2)
             
             # Take screenshot - THIS IS THE CRITICAL PART
-            # Make sure we're capturing with proper settings for a full page screenshot
+            # First, make sure all content is fully loaded and visible
+            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            await page.evaluate("window.scrollTo(0, 0)")
+            await asyncio.sleep(1)  # Give it time to settle after scrolling
+            
+            # Enhanced screenshot options with improved settings
             screenshot_options = {
                 'path': filepath,
                 'fullPage': fullpage,
                 'type': 'png',
                 'omitBackground': False,
-                'encoding': 'binary'
+                'encoding': 'binary',
+                'quality': 100  # Maximum quality for PNG
             }
-            await page.screenshot(screenshot_options)
+            
+            # Take the screenshot with a larger timeout
+            logger.info(f"Taking screenshot with fullPage={fullpage} option")
+            try:
+                await page.screenshot(screenshot_options)
+            except Exception as e:
+                logger.error(f"Error with fullPage screenshot: {str(e)}")
             
             # Verify the file was created successfully
-            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+            if os.path.exists(filepath) and os.path.getsize(filepath) > 10000:  # Ensure file is not tiny
                 logger.info(f"✅ Screenshot successfully saved to {filepath} ({os.path.getsize(filepath)} bytes)")
             else:
-                logger.error(f"❌ Screenshot file not created or empty: {filepath}")
-                # If screenshot fails, try one more time with different settings
-                screenshot_options = {
-                    'path': filepath,
-                    'fullPage': False,  # Try without fullPage
-                    'type': 'png'
-                }
-                await page.screenshot(screenshot_options)
-                if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                    logger.info(f"✅ Retry successful: Screenshot saved to {filepath} ({os.path.getsize(filepath)} bytes)")
+                logger.error(f"❌ Screenshot file not created or too small: {filepath}")
+                # Try a second approach with different settings
+                logger.info("Trying alternate screenshot approach")
+                try:
+                    # Reset scroll position
+                    await page.evaluate("window.scrollTo(0, 0)")
+                    
+                    # Try clipping to viewport
+                    viewport = await page.evaluate("""() => {
+                        return {
+                            width: Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
+                            height: Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
+                        }
+                    }""")
+                    
+                    screenshot_options = {
+                        'path': filepath,
+                        'fullPage': False,
+                        'clip': {
+                            'x': 0,
+                            'y': 0,
+                            'width': viewport['width'],
+                            'height': viewport['height']
+                        },
+                        'type': 'png'
+                    }
+                    await page.screenshot(screenshot_options)
+                    if os.path.exists(filepath) and os.path.getsize(filepath) > 10000:
+                        logger.info(f"✅ Viewport screenshot successful: {filepath} ({os.path.getsize(filepath)} bytes)")
+                    else:
+                        # Last resort - most basic screenshot
+                        screenshot_options = {
+                            'path': filepath,
+                            'fullPage': False,
+                            'type': 'png'
+                        }
+                        await page.screenshot(screenshot_options)
+                        logger.info(f"✅ Basic screenshot approach: {filepath} ({os.path.getsize(filepath)} bytes)")
+                except Exception as e:
+                    logger.error(f"All screenshot attempts failed: {str(e)}")
             
             # Save HTML content for backup/debugging
             html_content = await page.content()
@@ -208,30 +250,72 @@ class PuppeteerService:
                     await asyncio.sleep(2)
                     
                     # Take screenshot - THIS IS THE CRITICAL PART
-                    # Make sure we're capturing with proper settings for a full page screenshot
+                    # First, make sure all content is fully loaded and visible
+                    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    await page.evaluate("window.scrollTo(0, 0)")
+                    await asyncio.sleep(1)  # Give it time to settle after scrolling
+                    
+                    # Enhanced screenshot options with improved settings
                     screenshot_options = {
                         'path': filepath,
                         'fullPage': True,
                         'type': 'png',
                         'omitBackground': False,
-                        'encoding': 'binary'
+                        'encoding': 'binary',
+                        'quality': 100  # Maximum quality for PNG
                     }
-                    await page.screenshot(screenshot_options)
+                    
+                    # Take the screenshot with a larger timeout
+                    logger.info(f"Taking screenshot with fullPage=True option")
+                    try:
+                        await page.screenshot(screenshot_options)
+                    except Exception as e:
+                        logger.error(f"Error with fullPage screenshot: {str(e)}")
                     
                     # Verify the file was created successfully
-                    if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                    if os.path.exists(filepath) and os.path.getsize(filepath) > 10000:  # Ensure file is not tiny
                         logger.info(f"✅ Screenshot successfully saved to {filepath} ({os.path.getsize(filepath)} bytes)")
                     else:
-                        logger.error(f"❌ Screenshot file not created or empty: {filepath}")
-                        # If screenshot fails, try one more time with different settings
-                        screenshot_options = {
-                            'path': filepath,
-                            'fullPage': False,  # Try without fullPage
-                            'type': 'png'
-                        }
-                        await page.screenshot(screenshot_options)
-                        if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                            logger.info(f"✅ Retry successful: Screenshot saved to {filepath} ({os.path.getsize(filepath)} bytes)")
+                        logger.error(f"❌ Screenshot file not created or too small: {filepath}")
+                        # Try a second approach with different settings
+                        logger.info("Trying alternate screenshot approach")
+                        try:
+                            # Reset scroll position
+                            await page.evaluate("window.scrollTo(0, 0)")
+                            
+                            # Try clipping to viewport
+                            viewport = await page.evaluate("""() => {
+                                return {
+                                    width: Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
+                                    height: Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
+                                }
+                            }""")
+                            
+                            screenshot_options = {
+                                'path': filepath,
+                                'fullPage': False,
+                                'clip': {
+                                    'x': 0,
+                                    'y': 0,
+                                    'width': viewport['width'],
+                                    'height': viewport['height']
+                                },
+                                'type': 'png'
+                            }
+                            await page.screenshot(screenshot_options)
+                            if os.path.exists(filepath) and os.path.getsize(filepath) > 10000:
+                                logger.info(f"✅ Viewport screenshot successful: {filepath} ({os.path.getsize(filepath)} bytes)")
+                            else:
+                                # Last resort - most basic screenshot
+                                screenshot_options = {
+                                    'path': filepath,
+                                    'fullPage': False,
+                                    'type': 'png'
+                                }
+                                await page.screenshot(screenshot_options)
+                                logger.info(f"✅ Basic screenshot approach: {filepath} ({os.path.getsize(filepath)} bytes)")
+                        except Exception as e:
+                            logger.error(f"All screenshot attempts failed: {str(e)}")
                     
                     # Save HTML content for backup/debugging
                     html_content = await page.content()
