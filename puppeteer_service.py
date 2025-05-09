@@ -8,6 +8,7 @@ It can be imported and used as part of the main application.
 import os
 import asyncio
 import logging
+import traceback
 from datetime import datetime
 from pyppeteer import launch
 
@@ -19,6 +20,10 @@ logger = logging.getLogger(__name__)
 # Ensure the screenshots directory exists
 SCREENSHOTS_DIR = 'screenshots'
 os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
+
+# Create a specific subfolder for HTML content if needed
+HTML_DIR = os.path.join(SCREENSHOTS_DIR, 'html')
+os.makedirs(HTML_DIR, exist_ok=True)
 
 class PuppeteerService:
     """Service for capturing screenshots using Pyppeteer"""
