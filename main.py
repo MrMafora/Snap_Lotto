@@ -1427,6 +1427,8 @@ def ensure_screenshots_for_schedules():
         
     return created_count, updated_count
 
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
 def settings():
     """Manage data syncs and system settings"""
     if not current_user.is_admin:
