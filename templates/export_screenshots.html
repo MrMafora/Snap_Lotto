@@ -283,7 +283,7 @@
             container.appendChild(overlayLink);
         } else {
             // If there was no overlay link (maybe it was removed), recreate it using the data from container
-            const linkUrl = container.dataset.href || `/screenshot/${screenshotId}`;
+            const linkUrl = container.dataset.href || `{{ url_for('view_screenshot', screenshot_id=0) }}`.replace('0', screenshotId);
             if (linkUrl) {
                 const newOverlayLink = document.createElement('a');
                 newOverlayLink.href = linkUrl;
