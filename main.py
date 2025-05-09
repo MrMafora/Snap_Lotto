@@ -183,7 +183,7 @@ def init_lazy_modules():
     import import_excel as ie
     import import_snap_lotto_data as isld
     import ocr_processor as op
-    import screenshot_manager as sm
+    import puppeteer_service as ps
     import health_monitor as hm
     
     # Store module references

@@ -132,7 +132,7 @@ def run_lottery_task(url, lottery_type):
             from main import app
             
             # Get all the required functions
-            import screenshot_manager as sm  # Import as module to avoid name conflicts
+            from puppeteer_service import capture_single_screenshot  # Import Puppeteer service
             from ocr_processor import process_screenshot
             from data_aggregator import aggregate_data
             from datetime import datetime
@@ -141,17 +141,17 @@ def run_lottery_task(url, lottery_type):
             
             # Ensure we have an application context for all database operations
             with app.app_context():
-                # Step 1: Capture screenshot directly using the sm module
-                capture_result = sm.capture_screenshot(url, lottery_type)
+                # Step 1: Capture screenshot using Puppeteer
+                result = capture_single_screenshot(lottery_type, url)
                 
-                # Unpack the values - either we get (filepath, screenshot_data, zoom_filepath)
-                # or we get None if the capture failed
-                if not capture_result:
-                    logger.error(f"Failed to capture screenshot for {lottery_type}")
+                # Check if capture was successful
+                if result.get('status') != 'success' or not result.get('path'):
+                    logger.error(f"Failed to capture screenshot for {lottery_type}: {result.get('error', 'Unknown error')}")
                     return False
                     
-                # Unpack the result
-                filepath, screenshot_data, zoom_filepath = capture_result
+                # Get filepath from result
+                filepath = result.get('path')
+                screenshot_data = None  # No longer available with Puppeteer
                 
                 # Only proceed if we have a valid screenshot filepath
                 if not filepath:
@@ -312,21 +312,22 @@ def retake_screenshot_by_id(screenshot_id, app=None):
                 
             logger.info(f"Retaking screenshot for {screenshot.lottery_type} from {screenshot.url}")
             
-            # Import screenshot manager inside the thread to avoid circular imports
-            import screenshot_manager as sm
+            # Import puppeteer service to avoid circular imports
+            from puppeteer_service import capture_single_screenshot
             
-            # Capture new screenshot with the same URL and lottery type
-            capture_result = sm.capture_screenshot(screenshot.url, screenshot.lottery_type)
+            # Capture new screenshot with the same URL and lottery type using Puppeteer
+            result = capture_single_screenshot(screenshot.lottery_type, screenshot.url)
             
-            if not capture_result:
-                logger.error(f"Failed to retake screenshot for {screenshot.lottery_type}")
+            if result.get('status') != 'success' or not result.get('path'):
+                logger.error(f"Failed to retake screenshot for {screenshot.lottery_type}: {result.get('error', 'Unknown error')}")
                 return False
             
-            filepath, _, zoom_filepath = capture_result
+            filepath = result.get('path')
+            html_filepath = result.get('html_path')
             
             # Update the existing screenshot record with new paths
             screenshot.path = filepath
-            screenshot.zoomed_path = zoom_filepath
+            screenshot.html_path = html_filepath  # Use html_path instead of zoomed_path
             screenshot.timestamp = db.func.now()  # Update timestamp
             db.session.commit()
             
@@ -375,27 +376,28 @@ def retake_all_screenshots(app=None, use_threading=True):
         try:
             logger.info(f"Retaking screenshot for {lottery_type} from {url}")
             
-            # Import screenshot manager inside the thread to avoid circular imports
-            import screenshot_manager as sm
+            # Import Puppeteer service inside the thread to avoid circular imports
+            from puppeteer_service import capture_single_screenshot
             
             with app.app_context():
-                # Capture new screenshot
-                capture_result = sm.capture_screenshot(url, lottery_type)
+                # Capture new screenshot using Puppeteer
+                result = capture_single_screenshot(lottery_type, url)
                 
-                if not capture_result:
+                if result.get('status') != 'success' or not result.get('path'):
                     results[url] = {
                         'status': 'error',
-                        'message': f"Failed to capture screenshot for {lottery_type}"
+                        'message': f"Failed to capture screenshot for {lottery_type}: {result.get('error', 'Unknown error')}"
                     }
                     return
                 
-                filepath, _, zoom_filepath = capture_result
+                filepath = result.get('path')
+                html_filepath = result.get('html_path')
                 
                 results[url] = {
                     'status': 'success',
                     'lottery_type': lottery_type,
                     'filepath': filepath,
-                    'zoom_filepath': zoom_filepath
+                    'html_filepath': html_filepath
                 }
                 
                 logger.info(f"Successfully retook screenshot for {lottery_type}")
