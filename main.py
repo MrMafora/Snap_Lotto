@@ -1796,6 +1796,46 @@ def view_screenshot(screenshot_id):
                     screenshot.url = url_info['url']
                     db.session.commit()
                     break
+                    
+    # Get the correct file extension for the screenshot file (if it exists)
+    file_ext = '.png'  # Default extension
+    if screenshot.path and os.path.exists(screenshot.path):
+        _, file_ext = os.path.splitext(screenshot.path)
+    
+    # Look for any relevant files in the screenshots directory that might match this ID
+    screenshots_dir = 'screenshots'
+    html_dir = os.path.join(screenshots_dir, 'html')
+    matching_files = []
+    
+    # First check the HTML directory for date-based files that match the lottery type
+    if os.path.exists(html_dir):
+        for filename in os.listdir(html_dir):
+            if screenshot.lottery_type.lower().replace(' ', '_') in filename.lower():
+                matching_files.append(os.path.join(html_dir, filename))
+    
+    # Then check the main screenshots directory
+    if os.path.exists(screenshots_dir):
+        for filename in os.listdir(screenshots_dir):
+            if screenshot.lottery_type.lower().replace(' ', '_') in filename.lower():
+                matching_files.append(os.path.join(screenshots_dir, filename))
+    
+    # If we found matching files, use the most recent one
+    if matching_files and not (screenshot.path and os.path.exists(screenshot.path)):
+        # Sort by modification time (most recent first)
+        matching_files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
+        newest_file = matching_files[0]
+        
+        # Update the screenshot record with the file path
+        if newest_file.endswith('.html'):
+            if not screenshot.html_path or not os.path.exists(screenshot.html_path):
+                screenshot.html_path = newest_file
+                db.session.commit()
+                app.logger.info(f"Updated screenshot HTML path to {newest_file}")
+        else:
+            if not screenshot.path or not os.path.exists(screenshot.path):
+                screenshot.path = newest_file
+                db.session.commit()
+                app.logger.info(f"Updated screenshot path to {newest_file}")
     
     # Always try to generate a fresh PNG from HTML for consistent results
     if screenshot.html_path and os.path.isfile(screenshot.html_path):
@@ -1880,6 +1920,49 @@ def view_screenshot(screenshot_id):
             )
         except Exception as e:
             error_msg = f"Error sending HTML file: {str(e)}"
+            app.logger.error(error_msg)
+            attempts.append(error_msg)
+    
+    # Check the attached_assets directory for any matching files
+    attached_assets_dir = 'attached_assets'
+    attached_files = []
+    
+    if os.path.exists(attached_assets_dir):
+        for filename in os.listdir(attached_assets_dir):
+            if screenshot.lottery_type.lower().replace(' ', '_') in filename.lower():
+                file_path = os.path.join(attached_assets_dir, filename)
+                if os.path.isfile(file_path) and os.path.getsize(file_path) > 100:
+                    attached_files.append(file_path)
+    
+    # If we found matching attached files, use the most recent one
+    if attached_files:
+        attached_files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
+        newest_file = attached_files[0]
+        
+        app.logger.info(f"Using file from attached_assets directory: {newest_file}")
+        attempts.append(f"Using attached_assets file: {newest_file}")
+        
+        try:
+            # Get the correct mimetype
+            _, ext = os.path.splitext(newest_file)
+            if ext.lower() in ['.jpg', '.jpeg']:
+                mimetype = 'image/jpeg'
+            elif ext.lower() == '.png':
+                mimetype = 'image/png'
+            elif ext.lower() == '.html':
+                mimetype = 'text/html'
+            else:
+                mimetype = 'application/octet-stream'
+            
+            # Return the attached file
+            return send_file(
+                newest_file,
+                mimetype=mimetype,
+                as_attachment=force_download,
+                download_name=f"{screenshot.lottery_type.replace(' ', '_')}{ext}"
+            )
+        except Exception as e:
+            error_msg = f"Error sending attached file: {str(e)}"
             app.logger.error(error_msg)
             attempts.append(error_msg)
     
