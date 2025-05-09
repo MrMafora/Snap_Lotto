@@ -744,7 +744,7 @@ def generate_png_from_html(html_path, output_path=None):
 def capture_single_screenshot(lottery_type, url):
     """
     Synchronous wrapper for capturing a single screenshot
-    with lottery type and URL
+    with lottery type and URL, using its own event loop in threads
     
     Args:
         lottery_type (str): Type of lottery (used for filename)
@@ -757,8 +757,27 @@ def capture_single_screenshot(lottery_type, url):
         # Create a safe filename from lottery type
         safe_filename = lottery_type.replace(' ', '_').lower()
         
-        # Capture the screenshot
-        success, filepath, html_filepath, error_message = capture_screenshot(url, safe_filename)
+        # Create a new event loop for thread safety
+        try:
+            # First try to get the current event loop
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            # If we're in a thread without an event loop, create a new one
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        # Capture the screenshot using our async method directly with the event loop
+        try:
+            success, filepath, html_filepath, error_message = loop.run_until_complete(
+                PuppeteerService.capture_screenshot(url, safe_filename)
+            )
+        except Exception as e:
+            logger.error(f"Error in async capture for {lottery_type}: {str(e)}")
+            return {
+                'status': 'failed',
+                'error': f"Async capture error: {str(e)}",
+                'url': url
+            }
         
         if success and filepath:
             return {
