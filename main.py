@@ -1839,6 +1839,29 @@ def view_zoomed_screenshot(screenshot_id):
     
     return send_from_directory(directory, filename)
 
+@app.route('/html-content/<int:screenshot_id>')
+def view_html_content(screenshot_id):
+    """View the raw HTML content of a screenshot"""
+    screenshot = Screenshot.query.get_or_404(screenshot_id)
+    
+    if not screenshot.html_path:
+        flash('No HTML content available for this screenshot', 'warning')
+        return redirect(url_for('export_screenshots'))
+    
+    # Normalize path and check if file exists
+    html_path = os.path.normpath(screenshot.html_path)
+    
+    if not os.path.isfile(html_path):
+        flash('HTML file not found', 'danger')
+        return redirect(url_for('export_screenshots'))
+    
+    # Extract directory and filename from path
+    directory = os.path.dirname(html_path)
+    filename = os.path.basename(html_path)
+    
+    # Return the HTML file as text/html content
+    return send_from_directory(directory, filename, mimetype='text/html')
+
 @app.route('/sync-all-screenshots', methods=['POST'])
 @login_required
 @csrf.exempt
@@ -2051,10 +2074,22 @@ def sync_single_screenshot(screenshot_id):
             # Update the screenshot record
             screenshot.path = result.get('path')
             screenshot.timestamp = datetime.now()
+            
+            # Also update HTML path if available
             if result.get('html_path'):
                 screenshot.html_path = result.get('html_path')
+                app.logger.info(f"Updated HTML path: {result.get('html_path')}")
             
             db.session.commit()
+            
+            app.logger.info(f"Screenshot successfully synchronized: Path={result.get('path')}, "
+                           f"HTML Path={result.get('html_path')}")
+            
+            # Verify the file exists
+            if os.path.exists(result.get('path')) and os.path.getsize(result.get('path')) > 0:
+                app.logger.info(f"Verified PNG file exists: {os.path.getsize(result.get('path'))} bytes")
+            else:
+                app.logger.warning(f"PNG file does not exist or is empty: {result.get('path')}")
             
             session['sync_status'] = {
                 'status': 'success',

@@ -39,20 +39,24 @@ class PuppeteerService:
             fullpage (bool): Whether to capture the full page
             
         Returns:
-            tuple: (success, filepath, error_message)
+            tuple: (success, filepath, html_filepath, error_message)
         """
         browser = None
         
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # Define PNG file path (primary screenshot)
             filename = f"{timestamp}_{filename_prefix}.png"
             filepath = os.path.join(SCREENSHOTS_DIR, filename)
+            
+            # Define HTML file path (stored in HTML_DIR subfolder)
             html_filename = f"{timestamp}_{filename_prefix}.html"
-            html_filepath = os.path.join(SCREENSHOTS_DIR, html_filename)
+            html_filepath = os.path.join(HTML_DIR, html_filename)
             
             logger.info(f"Capturing screenshot from {url}")
             
-            # Launch browser
+            # Launch browser with appropriate settings for screenshot capture
             browser = await launch(
                 headless=True,
                 args=[
@@ -68,26 +72,51 @@ class PuppeteerService:
             # Open new page
             page = await browser.newPage()
             
-            # Set viewport size
+            # Set viewport size for consistent screenshots
             await page.setViewport({'width': 1280, 'height': 1024})
             
-            # Set user agent
+            # Set user agent to avoid detection
             await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
             
-            # Navigate to the URL
-            await page.goto(url, {'waitUntil': 'networkidle0', 'timeout': 60000})
+            # Navigate to the URL with appropriate wait conditions
+            response = await page.goto(url, {'waitUntil': 'networkidle0', 'timeout': 60000})
+            
+            if not response.ok:
+                logger.warning(f"Page response not OK: {response.status} for {url}")
             
             # Wait for content to be fully loaded
             await page.waitForSelector('body', {'visible': True, 'timeout': 30000})
             
-            # Wait a moment for any dynamic content
+            # Wait a moment for any dynamic content to render
             await asyncio.sleep(2)
             
-            # Take screenshot
-            await page.screenshot({'path': filepath, 'fullPage': fullpage})
-            logger.info(f"Screenshot saved to {filepath}")
+            # Take screenshot - THIS IS THE CRITICAL PART
+            # Make sure we're capturing with proper settings for a full page screenshot
+            screenshot_options = {
+                'path': filepath,
+                'fullPage': fullpage,
+                'type': 'png',
+                'omitBackground': False,
+                'encoding': 'binary'
+            }
+            await page.screenshot(screenshot_options)
             
-            # Save HTML content
+            # Verify the file was created successfully
+            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                logger.info(f"✅ Screenshot successfully saved to {filepath} ({os.path.getsize(filepath)} bytes)")
+            else:
+                logger.error(f"❌ Screenshot file not created or empty: {filepath}")
+                # If screenshot fails, try one more time with different settings
+                screenshot_options = {
+                    'path': filepath,
+                    'fullPage': False,  # Try without fullPage
+                    'type': 'png'
+                }
+                await page.screenshot(screenshot_options)
+                if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                    logger.info(f"✅ Retry successful: Screenshot saved to {filepath} ({os.path.getsize(filepath)} bytes)")
+            
+            # Save HTML content for backup/debugging
             html_content = await page.content()
             with open(html_filepath, 'w', encoding='utf-8') as f:
                 f.write(html_content)
@@ -97,6 +126,7 @@ class PuppeteerService:
         except Exception as e:
             error_message = f"Error capturing screenshot: {str(e)}"
             logger.error(error_message)
+            traceback.print_exc()
             return False, None, None, error_message
         finally:
             # Ensure browser is closed
@@ -118,7 +148,7 @@ class PuppeteerService:
         results = {}
         
         try:
-            # Launch browser
+            # Launch browser with optimal settings for screenshots
             browser = await launch(
                 headless=True,
                 args=[
@@ -136,10 +166,14 @@ class PuppeteerService:
                 lottery_type = item['type']
                 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                
+                # Define PNG file path (this is the primary screenshot file)
                 filename = f"{timestamp}_{lottery_type}.png"
                 filepath = os.path.join(SCREENSHOTS_DIR, filename)
+                
+                # Define HTML file path (stored in HTML_DIR subfolder)
                 html_filename = f"{timestamp}_{lottery_type}.html"
-                html_filepath = os.path.join(SCREENSHOTS_DIR, html_filename)
+                html_filepath = os.path.join(HTML_DIR, html_filename)
                 
                 logger.info(f"Capturing {lottery_type} from {url}")
                 
@@ -147,26 +181,51 @@ class PuppeteerService:
                     # Create a new page
                     page = await browser.newPage()
                     
-                    # Set viewport size
+                    # Set viewport size for consistent screenshots
                     await page.setViewport({'width': 1280, 'height': 1024})
                     
-                    # Set user agent
+                    # Set user agent to avoid detection
                     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
                     
-                    # Navigate to the URL
-                    await page.goto(url, {'waitUntil': 'networkidle0', 'timeout': 60000})
+                    # Navigate to the URL with appropriate wait conditions
+                    response = await page.goto(url, {'waitUntil': 'networkidle0', 'timeout': 60000})
+                    
+                    if not response.ok:
+                        logger.warning(f"Page response not OK: {response.status} for {url}")
                     
                     # Wait for content to be fully loaded
                     await page.waitForSelector('body', {'visible': True, 'timeout': 30000})
                     
-                    # Wait a moment for any dynamic content
+                    # Wait a moment for any dynamic content to fully render
                     await asyncio.sleep(2)
                     
-                    # Take screenshot
-                    await page.screenshot({'path': filepath, 'fullPage': True})
-                    logger.info(f"✅ Screenshot saved to {filepath}")
+                    # Take screenshot - THIS IS THE CRITICAL PART
+                    # Make sure we're capturing with proper settings for a full page screenshot
+                    screenshot_options = {
+                        'path': filepath,
+                        'fullPage': True,
+                        'type': 'png',
+                        'omitBackground': False,
+                        'encoding': 'binary'
+                    }
+                    await page.screenshot(screenshot_options)
                     
-                    # Save HTML content
+                    # Verify the file was created successfully
+                    if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                        logger.info(f"✅ Screenshot successfully saved to {filepath} ({os.path.getsize(filepath)} bytes)")
+                    else:
+                        logger.error(f"❌ Screenshot file not created or empty: {filepath}")
+                        # If screenshot fails, try one more time with different settings
+                        screenshot_options = {
+                            'path': filepath,
+                            'fullPage': False,  # Try without fullPage
+                            'type': 'png'
+                        }
+                        await page.screenshot(screenshot_options)
+                        if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                            logger.info(f"✅ Retry successful: Screenshot saved to {filepath} ({os.path.getsize(filepath)} bytes)")
+                    
+                    # Save HTML content for backup/debugging
                     html_content = await page.content()
                     with open(html_filepath, 'w', encoding='utf-8') as f:
                         f.write(html_content)
@@ -178,19 +237,23 @@ class PuppeteerService:
                     results[lottery_type] = {
                         'status': 'success',
                         'path': filepath,
-                        'html_path': html_filepath
+                        'html_path': html_filepath,
+                        'url': url
                     }
                 except Exception as e:
                     logger.error(f"❌ Error capturing {lottery_type}: {str(e)}")
+                    traceback.print_exc()
                     results[lottery_type] = {
                         'status': 'failed',
-                        'message': str(e)
+                        'message': str(e),
+                        'url': url
                     }
                 
-                # Add a delay between captures
+                # Add a delay between captures to avoid rate limiting
                 await asyncio.sleep(3)
         except Exception as e:
             logger.error(f"Error in capture process: {str(e)}")
+            traceback.print_exc()
         finally:
             # Ensure browser is closed
             if browser:
