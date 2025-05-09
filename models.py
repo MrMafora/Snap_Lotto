@@ -76,7 +76,8 @@ class Screenshot(db.Model):
     lottery_type = db.Column(db.String(50), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     path = db.Column(db.String(255), nullable=False)
-    zoomed_path = db.Column(db.String(255), nullable=True)  # Path to zoomed-in screenshot
+    html_path = db.Column(db.String(255), nullable=True)  # Path to HTML content saved by Puppeteer
+    zoomed_path = db.Column(db.String(255), nullable=True)  # Legacy field, maintained for backward compatibility
     processed = db.Column(db.Boolean, default=False)
     
     def __repr__(self):

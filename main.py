@@ -2064,6 +2064,10 @@ def preview_website(screenshot_id):
                 # Create a PIL Image from the screenshot
                 img = Image.open(BytesIO(existing_img_data))
                 
+                # Log the HTML path if available (Puppeteer feature)
+                if hasattr(screenshot, 'html_path') and screenshot.html_path:
+                    app.logger.debug(f"HTML content available at: {screenshot.html_path}")
+                
                 # Add timestamp overlay at the top
                 draw = ImageDraw.Draw(img)
                 
