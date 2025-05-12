@@ -1523,25 +1523,24 @@ def settings():
 
 def ensure_all_screenshot_entries_exist():
     """
-    Make sure all the URLs from both:
+    IMPORTANT: Per our data integrity policy, this function NO LONGER creates placeholder entries.
+    Instead, it returns a list of missing entries that need to be synchronized.
+    
+    This function scans:
     1. ScheduleConfig table (settings page)
     2. puppeteer_service.py's LOTTERY_URLS (hardcoded defaults)
     
-    have corresponding entries in the Screenshot table
-    
-    This function will only create entries for URLs that don't have ANY
-    corresponding entry - it won't create duplicates for variations of
-    lottery types that are already represented.
+    and identifies missing entries in the Screenshot table that need to be captured.
     """
     # Check if recreation prevention is active
     if session.get('prevent_recreation'):
         app.logger.warning("Screenshot recreation prevention active - skipping ensure_all_screenshot_entries_exist")
-        return 0, 0  # Return zero counts to indicate no action was taken
+        return 0
     
     # Check if strict cleanup mode is enabled
     if request.args.get('strict_cleanup') == 'true':
         app.logger.warning("Strict cleanup mode active - skipping ensure_all_screenshot_entries_exist")
-        return 0, 0
+        return 0
         
     from puppeteer_service import LOTTERY_URLS, standardize_lottery_type
     
@@ -1552,69 +1551,55 @@ def ensure_all_screenshot_entries_exist():
     existing_standard_types = {standardize_lottery_type(screenshot.lottery_type) for screenshot in existing_screenshots}
     existing_urls = {screenshot.url for screenshot in existing_screenshots}
     
-    # Track what was created
-    created_count = 0
+    # Track what needs to be synced
+    missing_count = 0
+    missing_entries = []
     
     # Process configured URLs first (from Settings page)
     schedule_configs = ScheduleConfig.query.all()
     scheduled_types = set()
     
-    # Add entries from ScheduleConfig (settings page)
+    # Identify missing entries from ScheduleConfig (settings page)
     for config in schedule_configs:
         # Standardize the type for comparison
         standard_type = standardize_lottery_type(config.lottery_type)
         scheduled_types.add(standard_type)
         
-        # Only create if BOTH the URL and standardized type are missing
-        # This prevents recreation of entries for different variations
+        # Report if BOTH the URL and standardized type are missing
         if config.url not in existing_urls and standard_type not in existing_standard_types:
-            app.logger.info(f"Creating missing screenshot entry for scheduled URL: {config.lottery_type}")
-            
-            # Create default placeholder paths
-            screenshot = Screenshot(
-                url=config.url,
-                lottery_type=standard_type,  # Use standardized type when creating
-                path="placeholder",  # Will be updated when screenshots are captured
-                html_path="placeholder",  # Will be updated when screenshots are captured
-                timestamp=datetime.now()
-            )
-            
-            db.session.add(screenshot)
-            created_count += 1
-            # Add to tracking sets to prevent duplicates in this session
+            app.logger.info(f"Found missing screenshot for scheduled URL: {config.lottery_type}")
+            missing_entries.append({
+                'url': config.url,
+                'lottery_type': standard_type
+            })
+            missing_count += 1
+            # Add to tracking sets to prevent duplicates in this report
             existing_standard_types.add(standard_type)
             existing_urls.add(config.url)
     
-    # Add entries from hardcoded LOTTERY_URLS as fallback
+    # Identify missing entries from hardcoded LOTTERY_URLS as fallback
     for lottery_type, url in LOTTERY_URLS.items():
         # Standardize the type for comparison
         standard_type = standardize_lottery_type(lottery_type)
         
-        # Only create if BOTH the standardized type is missing and not in scheduled types
+        # Report if BOTH the standardized type is missing and not in scheduled types
         if standard_type not in existing_standard_types and standard_type not in scheduled_types:
-            app.logger.info(f"Creating missing screenshot entry from default URLs: {lottery_type}")
-            
-            # Create default placeholder paths
-            screenshot = Screenshot(
-                url=url,
-                lottery_type=standard_type,  # Use standardized type when creating
-                path="placeholder",  # Will be updated when screenshots are captured
-                html_path="placeholder",  # Will be updated when screenshots are captured
-                timestamp=datetime.now()
-            )
-            
-            db.session.add(screenshot)
-            created_count += 1
-            # Add to tracking sets to prevent duplicates in this session
+            app.logger.info(f"Found missing screenshot from default URLs: {lottery_type}")
+            missing_entries.append({
+                'url': url,
+                'lottery_type': standard_type
+            })
+            missing_count += 1
+            # Add to tracking sets to prevent duplicates in this report
             existing_standard_types.add(standard_type)
             existing_urls.add(url)
     
-    # Save changes if any were made
-    if created_count > 0:
-        db.session.commit()
-        app.logger.info(f"Created {created_count} missing screenshot entries")
+    # Save the missing entries to session for potential sync
+    if missing_count > 0:
+        app.logger.info(f"Found {missing_count} missing screenshot entries")
+        session['missing_screenshot_entries'] = missing_entries
     
-    return created_count
+    return missing_count
 
 @app.route('/export-screenshots')
 @login_required
@@ -1648,12 +1633,12 @@ def export_screenshots():
         prevent_recreation = True
         app.logger.warning("Screenshot recreation prevention active from strict_cleanup parameter")
     
-    # Only ensure screenshot entries exist if explicitly requested
-    # AND we don't have any prevention flags active
-    if not prevent_recreation and request.args.get('create_missing') == 'true':
-        created_count = ensure_all_screenshot_entries_exist()
-        if created_count > 0:
-            flash(f'Added {created_count} missing screenshot entries to the database. Please sync screenshots to capture the content.', 'info')
+    # Check for missing screenshot entries but DO NOT create them
+    # This supports our data integrity policy of not having placeholders
+    if not prevent_recreation and request.args.get('check_missing') == 'true':
+        missing_count = ensure_all_screenshot_entries_exist()
+        if missing_count > 0:
+            flash(f'Found {missing_count} missing screenshot entries. Please use the "Sync All Screenshots" button to capture them.', 'info')
     
     # Get all screenshots, with newest first
     screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
