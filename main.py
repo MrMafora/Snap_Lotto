@@ -1587,10 +1587,12 @@ def export_screenshots():
     # Define SEO metadata
     meta_description = "Export and manage South African lottery screenshots. Download captured lottery result images in various formats for analysis and record-keeping."
     
-    # Ensure all the needed screenshot entries exist in the database
-    created_count = ensure_all_screenshot_entries_exist()
-    if created_count > 0:
-        flash(f'Added {created_count} missing screenshot entries to the database. Please sync screenshots to capture the content.', 'info')
+    # Only ensure screenshot entries exist if specifically requested or if there are no screenshots at all
+    screenshot_count = Screenshot.query.count()
+    if screenshot_count == 0 or request.args.get('create_missing') == 'true':
+        created_count = ensure_all_screenshot_entries_exist()
+        if created_count > 0:
+            flash(f'Added {created_count} missing screenshot entries to the database. Please sync screenshots to capture the content.', 'info')
     
     # Get all screenshots, with newest first
     screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
@@ -3301,11 +3303,13 @@ def cleanup_screenshots():
             app.logger.error(f"Error committing screenshot deletions: {str(db_error)}")
             flash(f"Error deleting screenshots: {str(db_error)}", "danger")
         
-        return redirect(url_for('export_screenshots'))
+        # Return to the screenshots page without auto-creating new screenshots
+        return redirect(url_for('export_screenshots', create_missing='false'))
     except Exception as e:
         app.logger.error(f"Error cleaning up screenshots: {str(e)}")
         flash(f"Error cleaning up screenshots: {str(e)}", "danger")
-        return redirect(url_for('export_screenshots'))
+        # Return to the screenshots page without auto-creating new screenshots
+        return redirect(url_for('export_screenshots', create_missing='false'))
 
 @app.route('/export-combined-zip')
 @login_required
