@@ -162,7 +162,9 @@ def process_lottery_screenshots(urls, screenshot_dir):
             html_path = os.path.join(screenshot_dir, html_filename)
             
             # Capture screenshot
-            success = capture_single_screenshot(url, output_path, html_path)
+            # Call our own function with the correct parameter order: lottery_type, url, timeout
+            result = capture_single_screenshot(lottery_type, url)
+            success = result.get('status') == 'success'
             
             # Record result
             results[lottery_type] = {
