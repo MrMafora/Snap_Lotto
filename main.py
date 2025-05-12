@@ -1511,12 +1511,18 @@ def ensure_all_screenshot_entries_exist():
     2. puppeteer_service.py's LOTTERY_URLS (hardcoded defaults)
     
     have corresponding entries in the Screenshot table
+    
+    This function will only create entries for URLs that don't have ANY
+    corresponding entry - it won't create duplicates for variations of
+    lottery types that are already represented.
     """
-    from puppeteer_service import LOTTERY_URLS
+    from puppeteer_service import LOTTERY_URLS, standardize_lottery_type
     
     # Get all existing screenshots
     existing_screenshots = Screenshot.query.all()
-    existing_types = {screenshot.lottery_type for screenshot in existing_screenshots}
+    
+    # Track standardized types and URLs to prevent duplicates
+    existing_standard_types = {standardize_lottery_type(screenshot.lottery_type) for screenshot in existing_screenshots}
     existing_urls = {screenshot.url for screenshot in existing_screenshots}
     
     # Track what was created
@@ -1528,16 +1534,19 @@ def ensure_all_screenshot_entries_exist():
     
     # Add entries from ScheduleConfig (settings page)
     for config in schedule_configs:
-        scheduled_types.add(config.lottery_type)
+        # Standardize the type for comparison
+        standard_type = standardize_lottery_type(config.lottery_type)
+        scheduled_types.add(standard_type)
         
-        # Check if this URL is already in screenshots
-        if config.url not in existing_urls and config.lottery_type not in existing_types:
+        # Only create if BOTH the URL and standardized type are missing
+        # This prevents recreation of entries for different variations
+        if config.url not in existing_urls and standard_type not in existing_standard_types:
             app.logger.info(f"Creating missing screenshot entry for scheduled URL: {config.lottery_type}")
             
             # Create default placeholder paths
             screenshot = Screenshot(
                 url=config.url,
-                lottery_type=config.lottery_type,
+                lottery_type=standard_type,  # Use standardized type when creating
                 path="placeholder",  # Will be updated when screenshots are captured
                 html_path="placeholder",  # Will be updated when screenshots are captured
                 timestamp=datetime.now()
@@ -1545,16 +1554,23 @@ def ensure_all_screenshot_entries_exist():
             
             db.session.add(screenshot)
             created_count += 1
+            # Add to tracking sets to prevent duplicates in this session
+            existing_standard_types.add(standard_type)
+            existing_urls.add(config.url)
     
     # Add entries from hardcoded LOTTERY_URLS as fallback
     for lottery_type, url in LOTTERY_URLS.items():
-        if lottery_type not in existing_types and lottery_type not in scheduled_types:
+        # Standardize the type for comparison
+        standard_type = standardize_lottery_type(lottery_type)
+        
+        # Only create if BOTH the standardized type is missing and not in scheduled types
+        if standard_type not in existing_standard_types and standard_type not in scheduled_types:
             app.logger.info(f"Creating missing screenshot entry from default URLs: {lottery_type}")
             
             # Create default placeholder paths
             screenshot = Screenshot(
                 url=url,
-                lottery_type=lottery_type,
+                lottery_type=standard_type,  # Use standardized type when creating
                 path="placeholder",  # Will be updated when screenshots are captured
                 html_path="placeholder",  # Will be updated when screenshots are captured
                 timestamp=datetime.now()
@@ -1562,6 +1578,9 @@ def ensure_all_screenshot_entries_exist():
             
             db.session.add(screenshot)
             created_count += 1
+            # Add to tracking sets to prevent duplicates in this session
+            existing_standard_types.add(standard_type)
+            existing_urls.add(url)
     
     # Save changes if any were made
     if created_count > 0:
@@ -1587,9 +1606,22 @@ def export_screenshots():
     # Define SEO metadata
     meta_description = "Export and manage South African lottery screenshots. Download captured lottery result images in various formats for analysis and record-keeping."
     
-    # Only ensure screenshot entries exist if specifically requested or if there are no screenshots at all
-    screenshot_count = Screenshot.query.count()
-    if screenshot_count == 0 or request.args.get('create_missing') == 'true':
+    # Check if we have any session-level flags to prevent recreation
+    prevent_recreation = False
+    
+    # Check for session flag from cleanup operation
+    if session.get('prevent_recreation'):
+        prevent_recreation = True
+        # Clear the flag (one-time use)
+        session.pop('prevent_recreation', None)
+    
+    # Check for URL parameter from cleanup operation
+    if request.args.get('strict_cleanup') == 'true':
+        prevent_recreation = True
+    
+    # Only ensure screenshot entries exist if explicitly requested
+    # AND we don't have any prevention flags active
+    if not prevent_recreation and request.args.get('create_missing') == 'true':
         created_count = ensure_all_screenshot_entries_exist()
         if created_count > 0:
             flash(f'Added {created_count} missing screenshot entries to the database. Please sync screenshots to capture the content.', 'info')
@@ -3303,13 +3335,22 @@ def cleanup_screenshots():
             app.logger.error(f"Error committing screenshot deletions: {str(db_error)}")
             flash(f"Error deleting screenshots: {str(db_error)}", "danger")
         
-        # Return to the screenshots page without auto-creating new screenshots
-        return redirect(url_for('export_screenshots', create_missing='false'))
+        # Return to the screenshots page, explicitly preventing auto-creation of new screenshots
+        # Pass additional query parameter to disable all auto-creation
+        response = redirect(url_for('export_screenshots', create_missing='false', strict_cleanup='true'))
+        
+        # Also set a session cookie to remember that we just did a cleanup
+        # This provides a secondary mechanism to prevent auto-creation
+        session['prevent_recreation'] = True
+        
+        return response
     except Exception as e:
         app.logger.error(f"Error cleaning up screenshots: {str(e)}")
         flash(f"Error cleaning up screenshots: {str(e)}", "danger")
-        # Return to the screenshots page without auto-creating new screenshots
-        return redirect(url_for('export_screenshots', create_missing='false'))
+        # Return to the screenshots page, explicitly preventing auto-creation of new screenshots
+        response = redirect(url_for('export_screenshots', create_missing='false', strict_cleanup='true'))
+        session['prevent_recreation'] = True
+        return response
 
 @app.route('/export-combined-zip')
 @login_required

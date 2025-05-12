@@ -82,10 +82,19 @@ def capture_single_screenshot(lottery_type, url, timeout=120):
         dict: Result with status, paths and any errors
     """
     try:
-        # Standardize lottery type naming and formatting
-        normalized_type = lottery_type.lower().replace(' ', '_')
+        # Standardize lottery type
+        standardized_type = standardize_lottery_type(lottery_type)
         
-        # Create timestamp for unique filenames
+        # Use proper capitalized format for filenames like in examples
+        # Examples: "Lotto_20250504_023810.png", "Daily_Lotto_20250504_023833.png"
+        file_type = standardized_type.replace(' ', '_')
+        
+        # For "Results" pages, add "_Results" to the filename like in examples
+        is_results_page = "results" in url.lower()
+        if is_results_page and "_Results" not in file_type:
+            file_type += "_Results"
+        
+        # Create timestamp for unique filenames - match the format in examples
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
         # Define output paths
@@ -96,9 +105,9 @@ def capture_single_screenshot(lottery_type, url, timeout=120):
         os.makedirs(screenshot_dir, exist_ok=True)
         os.makedirs(html_dir, exist_ok=True)
         
-        # Define output filenames
-        screenshot_path = os.path.join(screenshot_dir, f"{normalized_type}_{timestamp}.png")
-        html_path = os.path.join(html_dir, f"{normalized_type}_{timestamp}.html")
+        # Define output filenames matching the example format
+        screenshot_path = os.path.join(screenshot_dir, f"{file_type}_{timestamp}.png")
+        html_path = os.path.join(html_dir, f"{file_type}_{timestamp}.html")
         
         logger.info(f"Capturing screenshot for {lottery_type} from {url}")
         logger.info(f"Saving to: {screenshot_path}")
