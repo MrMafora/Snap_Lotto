@@ -59,6 +59,16 @@ LOTTERY_URLS = {
     'daily_lotto': 'https://www.nationallottery.co.za/daily-lotto-results'
 }
 
+# Create standardized versions of the lottery URLs
+STANDARDIZED_LOTTERY_URLS = {}
+for key, url in LOTTERY_URLS.items():
+    # Get standardized name
+    standard_name = standardize_lottery_type(key.replace('_', ' '))
+    # Create key in standardized format
+    standardized_key = standard_name.lower().replace(' ', '_')
+    # Add to standardized dictionary
+    STANDARDIZED_LOTTERY_URLS[standardized_key] = url
+
 def capture_single_screenshot(lottery_type, url, timeout=120):
     """
     Capture a single screenshot of a lottery URL using the puppeteer_executor module.

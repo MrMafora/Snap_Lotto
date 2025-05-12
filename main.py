@@ -1577,6 +1577,27 @@ def export_screenshots():
     # Get all screenshots, with newest first
     screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
     
+    # Identify duplicate lottery types that could be consolidated
+    duplicate_types = {}
+    standard_to_variations = {}
+    
+    # Import standardization function
+    from puppeteer_service import standardize_lottery_type
+    
+    # Analyze existing screenshots for duplicates
+    for screenshot in screenshots:
+        # Get the standardized version
+        standard_type = standardize_lottery_type(screenshot.lottery_type)
+        
+        # Track variations that map to the same standard type
+        if standard_type not in standard_to_variations:
+            standard_to_variations[standard_type] = set()
+        standard_to_variations[standard_type].add(screenshot.lottery_type)
+        
+        # Track lottery types that have more than one variation
+        if len(standard_to_variations[standard_type]) > 1:
+            duplicate_types[standard_type] = standard_to_variations[standard_type]
+    
     # Create a status object combining both global and session status
     sync_status = None
     
@@ -1628,7 +1649,51 @@ def export_screenshots():
                           sync_status=sync_status,
                           last_updated=last_updated,
                           lottery_urls=lottery_urls,
-                          puppeteer_status=puppeteer_status)
+                          puppeteer_status=puppeteer_status,
+                          duplicate_types=duplicate_types)
+
+@app.route('/standardize-lottery-types', methods=['POST'])
+@login_required
+def standardize_lottery_types():
+    """Standardize all lottery types in the database to reduce duplicates"""
+    if not current_user.is_admin:
+        flash('You must be an admin to standardize lottery types.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        # Import the standardization function
+        from puppeteer_service import standardize_lottery_type
+        
+        # Get all screenshots
+        screenshots = Screenshot.query.all()
+        
+        # Track changes
+        updated_count = 0
+        
+        # Process each screenshot
+        for screenshot in screenshots:
+            original_type = screenshot.lottery_type
+            standard_type = standardize_lottery_type(original_type)
+            
+            # If the type needs to be updated
+            if original_type != standard_type:
+                app.logger.info(f"Standardizing lottery type from '{original_type}' to '{standard_type}'")
+                screenshot.lottery_type = standard_type
+                updated_count += 1
+        
+        # Save changes if any were made
+        if updated_count > 0:
+            db.session.commit()
+            flash(f'Successfully standardized {updated_count} lottery types.', 'success')
+        else:
+            flash('No lottery types needed standardization.', 'info')
+    
+    except Exception as e:
+        app.logger.error(f"Error standardizing lottery types: {str(e)}")
+        flash(f'Error standardizing lottery types: {str(e)}', 'danger')
+    
+    return redirect(url_for('export_screenshots'))
+
 
 @app.route('/export-screenshots-zip')
 @login_required
@@ -2662,7 +2727,7 @@ def sync_all_screenshots():
                     db_creates = 0
                     
                     # Import our improved puppeteer service with standardization
-                    from puppeteer_service import capture_single_screenshot, standardize_lottery_type
+                    from puppeteer_service import capture_single_screenshot, standardize_lottery_type, STANDARDIZED_LOTTERY_URLS
                     
                     # Process each URL individually to update status as we go
                     for i, (original_type, url) in enumerate(config_urls.items()):
