@@ -3030,95 +3030,20 @@ def preview_website(screenshot_id):
             except Exception as file_error:
                 app.logger.warning(f"Could not process existing screenshot for preview: {str(file_error)}")
         
-        # If we don't have a screenshot, create a warning image that is more user-friendly
-        app.logger.warning(f"No valid screenshot found for {screenshot.lottery_type} ({screenshot_id}), creating friendly warning image")
+        # IMPORTANT: No placeholder images allowed per data integrity policy
+        app.logger.warning(f"No valid screenshot found for {screenshot.lottery_type} ({screenshot_id})")
         
-        # Create warning image with clean design
-        img = Image.new('RGB', (800, 450), color=(255, 252, 240))  # Light yellow background
-        d = ImageDraw.Draw(img)
-
-        # Add a yellow warning header
-        d.rectangle([(0, 0), (800, 40)], fill=(241, 196, 15))  # Yellow header
-        
-        # Try to use a default font
-        try:
-            font = ImageFont.load_default()
-            font_medium = ImageFont.load_default()
-            font_small = ImageFont.load_default()
-        except Exception:
-            font = None
-            font_medium = None
-            font_small = None
-        
-        # Draw warning icon
-        d.rectangle([(30, 60), (70, 100)], fill=(241, 196, 15))  # Warning icon
-        d.text((44, 68), "!", fill=(255, 255, 255), font=font)
-        
-        # Draw warning text with better formatting
-        d.text((10, 10), f"Preview - {screenshot.lottery_type}", fill=(50, 50, 50), font=font)
-        d.text((90, 70), "Preview generation timed out.", fill=(50, 50, 50), font=font)
-        d.text((90, 100), "The website may be unavailable.", fill=(80, 80, 80), font=font_medium)
-        
-        # Add information about the screenshot
-        d.rectangle([(0, 140), (800, 142)], fill=(230, 230, 230))  # Divider line
-        d.text((30, 160), f"Screenshot ID: {screenshot_id}", fill=(100, 100, 100), font=font_small)
-        d.text((30, 190), f"Lottery Type: {screenshot.lottery_type}", fill=(100, 100, 100), font=font_small)
-        d.text((30, 220), f"URL: {getattr(screenshot, 'url', 'Unknown URL')[:60]}", fill=(100, 100, 100), font=font_small)
-        
-        # Add helpful instruction
-        d.rectangle([(0, 380), (800, 450)], fill=(245, 245, 245))
-        d.text((30, 400), "Click the 'Resync' button below to attempt capturing this screenshot again.", 
-               fill=(50, 50, 50), font=font_small)
-        
-        # Save to buffer
-        buffer = BytesIO()
-        img.save(buffer, 'PNG')
-        buffer.seek(0)
-        
-        # Return the warning image
-        return send_file(
-            buffer,
-            mimetype='image/png',
-            download_name=f'preview_info_{screenshot_id}.png',
-            as_attachment=False
-        )
+        # Instead of generating a placeholder image, return an error and redirect to sync
+        flash(f"No screenshot available for {screenshot.lottery_type}. Please use the Sync button to capture it.", "danger")
+        return redirect(url_for('export_screenshots', highlight_id=screenshot_id))
     
     except Exception as e:
         app.logger.error(f"Error serving preview for {screenshot_id}: {str(e)}")
-        # Generate a better looking error message image
-        from PIL import Image, ImageDraw
         
-        img = Image.new('RGB', (800, 450), color=(255, 235, 235))  # Light red background
-        d = ImageDraw.Draw(img)
-        
-        # Add a header bar
-        d.rectangle([(0, 0), (800, 40)], fill=(231, 76, 60))  # Red header
-        
-        # Draw warning icon
-        d.rectangle([(30, 60), (70, 100)], fill=(231, 76, 60))  # Error icon
-        d.text((44, 68), "!", fill=(255, 255, 255), font=None)
-        
-        # Draw error text
-        d.text((10, 10), "Preview Error", fill=(255, 255, 255), font=None)
-        d.text((90, 70), "Preview generation failed", fill=(150, 0, 0), font=None)
-        d.text((90, 100), f"Error details: {str(e)[:60]}", fill=(100, 0, 0), font=None)
-        
-        # Add a helpful message
-        d.rectangle([(0, 380), (800, 450)], fill=(245, 235, 235))
-        d.text((30, 400), "Try clicking the 'Resync' button to fix this issue.", fill=(100, 0, 0), font=None)
-        
-        # Save to buffer
-        buffer = BytesIO()
-        img.save(buffer, 'PNG')
-        buffer.seek(0)
-        
-        # Return the error image instead of JSON error
-        return send_file(
-            buffer,
-            mimetype='image/png',
-            download_name=f'preview_error_{screenshot_id}.png',
-            as_attachment=False
-        )
+        # IMPORTANT: No placeholder/error images per data integrity policy
+        # Return a proper error message instead
+        flash(f"Error generating preview for {screenshot_id}: {str(e)}", "danger")
+        return redirect(url_for('export_screenshots', highlight_id=screenshot_id))
 
 @app.route('/cleanup-screenshots', methods=['POST'])
 @login_required
