@@ -1416,25 +1416,43 @@ def ensure_screenshots_for_schedules():
     """
     created_count = 0
     updated_count = 0
+    standardized_count = 0
+    
+    # Import standardization function
+    try:
+        from puppeteer_service import standardize_lottery_type
+    except ImportError:
+        app.logger.error("Could not import standardize_lottery_type function")
+        standardize_lottery_type = lambda x: x  # Simple fallback that returns input unchanged
     
     # Get all scheduled configurations
     schedule_configs = ScheduleConfig.query.all()
     
     for config in schedule_configs:
+        # Standardize the lottery type for consistency
+        original_type = config.lottery_type
+        standard_type = standardize_lottery_type(original_type)
+        
+        # Standardize the configuration's lottery type if needed
+        if original_type != standard_type:
+            app.logger.info(f"Standardizing config lottery type from '{original_type}' to '{standard_type}'")
+            config.lottery_type = standard_type
+            standardized_count += 1
+        
         # Check if a screenshot record exists for this URL
         existing_screenshot = Screenshot.query.filter_by(url=config.url).first()
         
         if existing_screenshot:
             # Update the existing record if needed
-            if existing_screenshot.lottery_type != config.lottery_type:
-                existing_screenshot.lottery_type = config.lottery_type
+            if existing_screenshot.lottery_type != standard_type:
+                existing_screenshot.lottery_type = standard_type
                 updated_count += 1
-                app.logger.info(f"Updated screenshot record for {config.lottery_type} ({config.url})")
+                app.logger.info(f"Updated screenshot record for {standard_type} ({config.url})")
         else:
             # Create a new screenshot record if none exists
             new_screenshot = Screenshot(
                 url=config.url,
-                lottery_type=config.lottery_type,
+                lottery_type=standard_type,
                 path="",  # Will be populated when screenshot is taken
                 timestamp=datetime.now()
             )
@@ -3199,16 +3217,36 @@ def cleanup_screenshots():
             # Get all screenshots
             screenshots = Screenshot.query.all()
             
-            # Process each screenshot
+            # First pass: Create a mapping of all URLs to their screenshots
+            url_to_screenshots = {}
+            
+            # Group screenshots by URL
             for screenshot in screenshots:
-                original_type = screenshot.lottery_type
-                standard_type = standardize_lottery_type(original_type)
+                url = screenshot.url
+                if url not in url_to_screenshots:
+                    url_to_screenshots[url] = []
+                url_to_screenshots[url].append(screenshot)
+            
+            # Process each URL group
+            for url, url_screenshots in url_to_screenshots.items():
+                # Track variations of lottery types for this URL
+                type_variations = {}
                 
-                # If the type needs to be updated
-                if original_type != standard_type:
-                    app.logger.info(f"Standardizing lottery type from '{original_type}' to '{standard_type}'")
-                    screenshot.lottery_type = standard_type
-                    standardize_count += 1
+                # First pass: standardize all types and track variations
+                for screenshot in url_screenshots:
+                    original_type = screenshot.lottery_type
+                    standard_type = standardize_lottery_type(original_type)
+                    
+                    # Record the standardization mapping
+                    if standard_type not in type_variations:
+                        type_variations[standard_type] = set()
+                    type_variations[standard_type].add(original_type)
+                    
+                    # Update the screenshot with standardized type
+                    if original_type != standard_type:
+                        app.logger.info(f"Standardizing lottery type from '{original_type}' to '{standard_type}'")
+                        screenshot.lottery_type = standard_type
+                        standardize_count += 1
             
             # Save standardization changes
             if standardize_count > 0:
@@ -3217,20 +3255,77 @@ def cleanup_screenshots():
         except Exception as std_error:
             app.logger.error(f"Error standardizing lottery types: {str(std_error)}")
         
-        # Now continue with cleanup - group screenshots by URL and find the latest for each
+        # Initialize screenshots_to_delete list
+        screenshots_to_delete = []
+        
+        # Additional pass: Find screenshots with duplicate URLs but different lottery types
+        # (after standardization) and keep only the most accurate one
+        url_type_counts = db.session.query(
+            Screenshot.url, 
+            func.count(Screenshot.lottery_type.distinct()).label('type_count')
+        ).group_by(Screenshot.url).having(func.count(Screenshot.lottery_type.distinct()) > 1).all()
+        
+        # Process URLs with multiple lottery types
+        for url_entry in url_type_counts:
+            url = url_entry[0]
+            app.logger.info(f"URL {url} has multiple lottery types after standardization")
+            
+            # Get all screenshots for this URL
+            url_screenshots = Screenshot.query.filter(Screenshot.url == url).all()
+            
+            # Group by lottery type and sort each group by timestamp
+            type_groups = {}
+            for screenshot in url_screenshots:
+                lottery_type = screenshot.lottery_type
+                if lottery_type not in type_groups:
+                    type_groups[lottery_type] = []
+                type_groups[lottery_type].append(screenshot)
+            
+            # Sort groups by timestamp (newest first)
+            for lottery_type, screenshots in type_groups.items():
+                type_groups[lottery_type] = sorted(screenshots, key=lambda x: x.timestamp, reverse=True)
+            
+            # Keep only the newest screenshot from the most common lottery type
+            # and mark the rest for deletion
+            most_common_type = max(type_groups.items(), key=lambda x: len(x[1]))[0]
+            app.logger.info(f"Most common lottery type for URL {url} is {most_common_type}")
+            
+            for lottery_type, type_screenshots in type_groups.items():
+                if lottery_type != most_common_type:
+                    # Add all screenshots from non-dominant types to deletion list
+                    app.logger.info(f"Marking {len(type_screenshots)} screenshots with type {lottery_type} for deletion")
+                    screenshots_to_delete.extend(type_screenshots)
+        
+        # Now continue with main cleanup - group screenshots by URL AND lottery_type to find the latest for each unique combination
+        # This ensures we keep the most recent screenshot for each specific URL and lottery type combination after standardization
         subquery = db.session.query(
             Screenshot.url,
+            Screenshot.lottery_type,
             func.max(Screenshot.timestamp).label('max_timestamp')
-        ).group_by(Screenshot.url).subquery()
+        ).group_by(Screenshot.url, Screenshot.lottery_type).subquery()
         
-        # Find all screenshots that aren't the latest for their URL
-        screenshots_to_delete = Screenshot.query.join(
+        # Find all screenshots that aren't the latest for their URL and lottery_type combination
+        old_screenshots = Screenshot.query.join(
             subquery,
             db.and_(
                 Screenshot.url == subquery.c.url,
+                Screenshot.lottery_type == subquery.c.lottery_type,
                 Screenshot.timestamp < subquery.c.max_timestamp
             )
         ).all()
+        
+        # Add old screenshots to the deletion list
+        screenshots_to_delete.extend(old_screenshots)
+        
+        # Remove duplicates from deletion list
+        screenshot_ids_to_delete = set(screenshot.id for screenshot in screenshots_to_delete)
+        screenshots_to_delete = [
+            screenshot for screenshot in screenshots_to_delete 
+            if screenshot.id in screenshot_ids_to_delete
+        ]
+        
+        # Log the number of screenshots to delete
+        app.logger.info(f"Found {len(screenshots_to_delete)} screenshots to delete")
         
         # Delete files and database records
         deleted_count = 0
