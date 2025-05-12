@@ -33,18 +33,19 @@ def standardize_lottery_type(lottery_type):
     ltype = lottery_type.lower()
     
     # Standardize naming for lottery types using regex patterns
+    # Always use "Lottery" instead of "Lotto" for better SEO
     if re.search(r'daily.*lott', ltype):
-        return "Daily Lotto"
+        return "Daily Lottery"
     elif re.search(r'powerball.*plus', ltype) or re.search(r'power.*ball.*\+', ltype):
         return "Powerball Plus"
     elif re.search(r'powerball|power.*ball', ltype):
         return "Powerball"
     elif re.search(r'lott[oe].*plus.*2|lott[oe].*\+.*2', ltype):
-        return "Lotto Plus 2"
+        return "Lottery Plus 2"
     elif re.search(r'lott[oe].*plus.*1|lott[oe].*\+.*1', ltype):
-        return "Lotto Plus 1"
+        return "Lottery Plus 1"
     elif re.search(r'lott[oe]', ltype) and not re.search(r'plus|results|\+', ltype):
-        return "Lotto"
+        return "Lottery"
     
     # If none of the patterns match, clean up the original name
     return lottery_type.replace('_', ' ').title()
