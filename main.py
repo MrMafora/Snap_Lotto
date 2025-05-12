@@ -2535,74 +2535,20 @@ def view_screenshot(screenshot_id):
         app.logger.error(f"Embedded HTML fallback failed: {str(e)}")
         attempts.append(f"Embedded HTML fallback failed: {str(e)}")
         
-    # If all else fails, generate a proper error image with useful information
-    try:
-        from PIL import Image, ImageDraw, ImageFont
-        import tempfile
-        
-        # Create a more visually appealing error image with lottery branding
-        img = Image.new('RGB', (800, 500), color=(255, 248, 240))  # Light warm background
-        draw = ImageDraw.Draw(img)
-        
-        # Add a header bar
-        draw.rectangle([(0, 0), (800, 60)], fill=(231, 76, 60))  # Red header
-        
-        # Try to use a default font
-        try:
-            font = ImageFont.load_default()
-            large_font = ImageFont.load_default()
-            small_font = ImageFont.load_default()
-        except Exception:
-            font = None
-            large_font = None
-            small_font = None
-        
-        # Draw title and details with better formatting
-        draw.text((20, 15), f"Screenshot Preview - {screenshot.lottery_type}", fill=(255, 255, 255), font=large_font)
-        draw.text((20, 80), f"Screenshot Information", fill=(50, 50, 50), font=large_font)
-        
-        draw.text((40, 120), f"• ID: {screenshot_id}", fill=(80, 80, 80), font=font)
-        draw.text((40, 150), f"• Type: {screenshot.lottery_type}", fill=(80, 80, 80), font=font)
-        draw.text((40, 180), f"• Timestamp: {screenshot.timestamp}", fill=(80, 80, 80), font=font)
-        draw.text((40, 210), f"• URL: {getattr(screenshot, 'url', 'Unknown URL')[:60]}", fill=(80, 80, 80), font=font)
-        
-        # Add a section for debug info
-        draw.rectangle([(20, 250), (780, 252)], fill=(200, 200, 200))  # Divider line
-        draw.text((20, 270), "Debug Information", fill=(50, 50, 50), font=font)
-        
-        # Add attempt information with better formatting
-        y_pos = 300
-        for i, attempt in enumerate(attempts[:5]):  # Limit to 5 attempts to fit on image
-            draw.text((40, y_pos), f"• {attempt[:70]}", fill=(180, 60, 60), font=small_font)
-            y_pos += 30
-            
-        # Add helpful instructions
-        draw.rectangle([(0, 440), (800, 500)], fill=(240, 240, 240))
-        draw.text((20, 450), "To fix this issue, try using the 'Sync All Screenshots' button on the screenshot gallery page.", 
-                 fill=(50, 50, 50), font=font)
-        draw.text((20, 470), "You can also view the HTML source by clicking the HTML button below each screenshot.", 
-                 fill=(50, 50, 50), font=small_font)
-        
-        # Save to a temp file
-        temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
-        temp_file.close()
-        img.save(temp_file.name)
-        
-        app.logger.warning(f"Created error placeholder image as last resort: {temp_file.name}")
-        
-        # Return the error image
-        return send_file(
-            temp_file.name,
-            mimetype='image/png',
-            as_attachment=force_download,
-            download_name=f"preview_{screenshot.lottery_type.replace(' ', '_')}.png"
-        )
-    except Exception as final_error:
-        app.logger.error(f"All image generation attempts failed: {str(final_error)}")
-        
-        # Only at this point do we give up completely
-        flash(f'Failed to generate or retrieve any valid content for this screenshot', 'danger')
-        return redirect(url_for('export_screenshots'))
+    # IMPORTANT: We should NOT generate placeholder images
+    # Stop creating synthetic screenshots and instead return a proper error
+    # This forces users to actually fix the problem rather than working with fake data
+    app.logger.error(f"No valid screenshot found for ID {screenshot_id}. Attempts: {', '.join(attempts)}")
+    
+    if force_download:
+        # If this is a download request, return a 404 error
+        response = make_response("Error: Screenshot file not found. Please sync this screenshot first.", 404)
+        response.headers["Content-Type"] = "text/plain"
+        return response
+    else:
+        # For normal viewing, redirect to export_screenshots with an error message
+        flash(f"No screenshot available for {screenshot.lottery_type}. Please use the Sync button to capture it.", "danger")
+        return redirect(url_for('export_screenshots', highlight_id=screenshot_id))
 
 @app.route('/screenshot-zoomed/<int:screenshot_id>')
 def view_zoomed_screenshot(screenshot_id):
