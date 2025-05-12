@@ -1597,7 +1597,17 @@ def ensure_all_screenshot_entries_exist():
     # Save the missing entries to session for potential sync
     if missing_count > 0:
         app.logger.info(f"Found {missing_count} missing screenshot entries")
-        session['missing_screenshot_entries'] = missing_entries
+        # Store in session for later processing by sync_all_screenshots
+        try:
+            session['missing_screenshot_entries'] = missing_entries
+            app.logger.info(f"Stored {len(missing_entries)} missing entries in session")
+        except Exception as e:
+            app.logger.error(f"Error storing missing entries in session: {str(e)}")
+    else:
+        # If no missing entries, clear any previous entries from session
+        if session.get('missing_screenshot_entries'):
+            del session['missing_screenshot_entries']
+            app.logger.info("Cleared existing missing screenshot entries from session")
     
     return missing_count
 
@@ -2762,6 +2772,19 @@ def sync_all_screenshots():
                     # Mark process as completed
                     puppeteer_capture_status['in_progress'] = False
                     puppeteer_capture_status['last_updated'] = datetime.now()
+                    
+                    # Clear the missing entries from session at the end of processing
+                    # This requires app context, but we're already in one
+                    try:
+                        # We can't directly access session here, so we use a database-level flag
+                        # The next time the export_screenshots page is loaded, it will clear the session data
+                        app.logger.info("Finished processing screenshots, setting flag to clear missing entries")
+                        with app.test_request_context('/'):
+                            if session.get('missing_screenshot_entries'):
+                                del session['missing_screenshot_entries']
+                                app.logger.info("Cleared missing screenshot entries from session")
+                    except Exception as sess_err:
+                        app.logger.error(f"Could not clear session data: {str(sess_err)}")
         
         # Start processing in background thread
         threading.Thread(target=process_screenshots, daemon=True).start()
