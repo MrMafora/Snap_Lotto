@@ -2401,126 +2401,22 @@ def view_screenshot(screenshot_id):
             app.logger.error(error_msg)
             attempts.append(error_msg)
     
-    # Use our utility function to determine whether to allow sample images
-    allow_attached_assets = should_allow_sample_images(force_download)
+    # IMPORTANT: We no longer use sample images from attached_assets directory
+    # This enforces the data integrity policy that we should never present fallback/sample data
+    app.logger.info("Samples policy: Samples from attached_assets are always disabled - only using real screenshots")
     
-    # Log the decision for debugging
-    if not allow_attached_assets:
-        app.logger.info("Samples disabled: Using only real screenshots (no fallback to attached_assets)")
+    # No sample images from attached_assets directory will be used
+    # This ensures we only show real, fresh data to users
+    
+    # No HTML fallbacks or embedded responses either 
+    # We don't want to create the appearance that we have data when we don't
+    # This enforces the data integrity policy
+    if screenshot.html_path and os.path.isfile(screenshot.html_path):
+        app.logger.info(f"HTML file exists but we're not using it as a fallback anymore")
+        attempts.append("HTML fallback disabled by data integrity policy")
     else:
-        app.logger.info("Samples enabled: Will use attached_assets as fallback if needed")
-    
-    # If allowed, check the attached_assets directory for any matching files
-    attached_files = []
-    
-    if allow_attached_assets:
-        attached_assets_dir = 'attached_assets'
-        
-        if os.path.exists(attached_assets_dir):
-            for filename in os.listdir(attached_assets_dir):
-                if screenshot.lottery_type.lower().replace(' ', '_') in filename.lower():
-                    file_path = os.path.join(attached_assets_dir, filename)
-                    if os.path.isfile(file_path) and os.path.getsize(file_path) > 100:
-                        attached_files.append(file_path)
-    
-        # If we found matching attached files, use the most recent one
-        if attached_files:
-            attached_files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
-            newest_file = attached_files[0]
-            
-            app.logger.info(f"Using file from attached_assets directory: {newest_file}")
-            attempts.append(f"Using attached_assets file: {newest_file}")
-            
-            try:
-                # Get the correct mimetype
-                _, ext = os.path.splitext(newest_file)
-                if ext.lower() in ['.jpg', '.jpeg']:
-                    mimetype = 'image/jpeg'
-                elif ext.lower() == '.png':
-                    mimetype = 'image/png'
-                elif ext.lower() == '.html':
-                    mimetype = 'text/html'
-                else:
-                    mimetype = 'application/octet-stream'
-                
-                # Return the attached file, but mark it as a sample
-                response = send_file(
-                    newest_file,
-                    mimetype=mimetype,
-                    as_attachment=force_download,
-                    download_name=f"SAMPLE_{screenshot.lottery_type.replace(' ', '_')}{ext}"
-                )
-                
-                # Add a custom header to indicate this is a sample/example image
-                response.headers['X-Content-Source'] = 'sample'
-                return response
-            except Exception as e:
-                error_msg = f"Error sending attached file: {str(e)}"
-                app.logger.error(error_msg)
-                attempts.append(error_msg)
-    else:
-        app.logger.info("Attached assets fallback disabled - only using real screenshots")
-    
-    # Try an embedded/inline response with HTML fallback
-    try:
-        app.logger.info("Trying an embedded HTML response fallback")
-        
-        # First check if we have the HTML file
-        if screenshot.html_path and os.path.isfile(screenshot.html_path):
-            try:
-                with open(screenshot.html_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    html_content = f.read()
-                
-                # Create a nicer fallback HTML with embedded screenshot info
-                fallback_html = f"""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Screenshot: {screenshot.lottery_type}</title>
-                    <meta charset="utf-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1">
-                    <style>
-                        body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }}
-                        .container {{ max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
-                        h1 {{ color: #333; }}
-                        .content {{ margin-top: 20px; padding: 20px; border: 1px solid #eee; }}
-                        .meta {{ color: #666; font-size: 0.9em; margin-bottom: 10px; }}
-                        .actions {{ margin-top: 20px; }}
-                        .btn {{ background: #e74c3c; color: white; padding: 10px 15px; text-decoration: none; border-radius: 3px; display: inline-block; }}
-                        .html-preview {{ border: 1px solid #ddd; padding: 15px; background: #f9f9f9; margin-top: 20px; overflow: auto; max-height: 500px; }}
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>Screenshot Preview: {screenshot.lottery_type}</h1>
-                        <div class="meta">ID: {screenshot_id}</div>
-                        <div class="meta">Timestamp: {screenshot.timestamp}</div>
-                        <div class="meta">URL: {getattr(screenshot, 'url', 'Unknown URL')}</div>
-                        
-                        <div class="content">
-                            <h3>Screenshot Data</h3>
-                            <p>The screenshot image could not be displayed directly, but the HTML content is available below.</p>
-                            <div class="actions">
-                                <a href="{url_for('view_screenshot', screenshot_id=screenshot_id, force_download='true')}" class="btn">Download Raw Content</a>
-                            </div>
-                        </div>
-                        
-                        <div class="html-preview">
-                            <h3>HTML Preview</h3>
-                            <iframe srcdoc="{html_content.replace('"', '&quot;')}" style="width:100%; height:400px; border:1px solid #ddd;"></iframe>
-                        </div>
-                    </div>
-                </body>
-                </html>
-                """
-                
-                return fallback_html, 200, {'Content-Type': 'text/html'}
-            except Exception as e:
-                app.logger.error(f"Failed to create embedded HTML: {str(e)}")
-                attempts.append(f"Failed to create embedded HTML: {str(e)}")
-    except Exception as e:
-        app.logger.error(f"Embedded HTML fallback failed: {str(e)}")
-        attempts.append(f"Embedded HTML fallback failed: {str(e)}")
+        app.logger.info("No HTML file available")
+        attempts.append("No HTML file available")
         
     # IMPORTANT: We should NOT generate placeholder images
     # Stop creating synthetic screenshots and instead return a proper error
