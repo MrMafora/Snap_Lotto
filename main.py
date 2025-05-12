@@ -2140,7 +2140,7 @@ def view_screenshot(screenshot_id):
             
             # Continue to fallback approaches - no exception needed
     else:
-        attempts.append(f"HTML file missing or invalid: {getattr(screenshot, 'html_path', None)}")
+        attempts.append("HTML content capture has been removed from the application")
     
     # Try alternative: If we have a PNG in the database, use it
     if screenshot.path and os.path.isfile(screenshot.path):
@@ -3140,13 +3140,7 @@ def cleanup_screenshots():
                 except Exception as file_error:
                     app.logger.warning(f"Could not delete zoomed screenshot file {screenshot.zoomed_path}: {str(file_error)}")
                     
-            # Try to delete HTML file if it exists (Puppeteer saves HTML content)
-            if hasattr(screenshot, 'html_path') and screenshot.html_path and os.path.exists(screenshot.html_path):
-                try:
-                    os.remove(screenshot.html_path)
-                    app.logger.info(f"Deleted HTML file: {screenshot.html_path}")
-                except Exception as file_error:
-                    app.logger.warning(f"Could not delete HTML file {screenshot.html_path}: {str(file_error)}")
+            # HTML file deletion has been removed as we no longer capture HTML content
             
             # Delete the database record
             db.session.delete(screenshot)
@@ -3308,13 +3302,7 @@ def cleanup_duplicates():
                 except Exception as file_error:
                     app.logger.warning(f"Could not delete zoomed screenshot file {screenshot.zoomed_path}: {str(file_error)}")
                     
-            # Try to delete HTML file if it exists
-            if hasattr(screenshot, 'html_path') and screenshot.html_path and os.path.exists(screenshot.html_path):
-                try:
-                    os.remove(screenshot.html_path)
-                    app.logger.info(f"Deleted HTML file: {screenshot.html_path}")
-                except Exception as file_error:
-                    app.logger.warning(f"Could not delete HTML file {screenshot.html_path}: {str(file_error)}")
+            # HTML file deletion has been removed as we no longer capture HTML content
             
             # Delete the database record
             db.session.delete(screenshot)
