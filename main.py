@@ -2453,40 +2453,9 @@ def view_zoomed_screenshot(screenshot_id):
 
 @app.route('/html-content/<int:screenshot_id>')
 def view_html_content(screenshot_id):
-    """View the raw HTML content of a screenshot using a clean template approach with enhanced anti-popup protection"""
-    screenshot = Screenshot.query.get_or_404(screenshot_id)
-    
-    if not screenshot.html_path:
-        flash('No HTML content available for this screenshot', 'warning')
-        return redirect(url_for('export_screenshots'))
-    
-    # Normalize path and check if file exists
-    html_path = os.path.normpath(screenshot.html_path)
-    
-    if not os.path.isfile(html_path):
-        flash('HTML file not found', 'danger')
-        return redirect(url_for('export_screenshots'))
-    
-    try:
-        # Read the HTML content
-        with open(html_path, 'r', encoding='utf-8') as f:
-            html_content = f.read()
-        
-        # Pre-process the HTML content to remove known popup triggers
-        # This is the first defense against popups, before they even load
-        html_content = pre_process_html_content(html_content)
-        
-        # Log the successful processing
-        app.logger.info(f"Successfully processed HTML content for {screenshot.lottery_type} from {html_path}")
-        
-        # Render the template with the screenshot and HTML content
-        return render_template('view_html_content.html', 
-                              screenshot=screenshot, 
-                              html_content=html_content)
-    except Exception as e:
-        app.logger.error(f"Error processing HTML content: {str(e)}")
-        flash(f"Error viewing HTML content: {str(e)}", 'danger')
-        return redirect(url_for('export_screenshots'))
+    """View HTML content has been deprecated - redirects to screenshots page with a notice"""
+    flash('HTML content viewing has been deprecated. Only PNG screenshots are now captured.', 'info')
+    return redirect(url_for('export_screenshots'))
         
 def pre_process_html_content(html_content):
     """Pre-process HTML content to remove known popup triggers before rendering"""
