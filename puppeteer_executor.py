@@ -13,14 +13,13 @@ import json
 
 logger = logging.getLogger(__name__)
 
-def capture_screenshot(url, output_path, html_path, timeout=120):
+def capture_screenshot(url, output_path, timeout=120):
     """
     Capture a screenshot of a webpage using the external puppeteer script.
     
     Args:
         url (str): URL to capture
         output_path (str): Path to save the screenshot
-        html_path (str): Path to save the HTML content
         timeout (int): Timeout in seconds
         
     Returns:
@@ -28,7 +27,6 @@ def capture_screenshot(url, output_path, html_path, timeout=120):
     """
     # Ensure the output directory exists
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    os.makedirs(os.path.dirname(html_path), exist_ok=True)
     
     # Create absolute paths
     script_path = os.path.join(os.getcwd(), 'puppeteer_script.js')
@@ -36,7 +34,7 @@ def capture_screenshot(url, output_path, html_path, timeout=120):
     # Run the Node.js script as a subprocess
     try:
         # Prepare the command
-        cmd = ['node', script_path, url, output_path, html_path]
+        cmd = ['node', script_path, url, output_path]
         
         # Execute the command with a timeout
         logger.info(f"Running puppeteer with command: {' '.join(cmd)}")

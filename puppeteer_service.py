@@ -100,29 +100,24 @@ def capture_single_screenshot(lottery_type, url, timeout=120):
         
         # Define output paths
         screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
-        html_dir = os.path.join(screenshot_dir, 'html')
         
         # Ensure directories exist
         os.makedirs(screenshot_dir, exist_ok=True)
-        os.makedirs(html_dir, exist_ok=True)
         
         # Define output filenames matching the example format
         screenshot_path = os.path.join(screenshot_dir, f"{file_type}_{timestamp}.png")
-        html_path = os.path.join(html_dir, f"{file_type}_{timestamp}.html")
         
         logger.info(f"Capturing screenshot for {lottery_type} from {url}")
         logger.info(f"Saving to: {screenshot_path}")
-        logger.info(f"Saving HTML to: {html_path}")
         
         # Call the executor function
-        success = capture_screenshot(url, screenshot_path, html_path, timeout)
+        success = capture_screenshot(url, screenshot_path, timeout)
         
         if success:
             logger.info(f"Successfully captured {lottery_type} from {url}")
             return {
                 'status': 'success',
                 'path': screenshot_path,
-                'html_path': html_path,
                 'message': f"Successfully captured {lottery_type} screenshot"
             }
         else:
