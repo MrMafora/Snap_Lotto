@@ -162,9 +162,7 @@ def process_lottery_screenshots(urls, screenshot_dir):
             # Define output paths
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f"{lottery_type}_results_{timestamp}.png"
-            html_filename = f"{lottery_type}_results_{timestamp}.html"
             output_path = os.path.join(screenshot_dir, filename)
-            html_path = os.path.join(screenshot_dir, html_filename)
             
             # Capture screenshot
             # Call our own function with the correct parameter order: lottery_type, url, timeout
@@ -176,7 +174,6 @@ def process_lottery_screenshots(urls, screenshot_dir):
                 'success': success,
                 'url': url,
                 'screenshot_path': output_path if success else None,
-                'html_path': html_path if success else None,
                 'timestamp': timestamp
             }
             

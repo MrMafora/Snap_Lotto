@@ -2684,7 +2684,6 @@ def sync_all_screenshots():
                                 result = {
                                     'status': 'success',
                                     'path': filepath,
-                                    'html_path': html_filepath,
                                     'url': url
                                 }
                             else:
