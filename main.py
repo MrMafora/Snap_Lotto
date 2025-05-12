@@ -1652,47 +1652,8 @@ def export_screenshots():
                           puppeteer_status=puppeteer_status,
                           duplicate_types=duplicate_types)
 
-@app.route('/standardize-lottery-types', methods=['POST'])
-@login_required
-def standardize_lottery_types():
-    """Standardize all lottery types in the database to reduce duplicates"""
-    if not current_user.is_admin:
-        flash('You must be an admin to standardize lottery types.', 'danger')
-        return redirect(url_for('index'))
-    
-    try:
-        # Import the standardization function
-        from puppeteer_service import standardize_lottery_type
-        
-        # Get all screenshots
-        screenshots = Screenshot.query.all()
-        
-        # Track changes
-        updated_count = 0
-        
-        # Process each screenshot
-        for screenshot in screenshots:
-            original_type = screenshot.lottery_type
-            standard_type = standardize_lottery_type(original_type)
-            
-            # If the type needs to be updated
-            if original_type != standard_type:
-                app.logger.info(f"Standardizing lottery type from '{original_type}' to '{standard_type}'")
-                screenshot.lottery_type = standard_type
-                updated_count += 1
-        
-        # Save changes if any were made
-        if updated_count > 0:
-            db.session.commit()
-            flash(f'Successfully standardized {updated_count} lottery types.', 'success')
-        else:
-            flash('No lottery types needed standardization.', 'info')
-    
-    except Exception as e:
-        app.logger.error(f"Error standardizing lottery types: {str(e)}")
-        flash(f'Error standardizing lottery types: {str(e)}', 'danger')
-    
-    return redirect(url_for('export_screenshots'))
+# Standardize lottery types route removed
+# This functionality is now integrated into the cleanup_screenshots function
 
 
 @app.route('/export-screenshots-zip')
@@ -3229,7 +3190,34 @@ def cleanup_screenshots():
         import os
         from sqlalchemy import func
         
-        # Group screenshots by URL and find the latest for each
+        # First, standardize all lottery types
+        standardize_count = 0
+        try:
+            # Import standardization function
+            from puppeteer_service import standardize_lottery_type
+            
+            # Get all screenshots
+            screenshots = Screenshot.query.all()
+            
+            # Process each screenshot
+            for screenshot in screenshots:
+                original_type = screenshot.lottery_type
+                standard_type = standardize_lottery_type(original_type)
+                
+                # If the type needs to be updated
+                if original_type != standard_type:
+                    app.logger.info(f"Standardizing lottery type from '{original_type}' to '{standard_type}'")
+                    screenshot.lottery_type = standard_type
+                    standardize_count += 1
+            
+            # Save standardization changes
+            if standardize_count > 0:
+                db.session.commit()
+                app.logger.info(f"Standardized {standardize_count} lottery types")
+        except Exception as std_error:
+            app.logger.error(f"Error standardizing lottery types: {str(std_error)}")
+        
+        # Now continue with cleanup - group screenshots by URL and find the latest for each
         subquery = db.session.query(
             Screenshot.url,
             func.max(Screenshot.timestamp).label('max_timestamp')
@@ -3276,9 +3264,10 @@ def cleanup_screenshots():
         db.session.commit()
         
         # Store success message in session
+        standardize_msg = f" and standardized {standardize_count} lottery types" if standardize_count > 0 else ""
         session['sync_status'] = {
             'status': 'success',
-            'message': f'Successfully cleaned up {deleted_count} old screenshots. Only the latest screenshot for each URL is kept.'
+            'message': f'Successfully cleaned up {deleted_count} old screenshots{standardize_msg}. Only the latest screenshot for each URL is kept.'
         }
     except Exception as e:
         app.logger.error(f"Error cleaning up screenshots: {str(e)}")

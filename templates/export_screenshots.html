@@ -514,20 +514,9 @@
                                 <h6>Manage Gallery</h6>
                                 
                                 {% if duplicate_types and duplicate_types|length > 0 %}
-                                <div class="alert alert-warning">
-                                    <i class="fas fa-exclamation-triangle me-2"></i> <strong>Duplicate Lottery Types Detected</strong>
-                                    <p class="small mt-2 mb-0">Found {{ duplicate_types|length }} lottery types with multiple variations:</p>
-                                    <ul class="small mt-1 mb-2">
-                                        {% for standard_type, variations in duplicate_types.items() %}
-                                        <li><strong>{{ standard_type }}</strong>: {{ variations|join(', ') }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                    <form action="{{ url_for('standardize_lottery_types') }}" method="POST" class="mt-2">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-sm btn-warning">
-                                            <i class="fas fa-magic me-1"></i> Standardize Lottery Types
-                                        </button>
-                                    </form>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i> <strong>Note:</strong>
+                                    <p class="small mt-2 mb-0">There are {{ duplicate_types|length }} lottery types with multiple naming variations. The system will automatically standardize these when cleaning up old screenshots.</p>
                                 </div>
                                 {% endif %}
                                 
