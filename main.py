@@ -2674,7 +2674,6 @@ def sync_all_screenshots():
                             # Check if the capture was successful
                             if capture_result.get('status') == 'success':
                                 filepath = capture_result.get('path')
-                                html_filepath = capture_result.get('html_path')
                                 success = True
                             else:
                                 success = False
@@ -2717,7 +2716,6 @@ def sync_all_screenshots():
                                 if screenshot:
                                     # Update existing record
                                     screenshot.path = result.get('path')
-                                    screenshot.html_path = result.get('html_path') if result.get('html_path') else None
                                     screenshot.url = url  # Make sure the URL is updated to match the settings
                                     screenshot.timestamp = datetime.now()
                                     db_updates += 1
@@ -2727,7 +2725,6 @@ def sync_all_screenshots():
                                     screenshot = Screenshot(
                                         lottery_type=lottery_type,
                                         path=result.get('path'),
-                                        html_path=result.get('html_path') if result.get('html_path') else None,
                                         url=url,
                                         timestamp=datetime.now()
                                     )
