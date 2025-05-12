@@ -3196,17 +3196,19 @@ def preview_website(screenshot_id):
 @login_required
 @csrf.exempt
 def cleanup_screenshots():
-    """Route to cleanup old screenshots with simplified approach"""
+    """Route to cleanup old screenshots with aggressive approach to eliminate duplicates"""
     if not current_user.is_admin:
         flash('You must be an admin to clean up screenshots.', 'danger')
         return redirect(url_for('index'))
         
     try:
-        # Simple approach to cleanup - just keep the latest screenshot per URL
-        # This is a direct implementation rather than relying on the complex scheduler module
+        # Implementing a more aggressive approach to cleanup
+        # This will keep exactly ONE screenshot per unique URL after standardizing the types
         from models import Screenshot, db
         import os
         from sqlalchemy import func
+        
+        app.logger.info("Starting aggressive screenshot cleanup")
         
         # First, standardize all lottery types
         standardize_count = 0
@@ -3216,37 +3218,18 @@ def cleanup_screenshots():
             
             # Get all screenshots
             screenshots = Screenshot.query.all()
+            app.logger.info(f"Found {len(screenshots)} total screenshots")
             
-            # First pass: Create a mapping of all URLs to their screenshots
-            url_to_screenshots = {}
-            
-            # Group screenshots by URL
+            # Standardize all lottery types first
             for screenshot in screenshots:
-                url = screenshot.url
-                if url not in url_to_screenshots:
-                    url_to_screenshots[url] = []
-                url_to_screenshots[url].append(screenshot)
-            
-            # Process each URL group
-            for url, url_screenshots in url_to_screenshots.items():
-                # Track variations of lottery types for this URL
-                type_variations = {}
+                original_type = screenshot.lottery_type
+                standard_type = standardize_lottery_type(original_type)
                 
-                # First pass: standardize all types and track variations
-                for screenshot in url_screenshots:
-                    original_type = screenshot.lottery_type
-                    standard_type = standardize_lottery_type(original_type)
-                    
-                    # Record the standardization mapping
-                    if standard_type not in type_variations:
-                        type_variations[standard_type] = set()
-                    type_variations[standard_type].add(original_type)
-                    
-                    # Update the screenshot with standardized type
-                    if original_type != standard_type:
-                        app.logger.info(f"Standardizing lottery type from '{original_type}' to '{standard_type}'")
-                        screenshot.lottery_type = standard_type
-                        standardize_count += 1
+                # Update if needed
+                if original_type != standard_type:
+                    app.logger.info(f"Standardizing lottery type from '{original_type}' to '{standard_type}'")
+                    screenshot.lottery_type = standard_type
+                    standardize_count += 1
             
             # Save standardization changes
             if standardize_count > 0:
@@ -3255,76 +3238,26 @@ def cleanup_screenshots():
         except Exception as std_error:
             app.logger.error(f"Error standardizing lottery types: {str(std_error)}")
         
-        # Initialize screenshots_to_delete list
+        # AGGRESSIVE APPROACH: Keep only the newest screenshot for each URL
+        # regardless of lottery type
+        
+        # 1. Group by URL and find the newest screenshot for each URL
+        url_to_newest = {}
+        all_screenshots = Screenshot.query.all()
+        
+        for screenshot in all_screenshots:
+            url = screenshot.url
+            if url not in url_to_newest or screenshot.timestamp > url_to_newest[url].timestamp:
+                url_to_newest[url] = screenshot
+                
+        app.logger.info(f"Keeping {len(url_to_newest)} screenshots (1 per URL)")
+        
+        # 2. Any screenshot not in the url_to_newest values should be deleted
         screenshots_to_delete = []
-        
-        # Additional pass: Find screenshots with duplicate URLs but different lottery types
-        # (after standardization) and keep only the most accurate one
-        url_type_counts = db.session.query(
-            Screenshot.url, 
-            func.count(Screenshot.lottery_type.distinct()).label('type_count')
-        ).group_by(Screenshot.url).having(func.count(Screenshot.lottery_type.distinct()) > 1).all()
-        
-        # Process URLs with multiple lottery types
-        for url_entry in url_type_counts:
-            url = url_entry[0]
-            app.logger.info(f"URL {url} has multiple lottery types after standardization")
-            
-            # Get all screenshots for this URL
-            url_screenshots = Screenshot.query.filter(Screenshot.url == url).all()
-            
-            # Group by lottery type and sort each group by timestamp
-            type_groups = {}
-            for screenshot in url_screenshots:
-                lottery_type = screenshot.lottery_type
-                if lottery_type not in type_groups:
-                    type_groups[lottery_type] = []
-                type_groups[lottery_type].append(screenshot)
-            
-            # Sort groups by timestamp (newest first)
-            for lottery_type, screenshots in type_groups.items():
-                type_groups[lottery_type] = sorted(screenshots, key=lambda x: x.timestamp, reverse=True)
-            
-            # Keep only the newest screenshot from the most common lottery type
-            # and mark the rest for deletion
-            most_common_type = max(type_groups.items(), key=lambda x: len(x[1]))[0]
-            app.logger.info(f"Most common lottery type for URL {url} is {most_common_type}")
-            
-            for lottery_type, type_screenshots in type_groups.items():
-                if lottery_type != most_common_type:
-                    # Add all screenshots from non-dominant types to deletion list
-                    app.logger.info(f"Marking {len(type_screenshots)} screenshots with type {lottery_type} for deletion")
-                    screenshots_to_delete.extend(type_screenshots)
-        
-        # Now continue with main cleanup - group screenshots by URL AND lottery_type to find the latest for each unique combination
-        # This ensures we keep the most recent screenshot for each specific URL and lottery type combination after standardization
-        subquery = db.session.query(
-            Screenshot.url,
-            Screenshot.lottery_type,
-            func.max(Screenshot.timestamp).label('max_timestamp')
-        ).group_by(Screenshot.url, Screenshot.lottery_type).subquery()
-        
-        # Find all screenshots that aren't the latest for their URL and lottery_type combination
-        old_screenshots = Screenshot.query.join(
-            subquery,
-            db.and_(
-                Screenshot.url == subquery.c.url,
-                Screenshot.lottery_type == subquery.c.lottery_type,
-                Screenshot.timestamp < subquery.c.max_timestamp
-            )
-        ).all()
-        
-        # Add old screenshots to the deletion list
-        screenshots_to_delete.extend(old_screenshots)
-        
-        # Remove duplicates from deletion list
-        screenshot_ids_to_delete = set(screenshot.id for screenshot in screenshots_to_delete)
-        screenshots_to_delete = [
-            screenshot for screenshot in screenshots_to_delete 
-            if screenshot.id in screenshot_ids_to_delete
-        ]
-        
-        # Log the number of screenshots to delete
+        for screenshot in all_screenshots:
+            if url_to_newest.get(screenshot.url) != screenshot:
+                screenshots_to_delete.append(screenshot)
+                
         app.logger.info(f"Found {len(screenshots_to_delete)} screenshots to delete")
         
         # Delete files and database records
@@ -3334,13 +3267,15 @@ def cleanup_screenshots():
             if screenshot.path and os.path.exists(screenshot.path):
                 try:
                     os.remove(screenshot.path)
+                    app.logger.info(f"Deleted file: {screenshot.path}")
                 except Exception as file_error:
                     app.logger.warning(f"Could not delete screenshot file {screenshot.path}: {str(file_error)}")
             
             # Try to delete zoomed file if it exists
-            if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+            if hasattr(screenshot, 'zoomed_path') and screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
                 try:
                     os.remove(screenshot.zoomed_path)
+                    app.logger.info(f"Deleted zoomed file: {screenshot.zoomed_path}")
                 except Exception as file_error:
                     app.logger.warning(f"Could not delete zoomed screenshot file {screenshot.zoomed_path}: {str(file_error)}")
                     
@@ -3348,32 +3283,29 @@ def cleanup_screenshots():
             if hasattr(screenshot, 'html_path') and screenshot.html_path and os.path.exists(screenshot.html_path):
                 try:
                     os.remove(screenshot.html_path)
+                    app.logger.info(f"Deleted HTML file: {screenshot.html_path}")
                 except Exception as file_error:
                     app.logger.warning(f"Could not delete HTML file {screenshot.html_path}: {str(file_error)}")
             
             # Delete the database record
             db.session.delete(screenshot)
             deleted_count += 1
+            
+        # Commit all database changes    
+        try:
+            db.session.commit()
+            app.logger.info(f"Successfully deleted {deleted_count} screenshots")
+            flash(f"Successfully deleted {deleted_count} screenshots.", "success")
+        except Exception as db_error:
+            db.session.rollback()
+            app.logger.error(f"Error committing screenshot deletions: {str(db_error)}")
+            flash(f"Error deleting screenshots: {str(db_error)}", "danger")
         
-        # Commit changes
-        db.session.commit()
-        
-        # Store success message in session
-        standardize_msg = f" and standardized {standardize_count} lottery types" if standardize_count > 0 else ""
-        session['sync_status'] = {
-            'status': 'success',
-            'message': f'Successfully cleaned up {deleted_count} old screenshots{standardize_msg}. Only the latest screenshot for each URL is kept.'
-        }
+        return redirect(url_for('export_screenshots'))
     except Exception as e:
         app.logger.error(f"Error cleaning up screenshots: {str(e)}")
-        traceback.print_exc()
-        
-        session['sync_status'] = {
-            'status': 'danger',
-            'message': f'Error cleaning up screenshots: {str(e)}'
-        }
-    
-    return redirect(url_for('export_screenshots'))
+        flash(f"Error cleaning up screenshots: {str(e)}", "danger")
+        return redirect(url_for('export_screenshots'))
 
 @app.route('/export-combined-zip')
 @login_required
