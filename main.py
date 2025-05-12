@@ -2567,22 +2567,41 @@ def sync_all_screenshots():
     
     try:
         # Import needed functions from puppeteer_service
-        from puppeteer_service import capture_single_screenshot
+        from puppeteer_service import capture_single_screenshot, standardize_lottery_type
+        
+        # Check for missing screenshot entries to sync
+        missing_entries = session.get('missing_screenshot_entries', [])
         
         # Get all URL configurations from the ScheduleConfig model (settings page)
         schedule_configs = ScheduleConfig.query.filter_by(active=True).all()
         
         # Create a dictionary of lottery types to URLs for processing
         config_urls = {}
+        
+        # First, add any missing entries that were identified earlier
+        for entry in missing_entries:
+            if entry.get('url') and entry.get('lottery_type'):
+                # Standardize the type for consistency
+                lottery_type = standardize_lottery_type(entry.get('lottery_type'))
+                config_urls[lottery_type] = entry.get('url')
+                app.logger.info(f"Adding missing entry for {lottery_type} from session data")
+        
+        # Then add all remaining entries from ScheduleConfig
         for config in schedule_configs:
             if config.url:  # Skip any entries with empty URLs
-                config_urls[config.lottery_type] = config.url
+                # Standardize the type for consistency
+                lottery_type = standardize_lottery_type(config.lottery_type)
+                if lottery_type not in config_urls:  # Only add if not already added from missing entries
+                    config_urls[lottery_type] = config.url
         
-        # If no URLs found in ScheduleConfig, get defaults from puppeteer_service
+        # If no URLs found in ScheduleConfig or missing entries, get defaults from puppeteer_service
         if not config_urls:
             from puppeteer_service import LOTTERY_URLS
-            app.logger.warning("No URLs found in ScheduleConfig table, falling back to defaults")
-            config_urls = LOTTERY_URLS
+            app.logger.warning("No URLs found in ScheduleConfig table or missing entries, falling back to defaults")
+            # Create standardized versions of the default URLs
+            for key, url in LOTTERY_URLS.items():
+                standard_type = standardize_lottery_type(key.replace('_', ' '))
+                config_urls[standard_type] = url
         
         # Reset and initialize status
         puppeteer_capture_status.update({
