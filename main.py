@@ -1470,7 +1470,7 @@ def ensure_screenshots_for_schedules():
             new_screenshot = Screenshot(
                 url=config.url,
                 lottery_type=standard_type,
-                path="",  # Will be populated when screenshot is taken
+                path=None,  # Will be populated when screenshot is taken - using None instead of empty string
                 timestamp=datetime.now()
             )
             db.session.add(new_screenshot)
@@ -2718,7 +2718,7 @@ def sync_all_screenshots():
                                     screenshot = Screenshot(
                                         lottery_type=lottery_type,
                                         path=result.get('path'),
-                                        html_path=result.get('html_path', ''),  # Store HTML path if available
+                                        html_path=result.get('html_path') if result.get('html_path') else None,  # Use None instead of empty string
                                         url=url,
                                         timestamp=datetime.now()
                                     )
