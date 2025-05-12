@@ -5,10 +5,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/popup_remover.css') }}">
     <style>
         body {
             padding: 20px;
+            font-family: Arial, sans-serif;
         }
         .content-header {
             margin-bottom: 20px;
@@ -31,6 +31,20 @@
             min-height: 800px;
             border: none;
         }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            text-decoration: none;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -45,59 +59,52 @@
         <iframe id="content-frame" srcdoc="{{ html_content|safe }}"></iframe>
     </div>
 
-    <script src="{{ url_for('static', filename='js/popup_remover.js') }}"></script>
     <script>
-        // Apply popup remover to the iframe content when loaded
+        // Wait for iframe to load
         document.getElementById('content-frame').addEventListener('load', function() {
             try {
                 // Get the iframe document
                 var iframeDoc = this.contentWindow.document;
                 
-                // Remove popups in the iframe
-                var elementsToRemove = [
-                    '.popup', '.modal', '.overlay', '.cookie-banner',
-                    '[class*="popup"]', '[class*="modal"]', '[class*="overlay"]',
-                    '[class*="cookie"]', '[class*="consent"]', '[class*="error"]',
-                    'div[role="dialog"]', 'div[aria-modal="true"]',
-                    '.fade', '.modal-backdrop'
-                ];
-                
-                elementsToRemove.forEach(function(selector) {
-                    var elements = iframeDoc.querySelectorAll(selector);
-                    elements.forEach(function(el) {
-                        if(el) el.remove();
-                    });
-                });
-                
-                // Remove elements containing "Oops" text
-                var textElements = iframeDoc.querySelectorAll('div, h1, h2, h3, p, span');
-                textElements.forEach(function(el) {
-                    if(el && el.innerText && 
-                      (el.innerText.includes('Oops') || 
-                       el.innerText.includes('Something went wrong') || 
-                       el.innerText.includes('network connectivity'))) {
-                        
-                        // Try to find parent modal/popup container
-                        var parent = el.parentElement;
-                        for(var i=0; i<5 && parent; i++) {
-                            if(parent.tagName === 'BODY') break;
-                            parent = parent.parentElement;
-                        }
-                        
-                        // Hide the parent container if found, otherwise hide the element itself
-                        if(parent && parent.tagName !== 'BODY') {
-                            parent.style.display = 'none';
-                        } else {
-                            el.style.display = 'none';
-                        }
+                // Apply styles to hide popups in the iframe
+                var style = iframeDoc.createElement('style');
+                style.textContent = `
+                    .popup, .overlay, .modal, .cookie-banner, .consent-banner, 
+                    div[class*="popup"], div[class*="modal"], div[class*="overlay"], 
+                    div[class*="cookie"], div[class*="consent"],
+                    div[role="dialog"], div[aria-modal="true"], .fade {
+                        display: none !important;
+                        visibility: hidden !important;
+                        opacity: 0 !important;
+                        pointer-events: none !important;
                     }
-                });
+                    
+                    /* Target specific Oops message elements */
+                    div[class*="error"], div[id*="error"],
+                    [class*="error"], [id*="error"],
+                    [class*="modal"], [id*="modal"] {
+                        display: none !important;
+                        visibility: hidden !important;
+                    }
+                    
+                    /* Remove modal backdrops */
+                    body.modal-open {
+                        overflow: auto !important;
+                    }
+                    
+                    /* Remove fixed position elements that could be popups */
+                    body > div[style*="position: fixed"],
+                    body > div[style*="position:fixed"] {
+                        display: none !important;
+                    }
+                `;
+                iframeDoc.head.appendChild(style);
                 
-                // Make sure scrolling is enabled
+                // Re-enable scrolling
                 iframeDoc.body.style.overflow = 'auto';
                 
             } catch(e) {
-                console.error("Error cleaning iframe content:", e);
+                console.error("Error applying iframe styles:", e);
             }
         });
     </script>

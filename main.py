@@ -36,6 +36,26 @@ logger = logging.getLogger(__name__)
 # Now that logger is defined, import other modules
 import scheduler  # Import directly at the top level for screenshot functions
 import create_template  # Import directly for template creation
+
+# Start port proxy for Replit compatibility
+try:
+    import subprocess
+    import threading
+
+    def start_proxy_thread():
+        """Start the proxy server in a separate thread"""
+        logger.info("Starting port 8080 -> 5000 proxy server")
+        subprocess.Popen(['python', 'simple_proxy.py'], 
+                        stdout=open('proxy_output.log', 'a'),
+                        stderr=subprocess.STDOUT)
+        
+    # Start the proxy server in a separate thread
+    proxy_thread = threading.Thread(target=start_proxy_thread)
+    proxy_thread.daemon = True
+    proxy_thread.start()
+    logger.info("Port proxy thread started")
+except Exception as e:
+    logger.error(f"Failed to start proxy: {e}")
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory, send_file, session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -2464,7 +2484,7 @@ def view_zoomed_screenshot(screenshot_id):
 
 @app.route('/html-content/<int:screenshot_id>')
 def view_html_content(screenshot_id):
-    """View the raw HTML content of a screenshot using a custom template with popup removal"""
+    """View the raw HTML content of a screenshot using a clean template approach"""
     screenshot = Screenshot.query.get_or_404(screenshot_id)
     
     if not screenshot.html_path:
@@ -2478,12 +2498,12 @@ def view_html_content(screenshot_id):
         flash('HTML file not found', 'danger')
         return redirect(url_for('export_screenshots'))
     
-    # Read the HTML file
     try:
+        # Read the HTML content
         with open(html_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
         
-        # Render our custom template with the HTML content
+        # Render the template with the screenshot and HTML content
         return render_template('view_html_content.html', 
                               screenshot=screenshot, 
                               html_content=html_content)
@@ -2591,250 +2611,18 @@ def sync_all_screenshots():
                             filepath = os.path.join(screenshot_dir, f"{timestamp}_{safe_filename}.png")
                             html_filepath = os.path.join(html_dir, f"{timestamp}_{safe_filename}.html")
                             
-                            # Create a simple Python script to execute instead of using signals
-                            with tempfile.NamedTemporaryFile(suffix='.py', mode='w', delete=False) as temp:
-                                script_content = f"""
-import asyncio
-import random
-import time
-from pyppeteer import launch
-
-async def capture():
-    # Enhanced anti-detection browser settings
-    browser_args = [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-blink-features=AutomationControlled',
-        '--disable-features=IsolateOrigins,site-per-process',
-        '--disable-web-security',
-        f'--window-size={1280 + random.randint(1, 100)},{1024 + random.randint(1, 100)}',
-        '--ignore-certificate-errors',
-        '--ignore-certificate-errors-spki-list',
-        '--enable-features=NetworkService'
-    ]
-    
-    # Use a modern user agent to avoid detection
-    user_agents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0',
-    ]
-    selected_agent = random.choice(user_agents)
-    
-    browser = await launch(
-        headless=True,
-        ignoreHTTPSErrors=True,
-        args=browser_args,
-        ignoreDefaultArgs=['--enable-automation']
-    )
-    
-    try:
-        page = await browser.newPage()
-        
-        # Set user agent
-        await page.setUserAgent(selected_agent)
-        
-        # Set extra HTTP headers to appear more like a real browser
-        await page.setExtraHTTPHeaders({{
-            'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8,de;q=0.7',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-            'Cache-Control': 'max-age=0',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-User': '?1',
-            'Sec-Fetch-Dest': 'document'
-        }})
-        
-        # Set a custom viewport
-        await page.setViewport({{
-            'width': 1280 + random.randint(0, 100),
-            'height': 1024 + random.randint(0, 100),
-            'deviceScaleFactor': 1 + (random.random() * 0.3)
-        }})
-        
-        # Add JavaScript to avoid detection
-        await page.evaluateOnNewDocument("""
-        // Overwrite navigator properties to avoid detection
-        Object.defineProperty(navigator, 'webdriver', {{
-            get: () => false
-        }});
-        Object.defineProperty(navigator, 'plugins', {{
-            get: () => [
-                {{ name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' }},
-                {{ name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' }},
-                {{ name: 'Native Client', filename: 'internal-nacl-plugin' }}
-            ]
-        }});
-        
-        // Add randomized timing to evade pattern detection
-        const originalSetTimeout = window.setTimeout;
-        window.setTimeout = function(cb, time, ...args) {{
-            const randomOffset = Math.floor(Math.random() * 10);
-            return originalSetTimeout(cb, time + randomOffset, ...args);
-        }};
-        """)
-        
-        # Navigate to URL with retries for the "Oops" error
-        max_retries = 3
-        success = False
-        
-        for attempt in range(max_retries):
-            # Navigate to URL
-            print(f"Navigating to URL (attempt {{attempt+1}}/{{max_retries}})")
-            await page.goto('{url}', {{'waitUntil': 'networkidle0', 'timeout': 90000}})
-            
-            # Wait for content to load
-            await asyncio.sleep(2 + random.random() * 3)
-            
-            # Check if the "Oops" error message is present
-            has_error = await page.evaluate("""
-            () => {{
-                const oopsElem = document.querySelector('h1, h2, h3, div');
-                return oopsElem && oopsElem.innerText && oopsElem.innerText.includes('Oops');
-            }}
-            """)
-            
-            if has_error:
-                print(f"Detected 'Oops' error message, retrying (attempt {{attempt+1}}/{{max_retries}})")
-                
-                # Try to dismiss the error if possible
-                await page.evaluate("""
-                () => {{
-                    // Try to find and click any close buttons
-                    const closeButtons = Array.from(document.querySelectorAll('button, .close, [aria-label="Close"]'));
-                    for (const btn of closeButtons) {{
-                        if (btn.innerText.includes('Close') || btn.classList.contains('close')) {{
-                            btn.click();
-                        }}
-                    }}
-                    
-                    // Try to reload or refresh the page using JavaScript
-                    location.reload();
-                }}
-                """)
-                
-                # Wait a moment and try a different approach
-                await asyncio.sleep(5 + random.random() * 5)
-                
-                # Try a direct browser refresh
-                await page.reload({{'waitUntil': 'networkidle0', 'timeout': 60000}})
-                await asyncio.sleep(2 + random.random() * 2)
-                
-                # Use a different user agent for the retry
-                new_agent = random.choice([ua for ua in user_agents if ua != selected_agent])
-                await page.setUserAgent(new_agent)
-                
-                # Let's add some human-like scrolling
-                scroll_pos = 0
-                for _ in range(random.randint(3, 8)):
-                    scroll_amount = random.randint(300, 700)
-                    scroll_pos += scroll_amount
-                    await page.evaluate(f"window.scrollTo(0, {{scroll_pos}})")
-                    await asyncio.sleep(0.5 + random.random())
-                
-                # Scroll back to top
-                await page.evaluate("window.scrollTo(0, 0)")
-                await asyncio.sleep(1 + random.random())
-                
-                # Try navigating again after applying these changes
-                await page.goto('{url}', {{'waitUntil': 'networkidle0', 'timeout': 90000}})
-                await asyncio.sleep(2 + random.random() * 2)
-                
-                # Check if the error is still present
-                has_error = await page.evaluate("""
-                () => {{
-                    const oopsElem = document.querySelector('h1, h2, h3, div');
-                    return oopsElem && oopsElem.innerText && oopsElem.innerText.includes('Oops');
-                }}
-                """)
-                
-                if not has_error:
-                    success = True
-                    break
-            else:
-                success = True
-                break
-        
-        # Remove any overlay or popup that might be in the way
-        await page.evaluate("""
-        () => {{
-            // Remove cookie banners and overlays
-            const elementsToRemove = [
-                '.cookie-banner', '#cookie-banner', '.cookie-consent', '#cookie-consent',
-                '.modal', '.modal-backdrop', '.popup', '#popup', '.overlay', '#overlay',
-                '[class*="cookie"]', '[id*="cookie"]', '[class*="consent"]', '[id*="consent"]',
-                '[class*="popup"]', '[id*="popup"]'
-            ];
-            
-            // Remove elements that match selectors
-            elementsToRemove.forEach(selector => {{
-                document.querySelectorAll(selector).forEach(el => {{
-                    el.style.display = 'none';
-                    el.style.visibility = 'hidden';
-                    el.style.opacity = '0';
-                }});
-            }});
-            
-            // Remove fixed position elements that might be overlays
-            document.querySelectorAll('body > *').forEach(el => {{
-                const style = window.getComputedStyle(el);
-                if (style.position === 'fixed' && 
-                    (style.zIndex === 'auto' || parseInt(style.zIndex) > 100)) {{
-                    el.style.display = 'none';
-                }}
-            }});
-        }}
-        """)
-        
-        await asyncio.sleep(1)
-        
-        # Save screenshot
-        print("Taking screenshot")
-        await page.screenshot({{'path': '{filepath}', 'fullPage': True, 'quality': 100}})
-        
-        # Save HTML content
-        print("Saving HTML content")
-        html_content = await page.content()
-        with open('{html_filepath}', 'w', encoding='utf-8') as f:
-            f.write(html_content)
-        
-        await browser.close()
-        return success
-    except Exception as e:
-        print(f"Error: {{str(e)}}")
-        try:
-            await browser.close()
-        except:
-            pass
-        return False
-
-success = asyncio.get_event_loop().run_until_complete(capture())
-if success:
-    print("Screenshot captured successfully")
-else:
-    print("Failed to capture screenshot")
-                                """
-                                temp.write(script_content)
-                                temp_script_path = temp.name
+                            # Use our improved puppeteer_executor module 
+                            from puppeteer_executor import capture_screenshot
                             
-                            # Execute the script in a separate process
-                            process = subprocess.run(['python', temp_script_path], 
-                                                    stdout=subprocess.PIPE, 
-                                                    stderr=subprocess.PIPE,
-                                                    timeout=120)
-                            
-                            # Clean up the temporary script
-                            try:
-                                os.unlink(temp_script_path)
-                            except:
-                                pass
+                            success = capture_screenshot(
+                                url=url,
+                                output_path=filepath,
+                                html_path=html_filepath,
+                                timeout=120
+                            )
                             
                             # Check if the screenshot was created successfully
-                            if process.returncode == 0 and os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                            if success and os.path.exists(filepath) and os.path.getsize(filepath) > 0:
                                 result = {
                                     'status': 'success',
                                     'path': filepath,

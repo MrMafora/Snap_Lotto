@@ -12,7 +12,7 @@ from flask_login import login_required, current_user
 from datetime import datetime
 
 # Import puppeteer service
-from puppeteer_service import capture_multiple_screenshots, LOTTERY_URLS
+from puppeteer_service import process_lottery_screenshots, LOTTERY_URLS
 
 # Set up logging
 logging.basicConfig(level=logging.INFO,
@@ -62,7 +62,11 @@ def capture_screenshots_api():
         
         # Start the capture process
         start_time = time.time()
-        results = capture_multiple_screenshots(urls_to_capture)
+        screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
+        
+        # Convert list to dictionary format expected by process_lottery_screenshots
+        url_dict = {url['type']: url['url'] for url in urls_to_capture}
+        results = process_lottery_screenshots(url_dict, screenshot_dir)
         elapsed_time = time.time() - start_time
         
         # Count successes and failures
@@ -182,7 +186,11 @@ def sync_screenshots():
         try:
             # Start the capture process for all URLs
             start_time = time.time()
-            results = capture_multiple_screenshots(LOTTERY_URLS)
+            screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
+            
+            # Convert list to dictionary format expected by process_lottery_screenshots
+            url_dict = {url['type']: url['url'] for url in LOTTERY_URLS}
+            results = process_lottery_screenshots(url_dict, screenshot_dir)
             elapsed_time = time.time() - start_time
             
             # Count successes and failures
