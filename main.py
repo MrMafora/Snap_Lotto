@@ -228,6 +228,36 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 # Additional routes and functionality would be defined here...
 # For the sake of brevity, only core routes are included
 
+# Utility function to determine whether to allow sample images
+def should_allow_sample_images(force_download=False):
+    """
+    Determines whether sample images from attached_assets should be allowed.
+    
+    Args:
+        force_download (bool): Whether this is for a download request
+        
+    Returns:
+        bool: True if sample images should be allowed, False otherwise
+    """
+    # Never use sample images for downloads
+    if force_download:
+        return False
+    
+    # Never use samples right after cleanup
+    if session.get('prevent_recreation'):
+        return False
+    
+    # Never use samples with strict_cleanup flag
+    if request.args.get('strict_cleanup') == 'true':
+        return False
+    
+    # Never use samples if explicitly disabled
+    if request.args.get('allow_samples') == 'false':
+        return False
+    
+    # Default behavior - only use samples if explicitly requested
+    return request.args.get('allow_samples') == 'true'
+
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""
@@ -1516,6 +1546,16 @@ def ensure_all_screenshot_entries_exist():
     corresponding entry - it won't create duplicates for variations of
     lottery types that are already represented.
     """
+    # Check if recreation prevention is active
+    if session.get('prevent_recreation'):
+        app.logger.warning("Screenshot recreation prevention active - skipping ensure_all_screenshot_entries_exist")
+        return 0, 0  # Return zero counts to indicate no action was taken
+    
+    # Check if strict cleanup mode is enabled
+    if request.args.get('strict_cleanup') == 'true':
+        app.logger.warning("Strict cleanup mode active - skipping ensure_all_screenshot_entries_exist")
+        return 0, 0
+        
     from puppeteer_service import LOTTERY_URLS, standardize_lottery_type
     
     # Get all existing screenshots
@@ -1612,12 +1652,14 @@ def export_screenshots():
     # Check for session flag from cleanup operation
     if session.get('prevent_recreation'):
         prevent_recreation = True
-        # Clear the flag (one-time use)
-        session.pop('prevent_recreation', None)
+        app.logger.warning("Screenshot recreation prevention active from session flag")
+        # Don't clear the flag immediately so it can affect ensure_all_screenshot_entries_exist
+        # It will be cleared at the end of this function
     
     # Check for URL parameter from cleanup operation
     if request.args.get('strict_cleanup') == 'true':
         prevent_recreation = True
+        app.logger.warning("Screenshot recreation prevention active from strict_cleanup parameter")
     
     # Only ensure screenshot entries exist if explicitly requested
     # AND we don't have any prevention flags active
@@ -2366,48 +2408,65 @@ def view_screenshot(screenshot_id):
             app.logger.error(error_msg)
             attempts.append(error_msg)
     
-    # Check the attached_assets directory for any matching files
-    attached_assets_dir = 'attached_assets'
+    # Use our utility function to determine whether to allow sample images
+    allow_attached_assets = should_allow_sample_images(force_download)
+    
+    # Log the decision for debugging
+    if not allow_attached_assets:
+        app.logger.info("Samples disabled: Using only real screenshots (no fallback to attached_assets)")
+    else:
+        app.logger.info("Samples enabled: Will use attached_assets as fallback if needed")
+    
+    # If allowed, check the attached_assets directory for any matching files
     attached_files = []
     
-    if os.path.exists(attached_assets_dir):
-        for filename in os.listdir(attached_assets_dir):
-            if screenshot.lottery_type.lower().replace(' ', '_') in filename.lower():
-                file_path = os.path.join(attached_assets_dir, filename)
-                if os.path.isfile(file_path) and os.path.getsize(file_path) > 100:
-                    attached_files.append(file_path)
+    if allow_attached_assets:
+        attached_assets_dir = 'attached_assets'
+        
+        if os.path.exists(attached_assets_dir):
+            for filename in os.listdir(attached_assets_dir):
+                if screenshot.lottery_type.lower().replace(' ', '_') in filename.lower():
+                    file_path = os.path.join(attached_assets_dir, filename)
+                    if os.path.isfile(file_path) and os.path.getsize(file_path) > 100:
+                        attached_files.append(file_path)
     
-    # If we found matching attached files, use the most recent one
-    if attached_files:
-        attached_files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
-        newest_file = attached_files[0]
-        
-        app.logger.info(f"Using file from attached_assets directory: {newest_file}")
-        attempts.append(f"Using attached_assets file: {newest_file}")
-        
-        try:
-            # Get the correct mimetype
-            _, ext = os.path.splitext(newest_file)
-            if ext.lower() in ['.jpg', '.jpeg']:
-                mimetype = 'image/jpeg'
-            elif ext.lower() == '.png':
-                mimetype = 'image/png'
-            elif ext.lower() == '.html':
-                mimetype = 'text/html'
-            else:
-                mimetype = 'application/octet-stream'
+        # If we found matching attached files, use the most recent one
+        if attached_files:
+            attached_files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
+            newest_file = attached_files[0]
             
-            # Return the attached file
-            return send_file(
-                newest_file,
-                mimetype=mimetype,
-                as_attachment=force_download,
-                download_name=f"{screenshot.lottery_type.replace(' ', '_')}{ext}"
-            )
-        except Exception as e:
-            error_msg = f"Error sending attached file: {str(e)}"
-            app.logger.error(error_msg)
-            attempts.append(error_msg)
+            app.logger.info(f"Using file from attached_assets directory: {newest_file}")
+            attempts.append(f"Using attached_assets file: {newest_file}")
+            
+            try:
+                # Get the correct mimetype
+                _, ext = os.path.splitext(newest_file)
+                if ext.lower() in ['.jpg', '.jpeg']:
+                    mimetype = 'image/jpeg'
+                elif ext.lower() == '.png':
+                    mimetype = 'image/png'
+                elif ext.lower() == '.html':
+                    mimetype = 'text/html'
+                else:
+                    mimetype = 'application/octet-stream'
+                
+                # Return the attached file, but mark it as a sample
+                response = send_file(
+                    newest_file,
+                    mimetype=mimetype,
+                    as_attachment=force_download,
+                    download_name=f"SAMPLE_{screenshot.lottery_type.replace(' ', '_')}{ext}"
+                )
+                
+                # Add a custom header to indicate this is a sample/example image
+                response.headers['X-Content-Source'] = 'sample'
+                return response
+            except Exception as e:
+                error_msg = f"Error sending attached file: {str(e)}"
+                app.logger.error(error_msg)
+                attempts.append(error_msg)
+    else:
+        app.logger.info("Attached assets fallback disabled - only using real screenshots")
     
     # Try an embedded/inline response with HTML fallback
     try:
