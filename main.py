@@ -3130,24 +3130,34 @@ def cleanup_screenshots():
         except Exception as std_error:
             app.logger.error(f"Error standardizing lottery types: {str(std_error)}")
         
-        # AGGRESSIVE APPROACH: Keep only the newest screenshot for each URL
-        # regardless of lottery type
+        # AGGRESSIVE APPROACH: Keep only the newest screenshot for each lottery_type+URL combination
         
-        # 1. Group by URL and find the newest screenshot for each URL
-        url_to_newest = {}
+        # 1. Group by lottery_type+URL and find the newest screenshot for each combination
+        combo_to_newest = {}
         all_screenshots = Screenshot.query.all()
         
         for screenshot in all_screenshots:
-            url = screenshot.url
-            if url not in url_to_newest or screenshot.timestamp > url_to_newest[url].timestamp:
-                url_to_newest[url] = screenshot
-                
-        app.logger.info(f"Keeping {len(url_to_newest)} screenshots (1 per URL)")
+            combo_key = (screenshot.lottery_type, screenshot.url)
+            if combo_key not in combo_to_newest or screenshot.timestamp > combo_to_newest[combo_key].timestamp:
+                combo_to_newest[combo_key] = screenshot
         
-        # 2. Any screenshot not in the url_to_newest values should be deleted
+        # Count how many unique combos we found for each lottery_type
+        lottery_type_counts = {}
+        for combo_key in combo_to_newest:
+            lottery_type = combo_key[0]
+            lottery_type_counts[lottery_type] = lottery_type_counts.get(lottery_type, 0) + 1
+            
+        for lottery_type, count in lottery_type_counts.items():
+            if count > 1:
+                app.logger.info(f"Found {count} different URLs for lottery_type '{lottery_type}'")
+                
+        app.logger.info(f"Keeping {len(combo_to_newest)} screenshots (1 per unique lottery_type+URL combination)")
+        
+        # 2. Any screenshot not in the combo_to_newest values should be deleted
         screenshots_to_delete = []
         for screenshot in all_screenshots:
-            if url_to_newest.get(screenshot.url) != screenshot:
+            combo_key = (screenshot.lottery_type, screenshot.url)
+            if combo_to_newest.get(combo_key) != screenshot:
                 screenshots_to_delete.append(screenshot)
                 
         app.logger.info(f"Found {len(screenshots_to_delete)} screenshots to delete")
