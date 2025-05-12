@@ -1547,9 +1547,9 @@ def ensure_all_screenshot_entries_exist():
     # Get all existing screenshots
     existing_screenshots = Screenshot.query.all()
     
-    # Track standardized types and URLs to prevent duplicates
-    existing_standard_types = {standardize_lottery_type(screenshot.lottery_type) for screenshot in existing_screenshots}
-    existing_urls = {screenshot.url for screenshot in existing_screenshots}
+    # Create a set of tuples (lottery_type, url) for more accurate duplicate detection
+    existing_combinations = {(standardize_lottery_type(screenshot.lottery_type), screenshot.url) 
+                             for screenshot in existing_screenshots}
     
     # Track what needs to be synced
     missing_count = 0
@@ -1557,42 +1557,42 @@ def ensure_all_screenshot_entries_exist():
     
     # Process configured URLs first (from Settings page)
     schedule_configs = ScheduleConfig.query.all()
-    scheduled_types = set()
+    scheduled_combinations = set()
     
     # Identify missing entries from ScheduleConfig (settings page)
     for config in schedule_configs:
         # Standardize the type for comparison
         standard_type = standardize_lottery_type(config.lottery_type)
-        scheduled_types.add(standard_type)
+        combination = (standard_type, config.url)
+        scheduled_combinations.add(combination)
         
-        # Report if BOTH the URL and standardized type are missing
-        if config.url not in existing_urls and standard_type not in existing_standard_types:
-            app.logger.info(f"Found missing screenshot for scheduled URL: {config.lottery_type}")
+        # Report if the combination of lottery_type and URL is missing
+        if combination not in existing_combinations:
+            app.logger.info(f"Found missing screenshot for scheduled URL: {config.lottery_type} at {config.url}")
             missing_entries.append({
                 'url': config.url,
                 'lottery_type': standard_type
             })
             missing_count += 1
-            # Add to tracking sets to prevent duplicates in this report
-            existing_standard_types.add(standard_type)
-            existing_urls.add(config.url)
+            # Add to tracking set to prevent duplicates in this report
+            existing_combinations.add(combination)
     
     # Identify missing entries from hardcoded LOTTERY_URLS as fallback
     for lottery_type, url in LOTTERY_URLS.items():
         # Standardize the type for comparison
         standard_type = standardize_lottery_type(lottery_type)
+        combination = (standard_type, url)
         
-        # Report if BOTH the standardized type is missing and not in scheduled types
-        if standard_type not in existing_standard_types and standard_type not in scheduled_types:
-            app.logger.info(f"Found missing screenshot from default URLs: {lottery_type}")
+        # Report if the combination of type and URL is missing and not already in scheduled combinations
+        if combination not in existing_combinations and combination not in scheduled_combinations:
+            app.logger.info(f"Found missing screenshot from default URLs: {lottery_type} at {url}")
             missing_entries.append({
                 'url': url,
                 'lottery_type': standard_type
             })
             missing_count += 1
-            # Add to tracking sets to prevent duplicates in this report
-            existing_standard_types.add(standard_type)
-            existing_urls.add(url)
+            # Add to tracking set to prevent duplicates in this report
+            existing_combinations.add(combination)
     
     # Save the missing entries to session for potential sync
     if missing_count > 0:
@@ -2703,27 +2703,38 @@ def sync_all_screenshots():
                             if result.get('status') == 'success':
                                 puppeteer_capture_status['success_count'] += 1
                                 
-                                # Find or create screenshot record
-                                screenshot = Screenshot.query.filter_by(lottery_type=lottery_type).first()
+                                # Find or create screenshot record - search by BOTH lottery_type AND url
+                                screenshot = Screenshot.query.filter_by(lottery_type=lottery_type, url=url).first()
+                                
+                                # If not found by both, try to find just by lottery_type for backward compatibility
+                                if not screenshot:
+                                    existing_by_type = Screenshot.query.filter_by(lottery_type=lottery_type).all()
+                                    if existing_by_type:
+                                        # Log that we found multiple entries
+                                        app.logger.warning(f"Found {len(existing_by_type)} existing screenshots for {lottery_type}, using the most recent one")
+                                        # Sort by timestamp descending and use the most recent one
+                                        screenshot = sorted(existing_by_type, key=lambda x: x.timestamp, reverse=True)[0]
                                 
                                 if screenshot:
                                     # Update existing record
                                     screenshot.path = result.get('path')
-                                    screenshot.html_path = result.get('html_path', '')  # Store HTML path if available
+                                    screenshot.html_path = result.get('html_path') if result.get('html_path') else None
                                     screenshot.url = url  # Make sure the URL is updated to match the settings
                                     screenshot.timestamp = datetime.now()
                                     db_updates += 1
+                                    app.logger.info(f"Updated existing screenshot for {lottery_type} at {url}")
                                 else:
                                     # Create new record
                                     screenshot = Screenshot(
                                         lottery_type=lottery_type,
                                         path=result.get('path'),
-                                        html_path=result.get('html_path') if result.get('html_path') else None,  # Use None instead of empty string
+                                        html_path=result.get('html_path') if result.get('html_path') else None,
                                         url=url,
                                         timestamp=datetime.now()
                                     )
                                     db.session.add(screenshot)
                                     db_creates += 1
+                                    app.logger.info(f"Created new screenshot for {lottery_type} at {url}")
                                     
                                 # Commit after each successful screenshot
                                 db.session.commit()
