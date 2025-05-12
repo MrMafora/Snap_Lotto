@@ -2859,15 +2859,9 @@ def sync_single_screenshot(screenshot_id):
             screenshot.url = url  # Store the URL from settings page
             screenshot.timestamp = datetime.now()
             
-            # Also update HTML path if available
-            if result.get('html_path'):
-                screenshot.html_path = result.get('html_path')
-                app.logger.info(f"Updated HTML path: {result.get('html_path')}")
-            
             db.session.commit()
             
-            app.logger.info(f"Screenshot successfully synchronized: Path={result.get('path')}, "
-                           f"HTML Path={result.get('html_path')}")
+            app.logger.info(f"Screenshot successfully synchronized: Path={result.get('path')}")
             
             # Verify the file exists
             file_path = result.get('path')
