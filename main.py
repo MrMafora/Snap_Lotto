@@ -1735,6 +1735,12 @@ def export_screenshots():
         'status_message': puppeteer_capture_status.get('status_message', '')
     }
     
+    # After rendering template, clear the session flag - but only if this isn't cleanup-initiated
+    # If this is in response to a cleanup, we want to keep the flag active
+    if session.get('prevent_recreation') and not request.args.get('strict_cleanup') == 'true':
+        app.logger.info("Clearing prevent_recreation session flag")
+        session.pop('prevent_recreation', None)
+    
     return render_template('export_screenshots.html',
                           screenshots=screenshots,
                           title="Export Lottery Screenshots | Data Management",
