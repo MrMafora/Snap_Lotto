@@ -13,6 +13,7 @@ port 8080 required by Replit for public access.
 import logging
 import os
 import io
+import re
 import time
 import threading
 import traceback
@@ -2484,7 +2485,7 @@ def view_zoomed_screenshot(screenshot_id):
 
 @app.route('/html-content/<int:screenshot_id>')
 def view_html_content(screenshot_id):
-    """View the raw HTML content of a screenshot using a clean template approach"""
+    """View the raw HTML content of a screenshot using a clean template approach with enhanced anti-popup protection"""
     screenshot = Screenshot.query.get_or_404(screenshot_id)
     
     if not screenshot.html_path:
@@ -2503,6 +2504,13 @@ def view_html_content(screenshot_id):
         with open(html_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
         
+        # Pre-process the HTML content to remove known popup triggers
+        # This is the first defense against popups, before they even load
+        html_content = pre_process_html_content(html_content)
+        
+        # Log the successful processing
+        app.logger.info(f"Successfully processed HTML content for {screenshot.lottery_type} from {html_path}")
+        
         # Render the template with the screenshot and HTML content
         return render_template('view_html_content.html', 
                               screenshot=screenshot, 
@@ -2511,6 +2519,78 @@ def view_html_content(screenshot_id):
         app.logger.error(f"Error processing HTML content: {str(e)}")
         flash(f"Error viewing HTML content: {str(e)}", 'danger')
         return redirect(url_for('export_screenshots'))
+        
+def pre_process_html_content(html_content):
+    """Pre-process HTML content to remove known popup triggers before rendering"""
+    try:
+        # Remove scripts that might trigger popups
+        html_content = re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL)
+        
+        # Remove onload handlers that might trigger popups
+        html_content = re.sub(r'onload\s*=\s*["\'][^"\']*["\']', '', html_content)
+        
+        # Remove known modal/popup elements
+        popup_patterns = [
+            r'<div[^>]*class\s*=\s*["\'][^"\']*modal[^"\']*["\'][^>]*>.*?</div>',
+            r'<div[^>]*id\s*=\s*["\'][^"\']*modal[^"\']*["\'][^>]*>.*?</div>',
+            r'<div[^>]*class\s*=\s*["\'][^"\']*popup[^"\']*["\'][^>]*>.*?</div>',
+            r'<div[^>]*id\s*=\s*["\'][^"\']*popup[^"\']*["\'][^>]*>.*?</div>',
+            r'<div[^>]*class\s*=\s*["\'][^"\']*overlay[^"\']*["\'][^>]*>.*?</div>',
+            r'<div[^>]*id\s*=\s*["\'][^"\']*overlay[^"\']*["\'][^>]*>.*?</div>'
+        ]
+        
+        for pattern in popup_patterns:
+            html_content = re.sub(pattern, '', html_content, flags=re.DOTALL)
+        
+        # Inject our own styles at the beginning of the <head> to ensure they take priority
+        head_injection = '''
+        <style type="text/css">
+            /* Anti-popup styles */
+            [role="dialog"],
+            .modal-dialog,
+            .modal,
+            .popup,
+            .overlay,
+            div[class*="popup"],
+            div[id*="popup"],
+            div[class*="modal"],
+            div[id*="modal"],
+            div[class*="dialog"],
+            div[id*="dialog"],
+            .fade.in,
+            #modal-container,
+            .modal-container,
+            .modal-content,
+            .modal-body,
+            .modal-header,
+            .modal-footer,
+            #popup-message,
+            .popup-message,
+            .error-popup,
+            .warning-popup {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+            }
+            body, html {
+                overflow: auto !important;
+                padding-right: 0 !important;
+            }
+        </style>
+        '''
+        
+        # Insert our styles into the head
+        if '<head>' in html_content:
+            html_content = html_content.replace('<head>', '<head>' + head_injection)
+        else:
+            # If no head tag, add it
+            html_content = '<head>' + head_injection + '</head>' + html_content
+            
+        return html_content
+    except Exception as e:
+        app.logger.error(f"Error pre-processing HTML content: {str(e)}")
+        # Return the original content if processing fails
+        return html_content
 
 @app.route('/sync-all-screenshots', methods=['POST'])
 @login_required

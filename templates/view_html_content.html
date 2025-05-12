@@ -73,6 +73,8 @@
         <iframe id="content-frame" srcdoc="{{ html_content|safe }}"></iframe>
     </div>
 
+    <!-- Include popup remover script -->
+    <script src="{{ url_for('static', filename='js/popup_remover.js') }}"></script>
     <script>
         // Wait for iframe to load
         document.getElementById('content-frame').addEventListener('load', function() {
@@ -83,27 +85,70 @@
                 // Apply styles to hide popups in the iframe
                 var style = iframeDoc.createElement('style');
                 style.textContent = `
-                    .popup, .overlay, .modal, .cookie-banner, .consent-banner, 
-                    div[class*="popup"], div[class*="modal"], div[class*="overlay"], 
-                    div[class*="cookie"], div[class*="consent"],
-                    div[role="dialog"], div[aria-modal="true"], .fade {
+                    /* Hide any modal dialogs or popups with "Oops" messages */
+                    [role="dialog"],
+                    .modal-dialog,
+                    .modal,
+                    .popup,
+                    .overlay,
+                    div[class*="popup"],
+                    div[id*="popup"],
+                    div[class*="modal"],
+                    div[id*="modal"],
+                    div[class*="dialog"],
+                    div[id*="dialog"],
+                    .fade.in,
+                    #modal-container,
+                    .modal-container,
+                    .modal-content,
+                    .modal-body,
+                    .modal-header,
+                    .modal-footer,
+                    #popup-message,
+                    .popup-message,
+                    .error-popup,
+                    .warning-popup,
+                    div[class*="error"], 
+                    div[id*="error"],
+                    [class*="error"], 
+                    [id*="error"],
+                    [class*="modal"], 
+                    [id*="modal"],
+                    .cookie-banner, 
+                    .consent-banner, 
+                    div[class*="cookie"], 
+                    div[class*="consent"],
+                    div[aria-modal="true"] {
                         display: none !important;
                         visibility: hidden !important;
                         opacity: 0 !important;
                         pointer-events: none !important;
                     }
                     
-                    /* Target specific Oops message elements */
-                    div[class*="error"], div[id*="error"],
-                    [class*="error"], [id*="error"],
-                    [class*="modal"], [id*="modal"] {
+                    /* Remove modal backdrops */
+                    .modal-backdrop,
+                    .overlay,
+                    .fade,
+                    .in,
+                    div[class*="overlay"],
+                    div[id*="overlay"] {
                         display: none !important;
                         visibility: hidden !important;
+                        opacity: 0 !important;
                     }
                     
-                    /* Remove modal backdrops */
+                    /* Ensure body and html elements can scroll */
+                    body, html {
+                        overflow: auto !important;
+                        position: static !important;
+                        height: auto !important;
+                        width: auto !important;
+                    }
+                    
+                    /* Remove modal open class effects */
                     body.modal-open {
                         overflow: auto !important;
+                        padding-right: 0 !important;
                     }
                     
                     /* Remove fixed position elements that could be popups */
@@ -116,11 +161,147 @@
                 
                 // Re-enable scrolling
                 iframeDoc.body.style.overflow = 'auto';
+                iframeDoc.documentElement.style.overflow = 'auto';
+                
+                // Create and add popup remover script to iframe
+                var script = iframeDoc.createElement('script');
+                script.textContent = `
+                    // Function to remove popups
+                    function removePopups() {
+                        // Common popup selectors
+                        const popupSelectors = [
+                            '[role="dialog"]',
+                            '.modal-dialog',
+                            '.modal',
+                            '.popup',
+                            '.overlay',
+                            'div[class*="popup"]',
+                            'div[id*="popup"]',
+                            'div[class*="modal"]',
+                            'div[id*="modal"]',
+                            'div[class*="dialog"]',
+                            'div[id*="dialog"]',
+                            '.fade.in',
+                            '#modal-container',
+                            '.modal-container',
+                            '.modal-content',
+                            '.modal-body',
+                            '.modal-header',
+                            '.modal-footer',
+                            '#popup-message',
+                            '.popup-message',
+                            '.error-popup',
+                            '.warning-popup',
+                            'div[class*="error"]', 
+                            'div[id*="error"]',
+                            '[class*="error"]', 
+                            '[id*="error"]',
+                            '[class*="modal"]', 
+                            '[id*="modal"]'
+                        ];
+                        
+                        // Find and remove all popups
+                        popupSelectors.forEach(selector => {
+                            document.querySelectorAll(selector).forEach(element => {
+                                element.remove();
+                            });
+                        });
+                        
+                        // Remove modal backdrops
+                        document.querySelectorAll('.modal-backdrop, .overlay, .fade, .in').forEach(element => {
+                            element.remove();
+                        });
+                        
+                        // Fix body styling
+                        document.body.classList.remove('modal-open');
+                        document.body.style.overflow = 'auto';
+                        document.body.style.paddingRight = '0';
+                        
+                        // Remove any inline styles that might lock scrolling
+                        document.body.removeAttribute('style');
+                        document.documentElement.removeAttribute('style');
+                        
+                        // Re-apply essential styles
+                        document.body.style.overflow = 'auto';
+                        document.documentElement.style.overflow = 'auto';
+                    }
+                    
+                    // Run immediately and then periodically to catch any new popups
+                    removePopups();
+                    setInterval(removePopups, 500);
+                    
+                    // Also run when DOM changes
+                    const observer = new MutationObserver(function(mutations) {
+                        removePopups();
+                    });
+                    
+                    // Start observing
+                    observer.observe(document.body, { 
+                        childList: true, 
+                        subtree: true 
+                    });
+                `;
+                iframeDoc.body.appendChild(script);
+                
+                // Run script immediately in parent context
+                removePopupsFromIframe(this.contentWindow);
                 
             } catch(e) {
                 console.error("Error applying iframe styles:", e);
             }
         });
+        
+        // Helper function to remove popups from iframe
+        function removePopupsFromIframe(iframeWindow) {
+            try {
+                // Get the iframe document
+                var iframeDoc = iframeWindow.document;
+                
+                // Common popup selectors to target
+                const popupSelectors = [
+                    '[role="dialog"]',
+                    '.modal-dialog',
+                    '.modal',
+                    '.popup',
+                    '.overlay',
+                    'div[class*="popup"]',
+                    'div[id*="popup"]',
+                    'div[class*="modal"]',
+                    'div[id*="modal"]',
+                    'div[class*="dialog"]',
+                    'div[id*="dialog"]',
+                    '.fade.in',
+                    '#modal-container',
+                    '.modal-container',
+                    '.modal-content',
+                    '.modal-body',
+                    '.modal-header',
+                    '.modal-footer',
+                    '#popup-message',
+                    '.popup-message',
+                    '.error-popup',
+                    '.warning-popup'
+                ];
+                
+                // Find and remove all popups
+                popupSelectors.forEach(selector => {
+                    const elements = iframeDoc.querySelectorAll(selector);
+                    elements.forEach(element => {
+                        element.parentNode.removeChild(element);
+                    });
+                });
+                
+                // Fix body styling
+                const body = iframeDoc.body;
+                if (body) {
+                    body.classList.remove('modal-open');
+                    body.style.overflow = 'auto';
+                    body.style.paddingRight = '0';
+                }
+            } catch (e) {
+                console.error("Error removing popups:", e);
+            }
+        }
     </script>
 </body>
 </html>
