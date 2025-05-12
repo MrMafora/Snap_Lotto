@@ -1635,7 +1635,8 @@ def export_screenshots():
     
     # Check for missing screenshot entries but DO NOT create them
     # This supports our data integrity policy of not having placeholders
-    if not prevent_recreation and request.args.get('check_missing') == 'true':
+    # Always check for missing entries when the page loads, unless prevented
+    if not prevent_recreation:
         missing_count = ensure_all_screenshot_entries_exist()
         if missing_count > 0:
             flash(f'Found {missing_count} missing screenshot entries. Please use the "Sync All Screenshots" button to capture them.', 'info')
