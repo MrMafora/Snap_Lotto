@@ -2090,16 +2090,14 @@ def view_screenshot(screenshot_id):
         newest_file = matching_files[0]
         
         # Update the screenshot record with the file path
-        if newest_file.endswith('.html'):
-            if not screenshot.html_path or not os.path.exists(screenshot.html_path):
-                screenshot.html_path = newest_file
-                db.session.commit()
-                app.logger.info(f"Updated screenshot HTML path to {newest_file}")
-        else:
+        # HTML files are no longer used, only process PNG files
+        if not newest_file.endswith('.html'):
             if not screenshot.path or not os.path.exists(screenshot.path):
                 screenshot.path = newest_file
                 db.session.commit()
                 app.logger.info(f"Updated screenshot path to {newest_file}")
+        else:
+            app.logger.info(f"Skipping HTML file {newest_file} as we no longer store HTML content")
     
     # HTML PNG generation has been removed as we no longer capture HTML content
     # We now only use PNG screenshots captured directly from the website

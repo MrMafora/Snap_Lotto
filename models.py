@@ -78,6 +78,8 @@ class Screenshot(db.Model):
     path = db.Column(db.String(255), nullable=True)  # Changed from nullable=False to nullable=True
     zoomed_path = db.Column(db.String(255), nullable=True)  # Legacy field, maintained for backward compatibility
     processed = db.Column(db.Boolean, default=False)
+    # Note: html_path field has been removed from the model but still exists in the database
+    # A migration is required to completely remove it from the schema
     
     def __repr__(self):
         return f"<Screenshot {self.id}: {self.lottery_type}>"
