@@ -5,6 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <!-- Include popup remover CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/popup_remover.css') }}">
     <style>
         body {
             padding: 20px;
@@ -45,6 +47,15 @@
             text-decoration: none;
             color: white;
         }
+        /* Enhanced anti-popup styles */
+        .anti-popup-notice {
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            color: #155724;
+        }
     </style>
 </head>
 <body>
@@ -53,6 +64,9 @@
         <p class="timestamp">Captured on: {{ screenshot.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</p>
         <p>URL: <a href="{{ screenshot.url }}" target="_blank">{{ screenshot.url }}</a></p>
         <a href="{{ url_for('export_screenshots') }}" class="btn btn-secondary">Back to Screenshots</a>
+        <div class="anti-popup-notice">
+            <strong>Anti-Popup Protection:</strong> Error popups and overlay warnings are automatically removed.
+        </div>
     </div>
 
     <div class="html-container">
