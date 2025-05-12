@@ -2101,46 +2101,9 @@ def view_screenshot(screenshot_id):
                 db.session.commit()
                 app.logger.info(f"Updated screenshot path to {newest_file}")
     
-    # Always try to generate a fresh PNG from HTML for consistent results
-    if screenshot.html_path and os.path.isfile(screenshot.html_path):
-        app.logger.info(f"HTML file exists at {screenshot.html_path} ({os.path.getsize(screenshot.html_path)} bytes)")
-        try:
-            app.logger.info(f"Using puppeteer_service.generate_png_from_html for {screenshot.html_path}")
-            
-            # Import the function from our puppeteer_service module
-            from puppeteer_service import generate_png_from_html
-            
-            # Generate the PNG image
-            success, temp_screenshot_path, error_message = generate_png_from_html(
-                html_path=screenshot.html_path
-            )
-            
-            # Check if generation was successful
-            if success and temp_screenshot_path and os.path.exists(temp_screenshot_path):
-                app.logger.info(f"Successfully generated PNG at {temp_screenshot_path} ({os.path.getsize(temp_screenshot_path)} bytes)")
-                attempts.append(f"Successfully generated PNG: {os.path.getsize(temp_screenshot_path)} bytes")
-                
-                # Return the generated file
-                return send_file(
-                    temp_screenshot_path,
-                    mimetype='image/png',
-                    as_attachment=force_download,
-                    download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png"
-                )
-            else:
-                error_msg = f"Failed to generate PNG: {error_message}"
-                app.logger.error(error_msg)
-                attempts.append(error_msg)
-                # Don't raise an exception, let it try the fallback methods
-                
-        except Exception as e:
-            error_msg = f"Error with puppeteer_service.generate_png_from_html: {str(e)}"
-            app.logger.error(error_msg)
-            attempts.append(error_msg)
-            
-            # Continue to fallback approaches - no exception needed
-    else:
-        attempts.append("HTML content capture has been removed from the application")
+    # HTML PNG generation has been removed as we no longer capture HTML content
+    # We now only use PNG screenshots captured directly from the website
+    attempts.append("HTML content capture has been removed from the application")
     
     # Try alternative: If we have a PNG in the database, use it
     if screenshot.path and os.path.isfile(screenshot.path):
@@ -3409,12 +3372,7 @@ def export_combined_zip():
                                 zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
                                 screenshots_added += 1
                                 
-                            # Add HTML content if it exists (from Puppeteer)
-                            if hasattr(screenshot, 'html_path') and screenshot.html_path and os.path.exists(screenshot.html_path):
-                                html_filename = f"{lottery_type}_{ss_timestamp}.html"
-                                zf.write(screenshot.html_path, f"html_content/{html_filename}")
-                                screenshots_added += 1
-                                logger.info(f"Added HTML content for {lottery_type}")
+                            # HTML content export has been removed as we no longer capture HTML content
                         else:
                             logger.warning(f"Screenshot file not found: {screenshot.path}")
                     except Exception as e:
