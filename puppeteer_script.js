@@ -7,7 +7,6 @@ const path = require('path');
 const args = process.argv.slice(2);
 const url = args[0];
 const screenshotPath = args[1];
-const htmlPath = args[2];
 
 async function captureScreenshot() {
     console.log(`Capturing screenshot for URL: ${url}`);
@@ -228,11 +227,6 @@ async function captureScreenshot() {
         // Save screenshot
         console.log("Taking screenshot");
         await page.screenshot({path: screenshotPath, fullPage: true, quality: 100});
-        
-        // Save HTML content
-        console.log("Saving HTML content");
-        const htmlContent = await page.content();
-        fs.writeFileSync(htmlPath, htmlContent);
         
         await browser.close();
         return success;
