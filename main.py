@@ -19,7 +19,7 @@ import threading
 import traceback
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import abort
+from flask import abort, make_response
 
 # Admin required decorator
 def admin_required(f):
@@ -231,32 +231,19 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 # Utility function to determine whether to allow sample images
 def should_allow_sample_images(force_download=False):
     """
-    Determines whether sample images from attached_assets should be allowed.
+    IMPORTANT: Sample images are no longer allowed under any circumstances.
+    We should never use fallback/sample images in lieu of real screenshots.
     
     Args:
         force_download (bool): Whether this is for a download request
         
     Returns:
-        bool: True if sample images should be allowed, False otherwise
+        bool: Always False - sample images are no longer allowed
     """
-    # Never use sample images for downloads
-    if force_download:
-        return False
-    
-    # Never use samples right after cleanup
-    if session.get('prevent_recreation'):
-        return False
-    
-    # Never use samples with strict_cleanup flag
-    if request.args.get('strict_cleanup') == 'true':
-        return False
-    
-    # Never use samples if explicitly disabled
-    if request.args.get('allow_samples') == 'false':
-        return False
-    
-    # Default behavior - only use samples if explicitly requested
-    return request.args.get('allow_samples') == 'true'
+    # Data integrity policy: Never use sample/fallback images
+    # Instead, properly display an error and direct users to synchronize screenshots
+    app.logger.info("Sample images policy: Samples are completely disabled - never falling back to attached_assets")
+    return False
 
 @app.route('/')
 def index():
