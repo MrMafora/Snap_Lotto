@@ -2661,45 +2661,36 @@ def sync_all_screenshots():
                     db_updates = 0
                     db_creates = 0
                     
+                    # Import our improved puppeteer service with standardization
+                    from puppeteer_service import capture_single_screenshot, standardize_lottery_type
+                    
                     # Process each URL individually to update status as we go
-                    for i, (lottery_type, url) in enumerate(config_urls.items()):
+                    for i, (original_type, url) in enumerate(config_urls.items()):
+                        # Standardize the lottery type to reduce duplicates
+                        lottery_type = standardize_lottery_type(original_type)
+                        
+                        # If the standardized type is different, log it
+                        if original_type != lottery_type:
+                            app.logger.info(f"Standardized lottery type from '{original_type}' to '{lottery_type}'")
+                        
                         # Update status - thread-safe, doesn't use session
                         puppeteer_capture_status['status_message'] = f"Capturing {lottery_type} screenshot ({i+1}/{len(config_urls)})..."
                         puppeteer_capture_status['last_updated'] = datetime.now()
                         
                         try:
-                            # Capture individual screenshot - using our own implementation to avoid signal issues
+                            # Capture individual screenshot using our improved service
                             app.logger.info(f"Capturing {lottery_type} from {url}")
                             
-                            # Directly use a simple subprocess approach instead of threading with signals
-                            # This avoids the "signal only works in main thread" issue
-                            import subprocess
-                            import json
-                            import tempfile
-                            import os
+                            # Use our enhanced puppeteer service that handles standardization
+                            capture_result = capture_single_screenshot(lottery_type, url, timeout=120)
                             
-                            # Create a timestamp for the filename
-                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                            safe_filename = lottery_type.replace(' ', '_').lower()
-                            
-                            # Define output paths
-                            screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
-                            html_dir = os.path.join(screenshot_dir, 'html')
-                            os.makedirs(screenshot_dir, exist_ok=True)
-                            os.makedirs(html_dir, exist_ok=True)
-                            
-                            filepath = os.path.join(screenshot_dir, f"{timestamp}_{safe_filename}.png")
-                            html_filepath = os.path.join(html_dir, f"{timestamp}_{safe_filename}.html")
-                            
-                            # Use our improved puppeteer_executor module 
-                            from puppeteer_executor import capture_screenshot
-                            
-                            success = capture_screenshot(
-                                url=url,
-                                output_path=filepath,
-                                html_path=html_filepath,
-                                timeout=120
-                            )
+                            # Check if the capture was successful
+                            if capture_result.get('status') == 'success':
+                                filepath = capture_result.get('path')
+                                html_filepath = capture_result.get('html_path')
+                                success = True
+                            else:
+                                success = False
                             
                             # Check if the screenshot was created successfully
                             if success and os.path.exists(filepath) and os.path.getsize(filepath) > 0:
@@ -2710,10 +2701,9 @@ def sync_all_screenshots():
                                     'url': url
                                 }
                             else:
-                                error_msg = process.stderr.decode('utf-8')
                                 result = {
                                     'status': 'failed',
-                                    'error': f"Process error: {error_msg}",
+                                    'error': f"Failed to capture screenshot",
                                     'url': url
                                 }
                             
@@ -2819,7 +2809,7 @@ def sync_all_screenshots():
 @login_required
 @csrf.exempt
 def sync_single_screenshot(screenshot_id):
-    """Sync a single screenshot by its ID using Puppeteer"""
+    """Sync a single screenshot by its ID using Puppeteer with standardized lottery types"""
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
@@ -2828,47 +2818,64 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Import Puppeteer service for capture function only
-        from puppeteer_service import capture_single_screenshot
+        # Import Puppeteer service for capture function and standardization
+        from puppeteer_service import capture_single_screenshot, standardize_lottery_type
         
-        # First check if there's a matching ScheduleConfig entry in the settings
-        lottery_type = screenshot.lottery_type
-        config = ScheduleConfig.query.filter_by(lottery_type=lottery_type).first()
+        # First, standardize the lottery type to reduce duplicates
+        original_type = screenshot.lottery_type
+        standardized_type = standardize_lottery_type(original_type)
+        
+        # If the standardized type is different, log it and update the database
+        if original_type != standardized_type:
+            app.logger.info(f"Standardized lottery type from '{original_type}' to '{standardized_type}'")
+            
+            # Update the screenshot record with the standardized type
+            screenshot.lottery_type = standardized_type
+            db.session.commit()
+        
+        # Now check for a matching ScheduleConfig entry using the standardized type
+        config = ScheduleConfig.query.filter_by(lottery_type=standardized_type).first()
+        
+        # If not found with standardized type, try with original type
+        if not config:
+            config = ScheduleConfig.query.filter_by(lottery_type=original_type).first()
         
         if config and config.url:
             # Use URL from settings page
             url = config.url
-            app.logger.info(f"Using URL from settings page for {lottery_type}: {url}")
+            app.logger.info(f"Using URL from settings page for {standardized_type}: {url}")
         else:
             # Fall back to hardcoded URLs if needed
             from puppeteer_service import LOTTERY_URLS
             
-            if lottery_type in LOTTERY_URLS:
-                url = LOTTERY_URLS[lottery_type]
-                app.logger.info(f"Using default URL for {lottery_type}: {url}")
+            # Convert standardized_type to lowercase and format for dictionary lookup
+            lookup_key = standardized_type.lower().replace(' ', '_')
+            
+            if lookup_key in LOTTERY_URLS:
+                url = LOTTERY_URLS[lookup_key]
+                app.logger.info(f"Using default URL for {standardized_type}: {url}")
             else:
                 # Try fuzzy matching for similar names
                 found_match = False
                 for known_type, known_url in LOTTERY_URLS.items():
-                    if known_type.lower() in lottery_type.lower() or lottery_type.lower() in known_type.lower():
-                        lottery_type = known_type
+                    if known_type.lower() in lookup_key or lookup_key in known_type.lower():
                         url = known_url
                         found_match = True
-                        app.logger.info(f"Found fuzzy match for {screenshot.lottery_type} → {lottery_type}")
+                        app.logger.info(f"Found fuzzy match for {standardized_type} → {known_type}")
                         break
                 
                 if not found_match:
-                    app.logger.error(f"Could not find matching URL for lottery type: {screenshot.lottery_type}")
+                    app.logger.error(f"Could not find matching URL for lottery type: {standardized_type}")
                     session['sync_status'] = {
                         'status': 'danger',
-                        'message': f'Error: Could not find URL for {screenshot.lottery_type}. Please add it in Settings.'
+                        'message': f'Error: Could not find URL for {standardized_type}. Please add it in Settings.'
                     }
                     return redirect(url_for('export_screenshots'))
         
-        app.logger.info(f"Capturing screenshot for {lottery_type} using Puppeteer from {url}...")
+        app.logger.info(f"Capturing screenshot for {standardized_type} using Puppeteer from {url}...")
         
-        # Capture the screenshot using the new capture_single_screenshot function
-        result = capture_single_screenshot(lottery_type, url)
+        # Capture the screenshot using the enhanced capture_single_screenshot function
+        result = capture_single_screenshot(standardized_type, url)
         
         if result.get('status') == 'success' and result.get('path'):
             # Update the screenshot record
@@ -2895,12 +2902,12 @@ def sync_single_screenshot(screenshot_id):
             
             session['sync_status'] = {
                 'status': 'success',
-                'message': f'Successfully captured screenshot for {lottery_type} using Puppeteer.'
+                'message': f'Successfully captured screenshot for {standardized_type} using Puppeteer.'
             }
         else:
             session['sync_status'] = {
                 'status': 'warning',
-                'message': f'Failed to capture screenshot for {lottery_type} using Puppeteer. Error: {result.get("error", "Unknown error")}'
+                'message': f'Failed to capture screenshot for {standardized_type} using Puppeteer. Error: {result.get("error", "Unknown error")}'
             }
     except Exception as e:
         app.logger.error(f"Error capturing screenshot with Puppeteer: {str(e)}")
