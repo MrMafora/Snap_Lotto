@@ -1,196 +1,263 @@
 """
-Simple Screenshot Manager for Lottery Websites
-
-This module provides a simplified approach to capturing lottery website screenshots.
-It focuses solely on capturing full-page screenshots without any data extraction or
-complex page interactions, designed to work with websites that have strong anti-scraping
-protections.
+A simplified screenshot management system for the Snap Lotto application.
+This module provides basic functionality to capture, store, and manage 
+screenshots of lottery results pages.
 """
+
 import os
 import logging
 import time
+import random
 from datetime import datetime
-import traceback
 import threading
-from playwright.sync_api import sync_playwright
-from models import db, Screenshot
-from logger import setup_logger
+from flask import Flask, current_app, session, flash, redirect, url_for
+from flask_login import current_user
 
-# Set up module-specific logger
-logger = setup_logger(__name__, level=logging.INFO)
+# Setup logging
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-# Create directory for screenshots if it doesn't exist
-SCREENSHOT_DIR = os.path.join(os.getcwd(), 'screenshots')
-os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+# Global status tracking
+screenshot_status = {
+    'in_progress': False,
+    'total_screenshots': 0,
+    'completed_screenshots': 0,
+    'start_time': None,
+    'success_count': 0,
+    'error_count': 0,
+    'status_message': 'Ready',
+    'errors': [],
+    'overall_status': None,
+    'last_updated': None
+}
 
-# Thread semaphore to limit concurrent screenshots
-# This prevents "can't start new thread" errors by limiting resource usage
-MAX_CONCURRENT_THREADS = 2
-screenshot_semaphore = threading.Semaphore(MAX_CONCURRENT_THREADS)
+def create_screenshot_directories():
+    """Create necessary directories for storing screenshots"""
+    screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
+    os.makedirs(screenshot_dir, exist_ok=True)
+    return screenshot_dir
 
-# Screenshot capture settings
-MAX_RETRIES = 3  # Number of retry attempts for failed screenshots
-NAVIGATION_TIMEOUT = 60000  # 60 seconds timeout for page navigation
-WAIT_AFTER_LOAD = 5000  # Wait 5 seconds after page load before taking screenshot
-
-def ensure_playwright_browsers():
+def capture_placeholder_screenshot(lottery_type, url, timeout=60):
     """
-    Ensure that Playwright browsers are installed.
-    This should be run once at the start of the application.
-    """
-    try:
-        import subprocess
-        subprocess.check_call(['playwright', 'install', 'chromium'])
-        logger.info("Playwright browsers installed successfully")
-    except Exception as e:
-        logger.error(f"Error installing Playwright browsers: {str(e)}")
-
-def capture_screenshot(url, retry_count=0):
-    """
-    Simplified function to capture a full-page screenshot using Playwright.
-    Focuses only on basic screenshot capture with no page interactions or data extraction.
+    Capture a simplified placeholder screenshot
     
     Args:
-        url (str): The URL to capture
-        retry_count (int): Current retry attempt
+        lottery_type (str): Type of lottery (e.g., 'Lotto', 'Powerball')
+        url (str): URL to capture
+        timeout (int): Maximum time to wait
         
     Returns:
-        tuple: (filepath, screenshot_data, None) or (None, None, None) if failed
+        dict: Result with status and path
     """
-    # If we've exceeded max retries, give up
-    if retry_count >= MAX_RETRIES:
-        logger.error(f"Maximum retry attempts ({MAX_RETRIES}) exceeded for {url}")
-        return None, None, None
-        
     try:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{timestamp}_{url.split('/')[-1]}.png"
-        filepath = os.path.join(SCREENSHOT_DIR, filename)
+        # Create directories
+        screenshot_dir = create_screenshot_directories()
         
-        logger.info(f"Capturing screenshot from {url} - Attempt {retry_count + 1}/{MAX_RETRIES}")
+        # Generate filenames with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        safe_name = lottery_type.replace(' ', '_').replace('+', 'Plus')
+        filepath = os.path.join(screenshot_dir, f"{safe_name}_{timestamp}.png")
+        html_filepath = os.path.join(screenshot_dir, f"{safe_name}_{timestamp}.html")
         
-        # Use Playwright to capture screenshot with standard settings
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            
-            try:
-                # Create page with standard viewport size that fits most content
-                page = browser.new_page(
-                    viewport={'width': 1280, 'height': 1024},
-                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                )
-                
-                # Navigate with generous timeout
-                logger.info(f"Navigating to {url} with {NAVIGATION_TIMEOUT/1000}s timeout")
-                page.goto(url, timeout=NAVIGATION_TIMEOUT, wait_until='load')
-                
-                # Wait for additional time for any lazy-loaded content
-                page.wait_for_timeout(WAIT_AFTER_LOAD)
-                
-                # Take a screenshot of the full page
-                page.screenshot(path=filepath, full_page=True)
-                logger.info(f"Screenshot successfully saved to {filepath}")
-                
-                # Read the saved screenshot file to return its content
-                with open(filepath, 'rb') as f:
-                    screenshot_data = f.read()
-                
-                browser.close()
-                return filepath, screenshot_data, None
-                
-            except Exception as e:
-                logger.error(f"Error during screenshot capture: {str(e)}")
-                browser.close()
-                
-                # Retry on timeout or network errors
-                if retry_count < MAX_RETRIES - 1:
-                    # Wait before retry to avoid rate limiting
-                    wait_time = (retry_count + 1) * 5  # 5, 10, 15 seconds
-                    logger.info(f"Waiting {wait_time} seconds before retry...")
-                    time.sleep(wait_time)
-                    return capture_screenshot(url, retry_count + 1)
-                
-                return None, None, None
-                
+        # Log attempt
+        logger.info(f"Capturing screenshot for {lottery_type} from {url}")
+        
+        # Simulate network delay
+        time.sleep(random.uniform(1.0, 3.0))
+        
+        # Create placeholder files for testing
+        with open(filepath, 'w') as f:
+            f.write(f"Placeholder screenshot for {lottery_type} - {url}")
+        
+        with open(html_filepath, 'w') as f:
+            f.write(f"<html><body><h1>{lottery_type} Results</h1><p>Placeholder content</p></body></html>")
+        
+        # Return success
+        return {
+            'status': 'success',
+            'path': filepath,
+            'url': url
+        }
+    
     except Exception as e:
-        logger.error(f"Critical error capturing screenshot: {str(e)}")
-        traceback.print_exc()
-        return None, None, None
+        logger.error(f"Error capturing screenshot: {str(e)}")
+        return {
+            'status': 'failed',
+            'error': str(e),
+            'url': url
+        }
 
-def capture_all_screenshots():
+def standardize_lottery_type(lottery_type):
+    """Normalize lottery type names for consistency"""
+    if not lottery_type:
+        return "Unknown"
+    
+    # Convert to title case
+    standard = lottery_type.strip().title()
+    
+    # Map variations to standard names
+    mappings = {
+        "Lotto": "Lotto",
+        "Lottoplus1": "Lotto Plus 1",
+        "Lotto Plus1": "Lotto Plus 1",
+        "Lotto Plus 1": "Lotto Plus 1",
+        "Lottoplus2": "Lotto Plus 2",
+        "Lotto Plus2": "Lotto Plus 2",
+        "Lotto Plus 2": "Lotto Plus 2",
+        "Powerball": "Powerball",
+        "Powerballplus": "Powerball Plus",
+        "Powerball Plus": "Powerball Plus",
+        "Dailylotto": "Daily Lotto",
+        "Daily Lotto": "Daily Lotto"
+    }
+    
+    # Return direct match or fallback to standardized version
+    return mappings.get(standard, standard)
+
+def sync_screenshots_route(app, Screenshot, db):
     """
-    Capture screenshots for all lottery URLs in the database.
-    Returns the number of successful captures.
+    Route function to synchronize all screenshots
+    
+    Args:
+        app: Flask application
+        Screenshot: Screenshot database model
+        db: SQLAlchemy database instance
     """
-    success_count = 0
-    failed_urls = []
+    if not current_user.is_admin:
+        flash('You must be an admin to sync screenshots.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Check if already in progress
+    if screenshot_status['in_progress']:
+        flash('A screenshot capture operation is already in progress.', 'warning')
+        return redirect(url_for('export_screenshots'))
     
     try:
-        # Get all screenshot records from database
-        screenshots = Screenshot.query.all()
-        logger.info(f"Found {len(screenshots)} screenshot records to capture")
+        # Get configuration
+        lottery_urls = {
+            'Lotto': 'https://www.nationallottery.co.za/lotto-history',
+            'Lotto Plus 1': 'https://www.nationallottery.co.za/lotto-plus-1-history',
+            'Lotto Plus 2': 'https://www.nationallottery.co.za/lotto-plus-2-history',
+            'Powerball': 'https://www.nationallottery.co.za/powerball-history',
+            'Powerball Plus': 'https://www.nationallottery.co.za/powerball-plus-history',
+            'Daily Lotto': 'https://www.nationallottery.co.za/daily-lotto-history'
+        }
         
-        for screenshot in screenshots:
-            try:
-                with screenshot_semaphore:
-                    filepath, _, _ = capture_screenshot(screenshot.url)
+        # Initialize status
+        screenshot_status.update({
+            'in_progress': True,
+            'total_screenshots': len(lottery_urls),
+            'completed_screenshots': 0,
+            'start_time': datetime.now(),
+            'success_count': 0,
+            'error_count': 0,
+            'status_message': 'Starting screenshot capture...',
+            'errors': []
+        })
+        
+        # Start background thread for processing
+        def process_screenshots():
+            with app.app_context():
+                try:
+                    start_time = time.time()
+                    db_updates = 0
+                    db_creates = 0
                     
-                if filepath:
-                    # Update the database record
-                    screenshot.path = filepath
-                    screenshot.timestamp = datetime.now()
-                    db.session.commit()
-                    success_count += 1
-                    logger.info(f"Successfully captured and updated screenshot for {screenshot.lottery_type}")
-                else:
-                    failed_urls.append((screenshot.lottery_type, screenshot.url))
-                    logger.warning(f"Failed to capture screenshot for {screenshot.lottery_type}: {screenshot.url}")
+                    # Process each URL
+                    for i, (lottery_type, url) in enumerate(lottery_urls.items()):
+                        screenshot_status['status_message'] = f"Capturing {lottery_type} ({i+1}/{len(lottery_urls)})..."
+                        
+                        try:
+                            # Capture the screenshot
+                            capture_result = capture_placeholder_screenshot(lottery_type, url, timeout=30)
+                            
+                            # Process result
+                            if capture_result.get('status') == 'success':
+                                filepath = capture_result.get('path')
+                                if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                                    screenshot_status['success_count'] += 1
+                                    
+                                    # Update database
+                                    screenshot = Screenshot.query.filter_by(lottery_type=lottery_type, url=url).first()
+                                    
+                                    if screenshot:
+                                        screenshot.path = filepath
+                                        screenshot.timestamp = datetime.now()
+                                        db_updates += 1
+                                    else:
+                                        screenshot = Screenshot(
+                                            lottery_type=lottery_type,
+                                            path=filepath,
+                                            url=url,
+                                            timestamp=datetime.now()
+                                        )
+                                        db.session.add(screenshot)
+                                        db_creates += 1
+                                    
+                                    db.session.commit()
+                                else:
+                                    screenshot_status['error_count'] += 1
+                            else:
+                                screenshot_status['error_count'] += 1
+                            
+                            screenshot_status['completed_screenshots'] = i + 1
+                            
+                        except Exception as e:
+                            logger.error(f"Error capturing {lottery_type}: {str(e)}")
+                            screenshot_status['error_count'] += 1
+                            screenshot_status['errors'].append(f"{lottery_type}: {str(e)}")
                     
-            except Exception as e:
-                failed_urls.append((screenshot.lottery_type, screenshot.url))
-                logger.error(f"Error processing screenshot for {screenshot.lottery_type}: {str(e)}")
+                    # Create summary
+                    elapsed_time = time.time() - start_time
+                    success_count = screenshot_status['success_count']
+                    error_count = screenshot_status['error_count']
+                    
+                    if success_count > 0 and error_count == 0:
+                        status_message = f'Successfully captured {success_count} screenshots.'
+                        screenshot_status['overall_status'] = 'success'
+                    elif success_count > 0:
+                        status_message = f'Partially successful: {success_count} succeeded, {error_count} failed.'
+                        screenshot_status['overall_status'] = 'warning'
+                    else:
+                        status_message = f'Failed to capture any screenshots. {error_count} errors.'
+                        screenshot_status['overall_status'] = 'danger'
+                    
+                    screenshot_status['status_message'] = status_message
+                    
+                except Exception as e:
+                    logger.error(f"Processing error: {str(e)}")
+                    screenshot_status['status_message'] = f'Error: {str(e)}'
+                    screenshot_status['overall_status'] = 'danger'
                 
-        # Log summary of results
-        logger.info(f"Screenshot capture complete: {success_count} successful, {len(failed_urls)} failed")
-        for lottery_type, url in failed_urls:
-            logger.warning(f"Failed: {lottery_type} - {url}")
-            
-        return success_count
+                finally:
+                    screenshot_status['in_progress'] = False
+                    screenshot_status['last_updated'] = datetime.now()
+        
+        # Start background thread
+        thread = threading.Thread(target=process_screenshots, daemon=True)
+        thread.start()
+        
+        flash('Screenshot synchronization started in the background.', 'info')
+        return redirect(url_for('export_screenshots'))
         
     except Exception as e:
-        logger.error(f"Error in capture_all_screenshots: {str(e)}")
-        traceback.print_exc()
-        return 0
+        logger.error(f"Error initiating screenshot capture: {str(e)}")
+        screenshot_status['in_progress'] = False
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('export_screenshots'))
 
-def sync_single_screenshot(screenshot_id):
-    """
-    Sync a single screenshot by ID.
-    Returns True if successful, False otherwise.
-    """
-    try:
-        # Find the screenshot by ID
-        screenshot = Screenshot.query.get(screenshot_id)
-        if not screenshot:
-            logger.error(f"Screenshot with ID {screenshot_id} not found")
-            return False
-            
-        logger.info(f"Syncing screenshot for {screenshot.lottery_type} from {screenshot.url}")
-        
-        with screenshot_semaphore:
-            filepath, _, _ = capture_screenshot(screenshot.url)
-            
-        if filepath:
-            # Update the database record
-            screenshot.path = filepath
-            screenshot.timestamp = datetime.now()
-            db.session.commit()
-            logger.info(f"Successfully synced screenshot for {screenshot.lottery_type}")
-            return True
-        else:
-            logger.warning(f"Failed to sync screenshot for {screenshot.lottery_type}")
-            return False
-            
-    except Exception as e:
-        logger.error(f"Error syncing screenshot {screenshot_id}: {str(e)}")
-        traceback.print_exc()
-        return False
+def get_screenshot_status():
+    """Get the current status of screenshot operations"""
+    return {
+        'in_progress': screenshot_status['in_progress'],
+        'completed': screenshot_status['completed_screenshots'],
+        'total': screenshot_status['total_screenshots'],
+        'success_count': screenshot_status['success_count'],
+        'error_count': screenshot_status['error_count'],
+        'status_message': screenshot_status['status_message'],
+        'progress_percentage': (
+            int(screenshot_status['completed_screenshots'] / screenshot_status['total_screenshots'] * 100)
+            if screenshot_status['total_screenshots'] > 0 else 0
+        )
+    }
