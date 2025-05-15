@@ -263,8 +263,8 @@ class AdVariation(db.Model):
     # Relationships
     parent_ad = db.relationship('Advertisement', backref='variations')
     impressions = db.relationship('AdImpression', backref='variation', 
-                                foreign_keys='AdImpression.variation_id',
-                                cascade='all, delete-orphan')
+                               foreign_keys='AdImpression.variation_id',
+                               cascade='all, delete-orphan')
     
     def __repr__(self):
         return f"<AdVariation {self.name} for Ad {self.parent_ad_id}>"
@@ -634,8 +634,7 @@ class ModelTrainingHistory(db.Model):
         return {}
     
     def to_dict(self):
-        """Convert model to dictionary for API responses"""
-        return {
+        """Convert model to dictionary for API responses"""        return {
             'id': self.id,
             'lottery_type': self.lottery_type,
             'strategy': self.strategy,
