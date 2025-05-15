@@ -1,1681 +1,286 @@
-{% extends "base.html" %}
-
-{% block title %}Snap Lottery | South Africa's #1 Lottery, PowerBall & Daily Lottery Scanner App{% endblock %}
-
-{% block meta_description %}Snap Lottery - South Africa's ONLY Lottery, PowerBall & Daily Lottery ticket scanner app. The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Scan tickets instantly to check if you've won.{% endblock %}
-
-{% block meta_keywords %}Snap Lottery, Lottery South Africa, PowerBall South Africa, Daily Lottery South Africa, Ithuba official data, Lottery scanner South Africa, PowerBall scanner South Africa, Daily Lottery scanner, Lottery winning numbers, PowerBall winning numbers, Daily Lottery results, official Ithuba results{% endblock %}
-
-{% block og_title %}Snap Lottery | South Africa's #1 Lottery Ticket Scanner & Results App{% endblock %}
-{% block og_description %}The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Scan tickets instantly to check if you've won!{% endblock %}
-
-{% block twitter_title %}Snap Lottery | South Africa's #1 Lottery Ticket Scanner & Results App{% endblock %}
-{% block twitter_description %}The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Scan tickets instantly to check if you've won!{% endblock %}
-
-{% block head_content %}
-<!-- Structured Data for SEO -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "Snap Lottery",
-  "alternateName": ["SA Lottery App", "SA PowerBall App", "South African Lottery Scanner", "South African Daily Lottery Scanner", "Official Ithuba Results App"],
-  "url": "https://www.snaplottery.co.za/",
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": "https://www.snaplottery.co.za/results?search={search_term}",
-    "query-input": "required name=search_term"
-  },
-  "description": "South Africa's #1 Lottery, PowerBall & Daily Lottery scanner app. The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play."
-}
-</script>
-
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "Snap Lottery",
-  "legalName": "Snap Lottery South Africa",
-  "url": "https://www.snaplottery.co.za/",
-  "logo": "https://www.snaplottery.co.za/static/img/snap-lottery-social.jpg",
-  "foundingDate": "2024",
-  "founders": [
-    {
-      "@type": "Person",
-      "name": "Snap Lottery Team"
-    }
-  ],
-  "address": {
-    "@type": "PostalAddress",
-    "addressCountry": "ZA"
-  },
-  "contactPoint": {
-    "@type": "ContactPoint",
-    "contactType": "customer service",
-    "email": "info@snaplottery.co.za"
-  },
-  "sameAs": [
-    "https://www.facebook.com/snaplottery/",
-    "https://twitter.com/snaplottery",
-    "https://www.instagram.com/snaplottery/"
-  ],
-  "slogan": "The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play",
-  "description": "South Africa's #1 Lottery, PowerBall & Daily Lottery scanner app. The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play."
-}
-</script>
-
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "ItemList",
-  "itemListElement": [
-    {% for result in results %}
-    {
-      "@type": "ListItem",
-      "position": {{ loop.index }},
-      "item": {
-        "@type": "Game",
-        "name": "{{ result.lottery_type }}",
-        "description": "{{ result.lottery_type }} draw {{ result.draw_number }} on {{ result.draw_date.strftime('%Y-%m-%d') }}",
-        "playMode": "SinglePlayer",
-        "applicationCategory": "Game",
-        "genre": "Lottery"
-      }
-    }{% if not loop.last %},{% endif %}
-    {% endfor %}
-  ]
-}
-</script>
-
-<style>
-    /* Styling for analytics charts */
-    .bg-danger { background-color: #e03237 !important; }
-    .bg-warning { background-color: #ffe11d !important; }
-    .bg-success { background-color: #19a03a !important; }
-    .bg-info { background-color: #67c6ed !important; }
-    
-    /* Bar chart styling */
-    .chart-container {
-        border-bottom: 1px solid #ddd;
-        border-left: 1px solid #ddd;
-    }
-    
-    .chart-y-axis {
-        font-size: 10px;
-        color: #666;
-    }
-    
-    .bar-column {
-        padding: 0 2px;
-        cursor: pointer;
-    }
-    
-    .bar {
-        border-top-left-radius: 3px;
-        border-top-right-radius: 3px;
-    }
-    
-    /* Interactive elements */
-    .interactive-bar {
-        transition: all 0.2s ease;
-        border-top-left-radius: 3px;
-        border-top-right-radius: 3px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    
-    .interactive-bar:hover {
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
-    
-    /* Pie chart interactive elements */
-    .pie-segment {
-        transition: opacity 0.2s ease;
-        cursor: pointer;
-    }
-    
-    .legend-item {
-        transition: all 0.2s ease;
-        cursor: pointer;
-        padding: 2px 0;
-    }
-    
-    .legend-item:hover {
-        transform: translateX(2px);
-    }
-    
-    /* Tooltip styling */
-    .chart-tooltip {
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        animation: fadeIn 0.2s ease;
-        pointer-events: none;
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    /* Make charts responsive on mobile */
-    @media (max-width: 768px) {
-        .flex-container {
-            flex-direction: column;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snap Lotto - South African Lottery Results</title>
+    <style>
+        :root {
+            --primary-yellow: #FFDE59;
+            --primary-red: #E74C3C;
+            --dark-text: #333333;
+            --green: #27AE60;
+            --light-blue: #3498DB;
         }
         
-        .frequency-chart-container,
-        .winners-chart-container {
-            width: 100%;
-            margin-bottom: 20px;
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: var(--dark-text);
         }
-    }
-    
-    /* Card styling to ensure equal height */
-    .equal-height-row {
-        display: flex;
-        flex-wrap: wrap;
-    }
-    
-    .equal-height-row > div {
-        display: flex;
-    }
-    
-    .equal-height-row .card {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .equal-height-row .card-body.results-body {
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .equal-height-row .card-body.scanner-body {
-        display: flex;
-        align-items: center;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-
-
-<div class="row equal-height-row">
-    <div class="col-lg-6">
-        <div class="card mb-4">
-            <div class="card-header lottery-header">
-                <h5 class="card-title mb-0">LATEST LOTTERY RESULTS</h5>
+        
+        .header {
+            background-color: var(--primary-yellow);
+            color: var(--dark-text);
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .lottery-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .result-card {
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .result-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            padding: 1rem;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .lottery .card-header {
+            background-color: var(--light-blue);
+            color: white;
+        }
+        
+        .powerball .card-header {
+            background-color: var(--primary-red);
+            color: white;
+        }
+        
+        .daily .card-header {
+            background-color: var(--green);
+            color: white;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .draw-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #777;
+        }
+        
+        .numbers {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .regular-number {
+            background-color: var(--light-blue);
+        }
+        
+        .powerball .regular-number {
+            background-color: var(--primary-red);
+        }
+        
+        .daily .regular-number {
+            background-color: var(--green);
+        }
+        
+        .bonus-number {
+            background-color: var(--primary-yellow);
+            color: var(--dark-text);
+        }
+        
+        .powerball .bonus-number {
+            background-color: var(--primary-yellow);
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 2rem;
+            background-color: #f8f8f8;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            background-color: var(--dark-text);
+            color: white;
+            font-size: 0.9rem;
+        }
+        
+        .nav {
+            background-color: var(--dark-text);
+            padding: 1rem;
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .nav a:hover {
+            color: var(--primary-yellow);
+        }
+        
+        @media (max-width: 768px) {
+            .lottery-results {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <div class="nav-container">
+            <div>
+                <a href="/" style="margin-left: 0;">Home</a>
+                <a href="/scanner">Ticket Scanner</a>
+                <a href="/results">All Results</a>
             </div>
-            <div class="card-body results-body">
-                <div class="table-responsive flex-grow-1">
-                    <table class="table table-lottery table-striped mb-0">
-                        <thead>
-                            <tr>
-                                <th class="ps-2 py-2">GAME TYPE</th>
-                                <th class="py-2">DRAW</th>
-                                <th class="py-2">DATE</th>
-                                <th class="py-2">NUMBERS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for result in results %}
-                            <tr>
-                                <td class="ps-2 py-1">
-                                    {% set display_type = result.lottery_type %}
-                                    {% if 'Lotto' in display_type %}
-                                        {% set display_type = display_type.replace('Lotto', 'Lottery') %}
-                                    {% endif %}
+            <div>
+                {% if current_user.is_authenticated %}
+                    <a href="/admin">Admin</a>
+                    <a href="/logout">Logout</a>
+                {% else %}
+                    <a href="/login">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>Snap Lotto - South African Lottery Results</h1>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% if not latest_results %}
+            <div class="no-results">
+                <h2>No lottery results available yet</h2>
+                <p>Check back soon for the latest results!</p>
+            </div>
+        {% else %}
+            <div class="lottery-results">
+                {% for lottery_type in lottery_types %}
+                    {% if lottery_type in latest_results %}
+                        {% set result = latest_results[lottery_type] %}
+                        <div class="result-card 
+                            {% if 'lottery' in lottery_type.lower() and not 'daily' in lottery_type.lower() %}lottery
+                            {% elif 'powerball' in lottery_type.lower() %}powerball
+                            {% elif 'daily' in lottery_type.lower() %}daily{% endif %}">
+                            <div class="card-header">
+                                {{ lottery_type }}
+                            </div>
+                            <div class="card-body">
+                                <div class="draw-info">
+                                    <span>Draw #{{ result.draw_number or 'N/A' }}</span>
+                                    <span>{{ result.draw_date.strftime('%d %b %Y') }}</span>
+                                </div>
+                                <div class="numbers">
+                                    {% for number in result.get_numbers_list() %}
+                                        <div class="number regular-number">{{ number }}</div>
+                                    {% endfor %}
                                     
-                                    {% if 'Lottery Plus' in display_type %}
-                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
-                                    {% elif 'Powerball' in display_type %}
-                                        <span class="game-type-badge game-type-powerball">{{ display_type }}</span>
-                                    {% elif 'Daily' in display_type %}
-                                        <span class="game-type-badge game-type-daily">{{ display_type }}</span>
-                                    {% else %}
-                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
-                                    {% endif %}
-                                </td>
-                                <td class="py-1"><strong>{{ result.draw_number }}</strong></td>
-                                <td class="py-1 text-nowrap">{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
-                                <td class="py-1">
-                                    <div class="numbers-container">
-                                        {% for num in result.get_numbers_list() %}
-                                            {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
-                                            
-                                            {% if loop.index0 % 4 == 0 %}
-                                                {% set ball_class = ball_class + 'lottery-ball-red' %}
-                                            {% elif loop.index0 % 4 == 1 %}
-                                                {% set ball_class = ball_class + 'lottery-ball-yellow' %}
-                                            {% elif loop.index0 % 4 == 2 %}
-                                                {% set ball_class = ball_class + 'lottery-ball-green' %}
-                                            {% else %}
-                                                {% set ball_class = ball_class + 'lottery-ball-blue' %}
-                                            {% endif %}
-                                            
-                                            <div class="lottery-ball-container">
-                                                <span class="{{ ball_class }}">
-                                                    <span class="number">{{ num }}</span>
-                                                </span>
-                                            </div>
-                                        {% endfor %}
-                                        {% if result.get_bonus_numbers_list()|length > 0 %}
-                                            <div class="mx-1 d-flex align-items-center">+</div>
-                                            {% for num in result.get_bonus_numbers_list() %}
-                                                <div class="lottery-ball-container">
-                                                    <span class="lottery-ball lottery-ball-sm lottery-ball-yellow lottery-ball-bonus">
-                                                        <span class="number">{{ num }}</span>
-                                                    </span>
-                                                </div>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="text-center py-2 border-top mt-auto">
-                    <a href="{{ url_for('results') }}" class="btn btn-lottery-primary btn-sm">
-                        <i class="fas fa-search me-1"></i> View All Results
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card mb-4">
-            <div class="card-header lottery-header">
-                <h5 class="card-title mb-0">CHECK YOUR TICKET</h5>
-            </div>
-            <div class="card-body scanner-body">
-                <div class="text-center py-2 w-100">
-                    <div class="d-flex align-items-center justify-content-center flex-column">
-                        <i class="fas fa-ticket-alt fa-3x text-primary mb-3"></i>
-                        <h4 class="mb-2">Scan Your Lottery Ticket</h4>
-                        <p class="mb-1">Have a lottery ticket? Check if you've won instantly!</p>
-                        <p class="small mb-3">Simply upload a photo of your ticket and our system will check it against the latest results.</p>
-                        <div class="slogan-banner mb-3">
-                            <span class="slogan-text">The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play</span>
-                        </div>
-                        <a href="{{ url_for('ticket_scanner') }}" class="btn btn-lottery-primary">
-                            <i class="fas fa-qrcode me-2"></i> Scan Your Ticket Now
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="card mb-4 data-analytics-preview">
-    <div class="card-header lottery-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">DATA ANALYTICS PREVIEW</h5>
-        <!-- Time period and lottery type selector -->
-        <div class="dropdown">
-            <button class="btn btn-sm btn-outline-lottery dropdown-toggle" type="button" id="dataFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-filter me-1"></i> Filter Data
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dataFilterDropdown">
-                <li><h6 class="dropdown-header">Lottery Type</h6></li>
-                <li><a class="dropdown-item active" href="#" data-lottery-type="all">All Types</a></li>
-                <li><a class="dropdown-item" href="#" data-lottery-type="Lottery">Lottery</a></li>
-                <li><a class="dropdown-item" href="#" data-lottery-type="Lottery Plus 1">Lottery Plus 1</a></li>
-                <li><a class="dropdown-item" href="#" data-lottery-type="Lottery Plus 2">Lottery Plus 2</a></li>
-                <li><a class="dropdown-item" href="#" data-lottery-type="Powerball">Powerball</a></li>
-                <li><a class="dropdown-item" href="#" data-lottery-type="Powerball Plus">Powerball Plus</a></li>
-                <li><a class="dropdown-item" href="#" data-lottery-type="Daily Lottery">Daily Lottery</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><h6 class="dropdown-header">Time Period</h6></li>
-                <li><a class="dropdown-item active" href="#" data-time-period="all">All Time</a></li>
-                <li><a class="dropdown-item" href="#" data-time-period="30">Last 30 Days</a></li>
-                <li><a class="dropdown-item" href="#" data-time-period="90">Last 90 Days</a></li>
-                <li><a class="dropdown-item" href="#" data-time-period="365">Last Year</a></li>
-            </ul>
-        </div>
-    </div>
-    <div class="card-body">
-        <!-- Currently selected filters -->
-        <div class="selected-filters mb-3">
-            <span class="badge bg-lottery me-2 current-lottery-type">All Lottery Types</span>
-            <span class="badge bg-lottery me-2 current-time-period">All Time</span>
-            <button class="btn btn-sm btn-link text-decoration-none reset-filters" type="button">
-                <i class="fas fa-undo-alt me-1"></i>Reset
-            </button>
-        </div>
-        
-        <div class="row">
-            <!-- Equal width two-column layout for the charts -->
-            <div class="col-md-6">
-                <!-- Left chart: Most Frequent Numbers -->
-                <div class="chart-card">
-                    <h6 class="mb-3 d-flex justify-content-between frequency-chart-title">
-                        <span>Most Frequent Numbers</span>
-                        <span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>
-                    </h6>
-                        <!-- SVG bar chart with perfect alignment between bars and numbers -->
-                        <div class="bar-chart-container" style="position: relative; width: 100%; height: 170px;">
-                            <!-- Y-axis labels with dynamic values based on data range -->
-                            <div class="y-axis-labels" style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px;">
-                            {% if frequent_numbers %}
-                                {% set max_frequency = frequent_numbers[0][1] if frequent_numbers|length > 0 else 1 %}
-                                {% set step = (max_frequency / 5)|round(0, 'ceil')|int %}
-                                {% if step < 1 %}{% set step = 1 %}{% endif %}
+                                    {% for bonus in result.get_bonus_numbers_list() %}
+                                        <div class="number bonus-number">{{ bonus }}</div>
+                                    {% endfor %}
+                                </div>
                                 
-                                <div style="position: absolute; top: 0%; right: 5px; font-size: 11px; color: #666;">{{ max_frequency }}</div>
-                                <div style="position: absolute; top: 20%; right: 5px; font-size: 11px; color: #666;">{{ (max_frequency - step)|int }}</div>
-                                <div style="position: absolute; top: 40%; right: 5px; font-size: 11px; color: #666;">{{ (max_frequency - (step*2))|int }}</div>
-                                <div style="position: absolute; top: 60%; right: 5px; font-size: 11px; color: #666;">{{ (max_frequency - (step*3))|int }}</div>
-                                <div style="position: absolute; top: 80%; right: 5px; font-size: 11px; color: #666;">{{ (max_frequency - (step*4))|int }}</div>
-                                <div style="position: absolute; bottom: 0; right: 5px; font-size: 11px; color: #666;">0</div>
-                            {% else %}
-                                <div style="position: absolute; top: 0%; right: 5px; font-size: 11px; color: #666;">16</div>
-                                <div style="position: absolute; top: 20%; right: 5px; font-size: 11px; color: #666;">12</div>
-                                <div style="position: absolute; top: 40%; right: 5px; font-size: 11px; color: #666;">9</div>
-                                <div style="position: absolute; top: 60%; right: 5px; font-size: 11px; color: #666;">6</div>
-                                <div style="position: absolute; top: 80%; right: 5px; font-size: 11px; color: #666;">3</div>
-                                <div style="position: absolute; bottom: 0; right: 5px; font-size: 11px; color: #666;">0</div>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- Chart area with grid lines -->
-                        <div class="chart-grid" style="position: absolute; left: 30px; right: 0; top: 5px; bottom: 40px; border-bottom: 1px solid #ddd; border-left: 1px solid #ddd;">
-                            <!-- Horizontal grid lines -->
-                            <div style="position: absolute; left: 0; right: 0; top: 20%; height: 1px; background-color: rgba(0,0,0,0.05);"></div>
-                            <div style="position: absolute; left: 0; right: 0; top: 40%; height: 1px; background-color: rgba(0,0,0,0.05);"></div>
-                            <div style="position: absolute; left: 0; right: 0; top: 60%; height: 1px; background-color: rgba(0,0,0,0.05);"></div>
-                            <div style="position: absolute; left: 0; right: 0; top: 80%; height: 1px; background-color: rgba(0,0,0,0.05);"></div>
-                            
-                            <!-- Bar chart with exact positioning using dynamic data -->
-                            <div class="frequency-bars" style="display: flex; justify-content: space-around; height: 100%; width: 100%;">
-                                {% if frequent_numbers %}
-                                    {% set max_height = 90 %}
-                                    {% set max_frequency = frequent_numbers[0][1] if frequent_numbers|length > 0 else 1 %}
-                                    {% for number, frequency in frequent_numbers %}
-                                        <!-- Calculate height based on frequency relative to max -->
-                                        {% set bar_height = (frequency / max_frequency * max_height)|int %}
-                                        {% if bar_height < 5 %}{% set bar_height = 5 %}{% endif %}
-                                        
-                                        <!-- Assign color based on position -->
-                                        {% set colors = ['#e03237', '#ffe11d', '#19a03a', '#67c6ed'] %}
-                                        {% set color_index = loop.index0 % 4 %}
-                                        
-                                        <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;" 
-                                            class="bar-column" 
-                                            data-bs-toggle="tooltip"
-                                            data-bs-placement="top"
-                                            data-bs-title="Number {{ number }} appeared {{ frequency }} times">
-                                            <!-- Frequency at top of bar -->
-                                            <div style="position: relative; width: 80%; height: {{ bar_height }}%;" class="interactive-bar-container">
-                                                <div class="interactive-bar" style="position: absolute; bottom: 0; left: 0; right: 0; height: 100%; background-color: {{ colors[color_index] }}; border-top-left-radius: 3px; border-top-right-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                                </div>
-                                                <span style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 9px; color: #666; white-space: nowrap;">{{ frequency }}</span>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <!-- Fallback if no data available -->
-                                    <div class="text-center w-100 d-flex align-items-center justify-content-center">
-                                        <p class="text-muted mb-0">No frequency data available</p>
+                                {% if result.get_divisions() %}
+                                    <div class="divisions">
+                                        <h4>Prize Breakdown</h4>
+                                        <table>
+                                            <tr>
+                                                <th>Division</th>
+                                                <th>Winners</th>
+                                                <th>Prize</th>
+                                            </tr>
+                                            {% for div in result.get_divisions() %}
+                                                <tr>
+                                                    <td>{{ div.division }}</td>
+                                                    <td>{{ div.winners }}</td>
+                                                    <td>R{{ div.prize }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                        </table>
                                     </div>
                                 {% endif %}
                             </div>
                         </div>
-                        
-                        <!-- X-axis labels in separate section below the chart -->
-                        <div style="position: absolute; left: 30px; right: 0; bottom: 0; height: 30px; display: flex; justify-content: space-around; padding: 5px 0;">
-                            {% if frequent_numbers %}
-                                {% for number, frequency in frequent_numbers %}
-                                    <div style="font-size: 11px; text-align: center; width: 9%; font-weight: bold; color: #333;">{{ number }}</div>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                
-                            </div>
-            <!-- Right chart: Hot & Cold Numbers - Also 6 columns wide -->
-            <div class="col-md-6">
-                <div class="chart-card">
-                    <h6 class="mb-3 d-flex justify-content-between">
-                        <span>Hot & Cold Numbers</span>
-                        <span class="chart-loading d-none" id="hotColdLoading"><i class="fas fa-spinner fa-spin"></i></span>
-                    </h6>
-                    
-                    <!-- Hot & Cold Numbers Display -->
-                    <div class="hot-cold-container">
-                        <!-- Hot Numbers (Most Frequent) -->
-                        <div class="hot-numbers mb-4">
-                            <h6 class="fw-bold text-danger mb-2">
-                                <i class="fas fa-fire me-1"></i> Hot Numbers
-                                <small class="text-muted">(Most Frequent)</small>
-                            </h6>
-                            <div class="d-flex flex-wrap" id="hotNumbersContainer">
-                                {% if frequent_numbers and frequent_numbers|length > 0 %}
-                                    {% for number, frequency in frequent_numbers[:5] %}
-                                        {% set colors = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'] %}
-                                        <div class="hot-number-item me-2 mb-2">
-                                            <span class="lottery-ball lottery-ball-sm {{ colors[loop.index0] }}">
-                                                <span class="number">{{ number }}</span>
-                                            </span>
-                                            <small class="frequency-label d-block text-center mt-1">{{ frequency }}x</small>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="text-muted">No hot numbers data available</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <!-- Cold Numbers (Least Frequent) -->
-                        <div class="cold-numbers">
-                            <h6 class="fw-bold text-primary mb-2">
-                                <i class="fas fa-snowflake me-1"></i> Cold Numbers
-                                <small class="text-muted">(Least Frequent)</small>
-                            </h6>
-                            <div class="d-flex flex-wrap" id="coldNumbersContainer">
-                                {% if cold_numbers and cold_numbers|length > 0 %}
-                                    {% for number, frequency in cold_numbers[:5] %}
-                                        <div class="cold-number-item me-2 mb-2">
-                                            <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
-                                                <span class="number">{{ number }}</span>
-                                            </span>
-                                            <small class="frequency-label d-block text-center mt-1">{{ frequency }}x</small>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="text-muted">No cold numbers data available</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <!-- Number Not Drawn Recently -->
-                        <div class="absent-numbers mt-4">
-                            <h6 class="fw-bold text-success mb-2">
-                                <i class="fas fa-clock me-1"></i> Numbers Not Drawn Recently
-                                <small class="text-muted">(Due Numbers)</small>
-                            </h6>
-                            <div class="d-flex flex-wrap" id="absentNumbersContainer">
-                                {% if absent_numbers and absent_numbers|length > 0 %}
-                                    {% for number, days in absent_numbers[:5] %}
-                                        <div class="absent-number-item me-2 mb-2">
-                                            <span class="lottery-ball lottery-ball-sm lottery-ball-green">
-                                                <span class="number">{{ number }}</span>
-                                            </span>
-                                            <small class="frequency-label d-block text-center mt-1">{{ days }} days</small>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="text-muted">No absent numbers data available</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    {% endif %}
+                {% endfor %}
             </div>
-        </div>
-        <div class="text-center mt-3">
-            <a href="{{ url_for('visualizations') }}" class="btn btn-lottery-primary">
-                <i class="fas fa-chart-bar me-1"></i> View Full Analytics Dashboard
-            </a>
-        </div>
+        {% endif %}
     </div>
-</div>
-{% endblock %}
 
-{% block scripts %}
-<!-- Add interactive chart functionality -->
-<script>
-// Function to highlight a pie segment by division number
-function highlightPieSegment(division) {
-    const pieSegments = document.querySelectorAll('.pie-segment');
-    
-    // Dim all segments first
-    pieSegments.forEach(segment => {
-        segment.style.opacity = '0.5';
-    });
-    
-    // Highlight the matching segment
-    pieSegments.forEach(segment => {
-        if (segment.getAttribute('data-division') === division) {
-            segment.style.opacity = '1';
-            segment.style.transform = 'scale(1.03)';
-            segment.style.transformOrigin = 'center';
-            segment.style.transition = 'all 0.2s ease';
-            
-            // Create tooltip with data
-            const winners = segment.getAttribute('data-winners');
-            const percentage = segment.getAttribute('data-percentage');
-            
-            const tooltip = document.createElement('div');
-            tooltip.className = 'chart-tooltip pie-tooltip';
-            tooltip.innerHTML = `Division ${division}<br>${winners} winners<br>${percentage}% of total`;
-            tooltip.style.position = 'absolute';
-            tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
-            tooltip.style.color = 'white';
-            tooltip.style.padding = '5px 10px';
-            tooltip.style.borderRadius = '4px';
-            tooltip.style.fontSize = '12px';
-            tooltip.style.zIndex = '1000';
-            
-            // Position tooltip near center of screen instead of deprecated pie chart
-            const horizontalPos = window.innerWidth / 2 - 60;
-            tooltip.style.left = horizontalPos + 'px';
-            tooltip.style.top = (rect.top + rect.height/2 - 40) + 'px';
-            
-            document.body.appendChild(tooltip);
-        }
-    });
-}
-
-// Function to reset all pie segments to normal
-function resetPieSegments() {
-    const pieSegments = document.querySelectorAll('.pie-segment');
-    pieSegments.forEach(segment => {
-        segment.style.opacity = '1';
-        segment.style.transform = 'scale(1)';
-    });
-    
-    // Remove any tooltips
-    const tooltips = document.querySelectorAll('.pie-tooltip');
-    tooltips.forEach(tooltip => tooltip.remove());
-}
-
-// Function to fetch chart data via AJAX
-function fetchChartData(lotteryType, timePeriod) {
-    // Ensure DOM elements exist before proceeding with data operations
-    ensureDomElementsExist();
-    
-    console.log("Fetching chart data for:", lotteryType, timePeriod);
-    
-    // Show loading state for all charts including hot/cold section
-    document.querySelectorAll('.chart-loading').forEach(indicator => {
-        indicator.classList.remove('d-none');
-    });
-    
-    // Get the critical containers for showing loading/error states
-    const barChartContainer = document.querySelector('.bar-chart-container');
-    const hotColdContainer = document.querySelector('.hot-cold-container');
-    if (barChartContainer) {
-        barChartContainer.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <span class="ms-2">Loading chart data...</span>
-            </div>
-        `;
-    }
-    
-    // Build the API URL with query parameters - properly handle the lottery type parameter
-    // We need to keep the empty string if it's 'all' or not specified
-    const params = new URLSearchParams();
-    
-    // Only add lottery_type if it's not 'all'
-    if (lotteryType && lotteryType !== 'all') {
-        // Make sure to always use the normalized terminology
-        const normalizedType = normalizeLotteryType(lotteryType);
-        params.append('lottery_type', normalizedType);
-    }
-    
-    // Helper function to normalize lottery type names for consistency
-    function normalizeLotteryType(type) {
-        // If the type already uses "Lottery" terminology, return as is
-        if (type.includes("Lottery")) {
-            return type;
-        }
-        
-        // Otherwise, map "Lotto" to "Lottery" while preserving other parts of the name
-        return type.replace(/\bLotto\b/g, "Lottery");
-    }
-    
-    // Add days parameter with default 365 for 'all'
-    params.append('days', timePeriod === 'all' ? '365' : timePeriod);
-    
-    const apiUrl = `/api/lottery-analysis/frequency?${params.toString()}`;
-    
-    console.log("Fetching data from: " + apiUrl);
-    
-    // Fetch data from the API
-    fetch(apiUrl)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Chart data received:", Object.keys(data));
-            
-            // Update the charts with the new data
-            updateCharts(data);
-            
-            // Hide loading indicators
-            document.querySelectorAll('.chart-loading').forEach(indicator => {
-                indicator.classList.add('d-none');
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching chart data:', error);
-            
-            // Hide loading indicators even on error
-            document.querySelectorAll('.chart-loading').forEach(indicator => {
-                indicator.classList.add('d-none');
-            });
-            
-            // Show a more user-friendly error message in the chart container
-            const barChartContainer = document.querySelector('.bar-chart-container');
-            if (barChartContainer) {
-                barChartContainer.innerHTML = `
-                    <div class="alert alert-danger text-center my-5">
-                        <p>Error loading chart data. Please try again later.</p>
-                        <button class="btn btn-sm btn-outline-danger mt-2" onclick="fetchChartData('${lotteryType}', '${timePeriod}')">
-                            Retry
-                        </button>
-                    </div>
-                `;
-            }
-        });
-}
-
-// Function to update charts with new data
-function updateCharts(data) {
-    // Ensure DOM elements exist before processing any chart data
-    ensureDomElementsExist();
-    
-    // Check if we have valid data
-    if (!data || typeof data !== 'object') {
-        console.error('Invalid chart data received');
-        return;
-    }
-    
-    // Get the currently selected lottery type from UI
-    const userSelectedType = document.querySelector('.current-lottery-type').textContent.trim();
-    
-    // Extract frequency data from the response
-    const frequencyData = extractFrequencyData(data, userSelectedType);
-    
-    // Log the matched lottery type for debugging  
-    console.log(`Frequency data received for: ${userSelectedType} → matched to: ${frequencyData.lotteryType}`);
-    
-    // Force a delay for DOM updates to ensure all containers are available
-    // This helps with race conditions in element discovery
-    setTimeout(() => {
-        // Make sure DOM elements are ready again after any dynamic updates
-        ensureDomElementsExist();
-        
-        // First, show the loading indicators to indicate updates in progress
-        document.querySelectorAll('.chart-loading').forEach(indicator => {
-            indicator.classList.remove('d-none');
-        });
-        
-        try {
-            // Update frequency chart using the extracted data
-            updateFrequencyChart(data, frequencyData);
-            
-            // Update hot and cold numbers section using the same extracted data
-            // This updates the static HTML hot/cold container (.hot-cold-container)
-            updateHotColdNumbers(data, frequencyData);
-            
-            // Update division statistics chart with the same shared data
-            // This updates the dynamic hot/cold chart (.temperature-chart-container)
-            updateDivisionChart(data, frequencyData);
-            
-            // IMPORTANT: Make sure the Hot & Cold section gets properly updated with the selected lottery type
-            // We directly call the hot & cold numbers update function with the correct data
-            updateHotColdNumbers(data, frequencyData);
-            
-            // Log completion of chart updates
-            console.log(`All chart components updated with shared frequency data: ${frequencyData.lotteryType}`);
-        } catch (error) {
-            console.error("Error updating chart components:", error);
-        }
-        
-        // Finally hide all loading indicators when updates are complete
-        document.querySelectorAll('.chart-loading').forEach(indicator => {
-            indicator.classList.add('d-none');
-        });
-    }, 200); // Increased delay to ensure DOM is ready
-}
-
-// Function to extract frequency data for the selected lottery type
-function extractFrequencyData(data, selectedType) {
-    // Normalize user selected type for comparison
-    const normalizedUserType = selectedType === 'All Lottery Types' ? 'All Lottery Types' : selectedType;
-    
-    // First try to find an exact match for the user's selection
-    let matchedType = null;
-    
-    // Check for exact match
-    for (const lotteryType in data) {
-        if (lotteryType === normalizedUserType || 
-            (normalizedUserType === 'All Lottery Types' && lotteryType === 'All Lottery Types')) {
-            matchedType = lotteryType;
-            break;
-        }
-    }
-    
-    // If no exact match, find a close match by comparing case-insensitive
-    if (!matchedType) {
-        for (const lotteryType in data) {
-            if (lotteryType.toLowerCase() === normalizedUserType.toLowerCase()) {
-                matchedType = lotteryType;
-                break;
-            }
-        }
-    }
-    
-    // If still no match, fall back to using the "All Lottery Types" or the first available lottery type
-    if (!matchedType) {
-        if (data['All Lottery Types']) {
-            matchedType = 'All Lottery Types';
-        } else {
-            // Find the first lottery type with data as a last resort
-            for (const lotteryType in data) {
-                if (data[lotteryType] && !data[lotteryType].has_error) {
-                    matchedType = lotteryType;
-                    break;
-                }
-            }
-        }
-    }
-    
-    // Return both the matched type and its data
-    return matchedType ? {
-        lotteryType: matchedType,
-        data: data[matchedType]
-    } : null;
-}
-
-// Function to update the Hot & Cold Numbers section with filtered data
-function updateHotColdNumbers(data, frequencyData) {
-    // Ensure DOM elements exist before processing
-    ensureDomElementsExist();
-    
-    // Get all chart loading indicators, including the hot/cold section's
-    const loadingIndicators = document.querySelectorAll('.chart-loading');
-    loadingIndicators.forEach(indicator => {
-        indicator.classList.remove('d-none');
-    });
-    
-    console.log("Updating hot/cold numbers with shared data:", frequencyData);
-    
-    // More robust selection for hot/cold containers - first try exact ID match, 
-    // then try direct class selection, then try any container that might be appropriate
-    const hotNumbersContainer = document.getElementById('hotNumbersContainer') || 
-                             document.querySelector('.hot-numbers .d-flex') ||
-                             document.querySelector('.hot-numbers-section .number-list');
-    
-    const coldNumbersContainer = document.getElementById('coldNumbersContainer') ||
-                              document.querySelector('.cold-numbers .d-flex') ||
-                              document.querySelector('.cold-numbers-section .number-list');
-    
-    const absentNumbersContainer = document.getElementById('absentNumbersContainer') ||
-                                document.querySelector('.absent-numbers .d-flex') ||
-                                document.querySelector('.absent-numbers-section .number-list');
-    
-    // Log which containers were found to help debugging
-    console.log("Container elements found:", {
-        hot: !!hotNumbersContainer,
-        cold: !!coldNumbersContainer,
-        absent: !!absentNumbersContainer
-    });
-    
-    // If we have no data from the shared frequency data, show error message
-    if (!frequencyData || !frequencyData.data || !frequencyData.lotteryType) {
-        if (hotNumbersContainer) hotNumbersContainer.innerHTML = '<div class="text-muted">No hot numbers data available for the selected filters</div>';
-        if (coldNumbersContainer) coldNumbersContainer.innerHTML = '<div class="text-muted">No cold numbers data available for the selected filters</div>';
-        if (absentNumbersContainer) absentNumbersContainer.innerHTML = '<div class="text-muted">No absent numbers data available for the selected filters</div>';
-        
-        // Hide loading indicators
-        loadingIndicators.forEach(indicator => {
-            indicator.classList.add('d-none');
-        });
-        return;
-    }
-    
-    const selectedLotteryType = frequencyData.lotteryType;
-    const lotteryData = frequencyData.data;
-    
-    // Get the frequency data array for the selected lottery type
-    const frequencyArray = lotteryData.frequency || [];
-    
-    // Create a list of numbers with their frequencies
-    const numberFrequencies = [];
-    for (let i = 0; i < frequencyArray.length; i++) {
-        numberFrequencies.push({
-            number: i + 1,
-            frequency: frequencyArray[i] || 0
-        });
-    }
-    
-    // Sort by frequency for hot and cold numbers
-    const sortedByFrequency = [...numberFrequencies].sort((a, b) => b.frequency - a.frequency);
-    
-    // Get the top numbers (most frequent)
-    const topNumbers = lotteryData.top_numbers || 
-        sortedByFrequency.slice(0, 10).map(item => [item.number, item.frequency]);
-    
-    // Get the cold numbers (least frequent - we derive this from the frequency data)
-    // First, filter out numbers with zero frequency as they'll show in not drawn section
-    const nonZeroFrequencies = sortedByFrequency.filter(item => item.frequency > 0);
-    // Then get the 5 least frequent numbers that have been drawn at least once
-    const coldNumbers = nonZeroFrequencies.slice(-5).reverse().map(item => [item.number, item.frequency]);
-    
-    // Determine which numbers haven't been drawn recently (frequency = 0)
-    let absentNumbers = numberFrequencies
-        .filter(item => item.frequency === 0)
-        .map(item => [item.number, Math.floor(Math.random() * 20) + 10]) // Simulate days since last drawn
-        .slice(0, 5);
-        
-    // If there are no absent numbers (no zeros in the frequency data), 
-    // use the least frequently drawn numbers instead
-    if (absentNumbers.length === 0) {
-        // Get the bottom 5 numbers from the sorted frequency data
-        absentNumbers = sortedByFrequency.slice(-5).reverse().map(item => [
-            item.number, 
-            // Display days estimate based on frequency (lower frequency = more days)
-            Math.max(5, Math.floor(30 / (item.frequency + 1)))
-        ]);
-    }
-    
-    // Update Hot Numbers container
-    if (topNumbers && topNumbers.length > 0 && hotNumbersContainer) {
-        let hotNumbersHTML = '';
-        const colors = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'];
-        
-        for (let i = 0; i < Math.min(5, topNumbers.length); i++) {
-            const [number, frequency] = topNumbers[i];
-            hotNumbersHTML += `
-                <div class="hot-number-item me-2 mb-2">
-                    <span class="lottery-ball lottery-ball-sm ${colors[i]}">
-                        <span class="number">${number}</span>
-                    </span>
-                    <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
-                </div>
-            `;
-        }
-        hotNumbersContainer.innerHTML = hotNumbersHTML;
-    } else if (hotNumbersContainer) {
-        hotNumbersContainer.innerHTML = '<div class="text-muted">No hot numbers data available</div>';
-    }
-    
-    // Update Cold Numbers container
-    if (coldNumbers && coldNumbers.length > 0 && coldNumbersContainer) {
-        let coldNumbersHTML = '';
-        
-        for (let i = 0; i < Math.min(5, coldNumbers.length); i++) {
-            const [number, frequency] = coldNumbers[i];
-            coldNumbersHTML += `
-                <div class="cold-number-item me-2 mb-2">
-                    <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
-                        <span class="number">${number}</span>
-                    </span>
-                    <small class="frequency-label d-block text-center mt-1">${frequency}x</small>
-                </div>
-            `;
-        }
-        coldNumbersContainer.innerHTML = coldNumbersHTML;
-    } else if (coldNumbersContainer) {
-        coldNumbersContainer.innerHTML = '<div class="text-muted">No cold numbers data available</div>';
-    }
-    
-    // Update Numbers Not Drawn Recently container
-    if (absentNumbers && absentNumbers.length > 0 && absentNumbersContainer) {
-        let absentNumbersHTML = '';
-        
-        for (let i = 0; i < Math.min(5, absentNumbers.length); i++) {
-            const [number, days] = absentNumbers[i];
-            absentNumbersHTML += `
-                <div class="absent-number-item me-2 mb-2">
-                    <span class="lottery-ball lottery-ball-sm lottery-ball-green">
-                        <span class="number">${number}</span>
-                    </span>
-                    <small class="frequency-label d-block text-center mt-1">${days} days</small>
-                </div>
-            `;
-        }
-        absentNumbersContainer.innerHTML = absentNumbersHTML;
-    } else if (absentNumbersContainer) {
-        absentNumbersContainer.innerHTML = '<div class="text-muted">No absent numbers data available</div>';
-    }
-    
-    // Hide all loading indicators when finished
-    loadingIndicators.forEach(indicator => {
-        indicator.classList.add('d-none');
-    });
-    
-    // Log completion to console for debugging
-    console.log(`Hot/cold numbers updated successfully for ${selectedLotteryType}`);
-}
-
-// Function to update the frequency chart
-function updateFrequencyChart(data, frequencyData) {
-    // Ensure DOM elements exist before processing frequency chart data
-    ensureDomElementsExist();
-    
-    // Get the bar chart container
-    const barChartContainer = document.querySelector('.bar-chart-container');
-    if (!barChartContainer) return;
-    
-    // Reset the container styles for a fresh implementation
-    barChartContainer.style.position = 'relative';
-    barChartContainer.style.height = '300px'; // Set to fixed height
-    barChartContainer.style.width = '100%';
-    barChartContainer.style.overflow = 'hidden';
-    
-    // If we don't have frequency data from the shared extraction, show an error
-    if (!frequencyData || !frequencyData.data || !frequencyData.lotteryType) {
-        barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
-        return;
-    }
-    
-    const selectedLotteryType = frequencyData.lotteryType;
-    const lotteryData = frequencyData.data;
-    
-    // If we have no data, show a message and return
-    if (!lotteryData) {
-        barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
-        return;
-    }
-    
-    // Get the top numbers for this lottery type
-    const topNumbers = lotteryData.top_numbers;
-    
-    // If no top numbers, show a message and return
-    if (!topNumbers || !topNumbers.length) {
-        barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
-        return;
-    }
-    
-    // Save the existing header before clearing the container
-    const existingHeader = barChartContainer.querySelector('h6');
-    
-    // Clear the container for a fresh start but don't duplicate the header
-    barChartContainer.innerHTML = '';
-    
-    // If we found a header, add it back, otherwise don't add any header
-    if (existingHeader) {
-        barChartContainer.appendChild(existingHeader.cloneNode(true));
-    }
-    
-    // Create the main chart container
-    const chartWrapper = document.createElement('div');
-    chartWrapper.style.position = 'relative';
-    chartWrapper.style.height = '220px'; // Slightly shorter to accommodate labels
-    chartWrapper.style.marginBottom = '20px';
-    barChartContainer.appendChild(chartWrapper);
-    
-    // Calculate dynamic Y-axis values based on maximum frequency
-    let maxFrequency = 0;
-    topNumbers.forEach(item => {
-        if (Array.isArray(item) && item.length >= 2) {
-            maxFrequency = Math.max(maxFrequency, item[1]);
-        }
-    });
-    
-    // Determine the appropriate step size based on maximum frequency
-    let stepSize = 2;
-    if (maxFrequency > 32) {
-        stepSize = 8;
-    } else if (maxFrequency > 20) {
-        stepSize = 5;
-    } else if (maxFrequency > 10) {
-        stepSize = 4;
-    } else {
-        stepSize = 2;
-    }
-    
-    // Round up maximum value to next multiple of step size
-    const maxYValue = Math.ceil(maxFrequency / stepSize) * stepSize;
-    
-    // Create dynamic Y-axis values with 5 points (including 0)
-    const yAxisValues = [];
-    for (let i = 4; i >= 0; i--) {
-        yAxisValues.push(Math.round(i * maxYValue / 4));
-    }
-    
-    // Create Y-axis labels container
-    const yAxis = document.createElement('div');
-    yAxis.style.position = 'absolute';
-    yAxis.style.left = '0';
-    yAxis.style.top = '0';
-    yAxis.style.bottom = '30px';
-    yAxis.style.width = '30px';
-    yAxis.style.borderRight = 'none';
-    chartWrapper.appendChild(yAxis);
-    
-    // Add the Y-axis values
-    yAxisValues.forEach((value, index) => {
-        const position = index * 25; // 0%, 25%, 50%, 75%, 100%
-        const label = document.createElement('div');
-        label.textContent = value;
-        label.style.position = 'absolute';
-        label.style.right = '7px';
-        label.style.top = `${position}%`;
-        label.style.fontSize = '12px';
-        label.style.color = '#666';
-        label.style.lineHeight = '1';
-        
-        if (index === 0) {
-            // Top value (32)
-            label.style.transform = 'translateY(0)';
-        } else if (index === yAxisValues.length - 1) {
-            // Bottom value (0)
-            label.style.bottom = '0';
-            label.style.top = 'auto';
-            label.style.transform = 'translateY(0)';
-        } else {
-            // Middle values (24, 16, 8)
-            label.style.transform = 'translateY(-50%)';
-        }
-        
-        yAxis.appendChild(label);
-    });
-    
-    // Create the main chart area
-    const chartArea = document.createElement('div');
-    chartArea.style.position = 'absolute';
-    chartArea.style.left = '30px';
-    chartArea.style.right = '0';
-    chartArea.style.top = '0';
-    chartArea.style.bottom = '30px';
-    chartArea.style.borderLeft = '1px solid #ddd';
-    chartArea.style.borderBottom = '1px solid #ddd';
-    chartWrapper.appendChild(chartArea);
-    
-    // Add horizontal grid lines
-    yAxisValues.forEach((value, index) => {
-        if (index === yAxisValues.length - 1) return; // Skip the last one (0)
-        
-        const position = index * 25; // 0%, 25%, 50%, 75%
-        const gridLine = document.createElement('div');
-        gridLine.style.position = 'absolute';
-        gridLine.style.left = '0';
-        gridLine.style.right = '0';
-        gridLine.style.top = `${position}%`;
-        gridLine.style.height = '1px';
-        gridLine.style.backgroundColor = '#eee';
-        chartArea.appendChild(gridLine);
-    });
-    
-    // We already calculated maxFrequency above, no need to recalculate
-    
-    // Create the bar container
-    const barContainer = document.createElement('div');
-    barContainer.style.display = 'flex';
-    barContainer.style.justifyContent = 'space-between';
-    barContainer.style.height = '100%';
-    barContainer.style.padding = '0 20px';
-    chartArea.appendChild(barContainer);
-    
-    // The fixed colors from the reference image for each position
-    const barColors = [
-        'bg-danger',    // 1st - Red
-        'bg-warning',   // 2nd - Yellow
-        'bg-success',   // 3rd - Green
-        'bg-info',      // 4th - Light Blue
-        'bg-primary',   // 5th - Dark Blue
-        'bg-secondary', // 6th - Gray
-        'bg-dark',      // 7th - Dark Gray
-        'bg-primary',   // 8th - Blue (reusing)
-        'bg-dark',      // 9th - Dark (reusing)
-        'bg-secondary'  // 10th - Gray (reusing)
-    ];
-    
-    // Process and display the top numbers
-    topNumbers.slice(0, 10).forEach((item, index) => {
-        if (!Array.isArray(item) || item.length < 2) return;
-        
-        const number = item[0];
-        const frequency = item[1];
-        
-        // Create column container for this bar
-        const column = document.createElement('div');
-        column.style.display = 'flex';
-        column.style.flexDirection = 'column';
-        column.style.alignItems = 'center';
-        column.style.width = '9%';
-        column.style.position = 'relative';
-        barContainer.appendChild(column);
-        
-        // Calculate height as percentage (0-100%) of the dynamic maxYValue
-        const maxYValue = yAxisValues[0]; // Now dynamically calculated
-        const heightPercent = (frequency / maxYValue) * 100;
-        
-        // Create the bar itself
-        const bar = document.createElement('div');
-        bar.className = `${barColors[index]}`;
-        bar.style.width = '100%';
-        bar.style.height = `${heightPercent}%`;
-        bar.style.position = 'absolute';
-        bar.style.bottom = '0';
-        bar.style.borderRadius = '3px 3px 0 0';
-        bar.style.display = 'flex';
-        bar.style.justifyContent = 'center';
-        bar.style.alignItems = 'center';
-        bar.style.color = 'white';
-        bar.style.fontWeight = 'bold';
-        bar.style.fontSize = '11px';
-        bar.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-        bar.textContent = frequency;
-        column.appendChild(bar);
-        
-        // Create the number label below the bar
-        const label = document.createElement('div');
-        label.textContent = number;
-        label.style.position = 'absolute';
-        label.style.bottom = '-25px';
-        label.style.fontWeight = 'bold';
-        label.style.fontSize = '12px';
-        column.appendChild(label);
-    });
-    
-    // Create top numbers box
-    const topBox = document.createElement('div');
-    topBox.style.position = 'absolute';
-    topBox.style.top = '10px';
-    topBox.style.right = '10px';
-    topBox.style.backgroundColor = 'rgba(255,255,255,0.9)';
-    topBox.style.padding = '5px';
-    topBox.style.borderRadius = '4px';
-    topBox.style.fontSize = '11px';
-    topBox.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-    
-    const topTitle = document.createElement('div');
-    topTitle.innerHTML = '<strong>Top Numbers:</strong>';
-    topBox.appendChild(topTitle);
-    
-    // Add top 5 numbers
-    topNumbers.slice(0, 5).forEach(([number, freq]) => {
-        const item = document.createElement('div');
-        item.textContent = `# ${number}: ${freq} times`;
-        topBox.appendChild(item);
-    });
-    
-    chartWrapper.appendChild(topBox);
-}
-
-// Function to update the Division Chart (Note: this is NOT the Hot & Cold section - that's handled by updateHotColdNumbers)
-function updateDivisionChart(data, frequencyData) {
-    // Ensure DOM elements exist before processing division chart data
-    ensureDomElementsExist();
-    
-    // Try to find the container to place the division chart
-    // IMPORTANT: This is NOT related to the hot-cold-container which is the static HTML section
-    const tempChartContainer = document.querySelector('.division-chart-container') || 
-                              document.querySelector('.temperature-chart-container');
-    
-    // If we can't find either container, log error and return
-    if (!tempChartContainer) {
-        console.error("Division chart container not found - skipping division chart update");
-        return;
-    }
-    
-    console.log("Updating division chart with shared data:", frequencyData);
-    
-    // Use shared frequency data instead of finding the lottery type with the most data
-    let selectedLotteryType = null;
-    let maxFrequencyData = [];
-    
-    if (frequencyData && frequencyData.lotteryType && frequencyData.data) {
-        selectedLotteryType = frequencyData.lotteryType;
-        if (frequencyData.data.frequency) {
-            maxFrequencyData = frequencyData.data.frequency;
-        }
-    } else {
-        // Fallback to the old method if no shared data is available
-        // Find the lottery type with the most data
-        for (const lotteryType in data) {
-            if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
-                maxFrequencyData = data[lotteryType].frequency;
-                selectedLotteryType = lotteryType;
-            }
-        }
-    }
-    
-    // If we have no data, show a message and return
-    if (!selectedLotteryType) {
-        tempChartContainer.innerHTML = '<div class="text-center my-5">No number data available for the selected filters.</div>';
-        return;
-    }
-    
-    // Get the frequency data for this lottery type
-    const frequencyArray = frequencyData && frequencyData.data && frequencyData.data.frequency ? 
-                          frequencyData.data.frequency : 
-                          data[selectedLotteryType].frequency;
-    
-    // If no frequency data, show a message and return
-    if (!frequencyArray || !frequencyArray.length) {
-        tempChartContainer.innerHTML = '<div class="text-center my-5">No number data available for the selected filters.</div>';
-        return;
-    }
-    
-    console.log("Using frequency array with length:", frequencyArray.length);
-    
-    // Clear the container except for the header
-    const header = tempChartContainer.querySelector('h6');
-    tempChartContainer.innerHTML = '';
-    if (header) {
-        tempChartContainer.appendChild(header);
-    } else {
-        // Create a new header if it doesn't exist
-        const newHeader = document.createElement('h6');
-        newHeader.className = 'mb-3 d-flex justify-content-between';
-        newHeader.innerHTML = '<span>Hot & Cold Numbers</span><span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>';
-        tempChartContainer.appendChild(newHeader);
-    }
-    
-    // Reset the chart container styles
-    tempChartContainer.style.position = 'relative';
-    tempChartContainer.style.height = '300px'; // Set to fixed height to match frequency chart
-    tempChartContainer.style.width = '100%';
-    tempChartContainer.style.overflow = 'hidden';
-    
-    // Create the main chart container
-    const chartContainer = document.createElement('div');
-    chartContainer.className = 'hot-cold-chart-container';
-    chartContainer.style.height = '220px'; // Match the height of frequency chart wrapper
-    tempChartContainer.appendChild(chartContainer);
-    
-    // Collect the frequency data and sort by frequency
-    const sortedNumbers = [];
-    for (let i = 0; i < frequencyArray.length; i++) {
-        sortedNumbers.push({
-            number: i + 1,
-            frequency: frequencyArray[i]
-        });
-    }
-    
-    // Sort by frequency descending
-    sortedNumbers.sort((a, b) => b.frequency - a.frequency);
-    
-    // Determine hot and cold numbers
-    const middleIndex = Math.floor(sortedNumbers.length / 2);
-    const hotNumbers = sortedNumbers.slice(0, middleIndex);
-    const coldNumbers = sortedNumbers.slice(middleIndex);
-    
-    // Create the hot and cold sections
-    const sectionsContainer = document.createElement('div');
-    sectionsContainer.className = 'd-flex';
-    sectionsContainer.style.height = '100%';
-    chartContainer.appendChild(sectionsContainer);
-    
-    // Hot numbers section
-    const hotSection = document.createElement('div');
-    hotSection.className = 'hot-numbers-section';
-    hotSection.style.flex = '1';
-    hotSection.style.borderRight = '1px solid #ddd';
-    hotSection.style.padding = '15px';
-    sectionsContainer.appendChild(hotSection);
-    
-    // Hot section title
-    const hotTitle = document.createElement('h6');
-    hotTitle.className = 'text-center mb-3';
-    hotTitle.innerHTML = '<span class="badge bg-danger">HOT</span> Most Frequent';
-    hotSection.appendChild(hotTitle);
-    
-    // Hot numbers list
-    const hotList = document.createElement('div');
-    hotList.className = 'number-list';
-    hotList.style.height = '170px'; // Slightly increased to show all entries
-    hotList.style.overflowY = 'auto';
-    hotSection.appendChild(hotList);
-    
-    // Add top 10 hot numbers
-    hotNumbers.slice(0, 10).forEach((item, index) => {
-        const listItem = document.createElement('div');
-        listItem.className = 'd-flex justify-content-between align-items-center mb-2';
-        
-        const numberBadge = document.createElement('span');
-        numberBadge.className = 'btn btn-sm btn-outline-danger rounded-circle number-badge';
-        numberBadge.style.width = '32px';
-        numberBadge.style.height = '32px';
-        numberBadge.style.display = 'flex';
-        numberBadge.style.alignItems = 'center';
-        numberBadge.style.justifyContent = 'center';
-        numberBadge.style.fontWeight = 'bold';
-        numberBadge.textContent = item.number;
-        
-        const frequencyText = document.createElement('span');
-        frequencyText.className = 'frequency-text';
-        frequencyText.textContent = `${item.frequency} times`;
-        
-        const rank = document.createElement('small');
-        rank.className = 'rank text-muted';
-        rank.textContent = `#${index + 1}`;
-        
-        listItem.appendChild(numberBadge);
-        listItem.appendChild(frequencyText);
-        listItem.appendChild(rank);
-        
-        hotList.appendChild(listItem);
-    });
-    
-    // Cold numbers section
-    const coldSection = document.createElement('div');
-    coldSection.className = 'cold-numbers-section';
-    coldSection.style.flex = '1';
-    coldSection.style.padding = '15px';
-    sectionsContainer.appendChild(coldSection);
-    
-    // Cold section title
-    const coldTitle = document.createElement('h6');
-    coldTitle.className = 'text-center mb-3';
-    coldTitle.innerHTML = '<span class="badge bg-primary">COLD</span> Least Frequent';
-    coldSection.appendChild(coldTitle);
-    
-    // Cold numbers list
-    const coldList = document.createElement('div');
-    coldList.className = 'number-list';
-    coldList.style.height = '170px'; // Matched with hot list height
-    coldList.style.overflowY = 'auto';
-    coldSection.appendChild(coldList);
-    
-    // Reverse cold numbers to show the least frequent first
-    const reversedColdNumbers = [...coldNumbers].reverse();
-    
-    // Add bottom 10 cold numbers
-    reversedColdNumbers.slice(0, 10).forEach((item, index) => {
-        const listItem = document.createElement('div');
-        listItem.className = 'd-flex justify-content-between align-items-center mb-2';
-        
-        const numberBadge = document.createElement('span');
-        numberBadge.className = 'btn btn-sm btn-outline-primary rounded-circle number-badge';
-        numberBadge.style.width = '32px';
-        numberBadge.style.height = '32px';
-        numberBadge.style.display = 'flex';
-        numberBadge.style.alignItems = 'center';
-        numberBadge.style.justifyContent = 'center';
-        numberBadge.style.fontWeight = 'bold';
-        numberBadge.textContent = item.number;
-        
-        const frequencyText = document.createElement('span');
-        frequencyText.className = 'frequency-text';
-        frequencyText.textContent = `${item.frequency} times`;
-        
-        const rank = document.createElement('small');
-        rank.className = 'rank text-muted';
-        rank.textContent = `#${coldNumbers.length - index}`;
-        
-        listItem.appendChild(numberBadge);
-        listItem.appendChild(frequencyText);
-        listItem.appendChild(rank);
-        
-        coldList.appendChild(listItem);
-    });
-    
-    // Note about the data
-    const noteContainer = document.createElement('div');
-    noteContainer.className = 'text-center mt-2';
-    
-    // Use data from the shared frequency object when available
-    const totalDraws = frequencyData && frequencyData.data && frequencyData.data.total_draws ? 
-                      frequencyData.data.total_draws : 
-                      data[selectedLotteryType].total_draws;
-                      
-    noteContainer.innerHTML = `<small class="text-muted">${selectedLotteryType} number frequency, ${totalDraws} draws</small>`;
-    tempChartContainer.appendChild(noteContainer);
-}
-
-// Function to ensure critical DOM elements exist and are properly identified
-function ensureDomElementsExist() {
-    // Create a map of element IDs to fallback selectors with enhanced options
-    const elementSelectors = {
-        // Static Hot/cold numbers containers with multiple fallback options
-        'hotNumbersContainer': ['.hot-numbers .d-flex', '.hot-numbers-container', '.hot-numbers-section .number-list', '.hot-numbers'],
-        'coldNumbersContainer': ['.cold-numbers .d-flex', '.cold-numbers-container', '.cold-numbers-section .number-list', '.cold-numbers'],
-        'absentNumbersContainer': ['.absent-numbers .d-flex', '.absent-numbers-container', '.absent-numbers-section .number-list', '.absent-numbers'],
-        
-        // Stats elements with enhanced fallbacks
-        'statsContainer': ['.stats-summary', '.data-analytics-preview .row:first-child', '.lottery-stats'],
-        'statsTable': ['.stats-summary table', '.data-analytics-preview table', '.lottery-stats-table'],
-        
-        // Filters and controls with improved fallback options
-        'lotteryTypeDropdown': ['.lottery-type-filter', '.lottery-type-dropdown', '.filter-dropdown', '.dropdown-menu.lottery-type', '.filter-data'],
-        'hotColdLoading': ['.hot-cold-container .chart-loading', '#hotColdLoading', '.chart-loading'],
-        
-        // Ensure we can find the containers for all visualization components
-        'barChartContainer': ['.bar-chart-container', '.frequency-chart', '#barChartContainer'], 
-        'hotColdContainer': ['.hot-cold-container', '#hotColdContainer', '.temperature-chart-container']
-    };
-    
-    // Check for each element and try fallback selectors if direct ID lookup fails
-    for (const [elementId, fallbackSelectors] of Object.entries(elementSelectors)) {
-        if (!document.getElementById(elementId)) {
-            console.log(`Element with ID ${elementId} not found, trying fallback selector ${Array.isArray(fallbackSelectors) ? fallbackSelectors[0] : fallbackSelectors}`);
-            
-            // Handle both single selectors and arrays of selectors
-            const selectorList = Array.isArray(fallbackSelectors) ? fallbackSelectors : [fallbackSelectors];
-            
-            // Try each selector in order until we find an element
-            let fallbackElement = null;
-            for (const selector of selectorList) {
-                fallbackElement = document.querySelector(selector);
-                if (fallbackElement) {
-                    break;
-                }
-            }
-            
-            if (fallbackElement && !fallbackElement.id) {
-                fallbackElement.id = elementId;
-                console.log(`Found element using fallback selector, assigned ID ${elementId}`);
-            } else {
-                console.warn(`Element ${elementId} not found after fallback, using flexible selection in functions`);
-            }
-        } else {
-            console.log(`Element with ID ${elementId} found directly`);
-        }
-    }
-    
-    // Return true to enable method chaining
-    return true;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // First ensure all DOM elements are properly identified
-    ensureDomElementsExist();
-    
-    // Initialize Bootstrap tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    })
-    
-    // Load initial chart data
-    fetchChartData('all', 'all');
-    
-    // Set up a MutationObserver to watch for DOM changes
-    const targetNode = document.querySelector('.data-analytics-preview') || document.body;
-    if (targetNode) {
-        const observerCallback = function(mutationsList, observer) {
-            // Check if any of the mutations involve our containers of interest
-            for (const mutation of mutationsList) {
-                if (mutation.type === 'childList' || mutation.type === 'attributes') {
-                    // Re-run element discovery when DOM changes
-                    ensureDomElementsExist();
-                }
-            }
-        };
-        
-        // Create and start the observer
-        const observer = new MutationObserver(observerCallback);
-        observer.observe(targetNode, { 
-            childList: true, 
-            subtree: true,
-            attributes: true,
-            attributeFilter: ['class', 'id']
-        });
-        console.log("MutationObserver monitoring DOM changes");
-    }
-    
-    // Filter functionality
-    const lotteryTypeFilters = document.querySelectorAll('a[data-lottery-type]');
-    const timePeriodFilters = document.querySelectorAll('a[data-time-period]');
-    const resetFiltersBtn = document.querySelector('.reset-filters');
-    const currentLotteryType = document.querySelector('.current-lottery-type');
-    const currentTimePeriod = document.querySelector('.current-time-period');
-    const loadingIndicators = document.querySelectorAll('.chart-loading');
-    
-    // Filter selection handlers
-    lotteryTypeFilters.forEach(filter => {
-        filter.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Update active state
-            lotteryTypeFilters.forEach(f => f.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Update displayed filter
-            const lotteryType = this.dataset.lotteryType;
-            currentLotteryType.textContent = lotteryType === 'all' ? 'All Lottery Types' : lotteryType;
-            
-            // Show loading state
-            loadingIndicators.forEach(indicator => indicator.classList.remove('d-none'));
-            
-            // Get currently selected time period
-            const timePeriod = document.querySelector('.current-time-period').textContent.trim();
-            let daysParam = 'all';
-            if (timePeriod === 'Last 30 Days') daysParam = '30';
-            else if (timePeriod === 'Last 90 Days') daysParam = '90';
-            else if (timePeriod === 'Last Year') daysParam = '365';
-            
-            // Fetch updated data via AJAX
-            fetchChartData(lotteryType, daysParam);
-        });
-    });
-    
-    timePeriodFilters.forEach(filter => {
-        filter.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Update active state
-            timePeriodFilters.forEach(f => f.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Update displayed filter
-            const timePeriod = this.dataset.timePeriod;
-            currentTimePeriod.textContent = timePeriod === 'all' ? 'All Time' : 
-                                          timePeriod === '30' ? 'Last 30 Days' : 
-                                          timePeriod === '90' ? 'Last 90 Days' : 'Last Year';
-            
-            // Show loading state
-            loadingIndicators.forEach(indicator => indicator.classList.remove('d-none'));
-            
-            // Get currently selected lottery type
-            const lotteryType = document.querySelector('.current-lottery-type').textContent.trim() === 'All Lottery Types' ? 
-                'all' : document.querySelector('.current-lottery-type').textContent.trim();
-            
-            // Fetch updated data via AJAX
-            fetchChartData(lotteryType, timePeriod);
-        });
-    });
-    
-    // Reset filters
-    resetFiltersBtn.addEventListener('click', function() {
-        // Reset active states
-        lotteryTypeFilters.forEach(f => {
-            f.classList.remove('active');
-            if (f.dataset.lotteryType === 'all') f.classList.add('active');
-        });
-        
-        timePeriodFilters.forEach(f => {
-            f.classList.remove('active');
-            if (f.dataset.timePeriod === 'all') f.classList.add('active');
-        });
-        
-        // Reset displayed filters
-        currentLotteryType.textContent = 'All Lottery Types';
-        currentTimePeriod.textContent = 'All Time';
-        
-        // Show loading state
-        loadingIndicators.forEach(indicator => indicator.classList.remove('d-none'));
-        
-        // Fetch data for all lottery types and all time periods
-        fetchChartData('all', 'all');
-    });
-    
-    // Add hover effects for bar chart
-    const bars = document.querySelectorAll('.interactive-bar');
-    bars.forEach(bar => {
-        bar.addEventListener('mouseover', function() {
-            // Scale up the bar slightly on hover
-            this.style.transform = 'scaleY(1.05)';
-            this.style.transition = 'transform 0.2s';
-            
-            // Create a tooltip
-            const number = this.getAttribute('data-number');
-            const frequency = this.getAttribute('data-frequency');
-            
-            // Display info in a floating tooltip
-            const tooltip = document.createElement('div');
-            tooltip.className = 'chart-tooltip';
-            tooltip.innerHTML = `Number ${number}<br>Appeared ${frequency} times`;
-            tooltip.style.position = 'absolute';
-            tooltip.style.backgroundColor = 'rgba(0,0,0,0.8)';
-            tooltip.style.color = 'white';
-            tooltip.style.padding = '5px 10px';
-            tooltip.style.borderRadius = '4px';
-            tooltip.style.fontSize = '12px';
-            tooltip.style.zIndex = '1000';
-            
-            // Position tooltip above the bar
-            const rect = this.getBoundingClientRect();
-            tooltip.style.left = rect.left + 'px';
-            tooltip.style.top = (rect.top - 40) + 'px';
-            
-            document.body.appendChild(tooltip);
-            this.setAttribute('data-tooltip-id', Date.now());
-        });
-        
-        bar.addEventListener('mouseout', function() {
-            // Return to normal size
-            this.style.transform = 'scaleY(1)';
-            
-            // Remove any tooltips
-            const tooltipId = this.getAttribute('data-tooltip-id');
-            if (tooltipId) {
-                const tooltips = document.querySelectorAll('.chart-tooltip');
-                tooltips.forEach(tooltip => tooltip.remove());
-            }
-        });
-    });
-    
-    // Make pie chart segments highlight on hover
-    const pieSegments = document.querySelectorAll('.pie-segment');
-    pieSegments.forEach(segment => {
-        segment.addEventListener('mouseover', function() {
-            // Highlight the segment by calling our function
-            const division = this.getAttribute('data-division');
-            highlightPieSegment(division);
-            
-            // Also highlight the legend item
-            const legendItems = document.querySelectorAll('.legend-item');
-            legendItems.forEach(item => {
-                if (item.getAttribute('data-division') === division) {
-                    item.style.fontWeight = 'bold';
-                    item.style.backgroundColor = 'rgba(0,0,0,0.05)';
-                }
-            });
-        });
-        
-        segment.addEventListener('mouseout', function() {
-            // Reset segments and remove highlights
-            resetPieSegments();
-            
-            // Reset legend items
-            const legendItems = document.querySelectorAll('.legend-item');
-            legendItems.forEach(item => {
-                item.style.fontWeight = 'normal';
-                item.style.backgroundColor = 'transparent';
-            });
-        });
-    });
-});
-</script>
-
-<!-- Enhanced Chart Visualization Scripts -->
-<script src="{{ url_for('static', filename='js/chart-loader.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart-renderer.js') }}"></script>
-{% endblock %}
+    <div class="footer">
+        <p>&copy; 2025 Snap Lotto. All rights reserved.</p>
+        <p>Not affiliated with Ithuba National Lottery. For official results, please visit the official website.</p>
+    </div>
+</body>
+</html>

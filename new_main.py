@@ -46,10 +46,11 @@ def create_admin_user():
     admin = models.User.query.filter_by(username='admin').first()
     if admin is None:
         # Create default admin user with password St0n3@g3
-        admin = models.User()
-        admin.username = 'admin'
-        admin.email = 'admin@snaplotto.co.za'
-        admin.is_admin = True
+        admin = models.User(
+            username='admin',
+            email='admin@snaplotto.co.za',
+            is_admin=True
+        )
         admin.set_password('St0n3@g3')
         db.session.add(admin)
         db.session.commit()

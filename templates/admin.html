@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Snap Lotto</title>
+    <style>
+        :root {
+            --primary-yellow: #FFDE59;
+            --primary-red: #E74C3C;
+            --dark-text: #333333;
+            --green: #27AE60;
+            --light-blue: #3498DB;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: var(--dark-text);
+        }
+        
+        .header {
+            background-color: var(--primary-yellow);
+            color: var(--dark-text);
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .admin-panel {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 2rem;
+        }
+        
+        .sidebar {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+        }
+        
+        .sidebar h3 {
+            margin-top: 0;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .sidebar a {
+            display: block;
+            padding: 0.8rem;
+            text-decoration: none;
+            color: var(--dark-text);
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        
+        .sidebar a:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .sidebar a.active {
+            background-color: var(--light-blue);
+            color: white;
+        }
+        
+        .content {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 2rem;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-header {
+            background-color: var(--light-blue);
+            color: white;
+            padding: 1rem;
+            font-weight: bold;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+        
+        .stat-label {
+            color: #777;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background-color: var(--light-blue);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-danger {
+            background-color: var(--primary-red);
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-success {
+            background-color: var(--green);
+        }
+        
+        .btn-success:hover {
+            background-color: #219653;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        
+        table th, table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        table th {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+        
+        .nav {
+            background-color: var(--dark-text);
+            padding: 1rem;
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .nav a:hover {
+            color: var(--primary-yellow);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            background-color: var(--dark-text);
+            color: white;
+            font-size: 0.9rem;
+            margin-top: 3rem;
+        }
+        
+        .alert {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            color: white;
+        }
+        
+        .alert-danger {
+            background-color: var(--primary-red);
+        }
+        
+        .alert-success {
+            background-color: var(--green);
+        }
+        
+        @media (max-width: 768px) {
+            .admin-panel {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <div class="nav-container">
+            <div>
+                <a href="/" style="margin-left: 0;">Home</a>
+                <a href="/scanner">Ticket Scanner</a>
+                <a href="/results">All Results</a>
+            </div>
+            <div>
+                <a href="/admin">Admin</a>
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>Snap Lotto Admin Dashboard</h1>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <div class="admin-panel">
+            <div class="sidebar">
+                <h3>Admin Menu</h3>
+                <ul>
+                    <li><a href="/admin" class="active">Dashboard</a></li>
+                    <li><a href="/admin/screenshots">Screenshots</a></li>
+                    <li><a href="/admin/lottery-results">Lottery Results</a></li>
+                    <li><a href="/admin/schedule">Scheduler</a></li>
+                    <li><a href="/admin/advertisements">Advertisements</a></li>
+                    <li><a href="/admin/settings">Settings</a></li>
+                </ul>
+            </div>
+            
+            <div class="content">
+                <h2>Dashboard</h2>
+                
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Screenshots</div>
+                        <div class="stat-number">{{ total_screenshots|default(0) }}</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Latest Results</div>
+                        <div class="stat-number">{{ total_results|default(0) }}</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Scheduled Tasks</div>
+                        <div class="stat-number">{{ total_schedules|default(0) }}</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Active Ads</div>
+                        <div class="stat-number">{{ total_ads|default(0) }}</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        Quick Actions
+                    </div>
+                    <div class="card-body">
+                        <p>Manage your lottery platform with these quick actions:</p>
+                        <a href="/admin/lottery-results/fetch" class="btn">Fetch Latest Results</a>
+                        <a href="/admin/screenshots/synchronize" class="btn">Synchronize Screenshots</a>
+                        <a href="/admin/backup" class="btn btn-success">Create Backup</a>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        Recent Activity
+                    </div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Activity</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if activities %}
+                                    {% for activity in activities %}
+                                        <tr>
+                                            <td>{{ activity.date }}</td>
+                                            <td>{{ activity.description }}</td>
+                                            <td>{{ activity.status }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="3">No recent activities</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2025 Snap Lotto. All rights reserved.</p>
+    </div>
+</body>
+</html>
