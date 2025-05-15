@@ -1,163 +1,124 @@
 """
-Simple scheduler for managing background tasks in the Lottery App
+Simplified scheduler functions for lottery screenshot capture
 
-This module provides a simpler, more reliable approach to scheduling
-tasks in the application, such as screenshot captures, without the 
-complexity of larger scheduler libraries.
+This module provides functions to capture screenshots of lottery websites
+using Puppeteer for reliable full-page screenshots without any data extraction
+or complex browser interactions.
 """
-
-import threading
-import time
-from datetime import datetime, timedelta
 import logging
-import os
+import traceback
+from datetime import datetime
+from models import db, Screenshot, ScheduleConfig
+from puppeteer_service import capture_single_screenshot, capture_multiple_screenshots
+from logger import setup_logger
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+# Set up module-specific logger
+logger = setup_logger(__name__)
 
-# Global container for scheduled tasks
-scheduled_tasks = {}
-stop_event = threading.Event()
-
-def initialize_scheduler():
-    """Initialize the scheduler system"""
-    global stop_event
-    stop_event.clear()
-    logger.info("Simple scheduler initialized")
-
-def shutdown_scheduler():
-    """Shutdown all scheduler threads"""
-    global stop_event
-    stop_event.set()
-    logger.info("Scheduler shutdown initiated")
-
-def schedule_task(task_id, func, interval_minutes=60, args=None, kwargs=None):
+def retake_all_screenshots(app=None, use_threading=False):
     """
-    Schedule a task to run at regular intervals
+    Function to retake all screenshots using Puppeteer.
+    Collects URLs from the database and captures all screenshots.
     
     Args:
-        task_id (str): Unique identifier for the task
-        func (callable): Function to call
-        interval_minutes (int): Minutes between executions
-        args (list, optional): Positional arguments for the function
-        kwargs (dict, optional): Keyword arguments for the function
+        app: Flask app context (optional)
+        use_threading: Whether to use threading (passed to capture_multiple_screenshots)
     
     Returns:
-        bool: Success status
+        int: Number of screenshots captured
     """
-    if task_id in scheduled_tasks:
-        logger.warning(f"Task {task_id} is already scheduled")
-        return False
-    
-    args = args or []
-    kwargs = kwargs or {}
-    
-    def task_runner():
-        next_run = datetime.now()
-        
-        while not stop_event.is_set():
-            # Check if it's time to run
-            if datetime.now() >= next_run:
-                try:
-                    logger.info(f"Running scheduled task: {task_id}")
-                    func(*args, **kwargs)
-                    logger.info(f"Task {task_id} completed successfully")
-                except Exception as e:
-                    logger.error(f"Error in scheduled task {task_id}: {str(e)}")
-                
-                # Calculate next run time
-                next_run = datetime.now() + timedelta(minutes=interval_minutes)
-                logger.info(f"Next run for {task_id}: {next_run}")
-            
-            # Sleep for a short time to avoid high CPU usage
-            time.sleep(10)
-    
-    # Create and start the thread
-    thread = threading.Thread(target=task_runner, daemon=True)
-    scheduled_tasks[task_id] = {
-        'thread': thread,
-        'interval': interval_minutes,
-        'func': func,
-        'args': args,
-        'kwargs': kwargs,
-        'last_run': None,
-        'next_run': datetime.now() + timedelta(minutes=interval_minutes),
-        'status': 'scheduled'
-    }
-    
-    thread.start()
-    logger.info(f"Scheduled task {task_id} to run every {interval_minutes} minutes")
-    return True
-
-def get_task_status(task_id):
-    """Get the status of a scheduled task"""
-    if task_id not in scheduled_tasks:
-        return None
-    
-    task = scheduled_tasks[task_id]
-    return {
-        'task_id': task_id,
-        'interval': task['interval'],
-        'last_run': task['last_run'],
-        'next_run': task['next_run'],
-        'status': task['status'],
-        'running': task['thread'].is_alive()
-    }
-
-def get_all_task_statuses():
-    """Get status of all scheduled tasks"""
-    result = {}
-    for task_id in scheduled_tasks:
-        result[task_id] = get_task_status(task_id)
-    return result
-
-def run_task_now(task_id):
-    """
-    Manually trigger a scheduled task to run immediately
-    
-    Args:
-        task_id (str): ID of the task to run
-        
-    Returns:
-        bool: Success status
-    """
-    if task_id not in scheduled_tasks:
-        logger.warning(f"Task {task_id} not found")
-        return False
-    
-    task = scheduled_tasks[task_id]
-    
     try:
-        task['status'] = 'running'
-        task['func'](*task['args'], **task['kwargs'])
-        task['last_run'] = datetime.now()
-        task['status'] = 'completed'
-        logger.info(f"Manually triggered task {task_id} completed successfully")
-        return True
+        # Function to execute within app context if needed
+        def execute():
+            # Get all screenshot configurations from database
+            screenshots = Screenshot.query.all()
+            # Create URL and type pairs
+            urls_with_types = [(s.url, s.lottery_type) for s in screenshots]
+            
+            if not urls_with_types:
+                logger.warning("No screenshot configurations found in database")
+                return 0
+                
+            # Use puppeteer service to capture all screenshots
+            results = capture_multiple_screenshots(urls_with_types)
+            
+            # Count successful captures
+            success_count = 0
+            
+            # Update database with results
+            for screenshot, result in zip(screenshots, results):
+                if result and result.get('success'):
+                    screenshot.path = result['image_path']
+                    screenshot.html_path = result.get('html_path')
+                    screenshot.timestamp = datetime.now()
+                    success_count += 1
+            
+            # Commit all updates at once
+            db.session.commit()
+            return success_count
+            
+        # Ensure we have an app context if provided
+        if app:
+            with app.app_context():
+                return execute()
+        else:
+            return execute()
     except Exception as e:
-        task['status'] = 'failed'
-        logger.error(f"Error running task {task_id} manually: {str(e)}")
-        return False
+        logger.error(f"Error in retake_all_screenshots: {str(e)}")
+        traceback.print_exc()
+        return 0
 
-def cancel_task(task_id):
+def sync_single_screenshot(screenshot_id, app=None):
     """
-    Cancel a scheduled task
+    Sync a single screenshot using the simplified approach.
     
     Args:
-        task_id (str): ID of the task to cancel
+        screenshot_id: ID of the screenshot to sync
+        app: Flask app context (optional)
         
     Returns:
-        bool: Success status
+        bool: True if successful, False otherwise
     """
-    if task_id not in scheduled_tasks:
-        logger.warning(f"Task {task_id} not found")
+    try:
+        # Handle app context if provided
+        if app:
+            with app.app_context():
+                return _sync_single_screenshot_impl(screenshot_id)
+        else:
+            return _sync_single_screenshot_impl(screenshot_id)
+    except Exception as e:
+        logger.error(f"Error in simplified sync_single_screenshot: {str(e)}")
+        traceback.print_exc()
         return False
-    
-    # We can't actually stop the thread directly in Python,
-    # but we can mark it as cancelled and the stop_event will
-    # eventually cause it to exit
-    scheduled_tasks[task_id]['status'] = 'cancelled'
-    logger.info(f"Task {task_id} marked as cancelled")
-    return True
+
+def _sync_single_screenshot_impl(screenshot_id):
+    """Internal implementation for syncing a single screenshot using Puppeteer"""
+    try:
+        # Find the screenshot by ID
+        screenshot = Screenshot.query.get(screenshot_id)
+        if not screenshot:
+            logger.error(f"Screenshot with ID {screenshot_id} not found")
+            return False
+            
+        logger.info(f"Syncing screenshot for {screenshot.lottery_type} from {screenshot.url}")
+        
+        # Capture the screenshot using Puppeteer
+        result = capture_single_screenshot(screenshot.lottery_type, screenshot.url)
+        
+        if result and 'success' in result and result['success']:
+            # Update the database record
+            screenshot.path = result['image_path']
+            screenshot.html_path = result.get('html_path')
+            screenshot.timestamp = datetime.now()
+            db.session.commit()
+            
+            logger.info(f"Successfully synced screenshot for {screenshot.lottery_type}")
+            return True
+        else:
+            error_msg = result.get('error', 'Unknown error') if result else 'Unknown error'
+            logger.warning(f"Failed to capture screenshot for {screenshot.lottery_type}: {error_msg}")
+            return False
+    except Exception as e:
+        logger.error(f"Error in _sync_single_screenshot_impl: {str(e)}")
+        traceback.print_exc()
+        return False
