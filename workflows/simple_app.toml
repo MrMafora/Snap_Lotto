@@ -1,3 +1,0 @@
-[workflows.simple_app]
-commands = ["gunicorn --bind 0.0.0.0:5000 --reuse-port --reload simple_main:app"]
-language = "python3"

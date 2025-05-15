@@ -46,8 +46,8 @@ class DuplicateCheckMixin:
             instance = db.session.query(cls).filter_by(**kwargs).first()
             return instance, False
 
-# Import db from app.py to avoid circular imports
-from app import db, logger
+# Initialize database
+db = SQLAlchemy(model_class=Base)
 
 class User(UserMixin, db.Model):
     """User model for admin authentication"""
