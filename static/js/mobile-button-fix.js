@@ -35,13 +35,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Also set a timer to periodically check for these buttons
         setInterval(checkForIOSButtons, 1000);
         
-        // Disable the automatic force-enable of buttons
-        // We'll now respect the ad system's countdown
+        // Set a backup deadline for 15s after page load to force all buttons to active state
         setTimeout(function() {
-            console.log('iOS 15s deadline reached, but NOT forcing buttons - respecting ad system');
-            // Don't call forceMobileButtonsActive() here anymore
+            console.log('iOS 15s deadline reached, forcing all wait buttons to active state');
+            forceMobileButtonsActive();
             
-            // Still set the attribute for compatibility with other scripts
+            // Set attribute on html to mark countdown as completed
             document.documentElement.setAttribute('data-countdown-completed', 'true');
         }, 16000);
     }
@@ -55,13 +54,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (button.innerText && button.innerText.includes('View Results (Wait')) {
                 console.log('Found iOS wait button format:', button.innerText);
                 
-                // DISABLED: No longer forcing button update
-                // We'll respect the countdown from the ads-mobile.js script
-                
-                // Log but don't take action
+                // Check if countdown should be complete
                 if (window.countdownStartTime && (Date.now() - window.countdownStartTime > 15000)) {
-                    console.log('Old system would have forced button update, but now respecting ad system.');
-                    // Do not call updateIOSButton(button) anymore
+                    console.log('Countdown should be complete, updating button');
+                    updateIOSButton(button);
                 }
             }
         });
@@ -136,34 +132,87 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Set a periodic check for mobile waiting buttons - COMPLETELY DISABLED for ticket scanner
+    // Set a periodic check for mobile waiting buttons
     setInterval(() => {
-        // IMPORTANT! We ONLY check on non-ticket-scanner pages now
-        if (!window.location.pathname.includes('ticket-scanner')) {
-            // On non-ticket scanner pages, we can still help with stuck buttons
-            console.log('Mobile button check: Non-ticket-scanner page, checking for stuck buttons');
+        // Check if countdown should be completed (15 seconds after starting)
+        if (window.countdownStartTime && (Date.now() - window.countdownStartTime > 15000)) {
+            console.log('Mobile button check: More than 15s since countdown start, checking for stuck buttons');
             
-            // Check only on non-scanner pages
+            // Find all buttons on the page
             const allButtons = document.querySelectorAll('button');
             
-            // Only process buttons on non-ticket-scanner pages
+            // Check each button for a waiting message
             allButtons.forEach(button => {
                 if (button.innerText && button.innerText.includes('Wait')) {
-                    console.log('Found View Results button with waiting text on non-scanner page');
+                    console.log('Found mobile button still showing Wait message after 15s', button);
                     
-                    // Only unstick if not in an ad system
-                    if (!window.SnapLottoAds || !window.SnapLottoAds.adDisplayActive) {
-                        console.log('Non-ticket-scanner page: Unsticking button as normal');
-                        button.disabled = false;
-                        button.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
-                        button.classList.remove('btn-secondary');
-                        button.classList.add('btn-success');
+                    // Force update the button
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    button.style.cursor = 'pointer';
+                    
+                    // Add visual indication
+                    button.classList.remove('btn-secondary');
+                    button.classList.add('btn-success');
+                    
+                    // Update text and icon (lock to checkmark)
+                    const lockIcon = button.querySelector('.fa-lock');
+                    if (lockIcon) {
+                        lockIcon.classList.remove('fa-lock');
+                        lockIcon.classList.add('fa-check-circle');
                     }
+                    
+                    // Update any spans containing "Wait" text
+                    const spans = button.querySelectorAll('span');
+                    spans.forEach(span => {
+                        if (span.textContent && span.textContent.includes('Wait')) {
+                            span.textContent = 'View Results Now!';
+                        }
+                    });
+                    
+                    // Direct replacement if format is exactly like in screenshot
+                    if (button.innerHTML.includes('View Results (Wait')) {
+                        button.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                    }
+                    
+                    // Add click handler to force show results
+                    button.addEventListener('click', function(e) {
+                        console.log('Mobile fixed button clicked');
+                        
+                        // Force show results
+                        const resultsContainer = document.getElementById('results-container');
+                        if (resultsContainer) {
+                            resultsContainer.classList.remove('d-none');
+                            resultsContainer.style.display = 'block';
+                        }
+                        
+                        // Hide ad overlays
+                        document.querySelectorAll('[id^="ad-overlay"]').forEach(overlay => {
+                            overlay.style.display = 'none';
+                        });
+                        
+                        // Hide scan form
+                        const scanForm = document.getElementById('scan-form-container');
+                        if (scanForm) {
+                            scanForm.classList.add('d-none');
+                        }
+                        
+                        // Set global flags
+                        window.inResultsMode = true;
+                        window.viewResultsBtnClicked = true;
+                        window.adClosed = true;
+                        window.showingResultsAfterAd = true;
+                        
+                        // Display results if available
+                        if (window.lastResultsData && typeof displayResults === 'function') {
+                            displayResults(window.lastResultsData);
+                        }
+                        
+                        e.preventDefault();
+                        return false;
+                    }, true);
                 }
             });
-        } else {
-            // Just diagnostic logging for ticket scanner page
-            console.log('On ticket scanner page - mobile-button-fix is NOT modifying any buttons');
         }
     }, 2000); // Check every 2 seconds
 });

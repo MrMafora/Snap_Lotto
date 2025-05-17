@@ -4,8 +4,7 @@
  */
 (function() {
     // Configuration
-    const firstAdCountdownTime = 5; // seconds (FIXED to exactly 5 seconds)
-    const secondAdCountdownTime = 15; // seconds
+    const countdownTime = 15; // seconds
     const updateInterval = 1000; // ms
 
     // DOM elements we'll need
@@ -94,8 +93,8 @@
         secondAdComplete = false;
         
         // Reset countdown displays
-        if (firstAdCountdown) firstAdCountdown.textContent = firstAdCountdownTime;
-        if (secondAdCountdown) secondAdCountdown.textContent = secondAdCountdownTime;
+        if (firstAdCountdown) firstAdCountdown.textContent = countdownTime;
+        if (secondAdCountdown) secondAdCountdown.textContent = countdownTime;
     }
 
     function startFirstAdCountdown() {
@@ -106,7 +105,7 @@
         firstAdComplete = false;
         
         // Start with full countdown time
-        let secondsLeft = firstAdCountdownTime;
+        let secondsLeft = countdownTime;
         if (firstAdCountdown) firstAdCountdown.textContent = secondsLeft;
         
         // Start timer
@@ -138,43 +137,31 @@
         // Reset state
         secondAdComplete = false;
         
-        // Make sure the button is disabled and hidden initially
-        // (The button container is now hidden by default in HTML)
+        // Make sure the button is disabled
         if (viewResultsBtn) {
             viewResultsBtn.disabled = true;
             viewResultsBtn.classList.remove('btn-success', 'btn-pulse');
             viewResultsBtn.classList.add('btn-secondary');
-            viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${secondAdCountdownTime}s)`;
+            viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
         }
         
         // Start with full countdown time
-        let secondsLeft = secondAdCountdownTime;
+        let secondsLeft = countdownTime;
         if (secondAdCountdown) secondAdCountdown.textContent = secondsLeft;
         
-        // Signal that second ad started (for coordination with ad-countdown-fix.js)
-        console.log('🔔 Sending adStateChange message to notify of second ad start');
-        window.postMessage({ 
-            type: 'adStateChange', 
-            adType: 'second', 
-            state: 'start', 
-            timestamp: Date.now(),
-            source: 'simple-countdown'
-        }, '*');
-        
-        // Start timer - ONLY UPDATES COUNTDOWN DISPLAY, doesn't control button anymore
+        // Start timer
         secondAdTimer = setInterval(function() {
             secondsLeft--;
             
             // Update display
             if (secondAdCountdown) secondAdCountdown.textContent = secondsLeft;
             
-            // Only update text - button activation is now handled by ad-countdown-fix.js
-            if (viewResultsBtn && secondsLeft > 0) {
+            // Update button text
+            if (viewResultsBtn) {
                 viewResultsBtn.innerHTML = `<i class="fas fa-lock me-2"></i> View Results (Wait ${secondsLeft}s)`;
             }
             
-            // When countdown finishes, just clear the timer - 
-            // ad-countdown-fix.js will handle button enablement consistently
+            // Check if complete
             if (secondsLeft <= 0) {
                 // Clear timer
                 clearInterval(secondAdTimer);
@@ -183,42 +170,91 @@
                 // Set completion flag
                 secondAdComplete = true;
                 
-                console.log('🔄 Second ad countdown finished in simple-countdown.js');
-                // We no longer enable the button directly here
-                // enableViewResultsButton() call removed
+                // Enable results button
+                enableViewResultsButton();
             }
         }, updateInterval);
     }
 
     function enableContinueButton() {
-        console.log("⚠️ simple-countdown.js: enableContinueButton DEPRECATED - Now handled by ad-countdown-fix.js");
+        // Create a new continue button with a clean event handler
+        const continueBtn = document.getElementById('view-results-btn');
+        if (!continueBtn) return;
         
-        // Signal to ad-countdown-fix.js that we've reached this point
-        window.postMessage({ 
-            type: 'adStateChange', 
-            adType: 'first', 
-            state: 'complete', 
-            timestamp: Date.now(),
-            source: 'simple-countdown'
-        }, '*');
+        // Create a replacement button to clear stale handlers
+        const newBtn = continueBtn.cloneNode(true);
+        newBtn.disabled = false;
+        newBtn.classList.remove('btn-secondary');
+        newBtn.classList.add('btn-success', 'btn-pulse');
+        newBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
         
-        // Don't directly manipulate the button anymore
-        return;
+        // Add a fresh click handler
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('Continue button clicked after first ad');
+            
+            // Hide the first ad overlay
+            const firstAdOverlay = document.getElementById('ad-overlay-loading');
+            if (firstAdOverlay) {
+                firstAdOverlay.style.display = 'none';
+            }
+            
+            // Make sure results container is visible
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                resultsContainer.classList.remove('d-none');
+            }
+            
+            // Show the second ad
+            const secondAdOverlay = document.getElementById('ad-overlay-results');
+            if (secondAdOverlay) {
+                secondAdOverlay.style.display = 'flex';
+            }
+        });
+        
+        // Replace the button
+        continueBtn.parentNode.replaceChild(newBtn, continueBtn);
     }
 
     function enableViewResultsButton() {
-        console.log("⚠️ simple-countdown.js: enableViewResultsButton DEPRECATED - Now handled by ad-countdown-fix.js");
+        // Get the view results button
+        const viewResultsBtn = document.getElementById('view-results-btn');
+        if (!viewResultsBtn) return;
         
-        // Signal to ad-countdown-fix.js that we've reached this point
-        window.postMessage({ 
-            type: 'adStateChange', 
-            adType: 'second', 
-            state: 'complete', 
-            timestamp: Date.now(),
-            source: 'simple-countdown'
-        }, '*');
+        // Create a replacement button to clear stale handlers
+        const newBtn = viewResultsBtn.cloneNode(true);
+        newBtn.disabled = false;
+        newBtn.classList.remove('btn-secondary');
+        newBtn.classList.add('btn-success', 'btn-pulse');
+        newBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
         
-        // Don't directly manipulate the button anymore
-        return;
+        // Add a fresh click handler
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('View Results button clicked after second ad');
+            
+            // Hide the second ad overlay
+            const secondAdOverlay = document.getElementById('ad-overlay-results');
+            if (secondAdOverlay) {
+                secondAdOverlay.style.display = 'none';
+            }
+            
+            // Show the results
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                resultsContainer.classList.remove('d-none');
+                resultsContainer.style.display = 'block';
+            }
+            
+            // Set global flags
+            window.resultsShown = true;
+        });
+        
+        // Replace the button
+        viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
     }
 })();

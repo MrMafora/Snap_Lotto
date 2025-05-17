@@ -11,16 +11,6 @@
     
     // Direct fix for the specific button format
     function fixRoundedPillButton() {
-        // IMPORTANT: Skip this fix on the ticket-scanner page where we have a better system
-        if (window.location.pathname.includes('ticket-scanner')) {
-            // Only log once per page load to avoid console spam
-            if (!window.loggedTicketScannerSkip) {
-                console.log('⚠️ SKIPPING rounded-pill fix on ticket-scanner page');
-                window.loggedTicketScannerSkip = true;
-            }
-            return;
-        }
-        
         // Look for any button matching the format in the screenshot
         const buttons = document.querySelectorAll('button');
         
@@ -77,12 +67,6 @@
                         
                         // Set a timeout to check this button when countdown should be complete
                         setTimeout(function() {
-                            // IMPORTANT: Skip this check on the ticket-scanner page
-                            if (window.location.pathname.includes('ticket-scanner')) {
-                                console.log('⚠️ SKIPPING button update check on ticket-scanner page');
-                                return;
-                            }
-                            
                             console.log('Checking if button has updated...');
                             
                             // Find the button again (might have been replaced)
@@ -108,24 +92,14 @@
     // Run on page load
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
-            // Only run this script on non-ticket-scanner pages
-            if (!window.location.pathname.includes('ticket-scanner')) {
-                fixRoundedPillButton();
-                // Check periodically, but only on non-ticket-scanner pages
-                setInterval(fixRoundedPillButton, 1000);
-            } else {
-                console.log('⚠️ DISABLED rounded-pill fix on ticket-scanner page');
-            }
+            fixRoundedPillButton();
+            // Check periodically
+            setInterval(fixRoundedPillButton, 1000);
         });
     } else {
         // DOM already loaded
-        // Only run this script on non-ticket-scanner pages
-        if (!window.location.pathname.includes('ticket-scanner')) {
-            fixRoundedPillButton();
-            // Check periodically, but only on non-ticket-scanner pages
-            setInterval(fixRoundedPillButton, 1000);
-        } else {
-            console.log('⚠️ DISABLED rounded-pill fix on ticket-scanner page');
-        }
+        fixRoundedPillButton();
+        // Check periodically
+        setInterval(fixRoundedPillButton, 1000);
     }
 })();

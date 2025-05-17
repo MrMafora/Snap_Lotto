@@ -12,23 +12,10 @@ port 8080 required by Replit for public access.
 """
 import logging
 import os
-import io
-import re
-import time
 import threading
 import traceback
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import abort, make_response
-
-# Admin required decorator
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            abort(403)
-        return f(*args, **kwargs)
-    return decorated_function
 
 # Set up logging first
 logging.basicConfig(level=logging.DEBUG)
@@ -37,26 +24,6 @@ logger = logging.getLogger(__name__)
 # Now that logger is defined, import other modules
 import scheduler  # Import directly at the top level for screenshot functions
 import create_template  # Import directly for template creation
-
-# Start port proxy for Replit compatibility
-try:
-    import subprocess
-    import threading
-
-    def start_proxy_thread():
-        """Start the proxy server in a separate thread"""
-        logger.info("Starting port 8080 -> 5000 proxy server")
-        subprocess.Popen(['python', 'simple_proxy.py'], 
-                        stdout=open('proxy_output.log', 'a'),
-                        stderr=subprocess.STDOUT)
-        
-    # Start the proxy server in a separate thread
-    proxy_thread = threading.Thread(target=start_proxy_thread)
-    proxy_thread.daemon = True
-    proxy_thread.start()
-    logger.info("Port proxy thread started")
-except Exception as e:
-    logger.error(f"Failed to start proxy: {e}")
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory, send_file, session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -72,24 +39,14 @@ from config import Config
 # Import modules
 import ad_management
 import lottery_analysis
-import puppeteer_routes
 from import_latest_spreadsheet import import_latest_spreadsheet, find_latest_spreadsheet
 
-# Import port proxy only if needed, but don't start it immediately
-# We'll let it be started as a separate process
+# Import auto_proxy to start the port proxy in the background
 try:
-    # Just checking if the module exists
-    import auto_start_proxy
-    logger.info("Port proxy auto-starter module found")
+    import auto_proxy
+    logger.info("Port proxy auto-starter loaded")
 except Exception as e:
     logger.error(f"Failed to load port proxy auto-starter: {e}")
-
-# Import template handling
-try:
-    import import_latest_template
-    logger.info("Template import module loaded")
-except Exception as e:
-    logger.error(f"Failed to load template import module: {e}")
 
 # Create the Flask application
 app = Flask(__name__)
@@ -151,7 +108,6 @@ csrf.exempt('record_click')
 csrf.exempt('get_file_upload_progress')
 csrf.exempt('health_check')
 csrf.exempt('health_port_check')
-csrf.exempt('puppeteer_status')
 
 # Exempt all lottery analysis API endpoints
 csrf.exempt('api_frequency_analysis')
@@ -182,20 +138,13 @@ data_aggregator = None
 import_excel = None
 import_snap_lotto_data = None
 ocr_processor = None
-puppeteer_service = None
+screenshot_manager = None
 # scheduler is imported at the top level to ensure screenshot functions work
 health_monitor = None
 
 def init_lazy_modules():
     """Initialize modules in a background thread with timeout"""
-    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, puppeteer_service, health_monitor
-    
-    # Prioritize core modules
-    try:
-        import data_aggregator as da
-        data_aggregator = da
-    except Exception as e:
-        logger.error(f"Error loading data_aggregator: {e}")
+    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, health_monitor
     
     # Note: Removed signal alarm since it only works in main thread
     
@@ -204,7 +153,7 @@ def init_lazy_modules():
     import import_excel as ie
     import import_snap_lotto_data as isld
     import ocr_processor as op
-    import puppeteer_service as ps
+    import screenshot_manager as sm
     import health_monitor as hm
     
     # Store module references
@@ -212,7 +161,7 @@ def init_lazy_modules():
     import_excel = ie
     import_snap_lotto_data = isld
     ocr_processor = op
-    puppeteer_service = ps
+    screenshot_manager = sm
     health_monitor = hm
     
     # Initialize scheduler and health monitoring in background after imports are complete
@@ -227,23 +176,6 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 
 # Additional routes and functionality would be defined here...
 # For the sake of brevity, only core routes are included
-
-# Utility function to determine whether to allow sample images
-def should_allow_sample_images(force_download=False):
-    """
-    IMPORTANT: Sample images are no longer allowed under any circumstances.
-    We should never use fallback/sample images in lieu of real screenshots.
-    
-    Args:
-        force_download (bool): Whether this is for a download request
-        
-    Returns:
-        bool: Always False - sample images are no longer allowed
-    """
-    # Data integrity policy: Never use sample/fallback images
-    # Instead, properly display an error and direct users to synchronize screenshots
-    app.logger.info("Sample images policy: Samples are completely disabled - never falling back to attached_assets")
-    return False
 
 @app.route('/')
 def index():
@@ -321,28 +253,8 @@ def index():
                     results_list.append(result_clone)
                     seen_draws[key] = True
             
-            # Define standard order of lottery types for consistent display
-            lottery_type_order = [
-                'Lottery', 
-                'Lottery Plus 1', 
-                'Lottery Plus 2', 
-                'Powerball', 
-                'Powerball Plus', 
-                'Daily Lottery'
-            ]
-            
-            # Create an order lookup dictionary for sorting (lower value = higher priority)
-            lottery_order_lookup = {lottery_type: index for index, lottery_type in enumerate(lottery_type_order)}
-            
-            # Sort by lottery type order first, then by date (newest first) for same lottery type
-            def sort_key(result):
-                # If the lottery type isn't in our predefined order, put it at the end
-                order_position = lottery_order_lookup.get(result.lottery_type, len(lottery_type_order))
-                # Return a tuple to allow sortable comparison
-                return (order_position, -int(result.draw_number) if result.draw_number.isdigit() else 0)
-                
-            # Apply the sorting
-            results_list.sort(key=sort_key)
+            # Sort results by date (newest first)
+            results_list.sort(key=lambda x: x.draw_date, reverse=True)
         except Exception as e:
             logger.error(f"Error getting latest lottery results: {e}")
             latest_results = {}
@@ -510,48 +422,19 @@ def ticket_scanner():
                           title="Lottery Ticket Scanner | Check If You've Won",
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
-                          
-@app.route('/clean-ticket-scanner')
-def clean_ticket_scanner():
-    """Clean implementation of the ticket scanner interface"""
-    # Define breadcrumbs for SEO
-    breadcrumbs = [
-        {"name": "Lottery Ticket Scanner", "url": url_for('scanner_landing')},
-        {"name": "Clean Scanner", "url": url_for('clean_ticket_scanner')}
-    ]
-    
-    # Additional SEO metadata
-    meta_description = "Check if your South African lottery ticket is a winner with our simplified, reliable scanner. Our clean implementation ensures reliable uploads and accurate results."
-    
-    return render_template('clean_ticket_scanner.html', 
-                          title="Clean Lottery Ticket Scanner | Reliable Implementation",
-                          breadcrumbs=breadcrumbs,
-                          meta_description=meta_description)
 
 @app.route('/scan-ticket', methods=['POST'])
 @csrf.exempt
 def scan_ticket():
     """Process uploaded ticket image and return results"""
-    logger.info("Scan ticket request received")
-    
-    # Enhanced request debugging
-    logger.info(f"Request method: {request.method}")
-    logger.info(f"Request content type: {request.content_type}")
-    logger.info(f"Request files keys: {list(request.files.keys()) if request.files else 'No files'}")
-    logger.info(f"Request form keys: {list(request.form.keys()) if request.form else 'No form data'}")
-    
     # Check if file is included in the request
     if 'ticket_image' not in request.files:
-        logger.error("No ticket_image in request.files")
-        logger.error(f"Request files: {request.files}")
         return jsonify({"error": "No ticket image provided"}), 400
         
     file = request.files['ticket_image']
-    logger.info(f"Received file: {file.filename}, Content type: {file.content_type}")
     
     # If user does not select file, browser also submits an empty part without filename
     if file.filename == '':
-        logger.error("Empty filename submitted")
         return jsonify({"error": "No selected file"}), 400
         
     # Get the lottery type if specified (optional)
@@ -563,24 +446,16 @@ def scan_ticket():
     # Get file extension
     file_extension = os.path.splitext(file.filename)[1].lower()
     if not file_extension:
-        logger.info("No file extension found, defaulting to .jpeg")
         file_extension = '.jpeg'  # Default to JPEG if no extension
     
     try:
         # Read the file data
         image_data = file.read()
-        file_size = len(image_data)
-        logger.info(f"Read file data successfully, file size: {file_size} bytes")
-        
-        if file_size == 0:
-            logger.error("File data is empty")
-            return jsonify({"error": "Empty file uploaded"}), 400
         
         # Import the ticket scanner module
         import ticket_scanner as ts
         
         # Process the ticket image using existing function
-        logger.info(f"Processing ticket image: lottery_type={lottery_type}, draw_number={draw_number}")
         result = ts.process_ticket_image(
             image_data=image_data,
             lottery_type=lottery_type,
@@ -588,24 +463,11 @@ def scan_ticket():
             file_extension=file_extension
         )
         
-        # Logging the success
-        logger.info(f"Ticket processed successfully: {result.get('status', 'unknown')}")
-        
         # Return JSON response with results
         return jsonify(result)
     except Exception as e:
         logger.exception(f"Error processing ticket: {str(e)}")
-        # Include more details in the error response
-        return jsonify({
-            "error": f"Error processing ticket: {str(e)}",
-            "status": "error",
-            "request_details": {
-                "filename": file.filename if file else "No file",
-                "content_type": file.content_type if file else "Unknown content type",
-                "lottery_type": lottery_type,
-                "draw_number": draw_number
-            }
-        }), 500
+        return jsonify({"error": f"Error processing ticket: {str(e)}"}), 500
 
 # Guides Routes
 @app.route('/guides')
@@ -1422,67 +1284,6 @@ def purge_database():
     
     return redirect(url_for('admin'))
 
-def ensure_screenshots_for_schedules():
-    """
-    Ensure that every URL in ScheduleConfig has a corresponding Screenshot record.
-    This function is called from the settings page to maintain consistency between
-    the settings page URLs and the export-screenshots page thumbnails.
-    
-    Returns:
-        tuple: (created_count, updated_count) - Number of screenshot records created or updated
-    """
-    created_count = 0
-    updated_count = 0
-    standardized_count = 0
-    
-    # Import standardization function
-    try:
-        from puppeteer_service import standardize_lottery_type
-    except ImportError:
-        app.logger.error("Could not import standardize_lottery_type function")
-        standardize_lottery_type = lambda x: x  # Simple fallback that returns input unchanged
-    
-    # Get all scheduled configurations
-    schedule_configs = ScheduleConfig.query.all()
-    
-    for config in schedule_configs:
-        # Standardize the lottery type for consistency
-        original_type = config.lottery_type
-        standard_type = standardize_lottery_type(original_type)
-        
-        # Standardize the configuration's lottery type if needed
-        if original_type != standard_type:
-            app.logger.info(f"Standardizing config lottery type from '{original_type}' to '{standard_type}'")
-            config.lottery_type = standard_type
-            standardized_count += 1
-        
-        # Check if a screenshot record exists for this URL
-        existing_screenshot = Screenshot.query.filter_by(url=config.url).first()
-        
-        if existing_screenshot:
-            # Update the existing record if needed
-            if existing_screenshot.lottery_type != standard_type:
-                existing_screenshot.lottery_type = standard_type
-                updated_count += 1
-                app.logger.info(f"Updated screenshot record for {standard_type} ({config.url})")
-        else:
-            # Create a new screenshot record if none exists
-            new_screenshot = Screenshot(
-                url=config.url,
-                lottery_type=standard_type,
-                path=None,  # Will be populated when screenshot is taken - using None instead of empty string
-                timestamp=datetime.now()
-            )
-            db.session.add(new_screenshot)
-            created_count += 1
-            app.logger.info(f"Created new screenshot record for {config.lottery_type} ({config.url})")
-    
-    # Commit changes if any were made
-    if created_count > 0 or updated_count > 0:
-        db.session.commit()
-        
-    return created_count, updated_count
-
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
@@ -1500,13 +1301,6 @@ def settings():
     # Define SEO metadata
     meta_description = "Configure South African lottery system settings and scheduled tasks. Manage data synchronization, screenshot capture timing, and system preferences."
     
-    # Ensure screenshots exist for all scheduled configurations
-    created, updated = ensure_screenshots_for_schedules()
-    if created > 0:
-        flash(f'Created {created} new screenshot records for scheduled URLs.', 'info')
-    if updated > 0:
-        flash(f'Updated {updated} existing screenshot records.', 'info')
-    
     schedule_configs = ScheduleConfig.query.all()
     
     # Handle form submission for updating settings
@@ -1521,100 +1315,10 @@ def settings():
                           meta_description=meta_description,
                           breadcrumbs=breadcrumbs)
 
-def ensure_all_screenshot_entries_exist():
-    """
-    IMPORTANT: Per our data integrity policy, this function NO LONGER creates placeholder entries.
-    Instead, it returns a list of missing entries that need to be synchronized.
-    
-    This function scans:
-    1. ScheduleConfig table (settings page)
-    2. puppeteer_service.py's LOTTERY_URLS (hardcoded defaults)
-    
-    and identifies missing entries in the Screenshot table that need to be captured.
-    """
-    # Check if recreation prevention is active
-    if session.get('prevent_recreation'):
-        app.logger.warning("Screenshot recreation prevention active - skipping ensure_all_screenshot_entries_exist")
-        return 0
-    
-    # Check if strict cleanup mode is enabled
-    if request.args.get('strict_cleanup') == 'true':
-        app.logger.warning("Strict cleanup mode active - skipping ensure_all_screenshot_entries_exist")
-        return 0
-        
-    from puppeteer_service import LOTTERY_URLS, standardize_lottery_type
-    
-    # Get all existing screenshots
-    existing_screenshots = Screenshot.query.all()
-    
-    # Create a set of tuples (lottery_type, url) for more accurate duplicate detection
-    existing_combinations = {(standardize_lottery_type(screenshot.lottery_type), screenshot.url) 
-                             for screenshot in existing_screenshots}
-    
-    # Track what needs to be synced
-    missing_count = 0
-    missing_entries = []
-    
-    # Process configured URLs first (from Settings page)
-    schedule_configs = ScheduleConfig.query.all()
-    scheduled_combinations = set()
-    
-    # Identify missing entries from ScheduleConfig (settings page)
-    for config in schedule_configs:
-        # Standardize the type for comparison
-        standard_type = standardize_lottery_type(config.lottery_type)
-        combination = (standard_type, config.url)
-        scheduled_combinations.add(combination)
-        
-        # Report if the combination of lottery_type and URL is missing
-        if combination not in existing_combinations:
-            app.logger.info(f"Found missing screenshot for scheduled URL: {config.lottery_type} at {config.url}")
-            missing_entries.append({
-                'url': config.url,
-                'lottery_type': standard_type
-            })
-            missing_count += 1
-            # Add to tracking set to prevent duplicates in this report
-            existing_combinations.add(combination)
-    
-    # Identify missing entries from hardcoded LOTTERY_URLS as fallback
-    for lottery_type, url in LOTTERY_URLS.items():
-        # Standardize the type for comparison
-        standard_type = standardize_lottery_type(lottery_type)
-        combination = (standard_type, url)
-        
-        # Report if the combination of type and URL is missing and not already in scheduled combinations
-        if combination not in existing_combinations and combination not in scheduled_combinations:
-            app.logger.info(f"Found missing screenshot from default URLs: {lottery_type} at {url}")
-            missing_entries.append({
-                'url': url,
-                'lottery_type': standard_type
-            })
-            missing_count += 1
-            # Add to tracking set to prevent duplicates in this report
-            existing_combinations.add(combination)
-    
-    # Save the missing entries to session for potential sync
-    if missing_count > 0:
-        app.logger.info(f"Found {missing_count} missing screenshot entries")
-        # Store in session for later processing by sync_all_screenshots
-        try:
-            session['missing_screenshot_entries'] = missing_entries
-            app.logger.info(f"Stored {len(missing_entries)} missing entries in session")
-        except Exception as e:
-            app.logger.error(f"Error storing missing entries in session: {str(e)}")
-    else:
-        # If no missing entries, clear any previous entries from session
-        if session.get('missing_screenshot_entries'):
-            del session['missing_screenshot_entries']
-            app.logger.info("Cleared existing missing screenshot entries from session")
-    
-    return missing_count
-
 @app.route('/export-screenshots')
 @login_required
 def export_screenshots():
-    """Export screenshots with integrated Puppeteer functionality"""
+    """Export screenshots"""
     if not current_user.is_admin:
         flash('You must be an admin to export screenshots.', 'danger')
         return redirect(url_for('index'))
@@ -1628,65 +1332,11 @@ def export_screenshots():
     # Define SEO metadata
     meta_description = "Export and manage South African lottery screenshots. Download captured lottery result images in various formats for analysis and record-keeping."
     
-    # Check if we have any session-level flags to prevent recreation
-    prevent_recreation = False
-    
-    # Check for session flag from cleanup operation
-    if session.get('prevent_recreation'):
-        prevent_recreation = True
-        app.logger.warning("Screenshot recreation prevention active from session flag")
-        # Don't clear the flag immediately so it can affect ensure_all_screenshot_entries_exist
-        # It will be cleared at the end of this function
-    
-    # Check for URL parameter from cleanup operation
-    if request.args.get('strict_cleanup') == 'true':
-        prevent_recreation = True
-        app.logger.warning("Screenshot recreation prevention active from strict_cleanup parameter")
-    
-    # Check for missing screenshot entries but DO NOT create them
-    # This supports our data integrity policy of not having placeholders
-    # Always check for missing entries when the page loads, unless prevented
-    if not prevent_recreation:
-        missing_count = ensure_all_screenshot_entries_exist()
-        if missing_count > 0:
-            flash(f'Found {missing_count} missing screenshot entries. Please use the "Sync All Screenshots" button to capture them.', 'info')
-    
-    # Get all screenshots, with newest first
     screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
     
-    # Identify duplicate lottery types that could be consolidated
-    duplicate_types = {}
-    standard_to_variations = {}
-    
-    # Import standardization function
-    from puppeteer_service import standardize_lottery_type
-    
-    # Analyze existing screenshots for duplicates
-    for screenshot in screenshots:
-        # Get the standardized version
-        standard_type = standardize_lottery_type(screenshot.lottery_type)
-        
-        # Track variations that map to the same standard type
-        if standard_type not in standard_to_variations:
-            standard_to_variations[standard_type] = set()
-        standard_to_variations[standard_type].add(screenshot.lottery_type)
-        
-        # Track lottery types that have more than one variation
-        if len(standard_to_variations[standard_type]) > 1:
-            duplicate_types[standard_type] = standard_to_variations[standard_type]
-    
-    # Create a status object combining both global and session status
+    # Check for sync status in session
     sync_status = None
-    
-    # First check if we have a status in the global puppeteer_capture_status
-    if puppeteer_capture_status.get('in_progress'):
-        # Use the global status if a synchronization is in progress
-        sync_status = {
-            'status': puppeteer_capture_status.get('overall_status', 'info'),
-            'message': puppeteer_capture_status.get('status_message', 'Screenshot synchronization in progress')
-        }
-    elif 'sync_status' in session:
-        # Fall back to session status if no active synchronization
+    if 'sync_status' in session:
         sync_status = session.pop('sync_status')
     
     # Get the timestamp of the most recent screenshot for status display
@@ -1694,50 +1344,13 @@ def export_screenshots():
     if screenshots:
         last_updated = screenshots[0].timestamp
     
-    # Get lottery URLs from the ScheduleConfig table (settings page)
-    # This makes the settings page the source of truth for screenshot URLs
-    schedule_configs = ScheduleConfig.query.all()
-    
-    # Create a dictionary of lottery types to URLs for the template
-    lottery_urls = {}
-    for config in schedule_configs:
-        lottery_urls[config.lottery_type] = config.url
-    
-    # If no URLs found in ScheduleConfig, fall back to defaults from puppeteer_service
-    if not lottery_urls:
-        app.logger.warning("No URLs found in ScheduleConfig table, falling back to defaults")
-        from puppeteer_service import LOTTERY_URLS
-        lottery_urls = LOTTERY_URLS
-    
-    # Add in-progress status if screenshots are currently being synchronized
-    puppeteer_status = {
-        'in_progress': puppeteer_capture_status.get('in_progress', False),
-        'completed': puppeteer_capture_status.get('completed_screenshots', 0),
-        'total': puppeteer_capture_status.get('total_screenshots', 0),
-        'progress': puppeteer_capture_status.get('progress', 0),
-        'status_message': puppeteer_capture_status.get('status_message', '')
-    }
-    
-    # After rendering template, clear the session flag - but only if this isn't cleanup-initiated
-    # If this is in response to a cleanup, we want to keep the flag active
-    if session.get('prevent_recreation') and not request.args.get('strict_cleanup') == 'true':
-        app.logger.info("Clearing prevent_recreation session flag")
-        session.pop('prevent_recreation', None)
-    
     return render_template('export_screenshots.html',
                           screenshots=screenshots,
                           title="Export Lottery Screenshots | Data Management",
                           meta_description=meta_description,
                           breadcrumbs=breadcrumbs,
                           sync_status=sync_status,
-                          last_updated=last_updated,
-                          lottery_urls=lottery_urls,
-                          puppeteer_status=puppeteer_status,
-                          duplicate_types=duplicate_types)
-
-# Standardize lottery types route removed
-# This functionality is now integrated into the cleanup_screenshots function
-
+                          last_updated=last_updated)
 
 @app.route('/export-screenshots-zip')
 @login_required
@@ -2041,361 +1654,73 @@ def draw_details(lottery_type, draw_number):
 def view_screenshot(screenshot_id):
     """View a screenshot image"""
     screenshot = Screenshot.query.get_or_404(screenshot_id)
-    force_download = request.args.get('force_download', 'false').lower() == 'true'
     
-    # Keep track of attempts for logging
-    attempts = []
-    app.logger.info(f"Attempting to view screenshot ID {screenshot_id}, type: {screenshot.lottery_type}")
+    # Normalize path and check if file exists
+    screenshot_path = os.path.normpath(screenshot.path)
     
-    # Fix for empty image issue - check if url attribute exists and set it if missing
-    if not hasattr(screenshot, 'url') or not screenshot.url:
-        if hasattr(screenshot, 'source_url') and screenshot.source_url:
-            screenshot.url = screenshot.source_url
-            db.session.commit()
-        else:
-            # Try to set a reasonable default URL if none exists
-            from config import Config
-            for url_info in Config.RESULTS_URLS:
-                if url_info['lottery_type'].lower() == screenshot.lottery_type.lower():
-                    screenshot.url = url_info['url']
-                    db.session.commit()
-                    break
-                    
-    # Get the correct file extension for the screenshot file (if it exists)
-    file_ext = '.png'  # Default extension
-    if screenshot.path and os.path.exists(screenshot.path):
-        _, file_ext = os.path.splitext(screenshot.path)
+    if not os.path.isfile(screenshot_path):
+        flash('Screenshot file not found', 'danger')
+        return redirect(url_for('admin'))
     
-    # Look for any relevant files in the screenshots directory that might match this ID
-    screenshots_dir = 'screenshots'
-    html_dir = os.path.join(screenshots_dir, 'html')
-    matching_files = []
+    # Extract directory and filename from path
+    directory = os.path.dirname(screenshot_path)
+    filename = os.path.basename(screenshot_path)
     
-    # First check the HTML directory for date-based files that match the lottery type
-    if os.path.exists(html_dir):
-        for filename in os.listdir(html_dir):
-            if screenshot.lottery_type.lower().replace(' ', '_') in filename.lower():
-                matching_files.append(os.path.join(html_dir, filename))
-    
-    # Then check the main screenshots directory
-    if os.path.exists(screenshots_dir):
-        for filename in os.listdir(screenshots_dir):
-            if screenshot.lottery_type.lower().replace(' ', '_') in filename.lower():
-                matching_files.append(os.path.join(screenshots_dir, filename))
-    
-    # If we found matching files, use the most recent one
-    if matching_files and not (screenshot.path and os.path.exists(screenshot.path)):
-        # Sort by modification time (most recent first)
-        matching_files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
-        newest_file = matching_files[0]
-        
-        # Update the screenshot record with the file path
-        # HTML files are no longer used, only process PNG files
-        if not newest_file.endswith('.html'):
-            if not screenshot.path or not os.path.exists(screenshot.path):
-                screenshot.path = newest_file
-                db.session.commit()
-                app.logger.info(f"Updated screenshot path to {newest_file}")
-        else:
-            app.logger.info(f"Skipping HTML file {newest_file} as we no longer store HTML content")
-    
-    # HTML PNG generation has been removed as we no longer capture HTML content
-    # We now only use PNG screenshots captured directly from the website
-    attempts.append("HTML content capture has been removed from the application")
-    
-    # Try alternative: If we have a PNG in the database, use it
-    if screenshot.path and os.path.isfile(screenshot.path):
-        file_size = os.path.getsize(screenshot.path)
-        app.logger.info(f"Using existing PNG file as fallback: {screenshot.path} ({file_size} bytes)")
-        attempts.append(f"Using existing PNG: {file_size} bytes")
-        
-        if file_size > 100:  # Even a very minimal image should be larger than this
-            directory = os.path.dirname(screenshot.path)
-            filename = os.path.basename(screenshot.path)
-            
-            try:
-                # Use send_file instead of send_from_directory for more reliability
-                return send_file(
-                    screenshot.path,
-                    mimetype='image/png',
-                    as_attachment=force_download,
-                    download_name=f"{screenshot.lottery_type.replace(' ', '_')}.png"
-                )
-            except Exception as e:
-                error_msg = f"Error sending PNG file: {str(e)}"
-                app.logger.error(error_msg)
-                attempts.append(error_msg)
-        else:
-            attempts.append(f"PNG file too small ({file_size} bytes)")
-    else:
-        attempts.append(f"PNG file missing or invalid: {getattr(screenshot, 'path', None)}")
-    
-    # HTML display has been removed as we no longer store HTML content
-    attempts.append("HTML content display has been removed as part of data integrity improvements")
-    
-    # IMPORTANT: We should NOT generate placeholder images
-    # Stop creating synthetic screenshots and instead return a proper error
-    app.logger.error(f"No valid screenshot found for ID {screenshot_id}. Attempts: {', '.join(attempts)}")
-    
-    if force_download:
-        # If this is a download request, return a 404 error
-        response = make_response("Error: Screenshot file not found. Please sync this screenshot first.", 404)
-        response.headers["Content-Type"] = "text/plain"
-        return response
-    else:
-        # For normal viewing, redirect to export_screenshots with an error message
-        flash(f"No screenshot available for {screenshot.lottery_type}. Please use the Sync button to capture it.", "danger")
-        return redirect(url_for('export_screenshots', highlight_id=screenshot_id))
+    return send_from_directory(directory, filename)
 
-@app.route('/html-content/<int:screenshot_id>')
-def view_html_content(screenshot_id):
-    """View HTML content has been deprecated - redirects to screenshots page with a notice"""
-    flash('HTML content viewing has been deprecated. Only PNG screenshots are now captured.', 'info')
-    return redirect(url_for('export_screenshots'))
-        
+@app.route('/screenshot-zoomed/<int:screenshot_id>')
+def view_zoomed_screenshot(screenshot_id):
+    """View a zoomed screenshot image"""
+    screenshot = Screenshot.query.get_or_404(screenshot_id)
+    
+    if not screenshot.zoomed_path:
+        flash('No zoomed screenshot available', 'warning')
+        return redirect(url_for('admin'))
+    
+    # Normalize path and check if file exists
+    zoomed_path = os.path.normpath(screenshot.zoomed_path)
+    
+    if not os.path.isfile(zoomed_path):
+        flash('Zoomed screenshot file not found', 'danger')
+        return redirect(url_for('admin'))
+    
+    # Extract directory and filename from path
+    directory = os.path.dirname(zoomed_path)
+    filename = os.path.basename(zoomed_path)
+    
+    return send_from_directory(directory, filename)
 
-def pre_process_html_content(html_content):
-    """
-    This function has been deprecated as we no longer capture HTML content.
-    Retained as a stub for compatibility with existing code.
-    """
-    # Simply return the input unchanged
-    return html_content
-
-# Import needed functions from puppeteer_service
-from puppeteer_service import capture_single_screenshot, standardize_lottery_type
-
+@app.route('/sync-all-screenshots', methods=['POST'])
+@login_required
+@csrf.exempt
 def sync_all_screenshots():
-    """Synchronize all screenshots from settings entries by calling Puppeteer"""
-    # Check for missing screenshot entries to sync
-    missing_entries = session.get('missing_screenshot_entries', [])
+    """Sync all screenshots from their source URLs"""
+    if not current_user.is_admin:
+        flash('You must be an admin to sync screenshots.', 'danger')
+        return redirect(url_for('index'))
     
-    # Get all URL configurations from the ScheduleConfig model (settings page)
-    schedule_configs = ScheduleConfig.query.filter_by(active=True).all()
-    
-    # Create a dictionary of lottery types to URLs for processing
-    config_urls = {}
-    
-    # First, add any missing entries that were identified earlier
-    for entry in missing_entries:
-        if entry.get('url') and entry.get('lottery_type'):
-            # Standardize the type for consistency
-            lottery_type = standardize_lottery_type(entry.get('lottery_type'))
-            config_urls[lottery_type] = entry.get('url')
-            app.logger.info(f"Adding missing entry for {lottery_type} from session data")
-    
-    # Then add all remaining entries from ScheduleConfig
-    for config in schedule_configs:
-        if config.url:  # Skip any entries with empty URLs
-            # Standardize the type for consistency
-            lottery_type = standardize_lottery_type(config.lottery_type)
-            if lottery_type not in config_urls:  # Only add if not already added from missing entries
-                config_urls[lottery_type] = config.url
-    
-    # If no URLs found in ScheduleConfig or missing entries, get defaults from puppeteer_service
-    if not config_urls:
-        from puppeteer_service import LOTTERY_URLS
-        app.logger.warning("No URLs found in ScheduleConfig table or missing entries, falling back to defaults")
-        # Create standardized versions of the default URLs
-        for key, url in LOTTERY_URLS.items():
-            standard_type = standardize_lottery_type(key.replace('_', ' '))
-            config_urls[standard_type] = url
-    
-    # Reset and initialize status
-    puppeteer_capture_status.update({
-        'in_progress': True,
-        'total_screenshots': len(config_urls),
-        'completed_screenshots': 0,
-        'start_time': datetime.now(),
-        'last_updated': datetime.now(),
-        'success_count': 0,
-        'error_count': 0,
-        'status_message': 'Starting screenshot capture with Puppeteer...',
-        'errors': []
-    })
-    
-    app.logger.info(f"Starting synchronization of {len(config_urls)} screenshots from settings page...")
-    
-    # Use threading to process screenshots without blocking
-    def process_screenshots():
-        """
-        Process screenshots using thread-safe approach that doesn't use Flask's session object.
-        This avoids the "Working outside of request context" error.
-        """
-        global puppeteer_capture_status
+    try:
+        # Use the scheduler module imported at the top level to retake all screenshots
+        # Don't use threading for UI operations to ensure synchronous behavior
+        count = scheduler.retake_all_screenshots(app, use_threading=False)
         
-        # Create a new app context for this thread
-        with app.app_context():
-            try:
-                # Start the capture process
-                start_time = time.time()
-                
-                # Initialize tracking
-                results = {}
-                db_updates = 0
-                db_creates = 0
-                
-                # Import our improved puppeteer service with standardization
-                from puppeteer_service import capture_single_screenshot, standardize_lottery_type, STANDARDIZED_LOTTERY_URLS
-                
-                # Process each URL individually to update status as we go
-                for i, (original_type, url) in enumerate(config_urls.items()):
-                    # Standardize the lottery type to reduce duplicates
-                    lottery_type = standardize_lottery_type(original_type)
-                    
-                    # If the standardized type is different, log it
-                    if original_type != lottery_type:
-                        app.logger.info(f"Standardized lottery type from '{original_type}' to '{lottery_type}'")
-                    
-                    # Update status - thread-safe, doesn't use session
-                    puppeteer_capture_status['status_message'] = f"Capturing {lottery_type} screenshot ({i+1}/{len(config_urls)})..."
-                    puppeteer_capture_status['last_updated'] = datetime.now()
-                    
-                    try:
-                        # Capture individual screenshot using our improved service
-                        app.logger.info(f"Capturing {lottery_type} from {url}")
-                        
-                        # Use our enhanced puppeteer service that handles standardization
-                        capture_result = capture_single_screenshot(lottery_type, url, timeout=120)
-                        
-                        # Check if the capture was successful
-                        if capture_result.get('status') == 'success':
-                            filepath = capture_result.get('path')
-                            success = True
-                        else:
-                            success = False
-                        
-                        # Check if the screenshot was created successfully
-                        if success and os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                            result = {
-                                'status': 'success',
-                                'path': filepath,
-                                'url': url
-                            }
-                        else:
-                            result = {
-                                'status': 'failed',
-                                'error': f"Failed to capture screenshot",
-                                'url': url
-                            }
-                        
-                        results[lottery_type] = result
-                        
-                        # Update progress - thread-safe, doesn't use session
-                        puppeteer_capture_status['completed_screenshots'] = i + 1
-                        puppeteer_capture_status['progress'] = (i + 1) / len(config_urls) * 100
-                        
-                        if result.get('status') == 'success':
-                            puppeteer_capture_status['success_count'] += 1
-                            
-                            # Find or create screenshot record - search by BOTH lottery_type AND url
-                            screenshot = Screenshot.query.filter_by(lottery_type=lottery_type, url=url).first()
-                            
-                            # If not found by both, try to find just by lottery_type for backward compatibility
-                            if not screenshot:
-                                existing_by_type = Screenshot.query.filter_by(lottery_type=lottery_type).all()
-                                if existing_by_type:
-                                    # Log that we found multiple entries
-                                    app.logger.warning(f"Found {len(existing_by_type)} existing screenshots for {lottery_type}, using the most recent one")
-                                    # Sort by timestamp descending and use the most recent one
-                                    screenshot = sorted(existing_by_type, key=lambda x: x.timestamp, reverse=True)[0]
-                            
-                            if screenshot:
-                                # Update existing record
-                                screenshot.path = result.get('path')
-                                screenshot.url = url  # Make sure the URL is updated to match the settings
-                                screenshot.timestamp = datetime.now()
-                                db_updates += 1
-                                app.logger.info(f"Updated existing screenshot for {lottery_type} at {url}")
-                            else:
-                                # Create new record
-                                screenshot = Screenshot(
-                                    lottery_type=lottery_type,
-                                    path=result.get('path'),
-                                    url=url,
-                                    timestamp=datetime.now()
-                                )
-                                db.session.add(screenshot)
-                                db_creates += 1
-                                app.logger.info(f"Created new screenshot for {lottery_type} at {url}")
-                                
-                                # Commit after each successful screenshot
-                                db.session.commit()
-                        else:
-                            puppeteer_capture_status['error_count'] += 1
-                            error_msg = result.get('error', 'Unknown error')
-                            puppeteer_capture_status['errors'].append(f"{lottery_type}: {error_msg}")
-                            app.logger.error(f"Error capturing {lottery_type} screenshot: {error_msg}")
-                        
-                    except Exception as e:
-                        # Handle individual screenshot errors
-                        puppeteer_capture_status['error_count'] += 1
-                        puppeteer_capture_status['errors'].append(f"{lottery_type}: {str(e)}")
-                        app.logger.error(f"Error capturing {lottery_type} screenshot: {str(e)}")
-                    
-                # All screenshots processed - finalize
-                elapsed_time = time.time() - start_time
-                app.logger.info(f"Puppeteer screenshot capture completed in {elapsed_time:.2f} seconds")
-                
-                # Update final status
-                success_count = puppeteer_capture_status['success_count']
-                error_count = puppeteer_capture_status['error_count']
-                
-                # Prepare status message - thread-safe, doesn't use session
-                if success_count > 0 and error_count == 0:
-                    status_message = f'Successfully synchronized {success_count} screenshots with Puppeteer. Updated {db_updates} records, created {db_creates} new records.'
-                    puppeteer_capture_status['status_message'] = status_message
-                    puppeteer_capture_status['overall_status'] = 'success'
-                elif success_count > 0 and error_count > 0:
-                    status_message = f'Partially synchronized. {success_count} successful, {error_count} failed with Puppeteer. Database: {db_updates} updated, {db_creates} created.'
-                    puppeteer_capture_status['status_message'] = status_message
-                    puppeteer_capture_status['overall_status'] = 'warning'
-                else:
-                    status_message = f'Failed to synchronize screenshots with Puppeteer. {error_count} errors encountered.'
-                    puppeteer_capture_status['status_message'] = status_message
-                    puppeteer_capture_status['overall_status'] = 'danger'
-            
-            except Exception as e:
-                app.logger.error(f"Error in screenshot processing thread: {str(e)}")
-                traceback.print_exc()
-                puppeteer_capture_status['status_message'] = f'Error: {str(e)}'
-                puppeteer_capture_status['errors'].append(f"General error: {str(e)}")
-                puppeteer_capture_status['overall_status'] = 'danger'
-            
-            finally:
-                # Mark process as completed
-                puppeteer_capture_status['in_progress'] = False
-                puppeteer_capture_status['last_updated'] = datetime.now()
-                
-                # Clear the missing entries from session at the end of processing
-                # This requires app context, but we're already in one
-                try:
-                    # We can't directly access session here, so we use a database-level flag
-                    # The next time the export_screenshots page is loaded, it will clear the session data
-                    app.logger.info("Finished processing screenshots, setting flag to clear missing entries")
-                    with app.test_request_context('/'):
-                        if session.get('missing_screenshot_entries'):
-                            del session['missing_screenshot_entries']
-                            app.logger.info("Cleared missing screenshot entries from session")
-                except Exception as sess_err:
-                    app.logger.error(f"Could not clear session data: {str(sess_err)}")
-        
-        # Start processing in background thread
-        threading.Thread(target=process_screenshots, daemon=True).start()
-        
-        # Return immediately, processing continues in background
-        flash('Screenshot synchronization started in the background. Check status for updates.', 'info')
-    
+        # Store status in session for display on next page load
+        if count > 0:
+            session['sync_status'] = {
+                'status': 'success',
+                'message': f'Successfully synced {count} screenshots.'
+            }
+        else:
+            session['sync_status'] = {
+                'status': 'warning',
+                'message': 'No screenshots were synced. Check configured URLs.'
+            }
     except Exception as e:
-        app.logger.error(f"Error initiating screenshot capture with Puppeteer: {str(e)}")
-        traceback.print_exc()
+        app.logger.error(f"Error syncing screenshots: {str(e)}")
         session['sync_status'] = {
             'status': 'danger',
-            'message': f'Error initiating screenshot capture with Puppeteer: {str(e)}'
+            'message': f'Error syncing screenshots: {str(e)}'
         }
-        # Reset status in case of error
-        puppeteer_capture_status['in_progress'] = False
-        puppeteer_capture_status['status_message'] = f'Error: {str(e)}'
     
     return redirect(url_for('export_screenshots'))
 
@@ -2403,7 +1728,7 @@ def sync_all_screenshots():
 @login_required
 @csrf.exempt
 def sync_single_screenshot(screenshot_id):
-    """Sync a single screenshot by its ID using Puppeteer with standardized lottery types"""
+    """Sync a single screenshot by its ID"""
     if not current_user.is_admin:
         flash('You must be an admin to sync screenshots.', 'danger')
         return redirect(url_for('index'))
@@ -2412,543 +1737,57 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Import Puppeteer service for capture function and standardization
-        from puppeteer_service import capture_single_screenshot, standardize_lottery_type
+        # Use the scheduler module imported at the top level to retake this screenshot
+        success = scheduler.retake_screenshot_by_id(screenshot_id, app)
         
-        # First, standardize the lottery type to reduce duplicates
-        original_type = screenshot.lottery_type
-        standardized_type = standardize_lottery_type(original_type)
-        
-        # If the standardized type is different, log it and update the database
-        if original_type != standardized_type:
-            app.logger.info(f"Standardized lottery type from '{original_type}' to '{standardized_type}'")
-            
-            # Update the screenshot record with the standardized type
-            screenshot.lottery_type = standardized_type
-            db.session.commit()
-        
-        # Now check for a matching ScheduleConfig entry using the standardized type
-        config = ScheduleConfig.query.filter_by(lottery_type=standardized_type).first()
-        
-        # If not found with standardized type, try with original type
-        if not config:
-            config = ScheduleConfig.query.filter_by(lottery_type=original_type).first()
-        
-        if config and config.url:
-            # Use URL from settings page
-            url = config.url
-            app.logger.info(f"Using URL from settings page for {standardized_type}: {url}")
-        else:
-            # Fall back to hardcoded URLs if needed
-            from puppeteer_service import LOTTERY_URLS
-            
-            # Convert standardized_type to lowercase and format for dictionary lookup
-            lookup_key = standardized_type.lower().replace(' ', '_')
-            
-            if lookup_key in LOTTERY_URLS:
-                url = LOTTERY_URLS[lookup_key]
-                app.logger.info(f"Using default URL for {standardized_type}: {url}")
-            else:
-                # Try fuzzy matching for similar names
-                found_match = False
-                for known_type, known_url in LOTTERY_URLS.items():
-                    if known_type.lower() in lookup_key or lookup_key in known_type.lower():
-                        url = known_url
-                        found_match = True
-                        app.logger.info(f"Found fuzzy match for {standardized_type} → {known_type}")
-                        break
-                
-                if not found_match:
-                    app.logger.error(f"Could not find matching URL for lottery type: {standardized_type}")
-                    session['sync_status'] = {
-                        'status': 'danger',
-                        'message': f'Error: Could not find URL for {standardized_type}. Please add it in Settings.'
-                    }
-                    return redirect(url_for('export_screenshots'))
-        
-        app.logger.info(f"Capturing screenshot for {standardized_type} using Puppeteer from {url}...")
-        
-        # Capture the screenshot using the enhanced capture_single_screenshot function
-        result = capture_single_screenshot(standardized_type, url)
-        
-        if result.get('status') == 'success' and result.get('path'):
-            # Update the screenshot record
-            screenshot.path = result.get('path')
-            screenshot.url = url  # Store the URL from settings page
-            screenshot.timestamp = datetime.now()
-            
-            db.session.commit()
-            
-            app.logger.info(f"Screenshot successfully synchronized: Path={result.get('path')}")
-            
-            # Verify the file exists
-            file_path = result.get('path')
-            if file_path and os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-                app.logger.info(f"Verified PNG file exists: {os.path.getsize(file_path)} bytes")
-            else:
-                app.logger.warning(f"PNG file does not exist or is empty: {result.get('path')}")
-            
+        # Store status in session for display on next page load
+        if success:
             session['sync_status'] = {
                 'status': 'success',
-                'message': f'Successfully captured screenshot for {standardized_type} using Puppeteer.'
+                'message': f'Successfully synced screenshot for {screenshot.lottery_type}.'
             }
         else:
             session['sync_status'] = {
                 'status': 'warning',
-                'message': f'Failed to capture screenshot for {standardized_type} using Puppeteer. Error: {result.get("error", "Unknown error")}'
+                'message': f'Failed to sync screenshot for {screenshot.lottery_type}.'
             }
     except Exception as e:
-        app.logger.error(f"Error capturing screenshot with Puppeteer: {str(e)}")
-        traceback.print_exc()
+        app.logger.error(f"Error syncing screenshot: {str(e)}")
         session['sync_status'] = {
             'status': 'danger',
-            'message': f'Error capturing screenshot with Puppeteer: {str(e)}'
+            'message': f'Error syncing screenshot: {str(e)}'
         }
     
     return redirect(url_for('export_screenshots'))
-
-@app.route('/preview-website/<int:screenshot_id>')
-@login_required
-def preview_website(screenshot_id):
-    """
-    Serve the most recent screenshot as a preview image.
-    
-    Instead of attempting to generate a real-time preview (which often fails due to anti-scraping),
-    this simplified approach displays the most recently captured screenshot with timestamp information.
-    This provides a reliable preview experience without triggering anti-scraping measures.
-    """
-    from io import BytesIO
-    import time
-    from datetime import datetime, timedelta
-    from PIL import Image, ImageDraw, ImageFont
-
-    try:
-        # Retrieve the screenshot object
-        screenshot = Screenshot.query.get_or_404(screenshot_id)
-
-        # Fix for empty image issue - ensure url attribute exists
-        if not hasattr(screenshot, 'url') or not screenshot.url:
-            if hasattr(screenshot, 'source_url') and screenshot.source_url:
-                screenshot.url = screenshot.source_url
-                db.session.commit()
-            else:
-                # Try to set a reasonable default URL if none exists
-                from config import Config
-                for url_info in Config.RESULTS_URLS:
-                    if url_info['lottery_type'].lower() == screenshot.lottery_type.lower():
-                        screenshot.url = url_info['url']
-                        db.session.commit()
-                        break
-        
-        # First try to generate from HTML if available - this is the most reliable approach
-        if screenshot.html_path and os.path.exists(screenshot.html_path):
-            try:
-                app.logger.info(f"Generating thumbnail preview from HTML: {screenshot.html_path}")
-                
-                # Import the function from our puppeteer_service module
-                from puppeteer_service import generate_png_from_html
-                
-                # Generate a temporary PNG file
-                success, temp_path, error_message = generate_png_from_html(screenshot.html_path)
-                
-                if success and temp_path and os.path.exists(temp_path):
-                    app.logger.info(f"Using freshly generated PNG for preview: {temp_path}")
-                    
-                    # Add timestamp overlay
-                    img = Image.open(temp_path)
-                    draw = ImageDraw.Draw(img)
-                    
-                    # Try to use a default font
-                    try:
-                        font = ImageFont.load_default()
-                    except Exception:
-                        font = None
-                    
-                    # Create semi-transparent background for text
-                    img_width = img.width
-                    draw.rectangle(((0, 0), (img_width, 30)), fill=(0, 0, 0, 128))
-                    
-                    # Add timestamp text
-                    timestamp_text = f"Generated preview ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
-                    draw.text((10, 8), timestamp_text, fill=(255, 255, 255), font=font)
-                    draw.text((img_width - 150, 8), "LIVE PREVIEW", fill=(200, 255, 200), font=font)
-                    
-                    # Convert to bytes for serving
-                    buffer = BytesIO()
-                    img.save(buffer, format='PNG')
-                    buffer.seek(0)
-                    
-                    return send_file(
-                        buffer,
-                        mimetype='image/png',
-                        download_name=f'preview_{screenshot_id}.png',
-                        as_attachment=False
-                    )
-            except Exception as html_error:
-                app.logger.warning(f"Could not generate preview from HTML: {str(html_error)}")
-        
-        # Fallback to using existing screenshot if available
-        if screenshot.path and os.path.exists(screenshot.path):
-            try:
-                # Get file modification time and format it
-                file_mod_time = os.path.getmtime(screenshot.path)
-                capture_time = datetime.fromtimestamp(file_mod_time)
-                time_ago = datetime.now() - capture_time
-                
-                # Read the existing screenshot
-                with open(screenshot.path, 'rb') as f:
-                    existing_img_data = f.read()
-                
-                # Create a PIL Image from the screenshot
-                img = Image.open(BytesIO(existing_img_data))
-                
-                # Add timestamp overlay at the top
-                draw = ImageDraw.Draw(img)
-                
-                # Try to use a default font
-                try:
-                    font = ImageFont.load_default()
-                except Exception:
-                    font = None
-                
-                # Create semi-transparent background for text
-                img_width = img.width
-                draw.rectangle(((0, 0), (img_width, 30)), fill=(0, 0, 0, 128))
-                
-                # Format time ago in a human-readable way
-                if time_ago < timedelta(minutes=1):
-                    time_text = "Captured just now"
-                elif time_ago < timedelta(hours=1):
-                    time_text = f"Captured {int(time_ago.total_seconds() / 60)} minutes ago"
-                elif time_ago < timedelta(days=1):
-                    time_text = f"Captured {int(time_ago.total_seconds() / 3600)} hours ago"
-                else:
-                    time_text = f"Captured {int(time_ago.days)} days ago"
-                
-                # Add timestamp text
-                timestamp_text = f"{time_text} ({capture_time.strftime('%Y-%m-%d %H:%M:%S')})"
-                draw.text((10, 8), timestamp_text, fill=(255, 255, 255), font=font)
-                draw.text((img_width - 150, 8), "CAPTURED PREVIEW", fill=(255, 200, 200), font=font)
-                
-                # Convert back to bytes
-                buffer = BytesIO()
-                img.save(buffer, format='PNG')
-                buffer.seek(0)
-                
-                app.logger.info(f"Using last successful screenshot for preview of {screenshot.lottery_type} from {time_ago.total_seconds():.0f} seconds ago")
-                
-                return send_file(
-                    buffer,
-                    mimetype='image/png',
-                    download_name=f'preview_{screenshot_id}.png',
-                    as_attachment=False
-                )
-            except Exception as file_error:
-                app.logger.warning(f"Could not process existing screenshot for preview: {str(file_error)}")
-        
-        # IMPORTANT: No placeholder images allowed per data integrity policy
-        app.logger.warning(f"No valid screenshot found for {screenshot.lottery_type} ({screenshot_id})")
-        
-        # Instead of generating a placeholder image, return an error and redirect to sync
-        flash(f"No screenshot available for {screenshot.lottery_type}. Please use the Sync button to capture it.", "danger")
-        return redirect(url_for('export_screenshots', highlight_id=screenshot_id))
-    
-    except Exception as e:
-        app.logger.error(f"Error serving preview for {screenshot_id}: {str(e)}")
-        
-        # IMPORTANT: No placeholder/error images per data integrity policy
-        # Return a proper error message instead
-        flash(f"Error generating preview for {screenshot_id}: {str(e)}", "danger")
-        return redirect(url_for('export_screenshots', highlight_id=screenshot_id))
 
 @app.route('/cleanup-screenshots', methods=['POST'])
 @login_required
 @csrf.exempt
 def cleanup_screenshots():
-    """Route to cleanup old screenshots with aggressive approach to eliminate duplicates"""
+    """Route to cleanup old screenshots"""
     if not current_user.is_admin:
         flash('You must be an admin to clean up screenshots.', 'danger')
         return redirect(url_for('index'))
         
     try:
-        # Implementing a more aggressive approach to cleanup
-        # This will keep exactly ONE screenshot per unique URL after standardizing the types
-        from models import Screenshot, db
-        import os
-        from sqlalchemy import func
+        # Run the cleanup function from scheduler module imported at the top level
+        scheduler.cleanup_old_screenshots()
         
-        app.logger.info("Starting aggressive screenshot cleanup")
-        
-        # First, standardize all lottery types
-        standardize_count = 0
-        try:
-            # Import standardization function
-            from puppeteer_service import standardize_lottery_type
-            
-            # Get all screenshots
-            screenshots = Screenshot.query.all()
-            app.logger.info(f"Found {len(screenshots)} total screenshots")
-            
-            # Standardize all lottery types first
-            for screenshot in screenshots:
-                original_type = screenshot.lottery_type
-                standard_type = standardize_lottery_type(original_type)
-                
-                # Update if needed
-                if original_type != standard_type:
-                    app.logger.info(f"Standardizing lottery type from '{original_type}' to '{standard_type}'")
-                    screenshot.lottery_type = standard_type
-                    standardize_count += 1
-            
-            # Save standardization changes
-            if standardize_count > 0:
-                db.session.commit()
-                app.logger.info(f"Standardized {standardize_count} lottery types")
-        except Exception as std_error:
-            app.logger.error(f"Error standardizing lottery types: {str(std_error)}")
-        
-        # AGGRESSIVE APPROACH: Keep only the newest screenshot for each lottery_type+URL combination
-        
-        # 1. Group by lottery_type+URL and find the newest screenshot for each combination
-        combo_to_newest = {}
-        all_screenshots = Screenshot.query.all()
-        
-        for screenshot in all_screenshots:
-            combo_key = (screenshot.lottery_type, screenshot.url)
-            if combo_key not in combo_to_newest or screenshot.timestamp > combo_to_newest[combo_key].timestamp:
-                combo_to_newest[combo_key] = screenshot
-        
-        # Count how many unique combos we found for each lottery_type
-        lottery_type_counts = {}
-        for combo_key in combo_to_newest:
-            lottery_type = combo_key[0]
-            lottery_type_counts[lottery_type] = lottery_type_counts.get(lottery_type, 0) + 1
-            
-        for lottery_type, count in lottery_type_counts.items():
-            if count > 1:
-                app.logger.info(f"Found {count} different URLs for lottery_type '{lottery_type}'")
-                
-        app.logger.info(f"Keeping {len(combo_to_newest)} screenshots (1 per unique lottery_type+URL combination)")
-        
-        # 2. Any screenshot not in the combo_to_newest values should be deleted
-        screenshots_to_delete = []
-        for screenshot in all_screenshots:
-            combo_key = (screenshot.lottery_type, screenshot.url)
-            if combo_to_newest.get(combo_key) != screenshot:
-                screenshots_to_delete.append(screenshot)
-                
-        app.logger.info(f"Found {len(screenshots_to_delete)} screenshots to delete")
-        
-        # Delete files and database records
-        deleted_count = 0
-        for screenshot in screenshots_to_delete:
-            # Try to delete the file if it exists
-            if screenshot.path and os.path.exists(screenshot.path):
-                try:
-                    os.remove(screenshot.path)
-                    app.logger.info(f"Deleted file: {screenshot.path}")
-                except Exception as file_error:
-                    app.logger.warning(f"Could not delete screenshot file {screenshot.path}: {str(file_error)}")
-            
-            # Try to delete zoomed file if it exists
-            if hasattr(screenshot, 'zoomed_path') and screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
-                try:
-                    os.remove(screenshot.zoomed_path)
-                    app.logger.info(f"Deleted zoomed file: {screenshot.zoomed_path}")
-                except Exception as file_error:
-                    app.logger.warning(f"Could not delete zoomed screenshot file {screenshot.zoomed_path}: {str(file_error)}")
-                    
-            # HTML file deletion has been removed as we no longer capture HTML content
-            
-            # Delete the database record
-            db.session.delete(screenshot)
-            deleted_count += 1
-            
-        # Commit all database changes    
-        try:
-            db.session.commit()
-            app.logger.info(f"Successfully deleted {deleted_count} screenshots")
-            flash(f"Successfully deleted {deleted_count} screenshots.", "success")
-        except Exception as db_error:
-            db.session.rollback()
-            app.logger.error(f"Error committing screenshot deletions: {str(db_error)}")
-            flash(f"Error deleting screenshots: {str(db_error)}", "danger")
-        
-        # Return to the screenshots page, explicitly preventing auto-creation of new screenshots
-        # Pass additional query parameter to disable all auto-creation
-        response = redirect(url_for('export_screenshots', create_missing='false', strict_cleanup='true'))
-        
-        # Also set a session cookie to remember that we just did a cleanup
-        # This provides a secondary mechanism to prevent auto-creation
-        session['prevent_recreation'] = True
-        
-        return response
+        # Store success message in session
+        session['sync_status'] = {
+            'status': 'success',
+            'message': 'Successfully cleaned up old screenshots. Only the latest screenshot for each URL is kept.'
+        }
     except Exception as e:
         app.logger.error(f"Error cleaning up screenshots: {str(e)}")
-        flash(f"Error cleaning up screenshots: {str(e)}", "danger")
-        # Return to the screenshots page, explicitly preventing auto-creation of new screenshots
-        response = redirect(url_for('export_screenshots', create_missing='false', strict_cleanup='true'))
-        session['prevent_recreation'] = True
-        return response
-
-@app.route('/screenshot-diagnostics')
-@login_required
-def screenshot_diagnostics():
-    """Diagnostic view to identify duplicate screenshots"""
-    if not current_user.is_admin:
-        flash('You must be an admin to access screenshot diagnostics.', 'danger')
-        return redirect(url_for('index'))
-    
-    try:
-        from models import Screenshot
-        from puppeteer_service import standardize_lottery_type
+        traceback.print_exc()
         
-        # Get all screenshots
-        screenshots = Screenshot.query.all()
-        
-        # Group screenshots by lottery_type first
-        screenshots_by_type = {}
-        for screenshot in screenshots:
-            lottery_type = screenshot.lottery_type
-            if lottery_type not in screenshots_by_type:
-                screenshots_by_type[lottery_type] = []
-            screenshots_by_type[lottery_type].append(screenshot)
-            
-        # Count duplicate types (multiple URLs for same lottery_type)
-        duplicate_types = {}
-        for lottery_type, type_screenshots in screenshots_by_type.items():
-            if len(type_screenshots) > 1:
-                # Get unique URLs for this type
-                urls = set(s.url for s in type_screenshots)
-                if len(urls) > 1:
-                    duplicate_types[lottery_type] = {
-                        'count': len(type_screenshots),
-                        'urls': list(urls)
-                    }
-        
-        # Check for exact duplicates (same lottery_type AND URL)
-        combo_counts = {}
-        for screenshot in screenshots:
-            combo = (screenshot.lottery_type, screenshot.url)
-            if combo not in combo_counts:
-                combo_counts[combo] = []
-            combo_counts[combo].append(screenshot)
-            
-        # Find combos with more than one screenshot
-        exact_duplicates = {}
-        for combo, combo_screenshots in combo_counts.items():
-            if len(combo_screenshots) > 1:
-                # Sort by timestamp descending
-                sorted_screenshots = sorted(combo_screenshots, key=lambda x: x.timestamp, reverse=True)
-                exact_duplicates[combo] = {
-                    'count': len(sorted_screenshots),
-                    'ids': [s.id for s in sorted_screenshots]
-                }
-        
-        # Prepare the summary data
-        summary = {
-            'total_screenshots': len(screenshots),
-            'unique_lottery_types': len(screenshots_by_type),
-            'duplicate_type_count': len(duplicate_types),
-            'exact_duplicate_count': len(exact_duplicates)
+        session['sync_status'] = {
+            'status': 'danger',
+            'message': f'Error cleaning up screenshots: {str(e)}'
         }
-        
-        return render_template('screenshot_diagnostics.html', 
-                               summary=summary,
-                               duplicate_types=duplicate_types,
-                               exact_duplicates=exact_duplicates,
-                               title='Screenshot Diagnostics')
-                               
-    except Exception as e:
-        app.logger.error(f"Error showing screenshot diagnostics: {str(e)}")
-        flash(f"Error showing screenshot diagnostics: {str(e)}", "danger")
-        return redirect(url_for('export_screenshots'))
-
-@app.route('/cleanup-duplicates', methods=['POST'])
-@login_required
-@csrf.exempt
-def cleanup_duplicates():
-    """Route to cleanup duplicate screenshots using lottery_type+URL combination"""
-    if not current_user.is_admin:
-        flash('You must be an admin to clean up duplicates.', 'danger')
-        return redirect(url_for('index'))
-        
-    try:
-        from models import Screenshot, db
-        import os
-        
-        app.logger.info("Starting duplicate screenshot cleanup")
-        
-        # Get all screenshots
-        all_screenshots = Screenshot.query.all()
-        
-        # Group by lottery_type+URL combination and keep only the newest
-        combo_to_newest = {}
-        
-        for screenshot in all_screenshots:
-            combo_key = (screenshot.lottery_type, screenshot.url)
-            if combo_key not in combo_to_newest or screenshot.timestamp > combo_to_newest[combo_key].timestamp:
-                combo_to_newest[combo_key] = screenshot
-                
-        app.logger.info(f"Found {len(combo_to_newest)} unique lottery_type+URL combinations")
-        
-        # Any screenshot not in combo_to_newest values should be deleted
-        screenshots_to_delete = []
-        for screenshot in all_screenshots:
-            combo_key = (screenshot.lottery_type, screenshot.url)
-            if combo_to_newest.get(combo_key) != screenshot:
-                screenshots_to_delete.append(screenshot)
-                
-        app.logger.info(f"Found {len(screenshots_to_delete)} duplicate screenshots to delete")
-        
-        # Delete files and database records
-        deleted_count = 0
-        for screenshot in screenshots_to_delete:
-            # Try to delete the file if it exists
-            if screenshot.path and os.path.exists(screenshot.path):
-                try:
-                    os.remove(screenshot.path)
-                    app.logger.info(f"Deleted file: {screenshot.path}")
-                except Exception as file_error:
-                    app.logger.warning(f"Could not delete screenshot file {screenshot.path}: {str(file_error)}")
-                    
-            # Try to delete zoomed file if it exists
-            if hasattr(screenshot, 'zoomed_path') and screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
-                try:
-                    os.remove(screenshot.zoomed_path)
-                    app.logger.info(f"Deleted zoomed file: {screenshot.zoomed_path}")
-                except Exception as file_error:
-                    app.logger.warning(f"Could not delete zoomed screenshot file {screenshot.zoomed_path}: {str(file_error)}")
-                    
-            # HTML file deletion has been removed as we no longer capture HTML content
-            
-            # Delete the database record
-            db.session.delete(screenshot)
-            deleted_count += 1
-            
-        # Commit all database changes    
-        try:
-            db.session.commit()
-            app.logger.info(f"Successfully deleted {deleted_count} duplicate screenshots")
-            flash(f"Successfully deleted {deleted_count} duplicate screenshots.", "success")
-        except Exception as db_error:
-            db.session.rollback()
-            app.logger.error(f"Error committing screenshot deletions: {str(db_error)}")
-            flash(f"Error deleting screenshots: {str(db_error)}", "danger")
-        
-        # Return to the screenshots page, explicitly preventing auto-creation of new screenshots
-        # Pass additional query parameter to disable all auto-creation
-        response = redirect(url_for('export_screenshots', create_missing='false', strict_cleanup='true'))
-        
-        # Also set a session cookie to remember that we just did a cleanup
-        session['prevent_recreation'] = True
-        
-        return response
-        
-    except Exception as e:
-        app.logger.error(f"Error cleaning up duplicates: {str(e)}")
-        flash(f"Error cleaning up duplicates: {str(e)}", "danger")
-        return redirect(url_for('export_screenshots'))
+    
+    return redirect(url_for('export_screenshots'))
 
 @app.route('/export-combined-zip')
 @login_required
@@ -2962,21 +1801,17 @@ def export_combined_zip():
         import io
         import zipfile
         import tempfile
-        import glob
         from datetime import datetime
         
         # Create a timestamp for filenames
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        # Get all screenshots from database
+        # Get all screenshots
         screenshots = Screenshot.query.order_by(Screenshot.lottery_type).all()
         
         if not screenshots:
             flash('No screenshots available to export.', 'warning')
             return redirect(url_for('export_screenshots'))
-        
-        # Log some information about the screenshots
-        logger.info(f"Found {len(screenshots)} screenshots in database to export")
         
         # Create a temporary directory for the template
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -2984,80 +1819,36 @@ def export_combined_zip():
             template_filename = f"lottery_data_template_{timestamp}.xlsx"
             template_path = os.path.join(temp_dir, template_filename)
             create_template.create_template(template_path)
-            logger.info(f"Created template file at {template_path}")
-            
-            # Get all screenshots from the directory
-            screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
-            all_screenshot_files = []
-            if os.path.exists(screenshot_dir):
-                all_screenshot_files = glob.glob(os.path.join(screenshot_dir, '*.png'))
-                all_screenshot_files.extend(glob.glob(os.path.join(screenshot_dir, '*.jpg')))
-                all_screenshot_files.extend(glob.glob(os.path.join(screenshot_dir, '*.jpeg')))
-                logger.info(f"Found {len(all_screenshot_files)} screenshot files in directory")
             
             # Create a ZIP file in memory
             memory_file = io.BytesIO()
             with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
                 # Add the template to the ZIP file
                 zf.write(template_path, f"template/{template_filename}")
-                logger.info(f"Added template to ZIP file")
                 
-                # Track the number of screenshots added
-                screenshots_added = 0
-                
-                # Add screenshots from the database first
+                # Add screenshots to the ZIP file
                 for screenshot in screenshots:
-                    try:
-                        if os.path.exists(screenshot.path):
-                            # Get the file extension
-                            _, ext = os.path.splitext(screenshot.path)
-                            # Create a unique filename for each screenshot
-                            lottery_type = screenshot.lottery_type.replace(' ', '_')
-                            ss_timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
-                            filename = f"{lottery_type}_{ss_timestamp}{ext}"
-                            
-                            # Add the screenshot to the ZIP file in a screenshots folder
-                            zf.write(screenshot.path, f"screenshots/{filename}")
-                            screenshots_added += 1
-                            
-                            # Add zoomed version if it exists
-                            if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
-                                _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
-                                zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
-                                zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
-                                screenshots_added += 1
-                                
-                            # HTML content export has been removed as we no longer capture HTML content
-                        else:
-                            logger.warning(f"Screenshot file not found: {screenshot.path}")
-                    except Exception as e:
-                        logger.error(f"Error adding screenshot to ZIP: {str(e)}, path: {screenshot.path}")
-                
-                # If no screenshots were added from database paths, include all files from screenshots directory
-                if screenshots_added == 0 and all_screenshot_files:
-                    logger.info(f"No screenshots were added from database paths, adding all files from screenshots directory")
-                    for screenshot_file in all_screenshot_files:
-                        try:
-                            # Get filename only
-                            filename = os.path.basename(screenshot_file)
-                            # Add to ZIP file
-                            zf.write(screenshot_file, f"screenshots/{filename}")
-                            screenshots_added += 1
-                        except Exception as e:
-                            logger.error(f"Error adding screenshot file to ZIP: {str(e)}, path: {screenshot_file}")
-            
-                logger.info(f"Added {screenshots_added} screenshot files to the ZIP archive")
+                    if os.path.exists(screenshot.path):
+                        # Get the file extension
+                        _, ext = os.path.splitext(screenshot.path)
+                        # Create a unique filename for each screenshot
+                        lottery_type = screenshot.lottery_type.replace(' ', '_')
+                        ss_timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
+                        filename = f"{lottery_type}_{ss_timestamp}{ext}"
+                        
+                        # Add the screenshot to the ZIP file in a screenshots folder
+                        zf.write(screenshot.path, f"screenshots/{filename}")
+                        
+                        # Add zoomed version if it exists
+                        if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
+                            _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
+                            zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
+                            zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
             
             # Reset the file pointer to the beginning of the file
             memory_file.seek(0)
             
-            # Check if any screenshots were added
-            if screenshots_added == 0:
-                logger.warning("No screenshots were added to the ZIP archive")
-                flash('No screenshots were found to include in the ZIP file. Only the template will be included.', 'warning')
-            
             # Send the ZIP file as a response
-            logger.info(f"Sending combined ZIP file with {screenshots_added} screenshots")
             return send_file(
                 memory_file,
                 mimetype='application/zip',
@@ -3065,8 +1856,7 @@ def export_combined_zip():
                 download_name=f'lottery_data_combined_{timestamp}.zip'
             )
     except Exception as e:
-        logger.error(f"Error creating combined ZIP file: {str(e)}")
-        traceback.print_exc()  # Print full traceback for better debugging
+        app.logger.error(f"Error creating combined ZIP file: {str(e)}")
         flash(f'Error creating combined ZIP file: {str(e)}', 'danger')
         return redirect(url_for('export_screenshots'))
 
@@ -3957,50 +2747,6 @@ def health_port_check():
         'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     })
 
-# Global variable to store Puppeteer screenshot capture status
-puppeteer_capture_status = {
-    'in_progress': False,
-    'total_screenshots': 0,
-    'completed_screenshots': 0,
-    'start_time': None,
-    'last_updated': None,
-    'success_count': 0,
-    'error_count': 0,
-    'status_message': 'No capture in progress',
-    'errors': [],
-    'progress': 0  # Progress percentage (0-100)
-}
-
-@app.route('/puppeteer-status')
-@csrf.exempt
-def puppeteer_status():
-    """API endpoint to check the status of Puppeteer screenshot capture"""
-    global puppeteer_capture_status
-    
-    # Use explicit progress value if set, otherwise calculate from completed/total
-    progress = puppeteer_capture_status.get('progress', 0)
-    if progress == 0 and puppeteer_capture_status['total_screenshots'] > 0:
-        progress = (puppeteer_capture_status['completed_screenshots'] / 
-                   puppeteer_capture_status['total_screenshots']) * 100
-    
-    # Add elapsed time if in progress
-    elapsed_time = None
-    if puppeteer_capture_status['in_progress'] and puppeteer_capture_status['start_time']:
-        elapsed_time = (datetime.now() - puppeteer_capture_status['start_time']).total_seconds()
-    
-    # Return the current status
-    return jsonify({
-        'in_progress': puppeteer_capture_status['in_progress'],
-        'progress': round(progress, 1),
-        'status_message': puppeteer_capture_status['status_message'],
-        'success_count': puppeteer_capture_status['success_count'],
-        'error_count': puppeteer_capture_status['error_count'],
-        'total_screenshots': puppeteer_capture_status['total_screenshots'],
-        'completed_screenshots': puppeteer_capture_status['completed_screenshots'],
-        'elapsed_time': elapsed_time,
-        'errors': puppeteer_capture_status['errors'][:5]  # Limit the number of errors returned
-    })
-
 @app.route('/admin/run-health-checks', methods=['POST', 'GET'])
 @login_required
 @csrf.exempt
@@ -4062,9 +2808,6 @@ ad_management.register_ad_routes(app)
 
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
-
-# Register puppeteer screenshot routes
-puppeteer_routes.register_puppeteer_routes(app)
 
 # API Request Tracking routes
 @app.route('/admin/api-tracking')
@@ -4150,55 +2893,6 @@ def api_tracking_dashboard():
         service_counts=service_counts,
         service_tokens=service_tokens
     )
-
-# Route for importing latest template file
-@app.route('/admin/import-latest-template')
-@login_required
-@admin_required
-def import_latest_template_route():
-    """Import the latest lottery data template file"""
-    try:
-        result = import_latest_template.import_latest_template()
-        return render_template('import_status.html', 
-                               success=result.get('success', False),
-                               stats=result.get('stats', {}),
-                               error=result.get('error', 'Unknown error'))
-    except Exception as e:
-        logger.error(f"Error importing template: {str(e)}")
-        return render_template('import_status.html', 
-                               success=False,
-                               stats={},
-                               error=f"Error: {str(e)}")
-
-# Route for viewing import history
-@app.route('/admin/import-history')
-@login_required
-@admin_required
-def admin_import_history():
-    """Display import history in admin panel"""
-    history = ImportHistory.query.order_by(ImportHistory.import_date.desc()).all()
-    return render_template('import_history.html', history=history)
-
-# Route for importing missing draws
-@app.route('/admin/import-missing-draws')
-@login_required
-@admin_required
-def import_missing_draws_route():
-    """Import specific missing lottery draws"""
-    try:
-        from import_missing_draws import import_missing_draws
-        result = import_missing_draws("attached_assets/missing_draws.xlsx")
-        
-        return render_template('import_status.html', 
-                              success=result.get('success', False),
-                              stats=result.get('stats', {}),
-                              error=result.get('error', 'Unknown error'))
-    except Exception as e:
-        logger.error(f"Error importing missing draws: {str(e)}")
-        return render_template('import_status.html', 
-                              success=False,
-                              stats={},
-                              error=f"Error: {str(e)}")
 
 # When running directly, not through gunicorn
 if __name__ == "__main__":

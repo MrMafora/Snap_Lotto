@@ -350,7 +350,7 @@
                                                 </div>
                                                 <div class="col">
                                                     <div class="progress progress-sm mr-2">
-                                                        {% set percent = (verified_predictions / total_predictions * 100)|round|int if total_predictions is defined and total_predictions > 0 and verified_predictions is defined else 0 %}
+                                                        {% set percent = (verified_predictions / total_predictions * 100)|round|int if total_predictions > 0 and verified_predictions is defined else 0 %}
                                                         <div class="progress-bar bg-info" role="progressbar" style="width: {{ percent }}%" aria-valuenow="{{ percent }}" aria-valuemin="0" aria-valuemax="100"></div>
                                                     </div>
                                                 </div>

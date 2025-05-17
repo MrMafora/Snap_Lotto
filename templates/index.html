@@ -259,7 +259,7 @@
                                                 </span>
                                             </div>
                                         {% endfor %}
-                                        {% if result.get_bonus_numbers_list()|length > 0 %}
+                                        {% if result.bonus_numbers %}
                                             <div class="mx-1 d-flex align-items-center">+</div>
                                             {% for num in result.get_bonus_numbers_list() %}
                                                 <div class="lottery-ball-container">
@@ -350,7 +350,7 @@
             <div class="col-md-6">
                 <!-- Left chart: Most Frequent Numbers -->
                 <div class="chart-card">
-                    <h6 class="mb-3 d-flex justify-content-between frequency-chart-title">
+                    <h6 class="mb-3 d-flex justify-content-between">
                         <span>Most Frequent Numbers</span>
                         <span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>
                     </h6>
@@ -584,19 +584,13 @@ function resetPieSegments() {
 
 // Function to fetch chart data via AJAX
 function fetchChartData(lotteryType, timePeriod) {
-    // Ensure DOM elements exist before proceeding with data operations
-    ensureDomElementsExist();
-    
-    console.log("Fetching chart data for:", lotteryType, timePeriod);
-    
-    // Show loading state for all charts including hot/cold section
+    // Show loading state for charts
     document.querySelectorAll('.chart-loading').forEach(indicator => {
         indicator.classList.remove('d-none');
     });
     
-    // Get the critical containers for showing loading/error states
+    // Get the bar chart container for showing loading/error states
     const barChartContainer = document.querySelector('.bar-chart-container');
-    const hotColdContainer = document.querySelector('.hot-cold-container');
     if (barChartContainer) {
         barChartContainer.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
@@ -681,172 +675,67 @@ function fetchChartData(lotteryType, timePeriod) {
 
 // Function to update charts with new data
 function updateCharts(data) {
-    // Ensure DOM elements exist before processing any chart data
-    ensureDomElementsExist();
-    
     // Check if we have valid data
     if (!data || typeof data !== 'object') {
         console.error('Invalid chart data received');
         return;
     }
     
-    // Get the currently selected lottery type from UI
-    const userSelectedType = document.querySelector('.current-lottery-type').textContent.trim();
+    // Update frequency chart
+    updateFrequencyChart(data);
     
-    // Extract frequency data from the response
-    const frequencyData = extractFrequencyData(data, userSelectedType);
+    // Update hot and cold numbers section
+    updateHotColdNumbers(data);
     
-    // Log the matched lottery type for debugging  
-    console.log(`Frequency data received for: ${userSelectedType} → matched to: ${frequencyData.lotteryType}`);
+    // Update division statistics chart
+    updateDivisionChart(data);
     
-    // Force a delay for DOM updates to ensure all containers are available
-    // This helps with race conditions in element discovery
-    setTimeout(() => {
-        // Make sure DOM elements are ready again after any dynamic updates
-        ensureDomElementsExist();
-        
-        // First, show the loading indicators to indicate updates in progress
-        document.querySelectorAll('.chart-loading').forEach(indicator => {
-            indicator.classList.remove('d-none');
-        });
-        
-        try {
-            // Update frequency chart using the extracted data
-            updateFrequencyChart(data, frequencyData);
-            
-            // Update hot and cold numbers section using the same extracted data
-            // This updates the static HTML hot/cold container (.hot-cold-container)
-            updateHotColdNumbers(data, frequencyData);
-            
-            // Update division statistics chart with the same shared data
-            // This updates the dynamic hot/cold chart (.temperature-chart-container)
-            updateDivisionChart(data, frequencyData);
-            
-            // IMPORTANT: Make sure the Hot & Cold section gets properly updated with the selected lottery type
-            // We directly call the hot & cold numbers update function with the correct data
-            updateHotColdNumbers(data, frequencyData);
-            
-            // Log completion of chart updates
-            console.log(`All chart components updated with shared frequency data: ${frequencyData.lotteryType}`);
-        } catch (error) {
-            console.error("Error updating chart components:", error);
-        }
-        
-        // Finally hide all loading indicators when updates are complete
-        document.querySelectorAll('.chart-loading').forEach(indicator => {
-            indicator.classList.add('d-none');
-        });
-    }, 200); // Increased delay to ensure DOM is ready
-}
-
-// Function to extract frequency data for the selected lottery type
-function extractFrequencyData(data, selectedType) {
-    // Normalize user selected type for comparison
-    const normalizedUserType = selectedType === 'All Lottery Types' ? 'All Lottery Types' : selectedType;
-    
-    // First try to find an exact match for the user's selection
-    let matchedType = null;
-    
-    // Check for exact match
-    for (const lotteryType in data) {
-        if (lotteryType === normalizedUserType || 
-            (normalizedUserType === 'All Lottery Types' && lotteryType === 'All Lottery Types')) {
-            matchedType = lotteryType;
-            break;
-        }
-    }
-    
-    // If no exact match, find a close match by comparing case-insensitive
-    if (!matchedType) {
-        for (const lotteryType in data) {
-            if (lotteryType.toLowerCase() === normalizedUserType.toLowerCase()) {
-                matchedType = lotteryType;
-                break;
-            }
-        }
-    }
-    
-    // If still no match, fall back to using the "All Lottery Types" or the first available lottery type
-    if (!matchedType) {
-        if (data['All Lottery Types']) {
-            matchedType = 'All Lottery Types';
-        } else {
-            // Find the first lottery type with data as a last resort
-            for (const lotteryType in data) {
-                if (data[lotteryType] && !data[lotteryType].has_error) {
-                    matchedType = lotteryType;
-                    break;
-                }
-            }
-        }
-    }
-    
-    // Return both the matched type and its data
-    return matchedType ? {
-        lotteryType: matchedType,
-        data: data[matchedType]
-    } : null;
+    // Charts are now ready - we no longer use the pie chart container
+    // Keep this section for future chart code but removed the pie chart references
 }
 
 // Function to update the Hot & Cold Numbers section with filtered data
-function updateHotColdNumbers(data, frequencyData) {
-    // Ensure DOM elements exist before processing
-    ensureDomElementsExist();
+function updateHotColdNumbers(data) {
+    // Show loading indicator for hot/cold section
+    const hotColdLoading = document.getElementById('hotColdLoading');
+    if (hotColdLoading) {
+        hotColdLoading.classList.remove('d-none');
+    }
     
-    // Get all chart loading indicators, including the hot/cold section's
-    const loadingIndicators = document.querySelectorAll('.chart-loading');
-    loadingIndicators.forEach(indicator => {
-        indicator.classList.remove('d-none');
-    });
+    // Find the lottery type with the most data (similar logic as updateFrequencyChart)
+    let selectedLotteryType = null;
+    let maxFrequencyData = [];
     
-    console.log("Updating hot/cold numbers with shared data:", frequencyData);
+    // Find the lottery type with the most data
+    for (const lotteryType in data) {
+        if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
+            maxFrequencyData = data[lotteryType].frequency;
+            selectedLotteryType = lotteryType;
+        }
+    }
     
-    // More robust selection for hot/cold containers - first try exact ID match, 
-    // then try direct class selection, then try any container that might be appropriate
-    const hotNumbersContainer = document.getElementById('hotNumbersContainer') || 
-                             document.querySelector('.hot-numbers .d-flex') ||
-                             document.querySelector('.hot-numbers-section .number-list');
-    
-    const coldNumbersContainer = document.getElementById('coldNumbersContainer') ||
-                              document.querySelector('.cold-numbers .d-flex') ||
-                              document.querySelector('.cold-numbers-section .number-list');
-    
-    const absentNumbersContainer = document.getElementById('absentNumbersContainer') ||
-                                document.querySelector('.absent-numbers .d-flex') ||
-                                document.querySelector('.absent-numbers-section .number-list');
-    
-    // Log which containers were found to help debugging
-    console.log("Container elements found:", {
-        hot: !!hotNumbersContainer,
-        cold: !!coldNumbersContainer,
-        absent: !!absentNumbersContainer
-    });
-    
-    // If we have no data from the shared frequency data, show error message
-    if (!frequencyData || !frequencyData.data || !frequencyData.lotteryType) {
-        if (hotNumbersContainer) hotNumbersContainer.innerHTML = '<div class="text-muted">No hot numbers data available for the selected filters</div>';
-        if (coldNumbersContainer) coldNumbersContainer.innerHTML = '<div class="text-muted">No cold numbers data available for the selected filters</div>';
-        if (absentNumbersContainer) absentNumbersContainer.innerHTML = '<div class="text-muted">No absent numbers data available for the selected filters</div>';
+    // If we have no data, show error message
+    if (!selectedLotteryType) {
+        document.getElementById('hotNumbersContainer').innerHTML = '<div class="text-muted">No hot numbers data available for the selected filters</div>';
+        document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available for the selected filters</div>';
+        document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available for the selected filters</div>';
         
-        // Hide loading indicators
-        loadingIndicators.forEach(indicator => {
-            indicator.classList.add('d-none');
-        });
+        // Hide loading indicator
+        if (hotColdLoading) {
+            hotColdLoading.classList.add('d-none');
+        }
         return;
     }
     
-    const selectedLotteryType = frequencyData.lotteryType;
-    const lotteryData = frequencyData.data;
-    
-    // Get the frequency data array for the selected lottery type
-    const frequencyArray = lotteryData.frequency || [];
+    // Get the frequency data for the selected lottery type
+    const frequencyData = data[selectedLotteryType].frequency || [];
     
     // Create a list of numbers with their frequencies
     const numberFrequencies = [];
-    for (let i = 0; i < frequencyArray.length; i++) {
+    for (let i = 0; i < frequencyData.length; i++) {
         numberFrequencies.push({
             number: i + 1,
-            frequency: frequencyArray[i] || 0
+            frequency: frequencyData[i] || 0
         });
     }
     
@@ -854,7 +743,7 @@ function updateHotColdNumbers(data, frequencyData) {
     const sortedByFrequency = [...numberFrequencies].sort((a, b) => b.frequency - a.frequency);
     
     // Get the top numbers (most frequent)
-    const topNumbers = lotteryData.top_numbers || 
+    const topNumbers = data[selectedLotteryType].top_numbers || 
         sortedByFrequency.slice(0, 10).map(item => [item.number, item.frequency]);
     
     // Get the cold numbers (least frequent - we derive this from the frequency data)
@@ -881,7 +770,7 @@ function updateHotColdNumbers(data, frequencyData) {
     }
     
     // Update Hot Numbers container
-    if (topNumbers && topNumbers.length > 0 && hotNumbersContainer) {
+    if (topNumbers && topNumbers.length > 0) {
         let hotNumbersHTML = '';
         const colors = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'];
         
@@ -896,13 +785,13 @@ function updateHotColdNumbers(data, frequencyData) {
                 </div>
             `;
         }
-        hotNumbersContainer.innerHTML = hotNumbersHTML;
-    } else if (hotNumbersContainer) {
-        hotNumbersContainer.innerHTML = '<div class="text-muted">No hot numbers data available</div>';
+        document.getElementById('hotNumbersContainer').innerHTML = hotNumbersHTML;
+    } else {
+        document.getElementById('hotNumbersContainer').innerHTML = '<div class="text-muted">No hot numbers data available</div>';
     }
     
     // Update Cold Numbers container
-    if (coldNumbers && coldNumbers.length > 0 && coldNumbersContainer) {
+    if (coldNumbers && coldNumbers.length > 0) {
         let coldNumbersHTML = '';
         
         for (let i = 0; i < Math.min(5, coldNumbers.length); i++) {
@@ -916,13 +805,13 @@ function updateHotColdNumbers(data, frequencyData) {
                 </div>
             `;
         }
-        coldNumbersContainer.innerHTML = coldNumbersHTML;
-    } else if (coldNumbersContainer) {
-        coldNumbersContainer.innerHTML = '<div class="text-muted">No cold numbers data available</div>';
+        document.getElementById('coldNumbersContainer').innerHTML = coldNumbersHTML;
+    } else {
+        document.getElementById('coldNumbersContainer').innerHTML = '<div class="text-muted">No cold numbers data available</div>';
     }
     
     // Update Numbers Not Drawn Recently container
-    if (absentNumbers && absentNumbers.length > 0 && absentNumbersContainer) {
+    if (absentNumbers && absentNumbers.length > 0) {
         let absentNumbersHTML = '';
         
         for (let i = 0; i < Math.min(5, absentNumbers.length); i++) {
@@ -936,25 +825,19 @@ function updateHotColdNumbers(data, frequencyData) {
                 </div>
             `;
         }
-        absentNumbersContainer.innerHTML = absentNumbersHTML;
-    } else if (absentNumbersContainer) {
-        absentNumbersContainer.innerHTML = '<div class="text-muted">No absent numbers data available</div>';
+        document.getElementById('absentNumbersContainer').innerHTML = absentNumbersHTML;
+    } else {
+        document.getElementById('absentNumbersContainer').innerHTML = '<div class="text-muted">No absent numbers data available</div>';
     }
     
-    // Hide all loading indicators when finished
-    loadingIndicators.forEach(indicator => {
-        indicator.classList.add('d-none');
-    });
-    
-    // Log completion to console for debugging
-    console.log(`Hot/cold numbers updated successfully for ${selectedLotteryType}`);
+    // Hide loading indicator
+    if (hotColdLoading) {
+        hotColdLoading.classList.add('d-none');
+    }
 }
 
 // Function to update the frequency chart
-function updateFrequencyChart(data, frequencyData) {
-    // Ensure DOM elements exist before processing frequency chart data
-    ensureDomElementsExist();
-    
+function updateFrequencyChart(data) {
     // Get the bar chart container
     const barChartContainer = document.querySelector('.bar-chart-container');
     if (!barChartContainer) return;
@@ -965,23 +848,26 @@ function updateFrequencyChart(data, frequencyData) {
     barChartContainer.style.width = '100%';
     barChartContainer.style.overflow = 'hidden';
     
-    // If we don't have frequency data from the shared extraction, show an error
-    if (!frequencyData || !frequencyData.data || !frequencyData.lotteryType) {
-        barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
-        return;
+    // We need to get the lottery type with the most data
+    let selectedLotteryType = null;
+    let maxFrequencyData = [];
+    
+    // Find the lottery type with the most data
+    for (const lotteryType in data) {
+        if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
+            maxFrequencyData = data[lotteryType].frequency;
+            selectedLotteryType = lotteryType;
+        }
     }
     
-    const selectedLotteryType = frequencyData.lotteryType;
-    const lotteryData = frequencyData.data;
-    
     // If we have no data, show a message and return
-    if (!lotteryData) {
+    if (!selectedLotteryType) {
         barChartContainer.innerHTML = '<div class="text-center my-5">No frequency data available for the selected filters.</div>';
         return;
     }
     
     // Get the top numbers for this lottery type
-    const topNumbers = lotteryData.top_numbers;
+    const topNumbers = data[selectedLotteryType].top_numbers;
     
     // If no top numbers, show a message and return
     if (!topNumbers || !topNumbers.length) {
@@ -1197,41 +1083,21 @@ function updateFrequencyChart(data, frequencyData) {
     chartWrapper.appendChild(topBox);
 }
 
-// Function to update the Division Chart (Note: this is NOT the Hot & Cold section - that's handled by updateHotColdNumbers)
-function updateDivisionChart(data, frequencyData) {
-    // Ensure DOM elements exist before processing division chart data
-    ensureDomElementsExist();
+// Function to update the Hot & Cold Numbers chart
+function updateDivisionChart(data) {
+    // Get the temperature chart container
+    const tempChartContainer = document.querySelector('.temperature-chart-container');
+    if (!tempChartContainer) return;
     
-    // Try to find the container to place the division chart
-    // IMPORTANT: This is NOT related to the hot-cold-container which is the static HTML section
-    const tempChartContainer = document.querySelector('.division-chart-container') || 
-                              document.querySelector('.temperature-chart-container');
-    
-    // If we can't find either container, log error and return
-    if (!tempChartContainer) {
-        console.error("Division chart container not found - skipping division chart update");
-        return;
-    }
-    
-    console.log("Updating division chart with shared data:", frequencyData);
-    
-    // Use shared frequency data instead of finding the lottery type with the most data
+    // Find the lottery type with the most data
     let selectedLotteryType = null;
     let maxFrequencyData = [];
     
-    if (frequencyData && frequencyData.lotteryType && frequencyData.data) {
-        selectedLotteryType = frequencyData.lotteryType;
-        if (frequencyData.data.frequency) {
-            maxFrequencyData = frequencyData.data.frequency;
-        }
-    } else {
-        // Fallback to the old method if no shared data is available
-        // Find the lottery type with the most data
-        for (const lotteryType in data) {
-            if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
-                maxFrequencyData = data[lotteryType].frequency;
-                selectedLotteryType = lotteryType;
-            }
+    // Find the lottery type with the most data
+    for (const lotteryType in data) {
+        if (data[lotteryType] && data[lotteryType].frequency && data[lotteryType].frequency.length > maxFrequencyData.length) {
+            maxFrequencyData = data[lotteryType].frequency;
+            selectedLotteryType = lotteryType;
         }
     }
     
@@ -1242,17 +1108,13 @@ function updateDivisionChart(data, frequencyData) {
     }
     
     // Get the frequency data for this lottery type
-    const frequencyArray = frequencyData && frequencyData.data && frequencyData.data.frequency ? 
-                          frequencyData.data.frequency : 
-                          data[selectedLotteryType].frequency;
+    const frequencyData = data[selectedLotteryType].frequency;
     
     // If no frequency data, show a message and return
-    if (!frequencyArray || !frequencyArray.length) {
+    if (!frequencyData || !frequencyData.length) {
         tempChartContainer.innerHTML = '<div class="text-center my-5">No number data available for the selected filters.</div>';
         return;
     }
-    
-    console.log("Using frequency array with length:", frequencyArray.length);
     
     // Clear the container except for the header
     const header = tempChartContainer.querySelector('h6');
@@ -1281,10 +1143,10 @@ function updateDivisionChart(data, frequencyData) {
     
     // Collect the frequency data and sort by frequency
     const sortedNumbers = [];
-    for (let i = 0; i < frequencyArray.length; i++) {
+    for (let i = 0; i < frequencyData.length; i++) {
         sortedNumbers.push({
             number: i + 1,
-            frequency: frequencyArray[i]
+            frequency: frequencyData[i]
         });
     }
     
@@ -1409,74 +1271,11 @@ function updateDivisionChart(data, frequencyData) {
     // Note about the data
     const noteContainer = document.createElement('div');
     noteContainer.className = 'text-center mt-2';
-    
-    // Use data from the shared frequency object when available
-    const totalDraws = frequencyData && frequencyData.data && frequencyData.data.total_draws ? 
-                      frequencyData.data.total_draws : 
-                      data[selectedLotteryType].total_draws;
-                      
-    noteContainer.innerHTML = `<small class="text-muted">${selectedLotteryType} number frequency, ${totalDraws} draws</small>`;
+    noteContainer.innerHTML = `<small class="text-muted">${selectedLotteryType} number frequency, ${data[selectedLotteryType].total_draws} draws</small>`;
     tempChartContainer.appendChild(noteContainer);
 }
 
-// Function to ensure critical DOM elements exist and are properly identified
-function ensureDomElementsExist() {
-    // Create a map of element IDs to fallback selectors with enhanced options
-    const elementSelectors = {
-        // Static Hot/cold numbers containers with multiple fallback options
-        'hotNumbersContainer': ['.hot-numbers .d-flex', '.hot-numbers-container', '.hot-numbers-section .number-list', '.hot-numbers'],
-        'coldNumbersContainer': ['.cold-numbers .d-flex', '.cold-numbers-container', '.cold-numbers-section .number-list', '.cold-numbers'],
-        'absentNumbersContainer': ['.absent-numbers .d-flex', '.absent-numbers-container', '.absent-numbers-section .number-list', '.absent-numbers'],
-        
-        // Stats elements with enhanced fallbacks
-        'statsContainer': ['.stats-summary', '.data-analytics-preview .row:first-child', '.lottery-stats'],
-        'statsTable': ['.stats-summary table', '.data-analytics-preview table', '.lottery-stats-table'],
-        
-        // Filters and controls with improved fallback options
-        'lotteryTypeDropdown': ['.lottery-type-filter', '.lottery-type-dropdown', '.filter-dropdown', '.dropdown-menu.lottery-type', '.filter-data'],
-        'hotColdLoading': ['.hot-cold-container .chart-loading', '#hotColdLoading', '.chart-loading'],
-        
-        // Ensure we can find the containers for all visualization components
-        'barChartContainer': ['.bar-chart-container', '.frequency-chart', '#barChartContainer'], 
-        'hotColdContainer': ['.hot-cold-container', '#hotColdContainer', '.temperature-chart-container']
-    };
-    
-    // Check for each element and try fallback selectors if direct ID lookup fails
-    for (const [elementId, fallbackSelectors] of Object.entries(elementSelectors)) {
-        if (!document.getElementById(elementId)) {
-            console.log(`Element with ID ${elementId} not found, trying fallback selector ${Array.isArray(fallbackSelectors) ? fallbackSelectors[0] : fallbackSelectors}`);
-            
-            // Handle both single selectors and arrays of selectors
-            const selectorList = Array.isArray(fallbackSelectors) ? fallbackSelectors : [fallbackSelectors];
-            
-            // Try each selector in order until we find an element
-            let fallbackElement = null;
-            for (const selector of selectorList) {
-                fallbackElement = document.querySelector(selector);
-                if (fallbackElement) {
-                    break;
-                }
-            }
-            
-            if (fallbackElement && !fallbackElement.id) {
-                fallbackElement.id = elementId;
-                console.log(`Found element using fallback selector, assigned ID ${elementId}`);
-            } else {
-                console.warn(`Element ${elementId} not found after fallback, using flexible selection in functions`);
-            }
-        } else {
-            console.log(`Element with ID ${elementId} found directly`);
-        }
-    }
-    
-    // Return true to enable method chaining
-    return true;
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    // First ensure all DOM elements are properly identified
-    ensureDomElementsExist();
-    
     // Initialize Bootstrap tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -1485,30 +1284,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load initial chart data
     fetchChartData('all', 'all');
-    
-    // Set up a MutationObserver to watch for DOM changes
-    const targetNode = document.querySelector('.data-analytics-preview') || document.body;
-    if (targetNode) {
-        const observerCallback = function(mutationsList, observer) {
-            // Check if any of the mutations involve our containers of interest
-            for (const mutation of mutationsList) {
-                if (mutation.type === 'childList' || mutation.type === 'attributes') {
-                    // Re-run element discovery when DOM changes
-                    ensureDomElementsExist();
-                }
-            }
-        };
-        
-        // Create and start the observer
-        const observer = new MutationObserver(observerCallback);
-        observer.observe(targetNode, { 
-            childList: true, 
-            subtree: true,
-            attributes: true,
-            attributeFilter: ['class', 'id']
-        });
-        console.log("MutationObserver monitoring DOM changes");
-    }
     
     // Filter functionality
     const lotteryTypeFilters = document.querySelectorAll('a[data-lottery-type]');

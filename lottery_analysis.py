@@ -24,8 +24,6 @@ from sklearn.metrics import mean_squared_error
 import io
 import base64
 from sqlalchemy import func, and_, or_, distinct
-from flask import redirect, url_for, render_template, request, flash, send_from_directory
-from flask_login import current_user, login_required
 import numpy as np
 
 # Custom JSON encoder to handle numpy types
@@ -250,76 +248,31 @@ class LotteryAnalyzer:
             for result in results:
                 try:
                     # Extract the numbers as a list - handle JSON strings
-                    numbers = []
-                    if result.numbers:
-                        if isinstance(result.numbers, str):
-                            if result.numbers.startswith('[') and result.numbers.endswith(']'):
-                                # JSON format
-                                try:
-                                    numbers_raw = json.loads(result.numbers)
-                                    # Ensure each number is an integer
-                                    numbers = []
-                                    for num in numbers_raw:
-                                        try:
-                                            numbers.append(int(num))
-                                        except (ValueError, TypeError):
-                                            logger.warning(f"Could not convert number '{num}' to integer")
-                                except json.JSONDecodeError:
-                                    # Try handling as comma-separated values
-                                    numbers = []
-                                    for n in result.numbers.strip('[]').split(','):
-                                        try:
-                                            if n.strip() and n.strip().isdigit():
-                                                numbers.append(int(n.strip()))
-                                        except (ValueError, TypeError):
-                                            logger.warning(f"Could not convert number '{n}' to integer")
-                            else:
-                                # Comma-separated values
-                                numbers = []
-                                for n in result.numbers.split(','):
-                                    try:
-                                        if n.strip() and n.strip().isdigit():
-                                            numbers.append(int(n.strip()))
-                                    except (ValueError, TypeError):
-                                        logger.warning(f"Could not convert number '{n}' to integer")
-                        elif isinstance(result.numbers, list):
-                            # Already in list form, ensure integers
-                            numbers = []
-                            for num in result.numbers:
-                                try:
-                                    numbers.append(int(num))
-                                except (ValueError, TypeError):
-                                    logger.warning(f"Could not convert number '{num}' to integer")
+                    if isinstance(result.numbers, str):
+                        if result.numbers.startswith('[') and result.numbers.endswith(']'):
+                            # JSON format
+                            try:
+                                numbers = json.loads(result.numbers)
+                            except json.JSONDecodeError:
+                                # Try handling as comma-separated values
+                                numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
+                        else:
+                            # Comma-separated values
+                            numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
+                    else:
+                        # Already in list form
+                        numbers = result.numbers
                     
                     # Get bonus numbers if available
                     bonus_numbers = []
                     if result.bonus_numbers:
                         if isinstance(result.bonus_numbers, str):
                             try:
-                                bonus_raw = json.loads(result.bonus_numbers)
-                                # Ensure each bonus number is an integer
-                                bonus_numbers = []
-                                for num in bonus_raw:
-                                    try:
-                                        bonus_numbers.append(int(num))
-                                    except (ValueError, TypeError):
-                                        logger.warning(f"Could not convert bonus number '{num}' to integer")
+                                bonus_numbers = json.loads(result.bonus_numbers)
                             except json.JSONDecodeError:
-                                bonus_numbers = []
-                                for n in result.bonus_numbers.split(','):
-                                    try:
-                                        if n.strip() and n.strip().isdigit():
-                                            bonus_numbers.append(int(n.strip()))
-                                    except (ValueError, TypeError):
-                                        logger.warning(f"Could not convert bonus number '{n}' to integer")
-                        elif isinstance(result.bonus_numbers, list):
-                            # Already in list form, ensure integers
-                            bonus_numbers = []
-                            for num in result.bonus_numbers:
-                                try:
-                                    bonus_numbers.append(int(num))
-                                except (ValueError, TypeError):
-                                    logger.warning(f"Could not convert bonus number '{num}' to integer")
+                                bonus_numbers = [int(n.strip()) for n in result.bonus_numbers.split(',') if n.strip().isdigit()]
+                        else:
+                            bonus_numbers = result.bonus_numbers
                     
                     # Create row dictionary
                     row = {
@@ -329,23 +282,17 @@ class LotteryAnalyzer:
                         'draw_date': result.draw_date,
                     }
                     
-                    # Add individual numbers as separate columns, ensuring they're integers
+                    # Add individual numbers as separate columns
                     max_numbers = self.required_numbers.get(result.lottery_type, 6)
                     for i in range(max_numbers):
                         if i < len(numbers):
-                            row[f'number_{i+1}'] = int(numbers[i])
+                            row[f'number_{i+1}'] = numbers[i]
                         else:
                             row[f'number_{i+1}'] = None
                     
-                    # Add bonus number if applicable, ensuring it's an integer
+                    # Add bonus number if applicable
                     if result.lottery_type in ['Powerball', 'Powerball Plus'] and bonus_numbers:
-                        if len(bonus_numbers) > 0:
-                            try:
-                                row['bonus_number'] = int(bonus_numbers[0])
-                            except (ValueError, TypeError):
-                                row['bonus_number'] = None
-                        else:
-                            row['bonus_number'] = None
+                        row['bonus_number'] = bonus_numbers[0] if len(bonus_numbers) > 0 else None
                     
                     # Add division data if available
                     if result.divisions:
@@ -359,12 +306,9 @@ class LotteryAnalyzer:
                                 for div_num, div_data in divisions.items():
                                     winners = div_data.get('winners', 0)
                                     if isinstance(winners, str):
-                                        try:
-                                            if winners.isdigit():
-                                                winners = int(winners)
-                                            else:
-                                                winners = 0
-                                        except (ValueError, TypeError):
+                                        if winners.isdigit():
+                                            winners = int(winners)
+                                        else:
                                             winners = 0
                                     row[f'div_{div_num}_winners'] = winners
                         except Exception as e:
@@ -377,12 +321,6 @@ class LotteryAnalyzer:
             
             # Create DataFrame
             df = pd.DataFrame(data)
-            
-            # Convert number columns to numeric types for consistent comparisons
-            number_cols = [col for col in df.columns if col.startswith('number_') or col == 'bonus_number']
-            for col in number_cols:
-                if col in df.columns:
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
             
             return df
             
@@ -431,13 +369,8 @@ class LotteryAnalyzer:
                     # Find the highest number across all draws and all types
                     for col in all_number_cols:
                         max_val = all_types_df[col].max()
-                        if max_val is not None:
-                            try:
-                                max_val_int = int(max_val)
-                                if max_val_int > max_number:
-                                    max_number = max_val_int
-                            except (ValueError, TypeError):
-                                logger.warning(f"Could not convert max value '{max_val}' to int in column {col}")
+                        if max_val and max_val > max_number:
+                            max_number = int(max_val)
                     
                     # Create a frequency array for all possible numbers
                     combined_frequency = np.zeros(max_number + 1, dtype=int)
@@ -445,12 +378,8 @@ class LotteryAnalyzer:
                     # Count occurrences of each number across all lottery types
                     for col in all_number_cols:
                         for num in all_types_df[col].dropna():
-                            try:
-                                num_int = int(num)
-                                if 0 <= num_int <= max_number:
-                                    combined_frequency[num_int] += 1
-                            except (ValueError, TypeError):
-                                logger.warning(f"Could not convert lottery number '{num}' to int")
+                            if 0 <= int(num) <= max_number:
+                                combined_frequency[int(num)] += 1
                     
                     # Remove the 0 index since there's no ball numbered 0
                     combined_frequency = combined_frequency[1:]
@@ -490,13 +419,8 @@ class LotteryAnalyzer:
                     # Find the highest number across all draws
                     for col in number_cols:
                         max_val = lt_df[col].max()
-                        if max_val is not None:
-                            try:
-                                max_val_int = int(max_val)
-                                if max_val_int > max_number:
-                                    max_number = max_val_int
-                            except (ValueError, TypeError):
-                                logger.warning(f"Could not convert max value '{max_val}' to int in column {col} for {lt}")
+                        if max_val and max_val > max_number:
+                            max_number = int(max_val)
                     
                     # Create a frequency array for all possible numbers
                     frequency = np.zeros(max_number + 1, dtype=int)
@@ -504,12 +428,8 @@ class LotteryAnalyzer:
                     # Count occurrences of each number
                     for col in number_cols:
                         for num in lt_df[col].dropna():
-                            try:
-                                num_int = int(num)
-                                if 0 <= num_int <= max_number:
-                                    frequency[num_int] += 1
-                            except (ValueError, TypeError):
-                                logger.warning(f"Could not convert lottery number '{num}' to int for {lt}")
+                            if 0 <= int(num) <= max_number:
+                                frequency[int(num)] += 1
                     
                     # Remove the 0 index since there's no ball numbered 0
                     frequency = frequency[1:]
@@ -1991,16 +1911,16 @@ class LotteryAnalyzer:
                 if hasattr(actual_results, 'bonus_number') and actual_results.bonus_number is not None:
                     bonus_match = prediction.bonus_number == actual_results.bonus_number
                 
-                # Create verification result with the updated model structure
+                # Create verification result
                 verification = PredictionResult(
                     prediction_id=prediction.id,
-                    actual_draw_id=actual_results.id,
-                    draw_date=actual_results.draw_date,
+                    actual_draw_date=actual_results.draw_date,
+                    actual_draw_number=actual_results.draw_number,
                     matched_numbers=matches,
-                    matched_bonus=bonus_match,
-                    accuracy_score=accuracy,
-                    match_positions=json.dumps([i for i, num in enumerate(predicted_numbers) if num in actual_numbers]),
-                    verification_date=datetime.now()
+                    total_numbers=total_numbers,
+                    accuracy=accuracy,
+                    bonus_match=bonus_match,
+                    verified_date=datetime.now()
                 )
                 
                 # Update prediction as verified
@@ -2052,19 +1972,15 @@ class LotteryAnalyzer:
         try:
             from models import ModelTrainingHistory, db
             
-            # Group results by strategy and lottery type
+            # Group results by strategy
             strategy_results = {}
             for result in verification_results:
                 strategy = result.get('strategy')
-                lottery_type = result.get('lottery_type')
-                if not strategy or not lottery_type:
+                if not strategy:
                     continue
                     
-                key = f"{lottery_type}_{strategy}"
-                if key not in strategy_results:
-                    strategy_results[key] = {
-                        'lottery_type': lottery_type,
-                        'strategy': strategy,
+                if strategy not in strategy_results:
+                    strategy_results[strategy] = {
                         'count': 0,
                         'matches': 0,
                         'total_numbers': 0,
@@ -2072,57 +1988,53 @@ class LotteryAnalyzer:
                         'bonus_matches': 0
                     }
                 
-                strategy_results[key]['count'] += 1
-                strategy_results[key]['matches'] += result.get('matches', 0)
-                strategy_results[key]['total_numbers'] += len(result.get('actual_numbers', []))
-                strategy_results[key]['accuracy_sum'] += result.get('accuracy', 0)
-                strategy_results[key]['bonus_matches'] += 1 if result.get('bonus_match', False) else 0
+                strategy_results[strategy]['count'] += 1
+                strategy_results[strategy]['matches'] += result.get('matches', 0)
+                strategy_results[strategy]['total_numbers'] += len(result.get('actual_numbers', []))
+                strategy_results[strategy]['accuracy_sum'] += result.get('accuracy', 0)
+                strategy_results[strategy]['bonus_matches'] += 1 if result.get('bonus_match', False) else 0
             
             # Calculate performance metrics for each strategy
             performance = []
-            for key, metrics in strategy_results.items():
-                # Check if we already have a record for this strategy and lottery type
+            for strategy, metrics in strategy_results.items():
+                # Check if we already have a record for this strategy
                 history = ModelTrainingHistory.query.filter_by(
-                    lottery_type=metrics['lottery_type'],
-                    strategy=metrics['strategy']
+                    strategy=strategy
                 ).order_by(ModelTrainingHistory.training_date.desc()).first()
                 
                 # Calculate new metrics
                 count = metrics['count']
                 accuracy = metrics['accuracy_sum'] / count if count > 0 else 0
                 total_accuracy = metrics['matches'] / metrics['total_numbers'] if metrics['total_numbers'] > 0 else 0
+                bonus_accuracy = metrics['bonus_matches'] / count if count > 0 else 0
                 
                 # Track performance change if we have history
                 accuracy_change = 0
                 if history:
-                    accuracy_change = accuracy - history.accuracy_score
+                    accuracy_change = accuracy - history.accuracy
                 
                 # Create a new history record
                 new_history = ModelTrainingHistory(
-                    lottery_type=metrics['lottery_type'],
-                    strategy=metrics['strategy'],
-                    model_version='1.0',  # Simple version tracking
+                    strategy=strategy,
                     training_date=datetime.now(),
-                    training_data_size=count,
+                    accuracy=accuracy, 
                     total_predictions=count,
-                    matched_predictions=metrics['matches'],
+                    correct_numbers=metrics['matches'],
+                    total_numbers=metrics['total_numbers'],
                     bonus_matches=metrics['bonus_matches'],
-                    accuracy_score=accuracy,
-                    error_rate=1.0 - accuracy,
-                    notes=f"Verification batch update for {metrics['strategy']} strategy on {metrics['lottery_type']}"
+                    performance_change=accuracy_change
                 )
                 
                 db.session.add(new_history)
                 
                 performance.append({
-                    'lottery_type': metrics['lottery_type'],
-                    'strategy': metrics['strategy'],
+                    'strategy': strategy,
                     'accuracy': accuracy,
                     'total_accuracy': total_accuracy,
-                    'bonus_accuracy': metrics['bonus_matches'] / count if count > 0 else 0,
+                    'bonus_accuracy': bonus_accuracy,
                     'predictions': count,
-                    'matched_numbers': metrics['matches'],
-                    'accuracy_change': accuracy_change,
+                    'correct_numbers': metrics['matches'],
+                    'performance_change': accuracy_change,
                     'trend': 'improving' if accuracy_change > 0 else 'declining' if accuracy_change < 0 else 'stable'
                 })
             
@@ -2133,7 +2045,7 @@ class LotteryAnalyzer:
             
         except Exception as e:
             logger.error(f"Error updating model performance: {e}")
-            return []
+            return None
     
     def run_full_analysis(self, lottery_type=None, days=365):
         """Run all analysis methods and combine results
@@ -2289,16 +2201,15 @@ def register_analysis_routes(app, db):
                     try:
                         predicted_numbers = json.loads(pred.predicted_numbers)
                         
-                        # Build history entry with updated field names
                         history.append({
                             'date': pred.prediction_date.strftime('%b %d, %Y'),
                             'strategy': pred.strategy,
                             'predicted_numbers': predicted_numbers,
-                            'draw_number': result.actual_draw.draw_number if result.actual_draw else 'N/A',
-                            'draw_date': result.draw_date.strftime('%b %d, %Y') if result.draw_date else 'N/A',
-                            'matched': f"{result.matched_numbers}/{len(predicted_numbers)}",
-                            'accuracy': result.accuracy_score,
-                            'bonus_match': result.matched_bonus
+                            'draw_number': result.actual_draw_number,
+                            'draw_date': result.actual_draw_date.strftime('%b %d, %Y'),
+                            'matched': f"{result.matched_numbers}/{result.total_numbers}",
+                            'accuracy': result.accuracy,
+                            'bonus_match': result.bonus_match
                         })
                     except Exception as json_error:
                         logger.error(f"Error parsing prediction history: {json_error}")
@@ -2317,22 +2228,14 @@ def register_analysis_routes(app, db):
                     ).order_by(ModelTrainingHistory.training_date.desc()).first()
                     
                     if latest:
-                        # Calculate performance change between this record and previous one
-                        prev_record = ModelTrainingHistory.query.filter_by(
-                            strategy=strategy
-                        ).order_by(ModelTrainingHistory.training_date.desc()).offset(1).first()
-                        
-                        accuracy_change = 0
-                        if prev_record:
-                            accuracy_change = latest.accuracy_score - prev_record.accuracy_score
-                        
                         performance[strategy] = {
-                            'accuracy': latest.accuracy_score,
+                            'accuracy': latest.accuracy,
                             'total_predictions': latest.total_predictions,
-                            'matched_predictions': latest.matched_predictions,
-                            'accuracy_change': accuracy_change,
-                            'trend': 'improving' if accuracy_change > 0 else 
-                                    'declining' if accuracy_change < 0 else 'stable'
+                            'correct_numbers': latest.correct_numbers,
+                            'total_numbers': latest.total_numbers,
+                            'performance_change': latest.performance_change,
+                            'trend': 'improving' if latest.performance_change > 0 else 
+                                    'declining' if latest.performance_change < 0 else 'stable'
                         }
             except Exception as perf_error:
                 logger.error(f"Error fetching performance metrics: {perf_error}")
@@ -2859,7 +2762,7 @@ def register_analysis_routes(app, db):
             return redirect(url_for('index'))
             
         try:
-            from models import LotteryResult, LotteryPrediction, PredictionResult, ModelTrainingHistory, db
+            from models import LotteryPrediction, PredictionResult, ModelTrainingHistory, db
             
             # Filter parameters
             lottery_type = request.args.get('lottery_type', None)
@@ -2906,53 +2809,24 @@ def register_analysis_routes(app, db):
                         'predicted_numbers': predicted_numbers,
                         'confidence': pred.confidence_score,
                         'is_verified': pred.is_verified,
-                        'draw_date': verification.draw_date if verification else None,
-                        'draw_number': verification.actual_draw.draw_number if verification and verification.actual_draw else None,
+                        'draw_date': verification.actual_draw_date if verification else None,
+                        'draw_number': verification.actual_draw_number if verification else None,
                         'matched': verification.matched_numbers if verification else None,
-                        'total': len(predicted_numbers) if verification else None,
-                        'accuracy': verification.accuracy_score if verification else None,
-                        'bonus_match': verification.matched_bonus if verification else None
+                        'total': verification.total_numbers if verification else None,
+                        'accuracy': verification.accuracy if verification else None,
+                        'bonus_match': verification.bonus_match if verification else None
                     })
                 except Exception as err:
                     logger.error(f"Error processing prediction {pred.id}: {err}")
                     # Skip entries with invalid data
                     pass
             
-            # Get available filters for lottery types
-            # First try to get from prediction table
-            lottery_types_from_pred = db.session.query(LotteryPrediction.lottery_type).distinct().all()
-            lottery_types = [lt[0] for lt in lottery_types_from_pred]
+            # Get available filters for selects
+            lottery_types = db.session.query(LotteryPrediction.lottery_type).distinct().all()
+            lottery_types = [lt[0] for lt in lottery_types]
             
-            # If no prediction data exists yet, get lottery types from results table
-            if not lottery_types:
-                logger.info("No prediction data found, getting lottery types from results table")
-                lottery_types_from_results = db.session.query(LotteryResult.lottery_type).distinct().all()
-                lottery_types = [lt[0] for lt in lottery_types_from_results]
-                # Standardize types
-                standard_types = {
-                    'Lotto': 'Lottery',
-                    'Lotto Plus 1': 'Lottery Plus 1',
-                    'Lotto Plus 2': 'Lottery Plus 2',
-                    'PowerBall': 'Powerball',
-                    'PowerBall Plus': 'Powerball Plus',
-                    'Daily Lotto': 'Daily Lottery'
-                }
-                lottery_types = [standard_types.get(lt, lt) for lt in lottery_types]
-            
-            # Get available strategies 
-            strategies_from_pred = db.session.query(LotteryPrediction.strategy).distinct().all()
-            strategies = [s[0] for s in strategies_from_pred]
-            
-            # If no strategies exist yet, use default strategies
-            if not strategies:
-                logger.info("No strategy data found, using default strategies")
-                strategies = [
-                    "Frequency Analysis", 
-                    "Pattern Matching", 
-                    "Time Series", 
-                    "Weighted Random",
-                    "Composite Model"
-                ]
+            strategies = db.session.query(LotteryPrediction.strategy).distinct().all()
+            strategies = [s[0] for s in strategies]
             
             # Get performance trend over time
             performance_trends = {}
@@ -2966,11 +2840,8 @@ def register_analysis_routes(app, db):
                     for point in trend_data:
                         trend_points.append({
                             'date': point.training_date.strftime('%Y-%m-%d'),
-                            'accuracy': point.accuracy_score,
-                            'predictions': point.total_predictions,
-                            'matched': point.matched_predictions,
-                            'bonus_matches': point.bonus_matches,
-                            'error_rate': point.error_rate
+                            'accuracy': point.accuracy,
+                            'predictions': point.total_predictions
                         })
                     
                     performance_trends[s] = trend_points

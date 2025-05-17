@@ -29,30 +29,6 @@
     color: white;
 }
 
-/* Hide popup overlay messages in screenshots */
-iframe, iframe body {
-    position: relative;
-}
-
-iframe .modal, 
-iframe [role="dialog"],
-iframe .popup,
-iframe .overlay,
-iframe .alert-dialog,
-iframe div[class*="popup"],
-iframe div[class*="modal"],
-iframe div[class*="dialog"],
-iframe div[id*="popup"],
-iframe div[id*="modal"],
-iframe div[id*="dialog"],
-iframe div[id*="overlay"],
-iframe div[class*="overlay"] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    z-index: -9999 !important;
-}
-
 .lottery-header {
     background-color: var(--lottery-dark);
     color: white;

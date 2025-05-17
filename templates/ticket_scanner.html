@@ -6,8 +6,10 @@
 <!-- PERFORMANCE: Mobile optimization script loads first to improve performance -->
 <script src="{{ url_for('static', filename='js/mobile-optimization.js') }}" data-critical="true"></script>
 
-<!-- NEW STREAMLINED ADVERTISEMENT SYSTEM: Dual-tier ads (5s PSA + 15s monetization) -->
-<script src="{{ url_for('static', filename='js/dual-ad-manager.js') }}" data-critical="true"></script>
+<!-- Mobile-optimized advertisement system with enhanced timing enforcement - SINGLE TIMER SOURCE -->
+<script src="{{ url_for('static', filename='js/ads-mobile.js') }}" data-critical="true"></script>
+<!-- Ultra-simple countdown system for reliability -->
+<script src="{{ url_for('static', filename='js/simple-countdown.js') }}" data-critical="true"></script>
 
 <!-- Inline critical Font Awesome fix - immediate execution before DOM loads -->
 <style>
@@ -64,13 +66,13 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <link rel="preload" href="{{ url_for('static', filename='css/optimized-mobile.css') }}" as="style">
 <link rel="preload" href="{{ url_for('static', filename='js/mobile-optimization.js') }}" as="script">
 <link rel="preload" href="{{ url_for('static', filename='js/scanner-icon-fix.js') }}" as="script">
-<link rel="preload" href="{{ url_for('static', filename='js/dual-ad-manager.js') }}" as="script">
+<link rel="preload" href="{{ url_for('static', filename='js/ads-mobile.js') }}" as="script">
+<link rel="preload" href="{{ url_for('static', filename='js/simple-countdown.js') }}" as="script">
 
 <!-- Mobile-optimized CSS loads first -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/optimized-mobile.css') }}">
 <!-- Smooth scrolling CSS -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/smooth-scroll.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/file-uploader.css') }}">
 <!-- Structured Data for SEO -->
 <script type="application/ld+json">
 {
@@ -99,14 +101,10 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% block additional_head %}
 <!-- High priority anti-flicker script - loads before other content -->
 <script src="{{ url_for('static', filename='js/anti-flicker.js') }}"></script>
-<!-- Critical fix for file dialog loop issue - loads early to prevent file dialog loops -->
-<script src="{{ url_for('static', filename='js/loop-fix.js') }}"></script>
 <!-- Fresh checkmark system - clean slate approach -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fresh_checkmark.css') }}">
 <!-- Mobile-specific button fix for iOS devices -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-button-fix.css') }}">
-<!-- CRITICAL FIX: Button activation fix to ensure View Results button works properly -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/button-activation-fix.css') }}">
 <style>
     .ticket-scanner-container {
         max-width: 800px;
@@ -164,28 +162,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             transform: scale(1);
             box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
         }
-    }
-    
-    @keyframes subtle-pulse {
-        0% {
-            transform: scale(1);
-            opacity: 0.9;
-        }
-        
-        50% {
-            transform: scale(1.02);
-            opacity: 1;
-        }
-        
-        100% {
-            transform: scale(1);
-            opacity: 0.9;
-        }
-    }
-    
-    .btn-pulse-subtle {
-        animation: subtle-pulse 1.5s infinite;
-        transition: all 0.3s ease;
     }
     
     /* Updated matched ball styling - now handled in fresh_checkmark.css */
@@ -251,63 +227,15 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         padding: 20px;
     }
     
-    /* Button animations and effects */
+    /* Button pulse animation */
     @keyframes btn-pulse {
         0% { transform: scale(1); }
         50% { transform: scale(1.05); box-shadow: 0 0 15px rgba(40, 167, 69, 0.7); }
         100% { transform: scale(1); }
     }
     
-    @keyframes btn-pulse-subtle {
-        0% { box-shadow: 0 0 0 0 rgba(108, 117, 125, 0.5); }
-        70% { box-shadow: 0 0 0 8px rgba(108, 117, 125, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(108, 117, 125, 0); }
-    }
-    
-    @keyframes btn-glow {
-        0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.9); }
-        50% { box-shadow: 0 0 20px 10px rgba(40, 167, 69, 0.6); }
-        100% { box-shadow: 0 0 10px 5px rgba(40, 167, 69, 0.4); }
-    }
-    
     .btn-pulse {
         animation: btn-pulse 1.5s infinite;
-        transform: translateZ(0); /* Hardware acceleration */
-    }
-    
-    .btn-pulse-subtle {
-        animation: btn-pulse-subtle 1.5s infinite;
-    }
-    
-    /* Button glow effect for enabled state */
-    .btn-glow {
-        animation: btn-glow 1.5s 1 forwards;
-        transform: translateZ(0); /* Hardware acceleration */
-    }
-    
-    /* Button state transitions */
-    .btn-secondary {
-        opacity: 0.85;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-success {
-        transition: all 0.3s ease;
-        transform: scale(1.03);
-    }
-    
-    /* Improving button visuals */
-    #view-results-btn:disabled {
-        cursor: not-allowed;
-    }
-    
-    #view-results-btn:not(:disabled) {
-        cursor: pointer;
-    }
-    
-    #view-results-btn.btn-success:hover {
-        transform: scale(1.05);
-        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
     }
     
     /* Fix for spinner animation */
@@ -329,14 +257,13 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% endblock %}
 
 {% block content %}
-<!-- Ad overlay - Loading screen (First ad - Public Service) -->
+<!-- Ad overlay - Loading screen -->
 <div id="ad-overlay-loading" class="interstitial-view">
     <h4 class="mb-4">Processing your ticket...</h4>
-    <div id="ad-container-loader" class="ad-container" style="padding: 15px; background-color: #f8f9fa; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.1); margin-bottom: 15px;">
+    <div id="ad-container-loader" class="ad-container">
         <div class="ad-placeholder">
-            <p><i class="fas fa-ad mb-2 fa-2x text-primary"></i></p>
-            <p class="mb-1 fw-bold">Advertisement</p>
-            <small class="text-muted">Your ticket is being processed</small>
+            <p><i class="fas fa-ad mb-2"></i></p>
+            <p class="mb-1">Advertisement</p>
             <p class="small text-muted mt-2">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
         </div>
     </div>
@@ -347,11 +274,14 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         <p class="loading-message">Scanning in progress...</p>
         <p class="small text-muted mt-2">This will take a few moments</p>
         
-        <!-- First ad countdown timer - We'll manage this through JS only to prevent duplicate countdowns -->
+        <!-- First ad countdown timer -->
+        <div id="first-countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;">
+            Please wait <span id="first-countdown">15</span> seconds
+        </div>
     </div>
 </div>
 
-<!-- Ad overlay - Results screen (Second ad - Monetization) -->
+<!-- Ad overlay - Results screen -->
 <div id="ad-overlay-results" class="interstitial-view">
     <h3 class="mb-3 text-success">Results Ready! <i class="fas fa-check-circle"></i></h3>
     <div class="alert alert-info mb-3" style="max-width: 400px;">
@@ -365,21 +295,13 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             <p class="small text-muted mt-2">To advertise here please contact us on:<br>+27 (61) 544-8311</p>
         </div>
     </div>
-    
-    <!-- Single unified countdown container with enhanced styling -->
-    <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 10px; border-radius: 8px; max-width: 350px; margin-left: auto; margin-right: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <div class="d-flex align-items-center justify-content-center">
-            <i class="fas fa-hourglass-half me-2 text-primary"></i>
-            Please wait <span id="countdown" class="mx-2" style="color: #dc3545; font-size: 1.2em;">15</span> seconds
-        </div>
+    <!-- Countdown timer with a single consistent display -->
+    <div id="countdown-container" class="text-center mt-3 mb-2" style="font-weight: bold; color: #495057; background-color: #f8f9fa; padding: 8px; border-radius: 5px; max-width: 350px; margin-left: auto; margin-right: auto;">
+        Please wait <span id="countdown">15</span> seconds to view your results
     </div>
-    
-    <!-- Button container with improved button styling -->
-    <div id="view-results-btn-container" style="display: none;">
-        <button class="btn btn-secondary btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px; transition: all 0.3s ease; position: relative;" disabled>
-            Continue to Results
-        </button>
-    </div>
+    <button class="btn btn-secondary btn-lg ad-close-btn mt-2" id="view-results-btn" style="min-width: 200px;" disabled>
+        <i class="fas fa-lock me-2"></i> Continue to Results (Wait 15s)
+    </button>
 </div>
 
 <div class="container py-3">
@@ -402,7 +324,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             <i class="fa fa-info-circle me-1"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
                         </div>
 
-                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
+                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data" onsubmit="event.preventDefault(); processTicketWithAds(); return false;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-2">
                                 <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
@@ -429,19 +351,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
                                     <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
-                                    <button type="button" id="file-select-btn" class="btn btn-primary">
-                                        <i class="fa fa-image me-1"></i> Select Image
-                                    </button>
-                                    <p class="mt-3 small text-muted">
-                                        Supported formats: JPEG, PNG, GIF, WEBP, HEIC<br>
-                                        Maximum file size: 10 MB
-                                    </p>
+                                    <button type="button" id="file-select-btn" class="btn btn-primary">Select Image</button>
                                 </div>
                             </div>
-
-                            <!-- Progress bar completely removed as it was never part of original implementation -->
-
-                            <div id="error-container" class="alert alert-danger mt-3 mb-3 d-none"></div>
 
                             <div id="preview-container" class="text-center d-none">
                                 <h6>Preview</h6>
@@ -920,27 +832,39 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             // Create form data for later use
             const formData = new FormData(ticketForm);
             
-            // Use the new Dual Ad Manager for streamlined ad flow
-            if (window.DualAdManager) {
-                console.log('Using streamlined Dual Ad Manager for the two-tier ad experience');
-                window.DualAdManager.showPublicServiceAd();
-                
-                // Process the ticket immediately (the ad will stay visible for 5 seconds regardless)
-                processTicket(formData);
-            } else {
-                // Fallback in case the dual ad manager isn't loaded
-                console.log('DualAdManager not available, showing overlay manually');
-                
-                // Show the loading ad overlay first
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                adOverlayLoading.style.display = 'flex';
-                
-                // Process the ticket after a 5-second delay
-                setTimeout(() => {
-                    console.log('Processing ticket after 5-second public service announcement');
-                    processTicket(formData);
-                }, 5000); // Exactly 5 seconds for the public service announcement
-            }
+            // Show the loading ad overlay first
+            const adOverlayLoading = document.getElementById('ad-overlay-loading');
+            adOverlayLoading.style.display = 'flex';
+            
+            // Immediately trigger the first countdown
+            document.dispatchEvent(new CustomEvent('trigger-countdown', {
+                detail: { phase: 'first', seconds: 15 }
+            }));
+            
+            // Ensure the ad overlay stays visible for at least 2 seconds before processing
+            setTimeout(() => {
+                // Check if AdManager is available and use it to show ad, otherwise just process
+                if (window.AdManager && typeof window.AdManager.showLoadingAd === 'function') {
+                    console.log('Using AdManager to show loading ad');
+                    window.AdManager.showLoadingAd(function(adShown) {
+                        // Keep ad visible for at least 5 seconds total
+                        setTimeout(() => {
+                            // After ad is displayed for minimum time, process the ticket
+                            console.log('Ad loading callback returned after minimum display time:', adShown);
+                            processTicket(formData);
+                        }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
+                    });
+                } else {
+                    // Fallback - Ad overlay is already shown manually
+                    console.log('AdManager not available, showing overlay manually');
+                    
+                    // Process the ticket after a minimum viewing time
+                    setTimeout(() => {
+                        console.log('Processing ticket without AdManager after minimum ad view time');
+                        processTicket(formData);
+                    }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
+                }
+            }, 2000); // Initial 2 seconds minimum display time
         }
         
         // Function to process the ticket after ad is shown
@@ -997,65 +921,43 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 // Set flag to indicate we have real results
                 window.hasValidResults = true;
                 
-                // CRITICAL FIX: Cancel any outstanding timers that might be causing the flash of 3rd ad
-                if (window.adTransitionTimeout) {
-                    console.log('Cancelling existing ad transition timeout to prevent ad flash');
-                    clearTimeout(window.adTransitionTimeout);
-                    window.adTransitionTimeout = null;
-                }
+                // Hide loading overlay with deliberate sequencing to ensure proper ad transition
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
                 
-                if (window.resultDisplayTimeout) {
-                    console.log('Cancelling existing result display timeout to prevent ad flash');
-                    clearTimeout(window.resultDisplayTimeout);
-                    window.resultDisplayTimeout = null;
-                }
+                // CRITICAL FIX: Get the results overlay BEFORE hiding the loading overlay
+                const adOverlayResults = document.getElementById('ad-overlay-results');
                 
-                // CRITICAL: Cancel all outstanding timeouts that might cause ad flashing
-                if (window.DualAdManager?.clearAllTimers) {
-                    window.DualAdManager.clearAllTimers();
-                }
+                // Prepare the results overlay transition by making sure it's ready to be visible
+                adOverlayResults.style.opacity = '1';
+                adOverlayResults.style.visibility = 'visible';
                 
-                // Use the Dual Ad Manager for transitioning from first to second ad
-                if (window.DualAdManager) {
-                    console.log('Using Dual Ad Manager for transitioning to monetization ad');
+                // Log the transition for debugging
+                console.log('⚠️ CRITICAL TRANSITION: About to hide loading overlay and show results overlay');
+                
+                // CRITICAL FIX: Add a deliberate sequence with very slight delays for proper transition
+                // This resolves the iOS issue where it jumps back to the main screen
+                setTimeout(function() {
+                    // Step 1: Hide the loading overlay
+                    adOverlayLoading.style.display = 'none';
                     
-                    // CRITICAL FIX: We need to let the Dual Ad Manager handle ALL transitions
-                    // The DualAdManager will handle hiding the first ad and showing the second
-                    // It has built-in sequencing to prevent ad flashing
-                    window.DualAdManager.showMonetizationAd();
+                    // Step 2: Show the results overlay after a tiny delay to ensure proper sequence
+                    setTimeout(function() {
+                        // Force display of results overlay
+                        adOverlayResults.style.display = 'flex';
+                        console.log('⚠️ CRITICAL TRANSITION: Results overlay should now be visible');
+                    }, 50); // Just 50ms delay for sequencing
+                }, 50); // Just 50ms delay before starting transition
+                
+                // Try to use AdManager for tracking, but we'll show the overlay manually either way
+                if (window.AdManager && typeof window.AdManager.showInterstitialAd === 'function') {
+                    console.log('Using AdManager to show interstitial ad');
+                    window.AdManager.showInterstitialAd(function(adShown) {
+                        console.log('Interstitial ad shown:', adShown);
+                        // Make sure the overlay is displayed even if AdManager fails
+                        adOverlayResults.style.display = 'flex';
+                    });
                 } else {
-                    // Fallback for manual transition if DualAdManager isn't available
-                    console.log('DualAdManager not available, doing manual transition');
-                    
-                    // Get references to both ad overlays
-                    const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                    const adOverlayResults = document.getElementById('ad-overlay-results');
-                    
-                    // CRITICAL FIX: Make sure we don't have any transition timers running
-                    // We need to perform this transition in a single, atomic operation
-                    if (window.manualTransitionTimer) {
-                        clearTimeout(window.manualTransitionTimer);
-                        window.manualTransitionTimer = null;
-                    }
-                    
-                    // Log the transition for debugging
-                    console.log('⚠️ CRITICAL TRANSITION: About to hide loading overlay and show results overlay');
-                    
-                    // Step 1: Hide the loading overlay - NO DELAY
-                        adOverlayLoading.style.display = 'none';
-                        
-                        // Step 2: Show the results overlay after a tiny delay to ensure proper sequence
-                        setTimeout(function() {
-                            // Force display of results overlay
-                            adOverlayResults.style.display = 'flex';
-                            console.log('⚠️ CRITICAL TRANSITION: Results overlay should now be visible');
-                            
-                            // Start the monetization ad countdown (15 seconds)
-                            document.dispatchEvent(new CustomEvent('trigger-countdown', {
-                                detail: { phase: 'second', seconds: 15 }
-                            }));
-                        }, 50); // Just 50ms delay for sequencing
-                    }, 50); // Just 50ms delay before starting transition
+                    console.log('AdManager not available, showing results overlay manually');
                 }
                 
                 console.log('Showing results interstitial ad');
@@ -1081,47 +983,33 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     // Store locally to ensure we have it for display
                     const resultsToShow = window.lastResultsData || data;
                     
-                    // Use the Dual Ad Manager to hide ads if available
-                    if (window.DualAdManager) {
-                        console.log('Using Dual Ad Manager to hide all ads and show results');
-                        window.DualAdManager.hideAllAds();
-                    } else {
-                        // Fallback: Clear ALL possible timers to prevent any conflicts
-                        // This is important to prevent any hidden callbacks from running later
-                        for (let i = 1; i < 10000; i++) {
-                            clearTimeout(i);
-                            clearInterval(i);
-                        }
-                        
-                        // Clear our named timers
-                        if (window.countdownInterval) {
-                            clearInterval(window.countdownInterval);
-                            window.countdownInterval = null;
-                        }
-                        
-                        if (window.countdownTimeout) {
-                            clearTimeout(window.countdownTimeout);
-                            window.countdownTimeout = null;
-                        }
-                        
-                        // Reset other possible timeout variables
-                        if (window.adDisplayTimeout) {
-                            clearTimeout(window.adDisplayTimeout);
-                            window.adDisplayTimeout = null;
-                        }
-                        
-                        if (window.resultDisplayTimeout) {
-                            clearTimeout(window.resultDisplayTimeout);
-                            window.resultDisplayTimeout = null;
-                        }
-                        
-                        // Force hide all overlays manually
-                        const allOverlays = document.querySelectorAll('[id^="ad-overlay"]');
-                        allOverlays.forEach(overlay => {
-                            overlay.style.display = 'none';
-                            overlay.style.opacity = '0';
-                            overlay.style.visibility = 'hidden';
-                        });
+                    // Clear ALL possible timers to prevent any conflicts
+                    // This is important to prevent any hidden callbacks from running later
+                    for (let i = 1; i < 10000; i++) {
+                        clearTimeout(i);
+                        clearInterval(i);
+                    }
+                    
+                    // Clear our named timers
+                    if (window.countdownInterval) {
+                        clearInterval(window.countdownInterval);
+                        window.countdownInterval = null;
+                    }
+                    
+                    if (window.countdownTimeout) {
+                        clearTimeout(window.countdownTimeout);
+                        window.countdownTimeout = null;
+                    }
+                    
+                    // Reset other possible timeout variables
+                    if (window.adDisplayTimeout) {
+                        clearTimeout(window.adDisplayTimeout);
+                        window.adDisplayTimeout = null;
+                    }
+                    
+                    if (window.resultDisplayTimeout) {
+                        clearTimeout(window.resultDisplayTimeout);
+                        window.resultDisplayTimeout = null;
                     }
                     
                     // Set state flags immediately
@@ -1130,6 +1018,15 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     window.showingResultsAfterAd = true;
                     window.adClosed = true;
                     window.viewResultsBtnClicked = true; // New flag for tracking this specific click
+                    
+                    // Get the ad overlay for transition effects
+                    const adOverlay = document.getElementById('ad-overlay');
+                    if (adOverlay) {
+                        adOverlay.classList.add('closing');
+                    }
+                    
+                    // Apply closing animation to ad overlay results
+                    adOverlayResults.classList.add('closing');
                     
                     // Save the data for reuse if needed
                     window.lastTicketData = data;
@@ -1140,6 +1037,14 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     document.body.classList.add('results-mode');
                     document.body.classList.add('showing-results');
                     document.body.classList.add('ad-closed');
+                    
+                    // Force hide all overlays immediately (don't wait for animation)
+                    const allOverlays = document.querySelectorAll('[id^="ad-overlay"]');
+                    allOverlays.forEach(overlay => {
+                        overlay.style.display = 'none';
+                        overlay.style.opacity = '0';
+                        overlay.style.visibility = 'hidden';
+                    });
                     
                     // Make sure body scrolling is enabled using our improved function
                     if (typeof enableScrolling === 'function') {
@@ -1191,36 +1096,18 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     }, 1000); // Check every second
                 };
                 
-                // CRITICAL FIX: Reset button state completely before initiating the countdown
-                // This ensures we have a clean state to start from
-                // Remove any potential stale event handlers first
-                const oldButton = document.getElementById('view-results-btn');
-                if (oldButton) {
-                    // Clone the button to remove all event listeners
-                    const newButton = oldButton.cloneNode(true);
-                    if (oldButton.parentNode) {
-                        oldButton.parentNode.replaceChild(newButton, oldButton);
-                        
-                        // Update our reference to the new clean button
-                        viewResultsBtn = newButton;
-                        console.log('CRITICAL FIX: View Results button was completely reset to clean state');
-                    }
-                }
-                
                 // FORCEFULLY disable the view results button for 15 seconds
                 // We'll use a global flag to track if countdown is already running
                 if (!window.countdownRunning) {
-                    console.log('Setting 15-second mandatory ad display timer with enhanced reliability...');
+                    console.log('Setting 15-second mandatory ad display timer...');
                     
                     // Set global flag to prevent multiple timers
                     window.countdownRunning = true;
                     
-                    // Disable the View Results button using multiple approaches
+                    // Disable the View Results button
                     viewResultsBtn.disabled = true;
-                    viewResultsBtn.setAttribute('disabled', 'disabled');
                     viewResultsBtn.style.opacity = '0.5';
                     viewResultsBtn.style.cursor = 'not-allowed';
-                    viewResultsBtn.style.pointerEvents = 'none';
                     viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
                     
                     // Add a counter display to show remaining seconds
@@ -3254,7 +3141,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <script src="{{ url_for('static', filename='js/ios-specific-fix.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/rounded-pill-fix.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/smooth-scroll-fix.js') }}" defer></script>
-<script src="{{ url_for('static', filename='js/button-inspector.js') }}" defer></script>
 
 <!-- PERFORMANCE: Inline script to boost initial render speed on mobile -->
 <script>
@@ -3283,25 +3169,4 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
     }
 })();
 </script>
-
-<!-- CRITICAL FIX: Add View Results Button Fixer script for guaranteed button functionality -->
-<script src="{{ url_for('static', filename='js/view-results-fixer.js') }}" defer></script>
-
-<!-- CRITICAL FIX: Add File Selection Button Fixer script to restore Select Image button functionality -->
-<script src="{{ url_for('static', filename='js/file-select-fix.js') }}" defer></script>
-<script src="{{ url_for('static', filename='js/ticket-scanner.js') }}" defer></script>
-
-<!-- Comprehensive fix to file upload and processing issues -->
-<script src="{{ url_for('static', filename='js/unified-ticket-handler.js') }}" defer></script>
-<script src="{{ url_for('static', filename='js/file-upload-test.js') }}" defer></script>
-<script src="{{ url_for('static', filename='js/clean-file-uploader.js') }}" defer></script>
-<script src="{{ url_for('static', filename='js/ticket-scanner-integration.js') }}" defer></script>
-<!-- Critical Fix: High-priority file upload fix loads as early as possible -->
-<script src="{{ url_for('static', filename='js/file-upload-fix.js') }}"></script>
-<!-- Critical fix for file upload loop issue -->
-<script src="{{ url_for('static', filename='js/loop-fix.js') }}"></script>
-<!-- Direct button fix to ensure file selection always works -->
-<script src="{{ url_for('static', filename='js/direct-button-fix.js') }}"></script>
-<!-- Emergency button fix that completely replaces the button with a guaranteed working version -->
-<script src="{{ url_for('static', filename='js/emergency-button-fix.js') }}"></script>
 {% endblock %}

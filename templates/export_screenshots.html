@@ -14,399 +14,45 @@
         overflow-y: visible !important;
     }
     
-    /* Enhanced styling for gallery cards */
-    .gallery-card {
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .gallery-card:hover {
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        transform: translateY(-3px);
-    }
-    
-    /* Fix for image containers */
-    .gallery-image-container, .preview-iframe-container {
+    /* Fix for image containers preventing scroll */
+    .gallery-image-container {
         pointer-events: auto;
-        overflow: hidden;
-        position: relative;
-        flex-grow: 1;
-        min-height: 230px;
-        max-height: 280px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #eee;
-        cursor: pointer;
     }
     
-    .gallery-image-container img, .preview-iframe-container img {
+    .gallery-image-container img {
         pointer-events: auto;
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        transition: transform 0.3s ease;
-    }
-    
-    .gallery-image-container img:hover, .preview-iframe-container:hover img {
-        transform: scale(1.05);
-    }
-    
-    .preview-iframe-container::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 123, 255, 0);
-        transition: background-color 0.3s ease;
-        z-index: 1;
-    }
-    
-    .preview-iframe-container:hover::after {
-        background-color: rgba(0, 123, 255, 0.1);
-    }
-    
-    /* Overlay link styling */
-    .preview-overlay-link {
-        display: block;
-        cursor: pointer;
-        background-color: transparent;
-        opacity: 0;
-    }
-    
-    .preview-overlay-link:hover {
-        opacity: 0.05;
-        background-color: #007bff;
-    }
-    
-    /* Source URL display */
-    .screenshot-source {
-        font-size: 0.75rem;
-        color: #6c757d;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: nowrap;
-        max-width: 100%;
-        display: block;
-    }
-    
-    /* Preview iframe for live content */
-    .preview-iframe-container {
-        position: relative;
-        width: 100%;
-        height: 230px;
-        overflow: hidden;
-        background-color: #f8f9fa;
-        border: 1px solid #ddd;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    
-    /* Loading spinner for preview */
-    .loading-spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid rgba(0, 0, 0, 0.1);
-        border-radius: 50%;
-        border-top-color: var(--lottery-red);
-        animation: spin 1s ease-in-out infinite;
-    }
-    
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-    
-    .preview-image {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        border: none;
     }
 </style>
 <script>
+    // Fix for scrolling issues on export-screenshots page
     document.addEventListener('DOMContentLoaded', function() {
-        // Fix for scrolling issues on export-screenshots page
+        // Remove any scroll-blocking event listeners
         document.addEventListener('wheel', function(event) {
             event.stopPropagation();
         }, true);
         
+        // Ensure images don't capture scroll events and prevent dragging
+        const galleryImages = document.querySelectorAll('.gallery-image-container img');
+        galleryImages.forEach(img => {
+            // Prevent wheel events from being captured
+            img.addEventListener('wheel', function(event) {
+                event.stopPropagation();
+            }, false);
+            
+            // Prevent dragging which can interfere with scrolling
+            img.setAttribute('draggable', 'false');
+            img.addEventListener('dragstart', function(event) {
+                event.preventDefault();
+            });
+            
+            // Ensure pointer events work properly
+            img.style.pointerEvents = 'auto';
+        });
+        
         // Add prevention for any other event handlers that might block scrolling
         document.body.style.overflowY = 'scroll';
         document.documentElement.style.overflowY = 'scroll';
-        
-        // Initialize automatic preview functionality
-        initializeAutoPreviewFunctionality();
-        
-        // Make cards responsive to window size changes
-        window.addEventListener('resize', adjustCardLayout);
-        // Initial adjustment
-        adjustCardLayout();
-        
-        // Set up Puppeteer sync form handling
-        setupSyncForm();
     });
-    
-    /**
-     * Initialize automatic preview functionality for all preview images
-     * This loads website previews automatically as users scroll through the gallery
-     */
-    function initializeAutoPreviewFunctionality() {
-        // Get all preview containers
-        const previewContainers = document.querySelectorAll('.preview-iframe-container');
-        
-        previewContainers.forEach(container => {
-            const previewImage = container.querySelector('.preview-image');
-            
-            if (previewImage) {
-                // Handle image load event
-                previewImage.addEventListener('load', function() {
-                    // Successfully loaded - remove spinner, show image
-                    if (container.querySelector('.loading-spinner')) {
-                        container.querySelector('.loading-spinner').remove();
-                    }
-                    console.log("Preview image loaded successfully");
-                    previewImage.style.display = 'block';
-                });
-                
-                // Handle image load errors with more specificity
-                previewImage.addEventListener('error', function() {
-                    const screenshotType = container.dataset.type || 'Screenshot';
-                    handlePreviewError(container, `Could not load ${screenshotType} preview`);
-                });
-                
-                // Add timeout in case the image never triggers load event
-                setTimeout(function() {
-                    if (container.querySelector('.loading-spinner')) {
-                        // If spinner still exists after 10 seconds, image probably failed to load
-                        const screenshotType = container.dataset.type || 'Screenshot';
-                        handlePreviewError(container, `${screenshotType} generation timed out`);
-                    }
-                }, 10000);
-                
-                // Make sure the data-src is properly set by double-checking
-                if (!previewImage.getAttribute('data-src') || 
-                    previewImage.getAttribute('data-src').includes('undefined') ||
-                    previewImage.getAttribute('data-src').includes('null')) {
-                    
-                    // Attempt to fix missing or invalid data-src
-                    const screenshotId = container.dataset.id;
-                    if (screenshotId) {
-                        const newSrc = `/preview-website/${screenshotId}`;
-                        console.log(`Fixing invalid data-src for image ${screenshotId}`);
-                        previewImage.setAttribute('data-src', newSrc);
-                    }
-                }
-            }
-        });
-        
-        // Monitor scroll to optimize loading
-        let scrollDebounceTimer;
-        window.addEventListener('scroll', function() {
-            // Clear previous timeout
-            if(scrollDebounceTimer) clearTimeout(scrollDebounceTimer);
-            
-            // Set a new timeout
-            scrollDebounceTimer = setTimeout(function() {
-                // Only load visible images
-                optimizePreviews();
-            }, 200);
-        });
-        
-        // Initial optimization
-        optimizePreviews();
-    }
-    
-    function handlePreviewError(container, message) {
-        // Clear loading animation
-        container.style.backgroundImage = 'none';
-        
-        // Get screenshot type and ID from container data
-        const screenshotType = container.dataset.type || 'Screenshot';
-        const screenshotId = container.dataset.id || '0';
-        
-        // Create a more visually appealing error display
-        const errorContainer = document.createElement('div');
-        errorContainer.className = 'd-flex flex-column align-items-center justify-content-center w-100 h-100';
-        errorContainer.style.backgroundColor = '#fff8f8';
-        
-        // Create an icon for the error
-        const iconDiv = document.createElement('div');
-        iconDiv.className = 'mb-2 text-warning';
-        iconDiv.innerHTML = '<i class="fas fa-exclamation-triangle fa-2x"></i>';
-        
-        // Create a heading with the screenshot type
-        const headingDiv = document.createElement('div');
-        headingDiv.className = 'mb-1 fw-bold';
-        headingDiv.textContent = screenshotType;
-        
-        // Create the error message
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'text-muted small text-center px-3';
-        messageDiv.textContent = message;
-        
-        // Create a help message with a direct clickable link
-        const helpDiv = document.createElement('div');
-        helpDiv.className = 'mt-2 small text-center';
-        
-        // Get the screenshot URL
-        const screenshotUrl = `{{ url_for('view_screenshot', screenshot_id=0) }}`.replace('0', screenshotId);
-        
-        // Add a direct view link to the help message
-        helpDiv.innerHTML = `<a href="${screenshotUrl}" target="_blank" class="text-primary" style="text-decoration: underline;">
-            Click here to view the full screenshot</a>`;
-        
-        // Get the overlay link element before clearing container
-        const overlayLink = container.querySelector('.preview-overlay-link');
-        
-        // Clear container and add new error content
-        container.innerHTML = '';
-        
-        // Add error elements to the container
-        errorContainer.appendChild(iconDiv);
-        errorContainer.appendChild(headingDiv);
-        errorContainer.appendChild(messageDiv);
-        errorContainer.appendChild(helpDiv);
-        container.appendChild(errorContainer);
-        
-        // Make the error container clickable
-        errorContainer.style.cursor = 'pointer';
-        errorContainer.addEventListener('click', function() {
-            window.open(screenshotUrl, '_blank');
-        });
-        
-        // Re-add the overlay link if it existed
-        if (overlayLink) {
-            container.appendChild(overlayLink);
-        } else {
-            // If there was no overlay link (maybe it was removed), recreate it using the data from container
-            const linkUrl = container.dataset.href || `{{ url_for('view_screenshot', screenshot_id=0) }}`.replace('0', screenshotId);
-            if (linkUrl) {
-                const newOverlayLink = document.createElement('a');
-                newOverlayLink.href = linkUrl;
-                newOverlayLink.className = 'preview-overlay-link';
-                newOverlayLink.style = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;';
-                newOverlayLink.target = '_blank';
-                newOverlayLink.onclick = (event) => { event.stopPropagation(); return true; };
-                container.appendChild(newOverlayLink);
-            }
-        }
-    }
-    
-    /**
-     * Optimize preview loading by determining which cards are visible in viewport
-     * This helps reduce resource usage by only loading previews that are currently visible
-     */
-    function optimizePreviews() {
-        const previewContainers = document.querySelectorAll('.preview-iframe-container');
-        
-        previewContainers.forEach(container => {
-            // Check if this container is in the viewport
-            if (isElementInViewport(container)) {
-                // Make sure the image is in the active state
-                const previewImage = container.querySelector('.preview-image');
-                
-                // First validate that data-src is valid and not already loaded
-                if (previewImage && !previewImage.src) {
-                    let dataSrc = previewImage.getAttribute('data-src');
-                    
-                    // Check if data-src is missing or invalid
-                    if (!dataSrc || dataSrc.includes('undefined') || dataSrc.includes('null')) {
-                        // Try to fix the source from container data attributes
-                        const screenshotId = container.dataset.id;
-                        if (screenshotId) {
-                            dataSrc = `/preview-website/${screenshotId}`;
-                            console.log(`Fixed invalid data-src for image ${screenshotId}`);
-                            previewImage.setAttribute('data-src', dataSrc);
-                        } else {
-                            console.error("Cannot load image, missing both data-src and screenshot ID");
-                            return;
-                        }
-                    }
-                    
-                    console.log("Loading image from data-src:", dataSrc);
-                    
-                    // Load the image source from the data-src attribute
-                    previewImage.src = dataSrc;
-                    
-                    // Force display to block after a slight delay to ensure loading event fires
-                    setTimeout(function() {
-                        if (previewImage.complete) {
-                            if (previewImage.naturalHeight !== 0) {
-                                // Successfully loaded
-                                console.log("Image already loaded, making visible");
-                                previewImage.style.display = 'block';
-                                // Remove spinner if it exists
-                                if (container.querySelector('.loading-spinner')) {
-                                    container.querySelector('.loading-spinner').remove();
-                                }
-                            } else {
-                                // Failed to load but completed
-                                const screenshotType = container.dataset.type || 'Screenshot';
-                                handlePreviewError(container, `${screenshotType} preview unavailable`);
-                            }
-                        }
-                    }, 500);
-                } else if (previewImage && previewImage.src && previewImage.complete && previewImage.naturalHeight === 0) {
-                    // Image already tried to load but failed
-                    const screenshotType = container.dataset.type || 'Screenshot';
-                    handlePreviewError(container, `${screenshotType} preview unavailable`);
-                }
-            }
-        });
-    }
-    
-    /**
-     * Check if an element is currently visible in the viewport
-     * @param {HTMLElement} el - The element to check
-     * @returns {boolean} - Whether the element is in the viewport
-     */
-    function isElementInViewport(el) {
-        const rect = el.getBoundingClientRect();
-        
-        return (
-            rect.top >= -rect.height &&
-            rect.left >= -rect.width &&
-            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) + rect.height &&
-            rect.right <= (window.innerWidth || document.documentElement.clientWidth) + rect.width
-        );
-    }
-    
-    /**
-     * Adjust card layout based on screen size
-     * Makes the gallery responsive to different device sizes
-     */
-    function adjustCardLayout() {
-        // Get all preview containers
-        const previewContainers = document.querySelectorAll('.preview-iframe-container');
-        const windowWidth = window.innerWidth;
-        
-        // Adjust height based on window size
-        previewContainers.forEach(container => {
-            if (windowWidth > 1200) {
-                // Extra large screens
-                container.style.height = '300px';
-            } else if (windowWidth > 992) {
-                // Large screens
-                container.style.height = '250px';
-            } else if (windowWidth > 768) {
-                // Medium screens
-                container.style.height = '230px';
-            } else {
-                // Small screens
-                container.style.height = '200px';
-            }
-        });
-        
-        // Re-check which previews should be loaded
-        optimizePreviews();
-    }
 </script>
 {% endblock %}
 
@@ -476,33 +122,16 @@
                                 <h5 class="card-title mb-0">SYNC ALL SCREENSHOTS</h5>
                             </div>
                             <div class="card-body">
-                                <p>Refresh all screenshots from source URLs using Puppeteer</p>
+                                <p>Refresh all screenshots from source URLs</p>
                                 <div class="alert alert-info small">
-                                    <i class="fas fa-info-circle me-1"></i> This process uses Puppeteer for high-quality screenshot capture. Please be patient as all screenshots are synchronized.
+                                    <i class="fas fa-info-circle me-1"></i> This process may take a minute or two to complete. Please be patient as all screenshots are synchronized.
                                 </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <form action="{{ url_for('sync_all_screenshots') }}" method="POST">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-warning">
-                                                <i class="fas fa-sync me-2"></i> Sync All Screenshots with Puppeteer
-                                            </button>
-                                        </form>
-                                    </div>
-                                    <div class="col-md-6 text-end">
-                                        <a href="{{ url_for('screenshot_diagnostics') }}" class="btn btn-info">
-                                            <i class="fas fa-search me-2"></i> Screenshot Diagnostics
-                                        </a>
-                                    </div>
-                                </div>
-                                
-                                <!-- Progress tracking section (initially hidden) -->
-                                <div id="captureProgressSection" class="mt-3 d-none">
-                                    <div class="progress mb-2">
-                                        <div id="captureProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
-                                    </div>
-                                    <div id="captureProgressStatus" class="small text-center">Initializing...</div>
-                                </div>
+                                <form action="{{ url_for('sync_all_screenshots') }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-warning">
+                                        <i class="fas fa-sync me-2"></i> Sync All Screenshots
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -521,14 +150,6 @@
                                 
                                 <hr>
                                 <h6>Manage Gallery</h6>
-                                
-                                {% if duplicate_types and duplicate_types|length > 0 %}
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle me-2"></i> <strong>Note:</strong>
-                                    <p class="small mt-2 mb-0">There are {{ duplicate_types|length }} lottery types with multiple naming variations. The system will automatically standardize these when cleaning up old screenshots.</p>
-                                </div>
-                                {% endif %}
-                                
                                 <p class="small text-muted">If you have too many screenshots, click below to keep only the latest one for each URL.</p>
                                 <form action="{{ url_for('cleanup_screenshots') }}" method="POST">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -556,62 +177,42 @@
                 
                 <div class="row gallery-container">
                     {% for screenshot in screenshots %}
-                    <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="col-md-4 mb-4">
                         <div class="card h-100 gallery-card" style="user-select: none;">
-                            <!-- Server-rendered preview container with enhanced error handling and recovery -->
-                            <div class="preview-iframe-container" 
-                                 data-href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}"
-                                 data-id="{{ screenshot.id }}"
-                                 data-type="{{ screenshot.lottery_type }}">
-                                <!-- Loading spinner shown until preview loads -->
-                                <div class="loading-spinner"></div>
-                                <!-- Using server-side rendering to bypass iframe restrictions -->
-                                <img data-src="{{ url_for('preview_website', screenshot_id=screenshot.id) }}" 
-                                     class="preview-image"
-                                     alt="{{ screenshot.lottery_type }} live preview"
-                                     style="display: none; max-width: 100%; height: auto;"
-                                     title="{{ screenshot.lottery_type }} - Click to view full screenshot"
-                                     onerror="handlePreviewError(this.parentNode, 'Preview image failed to load')"
-                                     onclick="window.open('{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}', '_blank')">
-                                <!-- Enhanced overlay link with better error recovery -->
-                                <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
-                                   class="preview-overlay-link"
-                                   style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"
-                                   target="_blank"
-                                   onclick="event.stopPropagation(); return true;">
+                            <div class="gallery-image-container">
+                                <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" target="_blank">
+                                    <img src="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
+                                         alt="{{ screenshot.lottery_type }} screenshot">
                                 </a>
                             </div>
-                            
                             <div class="card-body d-flex flex-column">
-                                <div class="d-flex justify-content-between align-items-start mb-1">
-                                    <h5 class="card-title mb-0">{{ screenshot.lottery_type }}</h5>
-                                    <span class="badge bg-secondary">{{ screenshot.timestamp.strftime('%Y-%m-%d') }}</span>
-                                </div>
-                                
-                                <span class="screenshot-source" title="{{ screenshot.url }}">
-                                    <i class="fas fa-link me-1 small"></i>{{ screenshot.url }}
-                                </span>
-                                
-                                <div class="mt-auto pt-3">
-                                    <div class="d-flex flex-column gap-2 mb-2">
-                                        <div class="d-flex justify-content-center gap-1">
-                                            <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}?force_download=true" 
-                                               class="btn btn-sm btn-outline-primary w-100" 
-                                               download>
-                                                <i class="fas fa-download me-1"></i> Download
-                                            </a>
-                                        </div>
-                                        
+                                <h5 class="card-title">{{ screenshot.lottery_type }}</h5>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        {{ screenshot.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    </small>
+                                </p>
+                                <div class="mt-auto">
+                                    <div class="d-flex justify-content-between gap-1 mb-2">
+                                        <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
+                                           class="btn btn-sm btn-primary flex-fill" 
+                                           download>
+                                            <i class="fas fa-download me-1"></i> Download
+                                        </a>
                                         {% if screenshot.zoomed_path %}
-                                        <div class="d-flex justify-content-between gap-1">
-                                            <a href="{{ url_for('view_zoomed_screenshot', screenshot_id=screenshot.id) }}" 
-                                               class="btn btn-sm btn-secondary flex-fill" 
-                                               target="_blank">
-                                                <i class="fas fa-search-plus me-1"></i> Zoomed
-                                            </a>
-                                        </div>
+                                        <a href="{{ url_for('view_zoomed_screenshot', screenshot_id=screenshot.id) }}" 
+                                           class="btn btn-sm btn-secondary flex-fill" 
+                                           target="_blank">
+                                            <i class="fas fa-search-plus me-1"></i> Zoomed
+                                        </a>
                                         {% endif %}
                                     </div>
+                                    <form action="{{ url_for('sync_single_screenshot', screenshot_id=screenshot.id) }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-warning w-100">
+                                            <i class="fas fa-sync me-1"></i> Resync
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -628,183 +229,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    // This block is intentionally left empty as we're using the script in the head section
-    // All event handlers have been moved to the head section DOMContentLoaded event
-    
-    /**
-     * Set up the Sync All Screenshots form to show progress indicator
-     */
-    function setupSyncForm() {
-        const syncForm = document.querySelector('form[action*="sync-all-screenshots"]');
-        if (syncForm) {
-            syncForm.addEventListener('submit', function(event) {
-                // Show progress section
-                const progressSection = document.getElementById('captureProgressSection');
-                if (progressSection) {
-                    progressSection.classList.remove('d-none');
-                }
-                
-                // Show starting progress
-                const progressBar = document.getElementById('captureProgressBar');
-                if (progressBar) {
-                    progressBar.style.width = '10%';
-                }
-                
-                // Update status message
-                const statusElement = document.getElementById('captureProgressStatus');
-                if (statusElement) {
-                    statusElement.textContent = 'Starting Puppeteer screenshot capture...';
-                }
-                
-                // Make the button appear processing
-                const submitButton = syncForm.querySelector('button[type="submit"]');
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processing...';
-                }
-                
-                // Continue with form submission (we don't prevent default)
-                
-                // Wait a moment for the server to initialize the process
-                setTimeout(function() {
-                    // Start checking the status API for real progress updates
-                    checkCaptureStatus();
-                }, 1500);
-            });
-        }
-        
-        // Check if there's an active capture process on page load
-        fetch('/puppeteer-status')
-            .then(response => response.json())
-            .then(data => {
-                if (data.in_progress) {
-                    // There's an active capture process, show the progress UI
-                    const progressSection = document.getElementById('captureProgressSection');
-                    if (progressSection) {
-                        progressSection.classList.remove('d-none');
-                    }
-                    
-                    // Disable the submit button
-                    const submitButton = syncForm?.querySelector('button[type="submit"]');
-                    if (submitButton) {
-                        submitButton.disabled = true;
-                        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processing...';
-                    }
-                    
-                    // Start monitoring progress
-                    checkCaptureStatus();
-                }
-            })
-            .catch(error => {
-                console.error('Error checking initial capture status:', error);
-            });
-    }
-    
-    /**
-     * Check the status of the Puppeteer screenshot capture process
-     * via the API endpoint
-     */
-    function checkCaptureStatus() {
-        const progressBar = document.getElementById('captureProgressBar');
-        const statusElement = document.getElementById('captureProgressStatus');
-        
-        if (!progressBar || !statusElement) return;
-        
-        // Fetch current status
-        fetch('/puppeteer-status')
-            .then(response => response.json())
-            .then(data => {
-                // Update the progress bar
-                const progressPercent = data.progress;
-                progressBar.style.width = `${progressPercent}%`;
-                
-                // Update the status message
-                statusElement.textContent = data.status_message;
-                
-                // Display any errors if present
-                if (data.error_count > 0 && data.errors.length > 0) {
-                    console.error('Screenshot capture errors:', data.errors);
-                }
-                
-                // Only refresh the page when progress is 100% complete
-                if (data.in_progress === false && progressPercent >= 100) {
-                    // Set a final 100% width and status
-                    progressBar.style.width = '100%';
-                    statusElement.textContent = 'Completed! Refreshing page...';
-                    
-                    // Wait a moment to show the completed state
-                    setTimeout(() => window.location.reload(), 1500);
-                    return;
-                }
-                
-                // If in_progress is false but progress < 100%, force to minimum 80%
-                if (data.in_progress === false && data.completed_screenshots > 0 && progressPercent < 80) {
-                    progressBar.style.width = '80%';
-                    statusElement.textContent = 'Almost complete, finalizing...';
-                    
-                    // Check again after a delay
-                    setTimeout(checkCaptureStatus, 1000);
-                    return;
-                }
-                
-                // If still in progress or waiting for completion, check again after a delay
-                setTimeout(checkCaptureStatus, 1000);
-            })
-            .catch(error => {
-                console.error('Error checking capture status:', error);
-                // If there's an error, use the simulation as fallback
-                simulateProgressUntilReload();
-            });
-    }
-    
-    /**
-     * Simulate progress bar movement as fallback when status API fails
-     */
-    function simulateProgressUntilReload() {
-        const progressBar = document.getElementById('captureProgressBar');
-        if (!progressBar) return;
-        
-        let progress = 15;
-        let cycleCount = 0;
-        const maxProgress = 95; // Cap at 95% until we actually get confirmation
-        const statusElement = document.getElementById('captureProgressStatus');
-        
-        // Set a longer simulation time before reload (8 cycles minimum)
-        const interval = setInterval(function() {
-            cycleCount++;
-            progress += Math.random() * 3;
-            
-            // Don't exceed maxProgress
-            if (progress > maxProgress) progress = maxProgress;
-            
-            // Update the progress bar
-            progressBar.style.width = `${progress}%`;
-            
-            // Update status messages based on progress
-            if (statusElement && progress > 50 && progress < 60) {
-                statusElement.textContent = 'Capturing screenshots with Puppeteer...';
-            } else if (statusElement && progress >= 60 && progress < 80) {
-                statusElement.textContent = 'Processing captured screenshots...';
-            } else if (statusElement && progress >= 80) {
-                statusElement.textContent = 'Finalizing and updating database...';
-            }
-            
-            // Only stop after a minimum number of cycles AND reaching max progress
-            if (progress >= maxProgress && cycleCount >= 8) {
-                // Set complete status before stopping
-                progressBar.style.width = '100%';
-                statusElement.textContent = 'Completed! Refreshing page...';
-                
-                clearInterval(interval);
-                
-                // Refresh the page after a longer delay to show completed state
-                setTimeout(() => window.location.reload(), 3000);
-            }
-        }, 1000);
-    }
-</script>
 {% endblock %}

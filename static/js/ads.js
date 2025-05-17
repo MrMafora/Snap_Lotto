@@ -25,12 +25,6 @@ window.AdManager = window.AdManager || {
     // Queue for ads to show
     adQueue: [],
     
-    // Current ad index in queue
-    currentAdIndex: 0,
-    
-    // Flag to indicate if ads are in sequence mode
-    inSequenceMode: false,
-    
     // Note: init() is called at the end of this file
     init: function() {
         console.log('AdManager initialized from ads.js');
@@ -215,11 +209,11 @@ window.AdManager = window.AdManager || {
         console.log('AdManager: Showing loading ad');
         
         // Get the ad for scanner placement to access its loading_duration
-        // FIXED: Always use 5 seconds (hard-coded) for first ad duration as requested
-        const ad = this.ads['scanner'] || { loading_duration: 5 }; 
-        const loadingDuration = 5000; // Always use exactly 5 seconds (5000ms)
+        // REDUCED TIME: Changed from 10 to 6 seconds to prevent mobile scanning from getting stuck
+        const ad = this.ads['scanner'] || { loading_duration: 6 }; // Default to 6 seconds if no ad found
+        const loadingDuration = ad.loading_duration * 1000; // Convert to milliseconds
         
-        console.log(`AdManager: Using fixed loading duration of 5 seconds`);
+        console.log(`AdManager: Using loading duration of ${ad.loading_duration} seconds`);
         
         // IMPORTANT: Set global flag to track loading state
         window.adLoadingActive = true;
@@ -295,117 +289,6 @@ window.AdManager = window.AdManager || {
         }, loadingDuration);
     },
 
-    // Queue multiple ads to be shown in sequence
-    queueAds: function(adCount) {
-        this.adQueue = [];
-        this.currentAdIndex = 0;
-        
-        // For development mode, create mock ads to queue
-        for (let i = 0; i < adCount; i++) {
-            // Add different mock ads to the queue
-            this.adQueue.push({
-                id: i + 1000,
-                name: `Sequential Ad ${i+1}`,
-                duration: 10, // 10 seconds per ad
-                placement: 'interstitial'
-            });
-        }
-        
-        console.log(`AdManager: Queued ${adCount} ads for sequential display`);
-        return this.adQueue.length;
-    },
-    
-    // Play the next ad in the queue
-    playNextAd: function() {
-        if (this.adQueue.length === 0 || this.currentAdIndex >= this.adQueue.length) {
-            console.log('AdManager: No more ads in queue to play');
-            // No more ads, show results
-            this.hideInterstitialAd();
-            return false;
-        }
-        
-        const nextAd = this.adQueue[this.currentAdIndex];
-        console.log(`AdManager: Playing ad ${this.currentAdIndex + 1} of ${this.adQueue.length}: ${nextAd.name}`);
-        
-        // Update ad display to show current ad number and duration
-        const adOverlay = document.getElementById('ad-overlay-results');
-        if (adOverlay) {
-            const adCounter = adOverlay.querySelector('.ad-counter');
-            if (adCounter) {
-                adCounter.textContent = `Ad ${this.currentAdIndex + 1} of ${this.adQueue.length}`;
-            } else {
-                // Create ad counter if it doesn't exist
-                const counterDiv = document.createElement('div');
-                counterDiv.className = 'ad-counter';
-                counterDiv.style.cssText = 'background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; position: absolute; top: 10px; right: 10px; font-size: 12px;';
-                counterDiv.textContent = `Ad ${this.currentAdIndex + 1} of ${this.adQueue.length}`;
-                adOverlay.appendChild(counterDiv);
-            }
-            
-            // We no longer need to create a separate countdown in the corner
-            // This is now handled by the central countdown timer and ad-countdown-fix.js
-            // Keeping only the ad counter for context
-        }
-        
-        // Start the countdown for this ad
-        this.startAdCountdown(nextAd.duration);
-        
-        // Increment the index for next time
-        this.currentAdIndex++;
-        return true;
-    },
-    
-    // Start countdown for current ad
-    startAdCountdown: function(duration) {
-        let remainingTime = duration;
-        
-        // We don't need to use our own countdown element anymore
-        // as this is now handled by the central countdown timer
-        // But we'll keep a reference to the main countdown
-        const mainCountdown = document.getElementById('countdown');
-        
-        // Get the View Results button and disable it during countdown
-        const viewResultsBtn = document.getElementById('view-results-btn');
-        if (viewResultsBtn) {
-            // Let ad-countdown-fix.js handle button states now
-            console.log('AdManager: First ad complete, starting next ad or countdown');
-        }
-        
-        // Clear any existing countdown interval
-        if (window.adCountdownInterval) {
-            clearInterval(window.adCountdownInterval);
-        }
-        
-        // Set up the countdown interval - only for triggering next ad, not UI updates
-        window.adCountdownInterval = setInterval(() => {
-            remainingTime--;
-            
-            // Update the main countdown if it exists instead
-            if (mainCountdown && remainingTime > 0) {
-                // Only update this as a fallback - ad-countdown-fix.js should be handling it
-                console.log('Starting second ad countdown sequence');
-            }
-            
-            // When countdown reaches zero, play next ad or finish
-            if (remainingTime <= 0) {
-                clearInterval(window.adCountdownInterval);
-                
-                // Play the next ad or enable the View Results button if ad sequence complete
-                if (!this.playNextAd()) {
-                    console.log('AdManager: Ad sequence complete');
-                    
-                    // Enable the View Results button after countdown completes
-                    if (viewResultsBtn) {
-                        viewResultsBtn.disabled = false;
-                        viewResultsBtn.classList.remove('disabled');
-                        viewResultsBtn.style.opacity = '1';
-                        viewResultsBtn.style.cursor = 'pointer';
-                    }
-                }
-            }
-        }, 1000);
-    },
-    
     // Show the interstitial ad (before showing results)
     showInterstitialAd: function(callback) {
         console.log('AdManager: Showing interstitial ad at ' + new Date().toISOString());
@@ -420,10 +303,6 @@ window.AdManager = window.AdManager || {
             if (callback) callback(false);
             return;
         }
-        
-        // Queue up two ads for sequential display
-        this.queueAds(2);
-        this.inSequenceMode = true;
         
         // Use the enhanced showOverlay utility function if available
         if (typeof showOverlay === 'function') {
@@ -466,14 +345,9 @@ window.AdManager = window.AdManager || {
         
         // Load ad in the container inside the overlay
         const adContainerId = 'ad-container-interstitial';
-        this.loadAd(adContainerId, (success) => {
+        this.loadAd(adContainerId, function(success) {
             // First, call the original callback
             if (callback) callback(success);
-            
-            // Start playing the first ad with countdown
-            if (success && this.inSequenceMode) {
-                this.playNextAd();
-            }
             
             // Add event listeners to the View Results button to ensure we handle clicks properly
             const viewResultsBtn = document.getElementById('view-results-btn');
@@ -487,14 +361,6 @@ window.AdManager = window.AdManager || {
                     // Log the click with timestamp
                     console.log('⭐ View Results button clicked at ' + new Date().toISOString());
                     
-                    // If button is disabled (during countdown), prevent click
-                    if (this.disabled || this.classList.contains('disabled')) {
-                        console.log('View Results button clicked while disabled, ignoring');
-                        e.preventDefault();
-                        e.stopPropagation();
-                        return false;
-                    }
-                    
                     // Prevent any default behavior or event bubbling
                     e.preventDefault();
                     e.stopPropagation();
@@ -506,13 +372,11 @@ window.AdManager = window.AdManager || {
                     window.resultsShown = true;
                     window.hasCompletedAdFlow = true;
                     window.permanentResultsMode = true;
-                    window.showingResultsAfterAd = true;
                     
                     // Force-cancel any timers that might be redirecting
                     try {
                         for (let i = 1; i < 500; i++) {
                             clearTimeout(i);
-                            clearInterval(i);
                         }
                     } catch (e) {}
                     
@@ -523,21 +387,18 @@ window.AdManager = window.AdManager || {
                         adOverlay.style.visibility = 'hidden';
                     }
                     
-                    // Force show results container and ensure it's visible
+                    // Force show results container
                     const resultsContainer = document.getElementById('results-container');
                     if (resultsContainer) {
                         resultsContainer.classList.remove('d-none');
                         resultsContainer.style.display = 'block';
-                        resultsContainer.style.visibility = 'visible';
-                        resultsContainer.style.opacity = '1';
                     }
                     
-                    // Force hide scan form completely
+                    // Force hide scan form
                     const scanForm = document.getElementById('scan-form-container');
                     if (scanForm) {
                         scanForm.classList.add('d-none');
                         scanForm.style.display = 'none';
-                        scanForm.style.visibility = 'hidden';
                     }
                     
                     // Double-check with a delay
@@ -591,17 +452,6 @@ window.AdManager = window.AdManager || {
     hideInterstitialAd: function() {
         console.log('🔄 Hiding all interstitial ads at ' + new Date().toISOString());
         
-        // Clean up any ad sequence timers
-        if (window.adCountdownInterval) {
-            clearInterval(window.adCountdownInterval);
-            window.adCountdownInterval = null;
-        }
-        
-        // Reset ad sequence flags
-        this.inSequenceMode = false;
-        this.adQueue = [];
-        this.currentAdIndex = 0;
-        
         // SET ALL THE FLAGS to remain in results mode
         window.inResultsMode = true;
         window.viewResultsBtnClicked = true;
@@ -628,11 +478,6 @@ window.AdManager = window.AdManager || {
         
         // Find and remove all direct ad elements with interstitial in the ID
         document.querySelectorAll('[id^="direct-ad-interstitial-"]').forEach(element => {
-            element.remove();
-        });
-        
-        // Clean up any ad counters or countdown elements
-        document.querySelectorAll('.ad-counter, .ad-countdown').forEach(element => {
             element.remove();
         });
         
@@ -727,7 +572,7 @@ window.AdManager = window.AdManager || {
             name: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Ad Example`,
             file_url: '/static/ads/sample_video.mp4', // This should be a real sample video in production
             duration: 15,
-            loading_duration: 5, // Changed from 10 to 5 seconds as requested
+            loading_duration: 10, // Default loading overlay duration in seconds
             custom_message: 'Processing your lottery ticket...', // Default custom message
             custom_image_path: null, // No custom image in mock data
             placement: placement,

@@ -19,9 +19,7 @@
         adMinimumTime: 15000, // 15 seconds in milliseconds
         adStartTime: null,
         adIntervals: [],
-        adTimeouts: [],
-        adQueue: [],           // Queue for sequencing ads
-        currentAdIndex: 0      // Current ad in the sequence
+        adTimeouts: []
     };
     
     // Mock ads in development environment
@@ -168,8 +166,6 @@
         window.SnapLottoAds.firstAdComplete = false;
         window.SnapLottoAds.secondAdComplete = false;
         window.SnapLottoAds.adStartTime = null;
-        window.SnapLottoAds.adQueue = [];
-        window.SnapLottoAds.currentAdIndex = 0;
         
         console.log("Ad state completely reset");
     }
@@ -187,22 +183,6 @@
             window.SnapLottoAds.firstAdComplete = false;
             window.SnapLottoAds.adStartTime = Date.now();
             
-            // Add ad counter to show current ad in sequence
-            const adCounter = adOverlay.querySelector('.ad-counter');
-            if (adCounter) {
-                adCounter.textContent = `Ad 1 of 2`;
-            } else {
-                // Create ad counter if it doesn't exist
-                const counterDiv = document.createElement('div');
-                counterDiv.className = 'ad-counter';
-                counterDiv.style.cssText = 'background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; position: absolute; top: 10px; right: 10px; font-size: 12px;';
-                counterDiv.textContent = `Ad 1 of 2`;
-                adOverlay.appendChild(counterDiv);
-            }
-            
-            // REMOVED: Countdown display creation is now handled by ad-countdown-fix.js
-            // No longer creating duplicate .ad-countdown elements
-            
             // Force-disable the view results button
             const viewBtn = document.getElementById('view-results-btn');
             if (viewBtn) {
@@ -215,54 +195,28 @@
             
             console.log("First ad shown at: " + new Date().toISOString());
             
-            // Start our own countdown for this ad - only for internal logic
-            // FIRST AD IS ALWAYS 5 SECONDS - this is the loading ad during processing
-            let remainingTime = 5; // 5 seconds for first ad
+            // COMPLETELY REMOVED original timer system
+            // Delegate to critical-transition-fix.js for countdown handling
             
-            // REMOVED: No longer accessing or updating countdown element
-            // All countdown UI updates now handled by ad-countdown-fix.js
+            // Trigger the centralized countdown system
+            document.dispatchEvent(new CustomEvent('trigger-countdown', {
+                detail: { phase: 'first', seconds: 15 }
+            }));
             
-            // Set up the countdown interval - internal logic only
-            window.adCountdownInterval = setInterval(() => {
-                remainingTime--;
-                
-                // When countdown reaches zero
-                if (remainingTime <= 0) {
-                    clearInterval(window.adCountdownInterval);
-                    console.log('AdManager: First ad complete, starting next ad or countdown');
-                    window.SnapLottoAds.firstAdComplete = true;
-                    
-                    // Important: Do NOT enable the button yet - it will only be enabled after ALL ads finish
-                    // The second ad's countdown will enable the button when it finishes
-                    
-                    // Show the second ad - CRITICAL TRANSITION POINT
-                    console.log('🔄 CRITICAL TRANSITION: Starting second ad with explicit call');
-                    startSecondAdCountdown();
-                }
-            }, 1000);
-            
-            // Store the interval for cleanup
-            window.SnapLottoAds.adIntervals.push(window.adCountdownInterval);
-            
-            // Safety timeout as a fallback if timer fails
+            // Safety timeout as a fallback if central timer fails
             const safetyTimeout = setTimeout(function() {
-                console.log("SAFETY: First ad fallback timeout reached - only used if timer failed");
-                if (!window.SnapLottoAds.firstAdComplete) {
-                    window.SnapLottoAds.firstAdComplete = true;
-                    enableViewResultsButton();
-                }
+                console.log("SAFETY: First ad fallback timeout reached - only used if central timer failed");
+                window.SnapLottoAds.firstAdComplete = true;
+                enableViewResultsButton();
             }, window.SnapLottoAds.adMinimumTime + 2000); // 2 second buffer
             
             // Store the timeout for cleanup
             window.SnapLottoAds.adTimeouts.push(safetyTimeout);
+            
+            // DEFERRED COUNTDOWN: We now defer to critical-transition-fix.js
+            // which handles all countdown functionality to prevent conflicts
+            console.log("First ad countdown deferred to critical-transition-fix.js");
         }
-    }
-    
-    // Start second ad countdown and transition to results overlay
-    function startSecondAdCountdown() {
-        // Show the results ad overlay with the second ad
-        console.log("Starting second ad countdown sequence");
-        showResultsAdOverlay();
     }
     
     // Results ad overlay display
@@ -282,41 +236,6 @@
             window.SnapLottoAds.secondAdShown = true;
             window.SnapLottoAds.secondAdComplete = false;
             window.SnapLottoAds.adStartTime = Date.now();
-            
-            // Force interstitial ad container to be visible too
-            const interstitialContainer = document.getElementById('ad-container-interstitial');
-            if (interstitialContainer) {
-                interstitialContainer.style.display = 'block';
-                interstitialContainer.style.opacity = '1';
-                interstitialContainer.style.visibility = 'visible';
-            }
-            
-            // Mark transition for debugging
-            console.log("⚠️ CRITICAL TRANSITION: Results overlay should now be visible");
-            
-            // Reset countdown timer to prevent mobile-button-fix.js from interferring
-            window.countdownStartTime = 0;
-            
-            // Log for debugging
-            console.log("Interstitial ad shown:", window.SnapLottoAds.adDisplayActive);
-            
-            // Add ad counter to show current ad in sequence
-            const adCounter = resultsOverlay.querySelector('.ad-counter');
-            if (adCounter) {
-                adCounter.textContent = `Ad 2 of 2`;
-            } else {
-                // Create ad counter if it doesn't exist
-                const counterDiv = document.createElement('div');
-                counterDiv.className = 'ad-counter';
-                counterDiv.style.cssText = 'background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 4px; position: absolute; top: 10px; right: 10px; font-size: 12px;';
-                counterDiv.textContent = `Ad 2 of 2`;
-                resultsOverlay.appendChild(counterDiv);
-            }
-            
-            // We're no longer creating a separate countdown in the corner
-            // This is now handled by the central countdown timer in the main UI
-            // REMOVED: No longer creating a countdown element for the second ad
-            // All countdown elements are handled by ad-countdown-fix.js exclusively
             
             // Force-disable the view results button for second ad
             const viewBtn = document.getElementById('view-results-btn');
@@ -342,73 +261,105 @@
                 window.countdownInterval = null;
             }
             
-            // Start our own countdown timer, but only for internal logic
-            // No longer updating any countdown UI from ads-mobile.js
-            let remainingTime = 15; // 15 seconds
+            // Force reset of any countdown state
+            document.dispatchEvent(new CustomEvent('reset-countdown', {}));
             
-            // Set up the countdown interval but don't update UI in ads-mobile.js
-            // Let the main countdown timer handle the UI updates
-            window.adCountdownInterval = setInterval(() => {
-                remainingTime--;
-                
-                // When countdown reaches zero, enable results button
-                if (remainingTime <= 0) {
-                    clearInterval(window.adCountdownInterval);
-                    console.log('AdManager: Ad sequence complete, enabling results button');
-                    window.SnapLottoAds.secondAdComplete = true;
-                    enableContinueToResultsButton();
-                }
-            }, 1000);
-            
-            // Store the interval for cleanup
-            window.SnapLottoAds.adIntervals.push(window.adCountdownInterval);
+            // Trigger the centralized countdown system - must be called AFTER display is set
+            setTimeout(function() {
+                console.log("Starting second ad countdown immediately");
+                document.dispatchEvent(new CustomEvent('trigger-countdown', {
+                    detail: { phase: 'second', seconds: 15, force: true }
+                }));
+            }, 50); // Short delay to ensure DOM is ready
             
             // Safety timeout that will ONLY run if the central timer system fails
             const safetyTimeout = setTimeout(function() {
-                console.log("SAFETY: Second ad fallback timeout reached - only used if timer failed");
-                if (!window.SnapLottoAds.secondAdComplete) {
-                    window.SnapLottoAds.secondAdComplete = true;
-                    enableContinueToResultsButton();
-                }
+                console.log("SAFETY: Second ad fallback timeout reached - only used if central timer failed");
+                window.SnapLottoAds.secondAdComplete = true;
+                enableContinueToResultsButton();
             }, window.SnapLottoAds.adMinimumTime + 2000); // 2 second buffer
             
             // Store the timeout for cleanup
             window.SnapLottoAds.adTimeouts.push(safetyTimeout);
+            
+            // DEFERRED COUNTDOWN: We now defer to critical-transition-fix.js
+            // which handles all countdown functionality to prevent conflicts
+            console.log("Second ad countdown deferred to critical-transition-fix.js");
         }
     }
     
-    // Enable "View Results" button after first ad countdown - DEPRECATED
+    // Enable "View Results" button after first ad countdown
     function enableViewResultsButton() {
-        console.log("⚠️ ads-mobile.js: enableViewResultsButton DEPRECATED - Now handled by ad-countdown-fix.js");
-        
-        // Signal to ad-countdown-fix.js that we've reached this point
-        window.postMessage({ 
-            type: 'adStateChange', 
-            adType: 'first', 
-            state: 'complete', 
-            timestamp: Date.now(),
-            source: 'ads-mobile'
-        }, '*');
-        
-        // Don't directly manipulate the button anymore
-        return;
+        const viewBtn = document.getElementById('view-results-btn');
+        if (viewBtn) {
+            // Style changes to make it obvious button is enabled
+            viewBtn.disabled = false;
+            viewBtn.classList.add('btn-pulse');
+            viewBtn.classList.remove('btn-secondary');
+            viewBtn.classList.add('btn-success');
+            
+            // Update inner text to indicate it's ready
+            viewBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+            
+            // Clear any existing event listeners by cloning the button
+            const newViewBtn = viewBtn.cloneNode(true);
+            viewBtn.parentNode.replaceChild(newViewBtn, viewBtn);
+            
+            // Set up event listener for button with reliable ordering
+            newViewBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log("View Results button clicked at: " + new Date().toISOString());
+                
+                // Sequence:
+                // 1. Hide first overlay
+                hideLoadingAdOverlay();
+                
+                // 2. Make sure results container is visible 
+                const resultsContainer = document.getElementById('results-container');
+                if (resultsContainer) {
+                    resultsContainer.classList.remove('d-none');
+                }
+                
+                // 3. Show second ad with results
+                showResultsAdOverlay();
+                
+                return false;
+            });
+        }
     }
     
-    // Enable final "Continue to Results" button after second ad countdown - DEPRECATED
+    // Enable final "Continue to Results" button after second ad countdown
     function enableContinueToResultsButton() {
-        console.log("⚠️ ads-mobile.js: enableContinueToResultsButton DEPRECATED - Now handled by ad-countdown-fix.js");
-        
-        // Signal to ad-countdown-fix.js that we've reached this point
-        window.postMessage({ 
-            type: 'adStateChange', 
-            adType: 'second', 
-            state: 'complete', 
-            timestamp: Date.now(),
-            source: 'ads-mobile'
-        }, '*');
-        
-        // Don't directly manipulate the button anymore
-        return;
+        const viewBtn = document.getElementById('view-results-btn');
+        if (viewBtn) {
+            // Style changes to make it obvious button is enabled
+            viewBtn.disabled = false;
+            viewBtn.classList.add('btn-pulse');
+            viewBtn.classList.remove('btn-secondary');
+            viewBtn.classList.add('btn-success');
+            
+            // Update inner text to indicate it's ready
+            viewBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+            
+            // Clear any existing event listeners by cloning the button
+            const newViewBtn = viewBtn.cloneNode(true);
+            viewBtn.parentNode.replaceChild(newViewBtn, viewBtn);
+            
+            // Set up event listener for final button
+            newViewBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log("Continue to Results button clicked at: " + new Date().toISOString());
+                
+                // Hide the results overlay to show actual results
+                hideResultsAdOverlay();
+                
+                return false;
+            });
+        }
     }
     
     // Hide loading ad overlay

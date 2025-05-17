@@ -32,9 +32,3 @@ seaborn
 trafilatura
 openpyxl
 pandas
-trafilatura
-playwright
-anthropic
-logger
-pyppeteer
-pyppeteer

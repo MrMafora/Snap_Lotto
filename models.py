@@ -75,11 +75,9 @@ class Screenshot(db.Model):
     url = db.Column(db.String(255), nullable=False)
     lottery_type = db.Column(db.String(50), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    path = db.Column(db.String(255), nullable=True)  # Changed from nullable=False to nullable=True
-    zoomed_path = db.Column(db.String(255), nullable=True)  # Legacy field, maintained for backward compatibility
+    path = db.Column(db.String(255), nullable=False)
+    zoomed_path = db.Column(db.String(255), nullable=True)  # Path to zoomed-in screenshot
     processed = db.Column(db.Boolean, default=False)
-    # Note: html_path field has been removed from the model but still exists in the database
-    # A migration is required to completely remove it from the schema
     
     def __repr__(self):
         return f"<Screenshot {self.id}: {self.lottery_type}>"
@@ -114,13 +112,8 @@ class LotteryResult(db.Model):
     
     def get_bonus_numbers_list(self):
         """Return bonus numbers as a Python list, or empty list if None"""
-        if self.bonus_numbers and self.bonus_numbers.strip():
-            try:
-                numbers = json.loads(self.bonus_numbers)
-                if numbers and len(numbers) > 0:
-                    return numbers
-            except:
-                pass
+        if self.bonus_numbers:
+            return json.loads(self.bonus_numbers)
         return []
     
     def get_divisions(self):
@@ -263,8 +256,8 @@ class AdVariation(db.Model):
     # Relationships
     parent_ad = db.relationship('Advertisement', backref='variations')
     impressions = db.relationship('AdImpression', backref='variation', 
-                               foreign_keys='AdImpression.variation_id',
-                               cascade='all, delete-orphan')
+                                foreign_keys='AdImpression.variation_id',
+                                cascade='all, delete-orphan')
     
     def __repr__(self):
         return f"<AdVariation {self.name} for Ad {self.parent_ad_id}>"
@@ -605,13 +598,9 @@ class ModelTrainingHistory(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     lottery_type = db.Column(db.String(50), nullable=False)
-    strategy = db.Column(db.String(50), nullable=True)  # Prediction strategy used
     model_version = db.Column(db.String(20), nullable=False)
     training_date = db.Column(db.DateTime, default=datetime.utcnow)
     training_data_size = db.Column(db.Integer, nullable=False)  # Number of draws used for training
-    total_predictions = db.Column(db.Integer, default=0)  # Total predictions evaluated 
-    matched_predictions = db.Column(db.Integer, default=0)  # Total numbers matched across all predictions
-    bonus_matches = db.Column(db.Integer, default=0)  # Total bonus number matches
     accuracy_score = db.Column(db.Float, nullable=False)  # Model accuracy score
     error_rate = db.Column(db.Float, nullable=False)  # Model error rate
     features_used = db.Column(db.Text, nullable=True)  # JSON string of features used in training
@@ -619,7 +608,7 @@ class ModelTrainingHistory(db.Model):
     notes = db.Column(db.Text, nullable=True)  # Any notes about this training run
     
     def __repr__(self):
-        return f"<ModelTrainingHistory {self.id}: {self.lottery_type} - {self.strategy} v{self.model_version}, Accuracy: {self.accuracy_score}>"
+        return f"<ModelTrainingHistory {self.id}: {self.lottery_type} v{self.model_version}, Accuracy: {self.accuracy_score}>"
     
     def get_features_list(self):
         """Return features used as a Python list"""
@@ -634,22 +623,24 @@ class ModelTrainingHistory(db.Model):
         return {}
     
     def to_dict(self):
-        """Convert model to dictionary for API responses"""        return {
+        """Convert model to dictionary for API responses"""
+        return {
             'id': self.id,
             'lottery_type': self.lottery_type,
-            'strategy': self.strategy,
             'model_version': self.model_version,
             'training_date': self.training_date.isoformat(),
             'training_data_size': self.training_data_size,
-            'total_predictions': self.total_predictions,
-            'matched_predictions': self.matched_predictions,
-            'bonus_matches': self.bonus_matches,
             'accuracy_score': self.accuracy_score,
             'error_rate': self.error_rate,
             'features_used': self.get_features_list(),
             'hyperparameters': self.get_hyperparameters_dict(),
             'notes': self.notes
         }
+        
+    @classmethod
+    def get_records_for_import(cls, import_id):
+        """Get all records for a specific import"""
+        return cls.query.filter_by(import_id=import_id).all()
         
         
 class APIRequestLog(db.Model):
