@@ -1905,11 +1905,23 @@ def optimized_frequency_analysis():
         # Flatten the frequency objects into the array format the chart renderer expects
         # The renderer expects an array of {number, frequency} objects
         for lottery_name, lottery_data in static_data.items():
-            for number_str, frequency in lottery_data["frequency"].items():
-                frequencyDataArray.append({
-                    "number": number_str,
-                    "frequency": frequency
-                })
+            # Check if frequency is a dict (with items method) or a list
+            if isinstance(lottery_data["frequency"], dict):
+                # If it's a dictionary, use items() method
+                for number_str, frequency in lottery_data["frequency"].items():
+                    frequencyDataArray.append({
+                        "number": number_str,
+                        "frequency": frequency
+                    })
+            elif isinstance(lottery_data["frequency"], list):
+                # If it's a list, just add each item directly
+                for freq_item in lottery_data["frequency"]:
+                    # Make sure we have both number and frequency fields
+                    if isinstance(freq_item, dict) and "number" in freq_item and "frequency" in freq_item:
+                        frequencyDataArray.append(freq_item)
+            # If neither, log warning
+            else:
+                print(f"Warning: Unknown frequency data format for {lottery_name}")
         
         # Format division data (placeholder)
         divisionData = [
