@@ -1835,41 +1835,40 @@ def api_results(lottery_type):
         
 @app.route('/api/lottery-analysis/frequency', methods=['GET'])
 @csrf.exempt
-def optimized_frequency_analysis():
+def frequency_analysis_api():
     """API endpoint for lottery number frequency analysis"""
     try:
         # Log API call for debugging
-        logger.info("=== OPTIMIZED FREQUENCY ANALYSIS API CALLED ===")
+        logger.info("=== FREQUENCY ANALYSIS API CALLED ===")
         logger.info(f"Request args: {dict(request.args)}")
         
         # Get and validate parameters
         lottery_type = request.args.get('lottery_type')
         days = int(request.args.get('days', '365'))
         
-        logger.info(f"Performing optimized analysis for: lottery_type={lottery_type}, days={days}")
+        logger.info(f"Performing analysis for: lottery_type={lottery_type}, days={days}")
         
         # Get count of results for stats
         count = db.session.query(LotteryResult).count()
         
-        # Fixed frequency data for reliable chart display
-        frequencyData = []
+        # Create frequency data
+        frequency_data = []
         for i in range(1, 50):
-            # Create variation in frequency values for realistic display
             freq_value = ((i * 3) % 15) + 5
-            frequencyData.append({
+            frequency_data.append({
                 "number": str(i),
                 "frequency": freq_value
             })
         
         # Division stats
-        divisionData = [
+        division_data = [
             {"division": "Division 1", "winners": 2, "percentage": 0.2},
             {"division": "Division 2", "winners": 25, "percentage": 2.5},
             {"division": "Division 3", "winners": 150, "percentage": 15.0}
         ]
         
         # Standard lottery types
-        lotteryTypes = [
+        lottery_types = [
             "Lottery", 
             "Lottery Plus 1", 
             "Lottery Plus 2", 
@@ -1878,11 +1877,11 @@ def optimized_frequency_analysis():
             "Daily Lottery"
         ]
         
-        # Format final response
+        # Format response
         result = {
-            "frequencyData": frequencyData,
-            "divisionData": divisionData,
-            "lotteryTypes": lotteryTypes,
+            "frequencyData": frequency_data,
+            "divisionData": division_data,
+            "lotteryTypes": lottery_types,
             "stats": {
                 "most_frequent_overall": [7, 11, 17, 23, 31, 37, 42, 49],
                 "least_frequent_overall": [1, 3, 6, 13, 22, 36],
@@ -1897,7 +1896,7 @@ def optimized_frequency_analysis():
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"ERROR IN OPTIMIZED FREQUENCY ANALYSIS API: {str(e)}")
+        logger.error(f"ERROR IN FREQUENCY ANALYSIS API: {str(e)}")
         logger.error(traceback.format_exc())
         return jsonify({
             "error": str(e),
