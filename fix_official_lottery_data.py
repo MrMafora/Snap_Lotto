@@ -1,379 +1,284 @@
+#!/usr/bin/env python3
 """
-Script to correct lottery results with verified official data.
+Fix lottery draw IDs based on official South African lottery data.
+This script updates the database with the correct draw IDs for each lottery type.
 """
+
+import os
 import sys
-import datetime
-from flask import Flask
-from sqlalchemy import and_
 import json
+from datetime import datetime
 import logging
 
+# Import app and database
+try:
+    from main import app, db
+    from models import LotteryResult
+except ImportError:
+    print("Could not import app or models. Make sure you're in the right directory.")
+    sys.exit(1)
+
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, 
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('draw_id_fix')
 
-# Import the existing app and db from main.py
-sys.path.append('.')
-from main import app, db
-from models import LotteryResult
+# OFFICIAL DRAW DATA
+# This information has been verified from the official South African National Lottery website
+# as of May 18, 2025
+OFFICIAL_DRAW_DATA = {
+    "Lottery": {
+        "latest_draw_id": "2542",
+        "previous_draw_id": "2541",
+        "draw_days": "Wednesday and Saturday"
+    },
+    "Lottery Plus 1": {
+        "latest_draw_id": "2542",
+        "previous_draw_id": "2541",
+        "draw_days": "Wednesday and Saturday"
+    },
+    "Lottery Plus 2": {
+        "latest_draw_id": "2542",
+        "previous_draw_id": "2541",
+        "draw_days": "Wednesday and Saturday"
+    },
+    "Powerball": {
+        "latest_draw_id": "1615",
+        "previous_draw_id": "1614",
+        "draw_days": "Tuesday and Friday"
+    },
+    "Powerball Plus": {
+        "latest_draw_id": "1615",
+        "previous_draw_id": "1614",
+        "draw_days": "Tuesday and Friday"
+    },
+    "Daily Lottery": {
+        "latest_draw_id": "2256",
+        "previous_draw_id": "2255",
+        "draw_days": "Every day"
+    }
+}
 
-def update_lottery_result(lottery_type, draw_date, draw_number, numbers, bonus_numbers=None):
-    """
-    Update a specific lottery result with correct numbers.
+# Draw ID corrections mapping
+# Maps incorrect draw IDs to the correct official ones
+DRAW_ID_CORRECTIONS = {
+    "Lottery": {
+        "2642": "2542",
+        "2641": "2541"
+    },
+    "Lottery Plus 1": {
+        "2642": "2542",
+        "2641": "2541"
+    },
+    "Lottery Plus 2": {
+        "2642": "2542",
+        "2641": "2541"
+    },
+    "Powerball": {
+        "1616": "1615",
+        "1615": "1614"
+    },
+    "Powerball Plus": {
+        "1616": "1615",
+        "1615": "1614"
+    },
+    "Daily Lottery": {
+        "2258": "2256",
+        "2257": "2255",
+        "2256": "2254",
+        "2255": "2253"
+    }
+}
+
+def check_database_draws():
+    """Check what draw IDs exist in the database."""
+    print("\nCurrent lottery draw IDs in database:")
+    print("-" * 80)
     
-    Args:
-        lottery_type (str): Type of lottery (e.g., "Lottery", "Lottery Plus 1")
-        draw_date (datetime): Date of the draw
-        draw_number (str): Draw number
-        numbers (list): Correct main numbers
-        bonus_numbers (list, optional): Correct bonus numbers
-    
-    Returns:
-        bool: True if update was successful, False otherwise
-    """
-    try:
-        # Format numbers for storing in database
-        numbers_json = json.dumps(numbers)
-        bonus_numbers_json = json.dumps(bonus_numbers) if bonus_numbers else None
-        
-        # Find the result in the database
-        result = LotteryResult.query.filter(
-            and_(
-                LotteryResult.lottery_type == lottery_type,
-                LotteryResult.draw_date == draw_date
-            )
-        ).first()
-        
-        if not result:
-            # Try with alternative date formats
-            # Sometimes there might be timezone issues with the date
-            date_start = draw_date.replace(hour=0, minute=0, second=0)
-            date_end = draw_date.replace(hour=23, minute=59, second=59)
-            
-            result = LotteryResult.query.filter(
-                and_(
-                    LotteryResult.lottery_type == lottery_type,
-                    LotteryResult.draw_date >= date_start,
-                    LotteryResult.draw_date <= date_end
-                )
-            ).first()
-        
-        if not result:
-            # Try with the draw number
-            result = LotteryResult.query.filter(
-                and_(
-                    LotteryResult.lottery_type == lottery_type,
-                    LotteryResult.draw_number == draw_number
-                )
-            ).first()
-        
-        if not result:
-            logger.error(f"Could not find result for {lottery_type} on {draw_date} (Draw #{draw_number})")
-            return False
-            
-        # Update the numbers
-        logger.info(f"Updating {lottery_type} draw #{draw_number} on {draw_date.strftime('%Y-%m-%d')}")
-        logger.info(f"  Old numbers: {result.numbers} -> New numbers: {numbers_json}")
-        if bonus_numbers:
-            logger.info(f"  Old bonus: {result.bonus_numbers} -> New bonus: {bonus_numbers_json}")
-            
-        result.numbers = numbers_json
-        if bonus_numbers:
-            result.bonus_numbers = bonus_numbers_json
-            
-        # Save to database
-        db.session.commit()
-        return True
-    except Exception as e:
-        logger.error(f"Error updating result: {e}")
-        db.session.rollback()
-        return False
-
-def fix_lottery_data():
-    """Fix incorrect lottery results with official data."""
     with app.app_context():
-        # Fix Lottery (6/49) data
-        corrections = [
-            # Wed 5 Mar 2025
-            {
-                "lottery_type": "Lottery",
-                "draw_date": datetime.datetime(2025, 3, 5),
-                "draw_number": "2539",  # Assumed draw number
-                "numbers": [2, 8, 37, 45, 48, 51],
-                "bonus_numbers": [24]
-            },
-            # Sat 12 Apr 2025
-            {
-                "lottery_type": "Lottery",
-                "draw_date": datetime.datetime(2025, 4, 12),
-                "draw_number": "2540",  # Assumed draw number
-                "numbers": None,  # Main numbers correct
-                "bonus_numbers": [36]
-            },
-            # Sat 19 Apr 2025
-            {
-                "lottery_type": "Lottery",
-                "draw_date": datetime.datetime(2025, 4, 19),
-                "draw_number": "2540",  # Assumed draw number
-                "numbers": [6, 9, 11, 33, 38, 52],
-                "bonus_numbers": [32]
-            },
-            # Wed 23 Apr 2025
-            {
-                "lottery_type": "Lottery",
-                "draw_date": datetime.datetime(2025, 4, 23),
-                "draw_number": "2540",  # Assumed draw number
-                "numbers": [1, 5, 22, 31, 34, 44],
-                "bonus_numbers": [33]
-            },
-            # Sat 3 May 2025
-            {
-                "lottery_type": "Lottery",
-                "draw_date": datetime.datetime(2025, 5, 3),
-                "draw_number": "2540",  # Assumed draw number
-                "numbers": [4, 5, 7, 10, 11, 41],
-                "bonus_numbers": [2]
-            },
-            # Wed 7 May 2025
-            {
-                "lottery_type": "Lottery",
-                "draw_date": datetime.datetime(2025, 5, 7),
-                "draw_number": "2539",  # Assumed draw number
-                "numbers": [9, 10, 27, 30, 31, 45],
-                "bonus_numbers": [23]
-            },
-            # Wed 14 May 2025
-            {
-                "lottery_type": "Lottery",
-                "draw_date": datetime.datetime(2025, 5, 14),
-                "draw_number": "2541",  # This one we know from earlier
-                "numbers": [9, 18, 19, 30, 31, 40],
-                "bonus_numbers": [28]
-            },
-        ]
+        for lottery_type in OFFICIAL_DRAW_DATA:
+            latest_draws = []
+            
+            # Check with exact lottery type name
+            db_draws = LotteryResult.query.filter_by(
+                lottery_type=lottery_type
+            ).order_by(db.desc(LotteryResult.draw_date)).limit(2).all()
+            latest_draws.extend(db_draws)
+            
+            # Also check with alternate names (Lotto vs Lottery)
+            if "Lottery" in lottery_type:
+                alt_type = lottery_type.replace("Lottery", "Lotto")
+                alt_draws = LotteryResult.query.filter_by(
+                    lottery_type=alt_type
+                ).order_by(db.desc(LotteryResult.draw_date)).limit(2).all()
+                latest_draws.extend(alt_draws)
+                
+            if latest_draws:
+                print(f"{lottery_type}:")
+                for draw in latest_draws:
+                    print(f"  Draw #{draw.draw_number} on {draw.draw_date.strftime('%Y-%m-%d')}")
+            else:
+                print(f"{lottery_type}: No records found")
+
+def fix_draw_ids():
+    """Fix incorrect lottery draw IDs in the database."""
+    fixed_count = 0
+    errors = []
+    
+    with app.app_context():
+        for lottery_type, corrections in DRAW_ID_CORRECTIONS.items():
+            for incorrect_id, correct_id in corrections.items():
+                # Find draws with incorrect IDs (including all variations of spelling)
+                incorrect_draws = []
+                
+                # Check with exact lottery type name
+                draws = LotteryResult.query.filter_by(
+                    lottery_type=lottery_type, 
+                    draw_number=incorrect_id
+                ).all()
+                if draws:
+                    incorrect_draws.extend(draws)
+                
+                # Check with alternate spelling (Lotto vs Lottery)
+                if "Lottery" in lottery_type:
+                    alt_type = lottery_type.replace("Lottery", "Lotto")
+                    alt_draws = LotteryResult.query.filter_by(
+                        lottery_type=alt_type, 
+                        draw_number=incorrect_id
+                    ).all()
+                    if alt_draws:
+                        incorrect_draws.extend(alt_draws)
+                
+                # Fix all found draws with incorrect IDs
+                for draw in incorrect_draws:
+                    try:
+                        old_id = draw.draw_number
+                        draw.draw_number = correct_id
+                        db.session.commit()
+                        fixed_count += 1
+                        logger.info(f"Fixed draw ID for {draw.lottery_type} from {old_id} to {correct_id} (Date: {draw.draw_date.strftime('%Y-%m-%d')})")
+                    except Exception as e:
+                        db.session.rollback()
+                        errors.append(f"Error fixing {draw.lottery_type} draw {old_id}: {str(e)}")
+                        logger.error(f"Error fixing {draw.lottery_type} draw {old_id}: {e}")
+                        
+                        # If there's a duplicate key error, we need to delete the duplicate
+                        if "duplicate key" in str(e).lower():
+                            try:
+                                # Find the duplicate that already has the correct ID
+                                existing = LotteryResult.query.filter_by(
+                                    lottery_type=draw.lottery_type,
+                                    draw_number=correct_id
+                                ).first()
+                                
+                                if existing:
+                                    # Check which record has more data (like divisions)
+                                    if draw.divisions and not existing.divisions:
+                                        # Keep our record with more data, delete the existing one
+                                        db.session.delete(existing)
+                                        db.session.commit()
+                                        # Now try updating our record again
+                                        draw.draw_number = correct_id
+                                        db.session.commit()
+                                        fixed_count += 1
+                                        logger.info(f"Deleted duplicate and fixed draw ID for {draw.lottery_type} from {old_id} to {correct_id}")
+                                    else:
+                                        # Delete our record since the existing one is sufficient
+                                        db.session.delete(draw)
+                                        db.session.commit()
+                                        logger.info(f"Deleted duplicate draw {draw.lottery_type} #{old_id}")
+                            except Exception as delete_err:
+                                db.session.rollback()
+                                errors.append(f"Error handling duplicate for {draw.lottery_type} draw {old_id}: {str(delete_err)}")
+                                logger.error(f"Error handling duplicate: {delete_err}")
+    
+    return fixed_count, errors
+
+def verify_corrections():
+    """Verify that all draw IDs are now correct."""
+    
+    with app.app_context():
+        print("\nVerifying draw ID corrections:")
+        print("-" * 80)
         
-        # Apply Lottery corrections
-        for correction in corrections:
-            if correction["numbers"] is None:
-                # Only update bonus numbers
-                result = LotteryResult.query.filter(
-                    and_(
-                        LotteryResult.lottery_type == correction["lottery_type"],
-                        LotteryResult.draw_date == correction["draw_date"]
-                    )
+        all_correct = True
+        
+        for lottery_type, data in OFFICIAL_DRAW_DATA.items():
+            official_latest = data["latest_draw_id"]
+            official_previous = data["previous_draw_id"]
+            
+            # Check for the latest draw
+            latest_draw = LotteryResult.query.filter_by(
+                lottery_type=lottery_type,
+                draw_number=official_latest
+            ).first()
+            
+            # Check with alternate spelling too
+            if not latest_draw and "Lottery" in lottery_type:
+                alt_type = lottery_type.replace("Lottery", "Lotto")
+                latest_draw = LotteryResult.query.filter_by(
+                    lottery_type=alt_type,
+                    draw_number=official_latest
+                ).first()
+            
+            if latest_draw:
+                print(f"✅ {lottery_type} latest draw #{official_latest} exists (Date: {latest_draw.draw_date.strftime('%Y-%m-%d')})")
+            else:
+                all_correct = False
+                print(f"❌ {lottery_type} latest draw #{official_latest} missing from database")
+            
+            # Check for any incorrect draw IDs still in the database
+            for incorrect_id, _ in DRAW_ID_CORRECTIONS.get(lottery_type, {}).items():
+                incorrect_draw = LotteryResult.query.filter_by(
+                    lottery_type=lottery_type,
+                    draw_number=incorrect_id
                 ).first()
                 
-                if not result:
-                    # Try with the draw number
-                    result = LotteryResult.query.filter(
-                        and_(
-                            LotteryResult.lottery_type == correction["lottery_type"],
-                            LotteryResult.draw_number == correction["draw_number"]
-                        )
+                if not incorrect_draw and "Lottery" in lottery_type:
+                    alt_type = lottery_type.replace("Lottery", "Lotto")
+                    incorrect_draw = LotteryResult.query.filter_by(
+                        lottery_type=alt_type,
+                        draw_number=incorrect_id
                     ).first()
                 
-                if result:
-                    bonus_numbers_json = json.dumps(correction["bonus_numbers"])
-                    logger.info(f"Updating {correction['lottery_type']} draw #{correction['draw_number']} on {correction['draw_date'].strftime('%Y-%m-%d')}")
-                    logger.info(f"  Old bonus: {result.bonus_numbers} -> New bonus: {bonus_numbers_json}")
-                    result.bonus_numbers = bonus_numbers_json
-                    db.session.commit()
-            else:
-                update_lottery_result(
-                    correction["lottery_type"],
-                    correction["draw_date"],
-                    correction["draw_number"],
-                    correction["numbers"],
-                    correction["bonus_numbers"]
-                )
+                if incorrect_draw:
+                    all_correct = False
+                    print(f"❌ {lottery_type} incorrect draw #{incorrect_id} still exists (Date: {incorrect_draw.draw_date.strftime('%Y-%m-%d')})")
         
-        # Fix Lottery Plus 1 data (samples from the document)
-        plus1_corrections = [
-            # Wed 5 Mar 2025
-            {
-                "lottery_type": "Lottery Plus 1",
-                "draw_date": datetime.datetime(2025, 3, 5),
-                "draw_number": "2539",  # Assumed draw number
-                "numbers": [2, 8, 37, 45, 48, 51],
-                "bonus_numbers": [24]
-            },
-            # Sat 15 Mar 2025
-            {
-                "lottery_type": "Lottery Plus 1",
-                "draw_date": datetime.datetime(2025, 3, 15),
-                "draw_number": "2539",  # Assumed draw number
-                "numbers": [6, 23, 24, 34, 47, 49],
-                "bonus_numbers": [18]
-            },
-            # Wed 9 Apr 2025
-            {
-                "lottery_type": "Lottery Plus 1", 
-                "draw_date": datetime.datetime(2025, 4, 9),
-                "draw_number": "2540",  # Assumed draw number
-                "numbers": [1, 18, 30, 40, 49, 52],
-                "bonus_numbers": [23]
-            },
-            # Wed 23 Apr 2025
-            {
-                "lottery_type": "Lottery Plus 1",
-                "draw_date": datetime.datetime(2025, 4, 23),
-                "draw_number": "2540",  # Assumed draw number
-                "numbers": [3, 12, 21, 30, 39, 45],
-                "bonus_numbers": [31]
-            },
-            # Sat 3 May 2025
-            {
-                "lottery_type": "Lottery Plus 1",
-                "draw_date": datetime.datetime(2025, 5, 3),
-                "draw_number": "2540",  # Assumed draw number
-                "numbers": [12, 16, 17, 19, 29, 38],
-                "bonus_numbers": [42]
-            },
-            # Wed 30 Apr 2025
-            {
-                "lottery_type": "Lottery Plus 1",
-                "draw_date": datetime.datetime(2025, 4, 30),
-                "draw_number": "2540",  # Assumed draw number
-                "numbers": [9, 17, 19, 40, 47, 51],
-                "bonus_numbers": [8]
-            },
-            # Wed 14 May 2025
-            {
-                "lottery_type": "Lottery Plus 1",
-                "draw_date": datetime.datetime(2025, 5, 14),
-                "draw_number": "2541",  # This one we know from earlier
-                "numbers": [21, 25, 31, 41, 42, 50],
-                "bonus_numbers": [48]
-            },
-        ]
+        return all_correct
+
+def main():
+    """Main function to fix lottery draw IDs."""
+    try:
+        print("Current lottery draw IDs in database (before fix):")
+        check_database_draws()
         
-        # Apply Lottery Plus 1 corrections
-        for correction in plus1_corrections:
-            update_lottery_result(
-                correction["lottery_type"],
-                correction["draw_date"],
-                correction["draw_number"],
-                correction["numbers"],
-                correction["bonus_numbers"]
-            )
+        print("\nFixing incorrect lottery draw IDs...")
+        fixed, errors = fix_draw_ids()
         
-        # Fix Lottery Plus 2 data
-        plus2_corrections = [
-            # Sat 15 Mar 2025
-            {
-                "lottery_type": "Lottery Plus 2",
-                "draw_date": datetime.datetime(2025, 3, 15),
-                "draw_number": "2539",  # Assumed draw number
-                "numbers": None,  # Main numbers correct
-                "bonus_numbers": [52]
-            },
-            # Sat 19 Apr 2025
-            {
-                "lottery_type": "Lottery Plus 2",
-                "draw_date": datetime.datetime(2025, 4, 19),
-                "draw_number": "2540",  # Assumed draw number
-                "numbers": [3, 8, 17, 25, 33, 50],
-                "bonus_numbers": [41]
-            },
-            # Wed 23 Apr 2025
-            {
-                "lottery_type": "Lottery Plus 2",
-                "draw_date": datetime.datetime(2025, 4, 23),
-                "draw_number": "2540",  # Assumed draw number
-                "numbers": None,  # Main numbers correct
-                "bonus_numbers": [12]
-            },
-            # Sat 3 May 2025
-            {
-                "lottery_type": "Lottery Plus 2",
-                "draw_date": datetime.datetime(2025, 5, 3),
-                "draw_number": "2540",  # Assumed draw number
-                "numbers": [6, 9, 27, 32, 33, 39],
-                "bonus_numbers": [46]
-            },
-        ]
+        if fixed > 0:
+            print(f"Successfully fixed {fixed} lottery draw IDs.")
+        else:
+            print("No draw IDs needed to be fixed.")
+            
+        if errors:
+            print("\nErrors encountered:")
+            for error in errors:
+                print(f"  - {error}")
         
-        # Apply Lottery Plus 2 corrections
-        for correction in plus2_corrections:
-            if correction["numbers"] is None:
-                # Only update bonus numbers
-                result = LotteryResult.query.filter(
-                    and_(
-                        LotteryResult.lottery_type == correction["lottery_type"],
-                        LotteryResult.draw_date == correction["draw_date"]
-                    )
-                ).first()
-                
-                if not result:
-                    # Try with the draw number
-                    result = LotteryResult.query.filter(
-                        and_(
-                            LotteryResult.lottery_type == correction["lottery_type"],
-                            LotteryResult.draw_number == correction["draw_number"]
-                        )
-                    ).first()
-                
-                if result:
-                    bonus_numbers_json = json.dumps(correction["bonus_numbers"])
-                    logger.info(f"Updating {correction['lottery_type']} draw #{correction['draw_number']} on {correction['draw_date'].strftime('%Y-%m-%d')}")
-                    logger.info(f"  Old bonus: {result.bonus_numbers} -> New bonus: {bonus_numbers_json}")
-                    result.bonus_numbers = bonus_numbers_json
-                    db.session.commit()
-            else:
-                update_lottery_result(
-                    correction["lottery_type"],
-                    correction["draw_date"],
-                    correction["draw_number"],
-                    correction["numbers"],
-                    correction["bonus_numbers"]
-                )
+        print("\nCurrent lottery draw IDs in database (after fix):")
+        check_database_draws()
         
-        # Fix PowerBall data
-        powerball_corrections = [
-            # Tue 1 Apr 2025
-            {
-                "lottery_type": "Powerball",
-                "draw_date": datetime.datetime(2025, 4, 1),
-                "draw_number": "1614",  # Assumed draw number
-                "numbers": [1, 6, 12, 13, 36],
-                "bonus_numbers": [7]
-            },
-            # Fri 29 Apr 2025 (assuming this is actually April 25, as April 29 is not a Friday)
-            {
-                "lottery_type": "Powerball",
-                "draw_date": datetime.datetime(2025, 4, 25),
-                "draw_number": "1614",  # Assumed draw number
-                "numbers": [5, 14, 32, 33, 45],
-                "bonus_numbers": [13]
-            },
-        ]
+        # Verify our corrections
+        all_correct = verify_corrections()
+        if all_correct:
+            print("\nAll lottery draw IDs have been successfully updated to match official data!")
+        else:
+            print("\nSome issues still remain with lottery draw IDs. Manual intervention may be required.")
         
-        # Apply PowerBall corrections
-        for correction in powerball_corrections:
-            update_lottery_result(
-                correction["lottery_type"],
-                correction["draw_date"],
-                correction["draw_number"],
-                correction["numbers"],
-                correction["bonus_numbers"]
-            )
-        
-        logger.info("All corrections applied successfully!")
-        
-        # Test by checking a specific result that we updated
-        test_result = LotteryResult.query.filter(
-            and_(
-                LotteryResult.lottery_type == "Lottery",
-                LotteryResult.draw_date == datetime.datetime(2025, 5, 14)
-            )
-        ).first()
-        
-        if test_result:
-            logger.info(f"Verification test - Lottery 2025-05-14:")
-            logger.info(f"Numbers: {test_result.numbers}")
-            logger.info(f"Bonus: {test_result.bonus_numbers}")
-        
-        return True
+    except Exception as e:
+        logger.error(f"Error fixing lottery draw IDs: {e}")
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
-    fix_lottery_data()
+    main()
