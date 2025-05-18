@@ -247,18 +247,28 @@ class LotteryAnalyzer:
             data = []
             for result in results:
                 try:
-                    # Extract the numbers as a list - handle JSON strings
+                    # Extract the numbers as a list - avoid JSON parsing completely
                     if isinstance(result.numbers, str):
-                        if result.numbers.startswith('[') and result.numbers.endswith(']'):
-                            # JSON format
-                            try:
-                                numbers = json.loads(result.numbers)
-                            except json.JSONDecodeError:
-                                # Try handling as comma-separated values
-                                numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
+                        # Clean the string by removing any JSON-like characters
+                        cleaned_str = re.sub(r'[\[\]"{}\']', '', result.numbers)
+                        
+                        # Handle the case with bonus numbers (format: "1 2 3 + 4")
+                        if '+' in cleaned_str:
+                            main_part = cleaned_str.split('+')[0].strip()
+                            # Process the main numbers only
+                            numbers_str = [n.strip() for n in re.split(r'[,\s]+', main_part) if n.strip()]
                         else:
-                            # Comma-separated values
-                            numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
+                            # Split by either commas or spaces
+                            numbers_str = [n.strip() for n in re.split(r'[,\s]+', cleaned_str) if n.strip()]
+                        
+                        # Convert to integers where possible
+                        numbers = []
+                        for n in numbers_str:
+                            try:
+                                numbers.append(int(n))
+                            except ValueError:
+                                # Skip any non-numeric values
+                                continue
                     else:
                         # Already in list form
                         numbers = result.numbers
