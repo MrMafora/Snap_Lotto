@@ -267,7 +267,7 @@ class TicketScanner:
             
             # Add source information
             new_draw.source_url = 'api_verification'
-            new_draw.source = draw_data.get('source', 'api')
+            new_draw.ocr_provider = draw_data.get('source', 'api')
             
             # Save to database
             db.session.add(new_draw)
@@ -430,13 +430,12 @@ class TicketScanner:
             api_type: Type of API request (e.g., 'gemini_ocr', 'openai_verification')
         """
         try:
-            log_entry = ApiRequestLog()
-            log_entry.api_type = api_type
-            log_entry.timestamp = datetime.now()
-            log_entry.success = True
-            
-            db.session.add(log_entry)
-            db.session.commit()
+            # Use the existing APIRequestLog.log_request method
+            APIRequestLog.log_request(
+                service=api_type.split('_')[0],  # 'gemini' or 'openai'
+                endpoint=api_type.split('_')[1] if '_' in api_type else api_type,  # 'ocr' or 'verification'
+                status='success'
+            )
             
         except Exception as e:
             logger.error(f"Error logging API request: {str(e)}")
@@ -446,3 +445,52 @@ class TicketScanner:
 def get_ticket_scanner():
     """Create and return a configured ticket scanner instance"""
     return TicketScanner()
+
+
+# Process ticket image function used by main.py
+def process_ticket_image(image_data, lottery_type='', draw_number=None, file_extension='.jpeg'):
+    """
+    Process a ticket image from binary data
+    
+    Args:
+        image_data: Binary image data
+        lottery_type: Optional lottery type if known
+        draw_number: Optional draw number if known
+        file_extension: File extension for the image
+        
+    Returns:
+        Dictionary with processing results
+    """
+    import os
+    import tempfile
+    
+    logger.info("Processing ticket image via process_ticket_image function")
+    
+    # Save the image data to a temporary file
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=file_extension)
+    temp_file_path = temp_file.name
+    
+    try:
+        # Write image data to the temporary file
+        with open(temp_file_path, 'wb') as f:
+            f.write(image_data)
+        
+        # Create a scanner instance
+        scanner = TicketScanner()
+        
+        # Process the ticket image
+        result = scanner.scan_ticket(temp_file_path)
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error processing ticket image: {str(e)}")
+        return {
+            'success': False,
+            'error': f"Error processing ticket: {str(e)}"
+        }
+    finally:
+        # Clean up the temporary file
+        try:
+            os.unlink(temp_file_path)
+        except Exception as cleanup_error:
+            logger.warning(f"Error cleaning up temporary file: {str(cleanup_error)}")

@@ -776,3 +776,6 @@ class APIRequestLog(db.Model):
             'total_tokens': int(stats.total_tokens) if stats and stats.total_tokens else 0,
             'avg_duration': round(float(stats.avg_duration), 2) if stats and stats.avg_duration else 0
         }
+        
+# APIRequestLog is already defined elsewhere in this file
+# Keeping the model here would cause a duplicate table definition error
