@@ -656,33 +656,71 @@ def get_latest_results():
     Returns:
         dict: Dictionary mapping lottery types to their latest results
     """
-    # Get all distinct lottery types
-    lottery_types = db.session.query(LotteryResult.lottery_type).distinct().all()
-    latest_results = {}
-    
-    # Create a mapping of normalized types
-    normalized_types = {}
-    for lt in lottery_types:
-        lottery_type = lt[0]
-        normalized_type = normalize_lottery_type(lottery_type)
+    try:
+        # Get all distinct lottery types
+        lottery_types = db.session.query(LotteryResult.lottery_type).distinct().all()
+        latest_results = {}
         
-        if normalized_type not in normalized_types:
-            normalized_types[normalized_type] = []
+        # Create a mapping of normalized types
+        normalized_types = {}
+        for lt in lottery_types:
+            lottery_type = lt[0]
+            normalized_type = normalize_lottery_type(lottery_type)
+            
+            if normalized_type not in normalized_types:
+                normalized_types[normalized_type] = []
+            
+            normalized_types[normalized_type].append(lottery_type)
         
-        normalized_types[normalized_type].append(lottery_type)
-    
-    # For each normalized type, get the latest result among all its variants
-    for normalized_type, variants in normalized_types.items():
-        # Query across all variants of this lottery type
-        result = LotteryResult.query.filter(
-            LotteryResult.lottery_type.in_(variants)
-        ).order_by(LotteryResult.draw_date.desc()).first()
+        # For each normalized type, get the latest result among all its variants
+        for normalized_type, variants in normalized_types.items():
+            # Query across all variants of this lottery type
+            result = LotteryResult.query.filter(
+                LotteryResult.lottery_type.in_(variants)
+            ).order_by(LotteryResult.draw_date.desc()).first()
+            
+            if result:
+                # Handle the numbers field to ensure it's properly formatted
+                if result.numbers:
+                    try:
+                        # Verify if numbers field can be parsed as JSON
+                        # without actually modifying it
+                        json.loads(result.numbers)
+                    except json.JSONDecodeError:
+                        # If it's not valid JSON, it's likely in the space-separated format
+                        # We don't need to modify it as the model will handle this format
+                        pass
+                        
+                # Store result under the standard lottery type name
+                standard_name = get_standard_name(result.lottery_type)
+                latest_results[standard_name] = result
         
-        if result:
-            # Store result under the normalized type name
-            latest_results[normalized_type] = result
+        return latest_results
+    except Exception as e:
+        logger.error(f"Error in get_latest_results: {str(e)}")
+        return {}
+        
+def get_standard_name(lottery_type):
+    """Convert any variant of lottery type to standard name"""
+    normalized = normalize_lottery_type(lottery_type).lower()
     
-    return latest_results
+    if "lotto" in normalized:
+        if "plus 1" in normalized:
+            return "Lottery Plus 1"
+        elif "plus 2" in normalized: 
+            return "Lottery Plus 2"
+        else:
+            return "Lottery"
+    elif "powerball" in normalized:
+        if "plus" in normalized:
+            return "Powerball Plus"
+        else:
+            return "Powerball"
+    elif "daily" in normalized:
+        return "Daily Lottery"
+    
+    # Default to original name if no match
+    return lottery_type
 
 def export_results_to_json(lottery_type=None, limit=None):
     """
