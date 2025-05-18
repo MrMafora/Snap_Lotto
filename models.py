@@ -120,15 +120,17 @@ class LotteryResult(db.Model):
             main_numbers = numbers_str.split('+')[0].strip()
             return [num.strip() for num in main_numbers.split() if num.strip()]
         
-        # Check if it looks like a JSON array
-        if numbers_str.startswith('[') and numbers_str.endswith(']'):
+        # Check if it looks like a JSON array - strict checking
+        if numbers_str.strip().startswith('[') and numbers_str.strip().endswith(']'):
             try:
-                # Try to parse as JSON
-                parsed = json.loads(numbers_str)
-                # Ensure all items are strings for consistent return type
-                return [str(num) for num in parsed]
-            except (json.JSONDecodeError, TypeError):
-                # If JSON parsing fails, try fallback
+                # First use a safer manual approach for common JSON array formats
+                # Remove the brackets and split by commas
+                stripped = numbers_str.strip()[1:-1].strip()
+                if ',' in stripped:
+                    # Handle comma-separated values within brackets
+                    return [item.strip().strip('"').strip("'") for item in stripped.split(',') if item.strip()]
+            except Exception:
+                # If manual parsing fails, continue to the next approach
                 pass
                 
         # Handle regular space-separated format
