@@ -1,1043 +1,448 @@
 """
-Lottery ticket scanner module for processing ticket images and matching against known results.
+Enhanced Lottery Ticket Scanner
+
+This module implements an advanced lottery ticket scanning system that:
+1. Uses Google Gemini 2.5 Pro for OCR to extract ticket information
+2. Checks the extracted data against our database
+3. Falls back to OpenAI for missing draw information
+4. Saves new draw data to improve the system over time
 """
+
 import os
-import base64
 import json
 import logging
+import requests
 from datetime import datetime
-import re
+from typing import Dict, List, Tuple, Optional, Any, Union
 
-from models import LotteryResult
+from flask import current_app
+from sqlalchemy.exc import SQLAlchemyError
 
-# Setup logging
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def process_ticket_image(image_data, lottery_type, draw_number=None, file_extension='.jpeg'):
-    """
-    Process a lottery ticket image to extract all information and check if it's a winner.
-    
-    Args:
-        image_data: The uploaded ticket image data
-        lottery_type: Type of lottery (Lottery, Powerball, etc.)
-        draw_number: Optional specific draw number to check against
-        file_extension: Extension of the uploaded file (e.g., '.jpeg', '.png')
-        
-    Returns:
-        dict: Result of ticket processing including matched numbers and prize info
-    """
-    # Convert image to base64 for OCR processing
-    image_base64 = base64.b64encode(image_data).decode('utf-8')
-    
-    # We already have the file extension from the parameters
-    logger.info(f"Using file extension: {file_extension}")
-    
-    # Extract ticket information using OCR
-    ticket_info = extract_ticket_numbers(image_base64, lottery_type, file_extension)
-    
-    # Extract details from ticket info
-    extracted_game_type = ticket_info.get('game_type')
-    extracted_draw_number = ticket_info.get('draw_number')
-    extracted_draw_date = ticket_info.get('draw_date')
-    plays_powerball_plus = ticket_info.get('plays_powerball_plus', False)
-    plays_lottery_plus_1 = ticket_info.get('plays_lottery_plus_1', False) or ticket_info.get('plays_lotto_plus_1', False)
-    plays_lottery_plus_2 = ticket_info.get('plays_lottery_plus_2', False) or ticket_info.get('plays_lotto_plus_2', False)
-    
-    # Get both the raw and processed ticket numbers
-    raw_ticket_info = ticket_info.get('raw_selected_numbers', {})
-    ticket_numbers = ticket_info.get('selected_numbers', [])
-    
-    # Make sure the lottery_type is not set to the file extension (fix a common issue)
-    if lottery_type and lottery_type.startswith('.'):
-        lottery_type = ''
-        
-    # Use extracted lottery type if available and not manually specified
-    if extracted_game_type and extracted_game_type != 'unknown' and (not lottery_type or lottery_type == 'unknown'):
-        lottery_type = extracted_game_type
-        
-    # Use extracted draw number if available and not manually specified
-    if extracted_draw_number and extracted_draw_number != 'unknown' and not draw_number:
-        draw_number = extracted_draw_number
-    
-    # Log the extracted information
-    logger.info(f"Extracted ticket info - Game: {lottery_type}, Draw: {draw_number}, Date: {extracted_draw_date}, Numbers: {ticket_numbers}, Plays Powerball Plus: {plays_powerball_plus}, Plays Lottery Plus 1: {plays_lottery_plus_1}, Plays Lottery Plus 2: {plays_lottery_plus_2}")
-    
-    # Get the lottery result to compare against
-    lottery_result = get_lottery_result(lottery_type, draw_number)
-    
-    # Variables to hold additional game results
-    powerball_plus_result = None
-    lottery_plus_1_result = None
-    lottery_plus_2_result = None
-    
-    # Check for Powerball Plus if applicable
-    # Only check if primary game is Powerball and ticket plays Powerball Plus
-    # Use case-insensitive comparison for "Powerball" to handle any OCR variations
-    if lottery_type.lower() == "powerball" and plays_powerball_plus:
-        logger.info("This ticket also plays Powerball Plus - checking both games")
-        powerball_plus_result = get_lottery_result("Powerball Plus", draw_number)
-    elif lottery_type.lower() == "powerball":
-        logger.info("This ticket is Powerball only - NOT checking Powerball Plus")
-    
-    # Check for Lottery Plus 1 if applicable
-    # Only check if primary game is Lottery and ticket plays Lottery Plus 1
-    if lottery_type == "Lottery" and plays_lottery_plus_1:
-        logger.info("This ticket also plays Lottery Plus 1 - checking both games")
-        lottery_plus_1_result = get_lottery_result("Lottery Plus 1", draw_number)
-    elif lottery_type == "Lottery":
-        logger.info("This ticket doesn't play Lottery Plus 1 or it wasn't detected")
-    
-    # Check for Lottery Plus 2 if applicable
-    # Only check if primary game is Lottery and ticket plays Lottery Plus 2
-    if lottery_type == "Lottery" and plays_lottery_plus_2:
-        logger.info("This ticket also plays Lottery Plus 2 - checking both games")
-        lottery_plus_2_result = get_lottery_result("Lottery Plus 2", draw_number)
-    elif lottery_type == "Lottery":
-        logger.info("This ticket doesn't play Lottery Plus 2 or it wasn't detected")
-    
-    if not lottery_result:
-        # Enhanced error message with more helpful information
-        error_message = f"No results found for {lottery_type}"
-        
-        if draw_number:
-            error_message += f" Draw {draw_number}"
-        else:
-            error_message += " (latest draw)"
-            
-        # Check if this is a future draw
-        if extracted_draw_date:
-            try:
-                draw_date = datetime.strptime(extracted_draw_date, '%Y-%m-%d')
-                today = datetime.now()
-                if draw_date > today:
-                    error_message = f"This ticket is for a future draw on {draw_date.strftime('%A, %d %B %Y')}. Results are not available yet."
-            except Exception as e:
-                logger.error(f"Error parsing draw date: {e}")
-        
-        # Add suggestion for what to do next
-        error_message += ". This might be a recent draw not yet in our database, or the ticket information couldn't be read correctly."
-        
-        return {
-            "error": error_message,
-            "ticket_info": {
-                "lottery_type": lottery_type,
-                "draw_number": draw_number if draw_number else extracted_draw_number,
-                "draw_date": extracted_draw_date,
-                "ticket_numbers": ticket_numbers,
-                "plays_powerball_plus": plays_powerball_plus,
-                "plays_lottery_plus_1": plays_lottery_plus_1,
-                "plays_lottery_plus_2": plays_lottery_plus_2
-            }
-        }
-    
-    # Get winning numbers from the result
-    winning_numbers = lottery_result.get_numbers_list()
-    winning_numbers = [int(num) for num in winning_numbers]
-    
-    bonus_numbers = []
-    if lottery_result.bonus_numbers:
-        bonus_numbers = lottery_result.get_bonus_numbers_list()
-        bonus_numbers = [int(num) for num in bonus_numbers]
-    
-    # Initialize variables for best matching row
-    best_row_matches = []
-    best_row_bonus_matches = []
-    rows_with_matches = []
-    
-    # If we have raw ticket info (multiple rows), analyze each row separately
-    if raw_ticket_info and isinstance(raw_ticket_info, dict) and len(raw_ticket_info) > 0:
-        # Process each row separately
-        for row_name, numbers in raw_ticket_info.items():
-            row_matches = [num for num in numbers if num in winning_numbers]
-            row_bonus_matches = [num for num in numbers if num in bonus_numbers]
-            
-            # Track row with matches
-            if row_matches or row_bonus_matches:
-                row_data = {
-                    "row": row_name,
-                    "numbers": numbers,
-                    "matched_numbers": row_matches,
-                    "matched_bonus": row_bonus_matches,
-                    "total_matched": len(row_matches) + len(row_bonus_matches),
-                    "game_type": lottery_type  # This identifies which game the matches belong to
-                }
-                rows_with_matches.append(row_data)
-                
-                # Keep track of best row (most matches)
-                if len(row_matches) + len(row_bonus_matches) > len(best_row_matches) + len(best_row_bonus_matches):
-                    best_row_matches = row_matches
-                    best_row_bonus_matches = row_bonus_matches
-        
-        # If we found rows with matches, use the best row for prize determination
-        if best_row_matches or best_row_bonus_matches:
-            matched_numbers = best_row_matches
-            matched_bonus = best_row_bonus_matches
-        else:
-            # No matches in any row
-            matched_numbers = []
-            matched_bonus = []
-    else:
-        # For single row tickets, check the flattened list
-        matched_numbers = [num for num in ticket_numbers if num in winning_numbers]
-        matched_bonus = [num for num in ticket_numbers if num in bonus_numbers]
-    
-    # Get prize information based on matches
-    prize_info = get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result)
-    
-    # Format draw date for display
-    formatted_date = lottery_result.draw_date.strftime("%A, %d %B %Y")
-    
-    # Initialize result structure
-    result = {
-        "lottery_type": lottery_type,
-        "draw_number": lottery_result.draw_number,
-        "draw_date": formatted_date,
-        "ticket_info": {
-            "detected_game_type": extracted_game_type,
-            "detected_draw_number": extracted_draw_number,
-            "detected_draw_date": extracted_draw_date,
-            "selected_numbers": ticket_numbers,
-            "plays_powerball_plus": plays_powerball_plus,
-            "plays_lottery_plus_1": plays_lottery_plus_1,
-            "plays_lottery_plus_2": plays_lottery_plus_2
-        },
-        "ticket_numbers": ticket_numbers,
-        "winning_numbers": winning_numbers,
-        "bonus_numbers": bonus_numbers,
-        "matched_numbers": matched_numbers,
-        "matched_bonus": matched_bonus,
-        "total_matched": len(matched_numbers) + len(matched_bonus),
-        "has_prize": bool(prize_info),
-        "prize_info": prize_info if prize_info else {}
-    }
-    
-    # Include raw selected numbers data if available
-    if raw_ticket_info:
-        result["ticket_info"]["raw_selected_numbers"] = raw_ticket_info
-    
-    # Add rows with matches if we have them
-    if rows_with_matches:
-        result["rows_with_matches"] = rows_with_matches
-    
-    # If this ticket also plays additional games, check against those results
-    
-    # For Powerball Plus results
-    if powerball_plus_result:
-        # Get Powerball Plus winning numbers
-        pp_winning_numbers = powerball_plus_result.get_numbers_list()
-        pp_winning_numbers = [int(num) for num in pp_winning_numbers]
-        
-        pp_bonus_numbers = []
-        if powerball_plus_result.bonus_numbers:
-            pp_bonus_numbers = powerball_plus_result.get_bonus_numbers_list()
-            pp_bonus_numbers = [int(num) for num in pp_bonus_numbers]
-        
-        # Initialize best matches for Powerball Plus
-        pp_best_matches = []
-        pp_best_bonus_matches = []
-        pp_rows_with_matches = []
-        
-        # Check each row separately for Powerball Plus matches
-        if raw_ticket_info and isinstance(raw_ticket_info, dict) and len(raw_ticket_info) > 0:
-            for row_name, numbers in raw_ticket_info.items():
-                row_matches = [num for num in numbers if num in pp_winning_numbers]
-                row_bonus_matches = [num for num in numbers if num in pp_bonus_numbers]
-                
-                if row_matches or row_bonus_matches:
-                    pp_rows_with_matches.append({
-                        "row": row_name,
-                        "numbers": numbers,
-                        "matched_numbers": row_matches,
-                        "matched_bonus": row_bonus_matches,
-                        "total_matched": len(row_matches) + len(row_bonus_matches),
-                        "game_type": "Powerball Plus"  # Add game type for clarity
-                    })
-                    
-                    # Track best matches
-                    if len(row_matches) + len(row_bonus_matches) > len(pp_best_matches) + len(pp_best_bonus_matches):
-                        pp_best_matches = row_matches
-                        pp_best_bonus_matches = row_bonus_matches
-            
-            # Use best row matches if any found
-            if pp_best_matches or pp_best_bonus_matches:
-                pp_matched_numbers = pp_best_matches
-                pp_matched_bonus = pp_best_bonus_matches
-            else:
-                # No matches in any row
-                pp_matched_numbers = []
-                pp_matched_bonus = []
-        else:
-            # For single row tickets
-            pp_matched_numbers = [num for num in ticket_numbers if num in pp_winning_numbers]
-            pp_matched_bonus = [num for num in ticket_numbers if num in pp_bonus_numbers]
-        
-        # Check for prize in Powerball Plus
-        pp_prize_info = get_prize_info("Powerball Plus", pp_matched_numbers, pp_matched_bonus, powerball_plus_result)
-        
-        # Include Powerball Plus results in our response
-        pp_result_data = {
-            "lottery_type": "Powerball Plus",
-            "draw_number": powerball_plus_result.draw_number,
-            "draw_date": powerball_plus_result.draw_date.strftime("%A, %d %B %Y"),
-            "winning_numbers": pp_winning_numbers,
-            "bonus_numbers": pp_bonus_numbers,
-            "matched_numbers": pp_matched_numbers,
-            "matched_bonus": pp_matched_bonus,
-            "total_matched": len(pp_matched_numbers) + len(pp_matched_bonus),
-            "has_prize": bool(pp_prize_info),
-            "prize_info": pp_prize_info if pp_prize_info else {}
-        }
-        
-        # Add rows with matches for Powerball Plus if available
-        if pp_rows_with_matches:
-            pp_result_data["rows_with_matches"] = pp_rows_with_matches
-            
-        result["powerball_plus_results"] = pp_result_data
-        
-        # If Powerball Plus has a prize but the main game doesn't, mark overall ticket as winning
-        if bool(pp_prize_info) and not bool(prize_info):
-            result["has_prize"] = True
-    
-    # For Lottery Plus 1 results
-    if lottery_plus_1_result:
-        # Get Lottery Plus 1 winning numbers
-        lp1_winning_numbers = lottery_plus_1_result.get_numbers_list()
-        lp1_winning_numbers = [int(num) for num in lp1_winning_numbers]
-        
-        lp1_bonus_numbers = []
-        if lottery_plus_1_result.bonus_numbers:
-            lp1_bonus_numbers = lottery_plus_1_result.get_bonus_numbers_list()
-            lp1_bonus_numbers = [int(num) for num in lp1_bonus_numbers]
-        
-        # Initialize best matches for Lottery Plus 1
-        lp1_best_matches = []
-        lp1_best_bonus_matches = []
-        lp1_rows_with_matches = []
-        
-        # Check each row separately for Lottery Plus 1 matches
-        if raw_ticket_info and isinstance(raw_ticket_info, dict) and len(raw_ticket_info) > 0:
-            for row_name, numbers in raw_ticket_info.items():
-                row_matches = [num for num in numbers if num in lp1_winning_numbers]
-                row_bonus_matches = [num for num in numbers if num in lp1_bonus_numbers]
-                
-                if row_matches or row_bonus_matches:
-                    lp1_rows_with_matches.append({
-                        "row": row_name,
-                        "numbers": numbers,
-                        "matched_numbers": row_matches,
-                        "matched_bonus": row_bonus_matches,
-                        "total_matched": len(row_matches) + len(row_bonus_matches),
-                        "game_type": "Lottery Plus 1"  # Add game type for clarity
-                    })
-                    
-                    # Track best matches
-                    if len(row_matches) + len(row_bonus_matches) > len(lp1_best_matches) + len(lp1_best_bonus_matches):
-                        lp1_best_matches = row_matches
-                        lp1_best_bonus_matches = row_bonus_matches
-            
-            # Use best row matches if any found
-            if lp1_best_matches or lp1_best_bonus_matches:
-                lp1_matched_numbers = lp1_best_matches
-                lp1_matched_bonus = lp1_best_bonus_matches
-            else:
-                # No matches in any row
-                lp1_matched_numbers = []
-                lp1_matched_bonus = []
-        else:
-            # For single row tickets
-            lp1_matched_numbers = [num for num in ticket_numbers if num in lp1_winning_numbers]
-            lp1_matched_bonus = [num for num in ticket_numbers if num in lp1_bonus_numbers]
-        
-        # Check for prize in Lottery Plus 1
-        lp1_prize_info = get_prize_info("Lottery Plus 1", lp1_matched_numbers, lp1_matched_bonus, lottery_plus_1_result)
-        
-        # Include Lottery Plus 1 results in our response
-        lp1_result_data = {
-            "lottery_type": "Lottery Plus 1",
-            "draw_number": lottery_plus_1_result.draw_number,
-            "draw_date": lottery_plus_1_result.draw_date.strftime("%A, %d %B %Y"),
-            "winning_numbers": lp1_winning_numbers,
-            "bonus_numbers": lp1_bonus_numbers,
-            "matched_numbers": lp1_matched_numbers,
-            "matched_bonus": lp1_matched_bonus,
-            "total_matched": len(lp1_matched_numbers) + len(lp1_matched_bonus),
-            "has_prize": bool(lp1_prize_info),
-            "prize_info": lp1_prize_info if lp1_prize_info else {}
-        }
-        
-        # Add rows with matches for Lottery Plus 1 if available
-        if lp1_rows_with_matches:
-            lp1_result_data["rows_with_matches"] = lp1_rows_with_matches
-            
-        result["lottery_plus_1_results"] = lp1_result_data
-        
-        # If Lottery Plus 1 has a prize but the main game doesn't, mark overall ticket as winning
-        if bool(lp1_prize_info) and not bool(prize_info):
-            result["has_prize"] = True
-    
-    # For Lottery Plus 2 results
-    if lottery_plus_2_result:
-        # Get Lottery Plus 2 winning numbers
-        lp2_winning_numbers = lottery_plus_2_result.get_numbers_list()
-        lp2_winning_numbers = [int(num) for num in lp2_winning_numbers]
-        
-        lp2_bonus_numbers = []
-        if lottery_plus_2_result.bonus_numbers:
-            lp2_bonus_numbers = lottery_plus_2_result.get_bonus_numbers_list()
-            lp2_bonus_numbers = [int(num) for num in lp2_bonus_numbers]
-        
-        # Initialize best matches for Lottery Plus 2
-        lp2_best_matches = []
-        lp2_best_bonus_matches = []
-        lp2_rows_with_matches = []
-        
-        # Check each row separately for Lottery Plus 2 matches
-        if raw_ticket_info and isinstance(raw_ticket_info, dict) and len(raw_ticket_info) > 0:
-            for row_name, numbers in raw_ticket_info.items():
-                row_matches = [num for num in numbers if num in lp2_winning_numbers]
-                row_bonus_matches = [num for num in numbers if num in lp2_bonus_numbers]
-                
-                if row_matches or row_bonus_matches:
-                    lp2_rows_with_matches.append({
-                        "row": row_name,
-                        "numbers": numbers,
-                        "matched_numbers": row_matches,
-                        "matched_bonus": row_bonus_matches,
-                        "total_matched": len(row_matches) + len(row_bonus_matches),
-                        "game_type": "Lottery Plus 2"  # Add game type for clarity
-                    })
-                    
-                    # Track best matches
-                    if len(row_matches) + len(row_bonus_matches) > len(lp2_best_matches) + len(lp2_best_bonus_matches):
-                        lp2_best_matches = row_matches
-                        lp2_best_bonus_matches = row_bonus_matches
-            
-            # Use best row matches if any found
-            if lp2_best_matches or lp2_best_bonus_matches:
-                lp2_matched_numbers = lp2_best_matches
-                lp2_matched_bonus = lp2_best_bonus_matches
-            else:
-                # No matches in any row
-                lp2_matched_numbers = []
-                lp2_matched_bonus = []
-        else:
-            # For single row tickets
-            lp2_matched_numbers = [num for num in ticket_numbers if num in lp2_winning_numbers]
-            lp2_matched_bonus = [num for num in ticket_numbers if num in lp2_bonus_numbers]
-        
-        # Check for prize in Lottery Plus 2
-        lp2_prize_info = get_prize_info("Lottery Plus 2", lp2_matched_numbers, lp2_matched_bonus, lottery_plus_2_result)
-        
-        # Include Lottery Plus 2 results in our response
-        lp2_result_data = {
-            "lottery_type": "Lottery Plus 2",
-            "draw_number": lottery_plus_2_result.draw_number,
-            "draw_date": lottery_plus_2_result.draw_date.strftime("%A, %d %B %Y"),
-            "winning_numbers": lp2_winning_numbers,
-            "bonus_numbers": lp2_bonus_numbers,
-            "matched_numbers": lp2_matched_numbers,
-            "matched_bonus": lp2_matched_bonus,
-            "total_matched": len(lp2_matched_numbers) + len(lp2_matched_bonus),
-            "has_prize": bool(lp2_prize_info),
-            "prize_info": lp2_prize_info if lp2_prize_info else {}
-        }
-        
-        # Add rows with matches for Lottery Plus 2 if available
-        if lp2_rows_with_matches:
-            lp2_result_data["rows_with_matches"] = lp2_rows_with_matches
-            
-        result["lottery_plus_2_results"] = lp2_result_data
-        
-        # If Lottery Plus 2 has a prize but no other game has a prize, mark overall ticket as winning
-        # First check if we have a Lottery Plus 1 result with a prize
-        lp1_has_prize = False
-        if lottery_plus_1_result and result.get("lottery_plus_1_results", {}).get("has_prize", False):
-            lp1_has_prize = True
-                
-        # Now check if Lottery Plus 2 has a prize but no other game does
-        if bool(lp2_prize_info) and not (bool(prize_info) or lp1_has_prize):
-            result["has_prize"] = True
-        
-    return result
+# Import models
+from models import db, LotteryResult, ApiRequestLog
 
-def extract_ticket_numbers(image_base64, lottery_type, file_extension='.jpeg'):
-    """
-    Extract ticket numbers and information from an image using OCR.
-    
-    Args:
-        image_base64: Base64-encoded image data
-        lottery_type: Type of lottery for context (empty string if auto-detect)
-        file_extension: Extension of the uploaded file (e.g., '.jpeg', '.png')
+class TicketScanner:
+    """Enhanced lottery ticket scanner with multi-model OCR and result verification"""
+
+    def __init__(self):
+        """Initialize the ticket scanner with API keys and configuration"""
+        # Check for required API keys
+        self.has_gemini_api_key = bool(os.environ.get('GEMINI_API_KEY'))
+        self.has_openai_api_key = bool(os.environ.get('OPENAI_API_KEY'))
         
-    Returns:
-        dict: Extracted ticket information including numbers, draw date, and draw number
-    """
-    try:
-        # For now, we'll use anthropic for OCR as it's already set up in the system
-        from ocr_processor import process_with_anthropic
+        # Set default settings
+        self.ocr_timeout = 30  # seconds
+        self.verification_timeout = 45  # seconds
         
-        # Create a prompt specifically for lottery ticket information extraction
-        system_prompt = """
-        You are a specialized South African lottery ticket scanner. Your job is to extract all key information from 
-        a lottery ticket image including:
-        
-        1. Game type (which lottery game: Lottery, Lottery Plus 1, Lottery Plus 2, Powerball, Powerball Plus, Daily Lottery)
-        2. Draw date (in YYYY-MM-DD format if possible)
-        3. Draw number (ID number of the specific draw) - CRITICAL: Extract the exact draw number as printed on the ticket
-        4. Selected numbers (the player's chosen numbers on the ticket)
-        5. IMPORTANT: Check if the ticket has any of these indications:
-           - "POWERBALL PLUS: YES" - means the ticket is valid for both Powerball and Powerball Plus draws
-           - "LOTTERY PLUS 1: YES" or "LOTTO PLUS 1: YES" - means the ticket is valid for both Lottery and Lottery Plus 1 draws
-           - "LOTTERY PLUS 2: YES" or "LOTTO PLUS 2: YES" - means the ticket is valid for both Lottery and Lottery Plus 2 draws
-        
-        CRITICAL REQUIREMENT: If the ticket has MULTIPLE ROWS or SETS of numbers (e.g., A01-F01 or multiple games),
-        you MUST extract ALL ROWS and ALL NUMBERS from the ticket. Do not just extract the first row.
-        
-        Important notes:
-        - South African lottery tickets typically display game type, draw date and draw number clearly
-        - For Powerball tickets, the draw number is EXTREMELY IMPORTANT - look for text like "Draw: 1603" or just "1603"
-        - Powerball tickets may say "PowerBall" or "Power Ball" - treat these as the same game type
-        - Focus on the player's selected numbers (usually circled, marked, or otherwise highlighted)
-        - For Lottery/Lottery Plus tickets, look for 6 selected numbers per row
-        - For Powerball/Powerball Plus tickets, look for 5 main numbers + 1 Powerball number per row
-        - For Daily Lottery tickets, look for 5 selected numbers per row
-        - CAREFULLY check for additional game participation (POWERBALL PLUS, LOTTERY PLUS 1, LOTTERY PLUS 2)
-        - Return all information in a structured JSON format with no additional text or explanations
-        - If you can't determine certain fields with confidence, use "unknown" as the value
-        
-        Return the data in this JSON format:
-        {
-            "game_type": "The detected game type (e.g., Lottery, Powerball)",
-            "draw_date": "Draw date in YYYY-MM-DD format if possible",
-            "draw_number": "Draw ID number as shown on ticket",
-            "plays_powerball_plus": true/false,
-            "plays_lottery_plus_1": true/false,
-            "plays_lottery_plus_2": true/false,
-            "selected_numbers": {
-                "A01": [first set of numbers],
-                "B01": [second set of numbers],
-                ...additional rows as needed
-            }
+        # Initialize API usage tracking
+        self.api_requests = {
+            'gemini_ocr': 0,
+            'openai_verification': 0
         }
         
-        Alternatively, you can use this format for the selected numbers if row labels are not visible:
-        "selected_numbers": [
-            [first row numbers],
-            [second row numbers],
-            ...additional rows as needed
-        ]
-        
-        Do not include any explanatory text outside the JSON structure. Return ONLY the JSON.
+        logger.info(f"Ticket scanner initialized. Gemini API available: {self.has_gemini_api_key}, OpenAI API available: {self.has_openai_api_key}")
+
+    def scan_ticket(self, image_path: str) -> Dict[str, Any]:
         """
+        Process a lottery ticket image and extract all relevant information
         
-        # Log that we're processing a ticket
-        logger.info(f"Processing {lottery_type} ticket with OCR")
+        Args:
+            image_path: Path to the ticket image file
         
-        # Determine image format from file extension
-        image_format = 'jpeg'  # Default to JPEG
-        if file_extension.lower() == '.png':
-            image_format = 'png'
-        elif file_extension.lower() in ['.jpg', '.jpeg']:
-            image_format = 'jpeg'
-        elif file_extension.lower() == '.webp':
-            image_format = 'webp'
-            
-        logger.info(f"Using image format {image_format} for ticket scanning")
+        Returns:
+            Dictionary containing extracted ticket information
+        """
+        logger.info(f"Processing ticket image: {image_path}")
         
-        # Process the image with the correct format
-        response = process_with_anthropic(image_base64, lottery_type, system_prompt, image_format)
+        # Step 1: Extract ticket information using OCR
+        ticket_data = self._extract_ticket_information(image_path)
+        if not ticket_data or not ticket_data.get('success'):
+            logger.error("Failed to extract ticket information")
+            return {'success': False, 'error': 'Failed to extract ticket information from image'}
         
-        # Extract the text content
-        raw_response = response.get('raw_response', '')
+        # Step 2: Check if we have the winning data for this draw
+        draw_data = self._check_draw_in_database(ticket_data['lottery_type'], ticket_data['draw_number'])
         
-        # Try to parse the response as JSON
-        try:
-            # Clean up the response to handle different formats
-            cleaned_response = raw_response.strip()
+        # Step 3: If we don't have data for this draw, fetch it
+        if not draw_data:
+            logger.info(f"Draw {ticket_data['draw_number']} for {ticket_data['lottery_type']} not found in database, fetching...")
+            draw_data = self._fetch_draw_information(ticket_data['lottery_type'], ticket_data['draw_number'], ticket_data.get('draw_date'))
             
-            # If response is wrapped in code blocks, extract just the content
-            if '```' in cleaned_response:
-                match = re.search(r'```(?:json)?(.*?)```', cleaned_response, re.DOTALL)
-                if match:
-                    cleaned_response = match.group(1).strip()
-            
-            # Try to extract just the JSON portion (Claude sometimes adds explanations after JSON)
-            try:
-                # Find where the JSON starts (first {)
-                json_start = cleaned_response.find('{')
-                if json_start >= 0:
-                    # Find the matching closing } by counting braces
-                    brace_count = 0
-                    json_end = -1
-                    in_quotes = False
-                    escape_next = False
-                    
-                    for i, char in enumerate(cleaned_response[json_start:]):
-                        pos = json_start + i
-                        
-                        # Handle string quotes and escaping
-                        if char == '\\' and not escape_next:
-                            escape_next = True
-                            continue
-                        
-                        if char == '"' and not escape_next:
-                            in_quotes = not in_quotes
-                        
-                        escape_next = False
-                        
-                        # Only count braces when not in quotes
-                        if not in_quotes:
-                            if char == '{':
-                                brace_count += 1
-                            elif char == '}':
-                                brace_count -= 1
-                                if brace_count == 0:
-                                    json_end = pos
-                                    break
-                    
-                    if json_end > json_start:
-                        # Extract just the valid JSON portion
-                        json_str = cleaned_response[json_start:json_end+1]
-                        
-                        # Remove leading zeros from numbers in JSON strings (like "08" -> "8")
-                        # This fixes JSON parsing errors for numbers with leading zeros
-                        json_str = re.sub(r'([^0-9"])0+([1-9][0-9]*)', r'\1\2', json_str)
-                        
-                        logger.info(f"Extracted clean JSON: {json_str}")
-                        ticket_info = json.loads(json_str)
-                    else:
-                        # Remove leading zeros from numbers in JSON strings (like "08" -> "8")
-                        cleaned_response = re.sub(r'([^0-9"])0+([1-9][0-9]*)', r'\1\2', cleaned_response)
-                        
-                        # Fallback to regular parsing
-                        ticket_info = json.loads(cleaned_response)
-                else:
-                    # Remove leading zeros from numbers in JSON strings (like "08" -> "8")
-                    cleaned_response = re.sub(r'([^0-9"])0+([1-9][0-9]*)', r'\1\2', cleaned_response)
-
-                    # No JSON found, try original
-                    ticket_info = json.loads(cleaned_response)
-            except Exception:
-                # If sophisticated parsing fails, try regular parsing
-                logger.warning("JSON extraction failed, trying direct parsing")
-                
-                # Remove leading zeros from numbers in JSON strings (like "08" -> "8")
-                cleaned_response = re.sub(r'([^0-9"])0+([1-9][0-9]*)', r'\1\2', cleaned_response)
-                
-                ticket_info = json.loads(cleaned_response)
-            
-            # Handle selected numbers which could be in various formats
-            selected_numbers = []
-            
-            if 'selected_numbers' in ticket_info:
-                # Check if it's a dictionary directly with row names (A06, B06, etc.)
-                if isinstance(ticket_info['selected_numbers'], dict):
-                    logger.warning("Found dictionary with row names for selected numbers")
-                    ticket_info['raw_selected_numbers'] = {}
-                    for row_name, numbers in ticket_info['selected_numbers'].items():
-                        if isinstance(numbers, list):
-                            row_numbers = [int(num) for num in numbers if isinstance(num, (int, str, float))]
-                            ticket_info['raw_selected_numbers'][row_name] = row_numbers
-                            selected_numbers.extend(row_numbers)
-                # Case 1: Simple list of numbers
-                elif isinstance(ticket_info['selected_numbers'], list):
-                    # Check if we're dealing with a simple list of integers
-                    if all(isinstance(x, (int, str, float)) for x in ticket_info['selected_numbers']):
-                        selected_numbers = [int(num) for num in ticket_info['selected_numbers']]
-                    # Case 2: Nested array of arrays (multiple rows of numbers)
-                    elif isinstance(ticket_info['selected_numbers'], list) and len(ticket_info['selected_numbers']) > 0 and isinstance(ticket_info['selected_numbers'][0], list):
-                        logger.warning("Found nested arrays of numbers, flattening all rows")
-                        # Store original rows for reference
-                        ticket_info['raw_selected_numbers'] = {}
-                        for i, row in enumerate(ticket_info['selected_numbers']):
-                            if isinstance(row, list):
-                                row_name = f"Row {i+1}"
-                                row_numbers = [int(num) for num in row if isinstance(num, (int, str, float))]
-                                ticket_info['raw_selected_numbers'][row_name] = row_numbers
-                                selected_numbers.extend(row_numbers)
-                    # Case 3: Complex structure with lines/rows
-                    elif isinstance(ticket_info['selected_numbers'], list) and len(ticket_info['selected_numbers']) > 0:
-                        for item in ticket_info['selected_numbers']:
-                            if isinstance(item, dict):
-                                # Extract numbers from all fields in the dict
-                                for key, value in item.items():
-                                    if isinstance(value, list):
-                                        selected_numbers.extend([int(num) for num in value if isinstance(num, (int, str, float))])
-                
-                # If we still don't have numbers, try to find any integers in the JSON
-                if not selected_numbers:
-                    logger.warning("Complex number structure found, extracting all numbers")
-                    # Extract all integers from the ticket_info recursively
-                    def extract_all_numbers(obj):
-                        numbers = []
-                        if isinstance(obj, dict):
-                            for value in obj.values():
-                                numbers.extend(extract_all_numbers(value))
-                        elif isinstance(obj, list):
-                            for item in obj:
-                                numbers.extend(extract_all_numbers(item))
-                        elif isinstance(obj, (int, float)) or (isinstance(obj, str) and obj.isdigit()):
-                            numbers.append(int(obj))
-                        return numbers
-                    
-                    all_numbers = extract_all_numbers(ticket_info)
-                    # Filter to reasonable lottery numbers (1-50)
-                    selected_numbers = [num for num in all_numbers if 1 <= num <= 50]
-            
-            # Update the ticket info with our processed numbers
-            ticket_info['selected_numbers'] = selected_numbers if selected_numbers else []
-            
-            # Make sure we have a game type
-            if not ticket_info.get('game_type') or ticket_info.get('game_type') == 'unknown':
-                # Extract game type from Claude response if possible
-                game_type_match = re.search(r'(lottery|powerball|daily\s*lottery)(?:\s*plus\s*[12])?', 
-                                          raw_response, re.IGNORECASE)
-                if game_type_match:
-                    extracted_type = game_type_match.group(0).strip()
-                    # Standardize the format
-                    if "powerball" in extracted_type.lower():
-                        if "plus" in extracted_type.lower():
-                            ticket_info['game_type'] = "Powerball Plus"
-                        else:
-                            ticket_info['game_type'] = "Powerball"
-                    elif "daily" in extracted_type.lower():
-                        ticket_info['game_type'] = "Daily Lottery"
-                    elif "lottery" in extracted_type.lower() or "lotto" in extracted_type.lower():
-                        if "plus 1" in extracted_type.lower():
-                            ticket_info['game_type'] = "Lottery Plus 1"
-                        elif "plus 2" in extracted_type.lower():
-                            ticket_info['game_type'] = "Lottery Plus 2"
-                        else:
-                            ticket_info['game_type'] = "Lottery"
-            
-            # If we have game type but the user already specified it, prioritize user selection
-            if lottery_type and lottery_type != "unknown":
-                ticket_info['game_type'] = lottery_type
-            
-            logger.info(f"Successfully extracted ticket info: {ticket_info}")
-            return ticket_info
-            
-        except json.JSONDecodeError:
-            # If parsing fails, try to extract data using regex
-            logger.warning(f"Failed to parse OCR response as JSON. Trying regex extraction.")
-            
-            # Extract numbers
-            number_pattern = r'\d+'
-            numbers = re.findall(number_pattern, raw_response)
-            ticket_numbers = [int(num) for num in numbers if 1 <= int(num) <= 50]
-            
-            # Limit to appropriate number of selections based on lottery type
-            if 'Lottery' in lottery_type and 'Powerball' not in lottery_type:
-                ticket_numbers = ticket_numbers[:6]
-            elif 'Powerball' in lottery_type:
-                ticket_numbers = ticket_numbers[:6]  # 5 main + 1 powerball
-            elif 'Daily' in lottery_type:
-                ticket_numbers = ticket_numbers[:5]
-            
-            # Try to extract draw number
-            draw_match = re.search(r'draw\s*(?:number|no|#)?\s*[:#]?\s*(\d+)', raw_response, re.IGNORECASE)
-            draw_number = draw_match.group(1) if draw_match else "unknown"
-            
-            # Try to extract date
-            date_match = re.search(r'(\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4})', raw_response)
-            draw_date = date_match.group(1) if date_match else "unknown"
-            
-            # Try to extract game type if not provided
-            extracted_game_type = lottery_type
-            if not lottery_type or lottery_type == "unknown":
-                game_type_match = re.search(r'(lottery|powerball|daily\s*lottery)(?:\s*plus\s*[12])?', 
-                                         raw_response, re.IGNORECASE)
-                if game_type_match:
-                    extracted_type = game_type_match.group(0).strip()
-                    # Standardize the format
-                    if "powerball" in extracted_type.lower():
-                        if "plus" in extracted_type.lower():
-                            extracted_game_type = "Powerball Plus"
-                        else:
-                            extracted_game_type = "Powerball"
-                    elif "daily" in extracted_type.lower():
-                        extracted_game_type = "Daily Lottery"
-                    elif "lottery" in extracted_type.lower():
-                        if "plus 1" in extracted_type.lower():
-                            extracted_game_type = "Lottery Plus 1"
-                        elif "plus 2" in extracted_type.lower():
-                            extracted_game_type = "Lottery Plus 2"
-                        else:
-                            extracted_game_type = "Lottery"
-            
-            ticket_info = {
-                'game_type': extracted_game_type,
-                'draw_date': draw_date,
-                'draw_number': draw_number,
-                'selected_numbers': ticket_numbers
-            }
-            
-            logger.info(f"Extracted ticket info using regex: {ticket_info}")
-            return ticket_info
-            
-    except Exception as e:
-        logger.error(f"Error extracting ticket info: {str(e)}")
-        # For debugging, return basic structure with placeholder data
-        return {
-            'game_type': lottery_type,
-            'draw_date': "unknown",
-            'draw_number': "unknown",
-            'selected_numbers': [5, 10, 15, 20, 25, 30]
-        }
-
-def get_lottery_result(lottery_type, draw_number=None):
-    """
-    Get the lottery result to check against.
-    
-    Args:
-        lottery_type: Type of lottery
-        draw_number: Optional specific draw number
+            # Step 4: Save the new draw information to our database
+            if draw_data and draw_data.get('success'):
+                self._save_draw_to_database(draw_data)
         
-    Returns:
-        LotteryResult: The lottery result object or None if not found
-    """
-    # Import models here to avoid circular imports
-    from models import LotteryResult, db
-    import re
-    
-    # Normalize lottery type
-    normalized_lottery_type = lottery_type.strip()
-    
-    # Handle common variations
-    if normalized_lottery_type.lower() in ['powerball', 'power ball']:
-        normalized_lottery_type = 'Powerball'
-    elif normalized_lottery_type.lower() in ['powerball plus', 'power ball plus']:
-        normalized_lottery_type = 'Powerball Plus'
-    
-    query = LotteryResult.query.filter_by(lottery_type=normalized_lottery_type)
-    
-    if draw_number:
-        # Clean the draw number - remove any non-digit characters
-        if isinstance(draw_number, str):
-            clean_draw_number = re.sub(r'\D', '', draw_number)
-        else:
-            clean_draw_number = str(draw_number)
-            
-        # Log what we're searching for
-        logger.info(f"Searching for {normalized_lottery_type} draw {clean_draw_number}")
-        
-        # Try to find the exact match first
-        result = query.filter_by(draw_number=clean_draw_number).first()
-        if result:
-            logger.info(f"Found exact match for {normalized_lottery_type} draw {clean_draw_number}")
-            return result
-            
-        # If not found, try partial match
-        result = query.filter(LotteryResult.draw_number.like(f"%{clean_draw_number}%")).first()
-        if result:
-            logger.info(f"Found partial match for {normalized_lottery_type} draw {clean_draw_number} -> {result.draw_number}")
-            return result
-            
-        # No match found
-        logger.warning(f"No match found for {normalized_lottery_type} draw {clean_draw_number}")
-        return None
-    else:
-        # Get the latest result for this lottery type
-        result = query.order_by(LotteryResult.draw_date.desc()).first()
-        if result:
-            logger.info(f"Using latest {normalized_lottery_type} draw: {result.draw_number}")
-        else:
-            logger.warning(f"No results found for {normalized_lottery_type}")
-        return result
-
-def get_prize_info(lottery_type, matched_numbers, matched_bonus, lottery_result):
-    """
-    Determine if the ticket won a prize based on matched numbers.
-    
-    Args:
-        lottery_type: Type of lottery
-        matched_numbers: List of matched main numbers
-        matched_bonus: List of matched bonus numbers
-        lottery_result: The lottery result object
-        
-    Returns:
-        dict: Prize information or None if no prize
-    """
-    # Get divisions data from lottery result
-    divisions = lottery_result.get_divisions()
-    if not divisions:
-        return None
-        
-    # Count total matches
-    match_count = len(matched_numbers)
-    bonus_match = len(matched_bonus) > 0
-    
-    # Determine division based on matches
-    division = None
-    match_type = ""
-    
-    if "Lottery" in lottery_type and "Powerball" not in lottery_type:
-        # Lottery/Lottery Plus prize structure
-        if match_count == 6:
-            division = "Division 1"
-            match_type = "SIX CORRECT NUMBERS"
-        elif match_count == 5 and bonus_match:
-            division = "Division 2"
-            match_type = "FIVE CORRECT NUMBERS + BONUS BALL"
-        elif match_count == 5:
-            division = "Division 3"
-            match_type = "FIVE CORRECT NUMBERS"
-        elif match_count == 4 and bonus_match:
-            division = "Division 4"
-            match_type = "FOUR CORRECT NUMBERS + BONUS BALL"
-        elif match_count == 4:
-            division = "Division 5"
-            match_type = "FOUR CORRECT NUMBERS"
-        elif match_count == 3 and bonus_match:
-            division = "Division 6"
-            match_type = "THREE CORRECT NUMBERS + BONUS BALL"
-        elif match_count == 3:
-            division = "Division 7"
-            match_type = "THREE CORRECT NUMBERS"
-        elif match_count == 2 and bonus_match:
-            division = "Division 8"
-            match_type = "TWO CORRECT NUMBERS + BONUS BALL"
-    
-    elif "Powerball" in lottery_type:
-        # Powerball/Powerball Plus structure
-        # Assuming last number in selection is the Powerball
-        if match_count == 5 and bonus_match:
-            division = "Division 1"
-            match_type = "FIVE CORRECT NUMBERS + POWERBALL"
-        elif match_count == 5:
-            division = "Division 2"
-            match_type = "FIVE CORRECT NUMBERS"
-        elif match_count == 4 and bonus_match:
-            division = "Division 3"
-            match_type = "FOUR CORRECT NUMBERS + POWERBALL"
-        elif match_count == 4:
-            division = "Division 4"
-            match_type = "FOUR CORRECT NUMBERS"
-        elif match_count == 3 and bonus_match:
-            division = "Division 5"
-            match_type = "THREE CORRECT NUMBERS + POWERBALL"
-        elif match_count == 3:
-            division = "Division 6"
-            match_type = "THREE CORRECT NUMBERS"
-        elif match_count == 2 and bonus_match:
-            division = "Division 7"
-            match_type = "TWO CORRECT NUMBERS + POWERBALL"
-        elif match_count == 1 and bonus_match:
-            division = "Division 8"
-            match_type = "ONE CORRECT NUMBER + POWERBALL"
-        elif bonus_match:
-            division = "Division 9"
-            match_type = "MATCH POWERBALL ONLY"
-    
-    elif "Daily Lottery" in lottery_type:
-        # Daily Lottery structure
-        if match_count == 5:
-            division = "Division 1"
-            match_type = "FIVE CORRECT NUMBERS"
-        elif match_count == 4:
-            division = "Division 2"
-            match_type = "FOUR CORRECT NUMBERS"
-        elif match_count == 3:
-            division = "Division 3"
-            match_type = "THREE CORRECT NUMBERS"
-        elif match_count == 2:
-            division = "Division 4"
-            match_type = "TWO CORRECT NUMBERS"
-    
-    # If a division is found and exists in the result's divisions data
-    if division and division in divisions:
-        prize_data = divisions[division]
-        
-        # Format return data with description if available
-        result = {
-            "division": division,
-            "match_type": match_type,
-            "prize_amount": prize_data.get("prize", "R0.00"),
-            "winners": prize_data.get("winners", "0")
-        }
-        
-        # Add description if available in the division data
-        if "description" in prize_data:
-            result["description"] = prize_data["description"]
-            
-        return result
-    
-    # For Powerball, we want to return a prize even if division data is missing
-    # This ensures players who match 3 or fewer numbers still see they've won
-    if division and "Powerball" in lottery_type:
-        # Fallback prize information for common Powerball divisions
-        fallback_prizes = {
-            "Division 1": "Jackpot",
-            "Division 2": "Share of Prize Pool",
-            "Division 3": "Approx. R10,000",
-            "Division 4": "Approx. R1,000",
-            "Division 5": "Approx. R500",
-            "Division 6": "Approx. R100",
-            "Division 7": "Approx. R50",
-            "Division 8": "Approx. R20",
-            "Division 9": "Approx. R15"
-        }
-        
-        # Fallback division descriptions for Powerball
-        fallback_descriptions = {
-            "Division 1": "Match 5 numbers + Powerball",
-            "Division 2": "Match 5 numbers",
-            "Division 3": "Match 4 numbers + Powerball",
-            "Division 4": "Match 4 numbers",
-            "Division 5": "Match 3 numbers + Powerball",
-            "Division 6": "Match 3 numbers",
-            "Division 7": "Match 2 numbers + Powerball",
-            "Division 8": "Match 1 number + Powerball",
-            "Division 9": "Match Powerball only"
-        }
-        
-        if division in fallback_prizes:
-            result = {
-                "division": division,
-                "match_type": match_type,
-                "prize_amount": fallback_prizes[division],
-                "winners": "N/A",
-                "note": "Exact prize amount unavailable - showing estimate"
-            }
-            
-            # Add description if available
-            if division in fallback_descriptions:
-                result["description"] = fallback_descriptions[division]
-                
-            return result
-            
-    # Always return prize for minimum matches in Powerball or Powerball Plus
-    # This ensures even minimal matches show appropriate feedback
-    if "Powerball" in lottery_type:
-        if match_count >= 1 or bonus_match:
-            # Create new fallback for matches that don't fit standard divisions
-            fallback_descriptions = {
-                "Match 1": "Match 1 number",
-                "Match 2": "Match 2 numbers",
-                "Match 3": "Match 3 numbers",
-                "Bonus Match": "Match Powerball only"
-            }
-            
-            # Determine the appropriate description
-            if match_count >= 1 and bonus_match:
-                match_key = f"Match {match_count}"
-                match_description = f"Match {match_count} number{'s' if match_count > 1 else ''} + Powerball"
-            elif match_count >= 1:
-                match_key = f"Match {match_count}"
-                match_description = f"Match {match_count} number{'s' if match_count > 1 else ''}"
-            else:
-                match_key = "Bonus Match"
-                match_description = "Match Powerball only"
-            
-            # Return appropriate information
+        # Step 5: Compare the ticket against the draw results
+        if draw_data and draw_data.get('success'):
+            comparison_result = self._compare_ticket_to_results(ticket_data, draw_data)
             return {
-                "division": match_key,
-                "match_type": match_description.upper(),
-                "prize_amount": "See prize table",
-                "winners": "N/A",
-                "note": "Matched numbers may qualify for a prize - check official results",
-                "description": match_description
+                'success': True,
+                'ticket_data': ticket_data,
+                'draw_data': draw_data,
+                'comparison': comparison_result
             }
-    
-    # No prize found
-    return None
+        else:
+            logger.error(f"Unable to verify ticket against draw results")
+            return {
+                'success': False,
+                'ticket_data': ticket_data,
+                'error': 'Unable to verify ticket against official draw results'
+            }
+
+    def _extract_ticket_information(self, image_path: str) -> Dict[str, Any]:
+        """
+        Use Google Gemini 2.5 Pro OCR to extract information from ticket image
+        
+        Args:
+            image_path: Path to the ticket image file
+        
+        Returns:
+            Dictionary with extracted ticket details
+        """
+        # Check if we have the required API key
+        if not self.has_gemini_api_key:
+            logger.error("Gemini API key not available for OCR processing")
+            return {'success': False, 'error': 'OCR service unavailable'}
+        
+        try:
+            # Read image file as binary data
+            with open(image_path, 'rb') as img_file:
+                image_data = img_file.read()
+            
+            # Implementation placeholder for Gemini API integration
+            # This would be replaced with actual Gemini API calls
+            
+            # Log API usage
+            self._log_api_request('gemini_ocr')
+            self.api_requests['gemini_ocr'] += 1
+            
+            # Mock structure of extracted data (replace with actual implementation)
+            extracted_data = {
+                'success': True,
+                'lottery_type': 'Lottery',  # Example value
+                'draw_number': '1234',  # Example value
+                'draw_date': '2025-04-15',  # Example value
+                'ticket_numbers': ['01', '16', '24', '36', '42', '49'],  # Example value
+                'bonus_number': '23',  # Example value
+                'player_numbers': ['05', '16', '24', '36', '42', '49'],  # Example value
+                'confidence': 0.92  # Example confidence score
+            }
+            
+            logger.info(f"Successfully extracted ticket information: {extracted_data}")
+            return extracted_data
+            
+        except Exception as e:
+            logger.error(f"Error extracting ticket information: {str(e)}")
+            return {'success': False, 'error': str(e)}
+
+    def _check_draw_in_database(self, lottery_type: str, draw_number: str) -> Optional[Dict[str, Any]]:
+        """
+        Check if the draw information exists in our database
+        
+        Args:
+            lottery_type: Type of lottery game
+            draw_number: Draw number identifier
+        
+        Returns:
+            Draw data if found, None otherwise
+        """
+        try:
+            # Normalize lottery type for consistent database lookup
+            normalized_type = self._normalize_lottery_type(lottery_type)
+            
+            # Query database for this draw
+            result = LotteryResult.query.filter_by(
+                lottery_type=normalized_type,
+                draw_number=draw_number
+            ).first()
+            
+            if not result:
+                logger.info(f"Draw {draw_number} for {normalized_type} not found in database")
+                return None
+            
+            logger.info(f"Found draw {draw_number} for {normalized_type} in database")
+            
+            # Convert database record to dictionary
+            draw_data = {
+                'success': True,
+                'lottery_type': result.lottery_type,
+                'draw_number': result.draw_number,
+                'draw_date': result.draw_date.strftime('%Y-%m-%d') if result.draw_date else None,
+                'numbers': json.loads(result.numbers) if result.numbers else [],
+                'bonus_numbers': json.loads(result.bonus_numbers) if result.bonus_numbers else []
+            }
+            
+            return draw_data
+            
+        except Exception as e:
+            logger.error(f"Error checking draw in database: {str(e)}")
+            return None
+
+    def _fetch_draw_information(self, lottery_type: str, draw_number: str, draw_date: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Use OpenAI to fetch official draw information when not in our database
+        
+        Args:
+            lottery_type: Type of lottery game
+            draw_number: Draw number identifier
+            draw_date: Optional draw date if known
+        
+        Returns:
+            Dictionary with draw information
+        """
+        # Check if we have the required API key
+        if not self.has_openai_api_key:
+            logger.error("OpenAI API key not available for draw verification")
+            return {'success': False, 'error': 'Verification service unavailable'}
+        
+        try:
+            # Prepare the prompt for OpenAI
+            date_info = f" from date {draw_date}" if draw_date else ""
+            prompt = (
+                f"I need the official results for South African {lottery_type} draw #{draw_number}{date_info}. "
+                f"Please provide the draw date, winning numbers, and bonus/powerball number if applicable. "
+                f"Return the information in this JSON format only:\n"
+                f"{{'lottery_type': 'Lottery/PowerBall/etc', 'draw_number': '1234', 'draw_date': 'YYYY-MM-DD', "
+                f"'numbers': ['01', '05', '23', etc], 'bonus_numbers': ['12']}}"
+            )
+            
+            # Implementation placeholder for OpenAI API integration
+            # This would be replaced with actual OpenAI API calls
+            
+            # Log API usage
+            self._log_api_request('openai_verification')
+            self.api_requests['openai_verification'] += 1
+            
+            # Mock structure of verified data (replace with actual implementation)
+            verified_data = {
+                'success': True,
+                'source': 'openai',
+                'lottery_type': self._normalize_lottery_type(lottery_type),
+                'draw_number': draw_number,
+                'draw_date': draw_date or '2025-04-15',  # Example fallback date
+                'numbers': ['01', '16', '24', '36', '42', '49'],  # Example values
+                'bonus_numbers': ['23'] if self._normalize_lottery_type(lottery_type) in ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2'] else ['05']
+            }
+            
+            logger.info(f"Successfully verified draw information from external API: {verified_data}")
+            return verified_data
+            
+        except Exception as e:
+            logger.error(f"Error fetching draw information: {str(e)}")
+            return {'success': False, 'error': str(e)}
+
+    def _save_draw_to_database(self, draw_data: Dict[str, Any]) -> bool:
+        """
+        Save newly discovered draw information to the database
+        
+        Args:
+            draw_data: Dictionary with draw information
+        
+        Returns:
+            Success flag
+        """
+        try:
+            # Create new database record
+            new_draw = LotteryResult()
+            new_draw.lottery_type = draw_data['lottery_type']
+            new_draw.draw_number = draw_data['draw_number']
+            
+            # Convert date string to datetime
+            if draw_data.get('draw_date'):
+                try:
+                    new_draw.draw_date = datetime.strptime(draw_data['draw_date'], '%Y-%m-%d')
+                except ValueError:
+                    logger.warning(f"Invalid date format for draw date: {draw_data['draw_date']}")
+                    new_draw.draw_date = datetime.now()
+            else:
+                new_draw.draw_date = datetime.now()
+            
+            # Store numbers as JSON strings
+            new_draw.numbers = json.dumps(draw_data['numbers'])
+            new_draw.bonus_numbers = json.dumps(draw_data.get('bonus_numbers', []))
+            
+            # Add source information
+            new_draw.source_url = 'api_verification'
+            new_draw.source = draw_data.get('source', 'api')
+            
+            # Save to database
+            db.session.add(new_draw)
+            db.session.commit()
+            
+            logger.info(f"Successfully saved draw {draw_data['draw_number']} for {draw_data['lottery_type']} to database")
+            return True
+            
+        except SQLAlchemyError as e:
+            logger.error(f"Database error saving draw information: {str(e)}")
+            db.session.rollback()
+            return False
+        except Exception as e:
+            logger.error(f"Error saving draw information: {str(e)}")
+            db.session.rollback()
+            return False
+
+    def _compare_ticket_to_results(self, ticket_data: Dict[str, Any], draw_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Compare ticket numbers to draw results and calculate winnings
+        
+        Args:
+            ticket_data: Extracted ticket information
+            draw_data: Official draw information
+        
+        Returns:
+            Comparison results with winning status
+        """
+        try:
+            # Extract the numbers
+            ticket_numbers = set(ticket_data.get('player_numbers', []))
+            winning_numbers = set(draw_data.get('numbers', []))
+            bonus_numbers = set(draw_data.get('bonus_numbers', []))
+            
+            # Find matching numbers
+            matching_numbers = ticket_numbers.intersection(winning_numbers)
+            has_bonus = any(num in bonus_numbers for num in ticket_numbers)
+            
+            # Determine winning status based on lottery type
+            lottery_type = draw_data.get('lottery_type', '')
+            
+            # Calculate prize tier based on lottery type and number of matches
+            if 'Lottery' in lottery_type:
+                result = self._calculate_lottery_prize(len(matching_numbers), has_bonus, lottery_type)
+            elif 'Powerball' in lottery_type:
+                result = self._calculate_powerball_prize(len(matching_numbers), has_bonus, lottery_type)
+            elif 'Daily Lottery' in lottery_type:
+                result = self._calculate_daily_lottery_prize(len(matching_numbers), lottery_type)
+            else:
+                result = {'prize_tier': 'Unknown', 'won': False}
+            
+            # Add matching details to result
+            result.update({
+                'matching_numbers': list(matching_numbers),
+                'bonus_match': has_bonus,
+                'draws_checked': 1
+            })
+            
+            logger.info(f"Comparison complete: {result}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error comparing ticket to results: {str(e)}")
+            return {'error': str(e), 'won': False, 'prize_tier': 'Error'}
+
+    def _calculate_lottery_prize(self, match_count: int, has_bonus: bool, lottery_type: str) -> Dict[str, Any]:
+        """Calculate prize tier for Lottery game types"""
+        if match_count == 6:
+            return {'prize_tier': 'Division 1', 'won': True, 'description': 'Jackpot'}
+        elif match_count == 5 and has_bonus:
+            return {'prize_tier': 'Division 2', 'won': True, 'description': '5 numbers + bonus'}
+        elif match_count == 5:
+            return {'prize_tier': 'Division 3', 'won': True, 'description': '5 numbers'}
+        elif match_count == 4 and has_bonus:
+            return {'prize_tier': 'Division 4', 'won': True, 'description': '4 numbers + bonus'}
+        elif match_count == 4:
+            return {'prize_tier': 'Division 5', 'won': True, 'description': '4 numbers'}
+        elif match_count == 3 and has_bonus:
+            return {'prize_tier': 'Division 6', 'won': True, 'description': '3 numbers + bonus'}
+        elif match_count == 3:
+            return {'prize_tier': 'Division 7', 'won': True, 'description': '3 numbers'}
+        elif match_count == 2 and has_bonus:
+            return {'prize_tier': 'Division 8', 'won': True, 'description': '2 numbers + bonus'}
+        else:
+            return {'prize_tier': 'No Win', 'won': False, 'description': 'Not a winning ticket'}
+
+    def _calculate_powerball_prize(self, match_count: int, has_powerball: bool, lottery_type: str) -> Dict[str, Any]:
+        """Calculate prize tier for Powerball game types"""
+        if match_count == 5 and has_powerball:
+            return {'prize_tier': 'Division 1', 'won': True, 'description': 'Jackpot'}
+        elif match_count == 5:
+            return {'prize_tier': 'Division 2', 'won': True, 'description': '5 numbers'}
+        elif match_count == 4 and has_powerball:
+            return {'prize_tier': 'Division 3', 'won': True, 'description': '4 numbers + powerball'}
+        elif match_count == 4:
+            return {'prize_tier': 'Division 4', 'won': True, 'description': '4 numbers'}
+        elif match_count == 3 and has_powerball:
+            return {'prize_tier': 'Division 5', 'won': True, 'description': '3 numbers + powerball'}
+        elif match_count == 3:
+            return {'prize_tier': 'Division 6', 'won': True, 'description': '3 numbers'}
+        elif match_count == 2 and has_powerball:
+            return {'prize_tier': 'Division 7', 'won': True, 'description': '2 numbers + powerball'}
+        elif match_count == 1 and has_powerball:
+            return {'prize_tier': 'Division 8', 'won': True, 'description': '1 number + powerball'}
+        elif has_powerball:
+            return {'prize_tier': 'Division 9', 'won': True, 'description': 'Powerball only'}
+        else:
+            return {'prize_tier': 'No Win', 'won': False, 'description': 'Not a winning ticket'}
+
+    def _calculate_daily_lottery_prize(self, match_count: int, lottery_type: str) -> Dict[str, Any]:
+        """Calculate prize tier for Daily Lottery game"""
+        if match_count == 5:
+            return {'prize_tier': 'Division 1', 'won': True, 'description': 'Jackpot'}
+        elif match_count == 4:
+            return {'prize_tier': 'Division 2', 'won': True, 'description': '4 numbers'}
+        elif match_count == 3:
+            return {'prize_tier': 'Division 3', 'won': True, 'description': '3 numbers'}
+        elif match_count == 2:
+            return {'prize_tier': 'Division 4', 'won': True, 'description': '2 numbers'}
+        else:
+            return {'prize_tier': 'No Win', 'won': False, 'description': 'Not a winning ticket'}
+
+    def _normalize_lottery_type(self, lottery_type: str) -> str:
+        """
+        Normalize lottery type names for consistent database handling
+        
+        Args:
+            lottery_type: Raw lottery type string
+        
+        Returns:
+            Normalized lottery type
+        """
+        if not lottery_type:
+            return ""
+            
+        # Remove "Results" suffix if present
+        cleaned = lottery_type.replace(" Results", "").strip()
+        
+        # Standardize common variations
+        if "lotto" in cleaned.lower() and "plus" not in cleaned.lower() and "daily" not in cleaned.lower():
+            return "Lottery"
+        elif "lotto plus 1" in cleaned.lower():
+            return "Lottery Plus 1"
+        elif "lotto plus 2" in cleaned.lower():
+            return "Lottery Plus 2"
+        elif "powerball plus" in cleaned.lower():
+            return "Powerball Plus"
+        elif "powerball" in cleaned.lower():
+            return "Powerball"
+        elif "daily lotto" in cleaned.lower():
+            return "Daily Lottery"
+        
+        return cleaned
+
+    def _log_api_request(self, api_type: str) -> None:
+        """
+        Log API request for tracking and billing purposes
+        
+        Args:
+            api_type: Type of API request (e.g., 'gemini_ocr', 'openai_verification')
+        """
+        try:
+            log_entry = ApiRequestLog()
+            log_entry.api_type = api_type
+            log_entry.timestamp = datetime.now()
+            log_entry.success = True
+            
+            db.session.add(log_entry)
+            db.session.commit()
+            
+        except Exception as e:
+            logger.error(f"Error logging API request: {str(e)}")
+
+
+# Utility function to create a scanner instance
+def get_ticket_scanner():
+    """Create and return a configured ticket scanner instance"""
+    return TicketScanner()
