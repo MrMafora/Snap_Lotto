@@ -23,7 +23,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # Import models
-from models import db, LotteryResult, ApiRequestLog
+from models import db, LotteryResult, APIRequestLog
 
 class TicketScanner:
     """Enhanced lottery ticket scanner with multi-model OCR and result verification"""

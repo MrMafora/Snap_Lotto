@@ -168,6 +168,14 @@ def init_lazy_modules():
     with app.app_context():
         scheduler.init_scheduler(app)
         health_monitor.init_health_monitor(app, db)
+        
+        # Register scanner routes for ticket scanning functionality
+        try:
+            from scanner_routes import register_scanner_routes
+            register_scanner_routes(app)
+            logger.info("Scanner routes registered")
+        except Exception as e:
+            logger.error(f"Failed to register scanner routes: {e}")
     
     logger.info("All modules lazy-loaded successfully")
 

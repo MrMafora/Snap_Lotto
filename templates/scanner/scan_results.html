@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Ticket Scan Results{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header {% if result.comparison.won %}bg-success text-white{% else %}bg-primary text-white{% endif %}">
+                    <h1 class="h3 mb-0">
+                        {% if result.comparison.won %}
+                            <i class="fas fa-trophy me-2"></i> Congratulations! You Won!
+                        {% else %}
+                            <i class="fas fa-ticket-alt me-2"></i> Ticket Scan Results
+                        {% endif %}
+                    </h1>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Ticket Information -->
+                    <div class="mb-4">
+                        <h3 class="h5 border-bottom pb-2 mb-3">Your Ticket Information</h3>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Lottery Type:</strong> {{ result.ticket_data.lottery_type }}</p>
+                                <p><strong>Draw Number:</strong> {{ result.ticket_data.draw_number }}</p>
+                                <p><strong>Draw Date:</strong> {{ result.ticket_data.draw_date }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Your Numbers:</strong></p>
+                                <div class="lottery-balls mb-3">
+                                    {% for number in result.ticket_data.player_numbers %}
+                                        <span class="lottery-ball {% if number in result.comparison.matching_numbers %}match{% endif %}">
+                                            {{ number }}
+                                            {% if number in result.comparison.matching_numbers %}
+                                                <span class="match-indicator"><i class="fas fa-check"></i></span>
+                                            {% endif %}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Official Results -->
+                    <div class="mb-4">
+                        <h3 class="h5 border-bottom pb-2 mb-3">Official Draw Results</h3>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <p><strong>Winning Numbers:</strong></p>
+                                <div class="lottery-balls mb-3">
+                                    {% for number in result.draw_data.numbers %}
+                                        <span class="lottery-ball {% if number in result.comparison.matching_numbers %}match{% endif %}">
+                                            {{ number }}
+                                        </span>
+                                    {% endfor %}
+                                    
+                                    {% if result.draw_data.bonus_numbers %}
+                                        <span class="separator">+</span>
+                                        {% for number in result.draw_data.bonus_numbers %}
+                                            <span class="lottery-ball bonus {% if result.comparison.bonus_match %}match{% endif %}">
+                                                {{ number }}
+                                            </span>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Results Summary -->
+                    <div class="result-summary p-3 mb-4 rounded {% if result.comparison.won %}bg-success-light{% else %}bg-light{% endif %}">
+                        <h3 class="h5 mb-3">Result Summary</h3>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Matching Numbers:</strong> {{ result.comparison.matching_numbers|length }}</p>
+                                <p><strong>Bonus Match:</strong> {% if result.comparison.bonus_match %}Yes{% else %}No{% endif %}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Prize Tier:</strong> {{ result.comparison.prize_tier }}</p>
+                                <p><strong>Description:</strong> {{ result.comparison.description }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="alert {% if result.comparison.won %}alert-success{% else %}alert-secondary{% endif %} mt-3 mb-0">
+                            {% if result.comparison.won %}
+                                <h4 class="alert-heading mb-2"><i class="fas fa-check-circle me-2"></i> You've won!</h4>
+                                <p class="mb-0">Congratulations! Your ticket has won in Prize Tier: {{ result.comparison.prize_tier }}.</p>
+                                <hr>
+                                <p class="mb-0">Please contact the South African National Lottery to claim your prize.</p>
+                            {% else %}
+                                <h4 class="alert-heading mb-2"><i class="fas fa-info-circle me-2"></i> Not a winner this time</h4>
+                                <p class="mb-0">Your ticket does not match the winning combination for this draw. Better luck next time!</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Next Steps -->
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('scanner.scan_ticket') }}" class="btn btn-primary me-2">
+                            <i class="fas fa-redo me-2"></i> Scan Another Ticket
+                        </a>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-2"></i> Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4 shadow-sm">
+                <div class="card-header bg-light">
+                    <h2 class="h5 mb-0">About Our Lottery Scanner</h2>
+                </div>
+                <div class="card-body">
+                    <p>Our intelligent scanner uses advanced AI technology to accurately read and verify your lottery tickets against official draw results.</p>
+                    <p>Features:</p>
+                    <ul>
+                        <li>Instant verification against official lottery results</li>
+                        <li>Automatic database updates with new draw information</li>
+                        <li>Precise identification of winning tickets and prize tiers</li>
+                    </ul>
+                    <p class="mb-0 text-muted"><small>Results are for informational purposes only. Always verify with the official South African National Lottery when claiming prizes.</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .lottery-balls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .lottery-ball {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #f8f9fa;
+        border: 2px solid #dee2e6;
+        font-weight: bold;
+        position: relative;
+    }
+    
+    .lottery-ball.match {
+        background-color: #d4edda;
+        border-color: #28a745;
+        color: #155724;
+    }
+    
+    .lottery-ball.bonus {
+        background-color: #fff3cd;
+        border-color: #ffc107;
+    }
+    
+    .lottery-ball.bonus.match {
+        background-color: #d4edda;
+        border-color: #28a745;
+    }
+    
+    .separator {
+        display: inline-flex;
+        align-items: center;
+        margin: 0 5px;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
+    .match-indicator {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background-color: #28a745;
+        color: white;
+        border-radius: 50%;
+        width: 16px;
+        height: 16px;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .bg-success-light {
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+</style>
+{% endblock %}

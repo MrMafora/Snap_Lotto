@@ -12,7 +12,7 @@ from flask_login import login_required, current_user
 
 # Import our OCR integrations and scanner
 from ocr_integrations import get_scanner
-from models import db, LotteryResult, APIRequestLog
+from models import db, LotteryResult, APIRequestLog as ApiRequestLog
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
