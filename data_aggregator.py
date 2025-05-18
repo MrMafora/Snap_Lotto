@@ -651,7 +651,8 @@ def get_all_results_by_lottery_type(lottery_type):
 
 def get_latest_results():
     """
-    Get the latest result for each lottery type.
+    Get the latest result for each lottery type in the order:
+    Lottery, Powerball Plus, Lottery Plus 1, Powerball, Lottery Plus 2, Daily Lottery
     
     Returns:
         dict: Dictionary mapping lottery types to their latest results
@@ -677,18 +678,47 @@ def get_latest_results():
             
             normalized_types[normalized_type].append(lottery_type)
         
-        # For each normalized type, get the latest result among all its variants
-        for normalized_type, variants in normalized_types.items():
-            # Query across all variants of this lottery type
-            result = LotteryResult.query.filter(
-                LotteryResult.lottery_type.in_(variants)
-            ).order_by(LotteryResult.draw_date.desc()).first()
-            
-            if result:
-                # Store result under the normalized type name
-                latest_results[normalized_type] = result
+        # Define the specific order we want (same as shown in the screenshot)
+        preferred_order = [
+            "Lottery", 
+            "Powerball Plus",
+            "Lottery Plus 1", 
+            "Powerball", 
+            "Lottery Plus 2", 
+            "Daily Lottery"
+        ]
         
-        return latest_results
+        # Ordered results dictionary (using OrderedDict functionality in Python 3.7+)
+        ordered_results = {}
+        
+        # First process the types in our preferred order
+        for preferred_type in preferred_order:
+            if preferred_type in normalized_types:
+                variants = normalized_types[preferred_type]
+                # Query across all variants of this lottery type
+                result = LotteryResult.query.filter(
+                    LotteryResult.lottery_type.in_(variants)
+                ).order_by(LotteryResult.draw_date.desc()).first()
+                
+                if result:
+                    # Store result under the normalized type name
+                    ordered_results[preferred_type] = result
+                    # Log what we're adding to help debug
+                    logger.info(f"Added {preferred_type} to results in preferred order")
+        
+        # Then add any remaining types not in our preferred order
+        for normalized_type, variants in normalized_types.items():
+            if normalized_type not in ordered_results and normalized_type not in preferred_order:
+                # Query across all variants of this lottery type
+                result = LotteryResult.query.filter(
+                    LotteryResult.lottery_type.in_(variants)
+                ).order_by(LotteryResult.draw_date.desc()).first()
+                
+                if result:
+                    # Store result under the normalized type name
+                    ordered_results[normalized_type] = result
+        
+        return ordered_results
     except Exception as e:
         logger.error(f"Error in get_latest_results: {str(e)}")
         return {}  # Return empty dict on error
