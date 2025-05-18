@@ -1897,26 +1897,24 @@ def optimized_frequency_analysis():
             }
         }
         
-        # Determine which data to return based on lottery_type
-        if lottery_type and lottery_type in static_data:
-            # Filter to just the requested lottery type
-            result_data = {lottery_type: static_data[lottery_type]}
-        else:
-            # Return all lottery types
-            result_data = static_data
+        # For compatibility with the existing frontend code, 
+        # we need to return the data in the expected format
+        # The frontend expects the lottery types directly in the result object
+        result = {}
+        
+        # Add individual lottery type data
+        for lottery_name, lottery_data in static_data.items():
+            result[lottery_name] = lottery_data
             
-        # Add lottery types list
-        result = {
-            "lottery_types": ["Lottery", "Lottery Plus 1", "Lottery Plus 2", "Powerball", "Powerball Plus", "Daily Lottery"],
-            "data": result_data,
-            "summary": {
-                "most_frequent_overall": [7, 11, 17, 23, 31, 37, 42, 49],
-                "least_frequent_overall": [1, 3, 6, 13, 22, 36],
-                "total_draws_analyzed": count if count else 204,
-                "date_range": {
-                    "start": (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d'),
-                    "end": datetime.now().strftime('%Y-%m-%d')
-                }
+        # Add additional summary data
+        result["lottery_types"] = ["Lottery", "Lottery Plus 1", "Lottery Plus 2", "Powerball", "Powerball Plus", "Daily Lottery"]
+        result["summary"] = {
+            "most_frequent_overall": [7, 11, 17, 23, 31, 37, 42, 49],
+            "least_frequent_overall": [1, 3, 6, 13, 22, 36],
+            "total_draws_analyzed": count if count else 204,
+            "date_range": {
+                "start": (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d'),
+                "end": datetime.now().strftime('%Y-%m-%d')
             }
         }
         
