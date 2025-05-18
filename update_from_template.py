@@ -122,25 +122,48 @@ def import_template_data(template_path):
                             existing_result.numbers = numbers_str
                             print(f"Updated existing record for {lottery_type} draw {draw_number}")
                         else:
-                            # Create new record
+                            # Create new record with a template source URL
+                            template_source_url = f"template://{filename}/{lottery_type}/{draw_number}"
                             new_result = LotteryResult(
                                 lottery_type=lottery_type,
                                 draw_number=draw_number,
                                 draw_date=draw_date,
-                                numbers=numbers_str
+                                numbers=numbers_str,
+                                source_url=template_source_url
                             )
                             db.session.add(new_result)
                             print(f"Added new record for {lottery_type} draw {draw_number}")
                         
-                        # Create imported record entry
-                        imported_record = ImportedRecord(
-                            import_id=import_history.id,
-                            lottery_type=lottery_type,
-                            draw_number=draw_number,
-                            draw_date=draw_date,
-                            status="success",
-                            error_message=""
-                        )
+                        if existing_result:
+                            # Create imported record entry for existing record
+                            imported_record = ImportedRecord(
+                                import_id=import_history.id,
+                                lottery_type=lottery_type,
+                                draw_number=draw_number,
+                                draw_date=draw_date,
+                                is_new=False,
+                                lottery_result_id=existing_result.id
+                            )
+                        else:
+                            # For new records, we need to add the lottery result first, then get its ID
+                            db.session.flush()  # Make sure the new result has an ID
+                            # Get the newly created lottery result
+                            new_result = LotteryResult.query.filter_by(
+                                lottery_type=lottery_type,
+                                draw_number=draw_number
+                            ).first()
+                            
+                            if new_result:
+                                imported_record = ImportedRecord(
+                                    import_id=import_history.id,
+                                    lottery_type=lottery_type,
+                                    draw_number=draw_number,
+                                    draw_date=draw_date,
+                                    is_new=True,
+                                    lottery_result_id=new_result.id
+                                )
+                            else:
+                                raise Exception(f"Failed to retrieve newly created record for {lottery_type} draw {draw_number}")
                         db.session.add(imported_record)
                         
                         success_count += 1
@@ -185,9 +208,11 @@ def import_template_data(template_path):
             
         except Exception as e:
             # Update import history with error
-            import_history.status = "failed"
-            import_history.error_message = str(e)
-            import_history.completed_date = datetime.now()
+            # Update import history with error details
+            import_history.records_added = success_count
+            import_history.records_updated = 0
+            import_history.total_processed = total_records
+            import_history.errors = error_count + 1  # +1 for the overall error
             db.session.commit()
             
             print(f"Import failed: {str(e)}")
