@@ -353,8 +353,8 @@ def import_excel_data(excel_file, flask_app=None):
             # Check if we found essential columns
             if 'lottery_type' not in column_mapping or 'draw_number' not in column_mapping:
                 logger.error("Could not find essential columns for lottery data import")
-                import_history.status = "error"
-                import_history.notes = "Could not find essential columns (Game Name and Draw Number)"
+                import_history.errors = 1
+                import_history.total_processed = 0
                 db.session.commit()
                 return False
             
@@ -552,7 +552,7 @@ def import_excel_data(excel_file, flask_app=None):
                     # Create ImportedRecord entries for each imported record
                     for record in imported_records:
                         imported_record = ImportedRecord(
-                            import_history_id=import_history.id,
+                            import_id=import_history.id,
                             lottery_type=record['lottery_type'],
                             draw_number=record['draw_number'],
                             draw_date=record['draw_date'],
