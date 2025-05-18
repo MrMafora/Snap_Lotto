@@ -253,8 +253,7 @@ def index():
                     results_list.append(result_clone)
                     seen_draws[key] = True
             
-            # FORCED APPROACH: Completely replace the results list with ordered data
-            # Define the desired order of lottery types and completely replace the results
+            # MANUAL APPROACH: Hard code the exact results in proper order for display
             ordered_list = []
             
             # Define the exact ordering we want to display
@@ -267,31 +266,33 @@ def index():
                 "Daily Lottery"
             ]
             
-            # Get all lottery types from the database to check what data we have
-            available_types = []
-            try:
-                available_types = db.session.query(LotteryResult.lottery_type).distinct().all()
-                available_types = [t[0] for t in available_types]
-                logger.info(f"Available lottery types: {available_types}")
-            except Exception as e:
-                logger.error(f"Error querying available lottery types: {e}")
+            # Log what we're trying to do
+            logger.info("Manually sorting lottery results for homepage display")
             
-            # Direct database query to build the list in exact order
-            for lottery_type in lottery_type_order:
-                try:
-                    # Get the latest result for this specific lottery type with newest date first
-                    latest_result = db.session.query(LotteryResult).filter(
-                        LotteryResult.lottery_type == lottery_type
-                    ).order_by(
-                        LotteryResult.draw_date.desc()
-                    ).first()
-                    
-                    if latest_result:
-                        # Add to our ordered list
-                        ordered_list.append(latest_result)
-                        logger.info(f"Found latest result for {lottery_type}: {latest_result.draw_number} from {latest_result.draw_date}")
-                except Exception as e:
-                    logger.error(f"Error fetching latest result for {lottery_type}: {e}")
+            # Get all possible results first so we have a pool to select from
+            all_results = []
+            try:
+                all_results = db.session.query(LotteryResult).order_by(
+                    LotteryResult.draw_date.desc()
+                ).all()
+                logger.info(f"Retrieved {len(all_results)} total lottery results")
+            except Exception as e:
+                logger.error(f"Error retrieving all lottery results: {e}")
+            
+            # Now pick the results in the order we want
+            for target_type in lottery_type_order:
+                # Find the first result that matches our target type
+                for result in all_results:
+                    if result.lottery_type == target_type:
+                        # Add to our ordered list and log what we found
+                        ordered_list.append(result)
+                        logger.info(f"Added {result.lottery_type} with draw number {result.draw_number} and date {result.draw_date}")
+                        # Move on to the next target type
+                        break
+            
+            # Also log the final ordering to verify it's correct
+            final_order = [r.lottery_type for r in ordered_list]
+            logger.info(f"Final ordering of results: {final_order}")
             
             # Replace the results list entirely
             results_list = ordered_list
