@@ -545,16 +545,54 @@ def results():
     lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
                      'Powerball', 'Powerball Plus', 'Daily Lottery']
     
-    # Define breadcrumbs for SEO
-    breadcrumbs = [
-        {"name": "Results", "url": url_for('results')}
-    ]
-    
-    # Simple page without relying on database queries
-    return render_template('results_simple.html',
-                        lottery_types=lottery_types,
-                        title="All Lottery Results",
-                        breadcrumbs=breadcrumbs)
+    try:
+        # Ensure data_aggregator is loaded before using it
+        global data_aggregator
+        
+        # Import if not already loaded
+        if data_aggregator is None:
+            import data_aggregator as da
+            data_aggregator = da
+            logger.info("Loaded data_aggregator module on demand")
+        
+        # Initialize with empty dict in case the next step fails
+        latest_results = {}
+        
+        try:
+            # Try to get results, but handle any errors
+            latest_results = data_aggregator.get_latest_results()
+            
+            # Ensure latest_results is a dictionary
+            if not isinstance(latest_results, dict):
+                latest_results = {}
+                logger.warning("get_latest_results() did not return a dictionary")
+        except Exception as e:
+            logger.error(f"Error getting latest results: {str(e)}")
+            latest_results = {}  # Use empty dict on any error
+        
+        # Define breadcrumbs for SEO
+        breadcrumbs = [
+            {"name": "Results", "url": url_for('results')}
+        ]
+        
+        return render_template('results_overview.html',
+                            lottery_types=lottery_types,
+                            latest_results=latest_results,
+                            title="All Lottery Results",
+                            breadcrumbs=breadcrumbs)
+                            
+    except Exception as e:
+        logger.error(f"Critical error in results route: {str(e)}", exc_info=True)
+        # Define breadcrumbs for SEO even in error case
+        breadcrumbs = [
+            {"name": "Results", "url": url_for('results')}
+        ]
+        # Return a simplified template with no result data
+        return render_template('results_overview.html',
+                            lottery_types=lottery_types,
+                            latest_results={},  # Empty dict on critical error
+                            title="All Lottery Results",
+                            breadcrumbs=breadcrumbs)
 
 @app.route('/results/<lottery_type>')
 def lottery_results(lottery_type):
