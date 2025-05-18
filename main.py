@@ -552,8 +552,6 @@ def ticket_scanner():
         {"name": "Scan Your Ticket", "url": url_for('ticket_scanner')}
     ]
     
-    # Use the direct ticket scanner template with a simplified approach
-    
     # Additional SEO metadata
     meta_description = "Check if your South African lottery ticket is a winner. Our free ticket scanner uses advanced technology to analyze and verify your lottery tickets instantly."
     
@@ -562,17 +560,126 @@ def ticket_scanner():
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
 
+@app.route('/direct-scanner')
+def direct_scanner():
+    """Direct simplified ticket scanner page with improved reliability"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Lottery Ticket Scanner", "url": url_for('scanner_landing')},
+        {"name": "Quick Scan", "url": url_for('direct_scanner')}
+    ]
+    
+    # Additional SEO metadata
+    meta_description = "Quickly check if your South African lottery ticket is a winner with our simplified scanner."
+    
+    return render_template('direct_ticket_scanner.html', 
+                          title="Lottery Ticket Scanner | Check If You've Won",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
+
+@app.route('/simple-scanner')
+def simple_scanner():
+    """Extremely simplified and reliable ticket scanner page"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Lottery Ticket Scanner", "url": url_for('scanner_landing')},
+        {"name": "Simple Scanner", "url": url_for('simple_scanner')}
+    ]
+    
+    # Additional SEO metadata
+    meta_description = "The simplest and most reliable way to check if your South African lottery ticket is a winner."
+    
+    return render_template('simple_scanner.html', 
+                          title="Simple Lottery Ticket Scanner | Check If You've Won",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
+                          
+@app.route('/simple-process', methods=['POST'])
+@csrf.exempt
+def simple_process():
+    """Simplified process for ticket scanning with better error handling"""
+    import time
+    import os.path
+    import logging
+    from werkzeug.utils import secure_filename
+    
+    # Log incoming request
+    logging.info("Simple process ticket request received")
+    
+    # Get form data
+    lottery_type = request.form.get('lottery_type', '')
+    draw_number = request.form.get('draw_number', '')
+    
+    # Check if a file was uploaded
+    if 'ticket_image' not in request.files:
+        return render_template('simple_scanner.html', 
+                              error="No file selected. Please upload an image file.",
+                              title="Simple Lottery Ticket Scanner | Check If You've Won")
+    
+    file = request.files['ticket_image']
+    
+    # If user does not select file, browser also submits an empty part without filename
+    if file.filename == '':
+        return render_template('simple_scanner.html', 
+                              error="No selected file. Please choose a file to upload.",
+                              title="Simple Lottery Ticket Scanner | Check If You've Won")
+    
+    # Define allowed file extensions
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
+    
+    # Get file extension (safely)
+    file_extension = os.path.splitext(secure_filename(file.filename))[1].lower() if file.filename else ''
+    
+    # Check if file extension is allowed
+    if file_extension not in allowed_extensions:
+        return render_template('simple_scanner.html', 
+                              error="Invalid file type. Please upload a valid image (JPG, PNG, etc).",
+                              title="Simple Lottery Ticket Scanner | Check If You've Won")
+    
+    try:
+        # Create uploads directory if it doesn't exist
+        if not os.path.exists(app.config['UPLOAD_FOLDER']):
+            os.makedirs(app.config['UPLOAD_FOLDER'])
+        
+        # Generate a unique filename
+        timestamp = int(time.time())
+        filename = f"ticket_{timestamp}{file_extension}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # Save the file
+        file.save(filepath)
+        
+        # Process the ticket image (basic version for testing)
+        # This would normally call your AI-powered OCR function
+        import ticket_scanner
+        results = ticket_scanner.process_ticket_image(filepath, lottery_type, draw_number)
+        
+        if not results:
+            return render_template('simple_scanner.html', 
+                                  error="Unable to process the ticket image. Please try again with a clearer image.",
+                                  title="Simple Lottery Ticket Scanner | Check If You've Won")
+                                  
+        # Return the results
+        return render_template('simple_scanner.html', 
+                              results=results,
+                              success=f"Successfully processed your {results.get('lottery_type', 'lottery')} ticket.",
+                              title="Simple Lottery Ticket Scanner | Check If You've Won")
+
 @app.route('/process-ticket', methods=['POST', 'GET'])
 @csrf.exempt
 def process_ticket():
     """Process the uploaded ticket image and display results in a simple, reliable way"""
     import time
     import os.path
+    import logging
     from werkzeug.utils import secure_filename
     
     # If it's a GET request, redirect to the scanner page
     if request.method == 'GET':
         return redirect(url_for('ticket_scanner'))
+        
+    # Log incoming request for debugging
+    logging.info("Process ticket request received")
     
     # Get form data
     lottery_type = request.form.get('lottery_type', '')
