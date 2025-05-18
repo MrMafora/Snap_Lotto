@@ -246,7 +246,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             <i class="fa fa-info-circle me-1"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
                         </div>
 
-                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
+                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data" onsubmit="return processForm(event);">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-2">
                                 <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
@@ -738,8 +738,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             console.log('Cleared previous results');
         }
         
-        function processTicketWithAds() {
-            // Ad system has been disabled - just process the ticket directly
+        function processForm(event) {
+            event.preventDefault();
+            
             if (!validateScannerForm()) {
                 return false;
             }
@@ -755,37 +756,21 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             const formData = new FormData(ticketForm);
             
             // Process ticket directly without ad overlay
-            processTicket(formData);
+            submitTicket(formData);
             
             return false; // Prevent default form submission
         }
         
-        // Function to process the ticket after ad is shown
-        function processTicket(formData) {
+        // Function to submit and process the ticket
+        function submitTicket(formData) {
             // Add CSRF token to headers
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
             
-            // CRITICAL FIX: Set a backup timer to ensure we advance past loading ad
-            // This ensures we never get stuck in loading screen
-            const loadingExpireTimeout = setTimeout(function() {
-                console.log('BACKUP TIMER: Force advancing from loading ad');
-                
-                // Hide loading overlay
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                if (adOverlayLoading) {
-                    adOverlayLoading.style.display = 'none';
-                }
-                
-                // Show results overlay if we have data cached
-                if (window.lastResultsData) {
-                    const adOverlayResults = document.getElementById('ad-overlay-results');
-                    if (adOverlayResults) {
-                        adOverlayResults.style.display = 'flex';
-                    }
-                }
-            }, 15000); // 15 seconds max in loading screen
+            // Show loader
+            const loadingIndicator = document.getElementById('scanner-loading');
+            loadingIndicator.style.display = 'block';
             
-            // Add CSRF token to request headers
+            // Add CSRF token to request headers and submit
             fetch('/scan-ticket', {
                 method: 'POST',
                 body: formData,
@@ -802,79 +787,22 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             .then(data => {
                 console.log('Success:', data);
                 
-                // CRITICAL FIX: Store the data immediately in the global object for later reference
-                window.lastResultsData = data;
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
                 
-                // Clear the loading backup timer since we now have results
-                if (loadingExpireTimeout) {
-                    clearTimeout(loadingExpireTimeout);
-                }
+                // Display results immediately without any ad overlay
+                displayResults(data);
                 
-                // CRITICAL: We need to ensure proper transition from first ad to second ad
-                // Set flag to indicate we have real results
-                window.hasValidResults = true;
+            }) // End of fetch promise chain
+            .catch(error => {
+                console.error('Error:', error);
                 
-                // Hide loading overlay with deliberate sequencing to ensure proper ad transition
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
                 
-                // CRITICAL FIX: Get the results overlay BEFORE hiding the loading overlay
-                const adOverlayResults = document.getElementById('ad-overlay-results');
-                
-                // Prepare the results overlay transition by making sure it's ready to be visible
-                adOverlayResults.style.opacity = '1';
-                adOverlayResults.style.visibility = 'visible';
-                
-                // Log the transition for debugging
-                console.log('⚠️ CRITICAL TRANSITION: About to hide loading overlay and show results overlay');
-                
-                // CRITICAL FIX: Add a deliberate sequence with very slight delays for proper transition
-                // This resolves the iOS issue where it jumps back to the main screen
-                setTimeout(function() {
-                    // Step 1: Hide the loading overlay
-                    adOverlayLoading.style.display = 'none';
-                    
-                    // Step 2: Show the results overlay after a tiny delay to ensure proper sequence
-                    setTimeout(function() {
-                        // Force display of results overlay
-                        adOverlayResults.style.display = 'flex';
-                        console.log('⚠️ CRITICAL TRANSITION: Results overlay should now be visible');
-                    }, 50); // Just 50ms delay for sequencing
-                }, 50); // Just 50ms delay before starting transition
-                
-                // Try to use AdManager for tracking, but we'll show the overlay manually either way
-                if (window.AdManager && typeof window.AdManager.showInterstitialAd === 'function') {
-                    console.log('Using AdManager to show interstitial ad');
-                    window.AdManager.showInterstitialAd(function(adShown) {
-                        console.log('Interstitial ad shown:', adShown);
-                        // Make sure the overlay is displayed even if AdManager fails
-                        adOverlayResults.style.display = 'flex';
-                    });
-                } else {
-                    console.log('AdManager not available, showing results overlay manually');
-                }
-                
-                console.log('Showing results interstitial ad');
-                
-                // Get the ad container
-                const adContainer = document.getElementById('ad-container-interstitial');
-                
-                // View Results button handling - CRITICAL: Changed from const to let to allow reassignment
-                let viewResultsBtn = document.getElementById('view-results-btn');
-                viewResultsBtn.onclick = function(e) {
-                    // Prevent any default actions
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    console.log('View Results button clicked at ' + new Date().toISOString());
-                    
-                    // Make sure we have the last results data before continuing
-                    if (!window.lastResultsData && !data) {
-                        console.error('No results data available!');
-                        return false;
-                    }
-                    
-                    // Store locally to ensure we have it for display
-                    const resultsToShow = window.lastResultsData || data;
+                // Show error message
+                showError('An error occurred while processing your ticket. Please try again.');
+            });
                     
                     // Clear ALL possible timers to prevent any conflicts
                     // This is important to prevent any hidden callbacks from running later
