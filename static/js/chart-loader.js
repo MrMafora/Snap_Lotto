@@ -126,7 +126,17 @@ function fetchChartData(lotteryType, timePeriod) {
         })
         .then(data => {
             // Pass data to chart renderer functions
-            console.log("Chart data received:", data.lotteryTypes);
+            console.log("Chart data received:", data);
+            
+            // Debug what data format we have received
+            if (data.frequencyData) {
+                console.log("Frequency data format:", typeof data.frequencyData);
+                console.log("Frequency data sample:", 
+                    Array.isArray(data.frequencyData) 
+                    ? data.frequencyData.slice(0, 3) 
+                    : Object.keys(data.frequencyData).slice(0, 3));
+            }
+            
             renderCharts(data);
         })
         .catch(error => {
