@@ -258,13 +258,13 @@ def index():
             logger.info("Getting latest lottery results in standardized order")
             ordered_list = []
             
-            # Define the desired order of lottery types
+            # Define the desired order of lottery types exactly as in the provided screenshot
             lottery_type_order = [
                 "Lottery", 
+                "Powerball Plus",
                 "Lottery Plus 1", 
+                "Powerball",
                 "Lottery Plus 2", 
-                "Powerball", 
-                "Powerball Plus", 
                 "Daily Lottery"
             ]
             
