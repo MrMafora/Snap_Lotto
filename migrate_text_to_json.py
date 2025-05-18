@@ -3,10 +3,9 @@
 Script to migrate plain text lottery results to JSON format
 """
 import json
-import sqlite3
 import os
-from flask import Flask
 import logging
+import sys
 from sqlalchemy import text
 
 # Setup logging
@@ -14,18 +13,11 @@ logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def create_app():
-    """Create Flask app for database context"""
-    app = Flask(__name__)
-    
-    # Configure database
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///lottery.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    return app
-
 def get_json_numbers(number_text):
     """Convert text format numbers to JSON format"""
+    if not number_text:
+        return '[]', '[]'
+        
     if '+' in number_text:
         # Split main numbers and bonus number
         main_part, bonus_part = number_text.split('+', 1)
@@ -41,34 +33,38 @@ def get_json_numbers(number_text):
 
 def migrate_text_to_json():
     """Find all plain text format entries and convert them to JSON format"""
-    from models import db, LotteryResult
+    # Use the existing Flask app structure - import at runtime
+    from main import app, db
+    from models import LotteryResult
     
-    app = create_app()
     with app.app_context():
         try:
-            # Find all entries with plain text format
-            text_entries = LotteryResult.query.filter(
-                ~LotteryResult.numbers.like('[%]')
-            ).all()
+            # Get all entries with plain text format (not starting with '[')
+            text_entries = db.session.execute(
+                text("SELECT id, lottery_type, draw_number, numbers, bonus_numbers FROM lottery_result WHERE numbers NOT LIKE '[%]'")
+            ).fetchall()
             
             logger.info(f"Found {len(text_entries)} entries to migrate")
             
             for entry in text_entries:
+                entry_id = entry.id
                 old_numbers = entry.numbers
                 old_bonus = entry.bonus_numbers
                 
                 # Convert to JSON format
-                json_numbers, json_bonus = get_json_numbers(entry.numbers)
+                json_numbers, json_bonus = get_json_numbers(old_numbers)
                 
                 # If entry already has bonus_numbers in JSON format, keep it
-                if old_bonus and old_bonus.startswith('['):
+                if old_bonus and isinstance(old_bonus, str) and old_bonus.startswith('['):
                     json_bonus = old_bonus
                 
-                # Update the entry
-                entry.numbers = json_numbers
-                entry.bonus_numbers = json_bonus
+                # Update the entry directly with SQL
+                db.session.execute(
+                    text("UPDATE lottery_result SET numbers = :numbers, bonus_numbers = :bonus WHERE id = :id"),
+                    {"numbers": json_numbers, "bonus": json_bonus, "id": entry_id}
+                )
                 
-                logger.info(f"Migrated entry {entry.id}: {old_numbers} -> {json_numbers}")
+                logger.info(f"Migrated entry {entry_id}: {old_numbers} -> {json_numbers}")
             
             # Commit all changes
             db.session.commit()
@@ -81,4 +77,10 @@ def migrate_text_to_json():
             return False
 
 if __name__ == "__main__":
-    migrate_text_to_json()
+    success = migrate_text_to_json()
+    if success:
+        print("Migration completed successfully!")
+        sys.exit(0)
+    else:
+        print("Migration failed, see logs for details.")
+        sys.exit(1)
