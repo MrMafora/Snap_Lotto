@@ -20,12 +20,7 @@
                     </div>
                     
                     <div class="lottery-balls-container text-center mb-3">
-                        {% set numbers_list = [] %}
-                        {% try %}
-                            {% set numbers_list = result.get_numbers_list() %}
-                        {% except %}
-                            {# In case of error, just show empty list #}
-                        {% endtry %}
+                        {% set numbers_list = result.get_numbers_list()|default([]) %}
                         
                         {% if numbers_list %}
                             {% for number in numbers_list %}
@@ -47,12 +42,7 @@
                             <p class="text-muted">No numbers available</p>
                         {% endif %}
                         
-                        {% set bonus_numbers = [] %}
-                        {% try %}
-                            {% set bonus_numbers = result.get_bonus_numbers_list() %}
-                        {% except %}
-                            {# In case of error, just show empty list #}
-                        {% endtry %}
+                        {% set bonus_numbers = result.get_bonus_numbers_list()|default([]) %}
                         
                         {% if bonus_numbers %}
                             <span class="bonus-indicator">+</span>
@@ -62,12 +52,7 @@
                         {% endif %}
                     </div>
                     
-                    {% set divisions_data = {} %}
-                    {% try %}
-                        {% set divisions_data = result.get_divisions() %}
-                    {% except %}
-                        {# In case of error, just show empty dict #}
-                    {% endtry %}
+                    {% set divisions_data = result.get_divisions()|default({}) %}
                     
                     {% if divisions_data %}
                     <div class="divisions-summary mt-3">
