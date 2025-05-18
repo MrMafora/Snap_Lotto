@@ -108,85 +108,129 @@ class LotteryResult(db.Model):
     
     def get_numbers_list(self):
         """Return numbers as a Python list"""
-        if not self.numbers:
-            return []
-        
-        # Handle JSON string format
-        if isinstance(self.numbers, str):
-            # First try to parse as JSON if it looks like a JSON array
-            if self.numbers.strip().startswith('[') and self.numbers.strip().endswith(']'):
-                try:
-                    parsed = json.loads(self.numbers)
-                    if isinstance(parsed, list):
-                        return parsed
-                except Exception:
-                    # If JSON parsing fails, continue with other methods
-                    pass
-                
-            # Clean up common formats
-            if self.numbers.strip().startswith(" +"):
-                # Format is probably like " + 28"
-                return [self.numbers.strip().replace(" +", "").strip()]
-            elif "+" in self.numbers:
-                # Format might be "1, 2, 3, 4, 5 + 6"
-                parts = self.numbers.split("+")
-                if len(parts) > 1:
-                    main_numbers = []
-                    # First part may have comma-separated numbers
-                    if "," in parts[0]:
-                        main_numbers = [n.strip() for n in parts[0].split(",")]
-                    else:
-                        main_numbers = [parts[0].strip()]
-                    # Add the bonus number
-                    main_numbers.append(parts[1].strip())
-                    return main_numbers
-                return [parts[0].strip()]
-            elif "," in self.numbers:
-                # Format is probably comma-separated
-                return [n.strip() for n in self.numbers.split(",")]
-            else:
-                # Just return as-is
-                return [self.numbers.strip()]
-        
-        # If it's already a list, return it directly
-        elif isinstance(self.numbers, list):
-            return self.numbers
+        try:
+            # Return empty list if numbers is None or empty string
+            if self.numbers is None or (isinstance(self.numbers, str) and not self.numbers.strip()):
+                return []
             
-        # For any other type, convert to string and wrap in a list
-        return [str(self.numbers)]
+            # If it's already a list, return it directly
+            if isinstance(self.numbers, list):
+                return self.numbers
+            
+            # Handle string formats - most common case
+            if isinstance(self.numbers, str):
+                numbers_str = self.numbers.strip()
+                
+                # Try to parse as JSON if it looks like a JSON array
+                if numbers_str.startswith('[') and numbers_str.endswith(']'):
+                    try:
+                        parsed = json.loads(numbers_str)
+                        if isinstance(parsed, list):
+                            return parsed
+                    except Exception:
+                        # JSON parsing failed, continue with other methods
+                        pass
+                
+                # Handle various string formats
+                if "+" in numbers_str:
+                    # Format might be "1, 2, 3, 4, 5 + 6"
+                    parts = numbers_str.split("+")
+                    main_numbers = []
+                    
+                    # Process main numbers
+                    if len(parts) > 0 and parts[0].strip():
+                        if "," in parts[0]:
+                            main_numbers = [n.strip() for n in parts[0].split(",") if n.strip()]
+                        else:
+                            main_numbers = [parts[0].strip()]
+                    
+                    # Add bonus number if present
+                    if len(parts) > 1 and parts[1].strip():
+                        main_numbers.append(parts[1].strip())
+                        
+                    return main_numbers
+                elif "," in numbers_str:
+                    # Comma-separated list
+                    return [n.strip() for n in numbers_str.split(",") if n.strip()]
+                else:
+                    # Single number
+                    return [numbers_str]
+            
+            # For any other type (int, float, etc.), convert to string and wrap in a list
+            return [str(self.numbers)]
+        except Exception as e:
+            # Fail gracefully with logging
+            print(f"Error in get_numbers_list: {e}")
+            return []
     
     def get_bonus_numbers_list(self):
         """Return bonus numbers as a Python list, or empty list if None"""
-        if not self.bonus_numbers:
-            return []
+        try:
+            # Return empty list if bonus_numbers is None or empty string
+            if self.bonus_numbers is None or (isinstance(self.bonus_numbers, str) and not self.bonus_numbers.strip()):
+                return []
             
-        # Simple and direct approach to avoid errors
-        if isinstance(self.bonus_numbers, str):
-            return [self.bonus_numbers.strip()]
-        elif isinstance(self.bonus_numbers, list):
-            return self.bonus_numbers
-        else:
+            # If it's already a list, return it directly
+            if isinstance(self.bonus_numbers, list):
+                return self.bonus_numbers
+            
+            # Handle string format - most common case
+            if isinstance(self.bonus_numbers, str):
+                bonus_str = self.bonus_numbers.strip()
+                
+                # Try to parse as JSON if it looks like a JSON array
+                if bonus_str.startswith('[') and bonus_str.endswith(']'):
+                    try:
+                        parsed = json.loads(bonus_str)
+                        if isinstance(parsed, list):
+                            return parsed
+                    except Exception:
+                        # JSON parsing failed, continue with other methods
+                        pass
+                
+                # Handle comma-separated format
+                if "," in bonus_str:
+                    return [n.strip() for n in bonus_str.split(",") if n.strip()]
+                else:
+                    # Single number
+                    return [bonus_str]
+            
+            # For any other type (int, float, etc.), convert to string and wrap in a list
+            return [str(self.bonus_numbers)]
+        except Exception as e:
+            # Fail gracefully with logging
+            print(f"Error in get_bonus_numbers_list: {e}")
             return []
     
     def get_divisions(self):
         """Return divisions data as a Python dict, or empty dict if None"""
-        if not self.divisions:
-            return {}
-            
         try:
+            # Return empty dict if divisions is None or empty string
+            if self.divisions is None or (isinstance(self.divisions, str) and not self.divisions.strip()):
+                return {}
+            
+            # If it's already a dict, return it directly
             if isinstance(self.divisions, dict):
                 return self.divisions
-            elif isinstance(self.divisions, str):
-                # First, try to parse as JSON if it's a valid JSON string
-                try:
-                    return json.loads(self.divisions)
-                except Exception:
-                    # If JSON parsing fails, try other approaches
-                    pass
+            
+            # Handle string format
+            if isinstance(self.divisions, str):
+                # Try to parse as JSON if it looks like a JSON object
+                divisions_str = self.divisions.strip()
+                if divisions_str.startswith('{') and divisions_str.endswith('}'):
+                    try:
+                        parsed = json.loads(divisions_str)
+                        if isinstance(parsed, dict):
+                            return parsed
+                    except Exception:
+                        # JSON parsing failed, log for debugging
+                        print(f"Failed to parse divisions JSON: {divisions_str[:100]}")
             
             # For any other case, return empty dict
             return {}
-        except Exception:
+        except Exception as e:
+            # Fail gracefully with logging
+            print(f"Error in get_divisions: {e}")
             return {}
     
     def to_dict(self):
