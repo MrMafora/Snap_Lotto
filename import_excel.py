@@ -294,28 +294,32 @@ def import_excel_data(excel_file, flask_app=None):
                 'Bonus Ball': 'bonus_ball'
             }
             
+            # First, try exact matches for common column names
+            for col in df.columns:
+                col_str = str(col)
+                if col_str in exact_mapping:
+                    field_name = exact_mapping[col_str]
+                    column_mapping[field_name] = col
+            
+            # Then fallback to pattern matching for any missing fields
             for col in df.columns:
                 col_str = str(col)
                 col_lower = col_str.lower()
                 
-                # Map standard fields to actual column names
-                if any(variant in col_lower for variant in game_name_variants):
+                # Check and map standard fields if not already mapped
+                if 'lottery_type' not in column_mapping and any(variant in col_lower for variant in game_name_variants):
                     column_mapping['lottery_type'] = col
                 
-                # Special case for "Game Name" which is the most common in our templates
-                if col_str == "Game Name":
-                    column_mapping['lottery_type'] = col
-                
-                if any(variant in col_lower for variant in draw_number_variants):
+                if 'draw_number' not in column_mapping and any(variant in col_lower for variant in draw_number_variants):
                     column_mapping['draw_number'] = col
                 
-                if any(variant in col_lower for variant in draw_date_variants):
+                if 'draw_date' not in column_mapping and any(variant in col_lower for variant in draw_date_variants):
                     column_mapping['draw_date'] = col
                 
-                if any(variant in col_lower for variant in numbers_variants) or 'numerical' in col_lower:
+                if 'numbers' not in column_mapping and (any(variant in col_lower for variant in numbers_variants) or 'numerical' in col_lower):
                     column_mapping['numbers'] = col
                 
-                if any(variant in col_lower for variant in bonus_variants):
+                if 'bonus_ball' not in column_mapping and any(variant in col_lower for variant in bonus_variants):
                     column_mapping['bonus_ball'] = col
                 
                 # Check for division data columns
