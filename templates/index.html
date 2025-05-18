@@ -218,10 +218,33 @@
                             </tr>
                         </thead>
                         <tbody>
+                            {# Create lottery type mapping to ensure fixed order display #}
+                            {% set sorted_types = {
+                                "Lottery": None,
+                                "Powerball Plus": None,
+                                "Lottery Plus 1": None,
+                                "Powerball": None,
+                                "Lottery Plus 2": None,
+                                "Daily Lottery": None
+                            } %}
+                            
+                            {# Fill the mapping with actual results #}
                             {% for result in results %}
+                                {% set display_type = result.lottery_type %}
+                                {% if 'Lotto' in display_type %}
+                                    {% set display_type = display_type.replace('Lotto', 'Lottery') %}
+                                {% endif %}
+                                {% if display_type in sorted_types and sorted_types[display_type] is none %}
+                                    {% set _ = sorted_types.update({display_type: result}) %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {# Now display results in our fixed order #}
+                            {% for lottery_type, result in sorted_types.items() %}
+                            {% if result is not none %}
                             <tr>
                                 <td class="ps-2 py-1">
-                                    {% set display_type = result.lottery_type %}
+                                    {% set display_type = lottery_type %}
                                     {# Always normalize any legacy Lotto references to Lottery for display #}
                                     {% if 'Lotto' in display_type %}
                                         {% set display_type = display_type.replace('Lotto', 'Lottery') %}
@@ -279,6 +302,7 @@
                                     </div>
                                 </td>
                             </tr>
+                            {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>
