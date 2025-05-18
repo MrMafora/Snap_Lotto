@@ -40,6 +40,7 @@ from config import Config
 import ad_management
 import lottery_analysis
 from import_latest_spreadsheet import import_latest_spreadsheet, find_latest_spreadsheet
+import scanner_routes  # Import the scanner routes module
 
 # Import auto_proxy to start the port proxy in the background
 try:
