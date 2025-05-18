@@ -154,12 +154,6 @@ class LotteryResult(db.Model):
             
         # For any other type, convert to string and wrap in a list
         return [str(self.numbers)]
-        # Handle already parsed list
-        elif isinstance(self.numbers, list):
-            return self.numbers
-        # Otherwise, return empty list
-        else:
-            return []
     
     def get_bonus_numbers_list(self):
         """Return bonus numbers as a Python list, or empty list if None"""
@@ -183,8 +177,14 @@ class LotteryResult(db.Model):
             if isinstance(self.divisions, dict):
                 return self.divisions
             elif isinstance(self.divisions, str):
-                if self.divisions.strip().startswith('{'):
+                # First, try to parse as JSON if it's a valid JSON string
+                try:
                     return json.loads(self.divisions)
+                except Exception:
+                    # If JSON parsing fails, try other approaches
+                    pass
+            
+            # For any other case, return empty dict
             return {}
         except Exception:
             return {}
