@@ -37,7 +37,8 @@ from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisemen
 from config import Config
 
 # Import modules
-import ad_management
+# ad_management temporarily disabled
+# import ad_management
 import lottery_analysis
 from import_latest_spreadsheet import import_latest_spreadsheet, find_latest_spreadsheet
 import scanner_routes  # Import the scanner routes module
