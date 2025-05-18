@@ -253,8 +253,26 @@ def index():
                     results_list.append(result_clone)
                     seen_draws[key] = True
             
-            # Sort results by date (newest first)
-            results_list.sort(key=lambda x: x.draw_date, reverse=True)
+            # Define the desired order of lottery types
+            lottery_type_order = [
+                "Lottery", 
+                "Lottery Plus 1", 
+                "Lottery Plus 2", 
+                "Powerball", 
+                "Powerball Plus", 
+                "Daily Lottery"
+            ]
+            
+            # Sort results by the predefined order
+            def get_lottery_type_order(result):
+                try:
+                    return lottery_type_order.index(result.lottery_type)
+                except ValueError:
+                    # If lottery type not found in the list, put it at the end
+                    return len(lottery_type_order)
+                    
+            # Sort by the defined order
+            results_list.sort(key=get_lottery_type_order)
         except Exception as e:
             logger.error(f"Error getting latest lottery results: {e}")
             latest_results = {}

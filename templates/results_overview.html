@@ -21,18 +21,7 @@
                     
                     <div class="lottery-balls-container text-center mb-3">
                         {% if result.numbers %}
-                            {% set numbers_list = [] %}
-                            {% try %}
-                                {% set numbers_list = result.get_numbers_list() %}
-                            {% except %}
-                                {# If JSON parsing fails, try to handle as string #}
-                                {% if result.numbers and result.numbers|string != "None" %}
-                                    {% set raw_numbers = result.numbers|string %}
-                                    {% if '[' in raw_numbers and ']' in raw_numbers %}
-                                        {% set numbers_list = raw_numbers.strip('[]').replace('"', '').replace("'", "").split(',') %}
-                                    {% endif %}
-                                {% endif %}
-                            {% endtry %}
+                            {% set numbers_list = result.get_numbers_list() %}
                             
                             {% for number in numbers_list %}
                                 {% set ball_class = 'lottery-ball ' %}
