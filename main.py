@@ -566,6 +566,10 @@ def ticket_scanner():
 @csrf.exempt
 def process_ticket():
     """Process the uploaded ticket image and display results in a simple, reliable way"""
+    import time
+    import os.path
+    from werkzeug.utils import secure_filename
+    
     # Get form data
     lottery_type = request.form.get('lottery_type', '')
     draw_number = request.form.get('draw_number', '')
