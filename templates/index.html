@@ -264,7 +264,8 @@
                                 <td class="py-1"><strong>{{ result.draw_number }}</strong></td>
                                 <td class="py-1 text-nowrap">
                                     {% if result.draw_date %}
-                                        {{ result.draw_date.strftime('%Y-%m-%d') }}
+                                        <!-- Format just month and day to avoid showing year -->
+                                        {{ result.draw_date.strftime('%d %b') }}
                                     {% else %}
                                         N/A
                                     {% endif %}
