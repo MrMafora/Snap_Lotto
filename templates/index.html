@@ -219,12 +219,13 @@
                         </thead>
                         <tbody>
                             {# Create lottery type mapping to ensure fixed order display #}
+                            {# This order matches the exact order requested by user #}
                             {% set sorted_types = {
                                 "Lottery": None,
-                                "Powerball Plus": None,
                                 "Lottery Plus 1": None,
-                                "Powerball": None,
                                 "Lottery Plus 2": None,
+                                "Powerball": None,
+                                "Powerball Plus": None,
                                 "Daily Lottery": None
                             } %}
                             
