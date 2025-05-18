@@ -253,87 +253,74 @@ def index():
                     results_list.append(result_clone)
                     seen_draws[key] = True
             
-            # COMPLETELY MANUAL APPROACH: Create lottery results directly
-            from datetime import datetime
-            import json
-            
-            logger.info("Creating direct lottery results with the correct dates")
+            # Get the latest results for each lottery type based on standardized order
+            # This is a reusable approach that doesn't require hardcoding
+            logger.info("Getting latest lottery results in standardized order")
             ordered_list = []
             
-            # Define the exact ordering and dates as provided by the user
-            # This directly creates new result objects without trying to find matches in the database
-            results_data = [
-                {
-                    "lottery_type": "Lottery", 
-                    "draw_number": "2541", 
-                    "draw_date": datetime.strptime("2025-05-14", "%Y-%m-%d"),
-                    "numbers": json.dumps(["09", "18", "19", "30", "31", "40"]),
-                    "bonus_numbers": json.dumps(["28"]),
-                    "source_url": "https://www.nationallottery.co.za/results/lotto"
-                },
-                {
-                    "lottery_type": "Lottery Plus 1", 
-                    "draw_number": "2541", 
-                    "draw_date": datetime.strptime("2025-05-14", "%Y-%m-%d"),
-                    "numbers": json.dumps(["21", "25", "31", "41", "42", "50"]),
-                    "bonus_numbers": json.dumps(["48"]),
-                    "source_url": "https://www.nationallottery.co.za/results/lotto-plus-1-results"
-                },
-                {
-                    "lottery_type": "Lottery Plus 2", 
-                    "draw_number": "2541", 
-                    "draw_date": datetime.strptime("2025-05-14", "%Y-%m-%d"),
-                    "numbers": json.dumps(["17", "20", "22", "24", "27", "37"]),
-                    "bonus_numbers": json.dumps(["46"]),
-                    "source_url": "https://www.nationallottery.co.za/results/lotto-plus-2-results"
-                },
-                {
-                    "lottery_type": "Powerball", 
-                    "draw_number": "1615", 
-                    "draw_date": datetime.strptime("2025-05-16", "%Y-%m-%d"),
-                    "numbers": json.dumps(["09", "16", "20", "28", "39"]),
-                    "bonus_numbers": json.dumps(["19"]),
-                    "source_url": "https://www.nationallottery.co.za/results/powerball"
-                },
-                {
-                    "lottery_type": "Powerball Plus", 
-                    "draw_number": "1612", 
-                    "draw_date": datetime.strptime("2025-05-13", "%Y-%m-%d"),
-                    "numbers": json.dumps(["04", "10", "30", "48", "49"]),
-                    "bonus_numbers": json.dumps(["08"]),
-                    "source_url": "https://www.nationallottery.co.za/results/powerball-plus"
-                },
-                {
-                    "lottery_type": "Daily Lottery", 
-                    "draw_number": "2255", 
-                    "draw_date": datetime.strptime("2025-05-17", "%Y-%m-%d"),
-                    "numbers": json.dumps(["01", "04", "06", "08", "13"]),
-                    "bonus_numbers": json.dumps([]),
-                    "source_url": "https://www.nationallottery.co.za/results/daily-lotto"
-                }
+            # Define the desired order of lottery types
+            lottery_type_order = [
+                "Lottery", 
+                "Lottery Plus 1", 
+                "Lottery Plus 2", 
+                "Powerball", 
+                "Powerball Plus", 
+                "Daily Lottery"
             ]
             
-            # Create real LotteryResult objects from our data
-            for result_data in results_data:
-                # Create a new LotteryResult object with our hardcoded data
-                # These objects are not added to the database, just for display
-                result = LotteryResult()
-                result.lottery_type = result_data["lottery_type"]
-                result.draw_number = result_data["draw_number"]
-                result.draw_date = result_data["draw_date"]
-                result.numbers = result_data["numbers"]
-                result.bonus_numbers = result_data["bonus_numbers"]
-                result.source_url = result_data["source_url"]
+            # Get all lottery types from the database
+            all_lottery_types = []
+            try:
+                # This gets all available lottery types in the database
+                lottery_types_query = db.session.query(LotteryResult.lottery_type).distinct().all()
+                all_lottery_types = [t[0] for t in lottery_types_query]
+                logger.info(f"Found lottery types in database: {all_lottery_types}")
                 
-                # Add it to our ordered list
-                ordered_list.append(result)
-                logger.info(f"Added hardcoded {result.lottery_type} result with draw number {result.draw_number} and date {result.draw_date}")
-            
-            # Log the final ordering to verify it's correct
-            final_order = [r.lottery_type for r in ordered_list]
-            final_dates = [r.get_formatted_date() for r in ordered_list]
-            logger.info(f"Final ordering of results: {final_order}")
-            logger.info(f"Final dates of results: {final_dates}")
+                # Also check for alternate spellings (Lotto vs Lottery)
+                normalized_types = {}
+                for t in all_lottery_types:
+                    normalized = t.replace('Lotto', 'Lottery') if 'Lotto' in t else t
+                    normalized_types[normalized] = t
+                
+                logger.info(f"Normalized lottery types: {normalized_types}")
+                
+                # For each lottery type in our preferred order
+                for preferred_type in lottery_type_order:
+                    result = None
+                    
+                    # First try exact match
+                    if preferred_type in all_lottery_types:
+                        # Get the latest result for this type
+                        result = db.session.query(LotteryResult).filter(
+                            LotteryResult.lottery_type == preferred_type
+                        ).order_by(
+                            LotteryResult.draw_date.desc()
+                        ).first()
+                        logger.info(f"Found exact match for {preferred_type}")
+                    
+                    # Then try normalized match (Lotto → Lottery)
+                    elif preferred_type in normalized_types:
+                        original_type = normalized_types[preferred_type]
+                        result = db.session.query(LotteryResult).filter(
+                            LotteryResult.lottery_type == original_type
+                        ).order_by(
+                            LotteryResult.draw_date.desc()
+                        ).first()
+                        logger.info(f"Found normalized match for {preferred_type} as {original_type}")
+                    
+                    # If we found a result, add it to our ordered list
+                    if result:
+                        ordered_list.append(result)
+                        logger.info(f"Added {result.lottery_type} with draw number {result.draw_number} and date {result.draw_date}")
+                
+                # Log the final order we achieved
+                final_order = [r.lottery_type for r in ordered_list]
+                final_dates = [r.get_formatted_date() for r in ordered_list]
+                logger.info(f"Final ordering of results: {final_order}")
+                logger.info(f"Final dates of results: {final_dates}")
+                
+            except Exception as e:
+                logger.error(f"Error getting ordered lottery results: {e}")
             
             # Replace the results list entirely
             results_list = ordered_list
