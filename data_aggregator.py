@@ -870,9 +870,9 @@ def validate_and_correct_known_draws():
             numbers_json = json.dumps(correct_numbers)
             bonus_json = json.dumps(correct_bonus)
             
-            # Check if the numbers are already correct
-            existing_numbers = json.loads(lotto_2532.numbers)
-            existing_bonus = json.loads(lotto_2532.bonus_numbers or '[]')
+            # Check if the numbers are already correct - use model methods instead of direct JSON parsing
+            existing_numbers = lotto_2532.get_numbers_list()
+            existing_bonus = lotto_2532.get_bonus_numbers_list()
             
             existing_set = set(existing_numbers)
             correct_set = set(correct_numbers)
@@ -930,12 +930,8 @@ def validate_and_correct_known_draws():
                 update_needed = True
             
             # Check if divisions need to be updated
-            existing_divisions = {}
-            if lotto_2532.divisions:
-                try:
-                    existing_divisions = json.loads(lotto_2532.divisions)
-                except (json.JSONDecodeError, TypeError):
-                    existing_divisions = {}
+            # Use the model's get_divisions method instead of direct json.loads
+            existing_divisions = lotto_2532.get_divisions()
             
             # Update divisions if missing or incomplete
             if not existing_divisions or len(existing_divisions) < len(divisions_data):
@@ -1011,8 +1007,8 @@ def validate_and_correct_known_draws():
             update_needed = False
             
             # Verify numbers if needed
-            existing_numbers = json.loads(lotto_plus1_2532.numbers)
-            existing_bonus = json.loads(lotto_plus1_2532.bonus_numbers or '[]')
+            existing_numbers = lotto_plus1_2532.get_numbers_list()
+            existing_bonus = lotto_plus1_2532.get_bonus_numbers_list()
             existing_set = set(existing_numbers)
             correct_set = set(correct_numbers)
             
@@ -1023,12 +1019,8 @@ def validate_and_correct_known_draws():
                 update_needed = True
             
             # Check if divisions need to be updated
-            existing_divisions = {}
-            if lotto_plus1_2532.divisions:
-                try:
-                    existing_divisions = json.loads(lotto_plus1_2532.divisions)
-                except (json.JSONDecodeError, TypeError):
-                    existing_divisions = {}
+            # Use model method for consistent handling
+            existing_divisions = lotto_plus1_2532.get_divisions()
             
             # Update divisions if missing or incomplete
             if not existing_divisions or len(existing_divisions) < len(divisions_data):
