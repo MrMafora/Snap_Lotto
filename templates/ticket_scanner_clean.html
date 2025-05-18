@@ -1,0 +1,678 @@
+{% extends "base.html" %}
+
+{% block title %}South Africa's ONLY Lottery Ticket Scanner | Check If You've Won Instantly | Snap Lotto{% endblock %}
+
+{% block meta_description %}The ONLY app with official Ithuba Lottery,
+PowerBall &
+Daily Lottery data,
+Snap Scan and Win = Phanda Phusha Play. Upload your lottery ticket and get instant results. Free with no registration.{% endblock %}
+
+{% block meta_keywords %}South Africa lottery ticket scanner, scan Lottery ticket South Africa, check lottery ticket South Africa, PowerBall ticket scanner, only lottery scanner app, instant lottery check{% endblock %}
+
+{% block og_title %}South Africa's ONLY Lottery Ticket Scanner | Check If You've Won Instantly{% endblock %}
+{% block og_description %}The ONLY app with official Ithuba Lottery,
+PowerBall &
+Daily Lottery data,
+Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you instant results for all lottery tickets.{% endblock %}
+
+{% block head_content %}
+<!-- Preload critical resources -->
+<link rel="preload" href="{{ url_for('static', filename='css/optimized-mobile.css') }}" as="style">
+<link rel="preload" href="{{ url_for('static', filename='js/mobile-optimization.js') }}" as="script">
+
+<!-- Mobile-optimized CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/optimized-mobile.css') }}">
+<!-- Smooth scrolling CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/smooth-scroll.css') }}">
+
+<!-- Structured Data for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Snap Lotto Ticket Scanner",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "All",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "ZAR"
+  },
+  "featureList": [
+    "Instant ticket scanning",
+    "AI-powered number recognition",
+    "All South African lottery games supported",
+    "No registration required",
+    "Free to use"
+  ],
+  "description": "The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Upload your lottery ticket and check if you've won instantly."
+}
+</script>
+{% endblock %}
+
+{% block additional_head %}
+<!-- Anti-flicker script -->
+<script src="{{ url_for('static', filename='js/anti-flicker.js') }}"></script>
+<!-- Fresh checkmark system -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/fresh_checkmark.css') }}">
+<!-- Mobile-specific button fix -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-button-fix.css') }}">
+<style>
+    .ticket-scanner-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    @media (max-width: 576px) {
+        .card-body {
+            padding: 0.75rem;
+        }
+        
+        .ticket-scanner-container .form-control, 
+        .ticket-scanner-container .form-select {
+            padding-top: 0.375rem;
+            padding-bottom: 0.375rem;
+        }
+        
+        .ticket-preview {
+            max-height: 200px;
+            margin: 10px 0;
+        }
+        
+        h1 {
+            font-size: 1.75rem;
+        }
+        
+        .lead {
+            font-size: 1rem;
+        }
+    }
+    
+    .ticket-drop-area {
+        border: 2px dashed #aaa;
+        border-radius: 8px;
+        padding: 40px;
+        text-align: center;
+        background-color: rgba(0,0,0,0.05);
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 20px;
+    }
+    
+    @media (max-width: 576px) {
+        .ticket-drop-area {
+            padding: 20px;
+        }
+    }
+    
+    .ticket-drop-area:hover, .ticket-drop-area.highlight {
+        border-color: var(--sa-lottery-yellow);
+        background-color: rgba(0,0,0,0.1);
+    }
+    
+    .ticket-preview {
+        max-width: 100%;
+        max-height: 300px;
+        margin: 20px 0;
+    }
+    
+    .results-container {
+        margin-top: 30px;
+    }
+    
+    .prize-card {
+        border-left: 5px solid var(--bs-success);
+    }
+    
+    #scanner-loading {
+        display: none;
+    }
+    
+    /* Fix for spinner animation */
+    @keyframes spinner-border {
+        to { transform: rotate(360deg); }
+    }
+    
+    .spinning-loader {
+        display: inline-block;
+        width: 2rem;
+        height: 2rem;
+        vertical-align: text-bottom;
+        border: 0.25em solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spinner-border .75s linear infinite;
+    }
+    
+    /* Error message styling */
+    #error-message {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1 class="d-flex align-items-center">
+                <i class="fa fa-ticket-alt me-2"></i> Lottery Ticket Scanner
+            </h1>
+            <p class="lead mb-2">Upload your ticket to check if you've won</p>
+            <p class="mb-3"><a href="/scanner-landing" class="text-decoration-none"><i class="fas fa-arrow-left me-1"></i> Back to Scanner Info</a></p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="ticket-scanner-container">
+                        <div class="alert alert-info py-2 small">
+                            <i class="fa fa-info-circle me-1"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
+                        </div>
+
+                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-2">
+                                <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
+                                <select class="form-select form-select-sm" id="lottery-type" name="lottery_type">
+                                    <option value="">Auto-detect from ticket</option>
+                                    <option value="Lotto">Lotto</option>
+                                    <option value="Lotto Plus 1">Lotto Plus 1</option>
+                                    <option value="Lotto Plus 2">Lotto Plus 2</option>
+                                    <option value="Powerball">Powerball</option>
+                                    <option value="Powerball Plus">Powerball Plus</option>
+                                    <option value="Daily Lotto">Daily Lotto</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-2">
+                                <label for="draw-number" class="form-label small">Draw Number (optional)</label>
+                                <input type="text" class="form-control form-control-sm" id="draw-number" name="draw_number" 
+                                    placeholder="Leave blank to check latest draw">
+                            </div>
+
+                            <div class="ticket-drop-area" id="drop-area">
+                                <div class="mb-2">
+                                    <i class="fa fa-upload fa-2x mb-2"></i>
+                                    <h5 class="mb-2">Drag and drop your ticket image here</h5>
+                                    <p class="mb-2">or</p>
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
+                                    <button type="button" id="file-select-btn" class="btn btn-primary">Select Image</button>
+                                </div>
+                            </div>
+
+                            <div id="preview-container" class="text-center d-none">
+                                <h6>Preview</h6>
+                                <img id="ticket-preview" class="ticket-preview img-fluid rounded" src="">
+                                <div class="mt-2">
+                                    <button type="button" id="remove-image" class="btn btn-sm btn-outline-danger">
+                                        <i class="fa fa-times"></i> Remove
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-4">
+                                <button type="submit" id="scan-button" class="btn btn-success btn-lg">
+                                    <i class="fa fa-search me-2"></i> Scan Ticket
+                                </button>
+                                <div id="scanner-loading" class="mt-3">
+                                    <div class="spinner-border text-primary spinning-loader" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p>Scanning your ticket...</p>
+                                </div>
+                            </div>
+                        </form>
+
+                        <div id="error-message" class="alert alert-danger mt-3"></div>
+                        
+                        <div id="results-container" class="results-container d-none">
+                            <hr>
+                            <h3 class="mb-3 text-center">Scanning Results</h3>
+                            
+                            <div id="ticket-info" class="mb-4">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">Ticket Information</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-2">
+                                                <strong>Lottery Type:</strong> <span id="result-lottery-type">-</span>
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <strong>Draw Number:</strong> <span id="result-draw-number">-</span>
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <strong>Draw Date:</strong> <span id="result-draw-date">-</span>
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <strong>Status:</strong> <span id="result-status">-</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="numbers-section" class="mb-4">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-success text-white">
+                                        <h5 class="mb-0">Numbers Comparison</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <h6>Your Numbers</h6>
+                                                <div id="your-numbers-container" class="d-flex flex-wrap"></div>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <h6>Winning Numbers</h6>
+                                                <div id="winning-numbers-container" class="d-flex flex-wrap"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <div class="alert alert-info">
+                                                    <strong>Matches: </strong> <span id="matched-count">0</span> numbers
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="powerball-section" class="mb-4 d-none">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-warning">
+                                        <h5 class="mb-0">Powerball</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <h6>Your Powerball</h6>
+                                                <div id="your-powerball-container" class="d-flex"></div>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <h6>Winning Powerball</h6>
+                                                <div id="winning-powerball-container" class="d-flex"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <div class="alert alert-info">
+                                                    <strong>Powerball Match: </strong> <span id="powerball-matched">No</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="results-summary" class="mb-4">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <h5 class="mb-0">Results Summary</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p id="summary-text">Your ticket matches <span id="summary-matches">0</span> numbers.</p>
+                                        <div id="prize-info" class="d-none">
+                                            <div class="alert alert-success">
+                                                <strong><i class="fas fa-trophy me-1"></i> Congratulations!</strong>
+                                                <p class="mb-0" id="prize-text"></p>
+                                            </div>
+                                        </div>
+                                        <div id="no-prize-info" class="d-none">
+                                            <div class="alert alert-secondary">
+                                                <p class="mb-0">Sorry, your ticket did not win a prize in this draw.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center mb-4">
+                                <button id="scan-another-btn" class="btn btn-primary">
+                                    <i class="fas fa-sync-alt me-1"></i> Scan Another Ticket
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize variables
+    const ticketForm = document.getElementById('ticket-form');
+    const fileInput = document.getElementById('ticket-image');
+    const fileSelectBtn = document.getElementById('file-select-btn');
+    const dropArea = document.getElementById('drop-area');
+    const previewContainer = document.getElementById('preview-container');
+    const ticketPreview = document.getElementById('ticket-preview');
+    const removeImageBtn = document.getElementById('remove-image');
+    const scanButton = document.getElementById('scan-button');
+    const loadingIndicator = document.getElementById('scanner-loading');
+    const resultsContainer = document.getElementById('results-container');
+    const errorMessage = document.getElementById('error-message');
+    const scanAnotherBtn = document.getElementById('scan-another-btn');
+    
+    // Event listeners for drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+        dropArea.classList.add('highlight');
+    }
+    
+    function unhighlight() {
+        dropArea.classList.remove('highlight');
+    }
+    
+    // Handle file drop
+    dropArea.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            fileInput.files = files;
+            showPreview(files[0]);
+        }
+    }
+    
+    // Handle file selection via button
+    fileSelectBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+    
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            showPreview(fileInput.files[0]);
+        }
+    });
+    
+    // Show image preview
+    function showPreview(file) {
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                ticketPreview.src = e.target.result;
+                previewContainer.classList.remove('d-none');
+                dropArea.classList.add('d-none');
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+    
+    // Remove selected image
+    removeImageBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        ticketPreview.src = '';
+        previewContainer.classList.add('d-none');
+        dropArea.classList.remove('d-none');
+    });
+    
+    // Scan another ticket
+    scanAnotherBtn.addEventListener('click', () => {
+        resetForm();
+    });
+    
+    // Form submission
+    ticketForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validate form
+        if (!validateForm()) {
+            return;
+        }
+        
+        // Clear any previous results
+        clearResults();
+        
+        // Show loading indicator
+        loadingIndicator.style.display = 'block';
+        scanButton.disabled = true;
+        
+        // Create FormData and submit
+        const formData = new FormData(ticketForm);
+        
+        fetch('/scan-ticket', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Hide loading indicator
+            loadingIndicator.style.display = 'none';
+            scanButton.disabled = false;
+            
+            if (data.error) {
+                showError(data.error);
+            } else {
+                displayResults(data);
+            }
+        })
+        .catch(error => {
+            // Hide loading indicator
+            loadingIndicator.style.display = 'none';
+            scanButton.disabled = false;
+            
+            showError('An error occurred: ' + error.message);
+        });
+    });
+    
+    // Form validation
+    function validateForm() {
+        // Check if file is selected
+        if (!fileInput.files || fileInput.files.length === 0) {
+            showError('Please select a ticket image');
+            return false;
+        }
+        
+        // Check file type
+        const file = fileInput.files[0];
+        const fileType = file.type;
+        if (!fileType.match('image.*')) {
+            showError('Please select an image file');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // Show error message
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+        
+        // Hide after 5 seconds
+        setTimeout(() => {
+            errorMessage.style.display = 'none';
+        }, 5000);
+    }
+    
+    // Clear results
+    function clearResults() {
+        errorMessage.style.display = 'none';
+        resultsContainer.classList.add('d-none');
+        
+        // Clear all number containers
+        document.getElementById('your-numbers-container').innerHTML = '';
+        document.getElementById('winning-numbers-container').innerHTML = '';
+        
+        // Reset matched count
+        document.getElementById('matched-count').textContent = '0';
+        
+        // Hide Powerball section
+        document.getElementById('powerball-section').classList.add('d-none');
+    }
+    
+    // Reset form
+    function resetForm() {
+        // Reset file input
+        fileInput.value = '';
+        
+        // Hide preview, show drop area
+        previewContainer.classList.add('d-none');
+        dropArea.classList.remove('d-none');
+        
+        // Hide results
+        resultsContainer.classList.add('d-none');
+        
+        // Clear lottery type and draw number
+        document.getElementById('lottery-type').value = '';
+        document.getElementById('draw-number').value = '';
+    }
+    
+    // Display results
+    function displayResults(data) {
+        // Display ticket information
+        document.getElementById('result-lottery-type').textContent = data.lottery_type || '-';
+        document.getElementById('result-draw-number').textContent = data.draw_number || '-';
+        document.getElementById('result-draw-date').textContent = data.draw_date || '-';
+        document.getElementById('result-status').textContent = data.status || 'Processed';
+        
+        // Display numbers
+        const yourNumbersContainer = document.getElementById('your-numbers-container');
+        const winningNumbersContainer = document.getElementById('winning-numbers-container');
+        
+        // Clear containers
+        yourNumbersContainer.innerHTML = '';
+        winningNumbersContainer.innerHTML = '';
+        
+        // Add your numbers
+        if (data.your_numbers && data.your_numbers.length > 0) {
+            data.your_numbers.forEach(number => {
+                const ball = createBall(number);
+                yourNumbersContainer.appendChild(ball);
+            });
+        }
+        
+        // Add winning numbers
+        if (data.winning_numbers && data.winning_numbers.length > 0) {
+            data.winning_numbers.forEach(number => {
+                const ball = createBall(number);
+                winningNumbersContainer.appendChild(ball);
+            });
+        }
+        
+        // Count matched numbers
+        let matchCount = 0;
+        if (data.matched_numbers && data.matched_numbers.length > 0) {
+            matchCount = data.matched_numbers.length;
+            
+            // Mark matched numbers
+            data.matched_numbers.forEach(number => {
+                // Find and mark in your numbers
+                Array.from(yourNumbersContainer.children).forEach(ball => {
+                    if (ball.textContent === number.toString()) {
+                        ball.classList.add('matched');
+                    }
+                });
+                
+                // Find and mark in winning numbers
+                Array.from(winningNumbersContainer.children).forEach(ball => {
+                    if (ball.textContent === number.toString()) {
+                        ball.classList.add('matched');
+                    }
+                });
+            });
+        }
+        
+        // Update matched count
+        document.getElementById('matched-count').textContent = matchCount.toString();
+        
+        // Handle Powerball if present
+        if (data.lottery_type && (data.lottery_type.includes('Powerball'))) {
+            const powerballSection = document.getElementById('powerball-section');
+            powerballSection.classList.remove('d-none');
+            
+            const yourPowerballContainer = document.getElementById('your-powerball-container');
+            const winningPowerballContainer = document.getElementById('winning-powerball-container');
+            
+            // Clear containers
+            yourPowerballContainer.innerHTML = '';
+            winningPowerballContainer.innerHTML = '';
+            
+            // Add your Powerball
+            if (data.your_powerball) {
+                const ball = createBall(data.your_powerball, true);
+                yourPowerballContainer.appendChild(ball);
+            }
+            
+            // Add winning Powerball
+            if (data.winning_powerball) {
+                const ball = createBall(data.winning_powerball, true);
+                winningPowerballContainer.appendChild(ball);
+            }
+            
+            // Check if Powerball matched
+            const powerballMatched = data.your_powerball && data.winning_powerball && 
+                                    data.your_powerball.toString() === data.winning_powerball.toString();
+            
+            document.getElementById('powerball-matched').textContent = powerballMatched ? 'Yes' : 'No';
+            
+            if (powerballMatched) {
+                // Mark matched Powerball
+                Array.from(yourPowerballContainer.children).forEach(ball => {
+                    ball.classList.add('matched');
+                });
+                
+                Array.from(winningPowerballContainer.children).forEach(ball => {
+                    ball.classList.add('matched');
+                });
+            }
+        }
+        
+        // Update summary
+        document.getElementById('summary-matches').textContent = matchCount.toString();
+        
+        // Show prize information if available
+        if (data.prize) {
+            document.getElementById('prize-info').classList.remove('d-none');
+            document.getElementById('no-prize-info').classList.add('d-none');
+            document.getElementById('prize-text').textContent = data.prize;
+        } else {
+            document.getElementById('prize-info').classList.add('d-none');
+            document.getElementById('no-prize-info').classList.remove('d-none');
+        }
+        
+        // Show results container
+        resultsContainer.classList.remove('d-none');
+    }
+    
+    // Create ball element
+    function createBall(number, isPowerball = false) {
+        const ball = document.createElement('div');
+        ball.className = 'lottery-ball' + (isPowerball ? ' powerball' : '');
+        ball.textContent = number;
+        return ball;
+    }
+});
+</script>
+{% endblock %}

@@ -803,21 +803,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 return false;
             }
             return true;
-            
-            // Add CSRF token to request headers
-            fetch('/scan-ticket', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': csrfToken
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok: ' + response.status);
-                }
-                return response.json();
-            })
+        }
             .then(data => {
                 console.log('Success:', data);
                 

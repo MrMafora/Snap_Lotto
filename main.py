@@ -552,10 +552,12 @@ def ticket_scanner():
         {"name": "Scan Your Ticket", "url": url_for('ticket_scanner')}
     ]
     
+    # Use the ad-free ticket scanner template
+    
     # Additional SEO metadata
     meta_description = "Check if your South African lottery ticket is a winner. Our free ticket scanner uses advanced technology to analyze and verify your lottery tickets instantly."
     
-    return render_template('ticket_scanner.html', 
+    return render_template('ticket_scanner_clean.html', 
                           title="Lottery Ticket Scanner | Check If You've Won",
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
