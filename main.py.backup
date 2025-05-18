@@ -253,7 +253,7 @@ def index():
                     results_list.append(result_clone)
                     seen_draws[key] = True
             
-            # CLEAN APPROACH: Get fresh data directly from the database with correct dates
+            # Get fresh data directly from the database to ensure the latest data and correct dates
             results_list = []
             
             # Define the desired order of lottery types
@@ -266,24 +266,17 @@ def index():
                 "Daily Lottery"
             ]
             
-            # First clear the results list to avoid duplicates
-            results_list = []
-            
-            # Direct database query for precise ordering and most recent dates
+            # Fetch the most recent result for each lottery type in the defined order
             for lottery_type in lottery_type_order:
-                try:
-                    # Get the latest result for this specific lottery type with newest date first
-                    latest_result = db.session.query(LotteryResult).filter(
-                        LotteryResult.lottery_type == lottery_type
-                    ).order_by(
-                        LotteryResult.draw_date.desc()
-                    ).first()
-                    
-                    if latest_result:
-                        # Use the raw database object directly
-                        results_list.append(latest_result)
-                except Exception as e:
-                    logger.error(f"Error fetching latest result for {lottery_type}: {e}")
+                # Get the latest result for this specific lottery type
+                latest_result = LotteryResult.query.filter_by(
+                    lottery_type=lottery_type
+                ).order_by(
+                    LotteryResult.draw_date.desc()
+                ).first()
+                
+                if latest_result:
+                    results_list.append(latest_result)
         except Exception as e:
             logger.error(f"Error getting latest lottery results: {e}")
             latest_results = {}
