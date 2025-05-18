@@ -6,6 +6,9 @@
 <!-- PERFORMANCE: Mobile optimization script loads first to improve performance -->
 <script src="{{ url_for('static', filename='js/mobile-optimization.js') }}" data-critical="true"></script>
 
+<!-- Mobile-optimized advertisement system with enhanced timing enforcement - SINGLE TIMER SOURCE -->
+<!-- Ad scripts removed -->
+
 <!-- Inline critical Font Awesome fix - immediate execution before DOM loads -->
 <style>
   /* Critical Font Awesome icon fix */
@@ -243,7 +246,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             <i class="fa fa-info-circle me-1"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
                         </div>
 
-                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data" onsubmit="event.preventDefault(); submitTicketForm()">
+                        <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="mb-2">
                                 <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
@@ -735,7 +738,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             console.log('Cleared previous results');
         }
         
-        function submitTicketForm() {
+        function processTicketWithAds() {
+            // Ad system has been disabled - just process the ticket directly
             if (!validateScannerForm()) {
                 return false;
             }
@@ -747,21 +751,45 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             document.getElementById('scanner-loading').style.display = 'block';
             document.getElementById('scan-button').disabled = true;
             
-            // Get the form element
-            const ticketForm = document.getElementById('ticket-form');
-            
             // Create form data
             const formData = new FormData(ticketForm);
             
+            // Process ticket directly without ad overlay
+            processTicket(formData);
+            
+            return false; // Prevent default form submission
+        }
+        
+        // Function to process the ticket after ad is shown
+        function processTicket(formData) {
             // Add CSRF token to headers
             const csrfToken = document.querySelector('input[name="csrf_token"]').value;
             
-            // Submit form data via fetch
+            // CRITICAL FIX: Set a backup timer to ensure we advance past loading ad
+            // This ensures we never get stuck in loading screen
+            const loadingExpireTimeout = setTimeout(function() {
+                console.log('BACKUP TIMER: Force advancing from loading ad');
+                
+                // Hide loading overlay
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                if (adOverlayLoading) {
+                    adOverlayLoading.style.display = 'none';
+                }
+                
+                // Show results overlay if we have data cached
+                if (window.lastResultsData) {
+                    const adOverlayResults = document.getElementById('ad-overlay-results');
+                    if (adOverlayResults) {
+                        adOverlayResults.style.display = 'flex';
+                    }
+                }
+            }, 15000); // 15 seconds max in loading screen
+            
+            // Add CSRF token to request headers
             fetch('/scan-ticket', {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRFToken': csrfToken
                 }
             })
@@ -771,39 +799,6 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 }
                 return response.json();
             })
-            .then(data => {
-                console.log('Ticket data received:', data);
-                
-                // Hide loading indicator
-                document.getElementById('scanner-loading').style.display = 'none';
-                document.getElementById('scan-button').disabled = false;
-                
-                // Display results
-                displayResults(data);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                
-                // Hide loading indicator
-                document.getElementById('scanner-loading').style.display = 'none';
-                document.getElementById('scan-button').disabled = false;
-                
-                // Show error message
-                showError('Error processing your ticket: ' + error.message);
-            });
-            
-            return false; // Prevent default form submission
-        }
-        
-        // Function to validate that a file is selected
-        function validateScannerForm() {
-            const fileInput = document.getElementById('ticket-image');
-            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-                showError("Please select a ticket image first");
-                return false;
-            }
-            return true;
-        }
             .then(data => {
                 console.log('Success:', data);
                 
