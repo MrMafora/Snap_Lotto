@@ -112,21 +112,22 @@ class LotteryResult(db.Model):
         if not self.numbers:
             return []
         
-        numbers_str = str(self.numbers)  # Convert to string to handle all formats
+        # Completely avoid trying to use json.loads which is causing the error
+        try:
+            numbers_str = str(self.numbers)  # Convert to string to handle all formats
+                
+            # Handle the format with bonus number included in main numbers string
+            if '+' in numbers_str:
+                # Format: "09 18 19 30 31 40 + 28"
+                main_numbers = numbers_str.split('+')[0].strip()
+                return [num.strip() for num in main_numbers.split() if num.strip()]
             
-        # Handle the format with bonus number included in main numbers string
-        if '+' in numbers_str:
-            # Format: "09 18 19 30 31 40 + 28"
-            main_numbers = numbers_str.split('+')[0].strip()
-            return [num.strip() for num in main_numbers.split() if num.strip()]
-        
-        # Handle the case of single number
-        if numbers_str.strip().isdigit():
-            return [numbers_str.strip()]
-            
-        # Handle numbers in bracket format without trying json.loads
-        if numbers_str.strip().startswith('[') and numbers_str.strip().endswith(']'):
-            try:
+            # Handle the case of single number
+            if numbers_str.strip().isdigit():
+                return [numbers_str.strip()]
+                
+            # Handle numbers in bracket format WITHOUT any JSON parsing
+            if numbers_str.strip().startswith('[') and numbers_str.strip().endswith(']'):
                 # Safely extract content between brackets and split by comma
                 inner_content = numbers_str.strip()[1:-1].strip()
                 if ',' in inner_content:
@@ -136,26 +137,23 @@ class LotteryResult(db.Model):
                 else:
                     # Single number in brackets
                     return [inner_content]
-            except Exception:
-                # If extraction fails, try next method
-                pass
+                    
+            # Handle space-separated format
+            if ' ' in numbers_str:
+                return [num.strip() for num in numbers_str.split() if num.strip()]
                 
-        # Handle space-separated format
-        if ' ' in numbers_str and not (numbers_str.strip().startswith('[') and numbers_str.strip().endswith(']')):
-            return [num.strip() for num in numbers_str.split() if num.strip()]
+            # Handle comma-separated format
+            if ',' in numbers_str:
+                return [num.strip() for num in numbers_str.split(',') if num.strip()]
+                    
+            # Last resort - single value or empty
+            return [numbers_str.strip()] if numbers_str.strip() else []
             
-        # Handle comma-separated format
-        if ',' in numbers_str and not (numbers_str.strip().startswith('[') and numbers_str.strip().endswith(']')):
-            return [num.strip() for num in numbers_str.split(',') if num.strip()]
-                
-        # If it's not a bracketed format or parsing failed, return as a single item
-        # But don't return the brackets themselves
-        if numbers_str.strip().startswith('[') and numbers_str.strip().endswith(']'):
-            # This is an unexpected format, return empty list to avoid errors
+        except Exception as e:
+            # Absolute last resort - if anything fails, return an empty list
+            # This ensures the application won't crash
+            print(f"Error parsing numbers: {str(e)}")
             return []
-        else:
-            # Single value
-            return [numbers_str.strip()]
     
     def get_bonus_numbers_list(self):
         """Return bonus numbers as a Python list, or empty list if None"""
