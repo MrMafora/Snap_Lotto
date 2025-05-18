@@ -280,10 +280,19 @@ def import_excel_data(excel_file, flask_app=None):
             
             # Check for common column name patterns
             game_name_variants = ['game name', 'game type', 'lottery type', 'lottery game', 'lottery', 'lotto type', 'lotto game', 'lotto']
-            draw_number_variants = ['draw number', 'draw no', 'draw id', 'number']
+            draw_number_variants = ['draw number', 'draw no', 'draw id', 'draw', 'number']
             draw_date_variants = ['draw date', 'game date', 'date']
             numbers_variants = ['winning numbers', 'main numbers', 'numbers']
             bonus_variants = ['bonus ball', 'bonus number', 'powerball']
+            
+            # Exact column name mapping for common template headings
+            exact_mapping = {
+                'Draw Number': 'draw_number',
+                'Game Name': 'lottery_type',
+                'Draw Date': 'draw_date',
+                'Winning Numbers': 'numbers',
+                'Bonus Ball': 'bonus_ball'
+            }
             
             for col in df.columns:
                 col_str = str(col)
