@@ -162,8 +162,25 @@ class LotteryResult(db.Model):
     def get_divisions(self):
         """Return divisions data as a Python dict, or empty dict if None"""
         if self.divisions:
-            return json.loads(self.divisions)
+            try:
+                return json.loads(self.divisions)
+            except json.JSONDecodeError:
+                return {}
         return {}
+        
+    def get_formatted_date(self):
+        """Return properly formatted date string (YYYY-MM-DD)"""
+        if self.draw_date:
+            try:
+                if isinstance(self.draw_date, datetime):
+                    return self.draw_date.strftime('%Y-%m-%d')
+                elif isinstance(self.draw_date, str):
+                    return self.draw_date
+                else:
+                    return str(self.draw_date)
+            except Exception:
+                return str(self.draw_date)
+        return "N/A"
     
     def to_dict(self):
         """Convert model to dictionary for API responses"""
