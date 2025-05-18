@@ -1897,24 +1897,35 @@ def optimized_frequency_analysis():
             }
         }
         
-        # For compatibility with the existing frontend code, 
-        # we need to return the data in the expected format
-        # The frontend expects the lottery types directly in the result object
-        result = {}
+        # For compatibility with the existing frontend code, we need to return data in the expected format
         
-        # Add individual lottery type data
+        # Create the response structure expected by the chart loader
+        frequencyData = {}
+        
+        # Add lottery type data
         for lottery_name, lottery_data in static_data.items():
-            result[lottery_name] = lottery_data
+            frequencyData[lottery_name] = {
+                "frequency": lottery_data["frequency"],
+                "top_numbers": lottery_data["top_numbers"]
+            }
             
-        # Add additional summary data
-        result["lottery_types"] = ["Lottery", "Lottery Plus 1", "Lottery Plus 2", "Powerball", "Powerball Plus", "Daily Lottery"]
-        result["summary"] = {
-            "most_frequent_overall": [7, 11, 17, 23, 31, 37, 42, 49],
-            "least_frequent_overall": [1, 3, 6, 13, 22, 36],
-            "total_draws_analyzed": count if count else 204,
-            "date_range": {
-                "start": (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d'),
-                "end": datetime.now().strftime('%Y-%m-%d')
+            # Add chart base64 data - we'll use an empty string since we're not generating charts
+            # The chart-renderer.js will create the charts client-side
+            frequencyData[lottery_name]["chart_base64"] = ""
+        
+        # Format the final response object in the exact format expected by the frontend
+        result = {
+            "frequencyData": frequencyData,
+            "divisionData": {},  # Empty division data as we're not generating it right now
+            "lotteryTypes": ["Lottery", "Lottery Plus 1", "Lottery Plus 2", "Powerball", "Powerball Plus", "Daily Lottery"],
+            "stats": {
+                "most_frequent_overall": [7, 11, 17, 23, 31, 37, 42, 49],
+                "least_frequent_overall": [1, 3, 6, 13, 22, 36],
+                "total_draws_analyzed": count if count else 204,
+                "date_range": {
+                    "start": (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d'),
+                    "end": datetime.now().strftime('%Y-%m-%d')
+                }
             }
         }
         
