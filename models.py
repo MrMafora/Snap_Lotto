@@ -852,9 +852,42 @@ class PredictionResult(db.Model):
     
     def get_match_positions(self):
         """Return match positions as a Python list"""
-        if self.match_positions:
-            return json.loads(self.match_positions)
-        return []
+        if not self.match_positions:
+            return []
+            
+        # Safe string-based parsing
+        try:
+            # Ensure we're working with a string
+            pos_str = str(self.match_positions).strip()
+            
+            # Empty string case
+            if not pos_str:
+                return []
+                
+            # Handle bracket format
+            if pos_str.startswith('[') and pos_str.endswith(']'):
+                inner_content = pos_str[1:-1].strip()
+                
+                # Handle comma-separated format
+                if ',' in inner_content:
+                    return [item.strip().strip('"\'') for item in inner_content.split(',') if item.strip()]
+                
+                # Handle space-separated format inside brackets
+                if ' ' in inner_content:
+                    return [item.strip().strip('"\'') for item in inner_content.split() if item.strip()]
+                
+                # Single value in brackets
+                return [inner_content] if inner_content else []
+            
+            # Handle space-separated format without brackets
+            if ' ' in pos_str:
+                return [num.strip() for num in pos_str.split() if num.strip()]
+                
+            # Single value case
+            return [pos_str] if pos_str else []
+        except Exception as e:
+            logging.error(f"Error parsing match positions: {str(e)}")
+            return []
     
     def to_dict(self):
         """Convert model to dictionary for API responses"""
@@ -889,15 +922,100 @@ class ModelTrainingHistory(db.Model):
     
     def get_features_list(self):
         """Return features used as a Python list"""
-        if self.features_used:
-            return json.loads(self.features_used)
-        return []
+        if not self.features_used:
+            return []
+            
+        # Safe string-based parsing
+        try:
+            # Ensure we're working with a string
+            features_str = str(self.features_used).strip()
+            
+            # Empty string case
+            if not features_str:
+                return []
+                
+            # Handle bracket format
+            if features_str.startswith('[') and features_str.endswith(']'):
+                inner_content = features_str[1:-1].strip()
+                
+                # Handle comma-separated format
+                if ',' in inner_content:
+                    return [item.strip().strip('"\'') for item in inner_content.split(',') if item.strip()]
+                
+                # Handle space-separated format inside brackets
+                if ' ' in inner_content:
+                    return [item.strip().strip('"\'') for item in inner_content.split() if item.strip()]
+                
+                # Single value in brackets
+                return [inner_content] if inner_content else []
+            
+            # Handle space-separated format without brackets
+            if ' ' in features_str:
+                return [item.strip() for item in features_str.split() if item.strip()]
+                
+            # Single value case
+            return [features_str] if features_str else []
+        except Exception as e:
+            logging.error(f"Error parsing features used: {str(e)}")
+            return []
     
     def get_hyperparameters_dict(self):
         """Return hyperparameters as a Python dict"""
-        if self.hyperparameters:
-            return json.loads(self.hyperparameters)
-        return {}
+        try:
+            if not self.hyperparameters:
+                return {}
+                
+            # Convert to string for consistent handling
+            params_str = str(self.hyperparameters).strip()
+            
+            # If it's not in dictionary format, return as a single entry
+            if not (params_str.startswith('{') and params_str.endswith('}')):
+                return {"raw": params_str}
+                
+            # Parse dictionary-like string format
+            result = {}
+            # Remove the braces
+            inner_content = params_str[1:-1].strip()
+            
+            # Split by commas outside of nested structures
+            in_nested = False
+            nested_depth = 0
+            current_pair = ""
+            
+            for char in inner_content:
+                if char in '{[':
+                    in_nested = True
+                    nested_depth += 1
+                    current_pair += char
+                elif char in ']}':
+                    nested_depth -= 1
+                    current_pair += char
+                    if nested_depth == 0:
+                        in_nested = False
+                elif char == ',' and not in_nested:
+                    # Process completed key-value pair
+                    if ':' in current_pair:
+                        key_val = current_pair.split(':', 1)
+                        if len(key_val) == 2:
+                            key = key_val[0].strip().strip('"\'')
+                            val = key_val[1].strip().strip('"\'')
+                            result[key] = val
+                    current_pair = ""
+                else:
+                    current_pair += char
+            
+            # Process the last pair
+            if current_pair and ':' in current_pair:
+                key_val = current_pair.split(':', 1)
+                if len(key_val) == 2:
+                    key = key_val[0].strip().strip('"\'')
+                    val = key_val[1].strip().strip('"\'')
+                    result[key] = val
+            
+            return result if result else {"raw": params_str}
+        except Exception as e:
+            logging.error(f"Error parsing hyperparameters: {str(e)}")
+            return {}
     
     def to_dict(self):
         """Convert model to dictionary for API responses"""
