@@ -5,8 +5,42 @@
 
 // Function to render the frequency chart with the provided data
 function renderFrequencyChart(frequencyData) {
-    if (!frequencyData || !Array.isArray(frequencyData) || frequencyData.length === 0) {
+    // Handle different data formats that might come from the API
+    let dataArray = [];
+    
+    // Check if we have data in any format
+    if (!frequencyData) {
         console.warn('No frequency data to render');
+        return;
+    }
+    
+    // If it's already an array, use it directly
+    if (Array.isArray(frequencyData)) {
+        dataArray = frequencyData;
+    }
+    // If it's an object with key-value pairs for frequency
+    else if (typeof frequencyData === 'object') {
+        // If the data is in the format {number: frequency, ...}
+        if (Object.keys(frequencyData).some(key => !isNaN(parseInt(key)))) {
+            for (const [number, frequency] of Object.entries(frequencyData)) {
+                dataArray.push({ number, frequency });
+            }
+        }
+        // If it's in a nested format like {lotteryType: {frequency: {number: frequency, ...}}}
+        else {
+            for (const lotteryType in frequencyData) {
+                if (frequencyData[lotteryType] && frequencyData[lotteryType].frequency) {
+                    for (const [number, frequency] of Object.entries(frequencyData[lotteryType].frequency)) {
+                        dataArray.push({ number, frequency });
+                    }
+                }
+            }
+        }
+    }
+    
+    // If after all conversions we still have no data, return
+    if (dataArray.length === 0) {
+        console.warn('Could not parse frequency data into usable format');
         return;
     }
     

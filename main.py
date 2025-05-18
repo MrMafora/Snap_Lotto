@@ -1897,26 +1897,31 @@ def optimized_frequency_analysis():
             }
         }
         
-        # For compatibility with the existing frontend code, we need to return data in the expected format
+        # For compatibility with the existing frontend code, we need to return data in the exact format expected
         
-        # Create the response structure expected by the chart loader
-        frequencyData = {}
+        # Create frequency data in the array format the chart-renderer expects
+        frequencyDataArray = []
         
-        # Add lottery type data
+        # Flatten the frequency objects into the array format the chart renderer expects
+        # The renderer expects an array of {number, frequency} objects
         for lottery_name, lottery_data in static_data.items():
-            frequencyData[lottery_name] = {
-                "frequency": lottery_data["frequency"],
-                "top_numbers": lottery_data["top_numbers"]
-            }
-            
-            # Add chart base64 data - we'll use an empty string since we're not generating charts
-            # The chart-renderer.js will create the charts client-side
-            frequencyData[lottery_name]["chart_base64"] = ""
+            for number_str, frequency in lottery_data["frequency"].items():
+                frequencyDataArray.append({
+                    "number": number_str,
+                    "frequency": frequency
+                })
+        
+        # Format division data (placeholder)
+        divisionData = [
+            {"division": "Division 1", "winners": 0, "percentage": 0},
+            {"division": "Division 2", "winners": 0, "percentage": 0},
+            {"division": "Division 3", "winners": 0, "percentage": 0}
+        ]
         
         # Format the final response object in the exact format expected by the frontend
         result = {
-            "frequencyData": frequencyData,
-            "divisionData": {},  # Empty division data as we're not generating it right now
+            "frequencyData": frequencyDataArray,
+            "divisionData": divisionData,
             "lotteryTypes": ["Lottery", "Lottery Plus 1", "Lottery Plus 2", "Powerball", "Powerball Plus", "Daily Lottery"],
             "stats": {
                 "most_frequent_overall": [7, 11, 17, 23, 31, 37, 42, 49],
