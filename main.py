@@ -253,10 +253,11 @@ def index():
                     results_list.append(result_clone)
                     seen_draws[key] = True
             
-            # CLEAN APPROACH: Get fresh data directly from the database with correct dates
-            results_list = []
+            # FORCED APPROACH: Completely replace the results list with ordered data
+            # Define the desired order of lottery types and completely replace the results
+            ordered_list = []
             
-            # Define the desired order of lottery types
+            # Define the exact ordering we want to display
             lottery_type_order = [
                 "Lottery", 
                 "Lottery Plus 1", 
@@ -266,10 +267,16 @@ def index():
                 "Daily Lottery"
             ]
             
-            # First clear the results list to avoid duplicates
-            results_list = []
+            # Get all lottery types from the database to check what data we have
+            available_types = []
+            try:
+                available_types = db.session.query(LotteryResult.lottery_type).distinct().all()
+                available_types = [t[0] for t in available_types]
+                logger.info(f"Available lottery types: {available_types}")
+            except Exception as e:
+                logger.error(f"Error querying available lottery types: {e}")
             
-            # Direct database query for precise ordering and most recent dates
+            # Direct database query to build the list in exact order
             for lottery_type in lottery_type_order:
                 try:
                     # Get the latest result for this specific lottery type with newest date first
@@ -280,10 +287,14 @@ def index():
                     ).first()
                     
                     if latest_result:
-                        # Use the raw database object directly
-                        results_list.append(latest_result)
+                        # Add to our ordered list
+                        ordered_list.append(latest_result)
+                        logger.info(f"Found latest result for {lottery_type}: {latest_result.draw_number} from {latest_result.draw_date}")
                 except Exception as e:
                     logger.error(f"Error fetching latest result for {lottery_type}: {e}")
+            
+            # Replace the results list entirely
+            results_list = ordered_list
         except Exception as e:
             logger.error(f"Error getting latest lottery results: {e}")
             latest_results = {}
