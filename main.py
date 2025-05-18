@@ -288,8 +288,21 @@ def index():
                 for preferred_type in lottery_type_order:
                     result = None
                     
-                    # First try exact match
-                    if preferred_type in all_lottery_types:
+                    # First check using case-insensitive search for PowerBall/Powerball variations
+                    if "Power" in preferred_type:
+                        # Handle PowerBall/Powerball case variation
+                        results = db.session.query(LotteryResult).filter(
+                            db.func.lower(LotteryResult.lottery_type) == db.func.lower(preferred_type)
+                        ).order_by(
+                            LotteryResult.draw_date.desc()
+                        ).all()
+                        
+                        if results:
+                            result = results[0]
+                            logger.info(f"Found case-insensitive match for {preferred_type} as {result.lottery_type}")
+                    
+                    # If no result yet, try exact match
+                    if not result and preferred_type in all_lottery_types:
                         # Get the latest result for this type
                         result = db.session.query(LotteryResult).filter(
                             LotteryResult.lottery_type == preferred_type
@@ -298,15 +311,27 @@ def index():
                         ).first()
                         logger.info(f"Found exact match for {preferred_type}")
                     
-                    # Then try normalized match (Lotto → Lottery)
-                    elif preferred_type in normalized_types:
-                        original_type = normalized_types[preferred_type]
-                        result = db.session.query(LotteryResult).filter(
-                            LotteryResult.lottery_type == original_type
-                        ).order_by(
-                            LotteryResult.draw_date.desc()
-                        ).first()
-                        logger.info(f"Found normalized match for {preferred_type} as {original_type}")
+                    # If still no result, try normalized match (Lotto → Lottery)
+                    if not result:
+                        # Try both ways - Lotto to Lottery and Lottery to Lotto
+                        possible_variants = []
+                        if 'Lottery' in preferred_type:
+                            possible_variants.append(preferred_type.replace('Lottery', 'Lotto'))
+                        if 'Lotto' in preferred_type:
+                            possible_variants.append(preferred_type.replace('Lotto', 'Lottery'))
+                            
+                        logger.info(f"Trying variations for {preferred_type}: {possible_variants}")
+                        
+                        for variant in possible_variants:
+                            if variant in all_lottery_types:
+                                result = db.session.query(LotteryResult).filter(
+                                    LotteryResult.lottery_type == variant
+                                ).order_by(
+                                    LotteryResult.draw_date.desc()
+                                ).first()
+                                if result:
+                                    logger.info(f"Found variant match for {preferred_type} as {variant}")
+                                    break
                     
                     # If we found a result, add it to our ordered list
                     if result:
