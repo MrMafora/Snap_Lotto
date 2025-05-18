@@ -107,34 +107,35 @@ class LotteryResult(db.Model):
         return f"<LotteryResult {self.lottery_type} - {self.draw_number}>"
     
     def get_numbers_list(self):
-        """Return numbers as a Python list"""
-        # Super-simple, ultra-safe implementation
+        """Return numbers as a Python list - using direct string processing only"""
+        # For security, always return a list even on error
+        empty_result = []
+        
+        # Try to safely process the numbers
         try:
             # Guard against None or empty values
             if not self.numbers:
-                return []
+                return empty_result
                 
-            # Clean the input by removing all potential JSON formatting
-            # This will work regardless of how the numbers were stored
+            # Convert to a simple string, removing all JSON or special characters
             clean_str = str(self.numbers)
-            
-            # Remove all JSON/bracket formatting
+            # Completely sanitize the string, removing any JSON-like formatting
             clean_str = re.sub(r'[\[\]"{}\']', '', clean_str)
             
-            # Handle the case with bonus numbers (format: "1 2 3 + 4")
+            # Handle bonus numbers format: "1 2 3 + 4" - keep only main numbers
             if '+' in clean_str:
                 main_part = clean_str.split('+')[0].strip()
-                nums = [n.strip() for n in re.split(r'[,\s]+', main_part) if n.strip()]
-                return nums
+                # Return non-empty number strings
+                return [n.strip() for n in re.split(r'[,\s]+', main_part) if n and n.strip()]
                 
-            # Split by either commas or spaces
-            nums = [n.strip() for n in re.split(r'[,\s]+', clean_str) if n.strip()]
-            return nums
+            # Split by typical delimiters (commas or spaces) to get individual numbers
+            result = [n.strip() for n in re.split(r'[,\s]+', clean_str) if n and n.strip()]
+            return result if result else empty_result
                 
         except Exception as e:
-            # Super defensive error handling - never crash
-            logging.error(f"Bulletproof numbers parsing failed: {str(e)}")
-            return []
+            # Log the error but never crash the application
+            logging.error(f"Error in bulletproof numbers parsing: {str(e)}")
+            return empty_result
     
     def get_bonus_numbers_list(self):
         """Return bonus numbers as a Python list, or empty list if None"""
