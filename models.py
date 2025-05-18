@@ -108,36 +108,54 @@ class LotteryResult(db.Model):
     
     def get_numbers_list(self):
         """Return numbers as a Python list"""
-        try:
-            # Try to parse as JSON first
-            return json.loads(self.numbers)
-        except (json.JSONDecodeError, TypeError):
-            # If JSON parsing fails, handle as space-separated string format
-            if '+' in self.numbers:
-                # Handle "09 18 19 30 31 40 + 28" format
-                main_numbers = self.numbers.split('+')[0].strip()
-                return [num.strip() for num in main_numbers.split()]
-            else:
-                # Handle regular space-separated format
-                return [num.strip() for num in self.numbers.split()]
-    
-    def get_bonus_numbers_list(self):
-        """Return bonus numbers as a Python list, or empty list if None"""
-        if not self.bonus_numbers:
-            # Check if bonus is in the numbers field (format: "09 18 19 30 31 40 + 28")
-            if self.numbers and '+' in self.numbers:
-                try:
-                    bonus_part = self.numbers.split('+')[1].strip()
-                    return [bonus_part]
-                except (IndexError, AttributeError):
-                    return []
+        if not self.numbers:
             return []
             
         try:
-            return json.loads(self.bonus_numbers)
+            # Try to parse as JSON first
+            parsed = json.loads(self.numbers)
+            # Handle case where JSON parsing works but returns a string
+            if isinstance(parsed, str):
+                if '+' in parsed:
+                    # Handle "09 18 19 30 31 40 + 28" format
+                    main_numbers = parsed.split('+')[0].strip()
+                    return [num.strip() for num in main_numbers.split()]
+                else:
+                    # Handle regular space-separated format
+                    return [num.strip() for num in parsed.split()]
+            return parsed
         except (json.JSONDecodeError, TypeError):
-            # If not JSON, handle as string
-            return [self.bonus_numbers.strip()]
+            # If JSON parsing fails, handle as space-separated string format
+            if '+' in str(self.numbers):
+                # Handle "09 18 19 30 31 40 + 28" format
+                main_numbers = str(self.numbers).split('+')[0].strip()
+                return [num.strip() for num in main_numbers.split()]
+            else:
+                # Handle regular space-separated format
+                return [num.strip() for num in str(self.numbers).split()]
+    
+    def get_bonus_numbers_list(self):
+        """Return bonus numbers as a Python list, or empty list if None"""
+        # First check if we have dedicated bonus numbers field
+        if self.bonus_numbers:
+            try:
+                parsed = json.loads(self.bonus_numbers)
+                if isinstance(parsed, str):
+                    return [parsed.strip()]
+                return parsed
+            except (json.JSONDecodeError, TypeError):
+                return [str(self.bonus_numbers).strip()]
+                
+        # If no bonus_numbers field, check if bonus is in the numbers field (format: "09 18 19 30 31 40 + 28")
+        if self.numbers and '+' in str(self.numbers):
+            try:
+                numbers_str = str(self.numbers)
+                bonus_part = numbers_str.split('+')[1].strip()
+                return [bonus_part]
+            except (IndexError, AttributeError):
+                return []
+                
+        return []
     
     def get_divisions(self):
         """Return divisions data as a Python dict, or empty dict if None"""
