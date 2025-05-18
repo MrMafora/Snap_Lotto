@@ -1655,6 +1655,11 @@ def view_screenshot(screenshot_id):
     """View a screenshot image"""
     screenshot = Screenshot.query.get_or_404(screenshot_id)
     
+    # Check if path exists in screenshot record
+    if not screenshot.path:
+        flash('Screenshot path is missing in database', 'danger')
+        return redirect(url_for('admin'))
+    
     # Normalize path and check if file exists
     screenshot_path = os.path.normpath(screenshot.path)
     
