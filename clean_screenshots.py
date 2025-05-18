@@ -42,11 +42,8 @@ def cleanup_invalid_screenshots(app):
         for ss in invalid_screenshots:
             print(f"ID: {ss.id}, Type: {ss.lottery_type}")
         
-        # Confirm deletion
-        confirmation = input("Delete these records? (y/n): ")
-        if confirmation.lower() != 'y':
-            print("Operation cancelled.")
-            return 0
+        # Auto-confirm deletion in script mode
+        print("Automatically removing invalid screenshot records...")
         
         # Delete invalid screenshots
         for ss in invalid_screenshots:
