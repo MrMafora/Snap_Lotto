@@ -199,7 +199,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
                                     <input type="file" id="ticket-image" name="ticket_image" accept="image/*" style="display:none;">
-                                    <button type="button" id="file-select-btn" class="btn btn-primary" onclick="document.getElementById('ticket-image').click()">Select Image</button>
+                                    <button type="button" id="file-select-btn" class="btn btn-primary">Select Image</button>
                                 </div>
                             </div>
 
@@ -352,6 +352,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("Initializing ticket scanner...");
+    
     // Initialize variables
     const ticketForm = document.getElementById('ticket-form');
     const fileInput = document.getElementById('ticket-image');
@@ -365,6 +367,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultsContainer = document.getElementById('results-container');
     const errorMessage = document.getElementById('error-message');
     const scanAnotherBtn = document.getElementById('scan-another-btn');
+    
+    console.log("Variables initialized");
+    
+    // Direct file selection handler - this is critical for mobile browsers
+    if (fileSelectBtn) {
+        console.log("Adding click handler to file select button");
+        fileSelectBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (fileInput) {
+                console.log("File select button clicked, opening file dialog");
+                fileInput.click();
+            } else {
+                console.log("ERROR: File input element not found");
+            }
+        });
+    } else {
+        console.log("ERROR: File select button not found");
+    }
     
     // Event listeners for drag and drop
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -405,13 +425,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Handle file selection via button
-    fileSelectBtn.addEventListener('click', () => {
-        fileInput.click();
-    });
-    
-    fileInput.addEventListener('change', () => {
+    // File input change handler
+    fileInput.addEventListener('change', function() {
+        console.log("File input changed");
         if (fileInput.files.length > 0) {
+            console.log("File selected:", fileInput.files[0].name);
             showPreview(fileInput.files[0]);
         }
     });
