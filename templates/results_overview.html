@@ -55,12 +55,7 @@
                     
                     {% if result.divisions %}
                         <div class="divisions-summary mt-3">
-                            {% set divisions_dict = {} %}
-                            {% try %}
-                                {% set divisions_dict = result.get_divisions() %}
-                            {% except %}
-                                {# Keep divisions_dict empty if there's an error #}
-                            {% endtry %}
+                            {% set divisions_dict = result.get_divisions() %}
                             
                             {% if divisions_dict and divisions_dict.items() %}
                                 {% for div_num, div_data in divisions_dict.items() %}
