@@ -1838,11 +1838,15 @@ def api_results(lottery_type):
 def optimized_frequency_analysis():
     """API endpoint for lottery number frequency analysis"""
     try:
+        # Log API call for debugging
+        logger.info("=== OPTIMIZED FREQUENCY ANALYSIS API CALLED ===")
+        logger.info(f"Request args: {dict(request.args)}")
+        
         # Get and validate parameters
         lottery_type = request.args.get('lottery_type')
         days = int(request.args.get('days', '365'))
         
-        logger.info(f"Frequency analysis requested for type={lottery_type}, days={days}")
+        logger.info(f"Performing optimized analysis for: lottery_type={lottery_type}, days={days}")
         
         # Get count of results for stats
         count = db.session.query(LotteryResult).count()
@@ -1893,7 +1897,8 @@ def optimized_frequency_analysis():
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"Frequency analysis API error: {str(e)}")
+        logger.error(f"ERROR IN OPTIMIZED FREQUENCY ANALYSIS API: {str(e)}")
+        logger.error(traceback.format_exc())
         return jsonify({
             "error": str(e),
             "message": "Error analyzing frequency data"
