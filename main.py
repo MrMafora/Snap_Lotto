@@ -279,8 +279,12 @@ def index():
                 # Also check for alternate spellings (Lotto vs Lottery)
                 normalized_types = {}
                 for t in all_lottery_types:
+                    # Always normalize 'Lotto' to 'Lottery' in all lottery type names
                     normalized = t.replace('Lotto', 'Lottery') if 'Lotto' in t else t
                     normalized_types[normalized] = t
+                    
+                # Log the normalized types for debugging
+                logger.info(f"Normalized {t} to {normalized} for consistency")
                 
                 logger.info(f"Normalized lottery types: {normalized_types}")
                 

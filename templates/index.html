@@ -222,6 +222,7 @@
                             <tr>
                                 <td class="ps-2 py-1">
                                     {% set display_type = result.lottery_type %}
+                                    {# Always normalize any legacy Lotto references to Lottery for display #}
                                     {% if 'Lotto' in display_type %}
                                         {% set display_type = display_type.replace('Lotto', 'Lottery') %}
                                     {% endif %}
