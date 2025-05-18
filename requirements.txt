@@ -32,4 +32,3 @@ seaborn
 trafilatura
 openpyxl
 pandas
-trafilatura

@@ -354,122 +354,93 @@ def retake_all_screenshots(app=None, use_threading=True):
         int: Number of successfully captured screenshots
     """
     import threading
-    from models import ScheduleConfig, Screenshot
+    from models import ScheduleConfig
     from flask import current_app
     from main import app
     
     # Dictionary to store results
-    successful_count = 0
+    results = {}
     processed_urls = set()
-    failed_types = []
     
-    # If not using threading, process URLs synchronously
-    if not use_threading:
-        try:
-            with app.app_context():
-                # Get lottery types from existing screenshots - more efficient than getting from ScheduleConfig
-                screenshots = Screenshot.query.all()
-                
-                # Only process the first 3 screenshots to avoid timeouts
-                # We'll catch the rest on subsequent runs or background tasks
-                screenshot_subset = screenshots[:3] if len(screenshots) > 3 else screenshots
-                
-                for screenshot in screenshot_subset:
-                    try:
-                        logger.info(f"Processing screenshot for {screenshot.lottery_type}")
-                        
-                        # Skip if already processed this type
-                        if screenshot.lottery_type in processed_urls:
-                            continue
-                        
-                        processed_urls.add(screenshot.lottery_type)
-                        
-                        # Use the retake function specific to this screenshot type
-                        success = retake_screenshot_by_id(screenshot.id, app)
-                        
-                        if success:
-                            successful_count += 1
-                        else:
-                            failed_types.append(screenshot.lottery_type)
-                            
-                    except Exception as e:
-                        logger.error(f"Error processing {screenshot.lottery_type}: {str(e)}")
-                        failed_types.append(screenshot.lottery_type)
-                
-                return successful_count
-        except Exception as e:
-            logger.error(f"Error in retake_all_screenshots (sync mode): {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return 0
-    
-    # Using threading for parallel processing
-    else:
-        def process_url(url, lottery_type):
-            """Process a single URL in a separate thread"""
-            nonlocal successful_count
-            
-            # Acquire semaphore to limit concurrent tasks
-            if not task_semaphore.acquire(blocking=True, timeout=300):
-                logger.error(f"Could not acquire task semaphore for {lottery_type} after waiting 5 minutes")
-                return
-            
-            try:
-                logger.info(f"Retaking screenshot for {lottery_type} from {url}")
-                
-                # Import screenshot manager inside the thread to avoid circular imports
-                import screenshot_manager as sm
-                
-                with app.app_context():
-                    # Capture new screenshot
-                    capture_result = sm.capture_screenshot(url, lottery_type)
-                    
-                    if capture_result:
-                        filepath, _, zoom_filepath = capture_result
-                        successful_count += 1
-                        logger.info(f"Successfully retook screenshot for {lottery_type}")
-                    else:
-                        logger.error(f"Failed to capture screenshot for {lottery_type}")
-            except Exception as e:
-                logger.error(f"Error retaking screenshot for {lottery_type}: {str(e)}")
-                import traceback
-                logger.error(traceback.format_exc())
-            finally:
-                # Always release the semaphore
-                task_semaphore.release()
+    def process_url(url, lottery_type):
+        """Process a single URL in a separate thread"""
+        # Acquire semaphore to limit concurrent tasks
+        if not task_semaphore.acquire(blocking=True, timeout=300):
+            results[url] = {
+                'status': 'error',
+                'message': f"Could not acquire task semaphore for {lottery_type} after waiting 5 minutes"
+            }
+            return
         
         try:
+            logger.info(f"Retaking screenshot for {lottery_type} from {url}")
+            
+            # Import screenshot manager inside the thread to avoid circular imports
+            import screenshot_manager as sm
+            
             with app.app_context():
-                # Get all unique URLs from ScheduleConfig
-                configs = ScheduleConfig.query.all()
-                threads = []
+                # Capture new screenshot
+                capture_result = sm.capture_screenshot(url, lottery_type)
                 
-                # Only process a subset of configs to avoid timeouts
-                config_subset = configs[:3] if len(configs) > 3 else configs
+                if not capture_result:
+                    results[url] = {
+                        'status': 'error',
+                        'message': f"Failed to capture screenshot for {lottery_type}"
+                    }
+                    return
                 
-                for config in config_subset:
-                    # Skip duplicate URLs to avoid redundant work
-                    if config.url in processed_urls:
-                        continue
-                    
-                    processed_urls.add(config.url)
-                    
-                    # Start a new thread for each URL
-                    thread = threading.Thread(target=process_url, args=(config.url, config.lottery_type))
-                    thread.daemon = True
-                    thread.start()
-                    threads.append(thread)
+                filepath, _, zoom_filepath = capture_result
                 
-                # Wait for all threads to complete with shorter timeouts
-                for thread in threads:
-                    thread.join(timeout=30)  # Wait up to 30 seconds per thread
+                results[url] = {
+                    'status': 'success',
+                    'lottery_type': lottery_type,
+                    'filepath': filepath,
+                    'zoom_filepath': zoom_filepath
+                }
                 
-                # Run cleanup to remove old screenshots
-                cleanup_old_screenshots() # Call our local implementation
-                
-                return successful_count
+                logger.info(f"Successfully retook screenshot for {lottery_type}")
         except Exception as e:
-            logger.error(f"Error in retake_all_screenshots: {str(e)}")
+            logger.error(f"Error retaking screenshot for {lottery_type}: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
-            return 0
+            
+            results[url] = {
+                'status': 'error',
+                'message': str(e)
+            }
+        finally:
+            # Always release the semaphore
+            task_semaphore.release()
+    
+    try:
+        with app.app_context():
+            # Get all unique URLs from ScheduleConfig
+            configs = ScheduleConfig.query.all()
+            threads = []
+            
+            for config in configs:
+                # Skip duplicate URLs to avoid redundant work
+                if config.url in processed_urls:
+                    continue
+                
+                processed_urls.add(config.url)
+                
+                # Start a new thread for each URL
+                thread = threading.Thread(target=process_url, args=(config.url, config.lottery_type))
+                thread.daemon = True
+                thread.start()
+                threads.append(thread)
+            
+            # Wait for all threads to complete
+            for thread in threads:
+                thread.join(timeout=60)  # Wait up to 60 seconds per thread
+            
+            # Run cleanup to remove old screenshots
+            cleanup_old_screenshots() # Call our local implementation
+            
+            return results
+    except Exception as e:
+        logger.error(f"Error in retake_all_screenshots: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return {'status': 'error', 'message': str(e)}

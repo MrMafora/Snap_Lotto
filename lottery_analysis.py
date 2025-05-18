@@ -247,28 +247,18 @@ class LotteryAnalyzer:
             data = []
             for result in results:
                 try:
-                    # Extract the numbers as a list - avoid JSON parsing completely
+                    # Extract the numbers as a list - handle JSON strings
                     if isinstance(result.numbers, str):
-                        # Clean the string by removing any JSON-like characters
-                        cleaned_str = re.sub(r'[\[\]"{}\']', '', result.numbers)
-                        
-                        # Handle the case with bonus numbers (format: "1 2 3 + 4")
-                        if '+' in cleaned_str:
-                            main_part = cleaned_str.split('+')[0].strip()
-                            # Process the main numbers only
-                            numbers_str = [n.strip() for n in re.split(r'[,\s]+', main_part) if n.strip()]
-                        else:
-                            # Split by either commas or spaces
-                            numbers_str = [n.strip() for n in re.split(r'[,\s]+', cleaned_str) if n.strip()]
-                        
-                        # Convert to integers where possible
-                        numbers = []
-                        for n in numbers_str:
+                        if result.numbers.startswith('[') and result.numbers.endswith(']'):
+                            # JSON format
                             try:
-                                numbers.append(int(n))
-                            except ValueError:
-                                # Skip any non-numeric values
-                                continue
+                                numbers = json.loads(result.numbers)
+                            except json.JSONDecodeError:
+                                # Try handling as comma-separated values
+                                numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
+                        else:
+                            # Comma-separated values
+                            numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
                     else:
                         # Already in list form
                         numbers = result.numbers
@@ -378,33 +368,9 @@ class LotteryAnalyzer:
                     
                     # Find the highest number across all draws and all types
                     for col in all_number_cols:
-                        try:
-                            # Convert all values to integers if possible
-                            numeric_values = []
-                            for val in all_types_df[col].dropna():
-                                try:
-                                    # Convert various formats to int
-                                    if isinstance(val, str):
-                                        # Remove any non-numeric characters
-                                        clean_val = ''.join(c for c in val if c.isdigit())
-                                        if clean_val:
-                                            numeric_values.append(int(clean_val))
-                                    else:
-                                        numeric_values.append(int(val))
-                                except (ValueError, TypeError):
-                                    # Skip values that can't be converted to integers
-                                    pass
-                                    
-                            if numeric_values:
-                                max_val = max(numeric_values)
-                                if max_val > max_number:
-                                    max_number = max_val
-                        except Exception as e:
-                            logger.warning(f"Error processing column {col}: {str(e)}")
-                    
-                    # Set a reasonable fallback if no valid max is found
-                    if max_number == 0:
-                        max_number = 50  # Typical upper bound for lottery games
+                        max_val = all_types_df[col].max()
+                        if max_val and max_val > max_number:
+                            max_number = int(max_val)
                     
                     # Create a frequency array for all possible numbers
                     combined_frequency = np.zeros(max_number + 1, dtype=int)
@@ -412,21 +378,8 @@ class LotteryAnalyzer:
                     # Count occurrences of each number across all lottery types
                     for col in all_number_cols:
                         for num in all_types_df[col].dropna():
-                            try:
-                                # Convert to integer if possible
-                                if isinstance(num, str):
-                                    # Remove any non-numeric characters
-                                    clean_num = ''.join(c for c in num if c.isdigit())
-                                    if clean_num:
-                                        num_value = int(clean_num)
-                                else:
-                                    num_value = int(num)
-                                    
-                                if 0 <= num_value <= max_number:
-                                    combined_frequency[num_value] += 1
-                            except (ValueError, TypeError):
-                                # Skip values that can't be converted
-                                pass
+                            if 0 <= int(num) <= max_number:
+                                combined_frequency[int(num)] += 1
                     
                     # Remove the 0 index since there's no ball numbered 0
                     combined_frequency = combined_frequency[1:]
@@ -465,33 +418,9 @@ class LotteryAnalyzer:
                     
                     # Find the highest number across all draws
                     for col in number_cols:
-                        try:
-                            # Convert all values to integers if possible
-                            numeric_values = []
-                            for val in lt_df[col].dropna():
-                                try:
-                                    # Convert various formats to int
-                                    if isinstance(val, str):
-                                        # Remove any non-numeric characters
-                                        clean_val = ''.join(c for c in val if c.isdigit())
-                                        if clean_val:
-                                            numeric_values.append(int(clean_val))
-                                    else:
-                                        numeric_values.append(int(val))
-                                except (ValueError, TypeError):
-                                    # Skip values that can't be converted to integers
-                                    pass
-                                    
-                            if numeric_values:
-                                max_val = max(numeric_values)
-                                if max_val > max_number:
-                                    max_number = max_val
-                        except Exception as e:
-                            logger.warning(f"Error processing column {col} for {lt}: {str(e)}")
-                    
-                    # Set a reasonable fallback if no valid max is found
-                    if max_number == 0:
-                        max_number = 50  # Typical upper bound for lottery games
+                        max_val = lt_df[col].max()
+                        if max_val and max_val > max_number:
+                            max_number = int(max_val)
                     
                     # Create a frequency array for all possible numbers
                     frequency = np.zeros(max_number + 1, dtype=int)
@@ -499,21 +428,8 @@ class LotteryAnalyzer:
                     # Count occurrences of each number
                     for col in number_cols:
                         for num in lt_df[col].dropna():
-                            try:
-                                # Convert to integer if possible
-                                if isinstance(num, str):
-                                    # Remove any non-numeric characters
-                                    clean_num = ''.join(c for c in num if c.isdigit())
-                                    if clean_num:
-                                        num_value = int(clean_num)
-                                else:
-                                    num_value = int(num)
-                                    
-                                if 0 <= num_value <= max_number:
-                                    frequency[num_value] += 1
-                            except (ValueError, TypeError):
-                                # Skip values that can't be converted
-                                pass
+                            if 0 <= int(num) <= max_number:
+                                frequency[int(num)] += 1
                     
                     # Remove the 0 index since there's no ball numbered 0
                     frequency = frequency[1:]

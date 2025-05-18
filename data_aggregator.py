@@ -535,14 +535,14 @@ def aggregate_data(extracted_data, lottery_type, source_url):
                         logger.warning(f"Skipping invalid result for {lottery_type}, draw {draw_number}")
                 else:
                     # Check if the new data has better information than the existing one
-                    existing_numbers = existing_result.get_numbers_list()
-                    existing_bonus = existing_result.get_bonus_numbers_list()
+                    existing_numbers = json.loads(existing_result.numbers)
+                    existing_bonus = json.loads(existing_result.bonus_numbers or '[]')
                     
                     # Get existing divisions data
                     existing_divisions = {}
                     if hasattr(existing_result, 'divisions') and existing_result.divisions:
                         try:
-                            existing_divisions = existing_result.get_divisions()
+                            existing_divisions = json.loads(existing_result.divisions)
                         except (json.JSONDecodeError, TypeError):
                             existing_divisions = {}
                     
@@ -656,71 +656,33 @@ def get_latest_results():
     Returns:
         dict: Dictionary mapping lottery types to their latest results
     """
-    try:
-        # Get all distinct lottery types
-        lottery_types = db.session.query(LotteryResult.lottery_type).distinct().all()
-        latest_results = {}
-        
-        # Create a mapping of normalized types
-        normalized_types = {}
-        for lt in lottery_types:
-            lottery_type = lt[0]
-            normalized_type = normalize_lottery_type(lottery_type)
-            
-            if normalized_type not in normalized_types:
-                normalized_types[normalized_type] = []
-            
-            normalized_types[normalized_type].append(lottery_type)
-        
-        # For each normalized type, get the latest result among all its variants
-        for normalized_type, variants in normalized_types.items():
-            # Query across all variants of this lottery type
-            result = LotteryResult.query.filter(
-                LotteryResult.lottery_type.in_(variants)
-            ).order_by(LotteryResult.draw_date.desc()).first()
-            
-            if result:
-                # Handle the numbers field to ensure it's properly formatted
-                if result.numbers:
-                    try:
-                        # Verify if numbers field can be parsed as JSON
-                        # without actually modifying it
-                        result.get_numbers_list()
-                    except json.JSONDecodeError:
-                        # If it's not valid JSON, it's likely in the space-separated format
-                        # We don't need to modify it as the model will handle this format
-                        pass
-                        
-                # Store result under the standard lottery type name
-                standard_name = get_standard_name(result.lottery_type)
-                latest_results[standard_name] = result
-        
-        return latest_results
-    except Exception as e:
-        logger.error(f"Error in get_latest_results: {str(e)}")
-        return {}
-        
-def get_standard_name(lottery_type):
-    """Convert any variant of lottery type to standard name"""
-    normalized = normalize_lottery_type(lottery_type).lower()
+    # Get all distinct lottery types
+    lottery_types = db.session.query(LotteryResult.lottery_type).distinct().all()
+    latest_results = {}
     
-    if "lotto" in normalized:
-        if "plus 1" in normalized:
-            return "Lottery Plus 1"
-        elif "plus 2" in normalized: 
-            return "Lottery Plus 2"
-        else:
-            return "Lottery"
-    elif "powerball" in normalized:
-        if "plus" in normalized:
-            return "Powerball Plus"
-        else:
-            return "Powerball"
-    elif "daily" in normalized:
-        return "Daily Lottery"
+    # Create a mapping of normalized types
+    normalized_types = {}
+    for lt in lottery_types:
+        lottery_type = lt[0]
+        normalized_type = normalize_lottery_type(lottery_type)
+        
+        if normalized_type not in normalized_types:
+            normalized_types[normalized_type] = []
+        
+        normalized_types[normalized_type].append(lottery_type)
     
-    # Default to original name if no match
-    return lottery_type
+    # For each normalized type, get the latest result among all its variants
+    for normalized_type, variants in normalized_types.items():
+        # Query across all variants of this lottery type
+        result = LotteryResult.query.filter(
+            LotteryResult.lottery_type.in_(variants)
+        ).order_by(LotteryResult.draw_date.desc()).first()
+        
+        if result:
+            # Store result under the normalized type name
+            latest_results[normalized_type] = result
+    
+    return latest_results
 
 def export_results_to_json(lottery_type=None, limit=None):
     """
@@ -870,9 +832,9 @@ def validate_and_correct_known_draws():
             numbers_json = json.dumps(correct_numbers)
             bonus_json = json.dumps(correct_bonus)
             
-            # Check if the numbers are already correct - use model methods instead of direct JSON parsing
-            existing_numbers = lotto_2532.get_numbers_list()
-            existing_bonus = lotto_2532.get_bonus_numbers_list()
+            # Check if the numbers are already correct
+            existing_numbers = json.loads(lotto_2532.numbers)
+            existing_bonus = json.loads(lotto_2532.bonus_numbers or '[]')
             
             existing_set = set(existing_numbers)
             correct_set = set(correct_numbers)
@@ -930,8 +892,12 @@ def validate_and_correct_known_draws():
                 update_needed = True
             
             # Check if divisions need to be updated
-            # Use the model's get_divisions method instead of direct json.loads
-            existing_divisions = lotto_2532.get_divisions()
+            existing_divisions = {}
+            if lotto_2532.divisions:
+                try:
+                    existing_divisions = json.loads(lotto_2532.divisions)
+                except (json.JSONDecodeError, TypeError):
+                    existing_divisions = {}
             
             # Update divisions if missing or incomplete
             if not existing_divisions or len(existing_divisions) < len(divisions_data):
@@ -1007,8 +973,8 @@ def validate_and_correct_known_draws():
             update_needed = False
             
             # Verify numbers if needed
-            existing_numbers = lotto_plus1_2532.get_numbers_list()
-            existing_bonus = lotto_plus1_2532.get_bonus_numbers_list()
+            existing_numbers = json.loads(lotto_plus1_2532.numbers)
+            existing_bonus = json.loads(lotto_plus1_2532.bonus_numbers or '[]')
             existing_set = set(existing_numbers)
             correct_set = set(correct_numbers)
             
@@ -1019,8 +985,12 @@ def validate_and_correct_known_draws():
                 update_needed = True
             
             # Check if divisions need to be updated
-            # Use model method for consistent handling
-            existing_divisions = lotto_plus1_2532.get_divisions()
+            existing_divisions = {}
+            if lotto_plus1_2532.divisions:
+                try:
+                    existing_divisions = json.loads(lotto_plus1_2532.divisions)
+                except (json.JSONDecodeError, TypeError):
+                    existing_divisions = {}
             
             # Update divisions if missing or incomplete
             if not existing_divisions or len(existing_divisions) < len(divisions_data):
@@ -1096,8 +1066,8 @@ def validate_and_correct_known_draws():
             update_needed = False
             
             # Verify numbers if needed
-            existing_numbers = lotto_plus2_2532.get_numbers_list()
-            existing_bonus = lotto_plus2_2532.get_bonus_numbers_list()
+            existing_numbers = json.loads(lotto_plus2_2532.numbers)
+            existing_bonus = json.loads(lotto_plus2_2532.bonus_numbers or '[]')
             existing_set = set(existing_numbers)
             correct_set = set(correct_numbers)
             
@@ -1107,8 +1077,13 @@ def validate_and_correct_known_draws():
                 lotto_plus2_2532.bonus_numbers = bonus_json
                 update_needed = True
             
-            # Check if divisions need to be updated - use model's method
-            existing_divisions = lotto_plus2_2532.get_divisions()
+            # Check if divisions need to be updated
+            existing_divisions = {}
+            if lotto_plus2_2532.divisions:
+                try:
+                    existing_divisions = json.loads(lotto_plus2_2532.divisions)
+                except (json.JSONDecodeError, TypeError):
+                    existing_divisions = {}
             
             # Update divisions if missing or incomplete
             if not existing_divisions or len(existing_divisions) < len(divisions_data):
@@ -1188,9 +1163,9 @@ def validate_and_correct_known_draws():
             
             update_needed = False
             
-            # Verify numbers if needed - use model methods for compatibility
-            existing_numbers = powerball_1605.get_numbers_list()
-            existing_bonus = powerball_1605.get_bonus_numbers_list()
+            # Verify numbers if needed
+            existing_numbers = json.loads(powerball_1605.numbers)
+            existing_bonus = json.loads(powerball_1605.bonus_numbers or '[]')
             existing_set = set(existing_numbers)
             correct_set = set(correct_numbers)
             
@@ -1200,8 +1175,13 @@ def validate_and_correct_known_draws():
                 powerball_1605.bonus_numbers = bonus_json
                 update_needed = True
             
-            # Check if divisions need to be updated - use model's method
-            existing_divisions = powerball_1605.get_divisions()
+            # Check if divisions need to be updated
+            existing_divisions = {}
+            if powerball_1605.divisions:
+                try:
+                    existing_divisions = json.loads(powerball_1605.divisions)
+                except (json.JSONDecodeError, TypeError):
+                    existing_divisions = {}
             
             # Update divisions if missing or incomplete
             if not existing_divisions or len(existing_divisions) < len(divisions_data):
@@ -1434,8 +1414,13 @@ def validate_and_correct_known_draws():
                 lotto_2530.bonus_numbers = bonus_json
                 update_needed = True
             
-            # Check if divisions need to be updated - use model's method
-            existing_divisions = lotto_2530.get_divisions()
+            # Check if divisions need to be updated
+            existing_divisions = {}
+            if lotto_2530.divisions:
+                try:
+                    existing_divisions = json.loads(lotto_2530.divisions)
+                except (json.JSONDecodeError, TypeError):
+                    existing_divisions = {}
             
             # Update divisions if missing or incomplete
             if not existing_divisions or len(existing_divisions) < len(divisions_data):

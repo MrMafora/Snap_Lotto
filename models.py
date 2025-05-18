@@ -2,14 +2,12 @@
 Database models for the application
 """
 from datetime import datetime
+import json
 import os
-import re
 import numpy as np
 import logging
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
-# We must remove JSON dependency completely
-# import json
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import inspect
@@ -109,198 +107,20 @@ class LotteryResult(db.Model):
         return f"<LotteryResult {self.lottery_type} - {self.draw_number}>"
     
     def get_numbers_list(self):
-        """Return numbers as a Python list - using direct string processing only"""
-        # For security, always return a list even on error
-        empty_result = []
-        
-        # Try to safely process the numbers
-        try:
-            # Guard against None or empty values
-            if not self.numbers:
-                return empty_result
-                
-            # Convert to a simple string, removing all JSON or special characters
-            clean_str = str(self.numbers)
-            # Completely sanitize the string, removing any JSON-like formatting
-            clean_str = re.sub(r'[\[\]"{}\']', '', clean_str)
-            
-            # Handle bonus numbers format: "1 2 3 + 4" - keep only main numbers
-            if '+' in clean_str:
-                main_part = clean_str.split('+')[0].strip()
-                # Return non-empty number strings
-                return [n.strip() for n in re.split(r'[,\s]+', main_part) if n and n.strip()]
-                
-            # Split by typical delimiters (commas or spaces) to get individual numbers
-            result = [n.strip() for n in re.split(r'[,\s]+', clean_str) if n and n.strip()]
-            return result if result else empty_result
-                
-        except Exception as e:
-            # Log the error but never crash the application
-            logging.error(f"Error in bulletproof numbers parsing: {str(e)}")
-            return empty_result
+        """Return numbers as a Python list"""
+        return json.loads(self.numbers)
     
     def get_bonus_numbers_list(self):
         """Return bonus numbers as a Python list, or empty list if None"""
-        # First check if we have dedicated bonus numbers field
         if self.bonus_numbers:
-            bonus_str = str(self.bonus_numbers)
-            
-            # Handle the case of single bonus number
-            if bonus_str.strip().isdigit():
-                return [bonus_str.strip()]
-                
-            # Handle bonus numbers in bracket format without trying json.loads
-            if bonus_str.strip().startswith('[') and bonus_str.strip().endswith(']'):
-                try:
-                    # Safely extract content between brackets and split by comma
-                    inner_content = bonus_str.strip()[1:-1].strip()
-                    if ',' in inner_content:
-                        return [item.strip().strip('"').strip("'") for item in inner_content.split(',') if item.strip()]
-                    elif ' ' in inner_content:
-                        return [item.strip().strip('"').strip("'") for item in inner_content.split() if item.strip()]
-                    else:
-                        # Single number in brackets
-                        return [inner_content]
-                except Exception:
-                    # If extraction fails, try next method
-                    pass
-                    
-            # Handle space-separated format
-            if ' ' in bonus_str and not (bonus_str.strip().startswith('[') and bonus_str.strip().endswith(']')):
-                return [num.strip() for num in bonus_str.split() if num.strip()]
-                
-            # Handle comma-separated format
-            if ',' in bonus_str and not (bonus_str.strip().startswith('[') and bonus_str.strip().endswith(']')):
-                return [num.strip() for num in bonus_str.split(',') if num.strip()]
-                    
-            # If it's not a bracketed format or parsing failed, return as a single item
-            # But don't return the brackets themselves
-            if bonus_str.strip().startswith('[') and bonus_str.strip().endswith(']'):
-                # This is an unexpected format, return empty list to avoid errors
-                return []
-            else:
-                # Single value
-                return [bonus_str.strip()]
-                
-        # If no bonus_numbers field, check if bonus is in the numbers field (format: "09 18 19 30 31 40 + 28")
-        if self.numbers and '+' in str(self.numbers):
-            try:
-                numbers_str = str(self.numbers)
-                bonus_part = numbers_str.split('+')[1].strip()
-                if bonus_part:
-                    return [bonus_part]
-            except (IndexError, AttributeError):
-                pass
-                
+            return json.loads(self.bonus_numbers)
         return []
     
     def get_divisions(self):
         """Return divisions data as a Python dict, or empty dict if None"""
-        if not self.divisions:
-            return {}
-            
-        # Always work with string version for consistency
-        divisions_str = str(self.divisions)
-        
-        # Check if it looks like a JSON object
-        if divisions_str.strip().startswith('{') and divisions_str.strip().endswith('}'):
-            # Try manual extraction for simple JSON-like formats first
-            try:
-                result = {}
-                # Remove the braces and process key-value pairs
-                inner_content = divisions_str.strip()[1:-1].strip()
-                
-                # Handle key-value pairs separated by commas
-                if ',' in inner_content and ':' in inner_content:
-                    pairs = inner_content.split(',')
-                    for pair in pairs:
-                        if ':' in pair:
-                            key_val = pair.split(':', 1)
-                            if len(key_val) == 2:
-                                key = key_val[0].strip().strip('"').strip("'")
-                                val = key_val[1].strip().strip('"').strip("'")
-                                result[key] = val
-                    
-                    if result:
-                        return result
-            except Exception:
-                # If manual extraction fails, continue to alternative method
-                pass
-                
-            # Use only string-based approach (no JSON parsing)
-            try:
-                result = {}
-                # Remove the braces
-                raw_content = divisions_str.strip()[1:-1].strip()
-                
-                # Extract key-value pairs with advanced pattern matching
-                # This handles nested structures as single values
-                in_nested = False
-                nested_start = None
-                nested_depth = 0
-                current_pair = ""
-                
-                for i, char in enumerate(raw_content):
-                    if char == '{' or char == '[':
-                        in_nested = True
-                        nested_depth += 1
-                        if nested_start is None:
-                            nested_start = i
-                        current_pair += char
-                    elif char == '}' or char == ']':
-                        nested_depth -= 1
-                        current_pair += char
-                        if nested_depth == 0:
-                            in_nested = False
-                    elif char == ',' and not in_nested:
-                        # Process the completed pair
-                        if ':' in current_pair:
-                            key_val = current_pair.split(':', 1)
-                            if len(key_val) == 2:
-                                key = key_val[0].strip().strip('"').strip("'")
-                                val = key_val[1].strip().strip('"').strip("'")
-                                result[key] = val
-                        current_pair = ""
-                    else:
-                        current_pair += char
-                
-                # Don't forget the last pair
-                if current_pair and ':' in current_pair:
-                    key_val = current_pair.split(':', 1)
-                    if len(key_val) == 2:
-                        key = key_val[0].strip().strip('"').strip("'")
-                        val = key_val[1].strip().strip('"').strip("'")
-                        result[key] = val
-                
-                if result:
-                    return result
-                else:
-                    # If extraction failed, return the raw string
-                    return {'raw': divisions_str.strip()}
-            except Exception:
-                # If anything fails, return the raw string
-                return {'raw': divisions_str.strip()}
-        
-        # For other formats, check if it's a simple "key=value" format
-        if '=' in divisions_str and not (divisions_str.strip().startswith('{') and divisions_str.strip().endswith('}')):
-            try:
-                result = {}
-                pairs = divisions_str.split(',')
-                for pair in pairs:
-                    if '=' in pair:
-                        key_val = pair.split('=', 1)
-                        if len(key_val) == 2:
-                            key = key_val[0].strip()
-                            val = key_val[1].strip()
-                            result[key] = val
-                
-                if result:
-                    return result
-            except Exception:
-                pass
-        
-        # If all parsing attempts fail, return the raw string
-        return {'raw': divisions_str.strip()}
+        if self.divisions:
+            return json.loads(self.divisions)
+        return {}
     
     def to_dict(self):
         """Convert model to dictionary for API responses"""
@@ -708,95 +528,13 @@ class LotteryPrediction(db.Model):
     
     def get_numbers_list(self):
         """Return predicted numbers as a Python list"""
-        # Safe string-based parsing of predicted numbers
-        try:
-            if not self.predicted_numbers:
-                return []
-                
-            num_str = str(self.predicted_numbers).strip()
-            
-            # Handle bracket format
-            if num_str.startswith('[') and num_str.endswith(']'):
-                inner_content = num_str[1:-1].strip()
-                
-                # Handle comma-separated format
-                if ',' in inner_content:
-                    return [item.strip().strip('"\'') for item in inner_content.split(',') if item.strip()]
-                
-                # Handle space-separated format inside brackets
-                if ' ' in inner_content:
-                    return [item.strip().strip('"\'') for item in inner_content.split() if item.strip()]
-                
-                # Single value in brackets
-                return [inner_content] if inner_content else []
-            
-            # Handle space-separated format without brackets
-            if ' ' in num_str:
-                return [num.strip() for num in num_str.split() if num.strip()]
-                
-            # Handle single number
-            return [num_str] if num_str else []
-        except Exception as e:
-            logging.error(f"Error parsing predicted numbers: {str(e)}")
-            return []
+        return json.loads(self.predicted_numbers)
     
     def get_parameters_dict(self):
         """Return parameters as a Python dict, or empty dict if None"""
-        try:
-            if not self.parameters:
-                return {}
-                
-            # Convert to string for consistent handling
-            param_str = str(self.parameters).strip()
-            
-            # If it's not in dictionary format, return as a single entry
-            if not (param_str.startswith('{') and param_str.endswith('}')):
-                return {"raw": param_str}
-                
-            # Parse dictionary-like string format
-            result = {}
-            # Remove the braces
-            inner_content = param_str[1:-1].strip()
-            
-            # Split by commas outside of nested structures
-            in_nested = False
-            nested_depth = 0
-            current_pair = ""
-            
-            for char in inner_content:
-                if char in '{[':
-                    in_nested = True
-                    nested_depth += 1
-                    current_pair += char
-                elif char in ']}':
-                    nested_depth -= 1
-                    current_pair += char
-                    if nested_depth == 0:
-                        in_nested = False
-                elif char == ',' and not in_nested:
-                    # Process completed key-value pair
-                    if ':' in current_pair:
-                        key_val = current_pair.split(':', 1)
-                        if len(key_val) == 2:
-                            key = key_val[0].strip().strip('"\'')
-                            val = key_val[1].strip().strip('"\'')
-                            result[key] = val
-                    current_pair = ""
-                else:
-                    current_pair += char
-            
-            # Process the last pair
-            if current_pair and ':' in current_pair:
-                key_val = current_pair.split(':', 1)
-                if len(key_val) == 2:
-                    key = key_val[0].strip().strip('"\'')
-                    val = key_val[1].strip().strip('"\'')
-                    result[key] = val
-            
-            return result if result else {"raw": param_str}
-        except Exception as e:
-            logging.error(f"Error parsing parameters: {str(e)}")
-            return {}
+        if self.parameters:
+            return json.loads(self.parameters)
+        return {}
     
     def to_dict(self):
         """Convert model to dictionary for API responses"""
@@ -837,42 +575,9 @@ class PredictionResult(db.Model):
     
     def get_match_positions(self):
         """Return match positions as a Python list"""
-        if not self.match_positions:
-            return []
-            
-        # Safe string-based parsing
-        try:
-            # Ensure we're working with a string
-            pos_str = str(self.match_positions).strip()
-            
-            # Empty string case
-            if not pos_str:
-                return []
-                
-            # Handle bracket format
-            if pos_str.startswith('[') and pos_str.endswith(']'):
-                inner_content = pos_str[1:-1].strip()
-                
-                # Handle comma-separated format
-                if ',' in inner_content:
-                    return [item.strip().strip('"\'') for item in inner_content.split(',') if item.strip()]
-                
-                # Handle space-separated format inside brackets
-                if ' ' in inner_content:
-                    return [item.strip().strip('"\'') for item in inner_content.split() if item.strip()]
-                
-                # Single value in brackets
-                return [inner_content] if inner_content else []
-            
-            # Handle space-separated format without brackets
-            if ' ' in pos_str:
-                return [num.strip() for num in pos_str.split() if num.strip()]
-                
-            # Single value case
-            return [pos_str] if pos_str else []
-        except Exception as e:
-            logging.error(f"Error parsing match positions: {str(e)}")
-            return []
+        if self.match_positions:
+            return json.loads(self.match_positions)
+        return []
     
     def to_dict(self):
         """Convert model to dictionary for API responses"""
@@ -907,100 +612,15 @@ class ModelTrainingHistory(db.Model):
     
     def get_features_list(self):
         """Return features used as a Python list"""
-        if not self.features_used:
-            return []
-            
-        # Safe string-based parsing
-        try:
-            # Ensure we're working with a string
-            features_str = str(self.features_used).strip()
-            
-            # Empty string case
-            if not features_str:
-                return []
-                
-            # Handle bracket format
-            if features_str.startswith('[') and features_str.endswith(']'):
-                inner_content = features_str[1:-1].strip()
-                
-                # Handle comma-separated format
-                if ',' in inner_content:
-                    return [item.strip().strip('"\'') for item in inner_content.split(',') if item.strip()]
-                
-                # Handle space-separated format inside brackets
-                if ' ' in inner_content:
-                    return [item.strip().strip('"\'') for item in inner_content.split() if item.strip()]
-                
-                # Single value in brackets
-                return [inner_content] if inner_content else []
-            
-            # Handle space-separated format without brackets
-            if ' ' in features_str:
-                return [item.strip() for item in features_str.split() if item.strip()]
-                
-            # Single value case
-            return [features_str] if features_str else []
-        except Exception as e:
-            logging.error(f"Error parsing features used: {str(e)}")
-            return []
+        if self.features_used:
+            return json.loads(self.features_used)
+        return []
     
     def get_hyperparameters_dict(self):
         """Return hyperparameters as a Python dict"""
-        try:
-            if not self.hyperparameters:
-                return {}
-                
-            # Convert to string for consistent handling
-            params_str = str(self.hyperparameters).strip()
-            
-            # If it's not in dictionary format, return as a single entry
-            if not (params_str.startswith('{') and params_str.endswith('}')):
-                return {"raw": params_str}
-                
-            # Parse dictionary-like string format
-            result = {}
-            # Remove the braces
-            inner_content = params_str[1:-1].strip()
-            
-            # Split by commas outside of nested structures
-            in_nested = False
-            nested_depth = 0
-            current_pair = ""
-            
-            for char in inner_content:
-                if char in '{[':
-                    in_nested = True
-                    nested_depth += 1
-                    current_pair += char
-                elif char in ']}':
-                    nested_depth -= 1
-                    current_pair += char
-                    if nested_depth == 0:
-                        in_nested = False
-                elif char == ',' and not in_nested:
-                    # Process completed key-value pair
-                    if ':' in current_pair:
-                        key_val = current_pair.split(':', 1)
-                        if len(key_val) == 2:
-                            key = key_val[0].strip().strip('"\'')
-                            val = key_val[1].strip().strip('"\'')
-                            result[key] = val
-                    current_pair = ""
-                else:
-                    current_pair += char
-            
-            # Process the last pair
-            if current_pair and ':' in current_pair:
-                key_val = current_pair.split(':', 1)
-                if len(key_val) == 2:
-                    key = key_val[0].strip().strip('"\'')
-                    val = key_val[1].strip().strip('"\'')
-                    result[key] = val
-            
-            return result if result else {"raw": params_str}
-        except Exception as e:
-            logging.error(f"Error parsing hyperparameters: {str(e)}")
-            return {}
+        if self.hyperparameters:
+            return json.loads(self.hyperparameters)
+        return {}
     
     def to_dict(self):
         """Convert model to dictionary for API responses"""

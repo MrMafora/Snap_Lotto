@@ -2,126 +2,106 @@
 """
 Script to create a test data file with realistic lottery data.
 """
+import pandas as pd
 import os
-import random
 from datetime import datetime, timedelta
-import openpyxl
-from openpyxl.styles import Font, Alignment, PatternFill
-from openpyxl.utils import get_column_letter
+import random
 
 def create_test_data_file(output_path):
     """Create a test data Excel file with realistic lottery data"""
-    wb = openpyxl.Workbook()
-    
-    # Remove default sheet
-    default_sheet = wb.active
-    wb.remove(default_sheet)
-    
-    # Create a sheet for each lottery type
+    # Define lottery types
     lottery_types = [
-        "Lottery", 
-        "Lottery Plus 1", 
-        "Lottery Plus 2", 
-        "Powerball", 
-        "Powerball Plus", 
-        "Daily Lottery"
+        'Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
+        'Powerball', 'Powerball Plus', 'Daily Lottery'
     ]
     
+    # Create a writer to save the DataFrame
+    writer = pd.ExcelWriter(output_path, engine='openpyxl')
+    
+    # Start date (recent)
+    base_date = datetime.now() - timedelta(days=60)
+    
+    # For each lottery type
     for lottery_type in lottery_types:
-        sheet = wb.create_sheet(title=lottery_type)
+        # Create sample data rows
+        rows = []
+        draw_number_base = random.randint(1000, 2000)
         
-        # Set up headers
-        headers = ["Draw Number", "Draw Date", "Numbers"]
-        
-        # Add bonus/powerball column for certain lottery types
-        if lottery_type in ["Powerball", "Powerball Plus"]:
-            headers.append("Powerball")
-        
-        # Add division columns for all types
-        for i in range(1, 7):
-            if lottery_type == "Daily Lottery" and i > 4:
-                # Daily Lottery only has 4 divisions
-                continue
-            headers.append(f"Division {i} Winners")
-            headers.append(f"Division {i} Payout")
-        
-        # Write headers
-        for col_num, header in enumerate(headers, 1):
-            cell = sheet.cell(row=1, column=col_num, value=header)
-            cell.font = Font(bold=True)
-            cell.alignment = Alignment(horizontal='center')
-            cell.fill = PatternFill(start_color="DDDDDD", end_color="DDDDDD", fill_type="solid")
-            sheet.column_dimensions[get_column_letter(col_num)].width = 15
-        
-        # Generate test data
-        num_rows = random.randint(15, 25)  # Random number of draws
-        
-        # Determine max numbers and range based on lottery type
-        if lottery_type == "Daily Lottery":
-            main_numbers = 5
-            main_range = 36
-            has_bonus = False
-        elif "Powerball" in lottery_type:
-            main_numbers = 5
-            main_range = 50
-            has_bonus = True
-            bonus_range = 20
-        else:  # Lottery types
-            main_numbers = 6
-            main_range = 52
-            has_bonus = False
-        
-        # Current date as starting point
-        current_date = datetime.now()
-        
-        for row_num in range(2, num_rows + 2):
-            col = 1
-            
-            # Draw number (decreases as we go back in time)
-            draw_number = 2000 - (row_num - 2)
-            sheet.cell(row=row_num, column=col, value=draw_number)
-            col += 1
-            
-            # Draw date (goes back in time)
-            draw_date = current_date - timedelta(days=(row_num - 2) * 7)
-            sheet.cell(row=row_num, column=col, value=draw_date)
-            col += 1
+        # Create 5 draws per lottery type (one per week, except Daily Lottery is daily)
+        for i in range(5):
+            # Calculate draw date
+            if lottery_type == 'Daily Lottery':
+                draw_date = base_date + timedelta(days=i)
+            else:
+                draw_date = base_date + timedelta(days=i*7)
             
             # Generate winning numbers
-            numbers = sorted(random.sample(range(1, main_range + 1), main_numbers))
-            sheet.cell(row=row_num, column=col, value=", ".join(str(n) for n in numbers))
-            col += 1
+            if lottery_type in ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2']:
+                winning_numbers = ", ".join([str(random.randint(1, 52)) for _ in range(6)])
+                bonus_ball = random.randint(1, 52)
+            elif lottery_type in ['Powerball', 'Powerball Plus']:
+                winning_numbers = ", ".join([str(random.randint(1, 50)) for _ in range(5)])
+                bonus_ball = random.randint(1, 20)
+            else:  # Daily Lottery
+                winning_numbers = ", ".join([str(random.randint(1, 36)) for _ in range(5)])
+                bonus_ball = None
             
-            # Bonus/Powerball for applicable types
-            if has_bonus:
-                bonus = random.randint(1, bonus_range)
-                sheet.cell(row=row_num, column=col, value=bonus)
-                col += 1
+            # Generate division data
+            division1_winners = random.randint(0, 3)
+            division1_payout = f"R{random.randint(1000000, 50000000):,}.00" if division1_winners > 0 else "R0.00"
             
-            # Division winners and payouts
-            max_divisions = 4 if lottery_type == "Daily Lottery" else 6
+            division2_winners = random.randint(5, 50)
+            division2_payout = f"R{random.randint(50000, 500000):,}.00"
             
-            for div in range(1, max_divisions + 1):
-                # Winners (higher divisions have fewer winners)
-                winners = max(0, int(random.triangular(0, 100 / div, 10 / div)))
-                sheet.cell(row=row_num, column=col, value=winners)
-                col += 1
-                
-                # Payout (higher divisions have bigger payouts)
-                base_payout = 1000000 / div if div == 1 else 10000 / (div - 1)
-                variation = random.uniform(0.8, 1.2)
-                payout = base_payout * variation
-                
-                # Format as currency with commas
-                payout_str = f"R {payout:,.2f}"
-                sheet.cell(row=row_num, column=col, value=payout_str)
-                col += 1
+            division3_winners = random.randint(100, 500)
+            division3_payout = f"R{random.randint(1000, 10000):,}.00"
+            
+            # Next draw date and jackpot
+            next_draw_date = draw_date + timedelta(days=7 if lottery_type != 'Daily Lottery' else 1)
+            next_jackpot = f"R{random.randint(2000000, 100000000):,}.00"
+            
+            # Create row
+            row = {
+                'Game Name': lottery_type,
+                'Draw Number': str(draw_number_base + i),
+                'Draw Date': draw_date.strftime('%Y-%m-%d'),
+                'Winning Numbers': winning_numbers,
+                'Bonus Ball': bonus_ball if bonus_ball is not None else '',
+                'Division 1 Winners': division1_winners,
+                'Division 1 Payout': division1_payout,
+                'Division 2 Winners': division2_winners,
+                'Division 2 Payout': division2_payout,
+                'Division 3 Winners': division3_winners,
+                'Division 3 Payout': division3_payout,
+                'Next Draw Date': next_draw_date.strftime('%Y-%m-%d'),
+                'Next Draw Jackpot': next_jackpot
+            }
+            rows.append(row)
+        
+        # Create DataFrame
+        df = pd.DataFrame(rows)
+        
+        # Save to Excel
+        df.to_excel(writer, sheet_name=lottery_type, index=False)
     
-    # Save the workbook
-    wb.save(output_path)
-    print(f"Test data created and saved to {output_path}")
-    return True
+    # Add instructions sheet
+    instructions_df = pd.DataFrame([
+        {'Instructions': 'LOTTERY DATA IMPORT TEMPLATE'},
+        {'Instructions': ''},
+        {'Instructions': 'HOW TO USE THIS TEMPLATE:'},
+        {'Instructions': '1. Each sheet represents a different lottery game'},
+        {'Instructions': '2. Fill in the actual draw information on each sheet'}
+    ])
+    instructions_df.to_excel(writer, sheet_name='Instructions', index=False)
+    
+    # Save the Excel file
+    writer.close()
+    
+    return output_path
 
 if __name__ == "__main__":
-    output_file = "lottery_test_data.xlsx"
-    create_test_data_file(output_file)
+    output_path = "attached_assets/lottery_test_data.xlsx"
+    created_file = create_test_data_file(output_path)
+    print(f"Created test data file: {created_file}")
+    print(f"File size: {os.path.getsize(output_path)} bytes")
+    print(f"Last modified: {datetime.fromtimestamp(os.path.getmtime(output_path))}")

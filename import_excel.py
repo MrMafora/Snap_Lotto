@@ -248,11 +248,10 @@ def import_excel_data(excel_file, flask_app=None):
                     error_messages.append(error_msg)
                     # All engines failed, create ImportHistory entry with error
                     import_history = ImportHistory(
-                        file_name=os.path.basename(excel_file),
-                        import_date=datetime.utcnow(),
-                        import_type="excel",
-                        errors=len(error_messages),
-                        total_processed=0
+                        filename=os.path.basename(excel_file),
+                        timestamp=datetime.utcnow(),
+                        status="error",
+                        notes=f"Failed to read Excel file: {'; '.join(error_messages)}"
                     )
                     db.session.add(import_history)
                     db.session.commit()
@@ -266,10 +265,9 @@ def import_excel_data(excel_file, flask_app=None):
             
             # Create import history record
             import_history = ImportHistory(
-                file_name=os.path.basename(excel_file),
-                import_date=datetime.utcnow(),
-                import_type="excel",
-                total_processed=0
+                filename=os.path.basename(excel_file),
+                timestamp=datetime.utcnow(),
+                status="processing"
             )
             db.session.add(import_history)
             db.session.commit()
@@ -280,46 +278,33 @@ def import_excel_data(excel_file, flask_app=None):
             
             # Check for common column name patterns
             game_name_variants = ['game name', 'game type', 'lottery type', 'lottery game', 'lottery', 'lotto type', 'lotto game', 'lotto']
-            draw_number_variants = ['draw number', 'draw no', 'draw id', 'draw', 'number']
+            draw_number_variants = ['draw number', 'draw no', 'draw id', 'number']
             draw_date_variants = ['draw date', 'game date', 'date']
             numbers_variants = ['winning numbers', 'main numbers', 'numbers']
             bonus_variants = ['bonus ball', 'bonus number', 'powerball']
             
-            # Exact column name mapping for common template headings
-            exact_mapping = {
-                'Draw Number': 'draw_number',
-                'Game Name': 'lottery_type',
-                'Draw Date': 'draw_date',
-                'Winning Numbers': 'numbers',
-                'Bonus Ball': 'bonus_ball'
-            }
-            
-            # First, try exact matches for common column names
-            for col in df.columns:
-                col_str = str(col)
-                if col_str in exact_mapping:
-                    field_name = exact_mapping[col_str]
-                    column_mapping[field_name] = col
-            
-            # Then fallback to pattern matching for any missing fields
             for col in df.columns:
                 col_str = str(col)
                 col_lower = col_str.lower()
                 
-                # Check and map standard fields if not already mapped
-                if 'lottery_type' not in column_mapping and any(variant in col_lower for variant in game_name_variants):
+                # Map standard fields to actual column names
+                if any(variant in col_lower for variant in game_name_variants):
                     column_mapping['lottery_type'] = col
                 
-                if 'draw_number' not in column_mapping and any(variant in col_lower for variant in draw_number_variants):
+                # Special case for "Game Name" which is the most common in our templates
+                if col_str == "Game Name":
+                    column_mapping['lottery_type'] = col
+                
+                if any(variant in col_lower for variant in draw_number_variants):
                     column_mapping['draw_number'] = col
                 
-                if 'draw_date' not in column_mapping and any(variant in col_lower for variant in draw_date_variants):
+                if any(variant in col_lower for variant in draw_date_variants):
                     column_mapping['draw_date'] = col
                 
-                if 'numbers' not in column_mapping and (any(variant in col_lower for variant in numbers_variants) or 'numerical' in col_lower):
+                if any(variant in col_lower for variant in numbers_variants) or 'numerical' in col_lower:
                     column_mapping['numbers'] = col
                 
-                if 'bonus_ball' not in column_mapping and any(variant in col_lower for variant in bonus_variants):
+                if any(variant in col_lower for variant in bonus_variants):
                     column_mapping['bonus_ball'] = col
                 
                 # Check for division data columns
@@ -366,8 +351,8 @@ def import_excel_data(excel_file, flask_app=None):
             # Check if we found essential columns
             if 'lottery_type' not in column_mapping or 'draw_number' not in column_mapping:
                 logger.error("Could not find essential columns for lottery data import")
-                import_history.errors = 1
-                import_history.total_processed = 0
+                import_history.status = "error"
+                import_history.notes = "Could not find essential columns (Game Name and Draw Number)"
                 db.session.commit()
                 return False
             
@@ -556,16 +541,17 @@ def import_excel_data(excel_file, flask_app=None):
             if last_import_history_id:
                 import_history = ImportHistory.query.get(last_import_history_id)
                 if import_history:
-                    import_history.records_added = imported_count
-                    import_history.records_updated = updated_count
-                    import_history.errors = error_count
-                    import_history.total_processed = imported_count + updated_count + error_count
+                    import_history.status = "completed"
+                    import_history.imported_count = imported_count
+                    import_history.updated_count = updated_count
+                    import_history.error_count = error_count
+                    import_history.notes = f"Imported {imported_count} new records, updated {updated_count} existing records, {error_count} errors"
                     db.session.commit()
                     
                     # Create ImportedRecord entries for each imported record
                     for record in imported_records:
                         imported_record = ImportedRecord(
-                            import_id=import_history.id,
+                            import_history_id=import_history.id,
                             lottery_type=record['lottery_type'],
                             draw_number=record['draw_number'],
                             draw_date=record['draw_date'],
