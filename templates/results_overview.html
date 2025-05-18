@@ -12,7 +12,7 @@
                     <h5 class="card-title mb-0">{{ lottery_type }}</h5>
                 </div>
                 <div class="card-body">
-                    {% if latest_results and lottery_type in latest_results %}
+                    {% if latest_results and lottery_type in latest_results and latest_results[lottery_type] %}
                     {% set result = latest_results[lottery_type] %}
                     <div class="text-center mb-3">
                         <p class="fw-bold">Latest Draw #{{ result.draw_number }}</p>
@@ -20,41 +20,45 @@
                     </div>
                     
                     <div class="lottery-balls-container text-center mb-3">
-                        {% for number in result.get_numbers_list() %}
-                            {% set ball_class = 'lottery-ball ' %}
+                        {% if result.numbers %}
+                            {% for number in result.get_numbers_list() %}
+                                {% set ball_class = 'lottery-ball ' %}
+                                
+                                {% if loop.index0 % 4 == 0 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                {% elif loop.index0 % 4 == 1 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                {% elif loop.index0 % 4 == 2 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                {% else %}
+                                    {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                                {% endif %}
+                                
+                                <span class="{{ ball_class }}">{{ number }}</span>
+                            {% endfor %}
                             
-                            {% if loop.index0 % 4 == 0 %}
-                                {% set ball_class = ball_class + 'lottery-ball-red' %}
-                            {% elif loop.index0 % 4 == 1 %}
-                                {% set ball_class = ball_class + 'lottery-ball-yellow' %}
-                            {% elif loop.index0 % 4 == 2 %}
-                                {% set ball_class = ball_class + 'lottery-ball-green' %}
-                            {% else %}
-                                {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                            {% if result.bonus_numbers %}
+                                <span class="bonus-indicator">+</span>
+                                {% for bonus in result.get_bonus_numbers_list() %}
+                                <span class="lottery-ball lottery-ball-yellow">{{ bonus }}</span>
+                                {% endfor %}
                             {% endif %}
-                            
-                            <span class="{{ ball_class }}">{{ number }}</span>
-                        {% endfor %}
-                        
-                        {% if result.get_bonus_numbers_list() %}
-                        <span class="bonus-indicator">+</span>
-                        {% for bonus in result.get_bonus_numbers_list() %}
-                        <span class="lottery-ball lottery-ball-yellow">{{ bonus }}</span>
-                        {% endfor %}
+                        {% else %}
+                            <p class="text-center">No winning numbers available</p>
                         {% endif %}
                     </div>
                     
-                    {% if result.get_divisions() %}
-                    <div class="divisions-summary mt-3">
-                        {% for div_num, div_data in result.get_divisions().items() %}
-                        {% if loop.index <= 3 %} <!-- Show only top 3 divisions -->
-                        <div class="division-row">
-                            <span class="division-name">{{ div_num }}</span>
-                            <span class="division-prize">{{ div_data.prize }}</span>
+                    {% if result.divisions %}
+                        <div class="divisions-summary mt-3">
+                            {% for div_num, div_data in result.get_divisions().items() %}
+                                {% if loop.index <= 3 %} <!-- Show only top 3 divisions -->
+                                <div class="division-row">
+                                    <span class="division-name">{{ div_num }}</span>
+                                    <span class="division-prize">{{ div_data.prize }}</span>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
                         </div>
-                        {% endif %}
-                        {% endfor %}
-                    </div>
                     {% endif %}
                     
                     {% else %}
