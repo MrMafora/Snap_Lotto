@@ -656,33 +656,62 @@ def get_latest_results():
     Returns:
         dict: Dictionary mapping lottery types to their latest results
     """
-    # Get all distinct lottery types
-    lottery_types = db.session.query(LotteryResult.lottery_type).distinct().all()
-    latest_results = {}
-    
-    # Create a mapping of normalized types
-    normalized_types = {}
-    for lt in lottery_types:
-        lottery_type = lt[0]
-        normalized_type = normalize_lottery_type(lottery_type)
+    try:
+        # Get all distinct lottery types
+        lottery_types = db.session.query(LotteryResult.lottery_type).distinct().all()
+        latest_results = {}
         
-        if normalized_type not in normalized_types:
-            normalized_types[normalized_type] = []
+        # Create a mapping of normalized types
+        normalized_types = {}
+        for lt in lottery_types:
+            lottery_type = lt[0]
+            normalized_type = normalize_lottery_type(lottery_type)
+            
+            if normalized_type not in normalized_types:
+                normalized_types[normalized_type] = []
+            
+            normalized_types[normalized_type].append(lottery_type)
         
-        normalized_types[normalized_type].append(lottery_type)
-    
-    # For each normalized type, get the latest result among all its variants
-    for normalized_type, variants in normalized_types.items():
-        # Query across all variants of this lottery type
-        result = LotteryResult.query.filter(
-            LotteryResult.lottery_type.in_(variants)
-        ).order_by(LotteryResult.draw_date.desc()).first()
+        # For each normalized type, get the latest result among all its variants
+        for normalized_type, variants in normalized_types.items():
+            try:
+                # Query across all variants of this lottery type
+                result = LotteryResult.query.filter(
+                    LotteryResult.lottery_type.in_(variants)
+                ).order_by(LotteryResult.draw_date.desc()).first()
+                
+                if result:
+                    # Validate that the numbers and bonus numbers can be parsed correctly
+                    try:
+                        # If numbers is a string that looks like JSON, try to parse it
+                        if isinstance(result.numbers, str) and result.numbers.strip().startswith('['):
+                            try:
+                                json.loads(result.numbers)
+                            except json.JSONDecodeError:
+                                # If it fails, convert to a list with a single string element
+                                result.numbers = json.dumps([result.numbers])
+                        
+                        # Do the same check for bonus numbers
+                        if result.bonus_numbers and isinstance(result.bonus_numbers, str) and result.bonus_numbers.strip().startswith('['):
+                            try:
+                                json.loads(result.bonus_numbers)
+                            except json.JSONDecodeError:
+                                # If it fails, convert to a list with a single string element
+                                result.bonus_numbers = json.dumps([result.bonus_numbers])
+                    except Exception as e:
+                        logger.warning(f"Error validating JSON for {normalized_type}: {e}")
+                    
+                    # Store result under the normalized type name
+                    latest_results[normalized_type] = result
+            except Exception as e:
+                logger.error(f"Error retrieving latest result for {normalized_type}: {e}")
+                # Skip this lottery type and continue with others
+                continue
         
-        if result:
-            # Store result under the normalized type name
-            latest_results[normalized_type] = result
-    
-    return latest_results
+        return latest_results
+    except Exception as e:
+        logger.error(f"Error in get_latest_results: {e}")
+        return {}
 
 def export_results_to_json(lottery_type=None, limit=None):
     """
