@@ -545,27 +545,36 @@ def results():
     lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
                      'Powerball', 'Powerball Plus', 'Daily Lottery']
     
-    # Ensure data_aggregator is loaded before using it
-    global data_aggregator
-    
-    # Import if not already loaded
-    if data_aggregator is None:
-        import data_aggregator as da
-        data_aggregator = da
-        logger.info("Loaded data_aggregator module on demand")
-    
-    latest_results = data_aggregator.get_latest_results()
-    
-    # Define breadcrumbs for SEO
-    breadcrumbs = [
-        {"name": "Results", "url": url_for('results')}
-    ]
-    
-    return render_template('results_overview.html',
-                          lottery_types=lottery_types,
-                          latest_results=latest_results,
-                          title="All Lottery Results",
-                          breadcrumbs=breadcrumbs)
+    try:
+        # Ensure data_aggregator is loaded before using it
+        global data_aggregator
+        
+        # Import if not already loaded
+        if data_aggregator is None:
+            import data_aggregator as da
+            data_aggregator = da
+            logger.info("Loaded data_aggregator module on demand")
+        
+        latest_results = data_aggregator.get_latest_results()
+        
+        # Define breadcrumbs for SEO
+        breadcrumbs = [
+            {"name": "Results", "url": url_for('results')}
+        ]
+        
+        return render_template('results_overview.html',
+                            lottery_types=lottery_types,
+                            latest_results=latest_results,
+                            title="All Lottery Results",
+                            breadcrumbs=breadcrumbs)
+    except Exception as e:
+        logger.error(f"Error in results route: {str(e)}")
+        # Return a simplified template with no result data
+        return render_template('results_overview.html',
+                            lottery_types=lottery_types,
+                            latest_results={},  # Empty dict instead of None
+                            title="All Lottery Results",
+                            breadcrumbs=[{"name": "Results", "url": url_for('results')}])
 
 @app.route('/results/<lottery_type>')
 def lottery_results(lottery_type):
