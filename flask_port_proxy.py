@@ -85,7 +85,7 @@ def proxy(path):
             data=request.get_data(),
             cookies=request.cookies,
             allow_redirects=False,
-            timeout=10
+            timeout=30
         )
         
         # Create a Flask response
