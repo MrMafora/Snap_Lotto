@@ -223,8 +223,8 @@ class Campaign(DuplicateCheckMixin, db.Model):
     budget = db.Column(db.Numeric(10, 2), nullable=True)
     start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
-    # Define relationship with ad impressions
-    impressions = db.relationship('AdImpression', backref='campaign', lazy=True)
+    # Define relationship with ad impressions - using campaign_rel as backref to avoid conflicts
+    impressions = db.relationship('AdImpression', backref='campaign_rel', lazy=True)
     status = db.Column(db.String(20), default='draft') # draft, active, paused, completed
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -480,8 +480,8 @@ class AdImpression(db.Model):
     # Campaign tracking
     campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=True)
     
-    # Relationships
-    campaign = db.relationship('Campaign', backref='impressions', foreign_keys=[campaign_id])
+    # Relationships 
+    # Removed duplicate backref that was conflicting with Campaign.impressions
     
     def __repr__(self):
         return f"<AdImpression {self.id}: Ad {self.ad_id}>"
