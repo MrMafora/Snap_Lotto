@@ -268,6 +268,21 @@ def index():
                 "Daily Lottery"
             ]
             
+            # Sort results_list directly to match our preferred order
+            def get_order_index(result):
+                # Get normalized type
+                result_type = result.lottery_type
+                # Find its position in our preferred order
+                try:
+                    return lottery_type_order.index(result_type)
+                except ValueError:
+                    # If not in our list, put it at the end
+                    return len(lottery_type_order)
+                    
+            # Sort the results list directly before passing to template
+            results_list.sort(key=get_order_index)
+            logger.info(f"Sorted results order: {[r.lottery_type for r in results_list]}")
+            
             # Get all lottery types from the database
             all_lottery_types = []
             try:
