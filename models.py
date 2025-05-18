@@ -120,25 +120,42 @@ class LotteryResult(db.Model):
             main_numbers = numbers_str.split('+')[0].strip()
             return [num.strip() for num in main_numbers.split() if num.strip()]
         
-        # Check if it looks like a JSON array - strict checking
+        # Handle the case of single number
+        if numbers_str.strip().isdigit():
+            return [numbers_str.strip()]
+            
+        # Handle numbers in bracket format without trying json.loads
         if numbers_str.strip().startswith('[') and numbers_str.strip().endswith(']'):
             try:
-                # First use a safer manual approach for common JSON array formats
-                # Remove the brackets and split by commas
-                stripped = numbers_str.strip()[1:-1].strip()
-                if ',' in stripped:
-                    # Handle comma-separated values within brackets
-                    return [item.strip().strip('"').strip("'") for item in stripped.split(',') if item.strip()]
+                # Safely extract content between brackets and split by comma
+                inner_content = numbers_str.strip()[1:-1].strip()
+                if ',' in inner_content:
+                    return [item.strip().strip('"').strip("'") for item in inner_content.split(',') if item.strip()]
+                elif ' ' in inner_content:
+                    return [item.strip().strip('"').strip("'") for item in inner_content.split() if item.strip()]
+                else:
+                    # Single number in brackets
+                    return [inner_content]
             except Exception:
-                # If manual parsing fails, continue to the next approach
+                # If extraction fails, try next method
                 pass
                 
-        # Handle regular space-separated format
-        if ' ' in numbers_str:
+        # Handle space-separated format
+        if ' ' in numbers_str and not (numbers_str.strip().startswith('[') and numbers_str.strip().endswith(']')):
             return [num.strip() for num in numbers_str.split() if num.strip()]
             
-        # Last resort - might be a single number or unexpected format
-        return [numbers_str] if numbers_str.strip() else []
+        # Handle comma-separated format
+        if ',' in numbers_str and not (numbers_str.strip().startswith('[') and numbers_str.strip().endswith(']')):
+            return [num.strip() for num in numbers_str.split(',') if num.strip()]
+                
+        # If it's not a bracketed format or parsing failed, return as a single item
+        # But don't return the brackets themselves
+        if numbers_str.strip().startswith('[') and numbers_str.strip().endswith(']'):
+            # This is an unexpected format, return empty list to avoid errors
+            return []
+        else:
+            # Single value
+            return [numbers_str.strip()]
     
     def get_bonus_numbers_list(self):
         """Return bonus numbers as a Python list, or empty list if None"""
@@ -146,18 +163,42 @@ class LotteryResult(db.Model):
         if self.bonus_numbers:
             bonus_str = str(self.bonus_numbers)
             
-            # Check if it looks like a JSON array
-            if bonus_str.startswith('[') and bonus_str.endswith(']'):
+            # Handle the case of single bonus number
+            if bonus_str.strip().isdigit():
+                return [bonus_str.strip()]
+                
+            # Handle bonus numbers in bracket format without trying json.loads
+            if bonus_str.strip().startswith('[') and bonus_str.strip().endswith(']'):
                 try:
-                    # Try to parse as JSON
-                    parsed = json.loads(bonus_str)
-                    # Ensure all items are strings for consistent return type
-                    return [str(num) for num in parsed]
-                except (json.JSONDecodeError, TypeError):
+                    # Safely extract content between brackets and split by comma
+                    inner_content = bonus_str.strip()[1:-1].strip()
+                    if ',' in inner_content:
+                        return [item.strip().strip('"').strip("'") for item in inner_content.split(',') if item.strip()]
+                    elif ' ' in inner_content:
+                        return [item.strip().strip('"').strip("'") for item in inner_content.split() if item.strip()]
+                    else:
+                        # Single number in brackets
+                        return [inner_content]
+                except Exception:
+                    # If extraction fails, try next method
                     pass
                     
-            # Not JSON or parsing failed, return as a single item
-            return [bonus_str.strip()]
+            # Handle space-separated format
+            if ' ' in bonus_str and not (bonus_str.strip().startswith('[') and bonus_str.strip().endswith(']')):
+                return [num.strip() for num in bonus_str.split() if num.strip()]
+                
+            # Handle comma-separated format
+            if ',' in bonus_str and not (bonus_str.strip().startswith('[') and bonus_str.strip().endswith(']')):
+                return [num.strip() for num in bonus_str.split(',') if num.strip()]
+                    
+            # If it's not a bracketed format or parsing failed, return as a single item
+            # But don't return the brackets themselves
+            if bonus_str.strip().startswith('[') and bonus_str.strip().endswith(']'):
+                # This is an unexpected format, return empty list to avoid errors
+                return []
+            else:
+                # Single value
+                return [bonus_str.strip()]
                 
         # If no bonus_numbers field, check if bonus is in the numbers field (format: "09 18 19 30 31 40 + 28")
         if self.numbers and '+' in str(self.numbers):
@@ -180,14 +221,62 @@ class LotteryResult(db.Model):
         divisions_str = str(self.divisions)
         
         # Check if it looks like a JSON object
-        if divisions_str.startswith('{') and divisions_str.endswith('}'):
+        if divisions_str.strip().startswith('{') and divisions_str.strip().endswith('}'):
+            # Try manual extraction for simple JSON-like formats first
             try:
-                return json.loads(divisions_str)
+                result = {}
+                # Remove the braces and process key-value pairs
+                inner_content = divisions_str.strip()[1:-1].strip()
+                
+                # Handle key-value pairs separated by commas
+                if ',' in inner_content and ':' in inner_content:
+                    pairs = inner_content.split(',')
+                    for pair in pairs:
+                        if ':' in pair:
+                            key_val = pair.split(':', 1)
+                            if len(key_val) == 2:
+                                key = key_val[0].strip().strip('"').strip("'")
+                                val = key_val[1].strip().strip('"').strip("'")
+                                result[key] = val
+                    
+                    if result:
+                        return result
+            except Exception:
+                # If manual extraction fails, continue to json.loads
+                pass
+                
+            # Try standard JSON parsing
+            try:
+                # Clean up common issues
+                cleaned_str = divisions_str.strip()
+                if '\\' in cleaned_str or '"{' in cleaned_str:
+                    cleaned_str = cleaned_str.replace('\\"', '"').replace('\\\\', '\\')
+                    
+                return json.loads(cleaned_str)
             except (json.JSONDecodeError, TypeError):
+                # If both methods fail, return the raw string
+                return {'raw': divisions_str.strip()}
+        
+        # For other formats, check if it's a simple "key=value" format
+        if '=' in divisions_str and not (divisions_str.strip().startswith('{') and divisions_str.strip().endswith('}')):
+            try:
+                result = {}
+                pairs = divisions_str.split(',')
+                for pair in pairs:
+                    if '=' in pair:
+                        key_val = pair.split('=', 1)
+                        if len(key_val) == 2:
+                            key = key_val[0].strip()
+                            val = key_val[1].strip()
+                            result[key] = val
+                
+                if result:
+                    return result
+            except Exception:
                 pass
         
-        # For other formats or if JSON parsing fails, return an empty dict
-        return {}
+        # If all parsing attempts fail, return the raw string
+        return {'raw': divisions_str.strip()}
     
     def to_dict(self):
         """Convert model to dictionary for API responses"""
