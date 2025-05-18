@@ -577,7 +577,93 @@ def direct_scanner():
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
 
-
+@app.route('/simple-scanner')
+def simple_scanner():
+    """Extremely simplified and reliable ticket scanner page"""
+    # Define breadcrumbs for SEO
+    breadcrumbs = [
+        {"name": "Lottery Ticket Scanner", "url": url_for('scanner_landing')},
+        {"name": "Simple Scanner", "url": url_for('simple_scanner')}
+    ]
+    
+    # Additional SEO metadata
+    meta_description = "The simplest and most reliable way to check if your South African lottery ticket is a winner."
+    
+    return render_template('simple_scanner.html', 
+                          title="Simple Lottery Ticket Scanner | Check If You've Won",
+                          breadcrumbs=breadcrumbs,
+                          meta_description=meta_description)
+                          
+@app.route('/simple-process', methods=['POST'])
+@csrf.exempt
+def simple_process():
+    """Simplified process for ticket scanning with better error handling"""
+    import time
+    import os.path
+    import logging
+    from werkzeug.utils import secure_filename
+    
+    # Log incoming request
+    logging.info("Simple process ticket request received")
+    
+    # Get form data
+    lottery_type = request.form.get('lottery_type', '')
+    draw_number = request.form.get('draw_number', '')
+    
+    # Check if a file was uploaded
+    if 'ticket_image' not in request.files:
+        return render_template('simple_scanner.html', 
+                              error="No file selected. Please upload an image file.",
+                              title="Simple Lottery Ticket Scanner | Check If You've Won")
+    
+    file = request.files['ticket_image']
+    
+    # If user does not select file, browser also submits an empty part without filename
+    if file.filename == '':
+        return render_template('simple_scanner.html', 
+                              error="No selected file. Please choose a file to upload.",
+                              title="Simple Lottery Ticket Scanner | Check If You've Won")
+    
+    # Define allowed file extensions
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
+    
+    # Get file extension (safely)
+    file_extension = os.path.splitext(secure_filename(file.filename))[1].lower() if file.filename else ''
+    
+    # Check if file extension is allowed
+    if file_extension not in allowed_extensions:
+        return render_template('simple_scanner.html', 
+                              error="Invalid file type. Please upload a valid image (JPG, PNG, etc).",
+                              title="Simple Lottery Ticket Scanner | Check If You've Won")
+    
+    try:
+        # Create uploads directory if it doesn't exist
+        if not os.path.exists(app.config['UPLOAD_FOLDER']):
+            os.makedirs(app.config['UPLOAD_FOLDER'])
+        
+        # Generate a unique filename
+        timestamp = int(time.time())
+        filename = f"ticket_{timestamp}{file_extension}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # Save the file
+        file.save(filepath)
+        
+        # Process the ticket image (basic version for testing)
+        # This would normally call your AI-powered OCR function
+        import ticket_scanner
+        results = ticket_scanner.process_ticket_image(filepath, lottery_type, draw_number)
+        
+        if not results:
+            return render_template('simple_scanner.html', 
+                                  error="Unable to process the ticket image. Please try again with a clearer image.",
+                                  title="Simple Lottery Ticket Scanner | Check If You've Won")
+                                  
+        # Return the results
+        return render_template('simple_scanner.html', 
+                              results=results,
+                              success=f"Successfully processed your {results.get('lottery_type', 'lottery')} ticket.",
+                              title="Simple Lottery Ticket Scanner | Check If You've Won")
 
 @app.route('/process-ticket', methods=['POST', 'GET'])
 @csrf.exempt
@@ -616,44 +702,32 @@ def process_ticket():
     file_ext = os.path.splitext(file.filename)[1].lower() if file.filename else ''
     
     if file and file_ext in valid_extensions:
-        try:
-            # Create a secure filename and save the file
-            filename = secure_filename(file.filename)
-            timestamp = int(time.time())
-            upload_folder = os.path.join(os.getcwd(), 'uploads')
-            
-            # Ensure upload directory exists
-            os.makedirs(upload_folder, exist_ok=True)
-            
-            # Save the file
-            save_path = os.path.join(upload_folder, f"{timestamp}_{filename}")
-            file.save(save_path)
-            
-            # Get lottery result for display
-            lottery_results = None
-            if lottery_type:
-                lottery_results = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
-            else:
-                # If no lottery type specified, get the most recent result of any type
-                lottery_results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).first()
-            
-            # Process with ticket scanner
-            import ticket_scanner
-            scanner = ticket_scanner.TicketScanner()
-            # Pass lottery_type and draw_number to scan_ticket
-            scan_results = scanner.scan_ticket(save_path)
-            
-            # Render results template
-            return render_template('scan_results.html', 
-                                  image_path=save_path.replace(os.getcwd(), ''),
-                                  lottery_type=lottery_type or "Auto-detected",
-                                  draw_number=draw_number or "Latest",
-                                  lottery_results=lottery_results,
-                                  scan_results=scan_results)
-        except Exception as e:
-            logging.error(f"Error processing ticket: {str(e)}")
-            return render_template('direct_ticket_scanner.html', 
-                                  error=f"Error processing ticket image: {str(e)}")
+        # Create a secure filename and save the file
+        filename = secure_filename(file.filename)
+        timestamp = int(time.time())
+        upload_folder = os.path.join(os.getcwd(), 'uploads')
+        
+        # Ensure upload directory exists
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        # Save the file
+        save_path = os.path.join(upload_folder, f"{timestamp}_{filename}")
+        file.save(save_path)
+        
+        # Get lottery result for display
+        lottery_results = None
+        if lottery_type:
+            lottery_results = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+        else:
+            # If no lottery type specified, get the most recent result of any type
+            lottery_results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).first()
+        
+        # Render results template
+        return render_template('scan_results.html', 
+                              image_path=save_path.replace(os.getcwd(), ''),
+                              lottery_type=lottery_type or "Auto-detected",
+                              draw_number=draw_number or "Latest",
+                              lottery_results=lottery_results)
     
     # Invalid file type
     return render_template('direct_ticket_scanner.html', 
