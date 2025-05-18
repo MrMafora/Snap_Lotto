@@ -248,10 +248,11 @@ def import_excel_data(excel_file, flask_app=None):
                     error_messages.append(error_msg)
                     # All engines failed, create ImportHistory entry with error
                     import_history = ImportHistory(
-                        filename=os.path.basename(excel_file),
-                        timestamp=datetime.utcnow(),
-                        status="error",
-                        notes=f"Failed to read Excel file: {'; '.join(error_messages)}"
+                        file_name=os.path.basename(excel_file),
+                        import_date=datetime.utcnow(),
+                        import_type="excel",
+                        errors=len(error_messages),
+                        total_processed=0
                     )
                     db.session.add(import_history)
                     db.session.commit()
@@ -265,9 +266,10 @@ def import_excel_data(excel_file, flask_app=None):
             
             # Create import history record
             import_history = ImportHistory(
-                filename=os.path.basename(excel_file),
-                timestamp=datetime.utcnow(),
-                status="processing"
+                file_name=os.path.basename(excel_file),
+                import_date=datetime.utcnow(),
+                import_type="excel",
+                total_processed=0
             )
             db.session.add(import_history)
             db.session.commit()
@@ -541,11 +543,10 @@ def import_excel_data(excel_file, flask_app=None):
             if last_import_history_id:
                 import_history = ImportHistory.query.get(last_import_history_id)
                 if import_history:
-                    import_history.status = "completed"
-                    import_history.imported_count = imported_count
-                    import_history.updated_count = updated_count
-                    import_history.error_count = error_count
-                    import_history.notes = f"Imported {imported_count} new records, updated {updated_count} existing records, {error_count} errors"
+                    import_history.records_added = imported_count
+                    import_history.records_updated = updated_count
+                    import_history.errors = error_count
+                    import_history.total_processed = imported_count + updated_count + error_count
                     db.session.commit()
                     
                     # Create ImportedRecord entries for each imported record
