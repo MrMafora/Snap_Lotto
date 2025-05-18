@@ -209,6 +209,16 @@ def index():
             seen_draws = {}
             normalized_results = {}
             
+            # Define the specific order we want to display lottery types
+            ordered_types = [
+                "Lottery", 
+                "Lottery Plus 1", 
+                "Lottery Plus 2", 
+                "Powerball", 
+                "Powerball Plus", 
+                "Daily Lottery"
+            ]
+            
             # First, create a dictionary to group results by normalized type
             type_groups = {}
             for lottery_type, result in latest_results.items():
@@ -227,6 +237,20 @@ def index():
                 # Take the newest result only
                 newest_result = type_results[0]
                 normalized_results[normalized_type] = newest_result
+                
+            # Create an ordered dictionary with lottery types in our specific order
+            ordered_results = {}
+            for lottery_type in ordered_types:
+                if lottery_type in normalized_results:
+                    ordered_results[lottery_type] = normalized_results[lottery_type]
+                    
+            # Add any remaining types that weren't in our ordered list
+            for lottery_type, result in normalized_results.items():
+                if lottery_type not in ordered_results:
+                    ordered_results[lottery_type] = result
+                    
+            # Replace the results with our ordered version
+            latest_results = ordered_results
             
             # Second pass: add results using normalized keys to avoid duplicates
             for normalized_type, result in normalized_results.items():

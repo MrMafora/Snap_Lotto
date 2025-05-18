@@ -110,10 +110,19 @@ class LotteryResult(db.Model):
         """Return numbers as a Python list"""
         if not self.numbers:
             return []
-            
-        # Skip any complex parsing, just return a string representation 
-        # as a single-item list to prevent errors
+        
+        # Handle JSON string format
         if isinstance(self.numbers, str):
+            # First try to parse as JSON if it looks like a JSON array
+            if self.numbers.strip().startswith('[') and self.numbers.strip().endswith(']'):
+                try:
+                    parsed = json.loads(self.numbers)
+                    if isinstance(parsed, list):
+                        return parsed
+                except Exception:
+                    # If JSON parsing fails, continue with other methods
+                    pass
+                
             # Clean up common formats
             if self.numbers.strip().startswith(" +"):
                 # Format is probably like " + 28"
@@ -138,6 +147,13 @@ class LotteryResult(db.Model):
             else:
                 # Just return as-is
                 return [self.numbers.strip()]
+        
+        # If it's already a list, return it directly
+        elif isinstance(self.numbers, list):
+            return self.numbers
+            
+        # For any other type, convert to string and wrap in a list
+        return [str(self.numbers)]
         # Handle already parsed list
         elif isinstance(self.numbers, list):
             return self.numbers
