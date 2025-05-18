@@ -1479,12 +1479,12 @@ class LotteryAnalyzer:
             for col in number_cols:
                 for num in df[col].dropna():
                     try:
-                            num_int = int(num) if isinstance(num, str) else num
-                            if 0 <= num_int <= max_number:
-                                frequency[num_int] += 1
-                        except (ValueError, TypeError):
-                            # Skip invalid number formats
-                            continue
+                        num_int = int(num) if isinstance(num, str) else num
+                        if 0 <= num_int <= max_number:
+                            frequency[num_int] += 1
+                    except (ValueError, TypeError):
+                        # Skip invalid number formats
+                        continue
             
             # Remove the 0 index since there's no ball numbered 0
             frequency = frequency[1:]
