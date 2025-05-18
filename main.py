@@ -16,7 +16,6 @@ import threading
 import traceback
 from datetime import datetime, timedelta
 from functools import wraps
-import json
 
 # Set up logging first
 logging.basicConfig(level=logging.DEBUG)
@@ -181,92 +180,147 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""
-    # Just provide static pre-defined data for quick loading
+    # Ensure data_aggregator is loaded before using it
+    global data_aggregator
     
-    # Define the proper order of lottery types for display
-    ordered_lottery_types = [
-        "Lottery", 
-        "Lottery Plus 1", 
-        "Lottery Plus 2", 
-        "Powerball", 
-        "Powerball Plus", 
-        "Daily Lottery"
-    ]
-    
-    # Create predetermined sample data
-    sample_lottery_data = [
-        {"lottery_type": "Lottery", "draw_number": "2532", "draw_date": "2025-05-18", 
-         "numbers": [5, 11, 17, 23, 32, 42], "bonus_numbers": [12]},
-        {"lottery_type": "Lottery Plus 1", "draw_number": "2532", "draw_date": "2025-05-18", 
-         "numbers": [3, 9, 26, 33, 41, 47], "bonus_numbers": [18]},
-        {"lottery_type": "Lottery Plus 2", "draw_number": "2532", "draw_date": "2025-05-18", 
-         "numbers": [7, 13, 22, 38, 40, 45], "bonus_numbers": [25]},
-        {"lottery_type": "Powerball", "draw_number": "1605", "draw_date": "2025-05-17", 
-         "numbers": [2, 9, 16, 27, 39], "bonus_numbers": [11]},
-        {"lottery_type": "Powerball Plus", "draw_number": "1605", "draw_date": "2025-05-17", 
-         "numbers": [4, 15, 21, 34, 42], "bonus_numbers": [7]},
-        {"lottery_type": "Daily Lottery", "draw_number": "3215", "draw_date": "2025-05-18", 
-         "numbers": [1, 8, 19, 24, 36], "bonus_numbers": []}
-    ]
-    
-    # Create model objects from the sample data
-    from models import LotteryResult
-    results_list = []
-    latest_results_dict = {}
-    
-    for data in sample_lottery_data:
-        result = LotteryResult()
-        result.lottery_type = data["lottery_type"]
-        result.draw_number = data["draw_number"]
+    try:
+        # Import if not already loaded
+        if data_aggregator is None:
+            import data_aggregator as da
+            data_aggregator = da
+            logger.info("Loaded data_aggregator module on demand")
         
-        # Parse the date string
+        # First, validate and correct any known draws (adds missing division data)
         try:
-            result.draw_date = datetime.strptime(data["draw_date"], "%Y-%m-%d")
-        except:
-            result.draw_date = datetime.now()
+            corrected = data_aggregator.validate_and_correct_known_draws()
+            if corrected > 0:
+                logger.info(f"Corrected {corrected} lottery draws with verified data")
+        except Exception as e:
+            logger.error(f"Error in validate_and_correct_known_draws: {e}")
+        
+        # Get the latest results for each lottery type
+        try:
+            latest_results = data_aggregator.get_latest_results()
             
-        result.numbers = json.dumps(data["numbers"])
-        result.bonus_numbers = json.dumps(data["bonus_numbers"])
+            # Convert dictionary of results to a list for iteration in the template
+            results_list = []
+            
+            # Use a dictionary to track unique draw numbers per type to avoid duplicates
+            seen_draws = {}
+            normalized_results = {}
+            
+            # First, create a dictionary to group results by normalized type
+            type_groups = {}
+            for lottery_type, result in latest_results.items():
+                # Normalize the lottery type
+                normalized_type = data_aggregator.normalize_lottery_type(lottery_type)
+                
+                # Group all results by normalized type
+                if normalized_type not in type_groups:
+                    type_groups[normalized_type] = []
+                type_groups[normalized_type].append(result)
+            
+            # Now select the newest result for each normalized type
+            for normalized_type, type_results in type_groups.items():
+                # Sort by date (newest first)
+                type_results.sort(key=lambda x: x.draw_date, reverse=True)
+                # Take the newest result only
+                newest_result = type_results[0]
+                normalized_results[normalized_type] = newest_result
+            
+            # Second pass: add results using normalized keys to avoid duplicates
+            for normalized_type, result in normalized_results.items():
+                # Generate a deduplication key using normalized type
+                key = f"{normalized_type}_{result.draw_number}"
+                if key not in seen_draws:
+                    # Clone the result to avoid modifying the database object directly
+                    # This prevents unique constraint violations when adding to results_list
+                    result_clone = LotteryResult(
+                        id=result.id,
+                        lottery_type=normalized_type,  # Use normalized type
+                        draw_number=result.draw_number,
+                        draw_date=result.draw_date,
+                        numbers=result.numbers,
+                        bonus_numbers=result.bonus_numbers,
+                        divisions=result.divisions,
+                        source_url=result.source_url,
+                        screenshot_id=result.screenshot_id,
+                        ocr_provider=result.ocr_provider,
+                        ocr_model=result.ocr_model,
+                        ocr_timestamp=result.ocr_timestamp,
+                        created_at=result.created_at
+                    )
+                    results_list.append(result_clone)
+                    seen_draws[key] = True
+            
+            # Sort results by date (newest first)
+            results_list.sort(key=lambda x: x.draw_date, reverse=True)
+        except Exception as e:
+            logger.error(f"Error getting latest lottery results: {e}")
+            latest_results = {}
+            results_list = []
         
-        # Add to results list
-        results_list.append(result)
+        # Get analytics data for the dashboard
+        try:
+            frequent_numbers = data_aggregator.get_most_frequent_numbers(limit=10)
+        except Exception as e:
+            logger.error(f"Error getting frequent numbers: {e}")
+            frequent_numbers = []
+            
+        try:
+            division_stats = data_aggregator.get_division_statistics()
+        except Exception as e:
+            logger.error(f"Error getting division statistics: {e}")
+            division_stats = {}
+            
+        # Get cold numbers (least frequently drawn)
+        try:
+            cold_numbers = data_aggregator.get_least_frequent_numbers(limit=5)
+        except Exception as e:
+            logger.error(f"Error getting cold numbers: {e}")
+            cold_numbers = []
+            
+        # Get numbers not drawn recently
+        try:
+            absent_numbers = data_aggregator.get_numbers_not_drawn_recently(limit=5)
+        except Exception as e:
+            logger.error(f"Error getting absent numbers: {e}")
+            absent_numbers = []
         
-        # Also add to dictionary for template
-        latest_results_dict[result.lottery_type] = result
-    
-    # Sample analytics data
-    frequent_numbers = [(7, 20), (11, 18), (23, 17), (5, 16), (31, 15), 
-                      (19, 14), (42, 13), (29, 12), (37, 11), (15, 10)]
-    
-    cold_numbers = [(2, 1), (6, 2), (13, 2), (26, 3), (41, 3)]
-    
-    absent_numbers = [(9, 45), (18, 38), (27, 32), (36, 30), (45, 28)]
-    
-    division_stats = {
-        1: 2,    # Division 1 (jackpot) - few winners
-        2: 15,   # Division 2 - more winners
-        3: 250,  # Division 3 - even more winners
-        4: 1200, # Division 4 - many winners
-        5: 5000  # Division 5 - most winners
-    }
-    
-    # Define rich meta description for SEO
-    meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
-    
-    # Home page doesn't need breadcrumbs (it's the root), but we define an empty list for consistency
-    breadcrumbs = []
+        # Define rich meta description for SEO
+        meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
         
-    # Render the template with our sample data
-    return render_template('index.html', 
-                        latest_results=latest_results_dict,
-                        results=results_list,
-                        frequent_numbers=frequent_numbers,
-                        cold_numbers=cold_numbers,
-                        absent_numbers=absent_numbers,
-                        division_stats=division_stats,
-                        title="South African Lottery Results | Latest Winning Numbers",
-                        meta_description=meta_description,
-                        breadcrumbs=breadcrumbs)
+        # Home page doesn't need breadcrumbs (it's the root), but we define an empty list for consistency
+        breadcrumbs = []
+        
+        return render_template('index.html', 
+                            latest_results=latest_results,
+                            results=results_list,
+                            frequent_numbers=frequent_numbers,
+                            cold_numbers=cold_numbers,
+                            absent_numbers=absent_numbers,
+                            division_stats=division_stats,
+                            title="South African Lottery Results | Latest Winning Numbers",
+                            meta_description=meta_description,
+                            breadcrumbs=breadcrumbs)
+    except Exception as e:
+        logger.error(f"Critical error in index route: {e}")
+        # Define rich meta description for SEO even in error case
+        meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
+        
+        # Define empty breadcrumbs for consistency even in error case
+        breadcrumbs = []
+        
+        return render_template('index.html', 
+                            latest_results={},
+                            results=[],
+                            frequent_numbers=[],
+                            cold_numbers=[],
+                            absent_numbers=[],
+                            division_stats={},
+                            title="South African Lottery Results | Latest Winning Numbers",
+                            meta_description=meta_description,
+                            breadcrumbs=breadcrumbs)
 
 @app.route('/admin')
 @login_required
@@ -1832,76 +1886,6 @@ def api_results(lottery_type):
         return jsonify(results)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-        
-@app.route('/api/lottery-analysis/frequency', methods=['GET'])
-@csrf.exempt
-def frequency_analysis_api():
-    """API endpoint for lottery number frequency analysis"""
-    try:
-        # Log API call for debugging
-        logger.info("=== FREQUENCY ANALYSIS API CALLED ===")
-        logger.info(f"Request args: {dict(request.args)}")
-        
-        # Get and validate parameters
-        lottery_type = request.args.get('lottery_type')
-        days = int(request.args.get('days', '365'))
-        
-        logger.info(f"Performing analysis for: lottery_type={lottery_type}, days={days}")
-        
-        # Get count of results for stats
-        count = db.session.query(LotteryResult).count()
-        
-        # Create frequency data
-        frequency_data = []
-        for i in range(1, 50):
-            freq_value = ((i * 3) % 15) + 5
-            frequency_data.append({
-                "number": str(i),
-                "frequency": freq_value
-            })
-        
-        # Division stats
-        division_data = [
-            {"division": "Division 1", "winners": 2, "percentage": 0.2},
-            {"division": "Division 2", "winners": 25, "percentage": 2.5},
-            {"division": "Division 3", "winners": 150, "percentage": 15.0}
-        ]
-        
-        # Standard lottery types
-        lottery_types = [
-            "Lottery", 
-            "Lottery Plus 1", 
-            "Lottery Plus 2", 
-            "Powerball", 
-            "Powerball Plus", 
-            "Daily Lottery"
-        ]
-        
-        # Format response
-        result = {
-            "frequencyData": frequency_data,
-            "divisionData": division_data,
-            "lotteryTypes": lottery_types,
-            "stats": {
-                "most_frequent_overall": [7, 11, 17, 23, 31, 37, 42, 49],
-                "least_frequent_overall": [1, 3, 6, 13, 22, 36],
-                "total_draws_analyzed": count or 204,
-                "date_range": {
-                    "start": (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d'),
-                    "end": datetime.now().strftime('%Y-%m-%d')
-                }
-            }
-        }
-        
-        return jsonify(result)
-        
-    except Exception as e:
-        logger.error(f"ERROR IN FREQUENCY ANALYSIS API: {str(e)}")
-        logger.error(traceback.format_exc())
-        return jsonify({
-            "error": str(e),
-            "message": "Error analyzing frequency data"
-        }), 500
 
 # Advertisement Management Routes
 @app.route('/admin/manage-ads')

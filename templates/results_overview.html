@@ -20,48 +20,21 @@
                     </div>
                     
                     <div class="lottery-balls-container text-center mb-3">
-                        {% set numbers = result.numbers %}
-                        {% if "," in numbers %}
-                            {% for number in numbers.split(",") %}
-                                {% set ball_class = 'lottery-ball ' %}
-                                
-                                {% if loop.index0 % 4 == 0 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-red' %}
-                                {% elif loop.index0 % 4 == 1 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-yellow' %}
-                                {% elif loop.index0 % 4 == 2 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-green' %}
-                                {% else %}
-                                    {% set ball_class = ball_class + 'lottery-ball-blue' %}
-                                {% endif %}
-                                
-                                <span class="{{ ball_class }}">{{ number.strip() }}</span>
-                            {% endfor %}
-                        {% elif "+" in numbers %}
-                            {% set parts = numbers.split("+") %}
-                            {% for number in parts[0].split(",") %}
-                                {% set ball_class = 'lottery-ball ' %}
-                                
-                                {% if loop.index0 % 4 == 0 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-red' %}
-                                {% elif loop.index0 % 4 == 1 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-yellow' %}
-                                {% elif loop.index0 % 4 == 2 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-green' %}
-                                {% else %}
-                                    {% set ball_class = ball_class + 'lottery-ball-blue' %}
-                                {% endif %}
-                                
-                                <span class="{{ ball_class }}">{{ number.strip() }}</span>
-                            {% endfor %}
+                        {% for number in result.get_numbers_list() %}
+                            {% set ball_class = 'lottery-ball ' %}
                             
-                            <!-- Show the bonus number after a plus sign -->
-                            <span class="bonus-indicator">+</span>
-                            <span class="lottery-ball lottery-ball-yellow">{{ parts[1].strip() }}</span>
-                        {% else %}
-                            <!-- Handle simple single number format -->
-                            <span class="lottery-ball lottery-ball-red">{{ numbers.strip() }}</span>
-                        {% endif %}
+                            {% if loop.index0 % 4 == 0 %}
+                                {% set ball_class = ball_class + 'lottery-ball-red' %}
+                            {% elif loop.index0 % 4 == 1 %}
+                                {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                            {% elif loop.index0 % 4 == 2 %}
+                                {% set ball_class = ball_class + 'lottery-ball-green' %}
+                            {% else %}
+                                {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                            {% endif %}
+                            
+                            <span class="{{ ball_class }}">{{ number }}</span>
+                        {% endfor %}
                         
                         {% if result.get_bonus_numbers_list() %}
                         <span class="bonus-indicator">+</span>

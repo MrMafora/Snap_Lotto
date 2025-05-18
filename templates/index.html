@@ -525,14 +525,6 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Add Chart.js library if not included in base template -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-
-<!-- Add chart loader and renderer -->
-<script src="{{ url_for('static', filename='js/chart-loader.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart-renderer.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart-support.js') }}"></script>
-
 <!-- Add interactive chart functionality -->
 <script>
 // Function to highlight a pie segment by division number

@@ -368,31 +368,9 @@ class LotteryAnalyzer:
                     
                     # Find the highest number across all draws and all types
                     for col in all_number_cols:
-                        # Safe max operation with error handling
-                        try:
-                            # First convert any string values to integers
-                            numeric_values = []
-                            for val in all_types_df[col].dropna():
-                                try:
-                                    if isinstance(val, str):
-                                        if val.strip().isdigit():
-                                            numeric_values.append(int(val.strip()))
-                                    elif isinstance(val, (int, float)):
-                                        numeric_values.append(int(val))
-                                except (ValueError, TypeError):
-                                    # Skip non-numeric values
-                                    continue
-                            
-                            if numeric_values:
-                                max_val = max(numeric_values)
-                                if max_val > max_number:
-                                    max_number = int(max_val)
-                        except Exception as e:
-                            logger.warning(f"Error finding max value for column {col}: {e}")
-                    
-                    # Ensure we have a valid max_number
-                    if max_number <= 0:
-                        max_number = 50  # Default to 50 if no valid max found
+                        max_val = all_types_df[col].max()
+                        if max_val and max_val > max_number:
+                            max_number = int(max_val)
                     
                     # Create a frequency array for all possible numbers
                     combined_frequency = np.zeros(max_number + 1, dtype=int)
@@ -400,24 +378,8 @@ class LotteryAnalyzer:
                     # Count occurrences of each number across all lottery types
                     for col in all_number_cols:
                         for num in all_types_df[col].dropna():
-                            try:
-                                # Convert to integer if it's a string
-                                if isinstance(num, str):
-                                    if num.strip().isdigit():
-                                        num_int = int(num.strip())
-                                    else:
-                                        continue  # Skip non-numeric strings
-                                elif isinstance(num, (int, float)):
-                                    num_int = int(num)
-                                else:
-                                    continue  # Skip non-numeric types
-                                
-                                # Only count if within valid range
-                                if 0 <= num_int <= max_number:
-                                    combined_frequency[num_int] += 1
-                            except (ValueError, TypeError) as e:
-                                logger.debug(f"Skipping invalid number format: {num}, error: {e}")
-                                continue
+                            if 0 <= int(num) <= max_number:
+                                combined_frequency[int(num)] += 1
                     
                     # Remove the 0 index since there's no ball numbered 0
                     combined_frequency = combined_frequency[1:]
@@ -454,63 +416,20 @@ class LotteryAnalyzer:
                     number_cols = [col for col in lt_df.columns if col.startswith('number_')]
                     max_number = 0
                     
-                    # Find the highest number across all draws - safely handle string and number types
+                    # Find the highest number across all draws
                     for col in number_cols:
-                        try:
-                            # First convert any string values to integers
-                            numeric_values = []
-                            for val in lt_df[col].dropna():
-                                try:
-                                    if isinstance(val, str):
-                                        if val.strip().isdigit():
-                                            numeric_values.append(int(val.strip()))
-                                    elif isinstance(val, (int, float)):
-                                        numeric_values.append(int(val))
-                                except (ValueError, TypeError):
-                                    # Skip non-numeric values
-                                    continue
-                            
-                            if numeric_values:
-                                max_val = max(numeric_values)
-                                if max_val > max_number:
-                                    max_number = int(max_val)
-                        except Exception as e:
-                            logger.warning(f"Error finding max value for column {col}: {e}")
-                    
-                    # Ensure we have a valid max_number
-                    if max_number <= 0:
-                        # Use default maximum based on lottery type
-                        if lt == 'Powerball' or lt == 'Powerball Plus':
-                            max_number = 45  # Powerball uses 1-45
-                        elif lt == 'Daily Lottery':
-                            max_number = 36  # Daily lottery uses 1-36
-                        else:
-                            max_number = 49  # Default to 49 for regular Lottery
+                        max_val = lt_df[col].max()
+                        if max_val and max_val > max_number:
+                            max_number = int(max_val)
                     
                     # Create a frequency array for all possible numbers
                     frequency = np.zeros(max_number + 1, dtype=int)
                     
-                    # Count occurrences of each number - safely handle string and number types
+                    # Count occurrences of each number
                     for col in number_cols:
                         for num in lt_df[col].dropna():
-                            try:
-                                # Convert to integer if it's a string
-                                if isinstance(num, str):
-                                    if num.strip().isdigit():
-                                        num_int = int(num.strip())
-                                    else:
-                                        continue  # Skip non-numeric strings
-                                elif isinstance(num, (int, float)):
-                                    num_int = int(num)
-                                else:
-                                    continue  # Skip non-numeric types
-                                
-                                # Only count if within valid range
-                                if 0 <= num_int <= max_number:
-                                    frequency[num_int] += 1
-                            except (ValueError, TypeError) as e:
-                                logger.debug(f"Skipping invalid number format: {num}, error: {e}")
-                                continue
+                            if 0 <= int(num) <= max_number:
+                                frequency[int(num)] += 1
                     
                     # Remove the 0 index since there's no ball numbered 0
                     frequency = frequency[1:]
