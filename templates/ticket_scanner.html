@@ -64,8 +64,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <link rel="preload" href="{{ url_for('static', filename='css/optimized-mobile.css') }}" as="style">
 <link rel="preload" href="{{ url_for('static', filename='js/mobile-optimization.js') }}" as="script">
 <link rel="preload" href="{{ url_for('static', filename='js/scanner-icon-fix.js') }}" as="script">
-<link rel="preload" href="{{ url_for('static', filename='js/ads-mobile.js') }}" as="script">
-<link rel="preload" href="{{ url_for('static', filename='js/simple-countdown.js') }}" as="script">
+<!-- Ad-related preloads removed -->
 
 <!-- Mobile-optimized CSS loads first -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/optimized-mobile.css') }}">
@@ -740,54 +739,25 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         }
         
         function processTicketWithAds() {
+            // Ad system has been disabled - just process the ticket directly
+            if (!validateScannerForm()) {
+                return false;
+            }
+            
             // Clear any previous results first
             clearPreviousResults();
             
-            // Scroll to top and disable scrolling during processing
-            window.scrollTo(0, 0);
-            disableScrolling();
-            
             // Show loading indicator
-            loadingIndicator.style.display = 'block';
-            // Never disable the scan button
-            scanButton.disabled = false;
+            document.getElementById('scanner-loading').style.display = 'block';
+            document.getElementById('scan-button').disabled = true;
             
-            // Create form data for later use
+            // Create form data
             const formData = new FormData(ticketForm);
             
-            // Show the loading ad overlay first
-            const adOverlayLoading = document.getElementById('ad-overlay-loading');
-            adOverlayLoading.style.display = 'flex';
+            // Process ticket directly without ad overlay
+            processTicket(formData);
             
-            // Immediately trigger the first countdown
-            document.dispatchEvent(new CustomEvent('trigger-countdown', {
-                detail: { phase: 'first', seconds: 15 }
-            }));
-            
-            // Ensure the ad overlay stays visible for at least 2 seconds before processing
-            setTimeout(() => {
-                // Check if AdManager is available and use it to show ad, otherwise just process
-                if (window.AdManager && typeof window.AdManager.showLoadingAd === 'function') {
-                    console.log('Using AdManager to show loading ad');
-                    window.AdManager.showLoadingAd(function(adShown) {
-                        // Keep ad visible for at least 5 seconds total
-                        setTimeout(() => {
-                            // After ad is displayed for minimum time, process the ticket
-                            console.log('Ad loading callback returned after minimum display time:', adShown);
-                            processTicket(formData);
-                        }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
-                    });
-                } else {
-                    // Fallback - Ad overlay is already shown manually
-                    console.log('AdManager not available, showing overlay manually');
-                    
-                    // Process the ticket after a minimum viewing time
-                    setTimeout(() => {
-                        console.log('Processing ticket without AdManager after minimum ad view time');
-                        processTicket(formData);
-                    }, 3000); // 3 seconds additional display time (2s initial + 3s = 5s total)
-                }
-            }, 2000); // Initial 2 seconds minimum display time
+            return false; // Prevent default form submission
         }
         
         // Function to process the ticket after ad is shown
