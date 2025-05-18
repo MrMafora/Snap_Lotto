@@ -20,37 +20,66 @@
                     </div>
                     
                     <div class="lottery-balls-container text-center mb-3">
-                        {% for number in result.get_numbers_list() %}
-                            {% set ball_class = 'lottery-ball ' %}
-                            
-                            {% if loop.index0 % 4 == 0 %}
-                                {% set ball_class = ball_class + 'lottery-ball-red' %}
-                            {% elif loop.index0 % 4 == 1 %}
-                                {% set ball_class = ball_class + 'lottery-ball-yellow' %}
-                            {% elif loop.index0 % 4 == 2 %}
-                                {% set ball_class = ball_class + 'lottery-ball-green' %}
-                            {% else %}
-                                {% set ball_class = ball_class + 'lottery-ball-blue' %}
-                            {% endif %}
-                            
-                            <span class="{{ ball_class }}">{{ number }}</span>
-                        {% endfor %}
+                        {% set numbers_list = [] %}
+                        {% try %}
+                            {% set numbers_list = result.get_numbers_list() %}
+                        {% except %}
+                            {# In case of error, just show empty list #}
+                        {% endtry %}
                         
-                        {% if result.get_bonus_numbers_list() %}
-                        <span class="bonus-indicator">+</span>
-                        {% for bonus in result.get_bonus_numbers_list() %}
-                        <span class="lottery-ball lottery-ball-yellow">{{ bonus }}</span>
-                        {% endfor %}
+                        {% if numbers_list %}
+                            {% for number in numbers_list %}
+                                {% set ball_class = 'lottery-ball ' %}
+                                
+                                {% if loop.index0 % 4 == 0 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                {% elif loop.index0 % 4 == 1 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                {% elif loop.index0 % 4 == 2 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                {% else %}
+                                    {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                                {% endif %}
+                                
+                                <span class="{{ ball_class }}">{{ number }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No numbers available</p>
+                        {% endif %}
+                        
+                        {% set bonus_numbers = [] %}
+                        {% try %}
+                            {% set bonus_numbers = result.get_bonus_numbers_list() %}
+                        {% except %}
+                            {# In case of error, just show empty list #}
+                        {% endtry %}
+                        
+                        {% if bonus_numbers %}
+                            <span class="bonus-indicator">+</span>
+                            {% for bonus in bonus_numbers %}
+                                <span class="lottery-ball lottery-ball-yellow">{{ bonus }}</span>
+                            {% endfor %}
                         {% endif %}
                     </div>
                     
-                    {% if result.get_divisions() %}
+                    {% set divisions_data = {} %}
+                    {% try %}
+                        {% set divisions_data = result.get_divisions() %}
+                    {% except %}
+                        {# In case of error, just show empty dict #}
+                    {% endtry %}
+                    
+                    {% if divisions_data %}
                     <div class="divisions-summary mt-3">
-                        {% for div_num, div_data in result.get_divisions().items() %}
+                        {% for div_num, div_data in divisions_data.items() %}
                         {% if loop.index <= 3 %} <!-- Show only top 3 divisions -->
                         <div class="division-row">
                             <span class="division-name">{{ div_num }}</span>
-                            <span class="division-prize">{{ div_data.prize }}</span>
+                            {% if div_data is mapping and div_data.prize is defined %}
+                                <span class="division-prize">{{ div_data.prize }}</span>
+                            {% else %}
+                                <span class="division-prize">{{ div_data }}</span>
+                            {% endif %}
                         </div>
                         {% endif %}
                         {% endfor %}
