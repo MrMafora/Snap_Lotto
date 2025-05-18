@@ -176,25 +176,18 @@
                 <p>Browse and download individual screenshots</p>
                 
                 <div class="row gallery-container">
-                    <!-- Group related screenshots by lottery type category -->
-                    <div class="col-12 mb-2">
-                        <h5>Official Lottery Results</h5>
-                    </div>
-                    
                     {% for screenshot in screenshots %}
-                    {% if 'Results' in screenshot.lottery_type %}
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100 gallery-card shadow-sm" style="user-select: none;">
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100 gallery-card" style="user-select: none;">
                             <div class="gallery-image-container">
                                 <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" target="_blank">
                                     <img src="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
-                                         class="img-fluid"
                                          alt="{{ screenshot.lottery_type }} screenshot">
                                 </a>
                             </div>
-                            <div class="card-body d-flex flex-column p-2">
-                                <h6 class="card-title">{{ screenshot.lottery_type }}</h6>
-                                <p class="card-text mb-2">
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title">{{ screenshot.lottery_type }}</h5>
+                                <p class="card-text">
                                     <small class="text-muted">
                                         {{ screenshot.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
                                     </small>
@@ -224,66 +217,15 @@
                             </div>
                         </div>
                     </div>
-                    {% endif %}
                     {% endfor %}
                     
-                    <div class="col-12 mt-4 mb-2">
-                        <h5>Lottery History</h5>
-                    </div>
-                    
-                    {% for screenshot in screenshots %}
-                    {% if 'Results' not in screenshot.lottery_type %}
-                    <div class="col-md-3 mb-3">
-                        <div class="card h-100 gallery-card shadow-sm" style="user-select: none;">
-                            <div class="gallery-image-container">
-                                <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" target="_blank">
-                                    <img src="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
-                                         class="img-fluid"
-                                         alt="{{ screenshot.lottery_type }} screenshot">
-                                </a>
-                            </div>
-                            <div class="card-body d-flex flex-column p-2">
-                                <h6 class="card-title">{{ screenshot.lottery_type }}</h6>
-                                <p class="card-text mb-2">
-                                    <small class="text-muted">
-                                        {{ screenshot.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
-                                    </small>
-                                </p>
-                                <div class="mt-auto">
-                                    <div class="d-flex justify-content-between gap-1 mb-2">
-                                        <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
-                                           class="btn btn-sm btn-primary flex-fill" 
-                                           download>
-                                            <i class="fas fa-download me-1"></i> Download
-                                        </a>
-                                        {% if screenshot.zoomed_path %}
-                                        <a href="{{ url_for('view_zoomed_screenshot', screenshot_id=screenshot.id) }}" 
-                                           class="btn btn-sm btn-secondary flex-fill" 
-                                           target="_blank">
-                                            <i class="fas fa-search-plus me-1"></i> Zoomed
-                                        </a>
-                                        {% endif %}
-                                    </div>
-                                    <form action="{{ url_for('sync_single_screenshot', screenshot_id=screenshot.id) }}" method="POST">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-sm btn-warning w-100">
-                                            <i class="fas fa-sync me-1"></i> Resync
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% endfor %}
-                    
-                    {% if screenshots|length == 0 %}
+                    {% if not screenshots %}
                     <div class="col-12">
                         <div class="alert alert-warning">
                             <i class="fas fa-exclamation-circle me-2"></i> No screenshots available
                         </div>
                     </div>
-                    {% endfor %}
+                    {% endif %}
                 </div>
             </div>
         </div>
