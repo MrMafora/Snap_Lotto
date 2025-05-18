@@ -111,57 +111,52 @@ class LotteryResult(db.Model):
         if not self.numbers:
             return []
             
-        try:
-            # First try parsing as JSON
-            if isinstance(self.numbers, str) and self.numbers.strip().startswith('['):
-                return json.loads(self.numbers)
-            # Then try parsing as comma-separated list
-            elif isinstance(self.numbers, str) and ',' in self.numbers:
-                return [num.strip() for num in self.numbers.split(',')]
-            # Handle "+" format from imported data (e.g. "1, 2, 3, 4, 5 + 6")
-            elif isinstance(self.numbers, str) and '+' in self.numbers:
-                parts = self.numbers.split('+')
-                main_numbers = [num.strip() for num in parts[0].split(',')]
+        # Skip any complex parsing, just return a string representation 
+        # as a single-item list to prevent errors
+        if isinstance(self.numbers, str):
+            # Clean up common formats
+            if self.numbers.strip().startswith(" +"):
+                # Format is probably like " + 28"
+                return [self.numbers.strip().replace(" +", "").strip()]
+            elif "+" in self.numbers:
+                # Format might be "1, 2, 3, 4, 5 + 6"
+                parts = self.numbers.split("+")
                 if len(parts) > 1:
+                    main_numbers = []
+                    # First part may have comma-separated numbers
+                    if "," in parts[0]:
+                        main_numbers = [n.strip() for n in parts[0].split(",")]
+                    else:
+                        main_numbers = [parts[0].strip()]
+                    # Add the bonus number
                     main_numbers.append(parts[1].strip())
-                return main_numbers
-            # Handle single number
-            elif isinstance(self.numbers, str):
-                return [n.strip() for n in self.numbers.split() if n.strip()]
-            # Handle already parsed list
-            elif isinstance(self.numbers, list):
-                return self.numbers
-            # Otherwise, return empty list
+                    return main_numbers
+                return [parts[0].strip()]
+            elif "," in self.numbers:
+                # Format is probably comma-separated
+                return [n.strip() for n in self.numbers.split(",")]
             else:
-                return []
-        except Exception:
-            # On any error, return the string value or empty list
-            return [self.numbers] if self.numbers else []
+                # Just return as-is
+                return [self.numbers.strip()]
+        # Handle already parsed list
+        elif isinstance(self.numbers, list):
+            return self.numbers
+        # Otherwise, return empty list
+        else:
+            return []
     
     def get_bonus_numbers_list(self):
         """Return bonus numbers as a Python list, or empty list if None"""
         if not self.bonus_numbers:
             return []
             
-        try:
-            # First try parsing as JSON
-            if isinstance(self.bonus_numbers, str) and self.bonus_numbers.strip().startswith('['):
-                return json.loads(self.bonus_numbers)
-            # Then try parsing as comma-separated list
-            elif isinstance(self.bonus_numbers, str) and ',' in self.bonus_numbers:
-                return [num.strip() for num in self.bonus_numbers.split(',')]
-            # Handle single number
-            elif isinstance(self.bonus_numbers, str):
-                return [self.bonus_numbers.strip()]
-            # Handle already parsed list
-            elif isinstance(self.bonus_numbers, list):
-                return self.bonus_numbers
-            # Otherwise, return empty list
-            else:
-                return []
-        except Exception:
-            # On any error, return the string value or empty list
-            return [self.bonus_numbers] if self.bonus_numbers else []
+        # Simple and direct approach to avoid errors
+        if isinstance(self.bonus_numbers, str):
+            return [self.bonus_numbers.strip()]
+        elif isinstance(self.bonus_numbers, list):
+            return self.bonus_numbers
+        else:
+            return []
     
     def get_divisions(self):
         """Return divisions data as a Python dict, or empty dict if None"""
