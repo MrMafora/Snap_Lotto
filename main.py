@@ -283,8 +283,9 @@ def index():
                     normalized = t.replace('Lotto', 'Lottery') if 'Lotto' in t else t
                     normalized_types[normalized] = t
                     
-                # Log the normalized types for debugging
-                logger.info(f"Normalized {t} to {normalized} for consistency")
+                # Only log normalization when it actually changes something
+                if t != normalized:
+                    logger.info(f"Normalized {t} to {normalized} for consistency")
                 
                 logger.info(f"Normalized lottery types: {normalized_types}")
                 
