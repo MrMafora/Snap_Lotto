@@ -32,14 +32,12 @@ db.init_app(app)
 # Import required modules
 from models import LotteryResult
 try:
-    from ocr_integrations import query_openai
+    from lottery_openai_integration import fetch_lottery_data as fetch_from_openai
 except ImportError:
-    def query_openai(prompt):
-        """Fallback function if ocr_integrations module is not available"""
-        print("WARNING: OpenAI integration not available, using fallback")
-        return json.dumps({
-            "error": "OpenAI integration not available"
-        })
+    print("WARNING: OpenAI integration not available, using fallback")
+    def fetch_from_openai(lottery_type, draw_id=None):
+        """Fallback function if lottery_openai_integration module is not available"""
+        return None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -167,72 +165,8 @@ def fetch_lottery_data_using_openai(lottery_type, draw_id=None, draw_date=None):
     Returns:
         dict: Lottery draw information
     """
-    # Determine the specific query details
-    if draw_id:
-        query_details = f"draw number {draw_id}"
-    elif draw_date:
-        query_details = f"draw on {draw_date.strftime('%Y-%m-%d')}"
-    else:
-        query_details = "most recent draw"
-    
-    prompt = f"""
-    You are assisting with retrieving South African National Lottery results for {lottery_type}, {query_details}.
-    
-    Please provide:
-    1. The draw number
-    2. The draw date in YYYY-MM-DD format
-    3. The winning numbers
-    4. Any bonus balls or powerball numbers
-    5. The division information including match requirements, winner counts, and payouts
-    
-    Provide the information in JSON format with these keys:
-    {{
-        "draw_number": "string",
-        "draw_date": "YYYY-MM-DD",
-        "numbers": ["string", "string", ...],
-        "bonus_numbers": ["string", ...],
-        "divisions": {{
-            "Division 1": {{
-                "match": "string",
-                "winners": number,
-                "payout": "string"
-            }},
-            ...
-        }}
-    }}
-    
-    The divisions should include all available prize divisions (usually 8 or 9 divisions depending on the game).
-    
-    For South African lottery games:
-    - Lottery (previously called Lotto) has 6 main numbers and 1 bonus ball with 8 prize divisions
-    - Lottery Plus 1 and Plus 2 also have 6 main numbers and 1 bonus ball with 8 prize divisions
-    - Powerball has 5 main numbers and 1 powerball with 9 prize divisions
-    - Powerball Plus has 5 main numbers and 1 powerball with 9 prize divisions
-    - Daily Lottery has 5 main numbers with 4 prize divisions
-    
-    The information would typically be found on the official South African National Lottery website.
-    """
-    
-    try:
-        response = query_openai(prompt)
-        
-        # Extract the JSON from the response
-        import re
-        json_match = re.search(r'({[\s\S]*})', response)
-        if json_match:
-            json_str = json_match.group(1)
-            try:
-                data = json.loads(json_str)
-                return data
-            except json.JSONDecodeError:
-                logger.error(f"Could not parse JSON from OpenAI response: {json_str}")
-                return None
-        else:
-            logger.error(f"No JSON found in OpenAI response: {response}")
-            return None
-    except Exception as e:
-        logger.error(f"Error querying OpenAI for {lottery_type}: {e}")
-        return None
+    # Use our dedicated lottery OpenAI integration
+    return fetch_from_openai(lottery_type, draw_id)
 
 def save_lottery_data(lottery_type, data):
     """
