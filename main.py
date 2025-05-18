@@ -562,13 +562,17 @@ def ticket_scanner():
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
 
-@app.route('/process-ticket', methods=['POST'])
+@app.route('/process-ticket', methods=['POST', 'GET'])
 @csrf.exempt
 def process_ticket():
     """Process the uploaded ticket image and display results in a simple, reliable way"""
     import time
     import os.path
     from werkzeug.utils import secure_filename
+    
+    # If it's a GET request, redirect to the scanner page
+    if request.method == 'GET':
+        return redirect(url_for('ticket_scanner'))
     
     # Get form data
     lottery_type = request.form.get('lottery_type', '')
