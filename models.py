@@ -222,17 +222,16 @@ class LotteryResult(db.Model):
                     if result:
                         return result
             except Exception:
-                # If manual extraction fails, continue to json.loads
+                # If manual extraction fails, continue to alternative method
                 pass
                 
-            # Remove JSON parsing attempt which causes errors
-            # Instead, use a more robust string-based approach
+            # Use only string-based approach (no JSON parsing)
             try:
                 result = {}
                 # Remove the braces
                 raw_content = divisions_str.strip()[1:-1].strip()
                 
-                # Extract key-value pairs with more advanced pattern matching
+                # Extract key-value pairs with advanced pattern matching
                 # This handles nested structures as single values
                 in_nested = False
                 nested_start = None
