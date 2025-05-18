@@ -223,6 +223,8 @@ class Campaign(DuplicateCheckMixin, db.Model):
     budget = db.Column(db.Numeric(10, 2), nullable=True)
     start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
+    # Define relationship with ad impressions
+    impressions = db.relationship('AdImpression', backref='campaign', lazy=True)
     status = db.Column(db.String(20), default='draft') # draft, active, paused, completed
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -236,13 +238,8 @@ class Campaign(DuplicateCheckMixin, db.Model):
     
     def get_spent_budget(self):
         """Calculate spent budget based on impressions and clicks"""
-        # Get all impressions for this campaign
-        total_cost = 0
-        if self.impressions:
-            for impression in self.impressions:
-                if impression.cost:
-                    total_cost += float(impression.cost)
-        return total_cost
+        # Since we've removed the ad system, we always return 0
+        return 0
     
     def get_remaining_budget(self):
         """Calculate remaining budget"""
