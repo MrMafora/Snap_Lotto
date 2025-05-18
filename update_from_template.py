@@ -185,9 +185,7 @@ def import_template_data(template_path):
             
         except Exception as e:
             # Update import history with error
-            import_history.status = "failed"
-            import_history.error_message = str(e)
-            import_history.completed_date = datetime.now()
+            import_history.errors = total_records
             db.session.commit()
             
             print(f"Import failed: {str(e)}")
