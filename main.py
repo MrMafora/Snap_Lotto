@@ -315,7 +315,20 @@ def index():
                 
                 # Log the final order we achieved
                 final_order = [r.lottery_type for r in ordered_list]
-                final_dates = [r.get_formatted_date() for r in ordered_list]
+                # Use direct date formatting instead of calling a method that might not exist
+                final_dates = []
+                for r in ordered_list:
+                    if hasattr(r, 'draw_date') and r.draw_date:
+                        try:
+                            if isinstance(r.draw_date, datetime):
+                                final_dates.append(r.draw_date.strftime('%Y-%m-%d'))
+                            else:
+                                final_dates.append(str(r.draw_date))
+                        except:
+                            final_dates.append(str(r.draw_date))
+                    else:
+                        final_dates.append("N/A")
+                
                 logger.info(f"Final ordering of results: {final_order}")
                 logger.info(f"Final dates of results: {final_dates}")
                 

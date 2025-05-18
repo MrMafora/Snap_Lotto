@@ -237,7 +237,13 @@
                                     {% endif %}
                                 </td>
                                 <td class="py-1"><strong>{{ result.draw_number }}</strong></td>
-                                <td class="py-1 text-nowrap">{{ result.get_formatted_date() }}</td>
+                                <td class="py-1 text-nowrap">
+                                    {% if result.draw_date %}
+                                        {{ result.draw_date.strftime('%Y-%m-%d') }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
                                 <td class="py-1">
                                     <div class="numbers-container">
                                         {% for num in result.get_numbers_list() %}
