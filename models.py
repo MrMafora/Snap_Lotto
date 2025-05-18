@@ -243,16 +243,59 @@ class LotteryResult(db.Model):
                 # If manual extraction fails, continue to json.loads
                 pass
                 
-            # Try standard JSON parsing
+            # Remove JSON parsing attempt which causes errors
+            # Instead, use a more robust string-based approach
             try:
-                # Clean up common issues
-                cleaned_str = divisions_str.strip()
-                if '\\' in cleaned_str or '"{' in cleaned_str:
-                    cleaned_str = cleaned_str.replace('\\"', '"').replace('\\\\', '\\')
-                    
-                return json.loads(cleaned_str)
-            except (json.JSONDecodeError, TypeError):
-                # If both methods fail, return the raw string
+                result = {}
+                # Remove the braces
+                raw_content = divisions_str.strip()[1:-1].strip()
+                
+                # Extract key-value pairs with more advanced pattern matching
+                # This handles nested structures as single values
+                in_nested = False
+                nested_start = None
+                nested_depth = 0
+                current_pair = ""
+                
+                for i, char in enumerate(raw_content):
+                    if char == '{' or char == '[':
+                        in_nested = True
+                        nested_depth += 1
+                        if nested_start is None:
+                            nested_start = i
+                        current_pair += char
+                    elif char == '}' or char == ']':
+                        nested_depth -= 1
+                        current_pair += char
+                        if nested_depth == 0:
+                            in_nested = False
+                    elif char == ',' and not in_nested:
+                        # Process the completed pair
+                        if ':' in current_pair:
+                            key_val = current_pair.split(':', 1)
+                            if len(key_val) == 2:
+                                key = key_val[0].strip().strip('"').strip("'")
+                                val = key_val[1].strip().strip('"').strip("'")
+                                result[key] = val
+                        current_pair = ""
+                    else:
+                        current_pair += char
+                
+                # Don't forget the last pair
+                if current_pair and ':' in current_pair:
+                    key_val = current_pair.split(':', 1)
+                    if len(key_val) == 2:
+                        key = key_val[0].strip().strip('"').strip("'")
+                        val = key_val[1].strip().strip('"').strip("'")
+                        result[key] = val
+                
+                if result:
+                    return result
+                else:
+                    # If extraction failed, return the raw string
+                    return {'raw': divisions_str.strip()}
+            except Exception:
+                # If anything fails, return the raw string
                 return {'raw': divisions_str.strip()}
         
         # For other formats, check if it's a simple "key=value" format
