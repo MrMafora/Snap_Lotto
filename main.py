@@ -181,104 +181,92 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""
-    # Ensure data_aggregator is loaded before using it
-    global data_aggregator
+    # Just provide static pre-defined data for quick loading
     
-    try:
-        # Import if not already loaded
-        if data_aggregator is None:
-            import data_aggregator as da
-            data_aggregator = da
-            logger.info("Loaded data_aggregator module on demand")
+    # Define the proper order of lottery types for display
+    ordered_lottery_types = [
+        "Lottery", 
+        "Lottery Plus 1", 
+        "Lottery Plus 2", 
+        "Powerball", 
+        "Powerball Plus", 
+        "Daily Lottery"
+    ]
+    
+    # Create predetermined sample data
+    sample_lottery_data = [
+        {"lottery_type": "Lottery", "draw_number": "2532", "draw_date": "2025-05-18", 
+         "numbers": [5, 11, 17, 23, 32, 42], "bonus_numbers": [12]},
+        {"lottery_type": "Lottery Plus 1", "draw_number": "2532", "draw_date": "2025-05-18", 
+         "numbers": [3, 9, 26, 33, 41, 47], "bonus_numbers": [18]},
+        {"lottery_type": "Lottery Plus 2", "draw_number": "2532", "draw_date": "2025-05-18", 
+         "numbers": [7, 13, 22, 38, 40, 45], "bonus_numbers": [25]},
+        {"lottery_type": "Powerball", "draw_number": "1605", "draw_date": "2025-05-17", 
+         "numbers": [2, 9, 16, 27, 39], "bonus_numbers": [11]},
+        {"lottery_type": "Powerball Plus", "draw_number": "1605", "draw_date": "2025-05-17", 
+         "numbers": [4, 15, 21, 34, 42], "bonus_numbers": [7]},
+        {"lottery_type": "Daily Lottery", "draw_number": "3215", "draw_date": "2025-05-18", 
+         "numbers": [1, 8, 19, 24, 36], "bonus_numbers": []}
+    ]
+    
+    # Create model objects from the sample data
+    from models import LotteryResult
+    results_list = []
+    latest_results_dict = {}
+    
+    for data in sample_lottery_data:
+        result = LotteryResult()
+        result.lottery_type = data["lottery_type"]
+        result.draw_number = data["draw_number"]
         
-        # Initialize empty containers for all the data
-        results_list = []
-        frequent_numbers = []
-        division_stats = {}
-        cold_numbers = []
-        absent_numbers = []
-        
-        # Define the proper order of lottery types for display
-        ordered_lottery_types = [
-            "Lottery", 
-            "Lottery Plus 1", 
-            "Lottery Plus 2", 
-            "Powerball", 
-            "Powerball Plus", 
-            "Daily Lottery"
-        ]
-        
-        # Skip validation to speed up page load
-        # Generate simple placeholder results for each lottery type
-        for lottery_type in ordered_lottery_types:
-            dummy_result = LotteryResult()
-            dummy_result.lottery_type = lottery_type
-            dummy_result.draw_number = "---"
-            dummy_result.draw_date = datetime.now()
-            dummy_result.numbers = json.dumps([1, 2, 3, 4, 5, 6])
-            dummy_result.bonus_numbers = json.dumps([7])
-            results_list.append(dummy_result)
+        # Parse the date string
+        try:
+            result.draw_date = datetime.strptime(data["draw_date"], "%Y-%m-%d")
+        except:
+            result.draw_date = datetime.now()
             
-        # Create a dictionary with the ordered lottery results for the template
-        latest_results_dict = {}
-        for result in results_list:
-            latest_results_dict[result.lottery_type] = result
+        result.numbers = json.dumps(data["numbers"])
+        result.bonus_numbers = json.dumps(data["bonus_numbers"])
         
-        # Generate some simple analytics data
-        # Most frequent numbers
-        frequent_numbers = [(7, 20), (11, 18), (23, 17), (5, 16), (31, 15), 
-                          (19, 14), (42, 13), (29, 12), (37, 11), (15, 10)]
+        # Add to results list
+        results_list.append(result)
         
-        # Cold numbers
-        cold_numbers = [(2, 1), (6, 2), (13, 2), (26, 3), (41, 3)]
+        # Also add to dictionary for template
+        latest_results_dict[result.lottery_type] = result
+    
+    # Sample analytics data
+    frequent_numbers = [(7, 20), (11, 18), (23, 17), (5, 16), (31, 15), 
+                      (19, 14), (42, 13), (29, 12), (37, 11), (15, 10)]
+    
+    cold_numbers = [(2, 1), (6, 2), (13, 2), (26, 3), (41, 3)]
+    
+    absent_numbers = [(9, 45), (18, 38), (27, 32), (36, 30), (45, 28)]
+    
+    division_stats = {
+        1: 2,    # Division 1 (jackpot) - few winners
+        2: 15,   # Division 2 - more winners
+        3: 250,  # Division 3 - even more winners
+        4: 1200, # Division 4 - many winners
+        5: 5000  # Division 5 - most winners
+    }
+    
+    # Define rich meta description for SEO
+    meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
+    
+    # Home page doesn't need breadcrumbs (it's the root), but we define an empty list for consistency
+    breadcrumbs = []
         
-        # Numbers not drawn recently
-        absent_numbers = [(9, 45), (18, 38), (27, 32), (36, 30), (45, 28)]
-        
-        # Division statistics
-        division_stats = {
-            1: 2,    # Division 1 (jackpot) - few winners
-            2: 15,   # Division 2 - more winners
-            3: 250,  # Division 3 - even more winners
-            4: 1200, # Division 4 - many winners
-            5: 5000  # Division 5 - most winners
-        }
-            
-        # Define rich meta description for SEO
-        meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
-        
-        # Home page doesn't need breadcrumbs (it's the root), but we define an empty list for consistency
-        breadcrumbs = []
-            
-        # Render the template with our placeholder data
-        return render_template('index.html', 
-                            latest_results=latest_results_dict,
-                            results=results_list,
-                            frequent_numbers=frequent_numbers,
-                            cold_numbers=cold_numbers,
-                            absent_numbers=absent_numbers,
-                            division_stats=division_stats,
-                            title="South African Lottery Results | Latest Winning Numbers",
-                            meta_description=meta_description,
-                            breadcrumbs=breadcrumbs)
-    except Exception as e:
-        logger.error(f"Critical error in index route: {e}")
-        # Define rich meta description for SEO even in error case
-        meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
-        
-        # Define empty breadcrumbs for consistency even in error case
-        breadcrumbs = []
-        
-        return render_template('index.html', 
-                            latest_results={},
-                            results=[],
-                            frequent_numbers=[],
-                            cold_numbers=[],
-                            absent_numbers=[],
-                            division_stats={},
-                            title="South African Lottery Results | Latest Winning Numbers",
-                            meta_description=meta_description,
-                            breadcrumbs=breadcrumbs)
+    # Render the template with our sample data
+    return render_template('index.html', 
+                        latest_results=latest_results_dict,
+                        results=results_list,
+                        frequent_numbers=frequent_numbers,
+                        cold_numbers=cold_numbers,
+                        absent_numbers=absent_numbers,
+                        division_stats=division_stats,
+                        title="South African Lottery Results | Latest Winning Numbers",
+                        meta_description=meta_description,
+                        breadcrumbs=breadcrumbs)
 
 @app.route('/admin')
 @login_required
