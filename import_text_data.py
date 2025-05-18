@@ -175,7 +175,8 @@ def import_data_to_db(text_content):
                         lottery_type=lottery_type,
                         draw_number=draw_number,
                         draw_date=draw_date,
-                        numbers=full_numbers
+                        numbers=full_numbers,
+                        source_url=f"https://www.nationallottery.co.za/results/{lottery_type.lower().replace(' ', '-')}"
                     )
                     
                     # Set additional fields if available
