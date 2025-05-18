@@ -253,6 +253,9 @@ def index():
                     results_list.append(result_clone)
                     seen_draws[key] = True
             
+            # Get fresh data directly from the database to ensure the latest data and correct dates
+            results_list = []
+            
             # Define the desired order of lottery types
             lottery_type_order = [
                 "Lottery", 
@@ -263,16 +266,17 @@ def index():
                 "Daily Lottery"
             ]
             
-            # Sort results by the predefined order
-            def get_lottery_type_order(result):
-                try:
-                    return lottery_type_order.index(result.lottery_type)
-                except ValueError:
-                    # If lottery type not found in the list, put it at the end
-                    return len(lottery_type_order)
-                    
-            # Sort by the defined order
-            results_list.sort(key=get_lottery_type_order)
+            # Fetch the most recent result for each lottery type in the defined order
+            for lottery_type in lottery_type_order:
+                # Get the latest result for this specific lottery type
+                latest_result = LotteryResult.query.filter_by(
+                    lottery_type=lottery_type
+                ).order_by(
+                    LotteryResult.draw_date.desc()
+                ).first()
+                
+                if latest_result:
+                    results_list.append(latest_result)
         except Exception as e:
             logger.error(f"Error getting latest lottery results: {e}")
             latest_results = {}

@@ -42,17 +42,7 @@
                             {% if result.bonus_numbers %}
                                 <span class="bonus-indicator">+</span>
                                 {% set bonus_list = [] %}
-                                {% try %}
-                                    {% set bonus_list = result.get_bonus_numbers_list() %}
-                                {% except %}
-                                    {# If JSON parsing fails, try to handle as string #}
-                                    {% if result.bonus_numbers and result.bonus_numbers|string != "None" %}
-                                        {% set raw_bonus = result.bonus_numbers|string %}
-                                        {% if '[' in raw_bonus and ']' in raw_bonus %}
-                                            {% set bonus_list = raw_bonus.strip('[]').replace('"', '').replace("'", "").split(',') %}
-                                        {% endif %}
-                                    {% endif %}
-                                {% endtry %}
+                                {% set bonus_list = result.get_bonus_numbers_list() %}
                                 
                                 {% for bonus in bonus_list %}
                                 <span class="lottery-ball lottery-ball-yellow">{{ bonus }}</span>
