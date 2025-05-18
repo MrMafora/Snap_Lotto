@@ -505,6 +505,11 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     }
     
+    // Make sure file select button properly triggers file input
+    document.getElementById('file-select-btn').addEventListener('click', function() {
+        document.getElementById('ticket-image').click();
+    });
+    
     // Show error message
     function showError(message) {
         errorMessage.textContent = message;
