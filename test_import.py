@@ -4,7 +4,7 @@ Test script to import data from the test Excel file
 """
 from flask import Flask
 from models import db, ImportHistory, LotteryResult
-from import_excel import process_excel_file
+from import_excel import import_excel_data
 import os
 
 # Create a simple Flask app for database context
@@ -21,7 +21,7 @@ def import_test_data():
         
         # Import the test data
         filename = 'lottery_test_data.xlsx'
-        result = process_excel_file(filename)
+        result = import_excel_data(filename, app)
         
         # Count records after import
         after_count = LotteryResult.query.count()
