@@ -2,9 +2,8 @@
 Database models for the application
 """
 from datetime import datetime
-# Remove json import to eliminate any chance of json.loads being called
-# import json
 import os
+import re
 import numpy as np
 import logging
 from flask_sqlalchemy import SQLAlchemy
@@ -109,48 +108,32 @@ class LotteryResult(db.Model):
     
     def get_numbers_list(self):
         """Return numbers as a Python list"""
-        # Return empty list if no numbers
-        if not self.numbers:
-            return []
-            
-        # Simple, safe string-based implementation with no JSON parsing
+        # Super-simple, ultra-safe implementation
         try:
-            # Ensure we're working with a string
-            num_str = str(self.numbers).strip()
-            
-            # Empty string case
-            if not num_str:
+            # Guard against None or empty values
+            if not self.numbers:
                 return []
                 
-            # If it's a simple, direct digit
-            if num_str.isdigit():
-                return [num_str]
+            # Clean the input by removing all potential JSON formatting
+            # This will work regardless of how the numbers were stored
+            clean_str = str(self.numbers)
+            
+            # Remove all JSON/bracket formatting
+            clean_str = re.sub(r'[\[\]"{}\']', '', clean_str)
+            
+            # Handle the case with bonus numbers (format: "1 2 3 + 4")
+            if '+' in clean_str:
+                main_part = clean_str.split('+')[0].strip()
+                nums = [n.strip() for n in re.split(r'[,\s]+', main_part) if n.strip()]
+                return nums
                 
-            # Special case: bonus number format "1 2 3 + 4"
-            if '+' in num_str:
-                main_part = num_str.split('+')[0].strip()
-                if ' ' in main_part:
-                    return [n.strip() for n in main_part.split() if n.strip()]
-                return [main_part]
-                
-            # Remove brackets if present
-            if num_str.startswith('[') and num_str.endswith(']'):
-                num_str = num_str[1:-1].strip()
-                
-            # If there are commas, split by commas
-            if ',' in num_str:
-                return [item.strip().strip('"\'') for item in num_str.split(',') if item.strip()]
-                
-            # If there are spaces, split by spaces
-            if ' ' in num_str:
-                return [item.strip() for item in num_str.split() if item.strip()]
-                
-            # Single value case
-            return [num_str]
+            # Split by either commas or spaces
+            nums = [n.strip() for n in re.split(r'[,\s]+', clean_str) if n.strip()]
+            return nums
                 
         except Exception as e:
-            # If anything goes wrong, return an empty list to prevent crashes
-            logging.error(f"Error parsing lottery numbers: {str(e)}")
+            # Super defensive error handling - never crash
+            logging.error(f"Bulletproof numbers parsing failed: {str(e)}")
             return []
     
     def get_bonus_numbers_list(self):
