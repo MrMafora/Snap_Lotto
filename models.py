@@ -107,13 +107,56 @@ class LotteryResult(db.Model):
         return f"<LotteryResult {self.lottery_type} - {self.draw_number}>"
     
     def get_numbers_list(self):
-        """Return numbers as a Python list"""
-        return json.loads(self.numbers)
+        """Return numbers as a Python list, handling both JSON and text formats"""
+        if not self.numbers:
+            return []
+            
+        # If it's already JSON formatted (starts with [ )
+        if isinstance(self.numbers, str) and self.numbers.strip().startswith('['):
+            try:
+                return json.loads(self.numbers)
+            except json.JSONDecodeError:
+                pass
+                
+        # If it's space-separated numbers format (09 18 19 30 31 40 + 28)
+        if isinstance(self.numbers, str):
+            # Remove any bonus number indicator and split by spaces
+            cleaned = self.numbers.split('+')[0].strip()
+            return [num.strip() for num in cleaned.split() if num.strip()]
+            
+        # If somehow numbers is already a list
+        if isinstance(self.numbers, list):
+            return self.numbers
+            
+        # Last resort
+        return []
     
     def get_bonus_numbers_list(self):
-        """Return bonus numbers as a Python list, or empty list if None"""
-        if self.bonus_numbers:
-            return json.loads(self.bonus_numbers)
+        """Return bonus numbers as a Python list, handling both JSON and text formats"""
+        # If there's no bonus numbers
+        if not self.bonus_numbers:
+            # Check if bonus is in the numbers string (for text format like "09 18 19 30 31 40 + 28")
+            if isinstance(self.numbers, str) and '+' in self.numbers:
+                parts = self.numbers.split('+')
+                if len(parts) > 1 and parts[1].strip():
+                    return [parts[1].strip()]
+            return []
+            
+        # If bonus_numbers is JSON formatted
+        if isinstance(self.bonus_numbers, str) and self.bonus_numbers.strip().startswith('['):
+            try:
+                return json.loads(self.bonus_numbers)
+            except json.JSONDecodeError:
+                pass
+                
+        # If it's a space separated format
+        if isinstance(self.bonus_numbers, str):
+            return [num.strip() for num in self.bonus_numbers.split() if num.strip()]
+            
+        # If somehow bonus_numbers is already a list
+        if isinstance(self.bonus_numbers, list):
+            return self.bonus_numbers
+            
         return []
     
     def get_divisions(self):
