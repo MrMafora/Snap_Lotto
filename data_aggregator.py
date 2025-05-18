@@ -1839,15 +1839,32 @@ def get_numbers_not_drawn_recently(lottery_type=None, limit=5):
         
         # Process each result to find the last drawn date for each number
         for result in results:
-            numbers = result.get_numbers_list()
-            for num in numbers:
-                if num not in last_drawn:
-                    # Calculate days since this draw
-                    days_since = (today - result.draw_date.date()).days
-                    last_drawn[num] = days_since
+            try:
+                # Get numbers list safely with our improved method
+                numbers = result.get_numbers_list()
+                for num in numbers:
+                    try:
+                        # Handle different number formats
+                        num_str = str(num).strip()
+                        if num_str.isdigit():
+                            # Convert to int for consistent counting if it's a digit
+                            num_int = int(num_str)
+                            if num_int not in last_drawn:
+                                # Calculate days since this draw
+                                days_since = (today - result.draw_date.date()).days
+                                last_drawn[num_int] = days_since
+                        # Skip non-numeric values for this analysis
+                    except Exception as e:
+                        logger.warning(f"Error processing number {num}: {e}")
+                        continue
+            except Exception as e:
+                logger.warning(f"Error processing result {result.id if hasattr(result, 'id') else 'unknown'}: {e}")
+                continue
         
         # Sort by days since last drawn (descending)
-        absent_numbers = sorted(last_drawn.items(), key=lambda x: x[1], reverse=True)[:limit]
+        # Only include integer number values for consistent sorting and display
+        int_only_numbers = {k: v for k, v in last_drawn.items() if isinstance(k, int)}
+        absent_numbers = sorted(int_only_numbers.items(), key=lambda x: x[1], reverse=True)[:limit]
         
         return absent_numbers
         
