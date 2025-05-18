@@ -238,19 +238,33 @@ def index():
                 newest_result = type_results[0]
                 normalized_results[normalized_type] = newest_result
                 
-            # Create an ordered dictionary with lottery types in our specific order
-            ordered_results = {}
-            for lottery_type in ordered_types:
-                if lottery_type in normalized_results:
-                    ordered_results[lottery_type] = normalized_results[lottery_type]
-                    
-            # Add any remaining types that weren't in our ordered list
+            # Create a list of results in our specific order for the home page display
+            ordered_results_list = []
+            
+            # Define the proper order of lottery types for display
+            ordered_lottery_types = [
+                "Lottery", 
+                "Lottery Plus 1", 
+                "Lottery Plus 2", 
+                "Powerball", 
+                "Powerball Plus", 
+                "Daily Lottery"
+            ]
+            
+            # First add results in our defined order
+            for lottery_type in ordered_lottery_types:
+                for result_type, result in normalized_results.items():
+                    if result_type.lower() == lottery_type.lower():
+                        ordered_results_list.append(result)
+                        break
+            
+            # Then add any remaining results we didn't explicitly order
             for lottery_type, result in normalized_results.items():
-                if lottery_type not in ordered_results:
-                    ordered_results[lottery_type] = result
-                    
-            # Replace the results with our ordered version
-            latest_results = ordered_results
+                if not any(r.lottery_type.lower() == lottery_type.lower() for r in ordered_results_list):
+                    ordered_results_list.append(result)
+            
+            # Use this ordered list for the results display
+            results_list = ordered_results_list
             
             # Second pass: add results using normalized keys to avoid duplicates
             for normalized_type, result in normalized_results.items():
@@ -317,8 +331,14 @@ def index():
         # Home page doesn't need breadcrumbs (it's the root), but we define an empty list for consistency
         breadcrumbs = []
         
+        # Create a dictionary with the ordered lottery results for the template
+        latest_results_dict = {}
+        for result in results_list:
+            latest_results_dict[result.lottery_type] = result
+            
+        # Now use this ordered dictionary for rendering
         return render_template('index.html', 
-                            latest_results=latest_results,
+                            latest_results=latest_results_dict,
                             results=results_list,
                             frequent_numbers=frequent_numbers,
                             cold_numbers=cold_numbers,
