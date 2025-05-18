@@ -2968,7 +2968,8 @@ def system_metrics():
         }), 500
 
 # Register advertisement management routes
-ad_management.register_ad_routes(app)
+# Ad management temporarily disabled
+# ad_management.register_ad_routes(app)
 
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
