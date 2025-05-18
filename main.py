@@ -190,140 +190,137 @@ def index():
             data_aggregator = da
             logger.info("Loaded data_aggregator module on demand")
         
-        # First, validate and correct any known draws (adds missing division data)
-        try:
-            corrected = data_aggregator.validate_and_correct_known_draws()
-            if corrected > 0:
-                logger.info(f"Corrected {corrected} lottery draws with verified data")
-        except Exception as e:
-            logger.error(f"Error in validate_and_correct_known_draws: {e}")
+        # Initialize empty containers for all the data
+        results_list = []
+        frequent_numbers = []
+        division_stats = {}
+        cold_numbers = []
+        absent_numbers = []
         
-        # Get the latest results for each lottery type
+        # Define the proper order of lottery types for display
+        ordered_lottery_types = [
+            "Lottery", 
+            "Lottery Plus 1", 
+            "Lottery Plus 2", 
+            "Powerball", 
+            "Powerball Plus", 
+            "Daily Lottery"
+        ]
+        
+        # Get the latest results for each lottery type (with a timeout of 5 seconds)
+        latest_results = {}
         try:
+            # First, do a quick validation of known draws (don't wait for result)
+            validation_thread = threading.Thread(
+                target=lambda: data_aggregator.validate_and_correct_known_draws(),
+                daemon=True
+            )
+            validation_thread.start()
+            validation_thread.join(timeout=1.0)  # Only wait 1 second max
+            
+            # Now get latest results
             latest_results = data_aggregator.get_latest_results()
+            if not latest_results:
+                logger.warning("No lottery results found in database")
             
-            # Convert dictionary of results to a list for iteration in the template
-            results_list = []
-            
-            # Use a dictionary to track unique draw numbers per type to avoid duplicates
-            seen_draws = {}
+            # Create a dictionary of normalized results
             normalized_results = {}
-            
-            # Define the specific order we want to display lottery types
-            ordered_types = [
-                "Lottery", 
-                "Lottery Plus 1", 
-                "Lottery Plus 2", 
-                "Powerball", 
-                "Powerball Plus", 
-                "Daily Lottery"
-            ]
-            
-            # First, create a dictionary to group results by normalized type
-            type_groups = {}
             for lottery_type, result in latest_results.items():
-                # Normalize the lottery type
+                # Use the normalized lottery type to avoid duplicates
                 normalized_type = data_aggregator.normalize_lottery_type(lottery_type)
                 
-                # Group all results by normalized type
-                if normalized_type not in type_groups:
-                    type_groups[normalized_type] = []
-                type_groups[normalized_type].append(result)
+                # If we already have a result for this type, use the newer one
+                if normalized_type in normalized_results:
+                    if result.draw_date > normalized_results[normalized_type].draw_date:
+                        normalized_results[normalized_type] = result
+                else:
+                    normalized_results[normalized_type] = result
             
-            # Now select the newest result for each normalized type
-            for normalized_type, type_results in type_groups.items():
-                # Sort by date (newest first)
-                type_results.sort(key=lambda x: x.draw_date, reverse=True)
-                # Take the newest result only
-                newest_result = type_results[0]
-                normalized_results[normalized_type] = newest_result
-                
-            # Create a list of results in our specific order for the home page display
+            # Create a list with proper ordering
             ordered_results_list = []
-            
-            # Define the proper order of lottery types for display
-            ordered_lottery_types = [
-                "Lottery", 
-                "Lottery Plus 1", 
-                "Lottery Plus 2", 
-                "Powerball", 
-                "Powerball Plus", 
-                "Daily Lottery"
-            ]
-            
-            # First add results in our defined order
             for lottery_type in ordered_lottery_types:
+                # Try to find a matching result
+                found = False
                 for result_type, result in normalized_results.items():
                     if result_type.lower() == lottery_type.lower():
                         ordered_results_list.append(result)
+                        found = True
                         break
-            
-            # Then add any remaining results we didn't explicitly order
-            for lottery_type, result in normalized_results.items():
-                if not any(r.lottery_type.lower() == lottery_type.lower() for r in ordered_results_list):
-                    ordered_results_list.append(result)
+                
+                # If no match found, add a placeholder result to maintain order
+                if not found:
+                    dummy_result = LotteryResult()
+                    dummy_result.lottery_type = lottery_type
+                    dummy_result.draw_number = "N/A"
+                    dummy_result.draw_date = datetime.now()
+                    dummy_result.numbers = "[]"
+                    dummy_result.bonus_numbers = "[]"
+                    ordered_results_list.append(dummy_result)
             
             # Use this ordered list for the results display
             results_list = ordered_results_list
-            
-            # Second pass: add results using normalized keys to avoid duplicates
-            for normalized_type, result in normalized_results.items():
-                # Generate a deduplication key using normalized type
-                key = f"{normalized_type}_{result.draw_number}"
-                if key not in seen_draws:
-                    # Clone the result to avoid modifying the database object directly
-                    # This prevents unique constraint violations when adding to results_list
-                    result_clone = LotteryResult(
-                        id=result.id,
-                        lottery_type=normalized_type,  # Use normalized type
-                        draw_number=result.draw_number,
-                        draw_date=result.draw_date,
-                        numbers=result.numbers,
-                        bonus_numbers=result.bonus_numbers,
-                        divisions=result.divisions,
-                        source_url=result.source_url,
-                        screenshot_id=result.screenshot_id,
-                        ocr_provider=result.ocr_provider,
-                        ocr_model=result.ocr_model,
-                        ocr_timestamp=result.ocr_timestamp,
-                        created_at=result.created_at
-                    )
-                    results_list.append(result_clone)
-                    seen_draws[key] = True
-            
-            # Sort results by date (newest first)
-            results_list.sort(key=lambda x: x.draw_date, reverse=True)
         except Exception as e:
             logger.error(f"Error getting latest lottery results: {e}")
-            latest_results = {}
+            
+            # Create dummy results to maintain layout
             results_list = []
+            for lottery_type in ordered_lottery_types:
+                dummy_result = LotteryResult()
+                dummy_result.lottery_type = lottery_type
+                dummy_result.draw_number = "N/A"
+                dummy_result.draw_date = datetime.now()
+                dummy_result.numbers = "[]"
+                dummy_result.bonus_numbers = "[]"
+                results_list.append(dummy_result)
         
-        # Get analytics data for the dashboard
-        try:
-            frequent_numbers = data_aggregator.get_most_frequent_numbers(limit=10)
-        except Exception as e:
-            logger.error(f"Error getting frequent numbers: {e}")
-            frequent_numbers = []
-            
-        try:
-            division_stats = data_aggregator.get_division_statistics()
-        except Exception as e:
-            logger.error(f"Error getting division statistics: {e}")
-            division_stats = {}
-            
-        # Get cold numbers (least frequently drawn)
-        try:
-            cold_numbers = data_aggregator.get_least_frequent_numbers(limit=5)
-        except Exception as e:
-            logger.error(f"Error getting cold numbers: {e}")
-            cold_numbers = []
-            
-        # Get numbers not drawn recently
-        try:
-            absent_numbers = data_aggregator.get_numbers_not_drawn_recently(limit=5)
-        except Exception as e:
-            logger.error(f"Error getting absent numbers: {e}")
-            absent_numbers = []
+        # Get analytics data for the dashboard (in parallel threads)
+        def get_frequent_numbers():
+            nonlocal frequent_numbers
+            try:
+                frequent_numbers = data_aggregator.get_most_frequent_numbers(limit=10)
+            except Exception as e:
+                logger.error(f"Error getting frequent numbers: {e}")
+                frequent_numbers = []
+        
+        def get_division_stats():
+            nonlocal division_stats
+            try:
+                division_stats = data_aggregator.get_division_statistics()
+            except Exception as e:
+                logger.error(f"Error getting division statistics: {e}")
+                division_stats = {}
+        
+        def get_cold_numbers():
+            nonlocal cold_numbers
+            try:
+                cold_numbers = data_aggregator.get_least_frequent_numbers(limit=5)
+            except Exception as e:
+                logger.error(f"Error getting cold numbers: {e}")
+                cold_numbers = []
+        
+        def get_absent_numbers():
+            nonlocal absent_numbers
+            try:
+                absent_numbers = data_aggregator.get_numbers_not_drawn_recently(limit=5)
+            except Exception as e:
+                logger.error(f"Error getting absent numbers: {e}")
+                absent_numbers = []
+        
+        # Start threads for all analytics data
+        analytics_threads = [
+            threading.Thread(target=get_frequent_numbers, daemon=True),
+            threading.Thread(target=get_division_stats, daemon=True),
+            threading.Thread(target=get_cold_numbers, daemon=True),
+            threading.Thread(target=get_absent_numbers, daemon=True)
+        ]
+        
+        # Start all threads
+        for thread in analytics_threads:
+            thread.start()
+        
+        # Wait for all threads with a timeout (3 seconds max)
+        for thread in analytics_threads:
+            thread.join(timeout=3.0)
         
         # Define rich meta description for SEO
         meta_description = "Get the latest South African lottery results for Lottery, PowerBall and Daily Lottery. View winning numbers, jackpot amounts, and most frequently drawn numbers updated in real-time."
