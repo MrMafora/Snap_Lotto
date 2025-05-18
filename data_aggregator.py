@@ -1558,39 +1558,39 @@ def get_most_frequent_numbers(lottery_type=None, limit=10):
         
         # Process each result
         for result in results:
-            numbers = result.get_numbers_list()
-            for num in numbers:
-                number_counter[num] += 1
+            try:
+                # Get numbers list safely with our improved method
+                numbers = result.get_numbers_list()
+                for num in numbers:
+                    try:
+                        # Handle different number formats
+                        num_str = str(num).strip()
+                        if num_str.isdigit():
+                            # Convert to int for consistent counting if it's a digit
+                            number_counter[int(num_str)] += 1
+                        else:
+                            # Keep as string if not a pure digit
+                            number_counter[num_str] += 1
+                    except Exception as e:
+                        logger.warning(f"Error processing number {num}: {e}")
+                        continue
+            except Exception as e:
+                logger.warning(f"Error processing result {result.id if hasattr(result, 'id') else 'unknown'}: {e}")
+                continue
         
         # Get the most common numbers with their frequencies
         most_common = number_counter.most_common(limit)
         
-        # If we don't have enough data, provide some sample data
-        if len(most_common) < limit:
-            logger.warning(f"Insufficient frequency data found in database: {len(most_common)} numbers")
-            # Return at least what we have
-            if most_common:
-                return most_common
-                
-            # If there's no data at all, use predefined high-frequency numbers for visual testing
-            # This provides reasonable testing data that follows the same format as real data
-            sample_data = [
-                (16, 13), (24, 12), (2, 12), (23, 12), (7, 11), 
-                (38, 11), (17, 11), (28, 11), (32, 11), (42, 10)
-            ]
-            # Only use as many as requested
-            return sample_data[:limit]
+        # If we have data, return it
+        if most_common:
+            return most_common
         
-        return most_common
+        # If no data at all, return empty list instead of sample data
+        return []
         
     except Exception as e:
         logger.error(f"Error in get_most_frequent_numbers: {str(e)}")
-        # Provide sample data on error
-        sample_data = [
-            (16, 13), (24, 12), (2, 12), (23, 12), (7, 11), 
-            (38, 11), (17, 11), (28, 11), (32, 11), (42, 10)
-        ]
-        return sample_data[:limit]
+        return []
 
 def get_division_statistics(lottery_type=None, max_divisions=5):
     """
@@ -1750,19 +1750,39 @@ def get_least_frequent_numbers(lottery_type=None, limit=5):
         
         results = query.all()
         
-        # Process each result
+        # Process each result safely
         for result in results:
-            numbers = result.get_numbers_list()
-            for num in numbers:
-                number_counter[num] += 1
+            try:
+                # Get numbers list safely with our improved method
+                numbers = result.get_numbers_list()
+                for num in numbers:
+                    try:
+                        # Handle different number formats
+                        num_str = str(num).strip()
+                        if num_str.isdigit():
+                            # Convert to int for consistent counting if it's a digit
+                            num_int = int(num_str)
+                            number_counter[num_int] += 1
+                        else:
+                            # Skip non-numeric values for cold numbers analysis
+                            continue
+                    except Exception as e:
+                        logger.warning(f"Error processing number {num}: {e}")
+                        continue
+            except Exception as e:
+                logger.warning(f"Error processing result {result.id if hasattr(result, 'id') else 'unknown'}: {e}")
+                continue
                 
         # Add numbers that haven't been drawn at all (frequency = 0)
         for num in all_numbers:
             if num not in number_counter:
                 number_counter[num] = 0
         
-        # Get the least common numbers with their frequencies
-        least_common = sorted(number_counter.items(), key=lambda x: x[1])[:limit]
+        # Get the least common numbers with their frequencies - integers only
+        least_common = []
+        for num, count in sorted([(n, c) for n, c in number_counter.items() 
+                                 if isinstance(n, int)], key=lambda x: x[1])[:limit]:
+            least_common.append((num, count))
         
         return least_common
         
