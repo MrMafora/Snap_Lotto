@@ -73,6 +73,10 @@ task = "shell.exec"
 args = "gunicorn -c gunicorn.conf.py main:app"
 
 [[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
 localPort = 5000
 externalPort = 5000
 

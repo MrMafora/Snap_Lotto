@@ -1,0 +1,5 @@
+[nix]
+channel = "stable-23_11"
+
+[deployment]
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "--reuse-port", "--reload", "improved_scanner:app"]

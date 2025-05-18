@@ -2,4 +2,4 @@
 channel = "stable-23_11"
 
 [deployment]
-run = ["python", "demo_server.py"]
+run = ["python", "simple_app.py"]

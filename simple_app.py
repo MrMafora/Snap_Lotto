@@ -147,6 +147,7 @@ def api_status():
     return jsonify(status)
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
+    # Try alternate port 3000 since 8080 is in use
+    port = int(os.environ.get('PORT', 3000))
     logger.info(f"Starting application on port {port}")
     app.run(host='0.0.0.0', port=port, debug=True)
