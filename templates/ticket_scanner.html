@@ -772,6 +772,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             const loadingIndicator = document.getElementById('scanner-loading');
             loadingIndicator.style.display = 'block';
             
+            console.log('Sending ticket data to processing endpoint...');
             // Add CSRF token to request headers and submit
             fetch('/process-ticket', {
                 method: 'POST',
@@ -781,29 +782,45 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 }
             })
             .then(response => {
+                console.log('Response received:', response.status);
                 if (!response.ok) {
-                    throw new Error('Network response was not ok: ' + response.status);
+                    return response.text().then(text => {
+                        console.error('Error response:', text);
+                        throw new Error('Server error: ' + response.status + ' - ' + text);
+                    });
                 }
                 return response.json();
             })
             .then(data => {
-                console.log('Success:', data);
+                console.log('Success processing ticket:', data);
+                
+                // Enable the scan button again
+                document.getElementById('scan-button').disabled = false;
                 
                 // Hide loading indicator
                 loadingIndicator.style.display = 'none';
+                
+                if (!data.success) {
+                    // Show the specific error from the API
+                    showError(data.error || 'Failed to process ticket. Please try again.');
+                    return;
+                }
                 
                 // Display results immediately without any ad overlay
                 displayResults(data);
                 
             }) // End of fetch promise chain
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Error processing ticket:', error);
+                
+                // Enable the scan button again
+                document.getElementById('scan-button').disabled = false;
                 
                 // Hide loading indicator
                 loadingIndicator.style.display = 'none';
                 
-                // Show error message
-                showError('An error occurred while processing your ticket. Please try again.');
+                // Show detailed error message
+                showError('Error processing ticket: ' + error.message);
             });
                     
                     // Clear ALL possible timers to prevent any conflicts
