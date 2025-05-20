@@ -503,18 +503,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     scanButton.disabled = true;
                 }
                 
-                // Clean up any running countdown or timer
-                if (window.countdownTimeout) {
-                    clearTimeout(window.countdownTimeout);
-                    window.countdownTimeout = null;
-                }
-                
-                if (window.countdownInterval) {
-                    clearInterval(window.countdownInterval);
-                    window.countdownInterval = null;
-                }
-                
-                window.countdownRunning = false;
+                // Clean up any timers that might have been set
+                // (All counters and timers related to ads have been removed)
                 
                 // Scroll to the upload form
                 const ticketForm = document.getElementById('ticket-form');
