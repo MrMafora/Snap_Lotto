@@ -64,7 +64,19 @@ class TicketScanner:
         logger.info(f"Processing ticket image: {image_path}")
         
         # Step 1: Extract ticket information using OCR
-        ticket_data = self._extract_ticket_information(image_path)
+        # Try with Claude Vision first if available
+        if self.has_anthropic_api_key:
+            logger.info("Attempting to extract ticket information with Claude Vision")
+            ticket_data = self._extract_ticket_information_with_anthropic(image_path)
+            if ticket_data and ticket_data.get('success'):
+                logger.info("Successfully extracted ticket information with Claude Vision")
+            else:
+                logger.warning("Claude Vision extraction failed, falling back to Gemini")
+                ticket_data = self._extract_ticket_information(image_path)
+        else:
+            logger.info("Using Gemini for ticket extraction")
+            ticket_data = self._extract_ticket_information(image_path)
+        
         if not ticket_data or not ticket_data.get('success'):
             logger.error("Failed to extract ticket information")
             return {'success': False, 'error': 'Failed to extract ticket information from image'}
@@ -584,17 +596,176 @@ class TicketScanner:
         
         return cleaned
 
+    def _extract_ticket_information_with_anthropic(self, image_path: str) -> Dict[str, Any]:
+        """
+        Use Anthropic Claude Vision to extract information from lottery ticket image
+        
+        Args:
+            image_path: Path to the ticket image file
+            
+        Returns:
+            Dictionary with extracted ticket details
+        """
+        # Check if Anthropic API key is available
+        if not self.has_anthropic_api_key:
+            logger.error("Anthropic API key not available for Claude Vision processing")
+            return {'success': False, 'error': 'Claude Vision service unavailable'}
+            
+        try:
+            # Import necessary functions from ocr_processor
+            from ocr_processor import get_anthropic_client
+            import base64
+            from datetime import datetime
+            
+            # Log API usage
+            self._log_api_request('anthropic_ocr')
+            self.api_requests['anthropic_ocr'] += 1
+            
+            # Read and encode the image
+            with open(image_path, 'rb') as img_file:
+                base64_content = base64.b64encode(img_file.read()).decode('utf-8')
+                
+            # Get Anthropic client
+            client = get_anthropic_client()
+            if not client:
+                logger.error("Failed to initialize Claude client")
+                return {'success': False, 'error': 'Claude Vision client initialization failed'}
+                
+            # System prompt for ticket analysis
+            system_prompt = """You are an expert in analyzing South African lottery tickets.
+Extract the following information with high precision:
+1. Lottery Type (e.g., Lottery, Powerball, Daily Lottery)
+2. Draw Number (the numeric identifier of the draw)
+3. Draw Date (in YYYY-MM-DD format)
+4. Numbers selected by the player (the main numbers on the ticket)
+5. Any bonus or Powerball numbers (if applicable)
+
+Important naming conventions:
+- Always use "Lottery" instead of "Lotto"
+- "Powerball" is one word (not Power-ball or Power Ball)
+- For Lottery Plus games, use "Lottery Plus 1" and "Lottery Plus 2"
+- For Daily Lottery, ensure it's "Daily Lottery" not "Daily Lotto"
+
+Return only a clean JSON object with these fields:
+{
+  "lottery_type": "string", 
+  "draw_number": "string", 
+  "draw_date": "YYYY-MM-DD",
+  "player_numbers": ["01", "02", ...],
+  "bonus_numbers": ["01"] or []
+}
+
+Ensure all numbers use 2-digit format with leading zeros (e.g., "01" not "1").
+For Daily Lottery, bonus_numbers should be an empty array.
+"""
+            
+            # Process with Claude Vision
+            response = client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=1500,
+                system=system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
+                                    "data": base64_content
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": "Analyze this South African lottery ticket and extract the key information as JSON."
+                            }
+                        ]
+                    }
+                ]
+            )
+            
+            # Extract the response content
+            content = response.content[0].text if response and response.content else ""
+            
+            # Parse the JSON from the response
+            try:
+                # Extract JSON if enclosed in code blocks
+                if "```json" in content:
+                    json_start = content.find("```json") + 7
+                    json_end = content.find("```", json_start)
+                    json_str = content[json_start:json_end].strip()
+                elif "```" in content:
+                    json_start = content.find("```") + 3
+                    json_end = content.find("```", json_start)
+                    json_str = content[json_start:json_end].strip()
+                else:
+                    # If no code blocks, try to parse the whole text
+                    json_str = content
+                
+                # Parse the JSON
+                result = json.loads(json_str)
+                
+                # Add success flag
+                result['success'] = True
+                
+                # Standardize the format of player numbers
+                if 'player_numbers' in result:
+                    result['player_numbers'] = [str(num).zfill(2) for num in result['player_numbers']]
+                else:
+                    result['player_numbers'] = []
+                
+                # Standardize the format of bonus numbers
+                if 'bonus_number' in result and 'bonus_numbers' not in result:
+                    bonus = result.pop('bonus_number', None)
+                    if bonus:
+                        result['bonus_numbers'] = [str(bonus).zfill(2)]
+                    else:
+                        result['bonus_numbers'] = []
+                elif 'bonus_numbers' not in result:
+                    result['bonus_numbers'] = []
+                else:
+                    result['bonus_numbers'] = [str(num).zfill(2) for num in result['bonus_numbers']]
+                
+                # Normalize lottery type
+                if 'lottery_type' in result:
+                    result['lottery_type'] = self._normalize_lottery_type(result['lottery_type'])
+                
+                logger.info(f"Successfully extracted ticket information with Claude Vision: {result}")
+                return result
+                
+            except json.JSONDecodeError as e:
+                error_msg = f"Failed to parse JSON from Claude response: {str(e)}"
+                logger.error(error_msg)
+                return {'success': False, 'error': error_msg}
+                
+        except Exception as e:
+            error_msg = f"Error extracting ticket information with Claude Vision: {str(e)}"
+            logger.error(error_msg)
+            return {'success': False, 'error': error_msg}
+
     def _log_api_request(self, api_type: str) -> None:
         """
         Log API request for tracking and billing purposes
         
         Args:
-            api_type: Type of API request (e.g., 'gemini_ocr', 'openai_verification')
+            api_type: Type of API request (e.g., 'gemini_ocr', 'openai_verification', 'anthropic_ocr')
         """
         try:
+            # Determine service based on api_type
+            service = None
+            if api_type == 'anthropic_ocr':
+                service = 'anthropic'
+            elif api_type == 'gemini_ocr':
+                service = 'google_gemini'
+            elif api_type == 'openai_verification':
+                service = 'openai'
+            else:
+                service = api_type.split('_')[0]
+                
             # Use the existing APIRequestLog.log_request method
             APIRequestLog.log_request(
-                service=api_type.split('_')[0],  # 'gemini' or 'openai'
+                service=service,
                 endpoint=api_type.split('_')[1] if '_' in api_type else api_type,  # 'ocr' or 'verification'
                 status='success'
             )
