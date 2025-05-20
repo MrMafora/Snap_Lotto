@@ -12,6 +12,7 @@ import os
 import json
 import logging
 import requests
+import base64
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional, Any, Union
 
@@ -109,31 +110,105 @@ class TicketScanner:
             return {'success': False, 'error': 'OCR service unavailable'}
         
         try:
-            # Read image file as binary data
+            # Read and encode the image for API request
             with open(image_path, 'rb') as img_file:
-                image_data = img_file.read()
+                image_data = base64.b64encode(img_file.read()).decode('utf-8')
             
-            # Implementation placeholder for Gemini API integration
-            # This would be replaced with actual Gemini API calls
+            # Construct the API request URL
+            api_key = os.environ.get('GEMINI_API_KEY')
+            model = "gemini-1.5-pro-latest"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            
+            # Create the request payload with the analyze prompt
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {
+                                "text": "Analyze this lottery ticket image and extract the following information in JSON format:\n"
+                                       "- lottery_type: The type of lottery (e.g., Lottery, Powerball, Daily Lottery)\n"
+                                       "- draw_number: The draw number (numeric ID of the draw)\n"
+                                       "- draw_date: The date of the draw in YYYY-MM-DD format\n"
+                                       "- player_numbers: The numbers selected by the player\n"
+                                       "- bonus_number: The bonus number or Powerball number (if applicable)\n"
+                            },
+                            {
+                                "inline_data": {
+                                    "mime_type": "image/jpeg",
+                                    "data": image_data
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.1,
+                    "topP": 0.95,
+                    "maxOutputTokens": 2048
+                }
+            }
             
             # Log API usage
             self._log_api_request('gemini_ocr')
             self.api_requests['gemini_ocr'] += 1
             
-            # Mock structure of extracted data (replace with actual implementation)
-            extracted_data = {
-                'success': True,
-                'lottery_type': 'Lottery',  # Example value
-                'draw_number': '1234',  # Example value
-                'draw_date': '2025-04-15',  # Example value
-                'ticket_numbers': ['01', '16', '24', '36', '42', '49'],  # Example value
-                'bonus_number': '23',  # Example value
-                'player_numbers': ['05', '16', '24', '36', '42', '49'],  # Example value
-                'confidence': 0.92  # Example confidence score
-            }
+            # Make the API request
+            response = requests.post(url, json=payload, timeout=30)
             
-            logger.info(f"Successfully extracted ticket information: {extracted_data}")
-            return extracted_data
+            # Process the response
+            if response.status_code == 200:
+                response_data = response.json()
+                
+                # Extract text from response
+                if "candidates" in response_data and response_data["candidates"]:
+                    candidate = response_data["candidates"][0]
+                    
+                    if "content" in candidate and candidate["content"]["parts"]:
+                        for part in candidate["content"]["parts"]:
+                            if "text" in part:
+                                text = part["text"]
+                                
+                                # Extract JSON from the response text
+                                try:
+                                    # Handle markdown code blocks if present
+                                    if "```json" in text:
+                                        json_start = text.find("```json") + 7
+                                        json_end = text.find("```", json_start)
+                                        json_str = text[json_start:json_end].strip()
+                                    elif "```" in text:
+                                        json_start = text.find("```") + 3
+                                        json_end = text.find("```", json_start)
+                                        json_str = text[json_start:json_end].strip()
+                                    else:
+                                        json_str = text
+                                    
+                                    # Parse the JSON
+                                    extracted_data = json.loads(json_str)
+                                    
+                                    # Standardize the response format
+                                    extracted_data['success'] = True
+                                    
+                                    # Convert bonus_number to bonus_numbers list if needed
+                                    if 'bonus_number' in extracted_data and 'bonus_numbers' not in extracted_data:
+                                        bonus = extracted_data.pop('bonus_number', None)
+                                        extracted_data['bonus_numbers'] = [str(bonus).zfill(2)] if bonus else []
+                                    
+                                    # Ensure all numbers are formatted consistently as strings with leading zeros
+                                    if 'player_numbers' in extracted_data:
+                                        extracted_data['player_numbers'] = [str(num).zfill(2) for num in extracted_data['player_numbers']]
+                                    
+                                    logger.info(f"Successfully extracted ticket information: {extracted_data}")
+                                    return extracted_data
+                                    
+                                except json.JSONDecodeError as e:
+                                    error_msg = f"Failed to parse JSON from Gemini response: {str(e)}"
+                                    logger.error(error_msg)
+                                    return {'success': False, 'error': error_msg}
+            
+            # If we got here, the API request failed or response format was unexpected
+            error_msg = f"Failed to extract data from Gemini API response: {response.text}"
+            logger.error(error_msg)
+            return {'success': False, 'error': error_msg}
             
         except Exception as e:
             logger.error(f"Error extracting ticket information: {str(e)}")
@@ -200,9 +275,12 @@ class TicketScanner:
             return {'success': False, 'error': 'Verification service unavailable'}
         
         try:
-            # Prepare the prompt for OpenAI
+            # Prepare the OpenAI API request
+            api_key = os.environ.get('OPENAI_API_KEY')
+            
+            # Create the prompt for OpenAI
             date_info = f" from date {draw_date}" if draw_date else ""
-            prompt = (
+            user_prompt = (
                 f"I need the official results for South African {lottery_type} draw #{draw_number}{date_info}. "
                 f"Please provide the draw date, winning numbers, and bonus/powerball number if applicable. "
                 f"Return the information in this JSON format only:\n"
@@ -210,26 +288,60 @@ class TicketScanner:
                 f"'numbers': ['01', '05', '23', etc], 'bonus_numbers': ['12']}}"
             )
             
-            # Implementation placeholder for OpenAI API integration
-            # This would be replaced with actual OpenAI API calls
+            # Import OpenAI library
+            import openai
+            from openai import OpenAI
+            
+            # Create OpenAI client and make request
+            client = OpenAI(api_key=api_key)
+            response = client.chat.completions.create(
+                model="gpt-4o",  # Use the most capable model for accurate results
+                messages=[
+                    {"role": "system", "content": "You are a specialized lottery information retrieval system that provides accurate and official South African lottery draw results. Always format numbers with leading zeros where needed (e.g., '01' instead of '1')."},
+                    {"role": "user", "content": user_prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.1,  # Low temperature for consistent results
+                max_tokens=500
+            )
             
             # Log API usage
             self._log_api_request('openai_verification')
             self.api_requests['openai_verification'] += 1
             
-            # Mock structure of verified data (replace with actual implementation)
-            verified_data = {
-                'success': True,
-                'source': 'openai',
-                'lottery_type': self._normalize_lottery_type(lottery_type),
-                'draw_number': draw_number,
-                'draw_date': draw_date or '2025-04-15',  # Example fallback date
-                'numbers': ['01', '16', '24', '36', '42', '49'],  # Example values
-                'bonus_numbers': ['23'] if self._normalize_lottery_type(lottery_type) in ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2'] else ['05']
-            }
+            # Process the response
+            if response and response.choices and response.choices[0].message:
+                # Get the response content
+                result_text = response.choices[0].message.content
+                
+                try:
+                    # Parse the JSON response
+                    verified_data = json.loads(result_text)
+                    
+                    # Add success flag and source
+                    verified_data['success'] = True
+                    verified_data['source'] = 'openai'
+                    
+                    # Normalize the lottery type
+                    verified_data['lottery_type'] = self._normalize_lottery_type(verified_data.get('lottery_type', lottery_type))
+                    
+                    # Ensure numbers are properly formatted as strings with leading zeros
+                    if 'numbers' in verified_data:
+                        verified_data['numbers'] = [str(num).zfill(2) for num in verified_data['numbers']]
+                    
+                    if 'bonus_numbers' in verified_data:
+                        verified_data['bonus_numbers'] = [str(num).zfill(2) for num in verified_data['bonus_numbers']]
+                    
+                    logger.info(f"Successfully verified draw information from OpenAI API: {verified_data}")
+                    return verified_data
+                    
+                except json.JSONDecodeError as e:
+                    logger.error(f"Error parsing OpenAI response: {str(e)}, Response: {result_text}")
+                    return {'success': False, 'error': f"Invalid response format from verification service"}
             
-            logger.info(f"Successfully verified draw information from external API: {verified_data}")
-            return verified_data
+            # If we get here, something went wrong with the API call
+            logger.error(f"Unexpected response format from OpenAI API")
+            return {'success': False, 'error': "Failed to verify draw information"}
             
         except Exception as e:
             logger.error(f"Error fetching draw information: {str(e)}")
