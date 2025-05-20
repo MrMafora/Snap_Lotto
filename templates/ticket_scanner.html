@@ -101,8 +101,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
 <link rel="stylesheet" href="{{ url_for('static', filename='css/fresh_checkmark.css') }}">
 <!-- Mobile-specific button fix for iOS devices -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-button-fix.css') }}">
-<!-- Enhanced image selector fix to make the file selection work properly -->
-<script src="{{ url_for('static', filename='js/image-selector-fix.js') }}"></script>
+<!-- Fixed file input handler to make file selection work on first click -->
+<script src="{{ url_for('static', filename='js/file-input-handler.js') }}"></script>
 <style>
     .ticket-scanner-container {
         max-width: 800px;
@@ -274,7 +274,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
                                     <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
-                                    <button type="button" id="file-select-btn" class="btn btn-primary" onclick="document.getElementById('ticket-image').click();">Select Image</button>
+                                    <button type="button" id="file-select-btn" class="btn btn-primary">Select Image</button>
                                 </div>
                             </div>
 
