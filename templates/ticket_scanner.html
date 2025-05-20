@@ -269,13 +269,10 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             <div class="ticket-drop-area" id="drop-area">
                                 <div class="mb-2">
                                     <i class="fa fa-upload fa-2x mb-2"></i>
-                                    <h5 class="mb-2">Select your lottery ticket image</h5>
-                                    <div class="mt-3 mb-3">
-                                        <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="form-control">
-                                    </div>
-                                    <div class="mt-2">
-                                        <button type="submit" class="btn btn-primary btn-lg">Upload and Scan</button>
-                                    </div>
+                                    <h5 class="mb-2">Drag and drop your ticket image here</h5>
+                                    <p class="mb-2">or</p>
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
+                                    <label for="ticket-image" class="btn btn-primary btn-lg" id="file-select-btn">Select Image</label>
                                 </div>
                             </div>
 
@@ -290,6 +287,17 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                             </div>
 
 
+                            <div class="text-center mt-4">
+                                <button type="submit" id="scan-button" class="btn btn-success btn-lg">
+                                    <i class="fa fa-search me-2"></i> Scan Ticket
+                                </button>
+                                <div id="scanner-loading" class="mt-3 d-none">
+                                    <div class="spinner-border text-primary spinning-loader" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p>Scanning your ticket...</p>
+                                </div>
+                            </div>
                         </form>
 
                         <div id="results-container" class="results-container d-none">
@@ -628,12 +636,23 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         
         lotteryTypeSelect.addEventListener('change', updateScanButton);
         
-        // Add a direct click handler for the scan button
-        scanButton.addEventListener('click', function(e) {
-            if (fileInput.files.length) {
+        // Add form submission handler for ticket uploads
+        ticketForm.addEventListener('submit', function(e) {
+            // Only validate file exists, then let form submit normally
+            if (!fileInput.files.length) {
                 e.preventDefault();
-                processForm(e);
+                alert('Please select an image file first');
+                return false;
             }
+            
+            // Show loading indicator
+            if (loadingIndicator) {
+                loadingIndicator.classList.remove('d-none');
+            }
+            
+            // Let the form submit normally
+            console.log('Form submitting with file:', fileInput.files[0].name);
+            return true;
         });
         
         function updateScanButton() {
