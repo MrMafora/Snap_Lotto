@@ -271,8 +271,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     <i class="fa fa-upload fa-2x mb-2"></i>
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
-                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
-                                    <label for="ticket-image" class="btn btn-primary btn-lg" id="file-select-btn">Select Image</label>
+                                    <div class="input-group">
+                                        <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="form-control" required>
+                                    </div>
                                 </div>
                             </div>
 
@@ -594,53 +595,55 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         }
         
         function handleFileSelect() {
-            const file = fileInput.files[0];
-            
-            if (file) {
-                // Check if file is an image
-                if (!file.type.match('image.*')) {
-                    alert('Please select an image file');
-                    fileInput.value = ''; // Clear the file input
-                    return;
-                }
+            try {
+                const file = fileInput.files[0];
                 
-                // Show loading message
-                console.log("Loading file preview for: " + file.name);
-                
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    // Set the preview image source
-                    if (ticketPreview) {
-                        ticketPreview.src = e.target.result;
-                        // Make the preview container visible
-                        if (previewContainer) {
-                            previewContainer.classList.remove('d-none');
-                            dropArea.classList.add('d-none'); // Hide the drop area when showing preview
-                        }
-                        // Update scan button state
-                        updateScanButton();
-                        console.log("File loaded successfully and preview displayed");
-                    } else {
-                        console.error("Preview element not found");
+                if (file) {
+                    // Check if file is an image
+                    if (!file.type.match('image.*')) {
+                        alert('Please select an image file');
+                        fileInput.value = ''; // Clear the file input
+                        return;
                     }
+                    
+                    // Show loading message
+                    console.log("Loading file preview for: " + file.name);
+                    
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        // Set the preview image source
+                        if (ticketPreview) {
+                            ticketPreview.src = e.target.result;
+                            // Make the preview container visible
+                            previewContainer.classList.remove('d-none');
+                            // Update scan button state
+                            scanButton.disabled = false;
+                            console.log("File loaded successfully and preview displayed");
+                        } else {
+                            console.log("No preview element, but file is selected");
+                            // Even without preview, we can enable the scan button
+                            scanButton.disabled = false;
+                        }
+                    }
+                    
+                    reader.onerror = function() {
+                        console.error("Error reading the image file");
+                        alert('Error reading the image file. Please try a different image.');
+                        fileInput.value = ''; // Clear the file input on error
+                        scanButton.disabled = true;
+                    }
+                    
+                    reader.readAsDataURL(file);
+                } else {
+                    // No file selected
+                    if (previewContainer) {
+                        previewContainer.classList.add('d-none');
+                    }
+                    scanButton.disabled = true;
                 }
-                
-                reader.onerror = function() {
-                    alert('Error reading the image file. Please try a different image.');
-                    fileInput.value = ''; // Clear the file input on error
-                    updateScanButton();
-                }
-                
-                reader.readAsDataURL(file);
-            } else {
-                if (previewContainer) {
-                    previewContainer.classList.add('d-none');
-                }
-                if (dropArea) {
-                    dropArea.classList.remove('d-none');
-                }
-                updateScanButton();
+            } catch (error) {
+                console.error("Error in handleFileSelect:", error);
             }
         }
         
