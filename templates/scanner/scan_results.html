@@ -10,61 +10,116 @@
 <div class="container my-5">
     <div class="row">
         <div class="col-md-8 mx-auto">
-            <h1 class="mb-4 text-center">Your Ticket Scan Results</h1>
+            <!-- Preview section for ticket image -->
+            <div class="text-center mb-4">
+                <h4 class="mb-3">Preview</h4>
+                {% if result.ticket_image_path %}
+                <div class="mb-3">
+                    <img src="{{ result.ticket_image_path }}" class="img-fluid rounded border" style="max-height: 300px;">
+                </div>
+                {% endif %}
+                <a href="{{ url_for('ticket_scanner') }}" class="btn btn-outline-danger">
+                    <i class="fa fa-times"></i> Remove
+                </a>
+            </div>
+            
+            <!-- Scan button - visible when preview is shown -->
+            <div class="text-center mb-4">
+                <a href="{{ url_for('scan_ticket') }}" class="btn btn-success">
+                    <i class="fa fa-search"></i> Scan Ticket
+                </a>
+            </div>
+            
+            <!-- Results section -->
+            <h4 class="mb-3 text-center">Scanning Results</h4>
             
             {% if result.success %}
+                <!-- Ticket Information -->
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">Ticket Information</h3>
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">Your Ticket</h5>
                     </div>
                     <div class="card-body">
                         {% if result.ticket_data %}
-                            <div class="row mb-3">
+                            <div class="row">
                                 <div class="col-md-6">
                                     <p><strong>Lottery Type:</strong> {{ result.ticket_data.lottery_type }}</p>
                                     <p><strong>Draw Number:</strong> {{ result.ticket_data.draw_number }}</p>
                                     <p><strong>Draw Date:</strong> {{ result.ticket_data.draw_date }}</p>
                                 </div>
                                 <div class="col-md-6">
-                                    <p><strong>Your Numbers:</strong></p>
-                                    <div class="d-flex flex-wrap">
-                                        {% for number in result.ticket_data.ticket_numbers %}
-                                            <div class="lottery-ball me-2 mb-2">{{ number }}</div>
-                                        {% endfor %}
-                                        
-                                        {% if result.ticket_data.bonus_number %}
-                                            <div class="lottery-ball bonus-ball me-2 mb-2">{{ result.ticket_data.bonus_number }}</div>
-                                        {% endif %}
-                                    </div>
+                                    {% if result.ticket_data.ticket_purchase %}
+                                    <p><strong>Ticket Purchase:</strong> {{ result.ticket_data.ticket_purchase }}</p>
+                                    {% endif %}
+                                    <p><strong>Your Cost:</strong> R{{ result.ticket_data.cost|default('12.50') }}</p>
                                 </div>
                             </div>
                         {% endif %}
-                        
-                        {% if result.draw_data %}
-                            <hr>
-                            <h4>Official Draw Results</h4>
+                    </div>
+                </div>
+                
+                <!-- Winning Numbers -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">Winning Numbers</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <p><strong>Draw #{{ result.draw_data.draw_number }}:</strong></p>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="d-flex flex-wrap">
+                                    {% for number in result.draw_data.numbers %}
+                                        <div class="ball ball-{{ loop.index }} {% if number in result.comparison.matching_numbers %}matched{% endif %}">
+                                            {{ number }}
+                                        </div>
+                                    {% endfor %}
+                                    
+                                    {% if result.draw_data.bonus_numbers %}
+                                        <div class="mx-2 d-flex align-items-center">+</div>
+                                        {% for bonus in result.draw_data.bonus_numbers %}
+                                            <div class="ball ball-bonus {% if result.comparison.bonus_match %}matched{% endif %}">
+                                                {{ bonus }}
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Played Numbers -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">Powerball Numbers</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if result.ticket_data %}
                             <div class="row mb-3">
-                                <div class="col-md-12">
-                                    <p><strong>Winning Numbers:</strong></p>
+                                <div class="col-md-3">
+                                    <p><strong>Your Numbers:</strong></p>
+                                </div>
+                                <div class="col-md-9">
                                     <div class="d-flex flex-wrap">
-                                        {% for number in result.draw_data.numbers %}
-                                            <div class="lottery-ball me-2 mb-2 {% if number in result.comparison.matching_numbers %}matched{% endif %}">
+                                        {% for number in result.ticket_data.ticket_numbers %}
+                                            <div class="ball ball-{{ loop.index }} {% if number in result.comparison.matching_numbers %}matched{% endif %}">
                                                 {{ number }}
                                                 {% if number in result.comparison.matching_numbers %}
-                                                    <span class="match-indicator">✓</span>
+                                                    <span class="check-mark">✓</span>
                                                 {% endif %}
                                             </div>
                                         {% endfor %}
                                         
-                                        {% if result.draw_data.bonus_numbers %}
-                                            {% for bonus in result.draw_data.bonus_numbers %}
-                                                <div class="lottery-ball bonus-ball me-2 mb-2 {% if result.comparison.bonus_match %}matched{% endif %}">
-                                                    {{ bonus }}
-                                                    {% if result.comparison.bonus_match %}
-                                                        <span class="match-indicator">✓</span>
-                                                    {% endif %}
-                                                </div>
-                                            {% endfor %}
+                                        {% if result.ticket_data.bonus_number %}
+                                            <div class="mx-2 d-flex align-items-center">+</div>
+                                            <div class="ball ball-bonus {% if result.comparison.bonus_match %}matched{% endif %}">
+                                                {{ result.ticket_data.bonus_number }}
+                                                {% if result.comparison.bonus_match %}
+                                                    <span class="check-mark">✓</span>
+                                                {% endif %}
+                                            </div>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -73,28 +128,81 @@
                     </div>
                 </div>
                 
-                {% if result.comparison %}
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header {% if result.comparison.won %}bg-success{% else %}bg-secondary{% endif %} text-white">
-                            <h3 class="card-title mb-0">Results</h3>
+                <!-- Powerball Plus Numbers -->
+                {% if result.ticket_data.lottery_type == 'Powerball' %}
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">Powerball Plus Numbers</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <p><strong>Draw #{{ result.draw_data.draw_number }}:</strong></p>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="d-flex flex-wrap">
+                                    {% for number in result.draw_data.numbers %}
+                                        <div class="ball ball-{{ loop.index }}">
+                                            {{ number }}
+                                        </div>
+                                    {% endfor %}
+                                    
+                                    {% if result.draw_data.bonus_numbers %}
+                                        <div class="mx-2 d-flex align-items-center">+</div>
+                                        {% for bonus in result.draw_data.bonus_numbers %}
+                                            <div class="ball ball-bonus">
+                                                {{ bonus }}
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
-                        <div class="card-body text-center">
-                            {% if result.comparison.won %}
-                                <h4 class="text-success mb-3">Congratulations! Your ticket is a winner!</h4>
-                                <p class="lead">You've won: <strong>{{ result.comparison.prize_tier }}</strong></p>
-                                <p>{{ result.comparison.description }}</p>
-                                <p>Matching Numbers: {{ result.comparison.matching_numbers|length }}</p>
-                                {% if result.comparison.bonus_match %}
-                                    <p>Bonus Number Matched: Yes</p>
-                                {% endif %}
-                            {% else %}
-                                <h4 class="text-secondary mb-3">Sorry, your ticket did not win.</h4>
-                                <p>You matched {{ result.comparison.matching_numbers|length }} number(s).</p>
-                                <p>Better luck next time!</p>
-                            {% endif %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <p><strong>Your Numbers:</strong></p>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="d-flex flex-wrap">
+                                    {% for number in result.ticket_data.ticket_numbers %}
+                                        <div class="ball ball-{{ loop.index }}">
+                                            {{ number }}
+                                        </div>
+                                    {% endfor %}
+                                    
+                                    {% if result.ticket_data.bonus_number %}
+                                        <div class="mx-2 d-flex align-items-center">+</div>
+                                        <div class="ball ball-bonus">
+                                            {{ result.ticket_data.bonus_number }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
                     </div>
+                </div>
                 {% endif %}
+                
+                <!-- Results and prize information -->
+                <div class="card shadow-sm mb-4 text-center">
+                    <div class="card-body">
+                        {% if result.comparison.won %}
+                            <h4 class="text-success mb-3">
+                                <i class="fa fa-trophy"></i> Congratulations!
+                            </h4>
+                            <p class="lead">You've won: <strong>{{ result.comparison.prize_tier }}</strong></p>
+                            <p>{{ result.comparison.description }}</p>
+                        {% else %}
+                            <div class="mb-3">
+                                <i class="fa fa-times-circle fa-3x text-secondary"></i>
+                            </div>
+                            <h4 class="text-secondary">No Prize</h4>
+                            <p>Sorry, your ticket did not match enough numbers to win a prize in this draw.</p>
+                            <p class="mt-2">Better luck next time!</p>
+                        {% endif %}
+                    </div>
+                </div>
             {% else %}
                 <div class="alert alert-danger">
                     <h4 class="alert-heading">Error Processing Ticket</h4>
@@ -111,35 +219,40 @@
 </div>
 
 <style>
-    .lottery-ball {
+    /* Lottery ball styling */
+    .ball {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
-        background-color: #f8f9fa;
-        border: 2px solid #dee2e6;
         font-weight: bold;
+        margin-right: 8px;
+        margin-bottom: 8px;
         position: relative;
-    }
-    
-    .bonus-ball {
-        background-color: #ffc107;
-        border-color: #e0a800;
-    }
-    
-    .matched {
-        background-color: #28a745;
         color: white;
-        border-color: #28a745;
+        font-size: 14px;
     }
     
-    .match-indicator {
+    /* Ball colors based on position */
+    .ball-1 { background-color: #dc3545; }
+    .ball-2 { background-color: #fd7e14; }
+    .ball-3 { background-color: #ffc107; color: #212529; }
+    .ball-4 { background-color: #20c997; }
+    .ball-5 { background-color: #0dcaf0; }
+    .ball-bonus { background-color: #ffc107; color: #212529; }
+    
+    /* Matched numbers get a checkmark */
+    .matched {
+        border: 2px solid #28a745;
+    }
+    
+    .check-mark {
         position: absolute;
         top: -5px;
         right: -3px;
-        background-color: #dc3545;
+        background-color: #28a745;
         color: white;
         border-radius: 50%;
         width: 16px;
