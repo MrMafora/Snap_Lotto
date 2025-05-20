@@ -613,9 +613,6 @@ def scan_ticket():
             file_extension=file_extension
         )
         
-        # Store the image path for display in results
-        result['ticket_image_path'] = f"/{upload_folder}/{filename}"
-        
         # Store result in session for results page
         session['scan_result'] = result
         
