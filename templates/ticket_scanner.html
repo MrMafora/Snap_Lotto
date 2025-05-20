@@ -546,7 +546,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         }, 500);
         
         // File selection via button
-        fileSelectBtn.addEventListener('click', () => {
+        fileSelectBtn.addEventListener('click', function(e) {
+            e.preventDefault();
             fileInput.click();
         });
         
