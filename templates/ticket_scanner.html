@@ -757,7 +757,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             // Create form data
             const formData = new FormData(ticketForm);
             
-            // Process ticket directly without ad overlay
+            // Process ticket directly with simplified path
             submitTicket(formData);
             
             return false; // Prevent default form submission
@@ -1347,30 +1347,17 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 document.documentElement.style.overflow = '';
                 document.documentElement.style.height = '';
                 
-                // Close any ad overlays first to ensure clean state
-                const adOverlay = document.getElementById('ad-overlay');
-                if (adOverlay) {
-                    adOverlay.style.display = 'none';
-                }
-                const adOverlayLoading = document.getElementById('ad-overlay-loading');
-                if (adOverlayLoading) {
-                    adOverlayLoading.style.display = 'none';
-                }
-                const adOverlayResults = document.getElementById('ad-overlay-results');
-                if (adOverlayResults) {
-                    adOverlayResults.style.display = 'none';
-                }
+                // Remove any references to ad overlays
+                // We're not using ads in the ticket scanner anymore
                 
-                // Add all state classes to body
+                // Add class to indicate we're showing results
                 document.body.classList.add('showing-results');
-                document.body.classList.add('results-mode');
-                document.body.classList.add('ad-completed');
                 
-                // Hide scan form container
+                // Show scan form container with "Scan Another" button option
                 const scanFormContainer = document.getElementById('scan-form-container');
                 if (scanFormContainer) {
-                    scanFormContainer.classList.add('d-none');
-                    scanFormContainer.style.display = 'none';
+                    // We keep the scan form visible but add a class to show it's in results mode
+                    scanFormContainer.classList.add('results-active');
                 }
                 
                 // Prepare the results container first
