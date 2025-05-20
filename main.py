@@ -572,13 +572,15 @@ def scan_ticket():
     """Process uploaded ticket image and return results"""
     # Check if file is included in the request
     if 'ticket_image' not in request.files:
-        return jsonify({"error": "No ticket image provided"}), 400
+        flash("No ticket image provided", "error")
+        return redirect(url_for('ticket_scanner'))
         
     file = request.files['ticket_image']
     
     # If user does not select file, browser also submits an empty part without filename
     if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
+        flash("No selected file", "error")
+        return redirect(url_for('ticket_scanner'))
         
     # Get the lottery type if specified (optional)
     lottery_type = request.form.get('lottery_type', '')
@@ -595,6 +597,17 @@ def scan_ticket():
         # Read the file data
         image_data = file.read()
         
+        # Save the image to a temporary directory
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{timestamp}_{secure_filename(file.filename)}"
+        upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, filename)
+        
+        # We need to seek back to start of file after reading
+        file.seek(0)
+        file.save(file_path)
+        
         # Import the ticket scanner module
         import ticket_scanner as ts
         
@@ -606,11 +619,37 @@ def scan_ticket():
             file_extension=file_extension
         )
         
-        # Return JSON response with results
-        return jsonify(result)
+        # Store result in session for results page
+        session['scan_result'] = result
+        
+        if result.get('success', False):
+            flash("Ticket processed successfully", "success")
+            return redirect(url_for('scan_results'))
+        else:
+            flash(f"Error processing ticket: {result.get('error', 'Unknown error')}", "error")
+            return redirect(url_for('ticket_scanner'))
+            
     except Exception as e:
         logger.exception(f"Error processing ticket: {str(e)}")
-        return jsonify({"error": f"Error processing ticket: {str(e)}"}), 500
+        flash(f"Error processing ticket: {str(e)}", "error")
+        return redirect(url_for('ticket_scanner'))
+
+@app.route('/scan-results')
+def scan_results():
+    """Display the results of a scanned ticket"""
+    result = session.get('scan_result')
+    
+    if not result:
+        flash("No scan results available. Please scan a ticket first.", "warning")
+        return redirect(url_for('ticket_scanner'))
+    
+    # Additional SEO metadata
+    meta_description = "View your South African lottery ticket scan results. Find out if you've won with our advanced ticket scanner."
+    
+    return render_template('scanner/scan_results.html', 
+                          title="Ticket Scan Results | Check If You've Won",
+                          result=result,
+                          meta_description=meta_description)
 
 # Guides Routes
 @app.route('/guides')
