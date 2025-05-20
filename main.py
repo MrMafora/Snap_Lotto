@@ -560,8 +560,17 @@ def ticket_scanner():
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
 
-# Scan ticket route has been removed as requested
-        
+@app.route('/process-ticket', methods=['POST'])
+def process_ticket():
+    """Process a lottery ticket image and return JSON results"""
+    if 'ticket_image' not in request.files:
+        return jsonify({'success': False, 'error': 'No file uploaded'})
+    
+    file = request.files['ticket_image']
+    
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'})
+    
     # Get the lottery type if specified (optional)
     lottery_type = request.form.get('lottery_type', '')
     
@@ -602,17 +611,12 @@ def ticket_scanner():
         # Store result in session for results page
         session['scan_result'] = result
         
-        if result.get('success', False):
-            flash("Ticket processed successfully", "success")
-            return redirect(url_for('scan_results'))
-        else:
-            flash(f"Error processing ticket: {result.get('error', 'Unknown error')}", "error")
-            return redirect(url_for('ticket_scanner'))
-            
+        return jsonify(result)
     except Exception as e:
-        logger.exception(f"Error processing ticket: {str(e)}")
-        flash(f"Error processing ticket: {str(e)}", "error")
-        return redirect(url_for('ticket_scanner'))
+        logger.error(f"Error processing ticket: {str(e)}")
+        return jsonify({'success': False, 'error': f"Error processing ticket: {str(e)}"})
+
+# Scan ticket functionality is now handled by the /process-ticket endpoint
 
 @app.route('/scan-results')
 def scan_results():

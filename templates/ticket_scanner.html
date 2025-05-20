@@ -773,7 +773,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             loadingIndicator.style.display = 'block';
             
             // Add CSRF token to request headers and submit
-            fetch('/scan-ticket', {
+            fetch('/process-ticket', {
                 method: 'POST',
                 body: formData,
                 headers: {
