@@ -560,21 +560,7 @@ def ticket_scanner():
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
 
-@app.route('/scan-ticket', methods=['POST'])
-@csrf.exempt
-def scan_ticket():
-    """Process uploaded ticket image and return results"""
-    # Check if file is included in the request
-    if 'ticket_image' not in request.files:
-        flash("No ticket image provided", "error")
-        return redirect(url_for('ticket_scanner'))
-        
-    file = request.files['ticket_image']
-    
-    # If user does not select file, browser also submits an empty part without filename
-    if file.filename == '':
-        flash("No selected file", "error")
-        return redirect(url_for('ticket_scanner'))
+# Scan ticket route has been removed as requested
         
     # Get the lottery type if specified (optional)
     lottery_type = request.form.get('lottery_type', '')
