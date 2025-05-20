@@ -36,6 +36,7 @@ class TicketScanner:
         # Check for required API keys
         self.has_gemini_api_key = bool(os.environ.get('GEMINI_API_KEY'))
         self.has_openai_api_key = bool(os.environ.get('OPENAI_API_KEY'))
+        self.has_anthropic_api_key = bool(os.environ.get('Lotto_scape_ANTHROPIC_KEY'))
         
         # Set default settings
         self.ocr_timeout = 30  # seconds
@@ -43,11 +44,12 @@ class TicketScanner:
         
         # Initialize API usage tracking
         self.api_requests = {
+            'anthropic_ocr': 0,
             'gemini_ocr': 0,
             'openai_verification': 0
         }
         
-        logger.info(f"Ticket scanner initialized. Gemini API available: {self.has_gemini_api_key}, OpenAI API available: {self.has_openai_api_key}")
+        logger.info(f"Ticket scanner initialized. Claude Vision available: {self.has_anthropic_api_key}, Gemini API available: {self.has_gemini_api_key}, OpenAI API available: {self.has_openai_api_key}")
 
     def scan_ticket(self, image_path: str) -> Dict[str, Any]:
         """
@@ -112,47 +114,112 @@ class TicketScanner:
             return {'success': False, 'error': 'OCR service unavailable'}
         
         try:
-            # Import GeminiIntegration here to avoid circular imports
-            from ocr_integrations import GeminiIntegration
-            
-            # Create a Gemini integration instance
-            gemini = GeminiIntegration()
+            # Read and encode the image for API request
+            with open(image_path, 'rb') as img_file:
+                image_data = base64.b64encode(img_file.read()).decode('utf-8')
             
             # Log API usage
             self._log_api_request('gemini_ocr')
             self.api_requests['gemini_ocr'] += 1
             
-            # Process the ticket image using Gemini integration
-            result = gemini.process_lottery_ticket(image_path)
+            # Construct the API request URL
+            api_key = os.environ.get('GEMINI_API_KEY')
+            model = "gemini-1.5-pro-latest"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
             
-            # If successful, ensure the result has a success flag
-            if result and not isinstance(result, dict):
-                logger.error(f"Unexpected result format from Gemini integration: {type(result)}")
-                return {'success': False, 'error': 'Unexpected response format from OCR service'}
+            # Create the request payload with the analyze prompt
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {
+                                "text": "Analyze this South African lottery ticket and extract the following information:\n"
+                                        "1. Lottery Type (e.g., Lottery, Powerball, Daily Lottery)\n"
+                                        "2. Draw Number\n"
+                                        "3. Draw Date\n"
+                                        "4. Ticket Numbers (the player's selected numbers)\n"
+                                        "5. Any bonus or Powerball number\n\n"
+                                        "Return ONLY a JSON object with these fields: "
+                                        "lottery_type, draw_number, draw_date (YYYY-MM-DD format), "
+                                        "player_numbers (as string array with leading zeros where necessary), "
+                                        "bonus_number (if applicable)."
+                            },
+                            {
+                                "inline_data": {
+                                    "mime_type": "image/jpeg",
+                                    "data": image_data
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.1,
+                    "topP": 0.8,
+                    "maxOutputTokens": 2048,
+                    "responseMimeType": "application/json"
+                }
+            }
             
-            if result and not result.get('error', None):
-                # Add success flag if not present
-                if 'success' not in result:
-                    result['success'] = True
+            # Make API request
+            response = requests.post(url, json=payload, timeout=30)
+            
+            # Process the response
+            if response.status_code == 200:
+                response_data = response.json()
                 
-                # Ensure numbers are properly formatted with leading zeros
-                if 'player_numbers' in result:
-                    result['player_numbers'] = [str(num).zfill(2) for num in result['player_numbers']]
-                
-                # Convert bonus_number to bonus_numbers list if needed
-                if 'bonus_number' in result and 'bonus_numbers' not in result:
-                    bonus = result.pop('bonus_number', None)
-                    if bonus:
-                        result['bonus_numbers'] = [str(bonus).zfill(2)]
-                    else:
-                        result['bonus_numbers'] = []
-                
-                logger.info(f"Successfully extracted ticket information: {result}")
-                return result
-            else:
-                error = result.get('error') if result else 'Failed to process ticket image'
-                logger.error(f"Error in Gemini OCR processing: {error}")
-                return {'success': False, 'error': error}
+                # Extract text from response
+                if "candidates" in response_data and response_data["candidates"]:
+                    candidate = response_data["candidates"][0]
+                    
+                    if "content" in candidate and candidate["content"]["parts"]:
+                        for part in candidate["content"]["parts"]:
+                            if "text" in part:
+                                text = part["text"]
+                                
+                                # Extract JSON from the response text
+                                try:
+                                    # Handle markdown code blocks if present
+                                    if "```json" in text:
+                                        json_start = text.find("```json") + 7
+                                        json_end = text.find("```", json_start)
+                                        json_str = text[json_start:json_end].strip()
+                                    elif "```" in text:
+                                        json_start = text.find("```") + 3
+                                        json_end = text.find("```", json_start)
+                                        json_str = text[json_start:json_end].strip()
+                                    else:
+                                        json_str = text
+                                    
+                                    # Parse the JSON
+                                    result = json.loads(json_str)
+                                    
+                                    # Add success flag if not present
+                                    result['success'] = True
+                                    
+                                    # Ensure numbers are properly formatted with leading zeros
+                                    if 'player_numbers' in result:
+                                        result['player_numbers'] = [str(num).zfill(2) for num in result['player_numbers']]
+                                    
+                                    # Convert bonus_number to bonus_numbers list if needed
+                                    if 'bonus_number' in result and 'bonus_numbers' not in result:
+                                        bonus = result.pop('bonus_number', None)
+                                        if bonus:
+                                            result['bonus_numbers'] = [str(bonus).zfill(2)]
+                                        else:
+                                            result['bonus_numbers'] = []
+                                    
+                                    logger.info(f"Successfully extracted ticket information: {result}")
+                                    return result
+                                except json.JSONDecodeError as e:
+                                    error_msg = f"Failed to parse JSON from Gemini response: {str(e)}"
+                                    logger.error(error_msg)
+                                    return {'success': False, 'error': error_msg}
+            
+            # If we got here, the API request failed or the response format was unexpected
+            error_msg = f"Failed to extract data from Gemini API response: {response.text if response.status_code == 200 else f'Status {response.status_code}'}"
+            logger.error(error_msg)
+            return {'success': False, 'error': error_msg}
             
         except Exception as e:
             logger.error(f"Error extracting ticket information: {str(e)}")
@@ -574,7 +641,16 @@ def process_ticket_image(image_data, lottery_type='', draw_number=None, file_ext
         scanner = TicketScanner()
         
         # Process the ticket image
+        logger.info(f"Scanning ticket at path: {temp_file_path}")
         result = scanner.scan_ticket(temp_file_path)
+        
+        # Log the result summary
+        if result and result.get('success', False):
+            logger.info(f"Ticket scan successful: {result.get('lottery_type', 'Unknown')}, Draw #{result.get('draw_number', 'Unknown')}")
+            if 'comparison' in result and result['comparison'].get('match_count', 0) > 0:
+                logger.info(f"Match found! {result['comparison'].get('match_count', 0)} numbers matched, prize tier: {result['comparison'].get('prize_tier', 'Unknown')}")
+        else:
+            logger.error(f"Ticket scan failed: {result.get('error', 'Unknown error')}")
         
         return result
     except Exception as e:

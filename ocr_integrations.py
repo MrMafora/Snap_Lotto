@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 # Import models
 from models import db, LotteryResult, APIRequestLog as ApiRequestLog
-from ticket_scanner import TicketScanner
 
 class GeminiIntegration:
     """Integration with Google Gemini API for OCR and lottery ticket processing"""
