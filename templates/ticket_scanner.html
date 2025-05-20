@@ -604,14 +604,26 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                     return;
                 }
                 
+                // Show loading message
+                console.log("Loading file preview for: " + file.name);
+                
                 const reader = new FileReader();
                 
                 reader.onload = function(e) {
-                    ticketPreview.src = e.target.result;
-                    previewContainer.classList.remove('d-none');
-                    // Update scan button state
-                    updateScanButton();
-                    console.log("File loaded successfully");
+                    // Set the preview image source
+                    if (ticketPreview) {
+                        ticketPreview.src = e.target.result;
+                        // Make the preview container visible
+                        if (previewContainer) {
+                            previewContainer.classList.remove('d-none');
+                            dropArea.classList.add('d-none'); // Hide the drop area when showing preview
+                        }
+                        // Update scan button state
+                        updateScanButton();
+                        console.log("File loaded successfully and preview displayed");
+                    } else {
+                        console.error("Preview element not found");
+                    }
                 }
                 
                 reader.onerror = function() {
@@ -622,7 +634,12 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 
                 reader.readAsDataURL(file);
             } else {
-                previewContainer.classList.add('d-none');
+                if (previewContainer) {
+                    previewContainer.classList.add('d-none');
+                }
+                if (dropArea) {
+                    dropArea.classList.remove('d-none');
+                }
                 updateScanButton();
             }
         }
