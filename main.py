@@ -555,16 +555,10 @@ def ticket_scanner():
     # Additional SEO metadata
     meta_description = "Check if your South African lottery ticket is a winner. Our free ticket scanner uses advanced technology to analyze and verify your lottery tickets instantly."
     
-    # Check API availability
-    gemini_key = os.environ.get('GEMINI_API_KEY')
-    openai_key = os.environ.get('OPENAI_API_KEY')
-    
-    return render_template('simple_scanner.html', 
+    return render_template('ticket_scanner.html', 
                           title="Lottery Ticket Scanner | Check If You've Won",
                           breadcrumbs=breadcrumbs,
-                          meta_description=meta_description,
-                          gemini_available=bool(gemini_key),
-                          openai_available=bool(openai_key))
+                          meta_description=meta_description)
 
 @app.route('/scan-ticket', methods=['POST'])
 @csrf.exempt

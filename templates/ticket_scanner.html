@@ -1238,11 +1238,8 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 resultsContainer.classList.add('d-none');
             }
             
-            // Process the ticket without ads
-            submitTicket(new FormData(ticketForm));
-            
-            // Return false to ensure the form never submits to prevent page reloads
-            return false;
+            // Regular form submission that will go to scan-ticket endpoint
+            return true;
         });
         
         // Enable body scrolling
