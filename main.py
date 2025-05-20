@@ -555,7 +555,7 @@ def ticket_scanner():
     # Additional SEO metadata
     meta_description = "Check if your South African lottery ticket is a winner. Our free ticket scanner uses advanced technology to analyze and verify your lottery tickets instantly."
     
-    return render_template('ticket_scanner.html', 
+    return render_template('basic_scanner.html', 
                           title="Lottery Ticket Scanner | Check If You've Won",
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
