@@ -26,8 +26,6 @@ logger = logging.getLogger(__name__)
 # Import models
 from models import db, LotteryResult, APIRequestLog
 
-# Note: We'll import GeminiIntegration in scan_ticket to avoid circular imports
-
 class TicketScanner:
     """Enhanced lottery ticket scanner with multi-model OCR and result verification"""
 
@@ -36,7 +34,6 @@ class TicketScanner:
         # Check for required API keys
         self.has_gemini_api_key = bool(os.environ.get('GEMINI_API_KEY'))
         self.has_openai_api_key = bool(os.environ.get('OPENAI_API_KEY'))
-        self.has_anthropic_api_key = bool(os.environ.get('Lotto_scape_ANTHROPIC_KEY'))
         
         # Set default settings
         self.ocr_timeout = 30  # seconds
@@ -44,12 +41,11 @@ class TicketScanner:
         
         # Initialize API usage tracking
         self.api_requests = {
-            'anthropic_ocr': 0,
             'gemini_ocr': 0,
             'openai_verification': 0
         }
         
-        logger.info(f"Ticket scanner initialized. Claude Vision available: {self.has_anthropic_api_key}, Gemini API available: {self.has_gemini_api_key}, OpenAI API available: {self.has_openai_api_key}")
+        logger.info(f"Ticket scanner initialized. Gemini API available: {self.has_gemini_api_key}, OpenAI API available: {self.has_openai_api_key}")
 
     def scan_ticket(self, image_path: str) -> Dict[str, Any]:
         """
@@ -64,19 +60,7 @@ class TicketScanner:
         logger.info(f"Processing ticket image: {image_path}")
         
         # Step 1: Extract ticket information using OCR
-        # Try with Claude Vision first if available
-        if self.has_anthropic_api_key:
-            logger.info("Attempting to extract ticket information with Claude Vision")
-            ticket_data = self._extract_ticket_information_with_anthropic(image_path)
-            if ticket_data and ticket_data.get('success'):
-                logger.info("Successfully extracted ticket information with Claude Vision")
-            else:
-                logger.warning("Claude Vision extraction failed, falling back to Gemini")
-                ticket_data = self._extract_ticket_information(image_path)
-        else:
-            logger.info("Using Gemini for ticket extraction")
-            ticket_data = self._extract_ticket_information(image_path)
-        
+        ticket_data = self._extract_ticket_information(image_path)
         if not ticket_data or not ticket_data.get('success'):
             logger.error("Failed to extract ticket information")
             return {'success': False, 'error': 'Failed to extract ticket information from image'}
@@ -130,10 +114,6 @@ class TicketScanner:
             with open(image_path, 'rb') as img_file:
                 image_data = base64.b64encode(img_file.read()).decode('utf-8')
             
-            # Log API usage
-            self._log_api_request('gemini_ocr')
-            self.api_requests['gemini_ocr'] += 1
-            
             # Construct the API request URL
             api_key = os.environ.get('GEMINI_API_KEY')
             model = "gemini-1.5-pro-latest"
@@ -145,16 +125,12 @@ class TicketScanner:
                     {
                         "parts": [
                             {
-                                "text": "Analyze this South African lottery ticket and extract the following information:\n"
-                                        "1. Lottery Type (e.g., Lottery, Powerball, Daily Lottery)\n"
-                                        "2. Draw Number\n"
-                                        "3. Draw Date\n"
-                                        "4. Ticket Numbers (the player's selected numbers)\n"
-                                        "5. Any bonus or Powerball number\n\n"
-                                        "Return ONLY a JSON object with these fields: "
-                                        "lottery_type, draw_number, draw_date (YYYY-MM-DD format), "
-                                        "player_numbers (as string array with leading zeros where necessary), "
-                                        "bonus_number (if applicable)."
+                                "text": "Analyze this lottery ticket image and extract the following information in JSON format:\n"
+                                       "- lottery_type: The type of lottery (e.g., Lottery, Powerball, Daily Lottery)\n"
+                                       "- draw_number: The draw number (numeric ID of the draw)\n"
+                                       "- draw_date: The date of the draw in YYYY-MM-DD format\n"
+                                       "- player_numbers: The numbers selected by the player\n"
+                                       "- bonus_number: The bonus number or Powerball number (if applicable)\n"
                             },
                             {
                                 "inline_data": {
@@ -167,13 +143,16 @@ class TicketScanner:
                 ],
                 "generationConfig": {
                     "temperature": 0.1,
-                    "topP": 0.8,
-                    "maxOutputTokens": 2048,
-                    "responseMimeType": "application/json"
+                    "topP": 0.95,
+                    "maxOutputTokens": 2048
                 }
             }
             
-            # Make API request
+            # Log API usage
+            self._log_api_request('gemini_ocr')
+            self.api_requests['gemini_ocr'] += 1
+            
+            # Make the API request
             response = requests.post(url, json=payload, timeout=30)
             
             # Process the response
@@ -204,32 +183,30 @@ class TicketScanner:
                                         json_str = text
                                     
                                     # Parse the JSON
-                                    result = json.loads(json_str)
+                                    extracted_data = json.loads(json_str)
                                     
-                                    # Add success flag if not present
-                                    result['success'] = True
-                                    
-                                    # Ensure numbers are properly formatted with leading zeros
-                                    if 'player_numbers' in result:
-                                        result['player_numbers'] = [str(num).zfill(2) for num in result['player_numbers']]
+                                    # Standardize the response format
+                                    extracted_data['success'] = True
                                     
                                     # Convert bonus_number to bonus_numbers list if needed
-                                    if 'bonus_number' in result and 'bonus_numbers' not in result:
-                                        bonus = result.pop('bonus_number', None)
-                                        if bonus:
-                                            result['bonus_numbers'] = [str(bonus).zfill(2)]
-                                        else:
-                                            result['bonus_numbers'] = []
+                                    if 'bonus_number' in extracted_data and 'bonus_numbers' not in extracted_data:
+                                        bonus = extracted_data.pop('bonus_number', None)
+                                        extracted_data['bonus_numbers'] = [str(bonus).zfill(2)] if bonus else []
                                     
-                                    logger.info(f"Successfully extracted ticket information: {result}")
-                                    return result
+                                    # Ensure all numbers are formatted consistently as strings with leading zeros
+                                    if 'player_numbers' in extracted_data:
+                                        extracted_data['player_numbers'] = [str(num).zfill(2) for num in extracted_data['player_numbers']]
+                                    
+                                    logger.info(f"Successfully extracted ticket information: {extracted_data}")
+                                    return extracted_data
+                                    
                                 except json.JSONDecodeError as e:
                                     error_msg = f"Failed to parse JSON from Gemini response: {str(e)}"
                                     logger.error(error_msg)
                                     return {'success': False, 'error': error_msg}
             
-            # If we got here, the API request failed or the response format was unexpected
-            error_msg = f"Failed to extract data from Gemini API response: {response.text if response.status_code == 200 else f'Status {response.status_code}'}"
+            # If we got here, the API request failed or response format was unexpected
+            error_msg = f"Failed to extract data from Gemini API response: {response.text}"
             logger.error(error_msg)
             return {'success': False, 'error': error_msg}
             
@@ -338,12 +315,8 @@ class TicketScanner:
                 result_text = response.choices[0].message.content
                 
                 try:
-                    # Parse the JSON response - ensure we have a valid string
-                    if result_text and isinstance(result_text, str):
-                        verified_data = json.loads(result_text)
-                    else:
-                        logger.error(f"Invalid response format from OpenAI: {result_text}")
-                        return {'success': False, 'error': "Invalid response format from verification service"}
+                    # Parse the JSON response
+                    verified_data = json.loads(result_text)
                     
                     # Add success flag and source
                     verified_data['success'] = True
@@ -436,38 +409,17 @@ class TicketScanner:
             Comparison results with winning status
         """
         try:
-            # Get normalized lottery type
-            lottery_type = self._normalize_lottery_type(
-                ticket_data.get('lottery_type', draw_data.get('lottery_type', ''))
-            )
-            
-            # Handle player numbers (ensure proper formatting)
-            player_numbers = []
-            if 'player_numbers' in ticket_data and ticket_data['player_numbers']:
-                player_numbers = ticket_data['player_numbers']
-            elif 'ticket_numbers' in ticket_data and ticket_data['ticket_numbers']:
-                player_numbers = ticket_data['ticket_numbers']
-                
-            # Standardize number formats (with leading zeros)
-            player_numbers = [str(num).zfill(2) for num in player_numbers]
-            
-            # Handle winning numbers from draw data
-            winning_numbers = [str(num).zfill(2) for num in draw_data.get('numbers', [])]
-            
-            # Handle bonus/powerball numbers
-            player_bonus = None
-            if 'bonus_number' in ticket_data and ticket_data['bonus_number']:
-                player_bonus = str(ticket_data['bonus_number']).zfill(2)
-                
-            winning_bonus = [str(num).zfill(2) for num in draw_data.get('bonus_numbers', [])]
-            
-            # Convert to sets for intersection operations
-            player_numbers_set = set(player_numbers)
-            winning_numbers_set = set(winning_numbers)
+            # Extract the numbers
+            ticket_numbers = set(ticket_data.get('player_numbers', []))
+            winning_numbers = set(draw_data.get('numbers', []))
+            bonus_numbers = set(draw_data.get('bonus_numbers', []))
             
             # Find matching numbers
-            matching_numbers = player_numbers_set.intersection(winning_numbers_set)
-            has_bonus = (player_bonus in winning_bonus) if player_bonus and winning_bonus else False
+            matching_numbers = ticket_numbers.intersection(winning_numbers)
+            has_bonus = any(num in bonus_numbers for num in ticket_numbers)
+            
+            # Determine winning status based on lottery type
+            lottery_type = draw_data.get('lottery_type', '')
             
             # Calculate prize tier based on lottery type and number of matches
             if 'Lottery' in lottery_type:
@@ -479,33 +431,19 @@ class TicketScanner:
             else:
                 result = {'prize_tier': 'Unknown', 'won': False}
             
-            # Build comprehensive result data
+            # Add matching details to result
             result.update({
-                'success': True,
-                'lottery_type': lottery_type,
-                'draw_number': draw_data.get('draw_number', 'Unknown'),
-                'draw_date': draw_data.get('draw_date', 'Unknown'),
-                'ticket_numbers': player_numbers,
-                'winning_numbers': winning_numbers,
                 'matching_numbers': list(matching_numbers),
-                'match_count': len(matching_numbers),
                 'bonus_match': has_bonus,
-                'bonus_number': player_bonus,
-                'winning_bonus': winning_bonus[0] if winning_bonus else None,
                 'draws_checked': 1
             })
             
-            logger.info(f"Ticket comparison complete for {lottery_type}: {len(matching_numbers)} matches, bonus match: {has_bonus}")
+            logger.info(f"Comparison complete: {result}")
             return result
             
         except Exception as e:
             logger.error(f"Error comparing ticket to results: {str(e)}")
-            return {
-                'success': False,
-                'error': f"Error processing result comparison: {str(e)}",
-                'won': False, 
-                'prize_tier': 'Error'
-            }
+            return {'error': str(e), 'won': False, 'prize_tier': 'Error'}
 
     def _calculate_lottery_prize(self, match_count: int, has_bonus: bool, lottery_type: str) -> Dict[str, Any]:
         """Calculate prize tier for Lottery game types"""
@@ -596,176 +534,17 @@ class TicketScanner:
         
         return cleaned
 
-    def _extract_ticket_information_with_anthropic(self, image_path: str) -> Dict[str, Any]:
-        """
-        Use Anthropic Claude Vision to extract information from lottery ticket image
-        
-        Args:
-            image_path: Path to the ticket image file
-            
-        Returns:
-            Dictionary with extracted ticket details
-        """
-        # Check if Anthropic API key is available
-        if not self.has_anthropic_api_key:
-            logger.error("Anthropic API key not available for Claude Vision processing")
-            return {'success': False, 'error': 'Claude Vision service unavailable'}
-            
-        try:
-            # Import necessary functions from ocr_processor
-            from ocr_processor import get_anthropic_client
-            import base64
-            from datetime import datetime
-            
-            # Log API usage
-            self._log_api_request('anthropic_ocr')
-            self.api_requests['anthropic_ocr'] += 1
-            
-            # Read and encode the image
-            with open(image_path, 'rb') as img_file:
-                base64_content = base64.b64encode(img_file.read()).decode('utf-8')
-                
-            # Get Anthropic client
-            client = get_anthropic_client()
-            if not client:
-                logger.error("Failed to initialize Claude client")
-                return {'success': False, 'error': 'Claude Vision client initialization failed'}
-                
-            # System prompt for ticket analysis
-            system_prompt = """You are an expert in analyzing South African lottery tickets.
-Extract the following information with high precision:
-1. Lottery Type (e.g., Lottery, Powerball, Daily Lottery)
-2. Draw Number (the numeric identifier of the draw)
-3. Draw Date (in YYYY-MM-DD format)
-4. Numbers selected by the player (the main numbers on the ticket)
-5. Any bonus or Powerball numbers (if applicable)
-
-Important naming conventions:
-- Always use "Lottery" instead of "Lotto"
-- "Powerball" is one word (not Power-ball or Power Ball)
-- For Lottery Plus games, use "Lottery Plus 1" and "Lottery Plus 2"
-- For Daily Lottery, ensure it's "Daily Lottery" not "Daily Lotto"
-
-Return only a clean JSON object with these fields:
-{
-  "lottery_type": "string", 
-  "draw_number": "string", 
-  "draw_date": "YYYY-MM-DD",
-  "player_numbers": ["01", "02", ...],
-  "bonus_numbers": ["01"] or []
-}
-
-Ensure all numbers use 2-digit format with leading zeros (e.g., "01" not "1").
-For Daily Lottery, bonus_numbers should be an empty array.
-"""
-            
-            # Process with Claude Vision
-            response = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=1500,
-                system=system_prompt,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": "image/jpeg",
-                                    "data": base64_content
-                                }
-                            },
-                            {
-                                "type": "text",
-                                "text": "Analyze this South African lottery ticket and extract the key information as JSON."
-                            }
-                        ]
-                    }
-                ]
-            )
-            
-            # Extract the response content
-            content = response.content[0].text if response and response.content else ""
-            
-            # Parse the JSON from the response
-            try:
-                # Extract JSON if enclosed in code blocks
-                if "```json" in content:
-                    json_start = content.find("```json") + 7
-                    json_end = content.find("```", json_start)
-                    json_str = content[json_start:json_end].strip()
-                elif "```" in content:
-                    json_start = content.find("```") + 3
-                    json_end = content.find("```", json_start)
-                    json_str = content[json_start:json_end].strip()
-                else:
-                    # If no code blocks, try to parse the whole text
-                    json_str = content
-                
-                # Parse the JSON
-                result = json.loads(json_str)
-                
-                # Add success flag
-                result['success'] = True
-                
-                # Standardize the format of player numbers
-                if 'player_numbers' in result:
-                    result['player_numbers'] = [str(num).zfill(2) for num in result['player_numbers']]
-                else:
-                    result['player_numbers'] = []
-                
-                # Standardize the format of bonus numbers
-                if 'bonus_number' in result and 'bonus_numbers' not in result:
-                    bonus = result.pop('bonus_number', None)
-                    if bonus:
-                        result['bonus_numbers'] = [str(bonus).zfill(2)]
-                    else:
-                        result['bonus_numbers'] = []
-                elif 'bonus_numbers' not in result:
-                    result['bonus_numbers'] = []
-                else:
-                    result['bonus_numbers'] = [str(num).zfill(2) for num in result['bonus_numbers']]
-                
-                # Normalize lottery type
-                if 'lottery_type' in result:
-                    result['lottery_type'] = self._normalize_lottery_type(result['lottery_type'])
-                
-                logger.info(f"Successfully extracted ticket information with Claude Vision: {result}")
-                return result
-                
-            except json.JSONDecodeError as e:
-                error_msg = f"Failed to parse JSON from Claude response: {str(e)}"
-                logger.error(error_msg)
-                return {'success': False, 'error': error_msg}
-                
-        except Exception as e:
-            error_msg = f"Error extracting ticket information with Claude Vision: {str(e)}"
-            logger.error(error_msg)
-            return {'success': False, 'error': error_msg}
-
     def _log_api_request(self, api_type: str) -> None:
         """
         Log API request for tracking and billing purposes
         
         Args:
-            api_type: Type of API request (e.g., 'gemini_ocr', 'openai_verification', 'anthropic_ocr')
+            api_type: Type of API request (e.g., 'gemini_ocr', 'openai_verification')
         """
         try:
-            # Determine service based on api_type
-            service = None
-            if api_type == 'anthropic_ocr':
-                service = 'anthropic'
-            elif api_type == 'gemini_ocr':
-                service = 'google_gemini'
-            elif api_type == 'openai_verification':
-                service = 'openai'
-            else:
-                service = api_type.split('_')[0]
-                
             # Use the existing APIRequestLog.log_request method
             APIRequestLog.log_request(
-                service=service,
+                service=api_type.split('_')[0],  # 'gemini' or 'openai'
                 endpoint=api_type.split('_')[1] if '_' in api_type else api_type,  # 'ocr' or 'verification'
                 status='success'
             )
@@ -812,16 +591,7 @@ def process_ticket_image(image_data, lottery_type='', draw_number=None, file_ext
         scanner = TicketScanner()
         
         # Process the ticket image
-        logger.info(f"Scanning ticket at path: {temp_file_path}")
         result = scanner.scan_ticket(temp_file_path)
-        
-        # Log the result summary
-        if result and result.get('success', False):
-            logger.info(f"Ticket scan successful: {result.get('lottery_type', 'Unknown')}, Draw #{result.get('draw_number', 'Unknown')}")
-            if 'comparison' in result and result['comparison'].get('match_count', 0) > 0:
-                logger.info(f"Match found! {result['comparison'].get('match_count', 0)} numbers matched, prize tier: {result['comparison'].get('prize_tier', 'Unknown')}")
-        else:
-            logger.error(f"Ticket scan failed: {result.get('error', 'Unknown error')}")
         
         return result
     except Exception as e:
