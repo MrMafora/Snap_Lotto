@@ -266,21 +266,23 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                                     placeholder="Leave blank to check latest draw">
                             </div>
 
-                            <div class="ticket-drop-area" id="drop-area">
-                                <div class="mb-2">
-                                    <i class="fa fa-upload fa-2x mb-2"></i>
+                            <div class="ticket-drop-area border rounded p-4 text-center mb-4" id="drop-area">
+                                <div class="mb-3">
+                                    <i class="fa fa-upload fa-2x mb-3"></i>
                                     <h5 class="mb-2">Drag and drop your ticket image here</h5>
                                     <p class="mb-2">or</p>
                                     <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
-                                    <label for="ticket-image" class="btn btn-primary btn-lg" id="file-select-btn">Select Image</label>
+                                    <label for="ticket-image" class="btn btn-primary" id="file-select-btn">Select Image</label>
                                 </div>
                             </div>
 
                             <div id="preview-container" class="text-center d-none">
-                                <h6>Preview</h6>
-                                <img id="ticket-preview" class="ticket-preview img-fluid rounded" src="">
-                                <div class="mt-2">
-                                    <button type="button" id="remove-image" class="btn btn-sm btn-outline-danger">
+                                <h4 class="mb-3">Preview</h4>
+                                <div class="mb-3">
+                                    <img id="ticket-preview" class="ticket-preview img-fluid rounded border" src="" style="max-height: 400px;">
+                                </div>
+                                <div class="mb-3">
+                                    <button type="button" id="remove-image" class="btn btn-outline-danger">
                                         <i class="fa fa-times"></i> Remove
                                     </button>
                                 </div>
@@ -612,15 +614,19 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 reader.onload = function(e) {
                     // Set the preview image source
                     if (ticketPreview) {
+                        // Set the image source with the data URL
                         ticketPreview.src = e.target.result;
-                        // Make the preview container visible
-                        if (previewContainer) {
-                            previewContainer.classList.remove('d-none');
-                            dropArea.classList.add('d-none'); // Hide the drop area when showing preview
-                        }
-                        // Update scan button state
-                        updateScanButton();
-                        console.log("File loaded successfully and preview displayed");
+                        // Make sure the preview is visible after a short delay
+                        setTimeout(function() {
+                            // Make the preview container visible
+                            if (previewContainer) {
+                                previewContainer.classList.remove('d-none');
+                                dropArea.classList.add('d-none'); // Hide the drop area when showing preview
+                            }
+                            // Update scan button state
+                            updateScanButton();
+                            console.log("File loaded successfully and preview displayed");
+                        }, 100);
                     } else {
                         console.error("Preview element not found");
                     }
@@ -648,6 +654,7 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
             ticketPreview.src = '';
             fileInput.value = '';
             previewContainer.classList.add('d-none');
+            dropArea.classList.remove('d-none');
             updateScanButton();
         });
         
