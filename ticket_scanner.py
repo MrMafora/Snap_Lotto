@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 # Import models
 from models import db, LotteryResult, APIRequestLog
 
+# Note: We'll import GeminiIntegration in scan_ticket to avoid circular imports
+
 class TicketScanner:
     """Enhanced lottery ticket scanner with multi-model OCR and result verification"""
 
@@ -110,105 +112,47 @@ class TicketScanner:
             return {'success': False, 'error': 'OCR service unavailable'}
         
         try:
-            # Read and encode the image for API request
-            with open(image_path, 'rb') as img_file:
-                image_data = base64.b64encode(img_file.read()).decode('utf-8')
+            # Import GeminiIntegration here to avoid circular imports
+            from ocr_integrations import GeminiIntegration
             
-            # Construct the API request URL
-            api_key = os.environ.get('GEMINI_API_KEY')
-            model = "gemini-1.5-pro-latest"
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-            
-            # Create the request payload with the analyze prompt
-            payload = {
-                "contents": [
-                    {
-                        "parts": [
-                            {
-                                "text": "Analyze this lottery ticket image and extract the following information in JSON format:\n"
-                                       "- lottery_type: The type of lottery (e.g., Lottery, Powerball, Daily Lottery)\n"
-                                       "- draw_number: The draw number (numeric ID of the draw)\n"
-                                       "- draw_date: The date of the draw in YYYY-MM-DD format\n"
-                                       "- player_numbers: The numbers selected by the player\n"
-                                       "- bonus_number: The bonus number or Powerball number (if applicable)\n"
-                            },
-                            {
-                                "inline_data": {
-                                    "mime_type": "image/jpeg",
-                                    "data": image_data
-                                }
-                            }
-                        ]
-                    }
-                ],
-                "generationConfig": {
-                    "temperature": 0.1,
-                    "topP": 0.95,
-                    "maxOutputTokens": 2048
-                }
-            }
+            # Create a Gemini integration instance
+            gemini = GeminiIntegration()
             
             # Log API usage
             self._log_api_request('gemini_ocr')
             self.api_requests['gemini_ocr'] += 1
             
-            # Make the API request
-            response = requests.post(url, json=payload, timeout=30)
+            # Process the ticket image using Gemini integration
+            result = gemini.process_lottery_ticket(image_path)
             
-            # Process the response
-            if response.status_code == 200:
-                response_data = response.json()
+            # If successful, ensure the result has a success flag
+            if result and not isinstance(result, dict):
+                logger.error(f"Unexpected result format from Gemini integration: {type(result)}")
+                return {'success': False, 'error': 'Unexpected response format from OCR service'}
+            
+            if result and not result.get('error', None):
+                # Add success flag if not present
+                if 'success' not in result:
+                    result['success'] = True
                 
-                # Extract text from response
-                if "candidates" in response_data and response_data["candidates"]:
-                    candidate = response_data["candidates"][0]
-                    
-                    if "content" in candidate and candidate["content"]["parts"]:
-                        for part in candidate["content"]["parts"]:
-                            if "text" in part:
-                                text = part["text"]
-                                
-                                # Extract JSON from the response text
-                                try:
-                                    # Handle markdown code blocks if present
-                                    if "```json" in text:
-                                        json_start = text.find("```json") + 7
-                                        json_end = text.find("```", json_start)
-                                        json_str = text[json_start:json_end].strip()
-                                    elif "```" in text:
-                                        json_start = text.find("```") + 3
-                                        json_end = text.find("```", json_start)
-                                        json_str = text[json_start:json_end].strip()
-                                    else:
-                                        json_str = text
-                                    
-                                    # Parse the JSON
-                                    extracted_data = json.loads(json_str)
-                                    
-                                    # Standardize the response format
-                                    extracted_data['success'] = True
-                                    
-                                    # Convert bonus_number to bonus_numbers list if needed
-                                    if 'bonus_number' in extracted_data and 'bonus_numbers' not in extracted_data:
-                                        bonus = extracted_data.pop('bonus_number', None)
-                                        extracted_data['bonus_numbers'] = [str(bonus).zfill(2)] if bonus else []
-                                    
-                                    # Ensure all numbers are formatted consistently as strings with leading zeros
-                                    if 'player_numbers' in extracted_data:
-                                        extracted_data['player_numbers'] = [str(num).zfill(2) for num in extracted_data['player_numbers']]
-                                    
-                                    logger.info(f"Successfully extracted ticket information: {extracted_data}")
-                                    return extracted_data
-                                    
-                                except json.JSONDecodeError as e:
-                                    error_msg = f"Failed to parse JSON from Gemini response: {str(e)}"
-                                    logger.error(error_msg)
-                                    return {'success': False, 'error': error_msg}
-            
-            # If we got here, the API request failed or response format was unexpected
-            error_msg = f"Failed to extract data from Gemini API response: {response.text}"
-            logger.error(error_msg)
-            return {'success': False, 'error': error_msg}
+                # Ensure numbers are properly formatted with leading zeros
+                if 'player_numbers' in result:
+                    result['player_numbers'] = [str(num).zfill(2) for num in result['player_numbers']]
+                
+                # Convert bonus_number to bonus_numbers list if needed
+                if 'bonus_number' in result and 'bonus_numbers' not in result:
+                    bonus = result.pop('bonus_number', None)
+                    if bonus:
+                        result['bonus_numbers'] = [str(bonus).zfill(2)]
+                    else:
+                        result['bonus_numbers'] = []
+                
+                logger.info(f"Successfully extracted ticket information: {result}")
+                return result
+            else:
+                error = result.get('error') if result else 'Failed to process ticket image'
+                logger.error(f"Error in Gemini OCR processing: {error}")
+                return {'success': False, 'error': error}
             
         except Exception as e:
             logger.error(f"Error extracting ticket information: {str(e)}")
@@ -315,8 +259,12 @@ class TicketScanner:
                 result_text = response.choices[0].message.content
                 
                 try:
-                    # Parse the JSON response
-                    verified_data = json.loads(result_text)
+                    # Parse the JSON response - ensure we have a valid string
+                    if result_text and isinstance(result_text, str):
+                        verified_data = json.loads(result_text)
+                    else:
+                        logger.error(f"Invalid response format from OpenAI: {result_text}")
+                        return {'success': False, 'error': "Invalid response format from verification service"}
                     
                     # Add success flag and source
                     verified_data['success'] = True
@@ -409,17 +357,38 @@ class TicketScanner:
             Comparison results with winning status
         """
         try:
-            # Extract the numbers
-            ticket_numbers = set(ticket_data.get('player_numbers', []))
-            winning_numbers = set(draw_data.get('numbers', []))
-            bonus_numbers = set(draw_data.get('bonus_numbers', []))
+            # Get normalized lottery type
+            lottery_type = self._normalize_lottery_type(
+                ticket_data.get('lottery_type', draw_data.get('lottery_type', ''))
+            )
+            
+            # Handle player numbers (ensure proper formatting)
+            player_numbers = []
+            if 'player_numbers' in ticket_data and ticket_data['player_numbers']:
+                player_numbers = ticket_data['player_numbers']
+            elif 'ticket_numbers' in ticket_data and ticket_data['ticket_numbers']:
+                player_numbers = ticket_data['ticket_numbers']
+                
+            # Standardize number formats (with leading zeros)
+            player_numbers = [str(num).zfill(2) for num in player_numbers]
+            
+            # Handle winning numbers from draw data
+            winning_numbers = [str(num).zfill(2) for num in draw_data.get('numbers', [])]
+            
+            # Handle bonus/powerball numbers
+            player_bonus = None
+            if 'bonus_number' in ticket_data and ticket_data['bonus_number']:
+                player_bonus = str(ticket_data['bonus_number']).zfill(2)
+                
+            winning_bonus = [str(num).zfill(2) for num in draw_data.get('bonus_numbers', [])]
+            
+            # Convert to sets for intersection operations
+            player_numbers_set = set(player_numbers)
+            winning_numbers_set = set(winning_numbers)
             
             # Find matching numbers
-            matching_numbers = ticket_numbers.intersection(winning_numbers)
-            has_bonus = any(num in bonus_numbers for num in ticket_numbers)
-            
-            # Determine winning status based on lottery type
-            lottery_type = draw_data.get('lottery_type', '')
+            matching_numbers = player_numbers_set.intersection(winning_numbers_set)
+            has_bonus = (player_bonus in winning_bonus) if player_bonus and winning_bonus else False
             
             # Calculate prize tier based on lottery type and number of matches
             if 'Lottery' in lottery_type:
@@ -431,19 +400,33 @@ class TicketScanner:
             else:
                 result = {'prize_tier': 'Unknown', 'won': False}
             
-            # Add matching details to result
+            # Build comprehensive result data
             result.update({
+                'success': True,
+                'lottery_type': lottery_type,
+                'draw_number': draw_data.get('draw_number', 'Unknown'),
+                'draw_date': draw_data.get('draw_date', 'Unknown'),
+                'ticket_numbers': player_numbers,
+                'winning_numbers': winning_numbers,
                 'matching_numbers': list(matching_numbers),
+                'match_count': len(matching_numbers),
                 'bonus_match': has_bonus,
+                'bonus_number': player_bonus,
+                'winning_bonus': winning_bonus[0] if winning_bonus else None,
                 'draws_checked': 1
             })
             
-            logger.info(f"Comparison complete: {result}")
+            logger.info(f"Ticket comparison complete for {lottery_type}: {len(matching_numbers)} matches, bonus match: {has_bonus}")
             return result
             
         except Exception as e:
             logger.error(f"Error comparing ticket to results: {str(e)}")
-            return {'error': str(e), 'won': False, 'prize_tier': 'Error'}
+            return {
+                'success': False,
+                'error': f"Error processing result comparison: {str(e)}",
+                'won': False, 
+                'prize_tier': 'Error'
+            }
 
     def _calculate_lottery_prize(self, match_count: int, has_bonus: bool, lottery_type: str) -> Dict[str, Any]:
         """Calculate prize tier for Lottery game types"""
