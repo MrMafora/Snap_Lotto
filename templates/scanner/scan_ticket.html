@@ -69,7 +69,7 @@
                         </div>
                     </div>
                     
-                    <form action="{{ url_for('scanner.scan') }}" method="post" enctype="multipart/form-data">
+                    <form action="{{ url_for('scanner.scan_ticket') }}" method="post" enctype="multipart/form-data">
                         <div class="upload-container">
                             <p>Take a clear photo of your ticket or upload an existing image</p>
                             <input type="file" name="ticket_image" id="ticket_image" accept=".jpg,.jpeg,.png,.gif" style="display: none;">

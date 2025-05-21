@@ -52,7 +52,7 @@ def start_proxy():
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            preexec_fn=lambda: os.nice(-10)  # Higher priority
+            # Remove preexec_fn which is causing issues on Replit
         )
         
         # Start a thread to read output from the proxy
