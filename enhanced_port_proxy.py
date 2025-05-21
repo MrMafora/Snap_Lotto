@@ -164,7 +164,7 @@ def proxy(path):
             data=request.get_data(),
             cookies=request.cookies,
             allow_redirects=False,
-            timeout=30  # Increased timeout for large responses
+            timeout=90  # Significantly increased timeout for data-intensive operations
         )
         
         # Create a Flask response
