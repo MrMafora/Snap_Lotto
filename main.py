@@ -461,7 +461,7 @@ def index():
 
 @app.route('/admin')
 @login_required
-def admin_dashboard():
+def admin():
     """Admin dashboard for system administration"""
     if not current_user.is_admin:
         flash('You must be an admin to access this page.', 'danger')
