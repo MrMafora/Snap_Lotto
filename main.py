@@ -459,7 +459,7 @@ def index():
                             meta_description=meta_description,
                             breadcrumbs=breadcrumbs)
 
-@app.route('/admin')
+@app.route('/admin_dashboard')
 @login_required
 def admin_dashboard():
     """Admin dashboard for system administration"""
@@ -539,7 +539,7 @@ def api_tracking_dashboard():
 
     # Define breadcrumbs for SEO
     breadcrumbs = [
-        {"name": "Admin Dashboard", "url": url_for('admin')}
+        {"name": "Admin Dashboard", "url": url_for('admin_dashboard')}
     ]
 
     # Define SEO metadata
