@@ -33,17 +33,26 @@ def start_proxy():
         env = os.environ.copy()
         env['PORT'] = '8080'
         
+        # Kill any existing python processes running the proxy
+        try:
+            os.system("pkill -f flask_port_proxy.py")
+            logger.info("Killed any existing proxy processes")
+            time.sleep(1)  # Give processes time to terminate
+        except Exception as e:
+            logger.warning(f"Error killing existing processes: {e}")
+        
         # Start proxy
         cmd = ["python", "flask_port_proxy.py"]
         
         logger.info(f"Executing: {' '.join(cmd)}")
         
-        # Start process
+        # Start process with higher priority
         proxy_process = subprocess.Popen(
             cmd,
             env=env,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            preexec_fn=lambda: os.nice(-10)  # Higher priority
         )
         
         # Start a thread to read output from the proxy

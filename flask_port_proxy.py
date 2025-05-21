@@ -82,16 +82,28 @@ def proxy(path):
             return "The application service is currently unavailable. Please try again in a moment.", 503
             
         # Forward the request to the target
-        resp = requests.request(
-            method=request.method,
-            url=target_url,
-            headers=headers,
-            params=request.args.to_dict(flat=False),  # Convert MultiDict to a compatible format
-            data=request.get_data(),
-            cookies=request.cookies,
-            allow_redirects=False,
-            timeout=30  # Reduced timeout for faster response on failure
-        )
+        try:
+            logger.info(f"Forwarding {request.method} request to {target_url}")
+            
+            # Use a shorter timeout for initial connection (5 seconds)
+            # but longer for response (90 seconds) for data-heavy operations
+            resp = requests.request(
+                method=request.method,
+                url=target_url,
+                headers=headers,
+                params=request.args.to_dict(flat=False),  # Convert MultiDict to a compatible format
+                data=request.get_data(),
+                cookies=request.cookies,
+                allow_redirects=False,
+                timeout=(5, 90)  # (connect timeout, read timeout)
+            )
+            logger.info(f"Response received from {target_url} with status {resp.status_code}")
+        except requests.exceptions.ConnectTimeout:
+            logger.error(f"Connection timeout to {target_url}")
+            return "Application server is not responding (connection timeout). Please try again.", 503
+        except requests.exceptions.ReadTimeout:
+            logger.error(f"Read timeout from {target_url}")
+            return "Operation took too long to complete. Please try again or try a simpler request.", 503
         
         # Create a Flask response
         response = Response(
