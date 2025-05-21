@@ -28,12 +28,14 @@
                                 <div class="col-md-6">
                                     <p><strong>Your Numbers:</strong></p>
                                     <div class="d-flex flex-wrap">
-                                        {% for number in result.ticket_data.ticket_numbers %}
+                                        {% for number in result.ticket_data.player_numbers %}
                                             <div class="lottery-ball me-2 mb-2">{{ number }}</div>
                                         {% endfor %}
                                         
-                                        {% if result.ticket_data.bonus_number %}
-                                            <div class="lottery-ball bonus-ball me-2 mb-2">{{ result.ticket_data.bonus_number }}</div>
+                                        {% if result.ticket_data.bonus_numbers %}
+                                            {% for bonus in result.ticket_data.bonus_numbers %}
+                                                <div class="lottery-ball bonus-ball me-2 mb-2">{{ bonus }}</div>
+                                            {% endfor %}
                                         {% endif %}
                                     </div>
                                 </div>
@@ -103,7 +105,7 @@
             {% endif %}
             
             <div class="text-center mt-4">
-                <a href="{{ url_for('ticket_scanner') }}" class="btn btn-primary">Scan Another Ticket</a>
+                <a href="{{ url_for('scanner.scan_ticket') }}" class="btn btn-primary">Scan Another Ticket</a>
                 <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Back to Home</a>
             </div>
         </div>
