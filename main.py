@@ -461,8 +461,75 @@ def index():
 
 @app.route('/admin')
 @login_required
-def admin():
-    """Admin dashboard page"""
+def admin_dashboard():
+    """Admin dashboard for system administration"""
+    if not current_user.is_admin:
+        flash('You must be an admin to access this page.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Get system statistics
+    try:
+        import psutil
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        cpu_percent = psutil.cpu_percent(interval=0.5)
+        
+        system_stats = {
+            'cpu_usage': f"{cpu_percent}%",
+            'memory_usage': f"{memory.percent}%",
+            'disk_usage': f"{disk.percent}%"
+        }
+    except Exception as e:
+        app.logger.error(f"Error getting system stats: {str(e)}")
+        system_stats = {
+            'cpu_usage': 'N/A',
+            'memory_usage': 'N/A',
+            'disk_usage': 'N/A'
+        }
+    
+    # Get recent API logs
+    try:
+        from models import APIRequestLog
+        recent_api_logs = APIRequestLog.query.order_by(APIRequestLog.created_at.desc()).limit(10).all()
+    except Exception as e:
+        app.logger.error(f"Error getting API logs: {str(e)}")
+        recent_api_logs = []
+    
+    # Get recent imports
+    try:
+        from models import ImportHistory
+        recent_imports = ImportHistory.query.order_by(ImportHistory.timestamp.desc()).limit(5).all()
+    except Exception as e:
+        app.logger.error(f"Error getting import history: {str(e)}")
+        recent_imports = []
+    
+    # Get recent health checks
+    try:
+        import health_monitor
+        import sqlite3
+        conn = sqlite3.connect(health_monitor.health_db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM health_checks ORDER BY timestamp DESC LIMIT 5")
+        recent_health_checks = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+    except Exception as e:
+        app.logger.error(f"Error getting health checks: {str(e)}")
+        recent_health_checks = []
+    
+    return render_template(
+        'admin/dashboard.html',
+        title="Admin Dashboard",
+        system_stats=system_stats,
+        recent_api_logs=recent_api_logs,
+        recent_imports=recent_imports,
+        recent_health_checks=recent_health_checks
+    )
+
+@app.route('/admin/api-tracking')
+@login_required
+def api_tracking_dashboard():
+    """Dashboard for tracking API requests to external services"""
     if not current_user.is_admin:
         flash('You must be an admin to access this page.', 'danger')
         return redirect(url_for('index'))
@@ -3003,10 +3070,10 @@ def system_metrics():
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
 
-# API Request Tracking routes
+# API Request Tracking routes 
 @app.route('/admin/api-tracking')
 @login_required
-def api_tracking_dashboard():
+def api_tracking_view():
     """Dashboard for tracking API requests to external services"""
     from datetime import datetime, timedelta
     from models import APIRequestLog
