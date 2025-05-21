@@ -81,7 +81,7 @@ class LotteryAnalyzer:
         self.analysis_results = {}
         
     def _generate_frequency_chart(self, frequency, top_numbers, lottery_type, results):
-        """Generate frequency chart and add to results
+        """Generate frequency chart data and add to results
         
         Args:
             frequency (numpy.ndarray): Frequency array for each number
@@ -89,127 +89,18 @@ class LotteryAnalyzer:
             lottery_type (str): Type of lottery
             results (dict): Results dictionary to update
         """
+        # Skip chart generation for API responses to improve speed
+        # Just store numerical data for faster response times
+        
         # Sort top numbers by frequency, highest first
         sorted_top = sorted(top_numbers, key=lambda x: x[1], reverse=True)
         
-        # Set up color palette - more distinct colors with visual hierarchy
-        # Use 9 colors instead of default to ensure better distinction
-        colors = plt.cm.viridis(np.linspace(0, 1, 9))
-        
-        # Add 10% padding on each side for visual distinction
-        bar_width = 0.8  
-        
-        # Generate frequency chart with enhanced styling
-        plt.figure(figsize=(10, 6))
-        bars = plt.bar(
-            range(1, len(frequency) + 1), 
-            frequency, 
-            width=bar_width,
-            edgecolor='gray',
-            linewidth=0.5,
-            zorder=3  # Make bars appear above grid lines
-        )
-        
-        # Add rounded corners and shadows to bars
-        for bar in bars:
-            # Get the current color of the bar
-            bar_color = bar.get_facecolor()
-            
-            # Highlight top 3 numbers with specific colors
-            if bar.get_x() + bar_width/2 in [n[0] for n in sorted_top[:3]]:
-                rank = [n[0] for n in sorted_top[:3]].index(bar.get_x() + bar_width/2)
-                if rank == 0:  # 1st place
-                    bar.set_color('red')
-                elif rank == 1:  # 2nd place
-                    bar.set_color('gold')
-                elif rank == 2:  # 3rd place
-                    bar.set_color('green')
-            
-            # Add styling to enhance visual appeal
-            # Note: Using simpler styling instead of patheffects which isn't available
-            bar.set_edgecolor('darkgray')
-            bar.set_linewidth(0.8)
-        
-        plt.xlabel('Number', fontweight='bold', fontsize=12)
-        plt.ylabel('Frequency', fontweight='bold', fontsize=12)
-        plt.title(f'Number Frequency for {lottery_type}', fontsize=14, pad=20)
-        
-        # Enhance grid with lighter lines
-        plt.grid(axis='y', alpha=0.3, linestyle='--', zorder=0)
-        
-        # Increase spacing to prevent overlap with X-axis
-        plt.subplots_adjust(bottom=0.15, top=0.85)
-        
-        # Add text with the top 5 most frequent numbers
-        top_text = "Top 5 numbers:\n" + "\n".join([f"#{n}: {f} times" for n, f in sorted_top[:5]])
-        plt.annotate(top_text, xy=(0.02, 0.95), xycoords='axes fraction', 
-                    fontsize=10, bbox=dict(
-                        boxstyle="round,pad=0.5", 
-                        facecolor='white', 
-                        alpha=0.9,
-                        edgecolor='lightgray'
-                    ))
-        
-        # Save chart with enhanced quality
-        img_path = os.path.join(STATIC_DIR, f'frequency_{lottery_type.replace(" ", "_")}.png')
-        plt.savefig(img_path, dpi=120, bbox_inches='tight')
-        plt.close()
-        
-        # Also save as base64 for direct embedding
-        img_buffer = io.BytesIO()
-        
-        # Create the same chart again for buffer
-        plt.figure(figsize=(10, 6))
-        bars = plt.bar(
-            range(1, len(frequency) + 1), 
-            frequency, 
-            width=bar_width,
-            edgecolor='gray',
-            linewidth=0.5,
-            zorder=3
-        )
-        
-        # Add rounded corners and shadows to bars
-        for bar in bars:
-            # Highlight top 3 numbers with specific colors
-            if bar.get_x() + bar_width/2 in [n[0] for n in sorted_top[:3]]:
-                rank = [n[0] for n in sorted_top[:3]].index(bar.get_x() + bar_width/2)
-                if rank == 0:  # 1st place
-                    bar.set_color('red')
-                elif rank == 1:  # 2nd place
-                    bar.set_color('gold')
-                elif rank == 2:  # 3rd place
-                    bar.set_color('green')
-            
-            # Add styling to enhance visual appeal
-            # Note: Using simpler styling instead of patheffects which isn't available
-            bar.set_edgecolor('darkgray')
-            bar.set_linewidth(0.8)
-        
-        plt.xlabel('Number', fontweight='bold', fontsize=12)
-        plt.ylabel('Frequency', fontweight='bold', fontsize=12)
-        plt.title(f'Number Frequency for {lottery_type}', fontsize=14, pad=20)
-        plt.grid(axis='y', alpha=0.3, linestyle='--', zorder=0)
-        plt.subplots_adjust(bottom=0.15, top=0.85)
-        plt.annotate(top_text, xy=(0.02, 0.95), xycoords='axes fraction', 
-                    fontsize=10, bbox=dict(
-                        boxstyle="round,pad=0.5", 
-                        facecolor='white', 
-                        alpha=0.9,
-                        edgecolor='lightgray'
-                    ))
-        
-        plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight')
-        plt.close()
-        img_buffer.seek(0)
-        img_base64 = base64.b64encode(img_buffer.read()).decode('utf-8')
-        
-        # Store results
+        # Store results without generating charts
         results[lottery_type] = {
             'frequency': frequency.tolist(),
             'top_numbers': sorted_top,
             'chart_path': f'/static/analysis/frequency_{lottery_type.replace(" ", "_")}.png',
-            'chart_base64': img_base64
+            'chart_base64': None  # Skip image generation for faster API response
         }
         
     def get_lottery_data(self, lottery_type=None, days=365):
@@ -2279,31 +2170,34 @@ def register_analysis_routes(app, db):
     @app.route('/api/lottery-analysis/frequency')
     @csrf.exempt
     def api_frequency_analysis():
-        """API endpoint for frequency analysis data"""
-        print("=== FREQUENCY ANALYSIS API CALLED ===")
-        print(f"User authenticated: {current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else 'No current_user'}")
+        """Optimized API endpoint for frequency analysis data"""
+        logger.info("=== FREQUENCY ANALYSIS API CALLED ===")
         
         # Check if user is admin
         is_admin = False
         try:
             is_admin = current_user.is_authenticated and current_user.is_admin
-            print(f"User is admin: {is_admin}")
         except Exception as e:
-            print(f"Error checking admin status: {str(e)}")
+            logger.warning(f"Error checking admin status: {str(e)}")
         
         # NOTE: We're temporarily disabling authentication check for debugging
         # if not current_user.is_authenticated or not current_user.is_admin:
         #     return jsonify({"error": "Unauthorized"}), 403
         
         try:
+            # Check cache first (use request args as cache key)
+            cache_key = f"api_freq_{request.args.get('lottery_type')}_{request.args.get('days')}"
+            if cache_key in chart_cache:
+                logger.info(f"Returning cached frequency analysis for {cache_key}")
+                return json.dumps(chart_cache[cache_key], cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
+            
             # Get lottery type - handle empty strings and convert 'all' to None for proper handling
             lottery_type = request.args.get('lottery_type', None)
             if lottery_type == '' or lottery_type == 'all':
                 lottery_type = None  # Use None to indicate "all lottery types"
                 
-            # Get time period parameter
+            # Get time period parameter with strict validation
             days_str = request.args.get('days', '365')
-            print(f"Request args: lottery_type={lottery_type}, days={days_str}")
             
             # Convert days to int with validation
             try:
@@ -2313,30 +2207,36 @@ def register_analysis_routes(app, db):
                     days = int(days_str)
                     if days <= 0:
                         days = 365
+                        
+                # Limit range to prevent excessive processing
+                if days > 3650:  # Max ~10 years
+                    days = 3650
             except ValueError:
                 days = 365
-                print(f"Invalid days value: {days_str}, using default 365")
+                logger.warning(f"Invalid days value: {days_str}, using default 365")
             
-            print(f"Performing analysis for: lottery_type={lottery_type}, days={days}")
+            logger.info(f"Performing optimized analysis for: lottery_type={lottery_type}, days={days}")
             
-            # Use a try-except block to catch any errors during analysis
-            try:
-                data = analyzer.analyze_frequency(lottery_type, days)
-                print(f"Analysis completed successfully with {len(data.keys() if isinstance(data, dict) else [])} items")
-                
-                # Ensure we have some data to return
-                if not data or (isinstance(data, dict) and not data):
-                    return jsonify({"error": "No data available for the selected lottery type and time period."}), 404
-                    
-                # Return the analysis data with custom encoder for NumPy data types
-                return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
-            except Exception as e:
-                logger.error(f"Error during frequency analysis: {str(e)}")
-                return jsonify({"error": f"Analysis error: {str(e)}"}), 500
+            # Run analysis with optimized version
+            data = analyzer.analyze_frequency(lottery_type, days)
+            
+            # Ensure we have some data to return
+            if not data or (isinstance(data, dict) and not data):
+                return jsonify({"error": "No data available for the selected lottery type and time period."}), 404
+            
+            # Cache results for future requests
+            chart_cache[cache_key] = data
+            
+            # Return the analysis data with custom encoder for NumPy data types
+            return json.dumps(data, cls=NumpyEncoder), 200, {'Content-Type': 'application/json'}
+            
         except Exception as e:
             # Log the error for debugging
-            print(f"ERROR IN FREQUENCY ANALYSIS API: {str(e)}")
             logger.error(f"Error in frequency analysis API: {str(e)}", exc_info=True)
+            return jsonify({
+                "error": f"Analysis failed: {str(e)}",
+                "status": "error"
+            }), 500
             # Format error response consistently
             error_response = json.dumps({
                 "error": f"Analysis failed: {str(e)}",
