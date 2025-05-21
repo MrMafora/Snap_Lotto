@@ -129,8 +129,8 @@ class TicketScanner:
                                        "- lottery_type: The type of lottery (e.g., Lottery, Powerball, Daily Lottery)\n"
                                        "- draw_number: The draw number (numeric ID of the draw)\n"
                                        "- draw_date: The date of the draw in YYYY-MM-DD format\n"
-                                       "- player_numbers: The numbers selected by the player\n"
-                                       "- bonus_number: The bonus number or Powerball number (if applicable)\n"
+                                       "- ticket_numbers: The numbers selected by the player\n"
+                                       "- bonus_numbers: The bonus number or Powerball number if applicable (as an array)\n"
                             },
                             {
                                 "inline_data": {

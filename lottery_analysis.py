@@ -347,10 +347,15 @@ class LotteryAnalyzer:
                                 # Handle all possible type conversions safely
                                 if isinstance(num, str):
                                     # Try to convert string to float first, then to int to handle decimal strings
+                                    if num.strip() == '':
+                                        continue
                                     num_int = int(float(num))
-                                else:
+                                elif isinstance(num, (int, float)):
                                     # Convert directly to int for numeric types
                                     num_int = int(num)
+                                else:
+                                    # Skip other types
+                                    continue
                                     
                                 if 0 <= num_int <= max_number:
                                     frequency[num_int] += 1

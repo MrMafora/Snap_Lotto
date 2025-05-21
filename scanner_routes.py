@@ -310,7 +310,7 @@ def index():
                           gemini_available=gemini_available,
                           openai_available=openai_available)
 
-@scanner_bp.route('/scan-ticket', methods=['GET', 'POST'])
+@scanner_bp.route('/scan', methods=['GET', 'POST'])
 def scan_ticket():
     """Handle ticket scanning"""
     # Check API keys availability
