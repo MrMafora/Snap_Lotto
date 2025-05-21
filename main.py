@@ -459,7 +459,7 @@ def index():
                             meta_description=meta_description,
                             breadcrumbs=breadcrumbs)
 
-@app.route('/admin_dashboard')
+@app.route('/admin')
 @login_required
 def admin_dashboard():
     """Admin dashboard for system administration"""
