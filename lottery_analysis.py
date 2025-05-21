@@ -224,11 +224,17 @@ class LotteryAnalyzer:
         
         Args:
             lottery_type (str, optional): Specific lottery type to analyze
-            days (int, optional): Number of days of historical data
+            days (int or str, optional): Number of days of historical data
             
         Returns:
             dict: Analysis results including frequency charts
         """
+        # Make sure days is converted to an integer
+        try:
+            days = int(days)
+        except (ValueError, TypeError):
+            days = 365
+            logger.warning(f"Invalid days parameter: {days}. Using default 365 days.")
         try:
             # Step 1: Get and validate data
             df = self.get_lottery_data(lottery_type, days)
@@ -322,9 +328,14 @@ class LotteryAnalyzer:
                     
                     # Find the highest number across all draws
                     for col in number_cols:
-                        max_val = lt_df[col].max()
-                        if max_val and max_val > max_number:
-                            max_number = int(max_val)
+                        try:
+                            # Convert to numeric first to handle any string values
+                            numeric_col = pd.to_numeric(lt_df[col], errors='coerce')
+                            max_val = numeric_col.max()
+                            if not pd.isna(max_val) and max_val > max_number:
+                                max_number = int(max_val)
+                        except Exception as e:
+                            logger.warning(f"Error processing column {col}: {e}")
                     
                     # Create a frequency array for all possible numbers
                     frequency = np.zeros(max_number + 1, dtype=int)
