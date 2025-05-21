@@ -270,11 +270,19 @@ class LotteryAnalyzer:
                     for col in all_number_cols:
                         for num in all_types_df[col].dropna():
                             try:
-                                num_int = int(num) if isinstance(num, str) else num
+                                # Handle all possible type conversions safely
+                                if isinstance(num, str):
+                                    # Try to convert string to float first, then to int to handle decimal strings
+                                    num_int = int(float(num))
+                                else:
+                                    # Convert directly to int for numeric types
+                                    num_int = int(num)
+                                    
                                 if 0 <= num_int <= max_number:
                                     combined_frequency[num_int] += 1
                             except (ValueError, TypeError):
                                 # Skip invalid number formats
+                                logger.debug(f"Skipping invalid lottery number: {num}, type: {type(num)}")
                                 continue
                     
                     # Remove the 0 index since there's no ball numbered 0
@@ -325,11 +333,19 @@ class LotteryAnalyzer:
                     for col in number_cols:
                         for num in lt_df[col].dropna():
                             try:
-                                num_int = int(num) if isinstance(num, str) else num
+                                # Handle all possible type conversions safely
+                                if isinstance(num, str):
+                                    # Try to convert string to float first, then to int to handle decimal strings
+                                    num_int = int(float(num))
+                                else:
+                                    # Convert directly to int for numeric types
+                                    num_int = int(num)
+                                    
                                 if 0 <= num_int <= max_number:
                                     frequency[num_int] += 1
                             except (ValueError, TypeError):
                                 # Skip invalid number formats
+                                logger.debug(f"Skipping invalid lottery number: {num}, type: {type(num)}")
                                 continue
                     
                     # Remove the 0 index since there's no ball numbered 0
