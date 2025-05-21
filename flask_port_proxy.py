@@ -76,16 +76,21 @@ def proxy(path):
         headers['X-Forwarded-Proto'] = request.scheme
         headers['X-Forwarded-Host'] = request.host
         
+        # Make sure the service is available
+        if not is_service_ready(TARGET_HOST, TARGET_PORT, timeout=2):
+            logger.error(f"Service at {TARGET_HOST}:{TARGET_PORT} is not available")
+            return "The application service is currently unavailable. Please try again in a moment.", 503
+            
         # Forward the request to the target
         resp = requests.request(
             method=request.method,
             url=target_url,
             headers=headers,
-            params=request.args,
+            params=request.args.to_dict(flat=False),  # Convert MultiDict to a compatible format
             data=request.get_data(),
             cookies=request.cookies,
             allow_redirects=False,
-            timeout=120
+            timeout=30  # Reduced timeout for faster response on failure
         )
         
         # Create a Flask response
@@ -112,4 +117,17 @@ if __name__ == "__main__":
     # Start the proxy server
     port = int(os.environ.get('PORT', 8080))
     logger.info(f"Starting proxy server on port {port}")
-    app.run(host='0.0.0.0', port=port)
+    
+    # Add a direct route for health checks
+    @app.route('/health_port_check')
+    def health_check():
+        """Health check endpoint that doesn't proxy to the target"""
+        return {"status": "healthy", "proxy": "flask_port_proxy", "port": port}, 200
+    
+    # Configure Flask for better reliability
+    app.config['PROPAGATE_EXCEPTIONS'] = True
+    app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+    
+    # Run the app
+    app.run(host='0.0.0.0', port=port, threaded=True)

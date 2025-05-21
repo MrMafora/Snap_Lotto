@@ -219,8 +219,8 @@ class TicketScanner:
             
         # Step 3: Compare ticket against winning numbers
         matches = 0
-        ticket_numbers = ticket_data["ticket_numbers"]
-        winning_numbers = draw_data["winning_numbers"]
+        ticket_numbers = ticket_data.get("player_numbers", [])
+        winning_numbers = draw_data.get("numbers", [])
         
         for number in ticket_numbers:
             if number in winning_numbers:
@@ -228,8 +228,21 @@ class TicketScanner:
                 
         # Check bonus/powerball number
         bonus_matched = False
-        if "bonus_number" in ticket_data and "bonus_number" in draw_data:
-            bonus_matched = ticket_data["bonus_number"] == draw_data["bonus_number"]
+        
+        # Handle bonus numbers as lists for consistency
+        ticket_bonus = ticket_data.get("bonus_numbers", [])
+        if not ticket_bonus and "bonus_number" in ticket_data:
+            ticket_bonus = [ticket_data["bonus_number"]]
+            
+        draw_bonus = draw_data.get("bonus_numbers", [])
+        if not draw_bonus and "bonus_number" in draw_data:
+            draw_bonus = [draw_data["bonus_number"]]
+            
+        # Check if any bonus numbers match
+        for tb in ticket_bonus:
+            if tb in draw_bonus:
+                bonus_matched = True
+                break
             
         # Determine prize based on matches
         prize_tier = "No Prize"
@@ -257,11 +270,26 @@ class TicketScanner:
             prize_tier = "Division 7"
             estimated_prize = "R50"
             
+        # Create comparison data for the template
+        comparison = {
+            "matching_numbers": [],  # Will store actual matching numbers
+            "bonus_match": bonus_matched,
+            "won": matches >= 3 or (matches == 2 and bonus_matched),  # Determine if ticket won
+            "prize_tier": prize_tier,
+            "description": f"Matched {matches} number(s)" + (" plus bonus" if bonus_matched else "")
+        }
+        
+        # Add each matching number to the list
+        for number in ticket_numbers:
+            if number in winning_numbers:
+                comparison["matching_numbers"].append(number)
+                
         # Compile and return results
         return {
             "success": True,
             "ticket_data": ticket_data,
-            "winning_data": draw_data,
+            "draw_data": draw_data,  # Template expects draw_data, not winning_data
+            "comparison": comparison,  # Template expects this structure
             "matches": matches,
             "bonus_matched": bonus_matched,
             "prize_tier": prize_tier,
