@@ -1,0 +1,208 @@
+/**
+ * Optimized Mobile CSS
+ * Streamlined styling for mobile devices with performance optimizations
+ */
+
+/* System font stack to avoid FOIT (Flash of Invisible Text) */
+@font-face {
+    font-family: 'System Font';
+    font-style: normal;
+    font-weight: 400;
+    src: local(".SFNSText-Regular"), local(".HelveticaNeueDeskInterface-Regular"), local(".LucidaGrandeUI"), local("Segoe UI"), local("Ubuntu"), local("Roboto-Regular"), local("DroidSans"), local("Tahoma");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'System Font';
+    font-style: normal;
+    font-weight: 700;
+    src: local(".SFNSText-Bold"), local(".HelveticaNeueDeskInterface-Bold"), local(".LucidaGrandeUI"), local("Segoe UI Bold"), local("Ubuntu Bold"), local("Roboto-Bold"), local("DroidSans-Bold"), local("Tahoma Bold");
+    font-display: swap;
+}
+
+/* Core optimizations for mobile */
+@media (max-width: 576px) {
+    /* Reduce whitespace */
+    .container {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+    
+    .card {
+        border-radius: 8px !important;
+    }
+    
+    .card-body {
+        padding: 0.75rem !important;
+    }
+    
+    /* Form control optimizations */
+    .form-control, 
+    .form-select,
+    .btn {
+        font-size: 14px !important;
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+        touch-action: manipulation !important;
+    }
+    
+    /* Optimize image preview size */
+    .ticket-preview {
+        max-height: 200px !important;
+        margin: 10px 0 !important;
+        border-radius: 6px !important;
+    }
+    
+    /* Typography optimizations */
+    h1, .h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    h2, .h2 {
+        font-size: 1.3rem !important;
+    }
+    
+    .lead {
+        font-size: 1rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    /* Drop area optimizations */
+    .ticket-drop-area {
+        padding: 15px !important;
+        border-radius: 6px !important;
+        background-color: rgba(0,0,0,0.03) !important;
+    }
+    
+    .ticket-drop-area h5 {
+        font-size: 1rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .ticket-drop-area p {
+        margin-bottom: 0.3rem !important;
+    }
+    
+    .ticket-drop-area i.fa-2x {
+        font-size: 1.5em !important;
+    }
+    
+    /* Optimize ads overlay for mobile */
+    #ad-overlay-loading,
+    #ad-overlay-results {
+        padding: 15px !important;
+    }
+    
+    #ad-overlay-loading h4,
+    #ad-overlay-results h3 {
+        font-size: 1.3rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .ad-container {
+        padding: 10px !important;
+        margin: 10px 0 !important;
+    }
+    
+    /* Animation optimizations */
+    @media (prefers-reduced-motion) {
+        * {
+            animation-duration: 0s !important;
+            transition-duration: 0s !important;
+            scroll-behavior: auto !important;
+        }
+    }
+    
+    /* Mobile touch optimizations */
+    button, 
+    a, 
+    select, 
+    input[type="file"] {
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+    
+    /* Optimize alert messages */
+    .alert {
+        padding: 8px 10px !important;
+        margin-bottom: 10px !important;
+        font-size: 13px !important;
+    }
+    
+    /* Results ready button optimization */
+    #view-results-btn {
+        font-size: 16px !important;
+        padding: 8px 16px !important;
+        min-width: 180px !important;
+    }
+    
+    /* Countdown container optimization */
+    #countdown-container {
+        max-width: 280px !important;
+        padding: 6px !important;
+        font-size: 14px !important;
+    }
+}
+
+/* Critical CSS that should load first for mobile */
+body {
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+    text-rendering: optimizeSpeed;
+    font-family: 'System Font', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif !important;
+}
+
+/* Override Bootstrap font for better loading - but exempt Font Awesome icons */
+.optimized-loading *:not(.fa):not(.fas):not(.far):not(.fab):not(.fa-*) {
+    font-family: 'System Font', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif !important;
+}
+
+/* Fix for Font Awesome icons */
+.fa, .fas, .far, .fab, [class*="fa-"] {
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", FontAwesome !important;
+}
+
+/* Skip font animations that can slow down page */
+.optimized-loading h1, 
+.optimized-loading h2, 
+.optimized-loading h3, 
+.optimized-loading h4, 
+.optimized-loading h5, 
+.optimized-loading h6,
+.optimized-loading p,
+.optimized-loading span,
+.optimized-loading div {
+    animation: none !important;
+    transition: none !important;
+}
+
+/* Hardware acceleration for smoother performance */
+.ticket-scanner-container {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+/* Optimize image rendering */
+img {
+    image-rendering: -webkit-optimize-contrast;
+    backface-visibility: hidden;
+}
+
+/* Critical inputs optimization */
+input[type="file"] {
+    touch-action: manipulation;
+}
+
+/* Optimize loading indicators */
+.spinner-border {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Optimize form button click feedback */
+.btn:active {
+    transform: translateY(1px);
+}

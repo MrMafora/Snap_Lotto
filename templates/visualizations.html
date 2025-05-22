@@ -1,144 +1,254 @@
 {% extends "base.html" %}
 
-{% block title %}Data Visualizations | Snap Lotto{% endblock %}
+{% block title %}South African Lottery Analytics & Statistics | Interactive Visualizations | Snap Lotto{% endblock %}
+
+{% block meta_description %}Explore interactive analytics and visualizations for South African lottery data. View frequency charts, patterns, and trend analysis for Lotto, PowerBall, and Daily Lotto.{% endblock %}
+
+{% block meta_keywords %}lottery analytics, South African lottery statistics, number frequency analysis, lottery visualization, lottery trends, winning number patterns{% endblock %}
+
+{% block og_title %}Interactive South African Lottery Analytics & Statistics | Snap Lotto{% endblock %}
+{% block og_description %}Explore data-driven visualizations and in-depth analytics for all South African lottery games. Discover trends and patterns with our interactive charts.{% endblock %}
+
+{% block head_content %}
+<!-- Structured Data for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "AnalysisNewsArticle",
+  "headline": "Interactive South African Lottery Analytics and Visualizations",
+  "description": "Explore comprehensive data visualizations and statistical analysis for all South African lottery games including frequency charts, time series analysis and number patterns.",
+  "datePublished": "2025-04-21",
+  "dateModified": "2025-04-21"
+}
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .chart-container {
+        width: 100%;
+        height: 400px;
+        position: relative;
+    }
+    .bg-lottery {
+        background: linear-gradient(135deg, #f2994a, #f2c94c);
+        color: #fff;
+    }
+    .heatmap-ball {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.8);
+        border: 2px solid rgba(200, 200, 200, 1);
+        margin: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    .heatmap-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 1px solid #ddd;
+    }
+    .card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        height: 100%;
+    }
+    .card-header {
+        padding: 12px 20px;
+        font-weight: bold;
+    }
+    .lottery-heatmap {
+        padding: 10px;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header lottery-header">
-                <h4 class="card-title mb-0">LOTTERY DATA ANALYTICS</h4>
+<div class="container mt-4">
+    <h1 class="mb-4">Lottery Data Analytics</h1>
+    
+    <div class="alert alert-info mb-4">
+        <div class="d-flex align-items-center">
+            <div>
+                <i class="fas fa-chart-line fa-2x me-3"></i>
             </div>
-            <div class="card-body">
-                <p class="lead">
-                    Analyze lottery data through interactive visualizations to identify patterns, frequencies, 
-                    and distribution of winners and prizes.
-                </p>
-                
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="lottery-type-select" class="fw-bold">Filter by Lottery Type:</label>
-                            <select id="lottery-type-select" class="form-select">
-                                <option value="">All Types</option>
-                                {% for type in lottery_types %}
-                                <option value="{{ type }}">{{ type }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="chart-type-select" class="fw-bold">Visualization Type:</label>
-                            <select id="chart-type-select" class="form-select">
-                                <option value="numbers_frequency">Number Frequency</option>
-                                <option value="winners_by_division">Winners by Division</option>
-                                <option value="prize_amounts">Prize Amounts</option>
-                                <option value="draw_dates">Draw Date Distribution</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+            <div>
+                <p class="mb-0"><strong>Data Overview:</strong> Analyzing {{ total_draws }} lottery draws 
+                {% if latest_draw_date %}up to {{ latest_draw_date.strftime('%d %B %Y') }}{% endif %}</p>
+                <p class="small mb-0 mt-1">Our analytics tools help identify patterns and trends in the lottery results.</p>
             </div>
         </div>
     </div>
-</div>
-
-<!-- Visualization Charts -->
-<div class="row">
-    <div class="col-12">
-        <div class="card mb-4">
-            <div class="card-header lottery-header">
-                <h5 class="card-title mb-0" id="chart-title">NUMBER FREQUENCY ANALYSIS</h5>
-            </div>
-            <div class="card-body">
-                <div class="chart-container" style="position: relative; height:50vh; width:100%">
-                    <canvas id="main-chart"></canvas>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-lottery">
+                    <h5 class="card-title mb-0">Most Frequent Numbers</h5>
                 </div>
-                <div class="text-center mt-3 d-none" id="no-data-message">
-                    <div class="alert alert-warning">
-                        No data available for the selected filters. Try a different lottery type or visualization.
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Analysis and Insights -->
-<div class="row">
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header lottery-header">
-                <h5 class="card-title mb-0">KEY INSIGHTS</h5>
-            </div>
-            <div class="card-body">
-                <div id="insights-container">
-                    <ul class="list-group list-group-flush" id="insights-list">
-                        <li class="list-group-item">Select a lottery type and visualization to see insights.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header lottery-header">
-                <h5 class="card-title mb-0">LATEST DRAW RESULTS</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-lottery" id="latest-results-table">
-                        <thead>
-                            <tr>
-                                <th>GAME TYPE</th>
-                                <th>DRAW ID</th>
-                                <th>DATE</th>
-                                <th>NUMBERS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for result in latest_results %}
-                            <tr>
-                                <td>
-                                    {% if 'Lotto Plus' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
-                                    {% elif 'Powerball' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-powerball">{{ result.lottery_type }}</span>
-                                    {% elif 'Daily' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-daily">{{ result.lottery_type }}</span>
-                                    {% else %}
-                                        <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
-                                    {% endif %}
-                                </td>
-                                <td><strong>{{ result.draw_number }}</strong></td>
-                                <td>{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
-                                <td>
-                                    {% for num in result.get_numbers_list() %}
-                                        {% set ball_class = 'lottery-ball ' %}
-                                        
-                                        {% if loop.index0 % 4 == 0 %}
-                                            {% set ball_class = ball_class + 'lottery-ball-red' %}
-                                        {% elif loop.index0 % 4 == 1 %}
-                                            {% set ball_class = ball_class + 'lottery-ball-yellow' %}
-                                        {% elif loop.index0 % 4 == 2 %}
-                                            {% set ball_class = ball_class + 'lottery-ball-green' %}
-                                        {% else %}
-                                            {% set ball_class = ball_class + 'lottery-ball-blue' %}
-                                        {% endif %}
-                                        
-                                        <span class="{{ ball_class }}">{{ num }}</span>
-                                    {% endfor %}
-                                    {% if result.bonus_numbers %}
-                                        {% for num in result.get_bonus_numbers_list() %}
-                                            <span class="lottery-ball lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
-                                        {% endfor %}
-                                    {% endif %}
-                                </td>
-                            </tr>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="lottery-type-frequency" class="form-label">Select Lottery Type:</label>
+                        <select class="form-select" id="lottery-type-frequency">
+                            <option value="all">All Lottery Types</option>
+                            {% for lottery_type in lottery_types %}
+                            <option value="{{ lottery_type }}">{{ lottery_type }}</option>
                             {% endfor %}
-                        </tbody>
-                    </table>
+                        </select>
+                    </div>
+                    <div class="chart-container" style="position: relative; height:400px;">
+                        <canvas id="frequency-chart"></canvas>
+                        <!-- Fallback content if Chart.js doesn't load -->
+                        <div id="frequency-fallback" class="d-none">
+                            <div class="alert alert-warning mb-2">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Chart visualization couldn't be loaded. Showing text-based results instead.
+                            </div>
+                            <div class="frequency-text-results">
+                                <!-- Will be populated by JavaScript if Chart.js fails -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-lottery">
+                    <h5 class="card-title mb-0">Numbers Heatmap</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="lottery-type-heatmap" class="form-label">Select Lottery Type:</label>
+                        <select class="form-select" id="lottery-type-heatmap">
+                            {% for lottery_type in lottery_types %}
+                            <option value="{{ lottery_type }}">{{ lottery_type }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="lottery-heatmap">
+                        <!-- Lottery balls with heat colors will be generated here -->
+                        <div id="heatmap-container" class="d-flex flex-wrap justify-content-center">
+                            {% for i in range(1, 50) %}
+                            <div class="heatmap-ball" data-number="{{ i }}">{{ i }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="heatmap-legend mt-3 d-flex justify-content-center">
+                            <div class="d-flex align-items-center">
+                                <div class="heatmap-color" style="background-color: rgba(255,255,255,0.8);"></div>
+                                <span class="ms-1 me-3">Least frequent</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="heatmap-color" style="background-color: rgba(255,200,0,0.8);"></div>
+                                <span class="ms-1 me-3">Average</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="heatmap-color" style="background-color: rgba(255,0,0,0.8);"></div>
+                                <span class="ms-1">Most frequent</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-lottery">
+                    <h5 class="card-title mb-0">Winners by Division</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="lottery-type-winners" class="form-label">Select Lottery Type:</label>
+                        <select class="form-select" id="lottery-type-winners">
+                            {% for lottery_type in lottery_types %}
+                            <option value="{{ lottery_type }}">{{ lottery_type }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="chart-container" style="position: relative; height:400px;">
+                        <canvas id="winners-chart"></canvas>
+                        <!-- Fallback content if Chart.js doesn't load -->
+                        <div id="winners-fallback" class="d-none">
+                            <div class="alert alert-warning mb-2">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Chart visualization couldn't be loaded. Showing text-based results instead.
+                            </div>
+                            <div class="winners-text-results">
+                                <!-- Will be populated by JavaScript if Chart.js fails -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-lottery">
+                    <h5 class="card-title mb-0">Prize Trend Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="lottery-type-prizes" class="form-label">Select Lottery Type:</label>
+                        <select class="form-select" id="lottery-type-prizes">
+                            {% for lottery_type in lottery_types %}
+                            <option value="{{ lottery_type }}">{{ lottery_type }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="chart-container" style="position: relative; height:400px;">
+                        <canvas id="prizes-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-lottery">
+            <h5 class="card-title mb-0">Advanced Pattern Analysis</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Important Notice:</strong> This analysis is provided for entertainment purposes only. Lottery games are based on random chance, and past results do not influence future draws.
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Number Combinations</h6>
+                            <p class="small">Analysis of frequently occurring number combinations and patterns.</p>
+                            <button class="btn btn-lottery-primary btn-sm" disabled>Coming Soon</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Draw Frequency</h6>
+                            <p class="small">Analysis of time between draws and seasonal patterns.</p>
+                            <button class="btn btn-lottery-primary btn-sm" disabled>Coming Soon</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Predictive Modeling</h6>
+                            <p class="small">Advanced statistical models to identify emerging patterns.</p>
+                            <button class="btn btn-lottery-primary btn-sm" disabled>Coming Soon</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -147,440 +257,592 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Include local Chart.js library -->
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<!-- Fallback for Chart.js if it fails to load -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if Chart.js loaded successfully
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js failed to load! Creating fallback HTML visualizations...');
+            
+            // Remove canvas elements and show text-based alternatives
+            document.querySelectorAll('.chart-container canvas').forEach(canvas => {
+                // Hide the canvas
+                canvas.style.display = 'none';
+                
+                // Create fallback message
+                const fallbackDiv = document.createElement('div');
+                fallbackDiv.className = 'alert alert-warning mb-3';
+                fallbackDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> ' +
+                    'Interactive charts could not be loaded. Showing text-based results instead.';
+                canvas.parentNode.insertBefore(fallbackDiv, canvas);
+            });
+            
+            // Create text-based number frequency visualization
+            createTextBasedFrequencyChart();
+            
+            // Create text-based winners chart
+            createTextBasedWinnersChart();
+            
+            // Also update heatmap directly without relying on Chart.js
+            createDirectHeatmap();
+        }
+    });
+    
+    function createTextBasedFrequencyChart() {
+        fetch('/api/visualization-data?data_type=numbers_frequency&lottery_type=all')
+            .then(response => response.json())
+            .then(data => {
+                if (!data || !data.datasets || !data.datasets[0] || !data.datasets[0].data || !data.labels) {
+                    console.error('Invalid frequency data format', data);
+                    return;
+                }
+                
+                const container = document.getElementById('frequency-chart').parentNode;
+                const resultsDiv = document.createElement('div');
+                resultsDiv.className = 'frequency-results mt-3';
+                
+                // Sort by frequency
+                const pairs = data.labels.map((label, i) => ({
+                    number: label,
+                    freq: data.datasets[0].data[i]
+                })).sort((a, b) => b.freq - a.freq).slice(0, 15);
+                
+                // Create a table for better formatting
+                const table = document.createElement('table');
+                table.className = 'table table-striped table-sm';
+                
+                const thead = document.createElement('thead');
+                thead.innerHTML = '<tr><th>Number</th><th>Frequency</th><th>Visual</th></tr>';
+                table.appendChild(thead);
+                
+                const tbody = document.createElement('tbody');
+                
+                // Get the max frequency for relative bar scaling
+                const maxFreq = Math.max(...pairs.map(p => p.freq));
+                
+                pairs.forEach(pair => {
+                    const row = document.createElement('tr');
+                    
+                    // Number column with lottery ball styling
+                    const numCell = document.createElement('td');
+                    const ball = document.createElement('span');
+                    ball.className = 'heatmap-ball';
+                    ball.textContent = pair.number;
+                    numCell.appendChild(ball);
+                    row.appendChild(numCell);
+                    
+                    // Frequency column
+                    const freqCell = document.createElement('td');
+                    freqCell.textContent = pair.freq;
+                    row.appendChild(freqCell);
+                    
+                    // Visual bar column
+                    const barCell = document.createElement('td');
+                    const barContainer = document.createElement('div');
+                    barContainer.className = 'progress';
+                    barContainer.style.height = '20px';
+                    
+                    const bar = document.createElement('div');
+                    bar.className = 'progress-bar';
+                    bar.style.width = `${(pair.freq / maxFreq) * 100}%`;
+                    bar.textContent = pair.freq;
+                    
+                    barContainer.appendChild(bar);
+                    barCell.appendChild(barContainer);
+                    row.appendChild(barCell);
+                    
+                    tbody.appendChild(row);
+                });
+                
+                table.appendChild(tbody);
+                resultsDiv.appendChild(table);
+                container.appendChild(resultsDiv);
+            })
+            .catch(error => {
+                console.error('Error fetching frequency data:', error);
+                const container = document.getElementById('frequency-chart').parentNode;
+                container.innerHTML += '<div class="alert alert-danger">Failed to load lottery frequency data.</div>';
+            });
+    }
+    
+    function createTextBasedWinnersChart() {
+        fetch('/api/visualization-data?data_type=winners_by_division&lottery_type=Lotto')
+            .then(response => response.json())
+            .then(data => {
+                // Handle empty data
+                if (!data || !data.labels || !data.datasets || !data.datasets[0] || !data.datasets[0].data) {
+                    console.log('No division winners data available', data);
+                    
+                    const container = document.getElementById('winners-chart').parentNode;
+                    container.innerHTML += '<div class="alert alert-info">No division winners data available yet. As more draws are processed, division statistics will appear here.</div>';
+                    return;
+                }
+                
+                const container = document.getElementById('winners-chart').parentNode;
+                const resultsDiv = document.createElement('div');
+                resultsDiv.className = 'winners-results mt-3';
+                
+                // Create a simple table to show the data
+                const table = document.createElement('table');
+                table.className = 'table table-striped table-sm';
+                
+                const thead = document.createElement('thead');
+                thead.innerHTML = '<tr><th>Division</th><th>Winners</th><th>Distribution</th></tr>';
+                table.appendChild(thead);
+                
+                const tbody = document.createElement('tbody');
+                
+                // Calculate total for percentage
+                const total = data.datasets[0].data.reduce((sum, val) => sum + val, 0);
+                
+                data.labels.forEach((label, i) => {
+                    const winners = data.datasets[0].data[i];
+                    const percentage = total > 0 ? (winners / total * 100).toFixed(1) : 0;
+                    
+                    const row = document.createElement('tr');
+                    
+                    // Division name
+                    const divCell = document.createElement('td');
+                    divCell.textContent = label;
+                    row.appendChild(divCell);
+                    
+                    // Winners count
+                    const winnersCell = document.createElement('td');
+                    winnersCell.textContent = winners.toLocaleString();
+                    row.appendChild(winnersCell);
+                    
+                    // Percentage bar
+                    const barCell = document.createElement('td');
+                    const barContainer = document.createElement('div');
+                    barContainer.className = 'progress';
+                    barContainer.style.height = '20px';
+                    
+                    const bar = document.createElement('div');
+                    bar.className = 'progress-bar';
+                    bar.style.width = `${percentage}%`;
+                    bar.textContent = `${percentage}%`;
+                    
+                    barContainer.appendChild(bar);
+                    barCell.appendChild(barContainer);
+                    row.appendChild(barCell);
+                    
+                    tbody.appendChild(row);
+                });
+                
+                table.appendChild(tbody);
+                resultsDiv.appendChild(table);
+                container.appendChild(resultsDiv);
+            })
+            .catch(error => {
+                console.error('Error fetching winners data:', error);
+                const container = document.getElementById('winners-chart').parentNode;
+                container.innerHTML += '<div class="alert alert-danger">Failed to load division winners data.</div>';
+            });
+    }
+    
+    function createDirectHeatmap() {
+        fetch('/api/visualization-data?data_type=numbers_frequency&lottery_type=all')
+            .then(response => response.json())
+            .then(data => {
+                if (!data || !data.datasets || !data.datasets[0] || !data.datasets[0].data || !data.labels) {
+                    console.error('Invalid heatmap data format', data);
+                    return;
+                }
+                
+                const numbers = data.labels;
+                const frequencies = data.datasets[0].data;
+                
+                const max = Math.max(...frequencies);
+                const min = Math.min(...frequencies);
+                const range = max - min;
+                
+                // Update each ball's color based on frequency
+                numbers.forEach((number, index) => {
+                    const freq = frequencies[index];
+                    const heatRatio = range > 0 ? (freq - min) / range : 0.5;
+                    
+                    // Calculate color (white to yellow to red)
+                    let r = 255;
+                    let g = Math.floor(255 * (1 - heatRatio));
+                    let b = Math.floor(255 * (1 - heatRatio));
+                    
+                    const ball = document.querySelector(`.heatmap-ball[data-number="${number}"]`);
+                    if (ball) {
+                        ball.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.8)`;
+                        ball.style.borderColor = `rgba(${r * 0.8}, ${g * 0.8}, ${b * 0.8}, 1)`;
+                        ball.title = `Number ${number}: ${freq} occurrences`;
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching heatmap data:', error);
+            });
+    }
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize variables
-    let mainChart = null;
-    const chartContainer = document.getElementById('main-chart');
-    const chartTitle = document.getElementById('chart-title');
-    const noDataMessage = document.getElementById('no-data-message');
-    const insightsList = document.getElementById('insights-list');
-    const lotteryTypeSelect = document.getElementById('lottery-type-select');
-    const chartTypeSelect = document.getElementById('chart-type-select');
+    // Initialize charts
+    let frequencyChart, winnersChart, prizesChart;
     
-    // Function to update the chart
-    async function updateChart() {
-        // Get selected values
-        const lotteryType = lotteryTypeSelect.value;
-        const chartType = chartTypeSelect.value;
-        
-        // Update chart title
-        updateChartTitle(chartType, lotteryType);
-        
-        // Fetch data from API
+    // Fetch frequency data
+    function updateFrequencyChart(lotteryType = 'all') {
         try {
-            const response = await fetch(`/api/visualization-data?lottery_type=${lotteryType}&data_type=${chartType}`);
-            if (!response.ok) {
-                console.error('Server returned error:', response.status);
-                showNoDataMessage('Server error. Please try again later.');
-                clearInsights();
-                return;
+            fetch(`/api/visualization-data?data_type=numbers_frequency&lottery_type=${lotteryType}`)
+                .then(response => response.json())
+                .then(data => {
+                    try {
+                        // Make sure data is properly structured
+                        if (!data || !data.datasets || !data.datasets[0] || !data.datasets[0].data || !data.labels) {
+                            console.error('Invalid frequency data format', data);
+                            return;
+                        }
+                        
+                        // Sort the data by frequency (descending)
+                        const indices = data.datasets[0].data.map((value, index) => ({ value, index }))
+                            .sort((a, b) => b.value - a.value)
+                            .slice(0, 20); // Take top 20
+                        
+                        const sortedLabels = indices.map(i => data.labels[i.index]);
+                        const sortedData = indices.map(i => data.datasets[0].data[i.index]);
+                        
+                        // Create colors for chart
+                        const backgroundColors = sortedLabels.map((_, index) => {
+                            if (index % 4 === 0) return 'rgba(224, 50, 55, 0.7)'; // Red
+                            if (index % 4 === 1) return 'rgba(255, 225, 29, 0.7)'; // Yellow
+                            if (index % 4 === 2) return 'rgba(25, 160, 58, 0.7)'; // Green
+                            return 'rgba(103, 198, 237, 0.7)'; // Blue
+                        });
+                        
+                        const borderColors = sortedLabels.map((_, index) => {
+                            if (index % 4 === 0) return 'rgba(224, 50, 55, 1)'; // Red
+                            if (index % 4 === 1) return 'rgba(255, 225, 29, 1)'; // Yellow
+                            if (index % 4 === 2) return 'rgba(25, 160, 58, 1)'; // Green
+                            return 'rgba(103, 198, 237, 1)'; // Blue
+                        });
+                        
+                        // Create or update the chart
+                        if (frequencyChart) {
+                            frequencyChart.data.labels = sortedLabels;
+                            frequencyChart.data.datasets[0].data = sortedData;
+                            frequencyChart.data.datasets[0].backgroundColor = backgroundColors;
+                            frequencyChart.data.datasets[0].borderColor = borderColors;
+                            frequencyChart.update();
+                        } else {
+                            // Create the chart
+                            frequencyChart = new Chart(document.getElementById('frequency-chart'), {
+                                type: 'bar',
+                                data: {
+                                    labels: sortedLabels,
+                                    datasets: [{
+                                        label: 'Number Frequency',
+                                        data: sortedData,
+                                        backgroundColor: backgroundColors,
+                                        borderColor: borderColors,
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            display: false
+                                        },
+                                        title: {
+                                            display: true,
+                                            text: `Most Frequent Numbers - ${lotteryType === 'all' ? 'All Lottery Types' : lotteryType}`
+                                        }
+                                    },
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            title: {
+                                                display: true,
+                                                text: 'Frequency'
+                                            }
+                                        },
+                                        x: {
+                                            title: {
+                                                display: true,
+                                                text: 'Number'
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        
+                        // Update heatmap
+                        updateHeatmap(data.labels, data.datasets[0].data);
+                    } catch (err) {
+                        console.error('Error processing frequency data:', err);
+                    }
+                })
+                .catch(error => console.error('Error fetching frequency data:', error));
+        } catch (err) {
+            console.error('Error in updateFrequencyChart:', err);
+        }
+    }
+    
+    // Update heatmap visualization
+    function updateHeatmap(numbers, frequencies) {
+        const max = Math.max(...frequencies);
+        const min = Math.min(...frequencies);
+        const range = max - min;
+        
+        // Update each ball's color based on frequency
+        numbers.forEach((number, index) => {
+            const freq = frequencies[index];
+            const heatRatio = range > 0 ? (freq - min) / range : 0.5;
+            
+            // Calculate color (white to yellow to red)
+            let r = 255;
+            let g = Math.floor(255 * (1 - heatRatio));
+            let b = Math.floor(255 * (1 - heatRatio));
+            
+            const ball = document.querySelector(`.heatmap-ball[data-number="${number}"]`);
+            if (ball) {
+                ball.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.8)`;
+                ball.style.borderColor = `rgba(${r * 0.8}, ${g * 0.8}, ${b * 0.8}, 1)`;
+                ball.title = `Number ${number}: ${freq} occurrences`;
             }
-            
-            const data = await response.json();
-            
-            // Check if we have valid data
-            if (data.error || !data.labels || data.labels.length === 0) {
-                console.log('No valid data received:', data.message || data.error || 'Unknown error');
-                showNoDataMessage(data.message || 'No data available for the selected options');
-                clearInsights();
-                
-                // For prize amounts, add specific message about using only real data
-                if (chartType === 'prize_amounts') {
-                    addInsight("No actual prize amounts are available for this lottery type.");
-                    addInsight("Only real data from lottery results will be shown in charts.");
-                    addInsight("No estimated or placeholder values are used.");
-                }
-                
-                // If there's an existing chart, destroy it
-                if (mainChart) {
-                    mainChart.destroy();
-                    mainChart = null;
-                }
-                
-                return;
-            }
-            
-            // Hide no data message if it was previously shown
-            hideNoDataMessage();
-            
-            // Create or update chart
-            createOrUpdateChart(data, chartType);
-            
-            // Generate insights
-            generateInsights(data, chartType, lotteryType);
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            showNoDataMessage('Error loading data. Please try again later.');
-            clearInsights();
-        }
-    }
-    
-    // Function to update chart title
-    function updateChartTitle(chartType, lotteryType) {
-        const lotteryName = lotteryType ? lotteryType : 'All Lottery Types';
-        
-        switch (chartType) {
-            case 'numbers_frequency':
-                chartTitle.textContent = `NUMBER FREQUENCY ANALYSIS - ${lotteryName.toUpperCase()}`;
-                break;
-            case 'winners_by_division':
-                chartTitle.textContent = `WINNERS BY DIVISION - ${lotteryName.toUpperCase()}`;
-                break;
-            case 'prize_amounts':
-                chartTitle.textContent = `AVERAGE PRIZE AMOUNTS - ${lotteryName.toUpperCase()}`;
-                break;
-            case 'draw_dates':
-                chartTitle.textContent = `DRAW DATE DISTRIBUTION - ${lotteryName.toUpperCase()}`;
-                break;
-            default:
-                chartTitle.textContent = `LOTTERY DATA ANALYSIS - ${lotteryName.toUpperCase()}`;
-        }
-    }
-    
-    // Function to show no data message
-    function showNoDataMessage(customMessage) {
-        if (mainChart) {
-            mainChart.destroy();
-            mainChart = null;
-        }
-        
-        // Set a custom message if provided
-        if (customMessage) {
-            noDataMessage.textContent = customMessage;
-        } else {
-            noDataMessage.textContent = 'No data available for the selected options';
-        }
-        
-        noDataMessage.classList.remove('d-none');
-    }
-    
-    // Function to hide no data message
-    function hideNoDataMessage() {
-        noDataMessage.classList.add('d-none');
-    }
-    
-    // Function to create or update the chart
-    function createOrUpdateChart(data, chartType) {
-        // Create color arrays that match lottery ball colors
-        const backgroundColors = data.labels.map((_, index) => {
-            if (index % 4 === 0) return 'rgba(224, 50, 55, 0.7)'; // Red
-            if (index % 4 === 1) return 'rgba(255, 225, 29, 0.7)'; // Yellow
-            if (index % 4 === 2) return 'rgba(25, 160, 58, 0.7)'; // Green
-            return 'rgba(103, 198, 237, 0.7)'; // Blue
         });
-        
-        const borderColors = data.labels.map((_, index) => {
-            if (index % 4 === 0) return 'rgba(224, 50, 55, 1)'; // Red
-            if (index % 4 === 1) return 'rgba(255, 225, 29, 1)'; // Yellow
-            if (index % 4 === 2) return 'rgba(25, 160, 58, 1)'; // Green
-            return 'rgba(103, 198, 237, 1)'; // Blue
-        });
-        
-        // Update dataset colors
-        if (data.datasets && data.datasets.length > 0) {
-            data.datasets[0].backgroundColor = backgroundColors;
-            data.datasets[0].borderColor = borderColors;
+    }
+    
+    // Update winners chart
+    function updateWinnersChart(lotteryType = 'Lotto') {
+        try {
+            fetch(`/api/visualization-data?data_type=winners_by_division&lottery_type=${lotteryType}`)
+                .then(response => response.json())
+                .then(data => {
+                    try {
+                        // Handle empty data
+                        if (!data || !data.labels || !data.datasets || !data.datasets[0] || !data.datasets[0].data) {
+                            console.log('No division winners data available', data);
+                            
+                            // Create default data showing no winners yet
+                            data = {
+                                labels: ['Division 1', 'Division 2', 'Division 3', 'Division 4', 'Division 5'],
+                                datasets: [{
+                                    data: [0, 0, 0, 0, 0]
+                                }]
+                            };
+                            
+                            // Display info message in chart container
+                            const container = document.getElementById('winners-chart').parentElement;
+                            if (container) {
+                                if (!document.getElementById('no-division-data')) {
+                                    const infoMsg = document.createElement('div');
+                                    infoMsg.id = 'no-division-data';
+                                    infoMsg.className = 'alert alert-info mt-3 small';
+                                    infoMsg.innerHTML = 'No division winners data available yet. As more draws are processed, division statistics will appear here.';
+                                    container.appendChild(infoMsg);
+                                }
+                            }
+                        } else {
+                            // Remove info message if it exists
+                            const infoMsg = document.getElementById('no-division-data');
+                            if (infoMsg) infoMsg.remove();
+                        }
+                        
+                        // Create colors for chart
+                        const backgroundColors = data.labels.map((_, index) => {
+                            if (index % 5 === 0) return 'rgba(224, 50, 55, 0.7)'; // Red
+                            if (index % 5 === 1) return 'rgba(255, 225, 29, 0.7)'; // Yellow
+                            if (index % 5 === 2) return 'rgba(25, 160, 58, 0.7)'; // Green
+                            if (index % 5 === 3) return 'rgba(103, 198, 237, 0.7)'; // Blue
+                            return 'rgba(142, 68, 173, 0.7)'; // Purple
+                        });
+                        
+                        // Create or update the chart
+                        if (winnersChart) {
+                            winnersChart.data.labels = data.labels;
+                            winnersChart.data.datasets[0].data = data.datasets[0].data;
+                            winnersChart.data.datasets[0].backgroundColor = backgroundColors;
+                            winnersChart.update();
+                        } else {
+                            // Create the chart
+                            winnersChart = new Chart(document.getElementById('winners-chart'), {
+                                type: 'pie',
+                                data: {
+                                    labels: data.labels,
+                                    datasets: [{
+                                        data: data.datasets[0].data,
+                                        backgroundColor: backgroundColors,
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            position: 'right'
+                                        },
+                                        title: {
+                                            display: true,
+                                            text: `Winners by Division - ${lotteryType}`
+                                        },
+                                        tooltip: {
+                                            callbacks: {
+                                                label: function(context) {
+                                                    const label = context.label || '';
+                                                    const value = context.raw || 0;
+                                                    return `${label}: ${value.toLocaleString()} winners`;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Error processing winners data:', err);
+                    }
+                })
+                .catch(error => console.error('Error fetching winners data:', error));
+        } catch (err) {
+            console.error('Error in updateWinnersChart:', err);
         }
-        
-        // Format Y-axis ticks for prize amounts to use currency format
-        let yAxisTicksCallback = undefined;
-        if (chartType === 'prize_amounts') {
-            yAxisTicksCallback = function(value) {
-                // Format as South African Rand (R) with appropriate formatting for large numbers
-                return value.toLocaleString('en-ZA', { 
-                    style: 'currency', 
-                    currency: 'ZAR',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                }).replace('ZAR', 'R');
-            };
+    }
+    
+    // Initialize prize trend chart with sample data
+    function updatePrizesChart(lotteryType = 'Lotto') {
+        try {
+            // Update chart with lottery-specific data
+            fetch(`/api/visualization-data?data_type=winners_by_division&lottery_type=${lotteryType}`)
+                .then(response => response.json())
+                .then(data => {
+                    try {
+                        if (prizesChart) {
+                            prizesChart.options.plugins.title.text = `Prize Trend Analysis - ${lotteryType}`;
+                            prizesChart.update();
+                        } else {
+                            initPrizesChart(lotteryType);
+                        }
+                    } catch (err) {
+                        console.error('Error processing prize data:', err);
+                        // Initialize with default data if error occurs
+                        initPrizesChart(lotteryType);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching prizes data:', error);
+                    // Initialize with default data if error occurs
+                    initPrizesChart(lotteryType);
+                });
+        } catch (err) {
+            console.error('Error in updatePrizesChart:', err);
+            initPrizesChart(lotteryType);
         }
+    }
+    
+    function updateHeatmapChart(lotteryType = 'Lotto') {
+        try {
+            // Update heatmap with lottery-specific data
+            fetch(`/api/visualization-data?data_type=numbers_frequency&lottery_type=${lotteryType}`)
+                .then(response => response.json())
+                .then(data => {
+                    try {
+                        // Make sure data is structured properly
+                        if (!data || !data.datasets || !data.datasets[0] || !data.datasets[0].data || !data.labels) {
+                            console.error('Invalid heatmap data format', data);
+                            return;
+                        }
+                        // Update heatmap
+                        updateHeatmap(data.labels, data.datasets[0].data);
+                    } catch (err) {
+                        console.error('Error processing heatmap data:', err);
+                    }
+                })
+                .catch(error => console.error('Error fetching heatmap data:', error));
+        } catch (err) {
+            console.error('Error in updateHeatmapChart:', err);
+        }
+    }
+    
+    function initPrizesChart(lotteryType = 'Lotto') {
+        // Sample data (would be replaced with real API data)
+        const labels = ['2024-01', '2024-02', '2024-03', '2024-04'];
+        const div1Data = [5000000, 7500000, 4800000, 8200000];
+        const div2Data = [250000, 320000, 210000, 350000];
         
-        // Determine chart type based on the data
-        let chartConfig = {
-            type: 'bar',
-            data: data,
+        // Create the chart
+        prizesChart = new Chart(document.getElementById('prizes-chart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Division 1',
+                    data: div1Data,
+                    borderColor: 'rgba(224, 50, 55, 1)',
+                    backgroundColor: 'rgba(224, 50, 55, 0.1)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.2
+                }, {
+                    label: 'Division 2',
+                    data: div2Data,
+                    borderColor: 'rgba(25, 160, 58, 1)',
+                    backgroundColor: 'rgba(25, 160, 58, 0.1)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.2
+                }]
+            },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            color: '#333',
-                            font: {
-                                weight: 'bold'
-                            }
-                        }
-                    },
                     title: {
-                        display: false,
-                        color: '#333',
-                        font: {
-                            size: 16,
-                            weight: 'bold'
-                        }
+                        display: true,
+                        text: `Prize Trend Analysis - ${lotteryType}`
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: {
-                            color: '#333',
-                            font: {
-                                weight: 'bold'
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
+                        title: {
+                            display: true,
+                            text: 'Prize Amount (R)'
                         }
                     },
                     x: {
-                        ticks: {
-                            color: '#333',
-                            font: {
-                                weight: 'bold'
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
+                        title: {
+                            display: true,
+                            text: 'Month'
                         }
                     }
                 }
             }
-        };
-        
-        // Customize chart based on data type
-        if (chartType === 'draw_dates') {
-            chartConfig.type = 'line';
-            if (data.datasets && data.datasets.length > 0) {
-                data.datasets[0].borderColor = 'rgba(255, 225, 29, 1)';
-                data.datasets[0].backgroundColor = 'rgba(255, 225, 29, 0.3)';
-                data.datasets[0].fill = true;
-                data.datasets[0].tension = 0.3;
-            }
-        }
-        
-        // Apply currency formatting for prize amounts
-        if (chartType === 'prize_amounts') {
-            chartConfig.options.scales.y.ticks.callback = yAxisTicksCallback;
-            // Add tooltip formatting for prize amounts
-            chartConfig.options.plugins.tooltip = {
-                callbacks: {
-                    label: function(context) {
-                        let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            label += context.parsed.y.toLocaleString('en-ZA', { 
-                                style: 'currency', 
-                                currency: 'ZAR',
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 0
-                            }).replace('ZAR', 'R');
-                        }
-                        return label;
-                    }
-                }
-            };
-        }
-        
-        // Create new chart or update existing one
-        if (mainChart) {
-            mainChart.data = data;
-            mainChart.config.type = chartConfig.type;
-            mainChart.config.options = chartConfig.options;
-            mainChart.update();
-        } else {
-            mainChart = new Chart(chartContainer, chartConfig);
-        }
+        });
     }
     
-    // Function to generate insights
-    function generateInsights(data, chartType, lotteryType) {
-        // Clear previous insights
-        clearInsights();
-        
-        // Generate insights based on chart type
-        switch (chartType) {
-            case 'numbers_frequency':
-                generateNumberFrequencyInsights(data, lotteryType);
-                break;
-            case 'winners_by_division':
-                generateWinnersByDivisionInsights(data);
-                break;
-            case 'prize_amounts':
-                generatePrizeAmountsInsights(data);
-                break;
-            case 'draw_dates':
-                generateDrawDatesInsights(data);
-                break;
-        }
-    }
+    // Initialize all charts
+    updateFrequencyChart();
+    updateWinnersChart();
+    updatePrizesChart();
+    updateHeatmapChart();
     
-    // Function to clear insights
-    function clearInsights() {
-        insightsList.innerHTML = '';
-    }
+    // Set up event listeners for filters
+    document.getElementById('lottery-type-frequency').addEventListener('change', function() {
+        updateFrequencyChart(this.value);
+    });
     
-    // Function to add an insight
-    function addInsight(text) {
-        const li = document.createElement('li');
-        li.className = 'list-group-item';
-        li.textContent = text;
-        insightsList.appendChild(li);
-    }
+    document.getElementById('lottery-type-winners').addEventListener('change', function() {
+        updateWinnersChart(this.value);
+    });
     
-    // Insight generator functions
-    function generateNumberFrequencyInsights(data, lotteryType) {
-        let numberFrequencies;
-        
-        // Use the pre-calculated frequencies if available
-        if (data.frequencies) {
-            numberFrequencies = [...data.frequencies];
-        } else {
-            // Legacy handling for older data format
-            const numbers = data.labels;
-            const frequencies = data.datasets[0].data;
-            
-            // Combine numbers and frequencies into an array of objects
-            numberFrequencies = numbers.map((num, i) => ({ number: num, frequency: frequencies[i] }));
-        }
-        
-        // Sort by frequency (descending)
-        numberFrequencies.sort((a, b) => b.frequency - a.frequency);
-        
-        // Filter to only include numbers that have appeared at least once
-        const appearedNumbers = numberFrequencies.filter(item => item.frequency > 0);
-        
-        // Most frequent numbers (top 3)
-        if (appearedNumbers.length > 0) {
-            const mostFrequent = appearedNumbers.slice(0, 3);
-            addInsight(`Most frequent numbers: ${mostFrequent.map(item => `${item.number} (${item.frequency} times)`).join(', ')}`);
-        
-            // Least frequent numbers (bottom 3)
-            if (appearedNumbers.length >= 3) {
-                const leastFrequent = appearedNumbers.slice(-3).reverse();
-                addInsight(`Least frequent numbers: ${leastFrequent.map(item => `${item.number} (${item.frequency} times)`).join(', ')}`);
-            }
-            
-            // Average frequency of numbers that have appeared
-            const totalFrequency = appearedNumbers.reduce((sum, item) => sum + item.frequency, 0);
-            const averageFrequency = totalFrequency / appearedNumbers.length;
-            addInsight(`Average number frequency: ${averageFrequency.toFixed(2)} times`);
-        }
-        
-        // Numbers that never appeared
-        const maxPossibleNumber = getLotteryMaxNumber(lotteryType); // Get appropriate range based on lottery type
-        const missingNumbers = [];
-        for (let i = 1; i <= maxPossibleNumber; i++) {
-            // Check if number exists in the frequencies data
-            const numStr = i.toString();
-            const found = numberFrequencies.some(item => item.number === numStr);
-            if (!found) {
-                missingNumbers.push(i);
-            }
-        }
-        
-        // Helper function to determine max number based on lottery type
-        function getLotteryMaxNumber(lotteryType) {
-            if (lotteryType && lotteryType.toLowerCase().includes('daily')) {
-                return 36; // Daily Lotto uses numbers 1-36
-            } else {
-                return 49; // Regular Lotto uses numbers 1-49
-            }
-        }
-        
-        if (missingNumbers.length > 0) {
-            addInsight(`Numbers that never appeared: ${missingNumbers.join(', ')}`);
-        }
-    }
+    document.getElementById('lottery-type-prizes').addEventListener('change', function() {
+        updatePrizesChart(this.value);
+    });
     
-    function generateWinnersByDivisionInsights(data) {
-        // Calculate total winners
-        const totalWinners = data.datasets[0].data.reduce((sum, winners) => sum + winners, 0);
-        addInsight(`Total winners across all divisions: ${totalWinners}`);
-        
-        // Find division with most winners
-        const divisions = data.labels;
-        const winners = data.datasets[0].data;
-        
-        // Combine divisions and winners into an array of objects
-        const divisionWinners = divisions.map((div, i) => ({ division: div, winners: winners[i] }));
-        
-        // Sort by winners (descending)
-        divisionWinners.sort((a, b) => b.winners - a.winners);
-        
-        // Division with most winners
-        const mostWinners = divisionWinners[0];
-        addInsight(`Division with most winners: ${mostWinners.division} (${mostWinners.winners} winners)`);
-        
-        // Division with least winners
-        const leastWinners = divisionWinners[divisionWinners.length - 1];
-        addInsight(`Division with least winners: ${leastWinners.division} (${leastWinners.winners} winners)`);
-        
-        // Percentage of winners in top division
-        const topDivisionPercentage = (mostWinners.winners / totalWinners) * 100;
-        addInsight(`${mostWinners.division} accounts for ${topDivisionPercentage.toFixed(2)}% of all winners`);
-    }
-    
-    function generatePrizeAmountsInsights(data) {
-        // Find highest and lowest average prizes
-        const divisions = data.labels;
-        const prizes = data.datasets[0].data;
-        
-        // Combine divisions and prizes into an array of objects
-        const divisionPrizes = divisions.map((div, i) => ({ division: div, prize: prizes[i] }));
-        
-        // Sort by prize (descending)
-        divisionPrizes.sort((a, b) => b.prize - a.prize);
-        
-        // Helper function to format currency with commas as thousands separators
-        function formatCurrency(amount) {
-            return amount.toLocaleString('en-ZA', { 
-                style: 'currency', 
-                currency: 'ZAR',
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }).replace('ZAR', 'R');
-        }
-        
-        // Division with highest average prize
-        const highestPrize = divisionPrizes[0];
-        addInsight(`Highest average prize: ${highestPrize.division} (${formatCurrency(highestPrize.prize)})`);
-        
-        // Division with lowest average prize
-        const lowestPrize = divisionPrizes[divisionPrizes.length - 1];
-        addInsight(`Lowest average prize: ${lowestPrize.division} (${formatCurrency(lowestPrize.prize)})`);
-        
-        // Calculate prize difference between highest and lowest division
-        const priceDifference = highestPrize.prize - lowestPrize.prize;
-        addInsight(`Prize difference between highest and lowest: ${formatCurrency(priceDifference)}`);
-        
-        // Check for outliers (prizes significantly higher than others)
-        const averagePrize = prizes.reduce((sum, prize) => sum + prize, 0) / prizes.length;
-        const outliers = divisionPrizes.filter(item => item.prize > averagePrize * 2);
-        
-        if (outliers.length > 0) {
-            addInsight(`Divisions with unusually high prizes: ${outliers.map(item => item.division).join(', ')}`);
-        }
-    }
-    
-    function generateDrawDatesInsights(data) {
-        // For draw dates, we'll focus on general patterns
-        addInsight("Draw date distribution shows the frequency of lottery draws over time.");
-        addInsight("Peaks in the chart indicate days with more lottery draws.");
-        addInsight("This can help identify patterns in draw scheduling.");
-    }
-    
-    // Set up event listeners for select boxes
-    lotteryTypeSelect.addEventListener('change', updateChart);
-    chartTypeSelect.addEventListener('change', updateChart);
-    
-    // Initial chart load
-    updateChart();
+    document.getElementById('lottery-type-heatmap').addEventListener('change', function() {
+        // Update heatmap based on the selected lottery type
+        updateHeatmapChart(this.value);
+    });
 });
 </script>
 {% endblock %}

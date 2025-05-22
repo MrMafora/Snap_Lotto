@@ -1,0 +1,959 @@
+/* Lottery Application Styles */
+
+/* Color Variables */
+:root {
+    --lottery-red: #e03237;
+    --lottery-yellow: #ffe11d;
+    --lottery-green: #19a03a;
+    --lottery-blue: #67c6ed;
+    --lottery-purple: #8e44ad;
+    --lottery-dark: #333;
+    --lottery-light: #f5f5f5;
+}
+
+/* General Styles */
+.bg-lottery {
+    background-color: var(--lottery-dark);
+    color: white;
+}
+
+.btn-lottery-primary {
+    background-color: var(--lottery-red);
+    border-color: var(--lottery-red);
+    color: white;
+}
+
+.btn-lottery-primary:hover {
+    background-color: #c02030;
+    border-color: #c02030;
+    color: white;
+}
+
+.lottery-header {
+    background-color: var(--lottery-dark);
+    color: white;
+    border-bottom: 3px solid var(--lottery-red);
+}
+
+/* Lottery Ball Styles */
+.lottery-ball {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--lottery-red);
+    color: white;
+    margin: 0 5px 10px 0;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+    padding: 0;
+    display: inline-flex;
+    /* Prevent number stacking/wrapping */
+    white-space: nowrap;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Mobile-specific lottery ball styles */
+@media (max-width: 576px) {
+    .lottery-ball {
+        width: 40px;
+        height: 40px;
+        font-size: 0.9rem;
+        margin: 0 4px 8px 0;
+    }
+}
+
+/* Even smaller screens */
+@media (max-width: 360px) {
+    .lottery-ball {
+        width: 34px;
+        height: 34px;
+        font-size: 0.85rem;
+        margin: 0 3px 6px 0;
+    }
+}
+
+.lottery-ball .number {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    /* Prevent text wrapping inside lottery balls */
+    white-space: nowrap;
+}
+
+.lottery-ball .frequency {
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    font-weight: normal;
+    text-align: center;
+    line-height: 1;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    /* Prevent text wrapping inside lottery balls */
+    white-space: nowrap;
+}
+
+.lottery-ball-sm {
+    width: 26px;
+    height: 26px;
+    font-size: 0.85rem;
+    /* Prevent text wrapping */
+    white-space: nowrap;
+}
+
+@media (max-width: 576px) {
+    .lottery-ball-sm {
+        width: 23px;
+        height: 23px;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .lottery-ball-sm {
+        width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+    }
+}
+
+.lottery-ball-red {
+    background-color: var(--lottery-red);
+}
+
+.lottery-ball-yellow {
+    background-color: var(--lottery-yellow);
+    color: var(--lottery-dark);
+}
+
+.lottery-ball-green {
+    background-color: var(--lottery-green);
+}
+
+.lottery-ball-blue {
+    background-color: var(--lottery-blue);
+    color: var(--lottery-dark);
+}
+
+.lottery-ball-bonus {
+    position: relative;
+    background-color: var(--lottery-yellow);
+    color: var(--lottery-dark);
+}
+
+.lottery-ball-bonus::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--lottery-red);
+    border-radius: 50%;
+    border: 1px solid white;
+}
+
+@media (max-width: 576px) {
+    .lottery-ball-bonus::after {
+        width: 8px;
+        height: 8px;
+        top: -2px;
+        right: -2px;
+    }
+}
+
+@media (max-width: 400px) {
+    .lottery-ball-bonus::after {
+        width: 6px;
+        height: 6px;
+        top: -1px;
+        right: -1px;
+    }
+}
+
+.bonus-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    font-weight: bold;
+    color: var(--lottery-dark);
+}
+
+/* Match indicator styles with improved visibility - simplified approach */
+.match-indicator {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: #00c800;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 18px;
+    text-align: center;
+    z-index: 100;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
+    border: 2px solid white;
+    pointer-events: none;
+    font-family: Arial, sans-serif;
+}
+
+/* Mobile-specific match indicator styles */
+@media (max-width: 576px) {
+    .match-indicator {
+        width: 18px;
+        height: 18px;
+        top: -5px;
+        right: -5px;
+        border-width: 1.5px;
+    }
+    
+    /* Smaller checkmark for mobile */
+    .match-indicator::before {
+        width: 6px;
+        height: 10px;
+        border-width: 0 2px 2px 0;
+        margin-bottom: 1px;
+    }
+}
+
+/* Powerball matches - green */
+.match-powerball {
+    background-color: #25a244;
+}
+
+/* Powerball Plus matches - blue/teal */
+.match-powerball-plus {
+    background-color: #1a98c5;
+}
+
+/* Lottery Plus 1 matches - purple */
+.match-lottery-plus-1 {
+    background-color: #8a2be2;
+}
+
+/* Lottery Plus 2 matches - orange */
+.match-lottery-plus-2 {
+    background-color: #ff7f00;
+}
+
+/* Bonus match indicators */
+.match-powerball-bonus {
+    background-color: #008000;
+}
+
+.match-powerball-plus-bonus {
+    background-color: #0070c0;
+}
+
+.match-lottery-plus-1-bonus {
+    background-color: #6a1b9a;
+}
+
+.match-lottery-plus-2-bonus {
+    background-color: #e65100;
+}
+
+/* Fix for mobile ticket scanner display */
+#ticket-numbers .mb-3 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 1rem !important;
+}
+
+/* Scanner result containers */
+#results-container {
+    transition: opacity 0.5s ease;
+    margin-top: 1.5rem;
+}
+
+#ticket-numbers {
+    transition: opacity 0.3s ease;
+}
+
+/* Ensure the success content is visible */
+#success-content {
+    display: none;
+}
+
+#success-content.show,
+#success-content:not(.d-none) {
+    display: block;
+}
+
+/* Make rows wrap properly */
+.ticket-info-row {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.ticket-info-row .col-sm-4 {
+    margin-bottom: 0.5rem;
+}
+
+@media (max-width: 576px) {
+    #ticket-numbers .mb-3 {
+        justify-content: flex-start;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    /* Make the plus sign smaller on mobile */
+    #ticket-numbers .mb-3 .mx-2 {
+        margin-left: 0.25rem !important;
+        margin-right: 0.25rem !important;
+    }
+    
+    /* Adjust spacing to show more content */
+    #ticket-numbers .mb-3 + .mb-3 {
+        margin-top: 0.5rem;
+    }
+    
+    /* Reduce vertical spacing between rows */
+    #ticket-numbers strong {
+        margin-bottom: 0.25rem;
+        display: inline-block;
+    }
+    
+    /* Reduce overall padding in the scanner results */
+    #results-container .card-body {
+        padding: 1rem 0.75rem;
+    }
+    
+    /* Match indicator adjustments for mobile */
+    .match-indicator {
+        width: 16px;
+        height: 16px;
+        font-size: 10px;
+        top: -3px;
+        right: -3px;
+    }
+}
+
+/* Game Type Badges */
+.game-type-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: white;
+}
+
+.game-type-lottery {
+    background-color: var(--lottery-red);
+}
+
+.game-type-powerball {
+    background-color: var(--lottery-yellow);
+    color: var(--lottery-dark);
+}
+
+.game-type-daily {
+    background-color: var(--lottery-green);
+}
+
+/* Table Styles */
+.table-lottery {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table-lottery thead th {
+    background-color: rgba(0, 0, 0, 0.03);
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-bottom: 2px solid var(--lottery-red);
+}
+
+/* Divisions Display */
+.divisions-summary {
+    font-size: 0.9rem;
+}
+
+.division-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    border-bottom: 1px dotted #eee;
+}
+
+.division-name {
+    font-weight: 600;
+}
+
+.division-prize {
+    color: var(--lottery-red);
+    font-weight: 600;
+}
+
+/* Slogan Banner */
+.slogan-banner {
+    background-color: var(--lottery-yellow);
+    padding: 5px 15px;
+    border-radius: 20px;
+    display: inline-block;
+    transform: rotate(-2deg);
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.slogan-text {
+    color: var(--lottery-dark);
+    font-weight: bold;
+    text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7);
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--lottery-light);
+    border-top: 5px solid var(--lottery-red);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    color: white;
+    margin-top: 20px;
+    text-align: center;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Admin Image Preview */
+.screenshot-thumbnail {
+    max-width: 150px;
+    max-height: 100px;
+    cursor: pointer;
+    border: 1px solid #ddd;
+    padding: 2px;
+    border-radius: 3px;
+}
+
+.image-preview-modal .modal-dialog {
+    max-width: 90%;
+}
+
+/* Data Import Progress */
+.progress-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.progress-container {
+    width: 80%;
+    max-width: 600px;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.progress-title {
+    margin-bottom: 15px;
+    color: var(--lottery-dark);
+}
+
+.progress-bar-container {
+    height: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--lottery-red);
+    border-radius: 10px;
+    width: 0;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 14px;
+    color: var(--lottery-dark);
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.progress-stats {
+    font-size: 12px;
+    color: #777;
+}
+
+/* Heatmap Visualization Styles */
+.heatmap-ball {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin: 4px;
+    border-radius: 50%;
+    font-weight: bold;
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(200, 200, 200, 1);
+    transition: background-color 0.3s, transform 0.2s;
+    cursor: pointer;
+}
+
+.heatmap-ball:hover {
+    transform: scale(1.1);
+}
+
+.heatmap-color {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+}
+
+/* Latest Numbers Display */
+.numbers-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.lottery-ball-container {
+    width: 26px;
+    text-align: center;
+    display: inline-block;
+    margin: 0 2px 4px;
+}
+
+@media (max-width: 576px) {
+    .numbers-container {
+        justify-content: center;
+    }
+    
+    .lottery-ball-container {
+        width: 23px;
+        margin: 0 1px 3px;
+    }
+}
+
+@media (max-width: 400px) {
+    .lottery-ball-container {
+        width: 20px;
+        margin: 0 1px 2px;
+    }
+}
+
+/* Ad Management */
+.ad-container {
+    width: 100%;
+    margin: 20px 0;
+    min-height: 100px;
+    background-color: #f8f9fa;
+    border: 1px dashed #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ad-placeholder {
+    color: #999;
+    text-align: center;
+    padding: 20px;
+}
+
+.ad-header, .ad-footer {
+    width: 100%;
+    margin: 15px 0;
+    min-height: 90px;
+}
+
+.ad-sidebar {
+    min-height: 250px;
+    margin: 15px 0;
+}
+
+.ad-ticket-steps {
+    width: 100%;
+    min-height: 250px;
+    margin: 20px 0;
+}
+
+/* Advertisement overlay */
+#ad-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    transition: opacity 0.5s ease;
+}
+
+#ad-overlay.closing {
+    opacity: 0;
+}
+
+#ad-content {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    text-align: center;
+    position: relative;
+}
+
+#countdown-container {
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+#close-ad-btn {
+    margin-top: 15px;
+}
+
+/* Hide close button until countdown finishes */
+#close-ad-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Data Analytics Preview - Mobile Responsive Fixes */
+
+/* Desktop styles first (default) */
+.data-analytics-preview {
+    overflow-x: hidden;
+}
+
+/* Updated to use Bootstrap grid for equal width columns */
+.data-analytics-preview .chart-card {
+    height: 360px; /* Match the other cards */
+    margin-bottom: 20px;
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    overflow: hidden; /* Hide overflow content instead of scrolling */
+}
+
+/* Match hot-cold card height with chart card */
+.data-analytics-preview .card:not(.chart-card) {
+    height: 360px;
+    overflow: hidden;
+}
+
+.chart-card {
+    background-color: #fff;
+    padding: 8px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    height: 360px; /* Fixed height to match both sides */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Deprecated flex container - now using Bootstrap grid */
+.data-analytics-preview .flex-container {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.data-analytics-preview .frequency-chart-container {
+    width: 100%;
+    height: 320px;
+    margin-top: -15px;
+    margin-bottom: -5px;
+    flex: 1;  /* This ensures the container takes up all available space */
+}
+
+.data-analytics-preview .temperature-chart-container {
+    width: 100%;
+    height: 280px;
+}
+
+.data-analytics-preview .chart-legend-container {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.data-analytics-preview .pie-chart-container {
+    width: 140px;
+    height: 140px;
+}
+
+.data-analytics-preview svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Legend container styles */
+.data-analytics-preview .legend-container {
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+    margin-top: 15px;
+}
+
+.data-analytics-preview .legend-item {
+    margin-right: 8px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+}
+
+.data-analytics-preview .legend-color {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 3px;
+}
+
+/* Division color classes */
+.data-analytics-preview .legend-color-d1 {
+    background-color: #e03237;
+}
+
+.data-analytics-preview .legend-color-d2 {
+    background-color: #ffe11d;
+}
+
+.data-analytics-preview .legend-color-d3 {
+    background-color: #19a03a;
+}
+
+.data-analytics-preview .legend-color-d4 {
+    background-color: #67c6ed;
+}
+
+.data-analytics-preview .legend-color-d5 {
+    background-color: #adb5bd;
+}
+
+/* Color names for legend items (matching template) */
+.data-analytics-preview .legend-color-red {
+    background-color: #e03237;
+}
+
+.data-analytics-preview .legend-color-yellow {
+    background-color: #ffe11d;
+}
+
+.data-analytics-preview .legend-color-green {
+    background-color: #19a03a;
+}
+
+.data-analytics-preview .legend-color-blue {
+    background-color: #67c6ed;
+}
+
+.data-analytics-preview .legend-color-default {
+    background-color: #adb5bd;
+}
+
+/* Hot & Cold Numbers Styling */
+.hot-cold-container {
+    display: block;
+    height: 100%;
+    overflow: hidden; /* Hide scrollbar and overflow content */
+    padding-bottom: 2px;
+    transform: scale(0.93); /* Slightly larger container */
+    transform-origin: top center;
+}
+
+.hot-numbers, .cold-numbers, .absent-numbers {
+    padding: 0;
+    margin-bottom: 0;
+}
+
+/* Smaller headings for hot/cold sections */
+.hot-numbers h5, .cold-numbers h5, .absent-numbers h5 {
+    font-size: 0.88rem;
+    margin: 0 0 0 0;
+    padding: 0;
+}
+
+.hot-number-item, .cold-number-item, .absent-number-item {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    transform: scale(0.85); /* Increased by 3 from 0.82 to 0.85 */
+    transform-origin: center top;
+}
+
+.frequency-label {
+    font-size: 0.7rem;
+    color: #6c757d;
+    margin-top: 0;
+    padding: 0;
+    line-height: 0.9;
+}
+
+/* Make section headers more compact */
+.data-analytics-preview .chart-card h5 {
+    margin-bottom: 5px;
+    margin-top: 0;
+}
+
+/* Make the chart title more compact */
+.data-analytics-preview .chart-card h5 {
+    margin-bottom: 2px;
+}
+
+/* Mobile styles for small screens only */
+@media (max-width: 576px) {
+    .data-analytics-preview .chart-card {
+        height: auto;
+        min-height: 320px;
+    }
+    
+    .hot-cold-container {
+        max-height: none;
+        padding-bottom: 10px;
+    }
+    
+    .hot-number-item, .cold-number-item, .absent-number-item {
+        margin-right: 6px;
+        margin-bottom: 6px;
+    }
+    
+    /* Deprecated flex container styles */
+    .data-analytics-preview .flex-container {
+        flex-direction: column;
+    }
+    
+    .data-analytics-preview .frequency-chart-container {
+        width: 100%;
+        height: 250px;
+        margin-bottom: 20px;
+    }
+    
+    .data-analytics-preview .temperature-chart-container {
+        width: 100%;
+        height: 250px;
+    }
+    
+    .data-analytics-preview .chart-legend-container {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .data-analytics-preview .pie-chart-container {
+        max-width: 120px;
+        margin: 0 auto;
+    }
+    
+    /* Make legend side-by-side on mobile screens */
+    .data-analytics-preview .legend-container {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 15px;
+    }
+    
+    .data-analytics-preview .legend-item {
+        margin: 3px 6px;
+    }
+}
+
+/* Screenshot Gallery Card Improvements */
+.gallery-card {
+    transition: box-shadow 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.125);
+}
+
+.gallery-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.gallery-image-container {
+    height: 200px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+}
+
+.gallery-image-container img {
+    object-fit: contain;
+    max-height: 100%;
+    width: 100%;
+}
+
+.gallery-card .card-body {
+    padding: 1rem;
+    height: 100%;
+}
+
+.gallery-card .card-title {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gallery-card .btn {
+    transition: all 0.2s ease;
+}

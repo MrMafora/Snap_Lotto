@@ -1,0 +1,948 @@
+{% extends "base.html" %}
+
+{% block title %}Health Monitoring Dashboard | Snap Lotto{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.css">
+<style>
+    .health-status-circle {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    .status-ok { background-color: #28a745; }
+    .status-warning { background-color: #ffc107; }
+    .status-critical { background-color: #dc3545; }
+    .status-error { background-color: #6c757d; }
+    
+    .health-card {
+        transition: all 0.3s ease;
+    }
+    .health-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .progress {
+        height: 20px;
+    }
+    
+    .alert-history-item {
+        border-left: 4px solid transparent;
+    }
+    .alert-history-item.critical {
+        border-left-color: #dc3545;
+    }
+    .alert-history-item.warning {
+        border-left-color: #ffc107;
+    }
+    .alert-history-item.resolved {
+        border-left-color: #28a745;
+    }
+    
+    .history-table th, .history-table td {
+        white-space: nowrap;
+    }
+    
+    .details-json {
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 0.8rem;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    
+    .system-status-indicator {
+        width: 100%;
+        height: 100px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        flex-direction: column;
+    }
+    .system-status-ok {
+        background: linear-gradient(135deg, #28a745, #20c997);
+    }
+    .system-status-warning {
+        background: linear-gradient(135deg, #ffc107, #fd7e14);
+    }
+    .system-status-critical {
+        background: linear-gradient(135deg, #dc3545, #e83e8c);
+    }
+    .system-status-error {
+        background: linear-gradient(135deg, #6c757d, #495057);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-heartbeat me-2"></i> Health Monitoring Dashboard
+        </h1>
+        <div>
+            <button id="refresh-dashboard" class="btn btn-primary">
+                <i class="fas fa-sync-alt me-2"></i> Refresh
+            </button>
+        </div>
+    </div>
+    
+    <!-- System Status Overview -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div class="system-status-indicator system-status-{{ overall_status.lower() }}">
+                        <h1><i class="fas fa-{{ 'check-circle' if overall_status == 'OK' else 'exclamation-triangle' if overall_status == 'WARNING' else 'times-circle' }}"></i></h1>
+                        <h2 class="mb-0">System Status: {{ overall_status }}</h2>
+                    </div>
+                </div>
+                <div class="card-footer bg-light text-center">
+                    <small id="last-updated" class="text-muted">Last updated: {{ last_updated }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Active Ports Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-network-wired me-2"></i> Port Monitoring & Service Mapping
+                        </h5>
+                        <span class="badge bg-light text-dark">
+                            {% if components.port_usage and components.port_usage.details and components.port_usage.details.total_listening_ports %}
+                                {{ components.port_usage.details.total_listening_ports }} Active Ports
+                            {% else %}
+                                Port Data Loading...
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Service Mapping Tab -->
+                    <ul class="nav nav-tabs mb-3" id="portTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="services-tab" data-bs-toggle="tab" data-bs-target="#services-tab-pane" type="button" role="tab" aria-controls="services-tab-pane" aria-selected="true">
+                                <i class="fas fa-server me-1"></i> Services By Port
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="ports-tab" data-bs-toggle="tab" data-bs-target="#ports-tab-pane" type="button" role="tab" aria-controls="ports-tab-pane" aria-selected="false">
+                                <i class="fas fa-plug me-1"></i> Port Details
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="critical-tab" data-bs-toggle="tab" data-bs-target="#critical-tab-pane" type="button" role="tab" aria-controls="critical-tab-pane" aria-selected="false">
+                                <i class="fas fa-exclamation-triangle me-1"></i> Critical Ports
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="portTabsContent">
+                        <!-- Services By Port Tab -->
+                        <div class="tab-pane fade show active" id="services-tab-pane" role="tabpanel" aria-labelledby="services-tab" tabindex="0">
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    {% if components.port_usage and components.port_usage.details and components.port_usage.details.service_usage %}
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-striped table-hover">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Service Name</th>
+                                                        <th>Ports</th>
+                                                        <th>Status</th>
+                                                        <th>Memory</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% set critical_ports = [5000, 8080] %}
+                                                    {% for service_name, ports in components.port_usage.details.service_usage.items() %}
+                                                        {% set is_critical = false %}
+                                                        {% for port in ports %}
+                                                            {% if port|int in critical_ports %}
+                                                                {% set is_critical = true %}
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                        
+                                                        <tr class="{% if is_critical %}table-info{% endif %}">
+                                                            <td>
+                                                                <span class="fw-bold">{{ service_name }}</span>
+                                                                {% if is_critical %}
+                                                                    <span class="badge bg-warning ms-1">Critical Service</span>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>
+                                                                {% for port in ports %}
+                                                                    <span class="badge {% if port|int in critical_ports %}bg-primary{% else %}bg-secondary{% endif %} me-1">{{ port }}</span>
+                                                                {% endfor %}
+                                                            </td>
+                                                            <td><span class="badge bg-success">Running</span></td>
+                                                            <td>
+                                                                {% set pinfo = false %}
+                                                                {% for port in ports %}
+                                                                    {% if components.port_usage.details.port_details and (port|string) in components.port_usage.details.port_details %}
+                                                                        {% if components.port_usage.details.port_details[port|string].process_memory_percent %}
+                                                                            {% set pinfo = components.port_usage.details.port_details[port|string].process_memory_percent %}
+                                                                        {% endif %}
+                                                                    {% endif %}
+                                                                {% endfor %}
+                                                                
+                                                                {% if pinfo %}
+                                                                    <div class="progress" style="width: 100px;">
+                                                                        <div class="progress-bar {% if pinfo > 50 %}bg-danger{% elif pinfo > 25 %}bg-warning{% else %}bg-success{% endif %}" 
+                                                                            role="progressbar" style="width: {{ pinfo }}%;" 
+                                                                            aria-valuenow="{{ pinfo }}" aria-valuemin="0" aria-valuemax="100">
+                                                                            {{ pinfo }}%
+                                                                        </div>
+                                                                    </div>
+                                                                {% else %}
+                                                                    <span class="text-muted">N/A</span>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>
+                                                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
+                                                                        data-bs-target="#service-details-{{ loop.index }}" aria-expanded="false">
+                                                                    <i class="fas fa-info-circle"></i> Details
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                        <tr class="collapse" id="service-details-{{ loop.index }}">
+                                                            <td colspan="5" class="p-0">
+                                                                <div class="card card-body bg-light border-0">
+                                                                    <h6>Process Details</h6>
+                                                                    <div class="table-responsive">
+                                                                        <table class="table table-sm table-bordered mb-0">
+                                                                            <thead class="table-secondary">
+                                                                                <tr>
+                                                                                    <th>Port</th>
+                                                                                    <th>PID</th>
+                                                                                    <th>User</th>
+                                                                                    <th>Started At</th>
+                                                                                    <th>Command Line</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                {% for port in ports %}
+                                                                                    {% if components.port_usage.details.port_details and (port|string) in components.port_usage.details.port_details %}
+                                                                                        {% set port_detail = components.port_usage.details.port_details[port|string] %}
+                                                                                        <tr>
+                                                                                            <td><span class="badge bg-primary">{{ port }}</span></td>
+                                                                                            <td>{{ port_detail.pid }}</td>
+                                                                                            <td>{{ port_detail.process_username }}</td>
+                                                                                            <td>{{ port_detail.process_create_time }}</td>
+                                                                                            <td>
+                                                                                                <code class="small">{{ port_detail.process_cmdline|truncate(100) }}</code>
+                                                                                                {% if port_detail.process_cmdline|length > 100 %}
+                                                                                                    <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" 
+                                                                                                            data-bs-target="#cmd-full-{{ port }}" aria-expanded="false">
+                                                                                                        Show Full
+                                                                                                    </button>
+                                                                                                    <div class="collapse mt-1" id="cmd-full-{{ port }}">
+                                                                                                        <code class="small">{{ port_detail.process_cmdline }}</code>
+                                                                                                    </div>
+                                                                                                {% endif %}
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    {% endif %}
+                                                                                {% endfor %}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-info mb-0">
+                                            <i class="fas fa-info-circle me-2"></i> No service port mapping data available.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Ports Tab -->
+                        <div class="tab-pane fade" id="ports-tab-pane" role="tabpanel" aria-labelledby="ports-tab" tabindex="0">
+                            <!-- Original port table -->
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped table-hover">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Port</th>
+                                            <th>Process ID</th>
+                                            <th>Process Name</th>
+                                            <th>Status</th>
+                                            <th>Started</th>
+                                            <th>Command</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="active-ports-table">
+                                        {% if active_ports %}
+                                            {% for port_info in active_ports %}
+                                                <tr class="{% if port_info.port == 5000 or port_info.port == 8080 %}table-info{% endif %}">
+                                                    <td><span class="badge {% if port_info.port == 5000 or port_info.port == 8080 %}bg-primary{% else %}bg-secondary{% endif %}">{{ port_info.port }}</span></td>
+                                                    <td>{{ port_info.process.pid }}</td>
+                                                    <td>{{ port_info.process.name }}</td>
+                                                    <td>{{ port_info.process.status }}</td>
+                                                    <td>{{ port_info.process.created }}</td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#cmd-{{ port_info.port }}-{{ port_info.process.pid }}" aria-expanded="false">
+                                                            <i class="fas fa-code"></i> Show Command
+                                                        </button>
+                                                        <div class="collapse mt-2" id="cmd-{{ port_info.port }}-{{ port_info.process.pid }}">
+                                                            <div class="card card-body bg-light">
+                                                                <code class="small">{{ port_info.process.cmdline }}</code>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="6" class="text-center">No active ports information available</td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Critical Ports Tab -->
+                        <div class="tab-pane fade" id="critical-tab-pane" role="tabpanel" aria-labelledby="critical-tab" tabindex="0">
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card shadow-sm h-100">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-wrench me-2"></i> Development Port (5000)
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            {% if components.server.details.port_5000 %}
+                                                <div class="alert alert-success">
+                                                    <i class="fas fa-check-circle me-2"></i> Port 5000 is active and being used by:
+                                                </div>
+                                                
+                                                {% set found_service = false %}
+                                                {% for service_name, ports in components.port_usage.details.service_usage.items() if components.port_usage and components.port_usage.details and components.port_usage.details.service_usage %}
+                                                    {% if 5000 in ports %}
+                                                        {% set found_service = true %}
+                                                        <div class="mb-3">
+                                                            <h6><strong>{{ service_name }}</strong></h6>
+                                                            
+                                                            {% set port_detail = components.port_usage.details.port_details['5000'] if components.port_usage.details.port_details and '5000' in components.port_usage.details.port_details %}
+                                                            
+                                                            {% if port_detail %}
+                                                                <div class="table-responsive">
+                                                                    <table class="table table-sm">
+                                                                        <tr>
+                                                                            <th>PID</th>
+                                                                            <td>{{ port_detail.pid }}</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>User</th>
+                                                                            <td>{{ port_detail.process_username }}</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>Started</th>
+                                                                            <td>{{ port_detail.process_create_time }}</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>Memory</th>
+                                                                            <td>{{ port_detail.process_memory_percent }}%</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>Command</th>
+                                                                            <td><code class="small">{{ port_detail.process_cmdline|truncate(50) }}</code></td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                
+                                                {% if not found_service %}
+                                                    <div class="alert alert-warning">
+                                                        Port is active but service details unavailable
+                                                    </div>
+                                                {% endif %}
+                                                
+                                            {% else %}
+                                                <div class="alert alert-danger">
+                                                    <i class="fas fa-exclamation-triangle me-2"></i> Port 5000 is not active!
+                                                </div>
+                                                <p class="text-muted">Development server should be listening on port 5000. Check server status or restart the application.</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card shadow-sm h-100">
+                                        <div class="card-header bg-warning text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-globe me-2"></i> Production Port (8080)
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            {% if components.server.details.port_8080 %}
+                                                <div class="alert alert-success">
+                                                    <i class="fas fa-check-circle me-2"></i> Port 8080 is active and being used by:
+                                                </div>
+                                                
+                                                {% set found_service = false %}
+                                                {% for service_name, ports in components.port_usage.details.service_usage.items() if components.port_usage and components.port_usage.details and components.port_usage.details.service_usage %}
+                                                    {% if 8080 in ports %}
+                                                        {% set found_service = true %}
+                                                        <div class="mb-3">
+                                                            <h6><strong>{{ service_name }}</strong></h6>
+                                                            
+                                                            {% set port_detail = components.port_usage.details.port_details['8080'] if components.port_usage.details.port_details and '8080' in components.port_usage.details.port_details %}
+                                                            
+                                                            {% if port_detail %}
+                                                                <div class="table-responsive">
+                                                                    <table class="table table-sm">
+                                                                        <tr>
+                                                                            <th>PID</th>
+                                                                            <td>{{ port_detail.pid }}</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>User</th>
+                                                                            <td>{{ port_detail.process_username }}</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>Started</th>
+                                                                            <td>{{ port_detail.process_create_time }}</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>Memory</th>
+                                                                            <td>{{ port_detail.process_memory_percent }}%</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th>Command</th>
+                                                                            <td><code class="small">{{ port_detail.process_cmdline|truncate(50) }}</code></td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                
+                                                {% if not found_service %}
+                                                    <div class="alert alert-warning">
+                                                        Port is active but service details unavailable
+                                                    </div>
+                                                {% endif %}
+                                                
+                                            {% else %}
+                                                <div class="alert alert-danger">
+                                                    <i class="fas fa-exclamation-triangle me-2"></i> Port 8080 is not active!
+                                                </div>
+                                                <p class="text-muted">Production deployment requires port 8080 to be active. External users will not be able to access the application.</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <button id="refresh-ports" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-sync-alt me-1"></i> Refresh Ports
+                    </button>
+                    <a href="{{ url_for('run_health_checks') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-redo me-1"></i> Run Health Checks
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Component Status Cards -->
+    <div class="row mb-4">
+        <!-- Server Status -->
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm health-card h-100 {{ 'border-success' if components.server.status == 'OK' else 'border-warning' if components.server.status == 'WARNING' else 'border-danger' }}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-server me-2"></i> Server</h5>
+                    <span class="health-status-circle status-{{ components.server.status.lower() }}"></span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <div>Port 5000</div>
+                            <div>
+                                {% if components.server.details.port_5000 %}
+                                    <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Online</span>
+                                {% else %}
+                                    <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i> Offline</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <div>Port 8080</div>
+                            <div>
+                                {% if components.server.details.port_8080 %}
+                                    <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Online</span>
+                                {% else %}
+                                    <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i> Offline</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <a data-bs-toggle="collapse" href="#server-details" role="button" aria-expanded="false" class="text-decoration-none small">
+                        <i class="fas fa-chevron-down me-1"></i> Details
+                    </a>
+                    <div class="collapse mt-2" id="server-details">
+                        <div class="details-json">{{ components.server.details|tojson(indent=2) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Database Status -->
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm health-card h-100 {{ 'border-success' if components.database.status == 'OK' else 'border-warning' if components.database.status == 'WARNING' else 'border-danger' }}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-database me-2"></i> Database</h5>
+                    <span class="health-status-circle status-{{ components.database.status.lower() }}"></span>
+                </div>
+                <div class="card-body">
+                    {% if components.database.status == 'OK' %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <div>Tables</div>
+                                <div>{{ components.database.details.tables_count }}</div>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <div>Lottery Results</div>
+                                <div>{{ components.database.details.tables_data.lottery_result }}</div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <div>Advertisements</div>
+                                <div>{{ components.database.details.tables_data.advertisement }}</div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i> Database connection error
+                        </div>
+                        {% if components.database.details.error %}
+                            <div class="small text-danger">{{ components.database.details.error }}</div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light">
+                    <a data-bs-toggle="collapse" href="#database-details" role="button" aria-expanded="false" class="text-decoration-none small">
+                        <i class="fas fa-chevron-down me-1"></i> Details
+                    </a>
+                    <div class="collapse mt-2" id="database-details">
+                        <div class="details-json">{{ components.database.details|tojson(indent=2) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resource Status -->
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm health-card h-100 {{ 'border-success' if components.resources.status == 'OK' else 'border-warning' if components.resources.status == 'WARNING' else 'border-danger' }}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-microchip me-2"></i> Resources</h5>
+                    <span class="health-status-circle status-{{ components.resources.status.lower() }}"></span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label mb-1">Memory Usage</label>
+                        <div class="progress mb-2">
+                            <div class="progress-bar bg-{{ 'danger' if components.resources.details.memory_usage > 80 else 'warning' if components.resources.details.memory_usage > 60 else 'success' }}" 
+                                 role="progressbar" 
+                                 style="width: {{ components.resources.details.memory_usage }}%;" 
+                                 aria-valuenow="{{ components.resources.details.memory_usage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                {{ components.resources.details.memory_usage }}%
+                            </div>
+                        </div>
+                        
+                        <label class="form-label mb-1">CPU Usage</label>
+                        <div class="progress mb-2">
+                            <div class="progress-bar bg-{{ 'danger' if components.resources.details.cpu_usage > 80 else 'warning' if components.resources.details.cpu_usage > 60 else 'success' }}" 
+                                 role="progressbar" 
+                                 style="width: {{ components.resources.details.cpu_usage }}%;" 
+                                 aria-valuenow="{{ components.resources.details.cpu_usage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                {{ components.resources.details.cpu_usage }}%
+                            </div>
+                        </div>
+                        
+                        <label class="form-label mb-1">Disk Usage</label>
+                        <div class="progress">
+                            <div class="progress-bar bg-{{ 'danger' if components.resources.details.disk_usage > 80 else 'warning' if components.resources.details.disk_usage > 60 else 'success' }}" 
+                                 role="progressbar" 
+                                 style="width: {{ components.resources.details.disk_usage }}%;" 
+                                 aria-valuenow="{{ components.resources.details.disk_usage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                {{ components.resources.details.disk_usage }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <a data-bs-toggle="collapse" href="#resource-details" role="button" aria-expanded="false" class="text-decoration-none small">
+                        <i class="fas fa-chevron-down me-1"></i> Details
+                    </a>
+                    <div class="collapse mt-2" id="resource-details">
+                        <div class="details-json">{{ components.resources.details|tojson(indent=2) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Advertisement System -->
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm health-card h-100 {{ 'border-success' if components.advertisement.status == 'OK' else 'border-warning' if components.advertisement.status == 'WARNING' else 'border-danger' }}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-ad me-2"></i> Ads</h5>
+                    <span class="health-status-circle status-{{ components.advertisement.status.lower() }}"></span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <div>Total Ads</div>
+                            <div>{{ components.advertisement.details.total_ads }}</div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <div>Active Ads</div>
+                            <div>{{ components.advertisement.details.active_ads }}</div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <div>Total Impressions</div>
+                            <div>{{ components.advertisement.details.total_impressions }}</div>
+                        </div>
+                    </div>
+                    
+                    {% if components.advertisement.details.warning %}
+                        <div class="alert alert-warning small">
+                            <i class="fas fa-exclamation-triangle me-2"></i> {{ components.advertisement.details.warning }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light">
+                    <a data-bs-toggle="collapse" href="#ad-details" role="button" aria-expanded="false" class="text-decoration-none small">
+                        <i class="fas fa-chevron-down me-1"></i> Details
+                    </a>
+                    <div class="collapse mt-2" id="ad-details">
+                        <div class="details-json">{{ components.advertisement.details|tojson(indent=2) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Recent Alerts -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-bell me-2"></i> Recent Alerts</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if alerts %}
+                        <div class="list-group list-group-flush">
+                            {% for alert in alerts %}
+                                <div class="list-group-item alert-history-item {{ 'resolved' if alert.resolved else 'critical' if 'critical' in alert.alert_type.lower() else 'warning' }}">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-1">{{ alert.alert_type }}</h6>
+                                        <span class="badge {{ 'bg-success' if alert.resolved else 'bg-danger' }}">
+                                            {{ 'Resolved' if alert.resolved else 'Active' }}
+                                        </span>
+                                    </div>
+                                    <p class="mb-1 small">{{ alert.message }}</p>
+                                    <div class="d-flex justify-content-between small text-muted">
+                                        <span>Created: {{ alert.created_at }}</span>
+                                        {% if alert.resolved %}
+                                            <span>Resolved: {{ alert.resolved_at }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                            <h5>No alerts</h5>
+                            <p class="text-muted">All systems are operating normally</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light">
+                    <a href="{{ url_for('health_alerts') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-list me-1"></i> View All Alerts
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Health Check History -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i> Recent Health Checks</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover history-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Check Type</th>
+                                    <th>Status</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for check in health_history %}
+                                    <tr>
+                                        <td>{{ check.timestamp }}</td>
+                                        <td>{{ check.check_type }}</td>
+                                        <td>
+                                            <span class="badge {{ 'bg-success' if check.status == 'OK' else 'bg-warning' if check.status == 'WARNING' else 'bg-danger' }}">
+                                                {{ check.status }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#detailsModal-{{ check.id }}">
+                                                <i class="fas fa-info-circle"></i>
+                                            </button>
+                                            
+                                            <!-- Modal for details -->
+                                            <div class="modal fade" id="detailsModal-{{ check.id }}" tabindex="-1" aria-labelledby="detailsModalLabel-{{ check.id }}" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="detailsModalLabel-{{ check.id }}">{{ check.check_type }} Details</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div class="details-json">{{ check.details }}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <a href="{{ url_for('health_history') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-list me-1"></i> View Full History
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Resource Usage Charts -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Resource Usage Over Time</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="resourceChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Resource Usage Chart
+        const resourceCtx = document.getElementById('resourceChart').getContext('2d');
+        const resourceChart = new Chart(resourceCtx, {
+            type: 'line',
+            data: {
+                labels: {{ resource_timestamps|tojson }},
+                datasets: [
+                    {
+                        label: 'CPU Usage',
+                        data: {{ cpu_history|tojson }},
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Memory Usage',
+                        data: {{ memory_history|tojson }},
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Disk Usage',
+                        data: {{ disk_history|tojson }},
+                        borderColor: 'rgba(255, 206, 86, 1)',
+                        backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Percentage (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Handle refresh button
+        document.getElementById('refresh-dashboard').addEventListener('click', function() {
+            window.location.reload();
+        });
+        
+        // Add AJAX updating for real-time monitoring
+        function fetchSystemStatus() {
+            fetch('/api/system-metrics', {
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the last updated timestamp
+                        const lastUpdatedEl = document.getElementById('last-updated');
+                        if (lastUpdatedEl) {
+                            lastUpdatedEl.textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+                        }
+                        
+                        // Update CPU usage
+                        updateResourceValue('cpu-usage', data.cpu_usage, '%');
+                        
+                        // Update memory usage
+                        updateResourceValue('memory-usage', data.memory_usage, '%');
+                        
+                        // Update disk usage
+                        updateResourceValue('disk-usage', data.disk_usage, '%');
+                        
+                        // Add data to chart if possible
+                        try {
+                            const now = new Date().toLocaleTimeString();
+                            resourceChart.data.labels.push(now);
+                            if (resourceChart.data.labels.length > 10) {
+                                resourceChart.data.labels.shift();
+                            }
+                            
+                            // Add CPU data
+                            resourceChart.data.datasets[0].data.push(parseInt(data.cpu_usage));
+                            if (resourceChart.data.datasets[0].data.length > 10) {
+                                resourceChart.data.datasets[0].data.shift();
+                            }
+                            
+                            // Add memory data
+                            resourceChart.data.datasets[1].data.push(parseInt(data.memory_usage));
+                            if (resourceChart.data.datasets[1].data.length > 10) {
+                                resourceChart.data.datasets[1].data.shift();
+                            }
+                            
+                            // Add disk data
+                            resourceChart.data.datasets[2].data.push(parseInt(data.disk_usage));
+                            if (resourceChart.data.datasets[2].data.length > 10) {
+                                resourceChart.data.datasets[2].data.shift();
+                            }
+                            
+                            resourceChart.update();
+                        } catch (e) {
+                            console.log("Error updating chart:", e);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching system metrics:', error);
+                });
+        }
+        
+        function updateResourceValue(elementId, value, suffix) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = value + suffix;
+                
+                // Update color based on value
+                if (value > 80) {
+                    element.className = 'text-danger fw-bold';
+                } else if (value > 60) {
+                    element.className = 'text-warning fw-bold';
+                } else {
+                    element.className = 'text-success';
+                }
+            }
+        }
+        
+        // Update metrics every 15 seconds
+        setInterval(fetchSystemStatus, 15000);
+        
+        // Auto-refresh the full dashboard every 5 minutes
+        setTimeout(function() {
+            window.location.reload();
+        }, 300000);
+    });
+</script>
+{% endblock %}

@@ -9,7 +9,7 @@ import sys
 import logging
 import json
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from models import db, LotteryResult, Screenshot
 
 # Set up logging
@@ -18,25 +18,22 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 def parse_date(date_str):
-    """Parse date from string or datetime object to datetime object"""
+    """Parse date from string format to datetime object"""
     try:
-        if isinstance(date_str, datetime):
-            return date_str
-        if pd.isna(date_str):
+        # Use our dedicated date parsing module
+        from excel_date_utils import parse_excel_date
+        
+        # Handle NaN values
+        if date_str is None or pd.isna(date_str):
             return None
             
-        # Convert to string if it's not
-        date_str = str(date_str).strip()
+        # Use the utility function for consistent date parsing
+        result = parse_excel_date(date_str)
         
-        # Try various date formats
-        for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d', '%m/%d/%Y']:
-            try:
-                return datetime.strptime(date_str, fmt)
-            except ValueError:
-                continue
-                
-        # If all formats fail, raise error
-        raise ValueError(f"Couldn't parse date: {date_str}")
+        # Log the result for debugging
+        logger.info(f"Using excel_date_utils to parse '{date_str}' → {result}")
+        
+        return result
     except Exception as e:
         logger.error(f"Error parsing date {date_str}: {str(e)}")
         return None
@@ -75,18 +72,18 @@ def get_lottery_type(game_name):
         
     game_str = str(game_name).strip().upper()
     
-    if game_str == "LOTTO":
-        return "Lotto"
-    elif game_str == "LOTTO PLUS 1":
-        return "Lotto Plus 1"
-    elif game_str == "LOTTO PLUS 2":
-        return "Lotto Plus 2"
+    if game_str == "LOTTO" or game_str == "LOTTERY":
+        return "Lottery"
+    elif game_str == "LOTTO PLUS 1" or game_str == "LOTTERY PLUS 1":
+        return "Lottery Plus 1"
+    elif game_str == "LOTTO PLUS 2" or game_str == "LOTTERY PLUS 2":
+        return "Lottery Plus 2"
     elif game_str == "POWERBALL":
         return "Powerball"
     elif game_str == "POWERBALL PLUS":
         return "Powerball Plus"
-    elif game_str == "DAILY LOTTO":
-        return "Daily Lotto"
+    elif game_str == "DAILY LOTTO" or game_str == "DAILY LOTTERY":
+        return "Daily Lottery"
     
     # Default case: return the original but with proper capitalization
     return game_name.strip().title()
@@ -137,36 +134,122 @@ def import_snap_lotto_data(excel_file, flask_app=None):
         with ctx:
             logger.info(f"Starting import from {excel_file}...")
             
-            # Read Excel file - it has a very specific structure from examination
-            df = pd.read_excel(excel_file, sheet_name="Sheet1")
+            # Check if this is an empty template file by getting all sheet names
+            try:
+                xl = pd.ExcelFile(excel_file, engine='openpyxl')  # Explicitly specify the engine
+                sheet_names = xl.sheet_names
+                logger.info(f"Found sheets: {sheet_names}")
+            except Exception as e:
+                logger.error(f"Error reading Excel file: {str(e)}. Trying with alternative engine.")
+                try:
+                    # Try with alternative engine
+                    xl = pd.ExcelFile(excel_file, engine='xlrd')
+                    sheet_names = xl.sheet_names
+                    logger.info(f"Found sheets using alternative engine: {sheet_names}")
+                except Exception as e2:
+                    logger.error(f"Error reading Excel file with alternative engine: {str(e2)}")
+                    from flask import flash
+                    flash(f"Unable to read the Excel file. The file might be corrupted or not a valid Excel file.", "danger")
+                    return False
             
-            # Skip the header rows - real data starts at row 4
-            # Skip already imported data (if any were imported)
-            existing_count = LotteryResult.query.count()
-            if existing_count > 0:
-                logger.info(f"Found {existing_count} existing records. Will skip importing the first {existing_count} rows.")
-                # Skip the header rows (4) plus the number of already imported rows
-                df = df.iloc[4 + existing_count:].reset_index(drop=True)
-            else:
-                df = df.iloc[4:].reset_index(drop=True)
+            # Check if this is our template format (has lottery type sheets)
+            expected_sheets = ["Lottery", "Lottery Plus 1", "Lottery Plus 2", "Powerball", "Powerball Plus", "Daily Lottery"]
+            
+            # If this is our template format, check if there's data in at least one sheet
+            if any(sheet in sheet_names for sheet in expected_sheets):
+                # Check each sheet for data
+                has_data = False
+                for sheet in expected_sheets:
+                    if sheet in sheet_names:
+                        try:
+                            df = pd.read_excel(excel_file, sheet_name=sheet, engine='openpyxl')
+                            # Check if there are rows with actual data
+                            if not df.empty and len(df) > 0:
+                                # Check if some common lottery columns exist
+                                for column in ["Draw Number", "Draw Date", "Game Name", "Winning Numbers"]:
+                                    if any(col for col in df.columns if column.lower() in str(col).lower()):
+                                        has_data = True
+                                        logger.info(f"Found lottery data in sheet: {sheet}")
+                                        break
+                        except Exception as e:
+                            logger.error(f"Error reading sheet {sheet}: {str(e)}")
+                
+                # If no data found in any sheet
+                if not has_data:
+                    logger.info("This appears to be an empty template file. No data to import.")
+                    if flask_app:
+                        with flask_app.app_context():
+                            from flask import flash
+                            flash("❗ EMPTY TEMPLATE DETECTED", "danger")  # Use danger for maximum visibility
+                            flash("The uploaded file appears to be an empty template. Please add lottery data to the template sheets and try again.", "info")
+                            flash("No data was imported. Please fill in the template with lottery data before uploading.", "warning")
+                            flash("How to add data: 1) Open the template, 2) Add lottery information to each sheet, 3) Save the file, 4) Upload again", "info")
+                    return True  # Special case for empty template
+                
+            # Try to read the expected sheet for the standard Snap Lotto format
+            try:
+                df = pd.read_excel(excel_file, sheet_name="Sheet1", engine='openpyxl')
+            except ValueError as e:
+                logger.error(f"Worksheet named 'Sheet1' not found. Available sheets: {sheet_names}")
+                # Try to read the first available sheet instead
+                if sheet_names:
+                    logger.info(f"Attempting to read first available sheet: {sheet_names[0]}")
+                    df = pd.read_excel(excel_file, sheet_name=sheet_names[0])
+                else:
+                    logger.error("No sheets found in the Excel file.")
+                    return False
+            
+            # CRITICAL: Only skip the first row (header row)
+            # This ensures we capture ALL lottery data starting from row 1
+            # We previously skipped rows 0-3 which caused data loss - NEVER skip more than 1 row
+            logger.warning(f"⚠️ CRITICAL: Only skipping the first row (header) to prevent data loss")
+            logger.warning(f"⚠️ Previous bug was skipping first 4 rows causing lottery results to be missed")
+            df = df.iloc[1:].reset_index(drop=True)
+            
+            # Add extra debug logging for the first row (Excel row 2)
+            if not df.empty:
+                logger.warning(f"⚠️ Processing CRITICAL Row 2 data: {df.iloc[0].to_dict()}")
             
             # Assign proper column names based on row 3
-            column_names = {
-                df.columns[0]: 'game_name',
-                df.columns[1]: 'draw_number',
-                df.columns[2]: 'draw_date',
-                df.columns[3]: 'winning_numbers',
-                df.columns[4]: 'bonus_ball'
-            }
+            # Start with base columns that are likely to exist
+            column_names = {}
             
-            # Add division columns
+            # Safely add columns only if they exist
+            if len(df.columns) > 0:
+                column_names[df.columns[0]] = 'game_name'
+            if len(df.columns) > 1:
+                column_names[df.columns[1]] = 'draw_number'
+            if len(df.columns) > 2:
+                column_names[df.columns[2]] = 'draw_date'
+            if len(df.columns) > 3:
+                column_names[df.columns[3]] = 'winning_numbers'
+            if len(df.columns) > 4:
+                column_names[df.columns[4]] = 'bonus_ball'
+            
+            # Add division columns only if they exist in the dataframe
             for i in range(1, 9):
-                column_names[df.columns[4 + (i*2) - 1]] = f'div_{i}_winners'
-                column_names[df.columns[4 + (i*2)]] = f'div_{i}_prize'
+                # Calculate column indices for winners and prize
+                winner_idx = 4 + (i*2) - 1
+                prize_idx = 4 + (i*2)
+                
+                # Check if these indices are within the range of columns
+                if winner_idx < len(df.columns):
+                    column_names[df.columns[winner_idx]] = f'div_{i}_winners'
+                if prize_idx < len(df.columns):
+                    column_names[df.columns[prize_idx]] = f'div_{i}_prize'
             
-            # Add rollover column
+            # Add rollover column if it exists
             if len(df.columns) > 20:
                 column_names[df.columns[20]] = 'rollover_amount'
+                
+            # Log the columns for debugging
+            logger.info(f"Data columns found: {len(df.columns)}")
+            logger.info(f"Mapped columns: {column_names}")
+            
+            # Print out full dataframe info for debugging
+            logger.info(f"DataFrame columns: {list(df.columns)}")
+            if not df.empty:
+                logger.info(f"First row data: {df.iloc[0].to_dict()}")
             
             # Rename columns
             df = df.rename(columns=column_names)
@@ -181,6 +264,7 @@ def import_snap_lotto_data(excel_file, flask_app=None):
             # Track results
             imported_count = 0
             errors_count = 0
+            imported_records = []  # Track individual records for import history
             
             # Process each row
             for idx, row in df.iterrows():
@@ -190,7 +274,16 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     lottery_type = get_lottery_type(game_name)
                     # Extract and normalize draw number by removing any "Draw" prefix
                     draw_number = str(row['draw_number']).strip()
-                    draw_number = draw_number.replace('Draw', '').replace('DRAW', '').strip()
+                    
+                    # Enhanced extraction - use data_aggregator's normalize function if available
+                    try:
+                        from data_aggregator import normalize_draw_number
+                        draw_number = normalize_draw_number(draw_number)
+                        logger.info(f"Normalized draw number to: {draw_number}")
+                    except ImportError:
+                        # Fallback to simple normalization if function not available
+                        draw_number = draw_number.replace('Draw', '').replace('DRAW', '').strip()
+                        logger.info(f"Basic normalization of draw number to: {draw_number}")
                     draw_date = parse_date(row['draw_date'])
                     
                     # Skip rows with missing essential data
@@ -201,9 +294,17 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     # Parse numbers
                     winning_numbers = parse_numbers(row['winning_numbers'])
                     
-                    # Daily Lotto has no bonus balls - handle it differently
+                    # Daily Lottery has no bonus balls - handle it differently
                     bonus_ball = []
-                    if lottery_type != "Daily Lotto":
+                    # Ensure Daily Lottery has exactly 5 numbers
+                    if lottery_type == "Daily Lottery":
+                        # Limit Daily Lottery to exactly 5 numbers
+                        if len(winning_numbers) > 5:
+                            logger.warning(f"Daily Lottery draw {draw_number} has {len(winning_numbers)} numbers, limiting to first 5")
+                            winning_numbers = winning_numbers[:5]
+                        elif len(winning_numbers) < 5:
+                            logger.warning(f"Daily Lottery draw {draw_number} has only {len(winning_numbers)} numbers, expected 5")
+                    else:
                         bonus_ball = parse_numbers(row['bonus_ball']) if 'bonus_ball' in row and not pd.isna(row['bonus_ball']) else []
                     
                     # Skip rows with missing winning numbers
@@ -223,12 +324,12 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                                 # Skip adding this division entirely when data is not available
                                 continue
                             
-                            # Handle Daily Lotto differently due to different data format in the spreadsheet
-                            if lottery_type == "Daily Lotto":
+                            # Handle Daily Lottery differently due to different data format in the spreadsheet
+                            if lottery_type == "Daily Lottery":
                                 # Check if the winners column actually contains a prize value (R prefix)
                                 if isinstance(row[winners_col], str) and row[winners_col].strip().startswith('R'):
                                     divisions[f"Division {i}"] = {
-                                        "winners": str(i), # For Daily Lotto, division number = number of matches
+                                        "winners": str(i), # For Daily Lottery, division number = number of matches
                                         "prize": format_prize(row[winners_col])
                                     }
                                 else:
@@ -276,6 +377,23 @@ def import_snap_lotto_data(excel_file, flask_app=None):
                     
                     # Commit each result individually to avoid losing all data if one fails
                     db.session.commit()
+                    
+                    # Store this record in import_tracking for later reference
+                    # Record if this was a new record or an update
+                    is_new_record = existing is None
+                    lottery_result = existing if existing else db.session.query(LotteryResult).filter_by(
+                        lottery_type=lottery_type,
+                        draw_number=draw_number
+                    ).first()
+                    
+                    imported_records.append({
+                        'lottery_type': lottery_type,
+                        'draw_number': draw_number,
+                        'draw_date': draw_date,
+                        'is_new': is_new_record,
+                        'lottery_result_id': lottery_result.id
+                    })
+                    
                     imported_count += 1
                     
                     if imported_count % 10 == 0:
@@ -295,7 +413,17 @@ def import_snap_lotto_data(excel_file, flask_app=None):
             logger.info(f"Successfully imported/updated {imported_count} records")
             logger.info(f"Encountered {errors_count} errors")
             
-            return True
+            # Return stats dictionary for detailed success message
+            return {
+                "success": True,
+                "initial_count": initial_count,
+                "final_count": final_count,
+                "total": imported_count,
+                "errors": errors_count,
+                "added": final_count - initial_count,
+                "updated": imported_count - (final_count - initial_count),
+                "imported_records": imported_records  # Include records for import history
+            }
     except Exception as e:
         logger.error(f"Error during import operation: {str(e)}")
         return False

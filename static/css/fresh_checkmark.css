@@ -1,0 +1,88 @@
+/* Fresh checkmark system - clean slate approach */
+.lottery-ball {
+    position: relative;
+}
+
+.ball-matched {
+    border: 3px solid #28a745 !important;
+    box-shadow: 0 0 10px #28a745;
+}
+
+.match-indicator {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    border-radius: 50%;
+    background-color: green;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+    border: 2px solid white;
+    z-index: 100;
+    color: white;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+}
+
+/* Game-specific colors with high contrast backgrounds for better visibility */
+
+/* Base indicator style with consistent size */
+.match-indicator {
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none; /* Remove border */
+    color: white;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    box-shadow: none; /* Remove shadow */
+}
+
+/* Main Lottery Games */
+.match-lottery { 
+    background-color: #28a745; /* Green (Default) */
+}
+
+.match-lottery-plus-1 { 
+    background-color: #e74c3c; /* Bright Red */
+}
+
+.match-lottery-plus-2 { 
+    background-color: #f1c40f; /* Bright Yellow */
+    color: #333; /* Darker text on yellow for contrast */
+    text-shadow: none;
+}
+
+/* Powerball Games */
+.match-powerball { 
+    background-color: #28a745; /* Green (Default) */
+}
+
+.match-powerball-plus { 
+    background-color: #9b59b6; /* Bright Purple */
+}
+
+/* Daily Lottery */
+.match-daily-lottery {
+    background-color: #1abc9c; /* Bright Turquoise */
+}
+
+/* Bonus Ball Matches - Add a star or distinctive mark */
+.match-lottery-bonus::after,
+.match-lottery-plus-1-bonus::after,
+.match-lottery-plus-2-bonus::after,
+.match-powerball-bonus::after,
+.match-powerball-plus-bonus::after,
+.match-daily-lottery-bonus::after {
+    content: "*";
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 18px;
+    color: #ffd700; /* Gold */
+    text-shadow: 0 0 3px black;
+}

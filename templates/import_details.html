@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Import Details</h1>
+        <div>
+            <a href="{{ url_for('import_history') }}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-arrow-left me-2"></i>Back to Import History
+            </a>
+            <a href="{{ url_for('import_data') }}" class="btn btn-primary">
+                <i class="fas fa-upload me-2"></i>Import New Data
+            </a>
+        </div>
+    </div>
+
+    <!-- Import Summary Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Import Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Import Date</dt>
+                                <dd class="col-sm-8">{{ import_record.import_date.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+
+                                <dt class="col-sm-4">Import Type</dt>
+                                <dd class="col-sm-8">
+                                    {% if import_record.import_type == 'excel' %}
+                                        <span class="badge bg-success">Excel</span>
+                                    {% elif import_record.import_type == 'snap_lotto' %}
+                                        <span class="badge bg-info">Snap Lotto</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ import_record.import_type }}</span>
+                                    {% endif %}
+                                </dd>
+
+                                <dt class="col-sm-4">File Name</dt>
+                                <dd class="col-sm-8">{{ import_record.file_name }}</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row mt-2">
+                                <div class="col-sm-3 text-center">
+                                    <div class="rounded-circle bg-primary text-white p-3 d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px;">
+                                        <div>
+                                            <span class="fs-3">{{ import_record.total_processed }}</span><br>
+                                            <small>Total</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 text-center">
+                                    <div class="rounded-circle bg-success text-white p-3 d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px;">
+                                        <div>
+                                            <span class="fs-3">{{ import_record.records_added }}</span><br>
+                                            <small>Added</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 text-center">
+                                    <div class="rounded-circle bg-warning text-dark p-3 d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px;">
+                                        <div>
+                                            <span class="fs-3">{{ import_record.records_updated }}</span><br>
+                                            <small>Updated</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3 text-center">
+                                    <div class="rounded-circle {% if import_record.errors > 0 %}bg-danger{% else %}bg-light text-dark{% endif %} text-white p-3 d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px;">
+                                        <div>
+                                            <span class="fs-3">{{ import_record.errors }}</span><br>
+                                            <small>Errors</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Imported Records Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Imported Records</h5>
+                        {% if import_record.records_updated > 0 and import_record.records_added == 0 %}
+                            <span class="badge bg-warning text-dark px-3 py-2">
+                                <i class="fas fa-sync-alt me-2"></i> All records were updates to existing data
+                            </span>
+                        {% elif import_record.records_updated > 0 %}
+                            <span class="badge bg-info text-dark px-3 py-2">
+                                <i class="fas fa-info-circle me-2"></i> Some records were updates to existing data
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if records_by_type %}
+                        <ul class="nav nav-tabs" id="recordsTabs" role="tablist">
+                            {% for lottery_type, records in records_by_type.items() %}
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link {% if loop.first %}active{% endif %}" 
+                                            id="tab-{{ lottery_type|replace(' ', '-')|lower }}" 
+                                            data-bs-toggle="tab" 
+                                            data-bs-target="#{{ lottery_type|replace(' ', '-')|lower }}" 
+                                            type="button" 
+                                            role="tab" 
+                                            aria-controls="{{ lottery_type|replace(' ', '-')|lower }}" 
+                                            aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                                        {{ lottery_type }} 
+                                        <span class="badge bg-primary rounded-pill">{{ records|length }}</span>
+                                    </button>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="tab-content p-3" id="recordsTabsContent">
+                            {% for lottery_type, records in records_by_type.items() %}
+                                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+                                     id="{{ lottery_type|replace(' ', '-')|lower }}" 
+                                     role="tabpanel" 
+                                     aria-labelledby="tab-{{ lottery_type|replace(' ', '-')|lower }}">
+                                    
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Draw #</th>
+                                                    <th>Draw Date</th>
+                                                    <th>Status</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for record in records %}
+                                                <tr>
+                                                    <td>{{ record.draw_number }}</td>
+                                                    <td>{{ record.draw_date.strftime('%Y-%m-%d') if record.draw_date else 'N/A' }}</td>
+                                                    <td>
+                                                        {% if record.is_new %}
+                                                            <span class="badge bg-success">New Record</span>
+                                                        {% else %}
+                                                            <span class="badge bg-warning text-dark">
+                                                                <i class="fas fa-sync-alt me-1"></i> Updated
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ url_for('draw_details', lottery_type=record.lottery_type, draw_number=record.draw_number) }}" 
+                                                           class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-eye"></i> View Draw
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> No detailed records found for this import.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

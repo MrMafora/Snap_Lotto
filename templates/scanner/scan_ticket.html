@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Lottery Ticket - Snap Lotto{% endblock %}
+
+{% block styles %}
+<style>
+    .upload-container {
+        border: 2px dashed #ccc;
+        padding: 30px;
+        text-align: center;
+        margin: 20px 0;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+    .status-indicator {
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-weight: bold;
+        display: inline-block;
+        margin: 5px;
+    }
+    .status-active {
+        background-color: #27ae60;
+        color: white;
+    }
+    .status-inactive {
+        background-color: #e74c3c;
+        color: white;
+    }
+    .api-status {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f9f9f9;
+        border-radius: 5px;
+    }
+    .instructions {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #e8f4fc;
+        border-left: 4px solid #3498db;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mb-4">Snap Lotto Ticket Scanner</h1>
+            <p class="lead">Upload a photo of your lottery ticket to check if you've won.</p>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="api-status">
+                        <div>
+                            <strong>Gemini OCR:</strong>
+                            <span class="status-indicator {{ 'status-active' if gemini_available else 'status-inactive' }}">
+                                {{ 'Available' if gemini_available else 'Unavailable' }}
+                            </span>
+                        </div>
+                        <div>
+                            <strong>OpenAI Backup:</strong>
+                            <span class="status-indicator {{ 'status-active' if openai_available else 'status-inactive' }}">
+                                {{ 'Available' if openai_available else 'Unavailable' }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <form action="{{ url_for('scanner.scan_ticket') }}" method="post" enctype="multipart/form-data">
+                        <div class="upload-container">
+                            <p>Take a clear photo of your ticket or upload an existing image</p>
+                            <input type="file" name="ticket_image" id="ticket_image" accept=".jpg,.jpeg,.png,.gif" style="display: none;">
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('ticket_image').click();">
+                                Select Image
+                            </button>
+                            <p id="selected-file">No file selected</p>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success btn-lg btn-block">
+                            Scan Ticket
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="instructions">
+                <h3>How to get the best results:</h3>
+                <ol>
+                    <li>Ensure the ticket is on a flat surface with good lighting</li>
+                    <li>Make sure all ticket information is clearly visible in the photo</li>
+                    <li>Keep the ticket number and draw date clearly visible</li>
+                    <li>Avoid glare or shadows on the ticket</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Display the name of the selected file
+    document.getElementById('ticket_image').addEventListener('change', function() {
+        var fileName = this.files[0] ? this.files[0].name : 'No file selected';
+        document.getElementById('selected-file').textContent = fileName;
+    });
+</script>
+{% endblock %}

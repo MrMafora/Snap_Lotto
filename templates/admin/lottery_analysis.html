@@ -1,0 +1,2078 @@
+{% extends "base.html" %}
+
+{% block title %}Lottery Data Analysis{% endblock %}
+
+{% block head %}
+<!-- Add one consolidated tab script for reliable navigation -->
+<script src="{{ url_for('static', filename='js/super_simple_tabs.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Lottery Data Analysis</h1>
+    </div>
+
+    <!-- Filter Options -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Analysis Parameters</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{{ url_for('lottery_analysis_dashboard') }}" class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="lottery_type">Lottery Type:</label>
+                        <select class="form-control" id="lottery_type" name="lottery_type">
+                            <option value="">All Lottery Types</option>
+                            {% for lt in lottery_types %}
+                                <option value="{{ lt }}" {% if selected_type == lt %}selected{% endif %}>{{ lt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="days">Data Range (days):</label>
+                        <select class="form-control" id="days" name="days">
+                            <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 days</option>
+                            <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 days</option>
+                            <option value="180" {% if days == 180 %}selected{% endif %}>Last 6 months</option>
+                            <option value="365" {% if days == 365 %}selected{% endif %}>Last year</option>
+                            <option value="730" {% if days == 730 %}selected{% endif %}>Last 2 years</option>
+                            <option value="999999" {% if days == 999999 %}selected{% endif %}>All time</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group" style="margin-top: 32px;">
+                        <button type="submit" class="btn btn-primary">Update Analysis</button>
+                        
+                        {% if selected_type %}
+                            <a href="{{ url_for('lottery_predictions', lottery_type=selected_type) }}" class="btn btn-success ml-2">
+                                <i class="fas fa-dice"></i> Predictions
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('lottery_predictions') }}" class="btn btn-success ml-2">
+                                <i class="fas fa-dice"></i> Predictions
+                            </a>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('full_lottery_analysis', lottery_type=selected_type, days=days) }}" class="btn btn-info ml-2">
+                            <i class="fas fa-chart-line"></i> Full Analysis
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Simplified Tab Navigation -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Analysis Categories</h6>
+            <div class="dropdown no-arrow">
+                <a class="dropdown-toggle" href="#" role="button" id="analysisDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="analysisDropdown">
+                    <a class="dropdown-item" href="#" onclick="reloadAllData()">
+                        <i class="fas fa-sync-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                        Reload All Data
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body py-3">
+            <div class="nav-tabs-clean mb-4" style="display:flex; flex-wrap:wrap; gap:10px;">
+                <button type="button" data-tab-id="frequency" class="super-simple-tab-btn btn btn-primary active">Number Frequency</button>
+                <button type="button" data-tab-id="patterns" class="super-simple-tab-btn btn btn-primary">Pattern Analysis</button>
+                <button type="button" data-tab-id="timeseries" class="super-simple-tab-btn btn btn-primary">Time Series</button>
+                <button type="button" data-tab-id="winners" class="super-simple-tab-btn btn btn-primary">Winner Analysis</button>
+                {% if not selected_type %}
+                <button type="button" data-tab-id="correlations" class="super-simple-tab-btn btn btn-primary">Lottery Correlations</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="analysisTabContent">
+        <!-- Frequency Analysis Tab -->
+        <div class="tab-pane fade show active" id="frequency" role="tabpanel" aria-labelledby="frequency-tab">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Number Frequency Analysis</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% if frequency_data %}
+                                    {% for lottery_type, data in frequency_data.items() %}
+                                        {% if data and not data.error %}
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card border-left-primary shadow h-100 py-2">
+                                                <div class="card-body">
+                                                    <div class="row no-gutters align-items-center">
+                                                        <div class="col mr-2">
+                                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                                {{ lottery_type }}
+                                                            </div>
+                                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                                Most Frequent Numbers
+                                                            </div>
+                                                            <div class="mt-2">
+                                                                <div class="frequency-chart">
+                                                                    <img src="data:image/png;base64,{{ data.chart_base64 }}" 
+                                                                         alt="Frequency Chart for {{ lottery_type }}" 
+                                                                         class="img-fluid">
+                                                                </div>
+                                                                <div class="mt-3">
+                                                                    <h6>Top 5 Most Frequent Numbers:</h6>
+                                                                    <div class="row justify-content-center">
+                                                                        {% for number, freq in data.top_numbers %}
+                                                                        <div class="col text-center" style="max-width: 70px;">
+                                                                            <div class="lottery-ball">
+                                                                                <span class="number">{{ number }}</span>
+                                                                                <span class="frequency">{{ freq }} times</span>
+                                                                            </div>
+                                                                        </div>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card border-left-warning shadow h-100 py-2">
+                                                <div class="card-body">
+                                                    <div class="row no-gutters align-items-center">
+                                                        <div class="col mr-2">
+                                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                                {{ lottery_type }}
+                                                            </div>
+                                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                                No Data Available
+                                                            </div>
+                                                            <div class="mt-2">
+                                                                {% if data.error %}
+                                                                    <p>{{ data.error }}</p>
+                                                                {% else %}
+                                                                    <p>Insufficient data for frequency analysis.</p>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="col-12">
+                                        <div class="alert alert-info">
+                                            No data available for frequency analysis. Please ensure there are lottery results in the database.
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pattern Analysis Tab - Enhanced with auto-repair functions -->
+        <div class="tab-pane fade" id="patterns" role="tabpanel" aria-labelledby="patterns-tab">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Pattern Analysis</h6>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadTabData('patterns')">
+                        <i class="fas fa-sync-alt"></i> Reload Data
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Loading indicator - automatically shown/hidden by JS -->
+                    <div id="patterns-loading" class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading pattern analysis data...</p>
+                        <p class="small text-muted">Analyzing patterns in lottery numbers...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <!-- Content area - populated by JS api call -->
+                    <div id="patterns-content" class="row mt-3" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Series Tab - Enhanced with auto-repair functions -->
+        <div class="tab-pane fade" id="timeseries" role="tabpanel" aria-labelledby="timeseries-tab">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Time Series Analysis</h6>
+                    <button type="button" class="btn btn-sm btn-outline-info" onclick="loadTabData('timeseries')">
+                        <i class="fas fa-sync-alt"></i> Reload Data
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Loading indicator - automatically shown/hidden by JS -->
+                    <div id="timeseries-loading" class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading time series analysis data...</p>
+                        <p class="small text-muted">Analyzing lottery trends over time...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <!-- Content area - populated by JS api call -->
+                    <div id="timeseries-content" class="row" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Winner Analysis Tab -->
+        <div class="tab-pane fade" id="winners" role="tabpanel" aria-labelledby="winners-tab">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Winner Analysis</h6>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="loadTabData('winners')">
+                        <i class="fas fa-sync-alt"></i> Reload Data
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="winners-loading" class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading winner analysis data...</p>
+                        <p class="small text-muted">Analyzing division statistics and prize distributions...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <div id="winners-content" class="row" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Correlations Tab -->
+        {% if not selected_type %}
+        <div class="tab-pane fade" id="correlations" role="tabpanel" aria-labelledby="correlations-tab">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Lottery Type Correlations</h6>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="loadTabData('correlations')">
+                        <i class="fas fa-sync-alt"></i> Reload Data
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Lottery Types Selection Panel for Correlations -->
+                    <div id="correlation-selection-panel" class="mb-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle mr-2"></i> 
+                            <strong>Important:</strong> Please select two lottery types to analyze the correlation between them.
+                        </div>
+                        
+                        <div class="card card-body bg-light mb-3">
+                            <div class="row">
+                                <div class="col-md-5">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">First Lottery Type:</label>
+                                        <select class="form-control" id="correlation-type-1">
+                                            <option value="">-- Select First Type --</option>
+                                            {% for lt in lottery_types %}
+                                            <option value="{{ lt }}">{{ lt }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-2 d-flex align-items-center justify-content-center">
+                                    <div class="text-center pt-4">
+                                        <i class="fas fa-exchange-alt fa-2x text-primary"></i>
+                                        <p class="mt-2 mb-0 small">Correlation</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-5">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Second Lottery Type:</label>
+                                        <select class="form-control" id="correlation-type-2">
+                                            <option value="">-- Select Second Type --</option>
+                                            {% for lt in lottery_types %}
+                                            <option value="{{ lt }}">{{ lt }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <hr class="my-3">
+                            
+                            <div class="row">
+                                <div class="col-12">
+                                    <h6 class="mb-3">Advanced Selection (Optional)</h6>
+                                    <p class="text-muted small mb-2">You can also select multiple types for a more comprehensive analysis:</p>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                {% for lt in lottery_types %}
+                                <div class="col-md-4 col-sm-6 mb-2">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input correlation-type-checkbox" 
+                                               id="corr-{{ lt | replace(' ', '-') | lower }}" 
+                                               value="{{ lt }}">
+                                        <label class="custom-control-label" for="corr-{{ lt | replace(' ', '-') | lower }}">{{ lt }}</label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="mt-4">
+                                <div class="row">
+                                    <div class="col-md-6 mb-2 mb-md-0">
+                                        <button type="button" id="compare-pair-btn" class="btn btn-primary btn-block">
+                                            <i class="fas fa-random mr-1"></i> Compare Selected Pair
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <button type="button" id="update-correlation-btn" class="btn btn-secondary btn-block">
+                                            <i class="fas fa-chart-network mr-1"></i> Advanced Multi-Type Analysis
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="correlations-loading" class="text-center p-5" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading correlation analysis data...</p>
+                        <p class="small text-muted">Finding relationships between different lottery types...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <div id="correlations-content" class="row" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<meta name="csrf-token" content="{{ csrf_token() }}">
+{% endblock %}
+
+{% block script %}
+<script>
+    // Helper function to add CSRF token to fetch requests with enhanced error handling
+    function fetchWithCSRF(url, options = {}) {
+        console.log(`Setting up fetchWithCSRF for: ${url}`);
+        
+        // Get CSRF token from several possible sources with robust error handling
+        function getCookie(name) {
+            try {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+            } catch (e) {
+                console.error(`Error getting cookie ${name}:`, e);
+                return null;
+            }
+            return null;
+        }
+        
+        function getMetaCsrfToken() {
+            try {
+                const metaTag = document.querySelector('meta[name="csrf-token"]');
+                return metaTag ? metaTag.getAttribute('content') : '';
+            } catch (e) {
+                console.error('Error getting meta CSRF token:', e);
+                return '';
+            }
+        }
+        
+        function getHiddenCsrfToken() {
+            try {
+                const csrfField = document.querySelector('input[name="csrf_token"]');
+                return csrfField ? csrfField.value : '';
+            } catch (e) {
+                console.error('Error getting hidden CSRF token:', e);
+                return '';
+            }
+        }
+        
+        // Try to get token from all possible sources with detailed logging
+        let csrfFromCookie = getCookie('csrf_token');
+        let csrfFromMeta = getMetaCsrfToken();
+        let csrfFromHidden = getHiddenCsrfToken();
+        
+        let csrfToken = csrfFromCookie || csrfFromMeta || csrfFromHidden || '';
+        let csrfSource = csrfFromCookie ? 'cookie' : (csrfFromMeta ? 'meta' : (csrfFromHidden ? 'hidden' : 'none'));
+        
+        console.log("CSRF token sources:", {
+            cookie: csrfFromCookie ? "present" : "not found",
+            meta: csrfFromMeta ? "present" : "not found",
+            hidden: csrfFromHidden ? "present" : "not found",
+            selectedSource: csrfSource
+        });
+        
+        // Create headers object
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            ...(options.headers || {})
+        };
+        
+        // Only add CSRF token if we have one
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+        
+        // Create AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        
+        // Prepare final options - IMPORTANT: no-store ensures fresh data each time
+        const finalOptions = {
+            ...options,
+            headers,
+            signal: controller.signal,
+            credentials: 'same-origin',
+            cache: 'no-store'
+        };
+        
+        console.log(`Fetching URL: ${url}`);
+        
+        return fetch(url, finalOptions)
+            .then(response => {
+                clearTimeout(timeoutId);
+                
+                console.log(`Response received for ${url}:`, {
+                    status: response.status,
+                    ok: response.ok,
+                    statusText: response.statusText
+                });
+                
+                // Handle redirects to login page
+                if (response.redirected && response.url.includes('/login')) {
+                    console.error("Session expired or unauthorized - redirected to login");
+                    window.location.href = "/login";
+                    throw new Error("Session expired - please login again");
+                }
+                
+                // Handle non-OK responses
+                if (!response.ok) {
+                    console.warn(`API error: ${response.status} ${response.statusText}`);
+                    // Try to get more details from the response
+                    return response.text().then(text => {
+                        try {
+                            const errorData = JSON.parse(text);
+                            throw new Error(errorData.error || errorData.message || response.statusText);
+                        } catch (e) {
+                            throw new Error(`API error: ${response.status} - ${response.statusText}`);
+                        }
+                    });
+                }
+                
+                return response;
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                console.error(`Network error for ${url}:`, error);
+                
+                // Provide more specific error messages
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timed out. The server took too long to respond.');
+                } else if (!navigator.onLine) {
+                    throw new Error('Network connection lost. Please check your internet connection.');
+                } else {
+                    throw error; // Pass through the original error
+                }
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("DOM loaded - Setting up lottery analysis tabs");
+        
+        // Define tab configurations
+        const tabs = [
+            { id: 'frequency-tab', target: 'frequency', loadFunction: null }, // Loaded server-side
+            { id: 'patterns-tab', target: 'patterns', loadFunction: loadPatternData },
+            { id: 'timeseries-tab', target: 'timeseries', loadFunction: loadTimeSeriesData },
+            { id: 'winners-tab', target: 'winners', loadFunction: loadWinnersData },
+            { id: 'correlations-tab', target: 'correlations', loadFunction: loadCorrelationsData }
+        ];
+        
+        // Preload data for all tabs to ensure it's available when needed
+        window.addEventListener('load', function() {
+            console.log("Window loaded - Preloading tab data");
+            
+            // Check for jquery and bootstrap
+            console.log("jQuery loaded: ", typeof jQuery !== 'undefined');
+            console.log("Bootstrap loaded: ", typeof bootstrap !== 'undefined');
+            
+            // Check if all tab content containers exist 
+            console.log("Looking for content containers:");
+            console.log("- Patterns container:", document.getElementById('patterns-content') ? 'found ✓' : 'missing ✗');
+            console.log("- Time-series container:", document.getElementById('timeseries-content') ? 'found ✓' : 'missing ✗');
+            console.log("- Winners container:", document.getElementById('winners-content') ? 'found ✓' : 'missing ✗'); 
+            console.log("- Correlations container:", document.getElementById('correlations-content') ? 'found ✓' : 'missing ✗');
+            
+            // Log which tabs are available
+            console.log("Available tabs:", 
+                document.getElementById('frequency-tab') ? 'frequency ✓' : 'frequency ✗',
+                document.getElementById('patterns-tab') ? 'patterns ✓' : 'patterns ✗',
+                document.getElementById('timeseries-tab') ? 'timeseries ✓' : 'timeseries ✗',
+                document.getElementById('winners-tab') ? 'winners ✓' : 'winners ✗',
+                document.getElementById('correlations-tab') ? 'correlations ✓' : 'correlations ✗'
+            );
+            
+            // Verify API endpoints
+            console.log("Checking API endpoints to use:");
+            console.log("- Patterns API endpoint: /api/lottery-analysis/patterns");
+            console.log("- Time Series API endpoint: /api/lottery-analysis/time-series");
+            console.log("- Winners API endpoint: /api/lottery-analysis/winners");
+            console.log("- Correlations API endpoint: /api/lottery-analysis/correlations");
+            
+            // Don't preload automatically - let user click on tabs
+            console.log("Skipping preloading - will load data when tabs are clicked");
+            
+            // Optional: Manually click on first tab to ensure it's active
+            const firstTab = document.querySelector('button[data-bs-toggle="tab"].active');
+            if (firstTab) {
+                console.log("First tab is already active:", firstTab.id);
+            } else {
+                console.log("No active tab found, activating frequency tab");
+                const frequencyTab = document.getElementById('frequency-tab');
+                if (frequencyTab) {
+                    frequencyTab.click();
+                }
+            }
+        });
+        
+        // Initialize Bootstrap 5 tabs
+        const triggerTabList = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        triggerTabList.forEach(triggerEl => {
+            try {
+                // Only create Tab if bootstrap is available
+                let tabTrigger = null;
+                if (typeof bootstrap !== 'undefined') {
+                    tabTrigger = new bootstrap.Tab(triggerEl);
+                } else {
+                    console.error("Bootstrap not loaded - can't initialize tabs");
+                }
+                
+                triggerEl.addEventListener('click', function(event) {
+                    console.log(`Tab clicked: ${triggerEl.id}`);
+                    event.preventDefault();
+                    
+                    if (tabTrigger) {
+                        tabTrigger.show();
+                    } else {
+                        // Manual tab activation if bootstrap is not available
+                        console.log("Manually activating tab");
+                        
+                        // Get all tab panes
+                        const tabPanes = document.querySelectorAll('.tab-pane');
+                        tabPanes.forEach(pane => {
+                            pane.classList.remove('show', 'active');
+                        });
+                        
+                        // Get all nav links
+                        const navLinks = document.querySelectorAll('button[data-bs-toggle="tab"]');
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            link.setAttribute('aria-selected', 'false');
+                        });
+                        
+                        // Activate this tab
+                        triggerEl.classList.add('active');
+                        triggerEl.setAttribute('aria-selected', 'true');
+                        
+                        // Activate content
+                        const target = document.querySelector(triggerEl.getAttribute('data-bs-target'));
+                        if (target) {
+                            target.classList.add('show', 'active');
+                        }
+                        
+                        // Manually trigger data loading
+                        const tabId = triggerEl.id;
+                        const tabConfig = tabs.find(tab => tab.id === tabId);
+                        if (tabConfig && tabConfig.loadFunction) {
+                            console.log(`Manually loading data for ${tabConfig.id}`);
+                            try {
+                                tabConfig.loadFunction();
+                            } catch(e) {
+                                console.error(`Error calling loadFunction for ${tabId}:`, e);
+                            }
+                        }
+                    }
+                });
+                
+                // Also add event listener for when tab is shown
+                triggerEl.addEventListener('shown.bs.tab', function(event) {
+                    console.log(`Tab shown: ${event.target.id}`);
+                    
+                    // Find the tab configuration to get the load function
+                    const tabConfig = tabs.find(tab => tab.id === event.target.id);
+                    
+                    // If we have a load function, call it
+                    if (tabConfig && tabConfig.loadFunction) {
+                        console.log(`Loading data for ${tabConfig.id}`);
+                        try {
+                            tabConfig.loadFunction();
+                        } catch(e) {
+                            console.error(`Error calling loadFunction for ${event.target.id}:`, e);
+                        }
+                    }
+                });
+            } catch(e) {
+                console.error(`Error setting up tab ${triggerEl.id}:`, e);
+            }
+        });
+        // Bootstrap 5 will handle the tab switching now
+        
+        // Function to load pattern data with improved error handling
+        function loadPatternData() {
+            console.log("loadPatternData called");
+            try {
+                // Use querySelector to find elements within the patterns tab content
+                const patternsTab = document.getElementById('patterns');
+                if (!patternsTab) {
+                    console.error("Cannot find patterns tab element");
+                    // Try to create it if missing
+                    const tabContent = document.querySelector('.tab-content');
+                    if (tabContent) {
+                        console.log("Creating missing patterns tab pane");
+                        const newPatternsTab = document.createElement('div');
+                        newPatternsTab.id = 'patterns';
+                        newPatternsTab.className = 'tab-pane fade';
+                        newPatternsTab.setAttribute('role', 'tabpanel');
+                        newPatternsTab.setAttribute('aria-labelledby', 'patterns-tab');
+                        
+                        // Add loading and content divs
+                        newPatternsTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Pattern Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="patterns-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading pattern analysis data...</p>
+                                    </div>
+                                    <div id="patterns-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        tabContent.appendChild(newPatternsTab);
+                        return loadPatternData(); // Try again now that we've created it
+                    }
+                    return;
+                }
+                
+                const loading = patternsTab.querySelector('#patterns-loading');
+                const content = patternsTab.querySelector('#patterns-content');
+                
+                if (!loading || !content) {
+                    console.error("Cannot find loading or content elements within patterns tab", { 
+                        loadingFound: !!loading, 
+                        contentFound: !!content 
+                    });
+                    
+                    // Try to create missing elements
+                    if (!loading && !content) {
+                        console.log("Creating missing loading and content elements");
+                        patternsTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Pattern Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="patterns-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading pattern analysis data...</p>
+                                    </div>
+                                    <div id="patterns-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        return loadPatternData(); // Try again
+                    }
+                    return;
+                }
+            
+            // Always reload data for better reliability
+            loading.style.display = 'block';
+            content.style.display = 'none';
+            content.innerHTML = ''; // Clear existing content
+            
+            const lotteryTypeSelect = document.getElementById('lottery_type');
+            const daysSelect = document.getElementById('days');
+            
+            if (!lotteryTypeSelect || !daysSelect) {
+                console.error("Cannot find filter elements", { 
+                    lotteryTypeFound: !!lotteryTypeSelect, 
+                    daysFound: !!daysSelect 
+                });
+            }
+            
+            const lotteryType = lotteryTypeSelect ? lotteryTypeSelect.value || '' : '';
+            const days = daysSelect ? daysSelect.value || '365' : '365';
+            
+            console.log("Loading pattern data...");
+            console.log(`Requesting pattern analysis data with params: lottery_type=${lotteryType}, days=${days}`);
+            
+            // Debug flag to show more details
+            const DEBUG = true;
+            
+            // Add timestamp to prevent caching 
+            const timestamp = new Date().getTime();
+            const url = `/api/lottery-analysis/patterns?lottery_type=${lotteryType}&days=${days}&_ts=${timestamp}`;
+            
+            console.log(`Fetching from URL: ${url}`);
+            document.getElementById('patterns-loading').innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <p class="mt-2">Loading pattern analysis data...</p>
+                <p class="small text-muted">Request URL: ${url}</p>
+            `;
+            
+            // Use improved fetchWithCSRF with robust error handling
+            fetchWithCSRF(url)
+                .then(response => {
+                    console.log("Raw pattern API response:", response);
+                    return response.json();
+                })
+                .then(data => {
+                    // Make sure we always have a valid object
+                    if (!data) {
+                        console.warn("Null or undefined data received, using empty object");
+                        data = {};
+                    }
+                    
+                    // Log the parsed data with more details
+                    console.log("Pattern API response parsed successfully", data);
+                    
+                    // Check for typical error structures
+                    if (typeof data === 'object') {
+                        if (data.error) {
+                            console.error("API returned error object:", data.error);
+                        } else {
+                            // Check if it's a dictionary with lottery types as keys
+                            const lotteryTypes = Object.keys(data);
+                            console.log(`Response contains data for ${lotteryTypes.length} lottery types:`, lotteryTypes);
+                            
+                            // Check for per-lottery type errors
+                            lotteryTypes.forEach(lt => {
+                                if (data[lt] && data[lt].error) {
+                                    console.warn(`Error for ${lt}:`, data[lt].error);
+                                }
+                            });
+                        }
+                    }
+                    
+                    return data;
+                })
+                .then(data => {
+                    console.log("Pattern data received:", data);
+                    let html = '';
+                    
+                    if (data && Object.keys(data).length > 0) {
+                        // Count how many items have errors
+                        const errorCount = Object.values(data).filter(item => item && item.error).length;
+                        const totalItems = Object.keys(data).length;
+                        
+                        console.log(`Pattern data stats: ${errorCount}/${totalItems} items have errors`);
+                        
+                        // If all items have errors, show a consolidated error message
+                        if (errorCount === totalItems) {
+                            html = `
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <h5>Insufficient Data for Pattern Analysis</h5>
+                                        <p>There isn't enough complete data to perform pattern analysis. The analysis requires:</p>
+                                        <ul>
+                                            <li>Multiple draws with complete number sets</li>
+                                            <li>No missing values in the datasets</li>
+                                        </ul>
+                                        <p>Try importing more data or selecting a different lottery type.</p>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // Process individual lottery types
+                            console.log("Processing lottery types:", Object.keys(data));
+                            for (const [lotteryType, typeData] of Object.entries(data)) {
+                                console.log(`Processing ${lotteryType} data:`, typeData ? "data present" : "no data");
+                                if (!typeData || typeData.error) {
+                                    html += `
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card border-left-warning shadow h-100 py-2">
+                                                <div class="card-body">
+                                                    <div class="row no-gutters align-items-center">
+                                                        <div class="col mr-2">
+                                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                                ${lotteryType}
+                                                            </div>
+                                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                                No Pattern Data
+                                                            </div>
+                                                            <div class="mt-2">
+                                                                <p>${typeData?.error || 'Insufficient data for pattern analysis.'}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                    continue;
+                                }
+                                
+                                // Create pattern card for valid data
+                                let clusterHtml = '';
+                                if (typeData.cluster_details && typeData.cluster_details.length > 0) {
+                                    clusterHtml = '<div class="mt-3"><h6>Identified Pattern Clusters:</h6><ul>';
+                                    typeData.cluster_details.forEach(cluster => {
+                                        const commonNumbers = cluster.common_numbers
+                                            ? cluster.common_numbers
+                                                .filter(n => n !== null)
+                                                .join(', ')
+                                            : 'None identified';
+                                        clusterHtml += `
+                                            <li>
+                                                <strong>Cluster ${cluster.id + 1}</strong> (${cluster.size} draws): 
+                                                Common numbers: ${commonNumbers}
+                                            </li>
+                                        `;
+                                    });
+                                    clusterHtml += '</ul></div>';
+                                }
+                                
+                                html += `
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card border-left-primary shadow h-100 py-2">
+                                            <div class="card-body">
+                                                <div class="row no-gutters align-items-center">
+                                                    <div class="col mr-2">
+                                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                            ${lotteryType}
+                                                        </div>
+                                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                            Pattern Clusters
+                                                        </div>
+                                                        <div class="mt-2">
+                                                            <div class="pattern-chart">
+                                                                <img src="data:image/png;base64,${typeData.chart_base64}" 
+                                                                     alt="Pattern Chart for ${lotteryType}" 
+                                                                     class="img-fluid">
+                                                            </div>
+                                                            ${clusterHtml}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        }
+                    } else {
+                        html = `
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    No data available for pattern analysis. Please ensure there are lottery results in the database.
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Set the HTML
+                    content.innerHTML = html;
+                    
+                    // Make sure content becomes visible
+                    loading.style.display = 'none';
+                    content.style.display = 'block';
+                    
+                    // Log visibility status for debugging
+                    console.log("Pattern content updated:", {
+                        contentHtml: content.innerHTML.substring(0, 100) + '...',
+                        displayStyle: content.style.display,
+                        isVisible: content.offsetHeight > 0,
+                        contentLength: html.length
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading pattern analysis:', error);
+                    
+                    // Define suggested actions based on error message
+                    const suggestedActions = [];
+                    
+                    if (error.message && error.message.includes('login')) {
+                        suggestedActions.push('Your session may have expired. Try refreshing the page and logging in again.');
+                    } else if (error.message && error.message.includes('response')) {
+                        suggestedActions.push('There may be network connectivity issues. Check your internet connection.');
+                        suggestedActions.push('The server may be under heavy load. Wait a moment and try again.');
+                    } else if (error.message && error.message.includes('parse')) {
+                        suggestedActions.push('The API returned an invalid response format. This may be a temporary server issue.');
+                    } else {
+                        suggestedActions.push('Refresh the page and try again.');
+                        suggestedActions.push('Try selecting a different lottery type or date range.');
+                    }
+                    
+                    content.innerHTML = `
+                        <div class="col-12">
+                            <div class="card border-left-danger shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold text-danger">Error Loading Pattern Analysis</h6>
+                                    <button class="btn btn-sm btn-outline-primary retry-patterns-btn">
+                                        <i class="fas fa-sync"></i> Retry
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-danger">
+                                        <p>There was a problem loading the pattern analysis data:</p>
+                                        <p><strong>${error.message || 'Unknown error'}</strong></p>
+                                    </div>
+                                    <div class="mt-3">
+                                        <h6 class="font-weight-bold">Suggested actions:</h6>
+                                        <ul class="text-left">
+                                            ${suggestedActions.map(action => `<li>${action}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                    <div class="mt-3 small text-muted">
+                                        <p>Technical details: ${new Date().toISOString()}</p>
+                                        <p>If the problem persists, please contact support with this information.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add retry functionality
+                    const retryButton = content.querySelector('.retry-patterns-btn');
+                    if (retryButton) {
+                        retryButton.addEventListener('click', function() {
+                            console.log('Retrying pattern data load...');
+                            loadPatternData();
+                        });
+                    }
+                    
+                    loading.style.display = 'none';
+                    content.style.display = 'block';
+                });
+        }
+        
+        // Function to load time series data
+        function loadTimeSeriesData() {
+            console.log("loadTimeSeriesData called");
+            try {
+                // Use querySelector to find elements within the timeseries tab content
+                const timeseriesTab = document.getElementById('timeseries');
+                if (!timeseriesTab) {
+                    console.error("Cannot find timeseries tab element");
+                    // Try to create it if missing
+                    const tabContent = document.querySelector('.tab-content');
+                    if (tabContent) {
+                        console.log("Creating missing timeseries tab pane");
+                        const newTimeseriesTab = document.createElement('div');
+                        newTimeseriesTab.id = 'timeseries';
+                        newTimeseriesTab.className = 'tab-pane fade';
+                        newTimeseriesTab.setAttribute('role', 'tabpanel');
+                        newTimeseriesTab.setAttribute('aria-labelledby', 'timeseries-tab');
+                        
+                        // Add loading and content divs
+                        newTimeseriesTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Time Series Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="timeseries-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading time series analysis data...</p>
+                                    </div>
+                                    <div id="timeseries-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        tabContent.appendChild(newTimeseriesTab);
+                        return loadTimeSeriesData(); // Try again now that we've created it
+                    }
+                    return;
+                }
+                
+                const loading = timeseriesTab.querySelector('#timeseries-loading');
+                const content = timeseriesTab.querySelector('#timeseries-content');
+                
+                if (!loading || !content) {
+                    console.error("Cannot find loading or content elements within timeseries tab", { 
+                        loadingFound: !!loading, 
+                        contentFound: !!content 
+                    });
+                    
+                    // Try to create missing elements
+                    if (!loading && !content) {
+                        console.log("Creating missing loading and content elements");
+                        timeseriesTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Time Series Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="timeseries-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading time series analysis data...</p>
+                                    </div>
+                                    <div id="timeseries-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        return loadTimeSeriesData(); // Try again
+                    }
+                    return;
+                }
+            
+            // Always reload data for better reliability
+            loading.style.display = 'block';
+            content.style.display = 'none';
+            content.innerHTML = ''; // Clear existing content
+            
+            const lotteryTypeSelect = document.getElementById('lottery_type');
+            const daysSelect = document.getElementById('days');
+            
+            if (!lotteryTypeSelect || !daysSelect) {
+                console.error("Cannot find filter elements", { 
+                    lotteryTypeFound: !!lotteryTypeSelect, 
+                    daysFound: !!daysSelect 
+                });
+            }
+            
+            const lotteryType = lotteryTypeSelect ? lotteryTypeSelect.value || '' : '';
+            const days = daysSelect ? daysSelect.value || '365' : '365';
+            
+            console.log("Loading time series data...");
+            console.log(`Requesting time series data with params: lottery_type=${lotteryType}, days=${days}`);
+            
+            // Add timestamp to prevent caching
+            const timestamp = new Date().getTime();
+            const url = `/api/lottery-analysis/time-series?lottery_type=${lotteryType}&days=${days}&_ts=${timestamp}`;
+            
+            console.log(`Fetching from URL: ${url}`);
+            document.getElementById('timeseries-loading').innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <p class="mt-2">Loading time series data...</p>
+                <p class="small text-muted">Request URL: ${url}</p>
+            `;
+            
+            // Use improved fetchWithCSRF with robust error handling
+            fetchWithCSRF(url)
+                .then(response => {
+                    console.log("Raw time series API response:", response);
+                    return response.json();
+                })
+                .then(data => {
+                    // Make sure we always have a valid object
+                    if (!data) {
+                        console.warn("Null or undefined data received, using empty object");
+                        data = {};
+                    }
+                    
+                    // Log the parsed data with details
+                    console.log("Time series API response parsed successfully", data);
+                    return data;
+                })
+                .then(data => {
+                    console.log("Time series data received:", data);
+                    
+                    // Display any data received, even if it contains errors
+                    if (data && Object.keys(data).length > 0) {
+                        let html = '<div class="row">';
+                        
+                        // Loop through lottery types
+                        for (const [lotteryType, typeData] of Object.entries(data)) {
+                            if (typeData && typeData.error) {
+                                // Display error for this lottery type
+                                html += `
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card border-left-warning shadow h-100 py-2">
+                                            <div class="card-body">
+                                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                    ${lotteryType}
+                                                </div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                    Time Series Error
+                                                </div>
+                                                <div class="mt-2">
+                                                    <p>${typeData.error}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            } else if (typeData && typeData.chart_base64) {
+                                // Display chart for this lottery type
+                                html += `
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card border-left-primary shadow h-100 py-2">
+                                            <div class="card-body">
+                                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                    ${lotteryType}
+                                                </div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                    Time Series Analysis
+                                                </div>
+                                                <div class="mt-2">
+                                                    <div class="time-series-chart">
+                                                        <img src="data:image/png;base64,${typeData.chart_base64}" 
+                                                             alt="Time Series Chart for ${lotteryType}" 
+                                                             class="img-fluid">
+                                                    </div>
+                                                    ${typeData.insights ? `
+                                                        <div class="mt-3">
+                                                            <h6>Insights:</h6>
+                                                            <ul>
+                                                                ${typeData.insights.map(insight => `<li>${insight}</li>`).join('')}
+                                                            </ul>
+                                                        </div>
+                                                    ` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        }
+                        
+                        html += '</div>';
+                        content.innerHTML = html;
+                    } else {
+                        content.innerHTML = '<div class="col-12"><div class="alert alert-info">No time series data available.</div></div>';
+                    }
+                    
+                    loading.style.display = 'none';
+                    content.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error loading time series data:', error);
+                    
+                    // Define suggested actions based on error message
+                    const suggestedActions = [];
+                    
+                    if (error.message && error.message.includes('login')) {
+                        suggestedActions.push('Your session may have expired. Try refreshing the page and logging in again.');
+                    } else if (error.message && error.message.includes('response')) {
+                        suggestedActions.push('There may be network connectivity issues. Check your internet connection.');
+                        suggestedActions.push('The server may be under heavy load. Wait a moment and try again.');
+                    } else if (error.message && error.message.includes('parse')) {
+                        suggestedActions.push('The API returned an invalid response format. This may be a temporary server issue.');
+                    } else {
+                        suggestedActions.push('Refresh the page and try again.');
+                        suggestedActions.push('Try selecting a different lottery type or date range.');
+                    }
+                    
+                    content.innerHTML = `
+                        <div class="col-12">
+                            <div class="card border-left-danger shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold text-danger">Error Loading Time Series Analysis</h6>
+                                    <button class="btn btn-sm btn-outline-primary retry-timeseries-btn">
+                                        <i class="fas fa-sync"></i> Retry
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-danger">
+                                        <p>There was a problem loading the time series analysis data:</p>
+                                        <p><strong>${error.message || 'Unknown error'}</strong></p>
+                                    </div>
+                                    <div class="mt-3">
+                                        <h6 class="font-weight-bold">Suggested actions:</h6>
+                                        <ul class="text-left">
+                                            ${suggestedActions.map(action => `<li>${action}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                    <div class="mt-3 small text-muted">
+                                        <p>Technical details: ${new Date().toISOString()}</p>
+                                        <p>If the problem persists, please contact support with this information.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add retry functionality
+                    const retryButton = content.querySelector('.retry-timeseries-btn');
+                    if (retryButton) {
+                        retryButton.addEventListener('click', function() {
+                            console.log('Retrying time series data load...');
+                            loadTimeSeriesData();
+                        });
+                    }
+                    
+                    loading.style.display = 'none';
+                    content.style.display = 'block';
+                });
+        }
+        
+        // Function to load winner data with improved error handling
+        function loadWinnersData() {
+            console.log("loadWinnersData called");
+            try {
+                // Use querySelector to find elements within the winners tab content
+                const winnersTab = document.getElementById('winners');
+                if (!winnersTab) {
+                    console.error("Cannot find winners tab element");
+                    // Try to create it if missing
+                    const tabContent = document.querySelector('.tab-content');
+                    if (tabContent) {
+                        console.log("Creating missing winners tab pane");
+                        const newWinnersTab = document.createElement('div');
+                        newWinnersTab.id = 'winners';
+                        newWinnersTab.className = 'tab-pane fade';
+                        newWinnersTab.setAttribute('role', 'tabpanel');
+                        newWinnersTab.setAttribute('aria-labelledby', 'winners-tab');
+                        
+                        // Add loading and content divs
+                        newWinnersTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Winner Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="winners-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading winner analysis data...</p>
+                                    </div>
+                                    <div id="winners-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        tabContent.appendChild(newWinnersTab);
+                        return loadWinnersData(); // Try again now that we've created it
+                    }
+                    return;
+                }
+                
+                const loading = winnersTab.querySelector('#winners-loading');
+                const content = winnersTab.querySelector('#winners-content');
+                
+                if (!loading || !content) {
+                    console.error("Cannot find loading or content elements within winners tab", { 
+                        loadingFound: !!loading, 
+                        contentFound: !!content 
+                    });
+                    
+                    // Try to create missing elements
+                    if (!loading && !content) {
+                        console.log("Creating missing loading and content elements");
+                        winnersTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Winner Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="winners-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading winner analysis data...</p>
+                                    </div>
+                                    <div id="winners-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        return loadWinnersData(); // Try again
+                    }
+                    return;
+                }
+            
+            // Always reload data for better reliability
+            loading.style.display = 'block';
+            content.style.display = 'none';
+            content.innerHTML = ''; // Clear existing content
+            
+            const lotteryTypeSelect = document.getElementById('lottery_type');
+            const daysSelect = document.getElementById('days');
+            
+            if (!lotteryTypeSelect || !daysSelect) {
+                console.error("Cannot find filter elements", { 
+                    lotteryTypeFound: !!lotteryTypeSelect, 
+                    daysFound: !!daysSelect 
+                });
+            }
+            
+            const lotteryType = lotteryTypeSelect ? lotteryTypeSelect.value || '' : '';
+            const days = daysSelect ? daysSelect.value || '365' : '365';
+            
+            console.log("Loading winners data...");
+            
+            // Add timestamp to prevent caching
+            const timestamp = new Date().getTime();
+            const url = `/api/lottery-analysis/winners?lottery_type=${lotteryType}&days=${days}&_ts=${timestamp}`;
+            
+            console.log(`Fetching from URL: ${url}`);
+            document.getElementById('winners-loading').innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <p class="mt-2">Loading winners analysis data...</p>
+                <p class="small text-muted">Request URL: ${url}</p>
+            `;
+            
+            // Use improved fetchWithCSRF with robust error handling
+            fetchWithCSRF(url)
+                .then(response => response.json())
+                .then(data => {
+                    // Make sure we always have a valid object
+                    if (!data) {
+                        console.warn("Null or undefined data received, using empty object");
+                        data = {};
+                    }
+                    
+                    // Log the parsed data
+                    console.log("Winners API response parsed successfully");
+                    return data;
+                })
+                    .then(data => {
+                        console.log("Winners data received:", data);
+                        
+                        // Display any data received
+                        if (data && Object.keys(data).length > 0) {
+                            let html = '<div class="row">';
+                            
+                            // Loop through lottery types
+                            for (const [lotteryType, typeData] of Object.entries(data)) {
+                                if (typeData && typeData.error) {
+                                    // Error for this lottery type
+                                    html += `
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card border-left-warning shadow h-100 py-2">
+                                                <div class="card-body">
+                                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                        ${lotteryType}
+                                                    </div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                        Winner Analysis Error
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <p>${typeData.error}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                } else if (typeData && typeData.chart_base64) {
+                                    // Display chart for this lottery type
+                                    html += `
+                                        <div class="col-md-6 mb-4">
+                                            <div class="card border-left-primary shadow h-100 py-2">
+                                                <div class="card-body">
+                                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                        ${lotteryType}
+                                                    </div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                        Winner Analysis
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <div class="winner-chart">
+                                                            <img src="data:image/png;base64,${typeData.chart_base64}" 
+                                                                 alt="Winner Chart for ${lotteryType}" 
+                                                                 class="img-fluid">
+                                                        </div>
+                                                        <div class="mt-3">
+                                                            <h6>Division Insights:</h6>
+                                                            <ul>
+                                                                ${typeData.insights ? typeData.insights.map(insight => `<li>${insight}</li>`).join('') : '<li>No insights available</li>'}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+                            }
+                            
+                            html += '</div>';
+                            content.innerHTML = html;
+                        } else {
+                            content.innerHTML = '<div class="col-12"><div class="alert alert-info">No winner data available.</div></div>';
+                        }
+                        
+                        loading.style.display = 'none';
+                        content.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error loading winner data:', error);
+                        
+                        // Define suggested actions based on error message
+                        const suggestedActions = [];
+                        
+                        if (error.message && error.message.includes('login')) {
+                            suggestedActions.push('Your session may have expired. Try refreshing the page and logging in again.');
+                        } else if (error.message && error.message.includes('response')) {
+                            suggestedActions.push('There may be network connectivity issues. Check your internet connection.');
+                            suggestedActions.push('The server may be under heavy load. Wait a moment and try again.');
+                        } else if (error.message && error.message.includes('parse')) {
+                            suggestedActions.push('The API returned an invalid response format. This may be a temporary server issue.');
+                        } else {
+                            suggestedActions.push('Refresh the page and try again.');
+                            suggestedActions.push('Try selecting a different lottery type or date range.');
+                        }
+                        
+                        content.innerHTML = `
+                            <div class="col-12">
+                                <div class="card border-left-danger shadow mb-4">
+                                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                        <h6 class="m-0 font-weight-bold text-danger">Error Loading Winner Analysis</h6>
+                                        <button class="btn btn-sm btn-outline-primary retry-winners-btn">
+                                            <i class="fas fa-sync"></i> Retry
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="alert alert-danger">
+                                            <p>There was a problem loading the winner analysis data:</p>
+                                            <p><strong>${error.message || 'Unknown error'}</strong></p>
+                                        </div>
+                                        <div class="mt-3">
+                                            <h6 class="font-weight-bold">Suggested actions:</h6>
+                                            <ul class="text-left">
+                                                ${suggestedActions.map(action => `<li>${action}</li>`).join('')}
+                                            </ul>
+                                        </div>
+                                        <div class="mt-3 small text-muted">
+                                            <p>Technical details: ${new Date().toISOString()}</p>
+                                            <p>If the problem persists, please contact support with this information.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Add retry functionality
+                        const retryButton = content.querySelector('.retry-winners-btn');
+                        if (retryButton) {
+                            retryButton.addEventListener('click', function() {
+                                console.log('Retrying winners data load...');
+                                loadWinnersData();
+                            });
+                        }
+                        
+                        loading.style.display = 'none';
+                        content.style.display = 'block';
+                    });
+        }
+        
+        // Function to load correlation data
+        function loadCorrelationsData() {
+            console.log("loadCorrelationsData called");
+            try {
+                // Use querySelector to find elements within the correlations tab content
+                const correlationsTab = document.getElementById('correlations');
+                if (!correlationsTab) {
+                    console.error("Cannot find correlations tab element");
+                    // Try to create it if missing
+                    const tabContent = document.querySelector('.tab-content');
+                    if (tabContent) {
+                        console.log("Creating missing correlations tab pane");
+                        const newCorrelationsTab = document.createElement('div');
+                        newCorrelationsTab.id = 'correlations';
+                        newCorrelationsTab.className = 'tab-pane fade';
+                        newCorrelationsTab.setAttribute('role', 'tabpanel');
+                        newCorrelationsTab.setAttribute('aria-labelledby', 'correlations-tab');
+                        
+                        // Add loading and content divs
+                        newCorrelationsTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Correlation Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="correlations-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading correlation analysis data...</p>
+                                    </div>
+                                    <div id="correlations-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        tabContent.appendChild(newCorrelationsTab);
+                        return loadCorrelationsData(); // Try again now that we've created it
+                    }
+                    return;
+                }
+                
+                const loading = correlationsTab.querySelector('#correlations-loading');
+                const content = correlationsTab.querySelector('#correlations-content');
+                
+                if (!loading || !content) {
+                    console.error("Cannot find loading or content elements within correlations tab", { 
+                        loadingFound: !!loading, 
+                        contentFound: !!content 
+                    });
+                    
+                    // Try to create missing elements
+                    if (!loading && !content) {
+                        console.log("Creating missing loading and content elements");
+                        correlationsTab.innerHTML = `
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Correlation Analysis</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="correlations-loading" class="text-center p-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading correlation analysis data...</p>
+                                    </div>
+                                    <div id="correlations-content" class="row mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+                        `;
+                        return loadCorrelationsData(); // Try again
+                    }
+                    return;
+                }
+            
+            // Check for the selection panel
+            const selectionPanel = correlationsTab.querySelector('#correlation-selection-panel');
+            if (selectionPanel) {
+                // Show the selection panel first
+                selectionPanel.style.display = 'block';
+                loading.style.display = 'none';
+                content.style.display = 'none';
+                
+                // Add event listeners for both buttons if not already done
+                const compareButton = selectionPanel.querySelector('#compare-pair-btn');
+                const advancedButton = selectionPanel.querySelector('#update-correlation-btn');
+                
+                // Setup event listener for comparison of a single pair
+                if (compareButton && !compareButton._hasListener) {
+                    compareButton.addEventListener('click', function() {
+                        // Get the selected lottery types from the dropdown menus
+                        const type1 = document.getElementById('correlation-type-1').value;
+                        const type2 = document.getElementById('correlation-type-2').value;
+                        
+                        // Validate selections
+                        if (!type1 || !type2) {
+                            // Show error message if one or both types are not selected
+                            content.innerHTML = `
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        <strong>Error:</strong> Please select both lottery types to compare.
+                                    </div>
+                                </div>
+                            `;
+                            loading.style.display = 'none';
+                            content.style.display = 'block';
+                            return;
+                        }
+                        
+                        if (type1 === type2) {
+                            // Show error if same type is selected twice
+                            content.innerHTML = `
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        <strong>Error:</strong> Please select two different lottery types to compare.
+                                    </div>
+                                </div>
+                            `;
+                            loading.style.display = 'none';
+                            content.style.display = 'block';
+                            return;
+                        }
+                        
+                        // Hide selection panel, show loading
+                        selectionPanel.style.display = 'none';
+                        loading.style.display = 'block';
+                        content.style.display = 'none';
+                        content.innerHTML = ''; // Clear existing content
+                        
+                        // Get days from filter
+                        const daysSelect = document.getElementById('days');
+                        const days = daysSelect ? daysSelect.value || '365' : '365';
+                        
+                        // Build URL with the two selected types
+                        const timestamp = new Date().getTime();
+                        const selectedTypes = [type1, type2];
+                        const typesParam = encodeURIComponent(selectedTypes.join(','));
+                        const url = `/api/lottery-analysis/correlations?lottery_types=${typesParam}&days=${days}&_ts=${timestamp}`;
+                        
+                        console.log("Loading correlations data for pair:", selectedTypes);
+                        
+                        // Update loading indicator for pair comparison
+                        loading.innerHTML = `
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                            <p class="mt-2">Analyzing correlation between ${type1} and ${type2}...</p>
+                            <p class="small text-muted">This may take a moment...</p>
+                            <div class="progress mt-3" style="height: 10px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                                     role="progressbar" style="width: 75%"></div>
+                            </div>
+                        `;
+                        
+                        // Fetch correlation data
+                        fetchCorrelationData(url);
+                    });
+                    compareButton._hasListener = true;
+                }
+                
+                // Setup event listener for advanced multi-type analysis
+                if (advancedButton && !advancedButton._hasListener) {
+                    advancedButton.addEventListener('click', function() {
+                        // Get all selected lottery types from checkboxes
+                        const selectedTypes = Array.from(
+                            document.querySelectorAll('.correlation-type-checkbox:checked')
+                        ).map(checkbox => checkbox.value);
+                        
+                        // Check if at least two types are selected
+                        if (selectedTypes.length < 2) {
+                            // Show error message in content area
+                            content.innerHTML = `
+                                <div class="col-12">
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        <strong>Error:</strong> Please select at least two lottery types for advanced analysis.
+                                    </div>
+                                </div>
+                            `;
+                            loading.style.display = 'none';
+                            content.style.display = 'block';
+                            return;
+                        }
+                        
+                        // Hide selection panel, show loading
+                        selectionPanel.style.display = 'none';
+                        loading.style.display = 'block';
+                        content.style.display = 'none';
+                        content.innerHTML = ''; // Clear existing content
+                        
+                        // Get days from filter
+                        const daysSelect = document.getElementById('days');
+                        const days = daysSelect ? daysSelect.value || '365' : '365';
+                        
+                        console.log("Loading correlations data for multiple types:", selectedTypes);
+                        
+                        // Build URL with selected types
+                        const timestamp = new Date().getTime();
+                        const typesParam = encodeURIComponent(selectedTypes.join(','));
+                        const url = `/api/lottery-analysis/correlations?lottery_types=${typesParam}&days=${days}&_ts=${timestamp}`;
+                        
+                        // Update loading indicator for multi-type analysis
+                        loading.innerHTML = `
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                            <p class="mt-2">Analyzing correlations across ${selectedTypes.length} lottery types...</p>
+                            <p class="small text-muted">This may take a moment as we process all combinations...</p>
+                            <div class="progress mt-3" style="height: 10px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                                     role="progressbar" style="width: 75%"></div>
+                            </div>
+                        `;
+                        
+                        // Fetch correlation data
+                        fetchCorrelationData(url);
+                    });
+                    
+                    // Mark the button as having a listener
+                    advancedButton._hasListener = true;
+                    console.log("Added event listener to correlation advanced button");
+                }
+                
+                // Since we're showing the selection panel, we can return early
+                return;
+            }
+            
+            // Legacy fallback for when selection panel doesn't exist
+            loading.style.display = 'block';
+            content.style.display = 'none';
+            content.innerHTML = ''; // Clear existing content
+            
+            const daysSelect = document.getElementById('days');
+            if (!daysSelect) {
+                console.error("Cannot find days filter element");
+            }
+            
+            const days = daysSelect ? daysSelect.value || '365' : '365';
+            
+            console.log("Loading correlations data (legacy mode)...");
+            
+            // Add timestamp to prevent caching
+            const timestamp = new Date().getTime();
+            const url = `/api/lottery-analysis/correlations?days=${days}&_ts=${timestamp}`;
+            
+            console.log(`Fetching from URL: ${url}`);
+            loading.innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <p class="mt-2">Loading correlation analysis data...</p>
+                <p class="small text-muted">Note: For more detailed analysis, please use the type selection panel.</p>
+            `;
+            
+            // Use shared fetch correlation data function
+            fetchCorrelationData(url);
+        }
+        
+        // Shared function to fetch correlation data and display results
+        function fetchCorrelationData(url) {
+            console.log(`Fetching correlation data from: ${url}`);
+            
+            // Use improved fetchWithCSRF with robust error handling
+            fetchWithCSRF(url)
+                .then(response => response.json())
+                .then(data => {
+                    // Make sure we always have a valid object
+                    if (!data) {
+                        console.warn("Null or undefined data received, using empty object");
+                        data = {};
+                    }
+                    
+                    // Log the parsed data
+                    console.log("Correlations API response parsed successfully");
+                    return data;
+                })
+                .then(data => {
+                    console.log("Correlations data received:", data);
+                    
+                    if (data && data.error) {
+                        // Show error message with back button
+                        content.innerHTML = backButtonHtml + `
+                            <div class="col-12">
+                                <div class="alert alert-warning">
+                                    <h5>Correlation Analysis Error</h5>
+                                    <p>${data.error}</p>
+                                </div>
+                            </div>
+                        `;
+                    } else if (data) {
+                        // Back to selection button HTML - define this first so we can use it everywhere
+                        const backButtonHtml = `
+                            <div class="col-12 mb-3">
+                                <button type="button" id="back-to-selection" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left mr-1"></i> Back to Selection
+                                </button>
+                            </div>
+                        `;
+                    
+                        // Function to extract chart_base64 and strong_correlations from potentially nested data
+                        const extractData = (responseData) => {
+                            let chart = null;
+                            let correlations = null;
+                            
+                            // Check direct properties first
+                            if (responseData.chart_base64) {
+                                chart = responseData.chart_base64;
+                            }
+                            
+                            if (responseData.strong_correlations) {
+                                correlations = responseData.strong_correlations;
+                            }
+                            
+                            // If not found directly, check for nested structures
+                            if (!chart || !correlations) {
+                                for (const key in responseData) {
+                                    if (typeof responseData[key] === 'object' && responseData[key] !== null) {
+                                        // If it's a nested object
+                                        if (!chart && responseData[key].chart_base64) {
+                                            chart = responseData[key].chart_base64;
+                                        }
+                                        
+                                        if (!correlations && responseData[key].strong_correlations) {
+                                            correlations = responseData[key].strong_correlations;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            return { chart, correlations };
+                        };
+                        
+                        // Extract data from response
+                        const extractedData = extractData(data);
+                        
+                        // Display the correlation heatmap if chart data is available
+                        if (extractedData.chart) {
+                            content.innerHTML = backButtonHtml + `
+                                <div class="col-12 mb-4">
+                                    <div class="card border-left-primary shadow h-100 py-2">
+                                        <div class="card-body">
+                                            <h5 class="mb-3">Cross-Lottery Correlation Heatmap</h5>
+                                            <div class="correlation-chart">
+                                                <img src="data:image/png;base64,${extractedData.chart}" 
+                                                     alt="Correlation Heatmap" 
+                                                     class="img-fluid">
+                                            </div>
+                                            <div class="mt-3">
+                                                <p class="text-muted">This heatmap shows correlations between different lottery types. 
+                                                Brighter colors indicate stronger correlation.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            content.innerHTML = '<div class="col-12"><div class="alert alert-warning">No correlation heatmap data available.</div></div>';
+                        }
+                        
+                        // Display strong correlations as insights if available
+                        if (extractedData.correlations && extractedData.correlations.length > 0) {
+                            let insightsHtml = `
+                                <div class="col-12 mt-3">
+                                    <div class="card shadow h-100">
+                                        <div class="card-header py-3">
+                                            <h6 class="m-0 font-weight-bold text-primary">Strong Correlations</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-12">
+                                                    <div class="table-responsive">
+                                                        <table class="table table-bordered">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Feature 1</th>
+                                                                    <th>Feature 2</th>
+                                                                    <th>Correlation</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                            `;
+                            
+                            // Sort correlations by absolute value (strongest first)
+                            const sortedCorrelations = [...extractedData.correlations].sort((a, b) => 
+                                Math.abs(b.correlation) - Math.abs(a.correlation)
+                            );
+                            
+                            for (const correlation of sortedCorrelations) {
+                                // Determine color based on correlation value
+                                let correlationClass = '';
+                                if (correlation.correlation > 0.7) {
+                                    correlationClass = 'text-success font-weight-bold';  // Strong positive
+                                } else if (correlation.correlation > 0.3) {
+                                    correlationClass = 'text-success';  // Moderate positive
+                                } else if (correlation.correlation < -0.7) {
+                                    correlationClass = 'text-danger font-weight-bold';  // Strong negative
+                                } else if (correlation.correlation < -0.3) {
+                                    correlationClass = 'text-danger';  // Moderate negative
+                                }
+                                
+                                insightsHtml += `
+                                    <tr>
+                                        <td>${correlation.feature1}</td>
+                                        <td>${correlation.feature2}</td>
+                                        <td class="${correlationClass}">${correlation.correlation.toFixed(3)}</td>
+                                    </tr>
+                                `;
+                            }
+                            
+                            insightsHtml += `
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    <div class="mt-3">
+                                                        <div class="text-muted small">
+                                                            <p><strong>Interpretation Guide:</strong></p>
+                                                            <ul>
+                                                                <li><span class="text-success font-weight-bold">Strong positive correlation</span>: When one value increases, the other tends to increase strongly</li>
+                                                                <li><span class="text-success">Moderate positive correlation</span>: When one value increases, the other tends to increase moderately</li>
+                                                                <li><span class="text-danger font-weight-bold">Strong negative correlation</span>: When one value increases, the other tends to decrease strongly</li>
+                                                                <li><span class="text-danger">Moderate negative correlation</span>: When one value increases, the other tends to decrease moderately</li>
+                                                            </ul>
+                                                            <p>Features are structured as <strong>Lottery Type_Statistic</strong>, where statistics include:</p>
+                                                            <ul class="list-inline">
+                                                                <li class="list-inline-item"><small>mean</small></li>
+                                                                <li class="list-inline-item"><small>std</small></li>
+                                                                <li class="list-inline-item"><small>min</small></li>
+                                                                <li class="list-inline-item"><small>max</small></li>
+                                                                <li class="list-inline-item"><small>range</small></li>
+                                                                <li class="list-inline-item"><small>sum</small></li>
+                                                                <li class="list-inline-item"><small>even_count</small></li>
+                                                                <li class="list-inline-item"><small>odd_count</small></li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            content.innerHTML += insightsHtml;
+                        }
+                    } else {
+                        content.innerHTML = '<div class="col-12"><div class="alert alert-info">No correlation data available.</div></div>';
+                    }
+                    
+                    loading.style.display = 'none';
+                    content.style.display = 'block';
+                    
+                    // Add event listener to back button
+                    const backButton = document.getElementById('back-to-selection');
+                    if (backButton) {
+                        backButton.addEventListener('click', function() {
+                            // Hide content and show selection panel
+                            const selectionPanel = document.getElementById('correlation-selection-panel');
+                            if (selectionPanel) {
+                                selectionPanel.style.display = 'block';
+                                content.style.display = 'none';
+                                
+                                // Reset dropdown selections
+                                const type1Select = document.getElementById('correlation-type-1');
+                                const type2Select = document.getElementById('correlation-type-2');
+                                if (type1Select) type1Select.selectedIndex = 0;
+                                if (type2Select) type2Select.selectedIndex = 0;
+                                
+                                // Clear any checked checkboxes in the advanced panel
+                                document.querySelectorAll('.correlation-type-checkbox:checked').forEach(checkbox => {
+                                    checkbox.checked = false;
+                                });
+                                
+                                console.log("Returned to correlation selection panel");
+                            }
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading correlation data:', error);
+                    
+                    // Define suggested actions based on error message
+                    const suggestedActions = [];
+                    
+                    if (error.message && error.message.includes('login')) {
+                        suggestedActions.push('Your session may have expired. Try refreshing the page and logging in again.');
+                    } else if (error.message && error.message.includes('response')) {
+                        suggestedActions.push('There may be network connectivity issues. Check your internet connection.');
+                        suggestedActions.push('The server may be under heavy load. Wait a moment and try again.');
+                    } else if (error.message && error.message.includes('parse')) {
+                        suggestedActions.push('The API returned an invalid response format. This may be a temporary server issue.');
+                    } else {
+                        suggestedActions.push('Refresh the page and try again.');
+                        suggestedActions.push('Try selecting a different date range. Correlations need sufficient data to generate results.');
+                    }
+                    
+                    content.innerHTML = `
+                        <div class="col-12">
+                            <div class="card border-left-danger shadow mb-4">
+                                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold text-danger">Error Loading Correlation Analysis</h6>
+                                    <button class="btn btn-sm btn-outline-primary retry-correlations-btn">
+                                        <i class="fas fa-sync"></i> Retry
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-danger">
+                                        <p>There was a problem loading the correlation analysis data:</p>
+                                        <p><strong>${error.message || 'Unknown error'}</strong></p>
+                                    </div>
+                                    <div class="mt-3">
+                                        <h6 class="font-weight-bold">Suggested actions:</h6>
+                                        <ul class="text-left">
+                                            ${suggestedActions.map(action => `<li>${action}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                    <div class="mt-3 small text-muted">
+                                        <p>Technical details: ${new Date().toISOString()}</p>
+                                        <p>If the problem persists, please contact support with this information.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add retry functionality
+                    const retryButton = content.querySelector('.retry-correlations-btn');
+                    if (retryButton) {
+                        retryButton.addEventListener('click', function() {
+                            console.log('Retrying correlations data load...');
+                            loadCorrelationsData();
+                        });
+                    }
+                    
+                    loading.style.display = 'none';
+                    content.style.display = 'block';
+                });
+            } catch (e) {
+                console.error("Unexpected error in loadCorrelationsData:", e);
+                if (content) {
+                    content.innerHTML = `
+                        <div class="col-12">
+                            <div class="alert alert-danger">
+                                <h5>Unexpected Error</h5>
+                                <p>An unexpected error occurred while loading correlation data:</p>
+                                <p><code>${e.message || 'Unknown error'}</code></p>
+                                <p>Please try refreshing the page.</p>
+                                <button class="btn btn-outline-primary mt-2 retry-correlations-btn">
+                                    <i class="fas fa-sync"></i> Retry
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add retry functionality
+                    const retryButton = content.querySelector('.retry-correlations-btn');
+                    if (retryButton) {
+                        retryButton.addEventListener('click', function() {
+                            console.log('Retrying correlations data load after error...');
+                            loadCorrelationsData();
+                        });
+                    }
+                    
+                    content.style.display = 'block';
+                }
+                if (loading) loading.style.display = 'none';
+            }
+        }
+    });
+</script>
+{% endblock %}

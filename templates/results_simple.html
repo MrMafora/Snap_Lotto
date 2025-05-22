@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Lottery Results Overview</h1>
+    
+    <div class="row">
+        {% for lottery_type in lottery_types %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-lottery">
+                    <h5 class="card-title mb-0">{{ lottery_type }}</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-center text-muted my-4">No results available yet</p>
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <a href="{{ url_for('lottery_results', lottery_type=lottery_type) }}" class="btn btn-lottery-primary btn-sm w-100">
+                        View All {{ lottery_type }} Results
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-info-circle me-2"></i>
+        All official lottery results are collected automatically from the <a href="https://www.nationallottery.co.za" target="_blank" class="text-info fw-bold">National Lottery website</a>. 
+        This data is provided for informational purposes only.
+    </div>
+</div>
+{% endblock %}

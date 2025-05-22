@@ -1,0 +1,36 @@
+/* Checkmark Fix Styles */
+.match-indicator {
+    /* Basic styling */
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    
+    /* Text styling */
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 18px;
+    text-align: center;
+    
+    /* Enhanced visibility */
+    z-index: 100;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
+    border: 2px solid white;
+    
+    /* Other properties */
+    pointer-events: none;
+    font-family: Arial, sans-serif;
+}
+
+/* Ensure text content is displayed properly */
+.match-indicator::before {
+    display: none !important;
+}
+
+/* Force content to be visible */
+.match-indicator {
+    font-size: 12px !important;
+}

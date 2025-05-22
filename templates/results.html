@@ -1,32 +1,58 @@
 {% extends "base.html" %}
 
-{% block title %}Lottery Results | Snap Lotto{% endblock %}
+{% block title %}South African Lottery Results History | Lottery, PowerBall & Daily Lottery | Snap Lottery{% endblock %}
+
+{% block meta_description %}The ONLY app with official Ithuba Lottery,
+PowerBall &
+Daily Lottery data,
+Snap Scan and Win = Phanda Phusha Play. Comprehensive lottery results history with complete winning numbers and draw information.{% endblock %}
+
+{% block meta_keywords %}South African lottery history, Lottery results archive, PowerBall historical numbers, Daily Lottery results, lottery draw archive, winning numbers history{% endblock %}
+
+{% block og_title %}Complete South African Lottery Results History | Snap Lottery{% endblock %}
+{% block og_description %}The ONLY app with official Ithuba Lottery,
+PowerBall &
+Daily Lottery data,
+Snap Scan and Win = Phanda Phusha Play. Search and filter historical results from the official database.{% endblock %}
+
+{% block head_content %}
+<!-- Structured Data for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Table",
+  "about": "South African Lottery Results",
+  "description": "The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play. Complete historical archive of lottery results."
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <div class="card">
     <div class="card-header lottery-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">HISTORICAL RESULTS</h4>
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <h4 class="mb-2 mb-md-0">HISTORICAL RESULTS</h4>
             <div class="dropdown">
                 <button class="btn btn-lottery-primary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                     {% if lottery_type %}{{ lottery_type }}{% else %}All Types{% endif %}
                 </button>
-                <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
                     <li><a class="dropdown-item" href="{{ url_for('results') }}">All Types</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Lotto') }}">Lotto</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Lotto Plus 1') }}">Lotto Plus 1</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Lotto Plus 2') }}">Lotto Plus 2</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Powerball') }}">Powerball</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Powerball Plus') }}">Powerball Plus</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('results', lottery_type='Daily Lotto') }}">Daily Lotto</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lottery') }}">Lottery</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lottery Plus 1') }}">Lottery Plus 1</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Lottery Plus 2') }}">Lottery Plus 2</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Powerball') }}">Powerball</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Powerball Plus') }}">Powerball Plus</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('lottery_results', lottery_type='Daily Lottery') }}">Daily Lottery</a></li>
                 </ul>
             </div>
         </div>
     </div>
     <div class="card-body">
         {% if results.items %}
-            <div class="table-responsive">
+            <!-- Standard table for larger screens -->
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-lottery">
                     <thead>
                         <tr>
@@ -41,14 +67,20 @@
                         {% for result in results.items %}
                             <tr>
                                 <td>
-                                    {% if 'Lotto Plus' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
-                                    {% elif 'Powerball' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-powerball">{{ result.lottery_type }}</span>
-                                    {% elif 'Daily' in result.lottery_type %}
-                                        <span class="game-type-badge game-type-daily">{{ result.lottery_type }}</span>
+                                    {% if 'Lotto' in result.lottery_type %}
+                                        {% set display_type = result.lottery_type.replace('Lotto', 'Lottery') %}
                                     {% else %}
-                                        <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
+                                        {% set display_type = result.lottery_type %}
+                                    {% endif %}
+                                    
+                                    {% if 'Lottery Plus' in display_type %}
+                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
+                                    {% elif 'Powerball' in display_type %}
+                                        <span class="game-type-badge game-type-powerball">{{ display_type }}</span>
+                                    {% elif 'Daily' in display_type %}
+                                        <span class="game-type-badge game-type-daily">{{ display_type }}</span>
+                                    {% else %}
+                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -90,12 +122,78 @@
                 </table>
             </div>
             
+            <!-- Mobile-optimized cards for small screens -->
+            <div class="d-md-none">
+                {% for result in results.items %}
+                    <div class="card mb-3 result-card">
+                        <div class="card-header py-2">
+                            {% if 'Lotto' in result.lottery_type %}
+                                {% set display_type = result.lottery_type.replace('Lotto', 'Lottery') %}
+                            {% else %}
+                                {% set display_type = result.lottery_type %}
+                            {% endif %}
+                            
+                            <div class="d-flex align-items-center justify-content-between">
+                                {% if 'Lottery Plus' in display_type %}
+                                    <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
+                                {% elif 'Powerball' in display_type %}
+                                    <span class="game-type-badge game-type-powerball">{{ display_type }}</span>
+                                {% elif 'Daily' in display_type %}
+                                    <span class="game-type-badge game-type-daily">{{ display_type }}</span>
+                                {% else %}
+                                    <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
+                                {% endif %}
+                                <span class="small">{{ result.draw_date.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <strong>Draw {{ result.draw_number.replace('Draw', '').replace('DRAW', '').replace('Lotto', '').replace('Plus 1', '').replace('Plus 2', '').replace('Powerball', '').replace('Daily', '').strip() }}</strong>
+                                <a href="{{ url_for('draw_details', lottery_type=result.lottery_type, draw_number=result.draw_number) }}" class="btn btn-sm btn-outline-primary">Details <i class="fa fa-info-circle"></i></a>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <div class="small mb-1"><strong>Winning Numbers:</strong></div>
+                                <div class="numbers-container">
+                                    {% for num in result.get_numbers_list() %}
+                                        {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
+                                        
+                                        {% if loop.index0 % 4 == 0 %}
+                                            {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                        {% elif loop.index0 % 4 == 1 %}
+                                            {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                        {% elif loop.index0 % 4 == 2 %}
+                                            {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                        {% else %}
+                                            {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                                        {% endif %}
+                                        
+                                        <span class="{{ ball_class }}">{{ num }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            {% if result.bonus_numbers %}
+                                <div>
+                                    <div class="small mb-1"><strong>Bonus Numbers:</strong></div>
+                                    <div class="numbers-container">
+                                        {% for num in result.get_bonus_numbers_list() %}
+                                            <span class="lottery-ball lottery-ball-sm lottery-ball-blue lottery-ball-bonus">{{ num }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
             <!-- Pagination -->
             <nav aria-label="Page navigation">
                 <ul class="pagination justify-content-center">
                     {% if results.has_prev %}
                         <li class="page-item">
-                            <a class="page-link" href="{{ url_for('results', lottery_type=lottery_type, page=results.prev_num) }}">Previous</a>
+                            <a class="page-link" href="{{ url_for('lottery_results', lottery_type=lottery_type, page=results.prev_num) }}">Previous</a>
                         </li>
                     {% else %}
                         <li class="page-item disabled">
@@ -111,7 +209,7 @@
                                 </li>
                             {% else %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('results', lottery_type=lottery_type, page=page_num) }}">{{ page_num }}</a>
+                                    <a class="page-link" href="{{ url_for('lottery_results', lottery_type=lottery_type, page=page_num) }}">{{ page_num }}</a>
                                 </li>
                             {% endif %}
                         {% else %}
@@ -123,7 +221,7 @@
                     
                     {% if results.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="{{ url_for('results', lottery_type=lottery_type, page=results.next_num) }}">Next</a>
+                            <a class="page-link" href="{{ url_for('lottery_results', lottery_type=lottery_type, page=results.next_num) }}">Next</a>
                         </li>
                     {% else %}
                         <li class="page-item disabled">

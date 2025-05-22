@@ -2,6 +2,9 @@ import os
 
 class Config:
     """Application configuration settings"""
+    # Environment settings
+    ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development')  # 'development' or 'production'
+    
     # Flask settings
     SECRET_KEY = os.environ.get('SESSION_SECRET', 'lottery-scraper-default-secret')
     DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
@@ -10,19 +13,33 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///lottery.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_size": 5,  # Reduced pool size to prevent too many connections
+        "max_overflow": 10,  # Reduced max overflow
         "pool_recycle": 300,
-        "pool_pre_ping": True
+        "pool_pre_ping": True,
+        "pool_timeout": 30
     }
     
     # Only add SSL requirement for PostgreSQL connections
     if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith('postgresql'):
-        SQLALCHEMY_ENGINE_OPTIONS["connect_args"] = {"sslmode": "require"}
+        # Enhanced Neon PostgreSQL connection parameters
+        SQLALCHEMY_ENGINE_OPTIONS["connect_args"] = {
+            "sslmode": "require",
+            "connect_timeout": 10,
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 5,
+            "application_name": "snaplotto-flask-app",
+            "options": "-c statement_timeout=30000"  # 30 second timeout
+        }
     
     # Anthropic API settings (Custom environment variable name as requested)
     ANTHROPIC_API_KEY = os.environ.get('Lotto_scape_ANTHROPIC_KEY', '')
     
     # Screenshot directory
     SCREENSHOT_DIR = os.path.join(os.getcwd(), 'screenshots')
+    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
     
     # Default lottery URLS for history pages
     DEFAULT_LOTTERY_URLS = [
@@ -53,6 +70,9 @@ class Config:
         """Initialize application with configuration"""
         # Create screenshot directory if it doesn't exist
         os.makedirs(Config.SCREENSHOT_DIR, exist_ok=True)
+        
+        # Create uploads directory if it doesn't exist
+        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
         
         # Validate required environment variables
         if not Config.ANTHROPIC_API_KEY:

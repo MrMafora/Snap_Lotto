@@ -1,0 +1,29 @@
+User-agent: *
+Allow: /
+Allow: /guides/   # Explicitly allow guides directory for better SEO
+Allow: /scanner-landing/   # Explicitly allow scanner landing page
+Allow: /ticket-scanner/   # Explicitly allow ticket scanner
+Allow: /scan-lottery-ticket-south-africa/   # Explicitly allow scanner with SEO friendly URL
+Disallow: /admin/
+Disallow: /login/
+Disallow: /logout/
+Disallow: /api/
+
+# Crawl delay for better server performance
+Crawl-delay: 5  # Reduced from 10 to allow faster indexing
+
+# High-value content for search engines - explicitly highlighted
+Allow: /guides/how-to-play-lotto
+Allow: /guides/how-to-play-powerball
+Allow: /guides/how-to-play-daily-lotto
+Allow: /guides/check-lottery-ticket-south-africa
+Allow: /guides/lottery-scanner-app-south-africa
+Allow: /results/
+Allow: /results?game=Lotto
+Allow: /results?game=Powerball
+Allow: /results?game=Daily+Lotto
+Allow: /ticket-scanner
+Allow: /visualizations
+
+# Sitemap location
+Sitemap: https://www.snaplotto.co.za/sitemap.xml

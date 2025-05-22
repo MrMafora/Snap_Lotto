@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Ticket Scan Error{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h1 class="h3 mb-0"><i class="fas fa-exclamation-triangle me-2"></i> Ticket Scanning Error</h1>
+                </div>
+                
+                <div class="card-body">
+                    <div class="alert alert-danger mb-4">
+                        <h4 class="alert-heading mb-2">We couldn't process your ticket</h4>
+                        <p>Unfortunately, we encountered an error while processing your lottery ticket:</p>
+                        <hr>
+                        <p class="mb-0"><strong>Error details:</strong> {{ error }}</p>
+                    </div>
+                    
+                    <div class="troubleshooting-tips mb-4">
+                        <h3 class="h5 mb-3">Troubleshooting Tips</h3>
+                        <ul class="list-group">
+                            <li class="list-group-item">
+                                <i class="fas fa-image text-primary me-2"></i> 
+                                Make sure your image is clear and well-lit
+                            </li>
+                            <li class="list-group-item">
+                                <i class="fas fa-arrows-alt text-primary me-2"></i> 
+                                Ensure the entire ticket is visible in the photo
+                            </li>
+                            <li class="list-group-item">
+                                <i class="fas fa-search-plus text-primary me-2"></i> 
+                                Check that all numbers are clearly legible
+                            </li>
+                            <li class="list-group-item">
+                                <i class="fas fa-photo-video text-primary me-2"></i> 
+                                Try using a different image format (JPG, PNG)
+                            </li>
+                            <li class="list-group-item">
+                                <i class="fas fa-clock text-primary me-2"></i> 
+                                The system may be experiencing high volume, try again later
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('scanner.scan_ticket') }}" class="btn btn-primary me-2">
+                            <i class="fas fa-redo me-2"></i> Try Again
+                        </a>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-2"></i> Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4 shadow-sm">
+                <div class="card-header bg-light">
+                    <h2 class="h5 mb-0">Additional Support</h2>
+                </div>
+                <div class="card-body">
+                    <p>If you continue experiencing issues with the ticket scanner, you can:</p>
+                    <ul>
+                        <li>Check the official lottery results directly on our <a href="{{ url_for('index') }}">homepage</a></li>
+                        <li>Try scanning your ticket again with a different image</li>
+                        <li>Refer to the <a href="https://www.nationallottery.co.za/" target="_blank">official National Lottery website</a> for results (opens in new tab)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

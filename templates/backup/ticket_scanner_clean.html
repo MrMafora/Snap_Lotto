@@ -1,0 +1,665 @@
+{% extends "base.html" %}
+
+{% block title %}Lottery Ticket Scanner | Snap Lotto{% endblock %}
+
+{% block additional_head %}
+<style>
+    .ticket-scanner-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    /* Clean, modern interface */
+    .ticket-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border: none;
+        overflow: hidden;
+    }
+    
+    /* Info callout */
+    .info-callout {
+        background-color: #e1f5fe;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-left: 4px solid #03a9f4;
+    }
+    
+    /* Drop area styling */
+    .ticket-drop-area {
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        background-color: #f8f9fa;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 20px;
+    }
+    
+    .ticket-drop-area:hover, .ticket-drop-area.highlight {
+        border-color: #0d6efd;
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    
+    /* Button styling */
+    .btn-scan {
+        padding: 12px 30px;
+        font-size: 18px;
+        border-radius: 8px;
+    }
+    
+    /* Ticket preview */
+    .ticket-preview {
+        max-width: 100%;
+        max-height: 300px;
+        margin: 20px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    
+    /* Form elements */
+    .form-label {
+        font-weight: 500;
+    }
+    
+    .form-control, .form-select {
+        padding: 10px 15px;
+        border-radius: 8px;
+    }
+    
+    /* Ad overlay styling */
+    .ad-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.95);
+        z-index: 9999;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    
+    /* Ad container styling */
+    .ad-container {
+        width: 100%;
+        max-width: 500px;
+        margin: 20px 0;
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+    }
+    
+    /* Loading indicator */
+    #scanner-loading {
+        display: none;
+    }
+    
+    /* Optional note */
+    .optional-note {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-left: 5px;
+    }
+    
+    /* Results page ad styling */
+    .results-ad-content {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        padding: 30px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Ad overlay for loading screen (simplified) -->
+<div id="ad-overlay-loading" class="ad-overlay">
+    <h4 class="mb-4 text-white">Processing your ticket...</h4>
+    <div class="ad-container">
+        <div id="ad-container-loader" style="width: 300px; height: 250px; margin: 0 auto; background-color: #f8f9fa; border: 3px solid #0d6efd; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div style="font-size: 24px; margin-bottom: 10px; color: #0d6efd;">
+                <i class="fas fa-ad"></i>
+            </div>
+            <div style="font-weight: bold; font-size: 18px; color: #212529; margin-bottom: 5px;">
+                Advertisement
+            </div>
+            <div style="color: #6c757d; font-size: 14px; text-align: center; padding: 0 20px;">
+                This helps keep the service free
+            </div>
+        </div>
+    </div>
+    <div class="mt-4 text-center" style="max-width: 500px; margin: 0 auto;">
+        <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <div id="scan-progress">
+            <h5 class="mb-3">Analyzing your ticket...</h5>
+            
+            <!-- Progress steps -->
+            <div class="steps-container mb-4">
+                <div class="step active" id="step-1">
+                    <div class="step-circle">1</div>
+                    <div class="step-text">Reading Ticket</div>
+                </div>
+                <div class="step" id="step-2">
+                    <div class="step-circle">2</div>
+                    <div class="step-text">Identifying Game</div>
+                </div>
+                <div class="step" id="step-3">
+                    <div class="step-circle">3</div>
+                    <div class="step-text">Checking Numbers</div>
+                </div>
+                <div class="step" id="step-4">
+                    <div class="step-circle">4</div>
+                    <div class="step-text">Calculating Prize</div>
+                </div>
+            </div>
+            
+            <div class="progress mb-3" style="height: 10px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     id="scan-progress-bar" role="progressbar" style="width: 25%"></div>
+            </div>
+            <p id="scan-step-text" class="text-muted">Uploading and analyzing your ticket image...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Ad overlay for results (simplified) -->
+<div id="ad-overlay-results" class="ad-overlay">
+    <div class="results-ad-content">
+        <h4 class="mb-4 text-white">Your Results Are Ready!</h4>
+        <div class="ad-container">
+            <div id="ad-container-interstitial" style="width: 300px; height: 250px; margin: 0 auto; background-color: #f8f9fa; border: 3px solid #198754; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <div style="font-size: 24px; margin-bottom: 10px; color: #198754;">
+                    <i class="fas fa-ad"></i>
+                </div>
+                <div style="font-weight: bold; font-size: 18px; color: #212529; margin-bottom: 5px;">
+                    Advertisement
+                </div>
+                <div style="color: #6c757d; font-size: 14px; text-align: center; padding: 0 20px;">
+                    Support from ads keeps this service free
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-success px-4 py-3 mt-4" id="view-results-btn">
+            <i class="fas fa-check-circle me-2"></i> View My Results
+        </button>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h2 class="fw-bold">Lottery Ticket Scanner</h2>
+            <p class="text-muted">Check if your lottery ticket has won a prize</p>
+            <div class="slogan-banner mt-3 mb-2">
+                <span class="slogan-text">Snap, Scan and Win = Phusha Phanda Play</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="ticket-scanner-container">
+        <div class="ticket-card card">
+            <div class="card-body p-4">
+                <div class="info-callout mb-4">
+                    <i class="fa fa-info-circle me-2"></i> 
+                    Take a clear photo of your lottery ticket, making sure all numbers are visible.
+                </div>
+
+                <form id="ticket-form" action="/scan-ticket" method="post" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="lottery-type" class="form-label">
+                                Game Type
+                                <span class="optional-note">(Optional - AI will detect)</span>
+                            </label>
+                            <select class="form-select" id="lottery-type" name="lottery_type">
+                                <option value="">Auto-detect from ticket</option>
+                                <option value="Lotto">Lotto</option>
+                                <option value="Lotto Plus 1">Lotto Plus 1</option>
+                                <option value="Lotto Plus 2">Lotto Plus 2</option>
+                                <option value="Powerball">Powerball</option>
+                                <option value="Powerball Plus">Powerball Plus</option>
+                                <option value="Daily Lotto">Daily Lotto</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="draw-number" class="form-label">
+                                Draw Number
+                                <span class="optional-note">(Optional)</span>
+                            </label>
+                            <input type="text" class="form-control" id="draw-number" name="draw_number" 
+                                placeholder="Leave blank for latest draw">
+                        </div>
+                    </div>
+
+                    <div class="ticket-drop-area" id="drop-area">
+                        <i class="fa fa-upload fa-2x mb-3 text-primary"></i>
+                        <h5>Drag and drop your ticket image here</h5>
+                        <p class="text-muted">or</p>
+                        <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
+                        <button type="button" id="file-select-btn" class="btn btn-primary px-4">
+                            Select Image
+                        </button>
+                    </div>
+
+                    <div id="preview-container" class="text-center d-none">
+                        <h6 class="mb-3">Ticket Preview</h6>
+                        <img id="ticket-preview" class="ticket-preview img-fluid" src="">
+                        <div class="mt-3">
+                            <button type="button" id="remove-image" class="btn btn-sm btn-outline-danger">
+                                <i class="fa fa-times"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Simple ad container -->
+                    <div class="ad-inline-container mt-4 mb-4 text-center" style="background-color: #f8f9fa; border: 2px solid #0d6efd; border-radius: 10px; padding: 15px; max-width: 400px; margin: 0 auto;">
+                        <div style="margin-bottom: 10px; color: #6c757d;">Advertisement</div>
+                        <div style="width: 300px; height: 100px; background-color: #ffffff; border: 2px dashed #0d6efd; border-radius: 5px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 0 auto;">
+                            <div style="font-size: 24px; color: #0d6efd;"><i class="fas fa-ad"></i></div>
+                            <div style="color: #6c757d; font-size: 12px; text-align: center; padding: 5px;">Support from ads keeps this service free</div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" id="scan-button" class="btn btn-success btn-scan">
+                            <i class="fa fa-search me-2"></i> Scan Ticket
+                        </button>
+                        <div id="scanner-loading" class="mt-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p>Scanning your ticket...</p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results section will display after scanning -->
+        <div id="results-container" class="results-container mt-4 d-none">
+            <div class="card ticket-card">
+                <div class="card-body p-4">
+                    <h3 class="mb-4 text-center">Scan Results</h3>
+                    
+                    <div id="error-message" class="d-none">
+                        <div class="card mb-4">
+                            <div class="card-header bg-warning text-white">
+                                <h5 class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="error-text"></div>
+                                <div class="mt-3 text-center">
+                                    <button id="scan-another-btn" class="btn btn-outline-primary mt-2">
+                                        <i class="fas fa-redo me-2"></i>Scan Another Ticket
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="success-content" class="d-none">
+                        <!-- Results page simple ad banner -->
+                        <div class="ad-banner mb-4" style="background-color: #dc3545; border-radius: 10px; padding: 15px; text-align: center; color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+                            <div style="font-size: 18px; margin-bottom: 5px;"><i class="fas fa-ad mr-2"></i> ADVERTISEMENT</div>
+                            <div style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">PLAY THE LOTTERY ONLINE!</div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0" id="ticket-info-title">Ticket Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>Lottery Type:</strong> <span id="result-lottery-type"></span></p>
+                                        <p><strong>Draw Number:</strong> <span id="result-draw-number"></span></p>
+                                        <p><strong>Draw Date:</strong> <span id="result-draw-date"></span></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Your Numbers:</strong></p>
+                                        <div id="ticket-numbers" class="mb-3"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">Winning Numbers</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="winning-numbers" class="mb-3"></div>
+                                
+                                <div class="mt-4">
+                                    <p><strong>Matched Numbers:</strong> <span id="matched-count" class="badge bg-success">0</span></p>
+                                    <div id="matched-numbers"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="prize-container" class="d-none">
+                            <div class="card prize-card">
+                                <div class="card-header bg-warning">
+                                    <h5 class="mb-0"><i class="fa fa-trophy me-2"></i> Winner!</h5>
+                                </div>
+                                <div class="card-body">
+                                    <h4 class="text-success mb-3 text-center">Congratulations!</h4>
+                                    <p class="lead text-center">You've won a prize in <span id="prize-lottery-type"></span> Draw <span id="prize-draw-number"></span>!</p>
+                                    <div class="row mt-4">
+                                        <div class="col-md-6">
+                                            <p><strong>Division:</strong> <span id="prize-division"></span></p>
+                                            <p><strong>Match Type:</strong> <span id="prize-match-type"></span></p>
+                                        </div>
+                                        <div class="col-md-6 text-center">
+                                            <div class="p-3 bg-light rounded">
+                                                <p class="mb-1">Prize Amount:</p>
+                                                <h3 class="text-success"><span id="prize-amount"></span></h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="no-prize-container" class="d-none">
+                            <div class="card">
+                                <div class="card-header bg-secondary text-white">
+                                    <h5 class="mb-0">Result</h5>
+                                </div>
+                                <div class="card-body text-center p-4">
+                                    <i class="fa fa-times-circle fa-3x text-muted mb-3"></i>
+                                    <h4 class="text-muted mb-3">No Prize This Time</h4>
+                                    <p>Sorry, your ticket did not win a prize in this draw.</p>
+                                    <p>Better luck next time!</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <button id="scan-new-ticket" class="btn btn-primary">
+                                <i class="fa fa-redo me-2"></i> Scan Another Ticket
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Element references
+    const dropArea = document.getElementById('drop-area');
+    const fileInput = document.getElementById('ticket-image');
+    const fileSelectBtn = document.getElementById('file-select-btn');
+    const previewContainer = document.getElementById('preview-container');
+    const ticketPreview = document.getElementById('ticket-preview');
+    const removeImageBtn = document.getElementById('remove-image');
+    const scanButton = document.getElementById('scan-button');
+    const ticketForm = document.getElementById('ticket-form');
+    const loadingOverlay = document.getElementById('ad-overlay-loading');
+    const resultsOverlay = document.getElementById('ad-overlay-results');
+    const viewResultsBtn = document.getElementById('view-results-btn');
+    const resultsContainer = document.getElementById('results-container');
+    const scanNewTicketBtn = document.getElementById('scan-new-ticket');
+    const scanAnotherBtn = document.getElementById('scan-another-btn');
+    
+    // Disable scan button initially
+    scanButton.disabled = true;
+    
+    // File selection via button
+    fileSelectBtn.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    // File selection change
+    fileInput.addEventListener('change', handleFileSelect);
+    
+    // Drag and drop events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+        dropArea.classList.add('highlight');
+    }
+    
+    function unhighlight() {
+        dropArea.classList.remove('highlight');
+    }
+    
+    dropArea.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect();
+        }
+    }
+    
+    function handleFileSelect() {
+        const file = fileInput.files[0];
+        
+        if (file) {
+            // Check if file is an image
+            if (!file.type.match('image.*')) {
+                alert('Please select an image file');
+                fileInput.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                ticketPreview.src = e.target.result;
+                previewContainer.classList.remove('d-none');
+                // Enable scan button
+                scanButton.disabled = false;
+            }
+            
+            reader.readAsDataURL(file);
+        } else {
+            previewContainer.classList.add('d-none');
+            scanButton.disabled = true;
+        }
+    }
+    
+    removeImageBtn.addEventListener('click', function() {
+        ticketPreview.src = '';
+        fileInput.value = '';
+        previewContainer.classList.add('d-none');
+        scanButton.disabled = true;
+    });
+    
+    // Form submission
+    ticketForm.addEventListener('submit', function(e) {
+        if (!fileInput.files.length) return;
+        
+        e.preventDefault();
+        
+        // Show loading overlay
+        loadingOverlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        
+        // Create FormData and submit
+        const formData = new FormData(ticketForm);
+        
+        fetch('/scan-ticket', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            
+            // Hide loading overlay
+            loadingOverlay.style.display = 'none';
+            
+            if (data.error) {
+                // Show error message
+                document.getElementById('error-message').classList.remove('d-none');
+                document.getElementById('error-text').textContent = data.error;
+                resultsContainer.classList.remove('d-none');
+            } else {
+                // Show results overlay with ad
+                resultsOverlay.style.display = 'flex';
+                
+                // Fill in results data
+                setTimeout(function() {
+                    populateResults(data);
+                }, 100);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            loadingOverlay.style.display = 'none';
+            
+            // Show error message
+            document.getElementById('error-message').classList.remove('d-none');
+            document.getElementById('error-text').textContent = 'An error occurred while processing your ticket. Please try again.';
+            resultsContainer.classList.remove('d-none');
+        });
+    });
+    
+    // View results button
+    if (viewResultsBtn) {
+        viewResultsBtn.addEventListener('click', function() {
+            resultsOverlay.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            
+            // Scroll to results
+            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
+    
+    // Scan another ticket buttons
+    if (scanNewTicketBtn) {
+        scanNewTicketBtn.addEventListener('click', resetForm);
+    }
+    
+    if (scanAnotherBtn) {
+        scanAnotherBtn.addEventListener('click', resetForm);
+    }
+    
+    function resetForm() {
+        ticketForm.reset();
+        previewContainer.classList.add('d-none');
+        resultsContainer.classList.add('d-none');
+        scanButton.disabled = true;
+        
+        // Scroll to top
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+    
+    // Populate results
+    function populateResults(data) {
+        // Show results container
+        resultsContainer.classList.remove('d-none');
+        document.getElementById('success-content').classList.remove('d-none');
+        document.getElementById('error-message').classList.add('d-none');
+        
+        // Ticket info
+        document.getElementById('result-lottery-type').textContent = data.lottery_type || 'Unknown';
+        document.getElementById('result-draw-number').textContent = data.draw_number || 'Unknown';
+        document.getElementById('result-draw-date').textContent = data.draw_date || 'Unknown';
+        
+        // Your numbers
+        const ticketNumbers = document.getElementById('ticket-numbers');
+        ticketNumbers.innerHTML = '';
+        if (data.ticket_numbers && data.ticket_numbers.length) {
+            data.ticket_numbers.forEach(num => {
+                const numBall = document.createElement('span');
+                numBall.className = 'lottery-ball';
+                numBall.textContent = num;
+                ticketNumbers.appendChild(numBall);
+            });
+        } else {
+            ticketNumbers.textContent = 'No numbers detected';
+        }
+        
+        // Winning numbers
+        const winningNumbers = document.getElementById('winning-numbers');
+        winningNumbers.innerHTML = '';
+        if (data.winning_numbers && data.winning_numbers.length) {
+            data.winning_numbers.forEach(num => {
+                const numBall = document.createElement('span');
+                numBall.className = 'lottery-ball winning';
+                numBall.textContent = num;
+                winningNumbers.appendChild(numBall);
+            });
+        } else {
+            winningNumbers.textContent = 'No winning numbers available';
+        }
+        
+        // Matched numbers
+        const matchedCount = document.getElementById('matched-count');
+        const matchedNumbers = document.getElementById('matched-numbers');
+        matchedNumbers.innerHTML = '';
+        
+        if (data.matched_numbers && data.matched_numbers.length) {
+            matchedCount.textContent = data.matched_numbers.length;
+            data.matched_numbers.forEach(num => {
+                const numBall = document.createElement('span');
+                numBall.className = 'lottery-ball matched';
+                numBall.textContent = num;
+                matchedNumbers.appendChild(numBall);
+            });
+        } else {
+            matchedCount.textContent = '0';
+            matchedNumbers.textContent = 'No matches';
+        }
+        
+        // Prize information
+        if (data.has_won) {
+            document.getElementById('prize-container').classList.remove('d-none');
+            document.getElementById('no-prize-container').classList.add('d-none');
+            
+            document.getElementById('prize-lottery-type').textContent = data.lottery_type || 'Unknown';
+            document.getElementById('prize-draw-number').textContent = data.draw_number || 'Unknown';
+            document.getElementById('prize-division').textContent = data.division || 'Unknown';
+            document.getElementById('prize-match-type').textContent = data.match_description || 'Unknown';
+            document.getElementById('prize-amount').textContent = data.prize_amount || 'Unknown';
+        } else {
+            document.getElementById('prize-container').classList.add('d-none');
+            document.getElementById('no-prize-container').classList.remove('d-none');
+        }
+    }
+});
+</script>
+{% endblock %}
