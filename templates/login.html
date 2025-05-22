@@ -11,25 +11,31 @@
             </div>
             <div class="card-body p-4">
                 <form method="POST" action="{{ url_for('login') }}" autocomplete="off">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {{ form.hidden_tag() }}
                     
                     <div class="mb-3">
                         <label for="username" class="form-label fw-bold">Username</label>
-                        <input type="text" name="username" id="username" class="form-control" placeholder="Enter username" autocomplete="username" required>
+                        {{ form.username(class="form-control", id="username", placeholder="Enter username", autocomplete="username") }}
+                        {% for error in form.username.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
                     </div>
                     
                     <div class="mb-3">
                         <label for="password" class="form-label fw-bold">Password</label>
-                        <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" autocomplete="current-password" required>
+                        {{ form.password(class="form-control", id="password", placeholder="Enter password", autocomplete="current-password") }}
+                        {% for error in form.password.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
                     </div>
                     
                     <div class="mb-4 form-check">
-                        <input type="checkbox" name="remember" id="remember" class="form-check-input">
+                        {{ form.remember(class="form-check-input", id="remember") }}
                         <label class="form-check-label" for="remember">Remember me</label>
                     </div>
                     
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-lottery-primary py-2">Login</button>
+                        {{ form.submit(class="btn btn-lottery-primary py-2") }}
                     </div>
                 </form>
             </div>

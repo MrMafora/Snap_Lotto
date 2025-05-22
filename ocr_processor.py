@@ -9,27 +9,18 @@ import importlib.util
 
 logger = logging.getLogger(__name__)
 
-# Initialize variables - actual client will be created on first use
-ANTHROPIC_API_KEY = None
+# Initialize API key from environment variable
+ANTHROPIC_API_KEY = os.environ.get("Lotto_scape_ANTHROPIC_KEY")
+
+# Log if key is missing
+if not ANTHROPIC_API_KEY:
+    logger.warning("Lotto_scape_ANTHROPIC_KEY environment variable not set.")
+
+# Initialize AI client
 anthropic_client = None
 
-def get_anthropic_client():
-    """Lazy load the Anthropic client when actually needed"""
-    global ANTHROPIC_API_KEY, anthropic_client
-    
-    # Return existing client if already initialized
-    if anthropic_client is not None:
-        return anthropic_client
-    
-    # Initialize API key from environment variable
-    ANTHROPIC_API_KEY = os.environ.get("Lotto_scape_ANTHROPIC_KEY")
-    
-    # Log if key is missing
-    if not ANTHROPIC_API_KEY:
-        logger.warning("Lotto_scape_ANTHROPIC_KEY environment variable not set.")
-        return None
-    
-    # Initialize Anthropic client if ANTHROPIC_API_KEY is available
+# Initialize Anthropic client if ANTHROPIC_API_KEY is available
+if ANTHROPIC_API_KEY:
     try:
         import anthropic
         from anthropic import Anthropic
@@ -37,13 +28,10 @@ def get_anthropic_client():
         # Initialize client
         anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
         logger.info("Anthropic client initialized successfully")
-        return anthropic_client
     except ImportError:
         logger.error("Failed to import anthropic module. Please check if it's properly installed.")
-        return None
     except Exception as e:
         logger.error(f"Error initializing Anthropic client: {str(e)}")
-        return None
 
 def process_screenshot(screenshot_path, lottery_type):
     """
@@ -98,9 +86,7 @@ def process_screenshot(screenshot_path, lottery_type):
     system_prompt = create_system_prompt(lottery_type)
     
     # Use Anthropic Claude for OCR processing
-    # Lazy load the client only when needed
-    client = get_anthropic_client()
-    if client:
+    if anthropic_client:
         try:
             logger.info(f"Processing with Anthropic Claude for {lottery_type}")
             
@@ -116,8 +102,7 @@ def process_screenshot(screenshot_path, lottery_type):
             logger.info(f"Detected image format: {image_format}")
             
             # Process with appropriate image format
-            # Pass the screenshot ID if available for tracking in API logs
-            result = process_with_anthropic(base64_content, lottery_type, system_prompt, image_format, screenshot_id=getattr(screenshot_path, 'id', None))
+            result = process_with_anthropic(base64_content, lottery_type, system_prompt, image_format)
             if result and "results" in result and result["results"]:
                 logger.info(f"Anthropic processing completed successfully for {lottery_type}")
                 return result
@@ -125,7 +110,7 @@ def process_screenshot(screenshot_path, lottery_type):
             logger.error(f"Error in Anthropic processing: {str(e)}")
     
     # If no AI client is available or processing failed
-    if not get_anthropic_client():
+    if not ANTHROPIC_API_KEY:
         logger.error("No AI client available. Cannot process without API key.")
     
     # Return default structure with empty data if processing failed
@@ -146,7 +131,7 @@ def process_screenshot(screenshot_path, lottery_type):
     logger.info(f"Using default result for {lottery_type}")
     return default_result
 
-def process_with_anthropic(base64_content, lottery_type, system_prompt, image_format='jpeg', screenshot_id=None):
+def process_with_anthropic(base64_content, lottery_type, system_prompt, image_format='jpeg'):
     """
     Process a screenshot using Anthropic's Claude AI for OCR.
     
@@ -155,47 +140,18 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
         lottery_type (str): Type of lottery
         system_prompt (str): System prompt for AI
         image_format (str): Format of the image (jpeg, png, etc.)
-        screenshot_id (int, optional): ID of the screenshot being processed
         
     Returns:
         dict: The processed result
     """
-    # Import only when needed to avoid circular imports
-    from models import APIRequestLog
-
-    start_time = datetime.utcnow()
-    request_id = None
-    prompt_tokens = None
-    completion_tokens = None
-    status = 'error'  # Default to error, will change to success if all goes well
-    error_message = None
-    
     try:
-        # Get the lazily loaded client
-        client = get_anthropic_client()
-        if not client:
-            error_message = "Cannot process with Anthropic: No client available"
-            logger.error(error_message)
-            
-            # Log the failed API request
-            APIRequestLog.log_request(
-                service='anthropic',
-                endpoint='messages.create',
-                model='claude-3-5-sonnet-20241022',
-                status='error',
-                error_message=error_message,
-                screenshot_id=screenshot_id,
-                lottery_type=lottery_type
-            )
-            return None
-            
         # Set media type based on image format
         media_type = f"image/{image_format.lower()}"
         logger.info(f"Using media type: {media_type} for image processing")
         
         # Process as image using Anthropic Claude
         logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
-        response = client.messages.create(
+        response = anthropic_client.messages.create(
             model="claude-3-5-sonnet-20241022", # Latest Claude model
             max_tokens=3000,  # Increased token limit to handle multiple draw results
             system=system_prompt,
@@ -220,19 +176,6 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
             ]
         )
         
-        # Calculate duration
-        end_time = datetime.utcnow()
-        duration_ms = int((end_time - start_time).total_seconds() * 1000)
-        
-        # Get metrics from the response
-        if hasattr(response, 'usage'):
-            prompt_tokens = getattr(response.usage, 'input_tokens', None)
-            completion_tokens = getattr(response.usage, 'output_tokens', None)
-        
-        # Get request ID if available
-        if hasattr(response, 'id'):
-            request_id = response.id
-        
         # Get the text content from the response
         response_text = response.content[0].text
         
@@ -241,23 +184,6 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
         
         # The response should be directly parsable as JSON now
         result_json = response_text
-        
-        # Change status to success since we got a response
-        status = 'success'
-        
-        # Log the successful API request
-        APIRequestLog.log_request(
-            service='anthropic',
-            endpoint='messages.create',
-            model='claude-3-5-sonnet-20241022',
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            status=status,
-            duration_ms=duration_ms,
-            request_id=request_id,
-            screenshot_id=screenshot_id,
-            lottery_type=lottery_type
-        )
         
         # Parse the response
         try:
@@ -280,25 +206,8 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
             return result
             
         except json.JSONDecodeError as e:
-            error_message = f"Error parsing JSON response: {str(e)}"
-            logger.error(error_message)
+            logger.error(f"Error parsing JSON response: {str(e)}")
             logger.error(f"Response content: {response_text}")
-            
-            # Update the API request log with the error
-            APIRequestLog.log_request(
-                service='anthropic',
-                endpoint='messages.create.json_parse',
-                model='claude-3-5-sonnet-20241022',
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
-                status='error',
-                duration_ms=duration_ms,
-                error_message=error_message,
-                request_id=request_id,
-                screenshot_id=screenshot_id,
-                lottery_type=lottery_type
-            )
-            
             # Still return the raw response for debugging
             return {
                 "lottery_type": lottery_type,
@@ -307,27 +216,11 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
                 "ocr_provider": "anthropic",
                 "ocr_model": "claude-3-5-sonnet-20241022",
                 "raw_response": response_text,
-                "error": error_message
+                "error": f"JSON decode error: {str(e)}"
             }
     
     except Exception as e:
-        end_time = datetime.utcnow()
-        duration_ms = int((end_time - start_time).total_seconds() * 1000)
-        error_message = f"Error in Anthropic processing: {str(e)}"
-        logger.error(error_message)
-        
-        # Log the failed API request
-        APIRequestLog.log_request(
-            service='anthropic',
-            endpoint='messages.create',
-            model='claude-3-5-sonnet-20241022',
-            status='error',
-            duration_ms=duration_ms,
-            error_message=error_message,
-            screenshot_id=screenshot_id,
-            lottery_type=lottery_type
-        )
-        
+        logger.error(f"Error in Anthropic processing: {str(e)}")
         # Return error information
         return {
             "lottery_type": lottery_type,
@@ -335,7 +228,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
             "ocr_timestamp": datetime.utcnow().isoformat(),
             "ocr_provider": "anthropic",
             "ocr_model": "claude-3-5-sonnet-20241022",
-            "error": error_message
+            "error": f"Anthropic processing error: {str(e)}"
         }
 
 def create_system_prompt(lottery_type):

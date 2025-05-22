@@ -1,3 +1,0 @@
-[workflow]
-name = "Port Proxy"
-command = "python new_port_proxy.py"

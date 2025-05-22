@@ -1,4 +1,0 @@
-[[tasks]]
-task = "shell.exec"
-command = "python port_forward.py"
-waitForPort = 8080

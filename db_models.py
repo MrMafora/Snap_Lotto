@@ -1,39 +1,6 @@
-"""
-Database models for the application
-"""
 from datetime import datetime
 import json
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
-from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
-
-# Initialize SQLAlchemy base
-class Base(DeclarativeBase):
-    pass
-
-# Initialize database
-db = SQLAlchemy(model_class=Base)
-
-class User(UserMixin, db.Model):
-    """User model for admin authentication"""
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def set_password(self, password):
-        """Set password hash"""
-        self.password_hash = generate_password_hash(password)
-        
-    def check_password(self, password):
-        """Check password hash"""
-        return check_password_hash(self.password_hash, password)
-    
-    def __repr__(self):
-        return f'<User {self.username}>'
+from app import db
 
 class Screenshot(db.Model):
     """Model for storing screenshot information"""
@@ -42,7 +9,6 @@ class Screenshot(db.Model):
     lottery_type = db.Column(db.String(50), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     path = db.Column(db.String(255), nullable=False)
-    zoomed_path = db.Column(db.String(255), nullable=True)  # Path to zoomed-in screenshot
     processed = db.Column(db.Boolean, default=False)
     
     def __repr__(self):
@@ -59,9 +25,6 @@ class LotteryResult(db.Model):
     divisions = db.Column(db.Text, nullable=True, comment="Prize Divisions Data (JSON string)")  # Stored as JSON string with division, winners, and prize amount
     source_url = db.Column(db.String(255), nullable=False)
     screenshot_id = db.Column(db.Integer, db.ForeignKey('screenshot.id'), nullable=True)
-    ocr_provider = db.Column(db.String(50), nullable=True, comment="OCR Provider (anthropic)")
-    ocr_model = db.Column(db.String(100), nullable=True, comment="OCR Model used")
-    ocr_timestamp = db.Column(db.DateTime, nullable=True, comment="When OCR was performed")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Unique constraint to prevent duplicate entries
@@ -98,12 +61,7 @@ class LotteryResult(db.Model):
             'winning_numbers': self.get_numbers_list(),  # Updated field name for API
             'bonus_numbers': self.get_bonus_numbers_list(),
             'divisions': self.get_divisions(),
-            'source_url': self.source_url,
-            'ocr_info': {
-                'provider': self.ocr_provider,
-                'model': self.ocr_model,
-                'timestamp': self.ocr_timestamp.isoformat() if self.ocr_timestamp else None
-            }
+            'source_url': self.source_url
         }
 
 class ScheduleConfig(db.Model):
