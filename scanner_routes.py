@@ -360,12 +360,8 @@ def scan_ticket():
     
     # Process the ticket
     try:
-        # For normal scanning in production, use:
-        # result = scanner.scan_ticket(file_path)
-        
-        # Always use simulation for now to ensure reliable results
-        # This guarantees users will see results while we debug API processing
-        result = simulate_scan_result()
+        # Use real scanning functionality only - no simulations
+        result = scanner.scan_ticket(file_path)
         
         if result.get("success", False):
             # Add comparison data required by the template
