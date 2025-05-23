@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Process Lottery Images{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5">Process Lottery Images with Claude</h1>
+            <p class="lead">Extract data from lottery screenshots using Claude 3 Opus AI image analysis</p>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Process Images</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('process_images') }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label for="limit" class="form-label">Maximum images to process</label>
+                            <input type="number" class="form-control" id="limit" name="limit" value="10" min="1" max="100">
+                            <div class="form-text">Limit the number of images to process in one batch</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="days" class="form-label">Process images from last N days</label>
+                            <input type="number" class="form-control" id="days" name="days" value="30" min="1" max="365">
+                            <div class="form-text">Only process images captured in the last N days</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="force_reprocess" name="force_reprocess" value="1">
+                                <label class="form-check-label" for="force_reprocess">
+                                    Reprocess already processed images
+                                </label>
+                            </div>
+                            <div class="form-text">Check this to reprocess images that have already been processed</div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" name="action" value="start">Start Processing</button>
+                        <button type="submit" class="btn btn-secondary" name="action" value="check">Check Status</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">Processing Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>Unprocessed Images</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>Total unprocessed images:</div>
+                            <div class="badge bg-warning text-dark fs-6">{{ stats.unprocessed }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Processing Information</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>Current batch status:</div>
+                            <div class="badge {% if stats.is_running %}bg-success{% else %}bg-secondary{% endif %} fs-6">
+                                {% if stats.is_running %}Running{% else %}Idle{% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if stats.is_running %}
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" 
+                                 style="width: {{ stats.progress }}%;" 
+                                 aria-valuenow="{{ stats.progress }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                {{ stats.progress }}%
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>Last batch processed:</div>
+                            <div class="badge bg-info text-dark fs-6">{{ stats.last_run or 'Never' }}</div>
+                        </div>
+                    </div>
+                    
+                    {% if stats.last_results %}
+                    <div class="mb-3">
+                        <h6>Last Batch Results</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>Total images:</div>
+                            <div class="badge bg-secondary fs-6">{{ stats.last_results.total }}</div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>Successfully processed:</div>
+                            <div class="badge bg-success fs-6">{{ stats.last_results.success }}</div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>Failed to process:</div>
+                            <div class="badge bg-danger fs-6">{{ stats.last_results.error }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <h6>API Usage</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>Total API calls today:</div>
+                            <div class="badge bg-primary fs-6">{{ stats.api_calls_today }}</div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>Success rate:</div>
+                            <div class="badge {% if stats.api_success_rate >= 90 %}bg-success{% elif stats.api_success_rate >= 70 %}bg-warning text-dark{% else %}bg-danger{% endif %} fs-6">
+                                {{ stats.api_success_rate }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="card-title mb-0">Recent Processing Results</h5>
+                </div>
+                <div class="card-body">
+                    {% if results %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Lottery Type</th>
+                                    <th>Draw Number</th>
+                                    <th>Draw Date</th>
+                                    <th>Numbers</th>
+                                    <th>Bonus</th>
+                                    <th>Processed At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in results %}
+                                <tr>
+                                    <td>{{ result.id }}</td>
+                                    <td>{{ result.lottery_type }}</td>
+                                    <td>{{ result.draw_number }}</td>
+                                    <td>{{ result.draw_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ result.get_numbers_list()|join(", ") }}</td>
+                                    <td>{{ result.get_bonus_numbers_list()|join(", ") }}</td>
+                                    <td>{{ result.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">No recent processing results found</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

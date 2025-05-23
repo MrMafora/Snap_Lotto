@@ -49,6 +49,13 @@ try:
     logger.info("Port proxy auto-starter loaded")
 except Exception as e:
     logger.error(f"Failed to load port proxy auto-starter: {e}")
+    
+# Import Claude image processing module
+try:
+    import claude_image_processing
+    logger.info("Claude image processing module loaded")
+except Exception as e:
+    logger.error(f"Failed to load Claude image processing module: {e}")
 
 # Create the Flask application
 app = Flask(__name__)
@@ -178,6 +185,14 @@ def init_lazy_modules():
             logger.info("Scanner routes registered")
         except Exception as e:
             logger.error(f"Failed to register scanner routes: {e}")
+            
+        # Register Claude image processing routes
+        try:
+            from claude_image_processing import register_image_processing_routes
+            register_image_processing_routes(app)
+            logger.info("Claude image processing routes registered")
+        except Exception as e:
+            logger.error(f"Failed to register Claude image processing routes: {e}")
     
     logger.info("All modules lazy-loaded successfully")
 
