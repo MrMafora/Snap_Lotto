@@ -1,44 +1,44 @@
 """
-Direct application starter that binds to port 8080 directly
-This bypasses the need for a port proxy
+Direct application bootstrap for Replit deployment.
+This script starts the app on port 8080 directly without requiring a proxy.
 """
 import os
+import sys
 import logging
-from flask import Flask
+import threading
+import time
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create a minimal test app
-app = Flask(__name__)
+def stop_running_processes():
+    """Stop any processes that might be running on port 8080"""
+    try:
+        # Try to kill processes on port 8080
+        os.system("kill $(lsof -t -i:8080) 2>/dev/null || true")
+        logger.info("Attempted to stop processes on port 8080")
+        time.sleep(2)  # Give processes time to stop
+    except Exception as e:
+        logger.error(f"Error stopping processes: {e}")
 
-@app.route('/')
-def home():
-    """Simple test endpoint"""
-    return """
-    <html>
-        <head>
-            <title>Lottery Data Platform</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-                h1 { color: #2c3e50; }
-                .container { max-width: 800px; margin: 0 auto; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Lottery Data Platform</h1>
-                <p>The application is working correctly! This is a direct connection to port 8080.</p>
-                <p>You can now proceed to use the full application.</p>
-            </div>
-        </body>
-    </html>
-    """
+def start_application():
+    """Start the application directly on port 8080"""
+    logger.info("Starting application on port 8080...")
+    
+    # Import the app after clearing the port
+    from main import app
+    
+    # Repl.it expects web apps to listen on 0.0.0.0:8080
+    port = int(os.environ.get("PORT", 8080))
+    logger.info(f"Using port {port}")
+    
+    # Start the app
+    app.run(host="0.0.0.0", port=port, debug=True)
 
 if __name__ == "__main__":
-    # Get the port from environment or use 8080
-    port = int(os.environ.get("PORT", 8080))
+    # Try to free port 8080 first
+    stop_running_processes()
     
-    logger.info(f"Starting direct application on port {port}")
-    app.run(host="0.0.0.0", port=port, debug=True)
+    # Start the application
+    start_application()

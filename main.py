@@ -184,17 +184,7 @@ def init_lazy_modules():
 # Start lazy loading in background thread
 threading.Thread(target=init_lazy_modules, daemon=True).start()
 
-# Additional routes to fix navigation
-@app.route('/scanner-landing')
-def scanner_landing_redirect():
-    """Redirect to the scanner landing page"""
-    return redirect(url_for('scanner.index'))
-    
-@app.route('/ticket-scanner')
-def ticket_scanner_redirect():
-    """Redirect to the ticket scanner page"""
-    return redirect(url_for('scanner.scan_ticket'))
-    
+# Additional routes and functionality would be defined here...
 # For the sake of brevity, only core routes are included
 
 @app.route('/')

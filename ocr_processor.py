@@ -22,11 +22,11 @@ def get_anthropic_client():
         return anthropic_client
     
     # Initialize API key from environment variable
-    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+    ANTHROPIC_API_KEY = os.environ.get("Lotto_scape_ANTHROPIC_KEY")
     
     # Log if key is missing
     if not ANTHROPIC_API_KEY:
-        logger.warning("ANTHROPIC_API_KEY environment variable not set.")
+        logger.warning("Lotto_scape_ANTHROPIC_KEY environment variable not set.")
         return None
     
     # Initialize Anthropic client if ANTHROPIC_API_KEY is available
