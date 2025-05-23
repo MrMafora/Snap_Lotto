@@ -114,11 +114,17 @@ class LotteryAnalyzer:
             pandas.DataFrame: Dataframe with lottery results
         """
         try:
+            # Make sure days is an integer
+            try:
+                days = int(days)
+            except (ValueError, TypeError):
+                days = 365
+                
             # Calculate date range
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days)
             
-            # Query lottery results
+            # Query lottery results - using explicit conversion to datetime
             query = self.db.session.query(self.LotteryResult).filter(
                 self.LotteryResult.draw_date >= start_date
             )
@@ -235,6 +241,14 @@ class LotteryAnalyzer:
         except (ValueError, TypeError):
             days = 365
             logger.warning(f"Invalid days parameter: {days}. Using default 365 days.")
+            
+        # Create empty cache key for consistent lookup
+        cache_key = f"api_freq_{lottery_type}_{days}"
+        
+        # Return from cache if available to prevent duplicate processing
+        if cache_key in chart_cache:
+            logger.info(f"Returning cached frequency analysis for {cache_key}")
+            return chart_cache[cache_key]
         try:
             # Step 1: Get and validate data
             df = self.get_lottery_data(lottery_type, days)
