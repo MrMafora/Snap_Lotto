@@ -181,7 +181,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
             APIRequestLog.log_request(
                 service='anthropic',
                 endpoint='messages.create',
-                model='claude-3-opus-20240229',
+                model='claude-3-5-sonnet-20241022',
                 status='error',
                 error_message=error_message,
                 screenshot_id=screenshot_id,
@@ -196,7 +196,8 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
         # Process as image using Anthropic Claude
         logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
         response = client.messages.create(
-            model="claude-3-opus-20240229", # Latest Claude model
+            model="claude-3-5-sonnet-20241022", # Latest Claude model
+            #the newest Anthropic model is "claude-3-5-sonnet-20241022" which was released October 22, 2024
             max_tokens=3000,  # Increased token limit to handle multiple draw results
             system=system_prompt,
             messages=[
@@ -249,7 +250,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
         APIRequestLog.log_request(
             service='anthropic',
             endpoint='messages.create',
-            model='claude-3-opus-20240229',
+            model='claude-3-5-sonnet-20241022',
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             status=status,
