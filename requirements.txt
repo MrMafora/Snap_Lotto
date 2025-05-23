@@ -34,3 +34,4 @@ openpyxl
 pandas
 trafilatura
 openai
+anthropic

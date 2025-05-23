@@ -30,22 +30,22 @@ def allowed_file(filename):
     """Check if a file has an allowed extension"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-class GeminiOCR:
-    """Google Gemini API integration for OCR"""
+class AnthropicOCR:
+    """Anthropic Claude API integration for OCR"""
     
     def __init__(self):
-        self.api_key = os.environ.get('GEMINI_API_KEY')
-        self.base_url = "https://generativelanguage.googleapis.com/v1beta"
-        self.model = "gemini-1.5-pro-latest"
+        self.api_key = os.environ.get('ANTHROPIC_API_KEY')
+        # the newest Anthropic model is "claude-3-5-sonnet-20241022" which was released October 22, 2024
+        self.model = "claude-3-5-sonnet-20241022"
         
     def is_available(self):
         """Check if the API key is available"""
         return bool(self.api_key)
         
     def process_ticket_image(self, image_path):
-        """Process a lottery ticket image using Gemini Vision"""
+        """Process a lottery ticket image using Claude Vision"""
         if not self.api_key:
-            return {"success": False, "error": "Gemini API key not configured"}
+            return {"success": False, "error": "Anthropic API key not configured"}
             
         try:
             # Read and encode the image
@@ -53,13 +53,18 @@ class GeminiOCR:
                 image_data = base64.b64encode(img_file.read()).decode('utf-8')
                 
             # Construct the API request
-            url = f"{self.base_url}/models/{self.model}:generateContent?key={self.api_key}"
+            url = "https://api.anthropic.com/v1/messages"
             
             payload = {
-                "contents": [
+                "model": self.model,
+                "max_tokens": 1024,
+                "temperature": 0.2,
+                "messages": [
                     {
-                        "parts": [
+                        "role": "user",
+                        "content": [
                             {
+                                "type": "text",
                                 "text": "Analyze this lottery ticket image and extract the following information in JSON format:\n"
                                        "- lottery_type: The type of lottery (e.g., Lottery, Powerball, Daily Lottery)\n"
                                        "- draw_number: The draw number (numeric ID of the draw)\n"
@@ -69,22 +74,22 @@ class GeminiOCR:
                                        "Respond ONLY with a valid JSON object containing these fields."
                             },
                             {
-                                "inline_data": {
-                                    "mime_type": "image/jpeg",
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
                                     "data": image_data
                                 }
                             }
                         ]
                     }
-                ],
-                "generation_config": {
-                    "temperature": 0.2,
-                    "max_output_tokens": 1024
-                }
+                ]
             }
             
             headers = {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "x-api-key": self.api_key,
+                "anthropic-version": "2023-06-01"
             }
             
             # Make the API request
@@ -96,8 +101,7 @@ class GeminiOCR:
             
             try:
                 # Extract text content from response
-                content = result["candidates"][0]["content"]
-                text = content["parts"][0]["text"]
+                text = result.get("content", [{}])[0].get("text", "")
                 
                 # Extract JSON from the text (could be surrounded by markdown)
                 if "```json" in text:
@@ -119,11 +123,11 @@ class GeminiOCR:
                 return extracted_data
                 
             except (KeyError, json.JSONDecodeError) as e:
-                logger.error(f"Error parsing Gemini API response: {str(e)}")
+                logger.error(f"Error parsing Claude API response: {str(e)}")
                 return {"success": False, "error": f"Could not parse API response: {str(e)}"}
                 
         except Exception as e:
-            logger.error(f"Error calling Gemini API: {str(e)}")
+            logger.error(f"Error calling Claude API: {str(e)}")
             return {"success": False, "error": f"Error processing image: {str(e)}"}
 
 class OpenAIDrawInfo:
@@ -195,16 +199,16 @@ class OpenAIDrawInfo:
             return {"success": False, "error": f"Error retrieving draw information: {str(e)}"}
 
 class TicketScanner:
-    """Main ticket scanner class combining Gemini OCR and OpenAI for draw information"""
+    """Main ticket scanner class combining Anthropic OCR and OpenAI for draw information"""
     
     def __init__(self):
-        self.gemini = GeminiOCR()
+        self.anthropic = AnthropicOCR()
         self.openai = OpenAIDrawInfo()
         
     def scan_ticket(self, image_path):
         """Process a lottery ticket and check for wins"""
-        # Step 1: Extract ticket information with Gemini
-        ticket_data = self.gemini.process_ticket_image(image_path)
+        # Step 1: Extract ticket information with Anthropic Claude
+        ticket_data = self.anthropic.process_ticket_image(image_path)
         if not ticket_data.get("success", False):
             return ticket_data
             
@@ -303,24 +307,24 @@ scanner = TicketScanner()
 def index():
     """Homepage with scanner access"""
     # Check API availability
-    gemini_available = scanner.gemini.is_available()
+    anthropic_available = scanner.anthropic.is_available()
     openai_available = scanner.openai.is_available()
     
     return render_template('scanner/scan_ticket.html',
-                          gemini_available=gemini_available,
+                          anthropic_available=anthropic_available,
                           openai_available=openai_available)
 
 @scanner_bp.route('/scan', methods=['GET', 'POST'])
 def scan_ticket():
     """Handle ticket scanning"""
     # Check API keys availability
-    gemini_available = scanner.gemini.is_available()
+    anthropic_available = scanner.anthropic.is_available()
     openai_available = scanner.openai.is_available()
     
     # For GET requests, show the upload form
     if request.method == 'GET':
         return render_template('scanner/scan_ticket.html', 
-                              gemini_available=gemini_available,
+                              anthropic_available=anthropic_available,
                               openai_available=openai_available)
     
     # For POST requests, handle file upload and processing
