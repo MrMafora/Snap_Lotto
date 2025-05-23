@@ -425,11 +425,11 @@ def scan_results():
 @scanner_bp.route('/api-status')
 def api_status():
     """Check API status"""
-    anthropic_available = scanner.anthropic.is_available()
+    gemini_available = scanner.gemini.is_available()
     openai_available = scanner.openai.is_available()
     
     status = {
-        "anthropic_available": anthropic_available,
+        "gemini_available": gemini_available,
         "openai_available": openai_available
     }
     
