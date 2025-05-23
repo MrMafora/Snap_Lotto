@@ -22,11 +22,11 @@ def get_anthropic_client():
         return anthropic_client
     
     # Initialize API key from environment variable
-    ANTHROPIC_API_KEY = os.environ.get("Lotto_scape_ANTHROPIC_KEY")
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
     
     # Log if key is missing
     if not ANTHROPIC_API_KEY:
-        logger.warning("Lotto_scape_ANTHROPIC_KEY environment variable not set.")
+        logger.warning("ANTHROPIC_API_KEY environment variable not set.")
         return None
     
     # Initialize Anthropic client if ANTHROPIC_API_KEY is available
@@ -181,7 +181,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
             APIRequestLog.log_request(
                 service='anthropic',
                 endpoint='messages.create',
-                model='claude-3-5-sonnet-20241022',
+                model='claude-3-opus-20240229',
                 status='error',
                 error_message=error_message,
                 screenshot_id=screenshot_id,
@@ -196,7 +196,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
         # Process as image using Anthropic Claude
         logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
         response = client.messages.create(
-            model="claude-3-5-sonnet-20241022", # Latest Claude model
+            model="claude-3-opus-20240229", # Latest Claude model
             max_tokens=3000,  # Increased token limit to handle multiple draw results
             system=system_prompt,
             messages=[
@@ -249,7 +249,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
         APIRequestLog.log_request(
             service='anthropic',
             endpoint='messages.create',
-            model='claude-3-5-sonnet-20241022',
+            model='claude-3-opus-20240229',
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             status=status,
@@ -272,7 +272,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
             
             # Add OCR provider information
             result['ocr_provider'] = "anthropic"
-            result['ocr_model'] = "claude-3-5-sonnet-20241022"
+            result['ocr_model'] = "claude-3-opus-20240229"
             
             # Save the full raw response for debugging
             result['raw_response'] = response_text
@@ -288,7 +288,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
             APIRequestLog.log_request(
                 service='anthropic',
                 endpoint='messages.create.json_parse',
-                model='claude-3-5-sonnet-20241022',
+                model='claude-3-opus-20240229',
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 status='error',
@@ -305,7 +305,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
                 "results": [],
                 "ocr_timestamp": datetime.utcnow().isoformat(),
                 "ocr_provider": "anthropic",
-                "ocr_model": "claude-3-5-sonnet-20241022",
+                "ocr_model": "claude-3-opus-20240229",
                 "raw_response": response_text,
                 "error": error_message
             }
@@ -320,7 +320,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
         APIRequestLog.log_request(
             service='anthropic',
             endpoint='messages.create',
-            model='claude-3-5-sonnet-20241022',
+            model='claude-3-opus-20240229',
             status='error',
             duration_ms=duration_ms,
             error_message=error_message,
@@ -334,7 +334,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
             "results": [],
             "ocr_timestamp": datetime.utcnow().isoformat(),
             "ocr_provider": "anthropic",
-            "ocr_model": "claude-3-5-sonnet-20241022",
+            "ocr_model": "claude-3-opus-20240229",
             "error": error_message
         }
 
