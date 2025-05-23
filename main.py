@@ -184,7 +184,9 @@ def init_lazy_modules():
 # Start lazy loading in background thread
 threading.Thread(target=init_lazy_modules, daemon=True).start()
 
-# Additional routes and functionality would be defined here...
+# Additional routes and functionality
+# Routes removed - using the original scanner routes below instead
+    
 # For the sake of brevity, only core routes are included
 
 @app.route('/')
