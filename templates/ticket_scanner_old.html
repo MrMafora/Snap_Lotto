@@ -1,0 +1,2890 @@
+{% extends "base.html" %}
+
+{% block title %}South Africa's ONLY Lottery Ticket Scanner | Check If You've Won Instantly | Snap Lotto{% endblock %}
+
+{% block extra_meta %}
+<!-- PERFORMANCE: Mobile optimization script loads first to improve performance -->
+<script src="{{ url_for('static', filename='js/mobile-optimization.js') }}" data-critical="true"></script>
+
+<!-- All advertisement scripts and references have been completely removed -->
+
+<!-- Inline critical Font Awesome fix - immediate execution before DOM loads -->
+<style>
+  /* Critical Font Awesome icon fix */
+  .fa, .fas, .far, .fab, [class*="fa-"] {
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", FontAwesome !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: inline-block !important;
+  }
+  .fas, .fa-solid, i.fa {
+    font-weight: 900 !important;
+  }
+  
+  /* Ensure View Results button is always visible and properly styled */
+  #view-results-btn {
+    font-weight: bold !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition: all 0.3s ease-in-out !important;
+  }
+  
+  /* Add pulse animation for buttons when active */
+  .btn-pulse {
+    animation: button-pulse 2s infinite;
+  }
+  
+  @keyframes button-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+</style>
+
+<!-- Special Font Awesome icon fix for scanner page -->
+<script src="{{ url_for('static', filename='js/scanner-icon-fix.js') }}" data-critical="true"></script>
+{% endblock %}
+
+{% block meta_description %}The ONLY app with official Ithuba Lotto,
+PowerBall &
+Daily Lotto data,
+Snap Scan and Win = Phanda Phusha Play. Upload your lottery ticket and get instant results. Free with no registration.{% endblock %}
+
+{% block meta_keywords %}South Africa lottery ticket scanner, scan Lotto ticket South Africa, check lottery ticket South Africa, PowerBall ticket scanner, only lottery scanner app, instant lottery check{% endblock %}
+
+{% block og_title %}South Africa's ONLY Lottery Ticket Scanner | Check If You've Won Instantly{% endblock %}
+{% block og_description %}The ONLY app with official Ithuba Lotto,
+PowerBall &
+Daily Lotto data,
+Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you instant results for all lottery tickets.{% endblock %}
+
+{% block head_content %}
+<!-- PERFORMANCE: Preload critical resources for faster mobile loading -->
+<link rel="preload" href="{{ url_for('static', filename='css/optimized-mobile.css') }}" as="style">
+<link rel="preload" href="{{ url_for('static', filename='js/mobile-optimization.js') }}" as="script">
+<link rel="preload" href="{{ url_for('static', filename='js/scanner-icon-fix.js') }}" as="script">
+<!-- Ad-related preloads removed -->
+
+<!-- Mobile-optimized CSS loads first -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/optimized-mobile.css') }}">
+<!-- Smooth scrolling CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/smooth-scroll.css') }}">
+<!-- Structured Data for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Snap Lotto Ticket Scanner",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "All",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "ZAR"
+  },
+  "featureList": [
+    "Instant ticket scanning",
+    "AI-powered number recognition",
+    "All South African lottery games supported",
+    "No registration required",
+    "Free to use"
+  ],
+  "description": "The ONLY app with official Ithuba Lotto, PowerBall & Daily Lotto data, Snap Scan and Win = Phanda Phusha Play. Upload your lottery ticket and check if you've won instantly."
+}
+</script>
+{% endblock %}
+
+{% block additional_head %}
+<!-- High priority anti-flicker script - loads before other content -->
+<script src="{{ url_for('static', filename='js/anti-flicker.js') }}"></script>
+<!-- Fresh checkmark system - clean slate approach -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/fresh_checkmark.css') }}">
+<!-- Mobile-specific button fix for iOS devices -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-button-fix.css') }}">
+<!-- Fixed file input handler to make file selection work on first click -->
+<script src="{{ url_for('static', filename='js/file-input-handler.js') }}"></script>
+<style>
+    .ticket-scanner-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    @media (max-width: 576px) {
+        .card-body {
+            padding: 0.75rem;
+        }
+        
+        .ticket-scanner-container .form-control, 
+        .ticket-scanner-container .form-select {
+            padding-top: 0.375rem;
+            padding-bottom: 0.375rem;
+        }
+        
+        .ticket-preview {
+            max-height: 200px;
+            margin: 10px 0;
+        }
+        
+        h1 {
+            font-size: 1.75rem;
+        }
+        
+        .lead {
+            font-size: 1rem;
+        }
+    }
+    .ticket-drop-area {
+        border: 2px dashed #aaa;
+        border-radius: 8px;
+        padding: 40px;
+        text-align: center;
+    }
+    
+    @media (max-width: 576px) {
+        .ticket-drop-area {
+            padding: 20px;
+        }
+    }
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+        }
+        
+        70% {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+        }
+        
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+        }
+    }
+    
+    /* Updated matched ball styling - now handled in fresh_checkmark.css */
+    
+    /* Match indicators are now defined in fresh_checkmark.css */
+    
+    .ticket-drop-area {
+        background-color: rgba(0,0,0,0.05);
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 20px;
+    }
+    .ticket-drop-area:hover, .ticket-drop-area.highlight {
+        border-color: var(--sa-lottery-yellow);
+        background-color: rgba(0,0,0,0.1);
+    }
+    .ticket-preview {
+        max-width: 100%;
+        max-height: 300px;
+        margin: 20px 0;
+    }
+    .results-container {
+        margin-top: 30px;
+    }
+    /* Position for matched balls is handled in fresh_checkmark.css */
+    /* We'll use .match-indicator elements instead of ::after pseudo-element */
+    .prize-card {
+        border-left: 5px solid var(--bs-success);
+    }
+    #scanner-loading {
+        display: none;
+    }
+    
+    /* Advertisement CSS removed */
+    
+    /* Button pulse animation */
+    @keyframes btn-pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); box-shadow: 0 0 15px rgba(40, 167, 69, 0.7); }
+        100% { transform: scale(1); }
+    }
+    
+    .btn-pulse {
+        animation: btn-pulse 1.5s infinite;
+    }
+    
+    /* Fix for spinner animation */
+    @keyframes spinner-border {
+        to { transform: rotate(360deg); }
+    }
+    
+    .spinning-loader {
+        display: inline-block;
+        width: 2rem;
+        height: 2rem;
+        vertical-align: text-bottom;
+        border: 0.25em solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spinner-border .75s linear infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Ad overlays removed -->
+
+<div class="container py-3">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1 class="d-flex align-items-center">
+                <i class="fa fa-ticket-alt me-2"></i> South African Lottery Scanner
+            </h1>
+            <p class="lead mb-2">Upload any SA lottery ticket - PowerBall, Lotto, Daily Lotto & more!</p>
+            <p class="mb-3"><a href="/scanner-landing" class="text-decoration-none"><i class="fas fa-arrow-left me-1"></i> Back to Scanner Info</a></p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="ticket-scanner-container">
+                        <div class="alert alert-info py-2 small">
+                            <i class="fa fa-info-circle me-1"></i> Take a clear photo of your lottery ticket, making sure all numbers are visible.
+                        </div>
+
+                        <form id="ticket-form" onsubmit="return false;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-2">
+                                <label for="lottery-type" class="form-label small">Select Lottery Type (Optional - AI will detect)</label>
+                                <select class="form-select form-select-sm" id="lottery-type" name="lottery_type">
+                                    <option value="">Auto-detect from ticket</option>
+                                    <option value="Lotto">Lotto</option>
+                                    <option value="Lotto Plus 1">Lotto Plus 1</option>
+                                    <option value="Lotto Plus 2">Lotto Plus 2</option>
+                                    <option value="Powerball">Powerball</option>
+                                    <option value="Powerball Plus">Powerball Plus</option>
+                                    <option value="Daily Lotto">Daily Lotto</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-2">
+                                <label for="draw-number" class="form-label small">Draw Number (optional)</label>
+                                <input type="text" class="form-control form-control-sm" id="draw-number" name="draw_number" 
+                                    placeholder="Leave blank to check latest draw">
+                            </div>
+
+                            <div class="ticket-drop-area" id="drop-area">
+                                <div class="mb-2">
+                                    <i class="fa fa-upload fa-2x mb-2"></i>
+                                    <h5 class="mb-2">Drag and drop your ticket image here</h5>
+                                    <p class="mb-2">or</p>
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
+                                    <button type="button" id="file-select-btn" class="btn btn-primary">Select Image</button>
+                                </div>
+                            </div>
+
+                            <div id="preview-container" class="text-center d-none">
+                                <h6>Preview</h6>
+                                <img id="ticket-preview" class="ticket-preview img-fluid rounded" src="">
+                                <div class="mt-2">
+                                    <button type="button" id="remove-image" class="btn btn-sm btn-outline-danger">
+                                        <i class="fa fa-times"></i> Remove
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-4">
+                                <button type="submit" id="scan-button" class="btn btn-success btn-lg">
+                                    <i class="fa fa-search me-2"></i> Scan Ticket
+                                </button>
+                                <div id="scanner-loading" class="mt-3">
+                                    <div class="spinner-border text-primary spinning-loader" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p>Scanning your ticket...</p>
+                                </div>
+                            </div>
+                        </form>
+
+                        <div id="results-container" class="results-container d-none">
+                            <hr>
+                            <h3 class="mb-3 text-center">Scanning Results</h3>
+                            
+                            <div id="error-message" class="alert alert-danger d-none">
+                                <i class="fa fa-exclamation-triangle me-2"></i>
+                                <span id="error-text"></span>
+                            </div>
+                            
+                            <div id="success-content" class="d-none">
+                                <div class="card mb-4">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0" id="ticket-info-title">Your Ticket</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <p><strong>Lottery Type:</strong> <span id="result-lottery-type"></span></p>
+                                                <p><strong>Draw Number:</strong> <span id="result-draw-number"></span></p>
+                                                <p><strong>Draw Date:</strong> <span id="result-draw-date"></span></p>
+                                                
+                                                <div id="detected-info" class="mt-3 small">
+                                                    <p class="text-muted mb-1"><i class="fas fa-search-plus me-1"></i> <strong>OCR Detected Information:</strong></p>
+                                                    <p class="mb-1"><strong>Game Type:</strong> <span id="detected-game-type"></span></p>
+                                                    <p class="mb-1"><strong>Draw Number:</strong> <span id="detected-draw-number"></span></p>
+                                                    <p class="mb-1"><strong>Draw Date:</strong> <span id="detected-draw-date"></span></p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p><strong>Your Numbers:</strong></p>
+                                                <div id="ticket-numbers" class="mb-3"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-4">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0">Winning Numbers</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- Primary game winning numbers -->
+                                        <div class="mb-3">
+                                            <p><strong id="primary-game-label">Main Numbers:</strong></p>
+                                            <div id="winning-numbers-container">
+                                                <div id="winning-numbers" class="d-inline-flex flex-wrap mb-3"></div>
+                                            </div>
+                                            <!-- Display matches for PowerBall main game -->
+                                            <div id="matched-numbers-section">
+                                                <p><strong>Your Matches:</strong> <span id="matched-count" class="badge bg-success">0</span></p>
+                                                <div id="matched-numbers"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Hidden container for bonus (this won't be displayed separately anymore) -->
+                                        <div id="bonus-numbers-container" class="d-none">
+                                            <div id="bonus-numbers"></div>
+                                        </div>
+                                        
+                                        <!-- Powerball Plus winning numbers displayed in main winning numbers card -->
+                                        <div id="powerball-plus-numbers-container" class="mb-3 d-none">
+                                            <hr>
+                                            <p><strong>Powerball Plus Numbers:</strong></p>
+                                            <div id="powerball-plus-numbers" class="d-inline-flex flex-wrap mb-2"></div>
+                                            <!-- Always show the Matches section for PowerBall Plus -->
+                                            <div id="pp-matched-numbers-section">
+                                                <p><strong>Your Matches:</strong> <span id="pp-matched-count" class="badge bg-success">0</span></p>
+                                                <div id="pp-matched-numbers"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Lotto Plus 1 winning numbers section -->
+                                        <div id="lotto-plus-1-numbers-container" class="mb-3 d-none">
+                                            <hr>
+                                            <p><strong>Lotto Plus 1 Numbers:</strong></p>
+                                            <div id="lotto-plus-1-numbers" class="d-inline-flex flex-wrap mb-2"></div>
+                                            <!-- Hidden but needed for JavaScript to work -->
+                                            <div id="lp1-matched-numbers-section" class="d-none">
+                                                <p><strong>Your Matches:</strong> <span id="lp1-matched-count" class="badge bg-success">0</span></p>
+                                                <div id="lp1-matched-numbers"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Lotto Plus 2 winning numbers section -->
+                                        <div id="lotto-plus-2-numbers-container" class="mb-3 d-none">
+                                            <hr>
+                                            <p><strong>Lotto Plus 2 Numbers:</strong></p>
+                                            <div id="lotto-plus-2-numbers" class="d-inline-flex flex-wrap mb-2"></div>
+                                            <!-- Hidden but needed for JavaScript to work -->
+                                            <div id="lp2-matched-numbers-section" class="d-none">
+                                                <p><strong>Your Matches:</strong> <span id="lp2-matched-count" class="badge bg-success">0</span></p>
+                                                <div id="lp2-matched-numbers"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="prize-container" class="d-none">
+                                    <div class="card prize-card">
+                                        <div class="card-body">
+                                            <h4 class="text-success mb-3"><i class="fa fa-trophy me-2"></i> Congratulations!</h4>
+                                            <p class="lead">You've won a prize in <span id="prize-lottery-type"></span> Draw <span id="prize-draw-number"></span>!</p>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <p><strong>Division:</strong> <span id="prize-division"></span></p>
+                                                    <p><strong>Match Type:</strong> <span id="prize-match-type"></span></p>
+                                                    <p id="prize-description-container" class="d-none"><strong>Description:</strong> <span id="prize-description"></span></p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h3 class="text-success">Prize: <span id="prize-amount"></span></h3>
+                                                </div>
+                                            </div>
+                                            <p class="small text-muted mt-3">Visit the official South African National Lottery website or an authorized retailer to claim your prize.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="no-prize-container" class="d-none">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h4 class="text-muted mb-3"><i class="fa fa-times-circle me-2"></i> No Prize</h4>
+                                            <p>Sorry, your ticket did not win a prize in this draw.</p>
+                                            <p>Better luck next time!</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Container for Powerball Plus results -->
+                                <div id="powerball-plus-container" class="d-none mt-4"></div>
+                                
+                                <!-- Scan Another Ticket button -->
+                                <div class="text-center mt-4 mb-3">
+                                    <button id="scan-another-ticket" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-camera me-2"></i> Scan Another Ticket
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add event listener for "Scan Another Ticket" button
+        const scanAnotherButton = document.getElementById('scan-another-ticket');
+        if (scanAnotherButton) {
+            scanAnotherButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Scan Another Ticket button clicked');
+                
+                // Reset the file input
+                const fileInput = document.getElementById('ticket-image');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+                
+                // Reset the preview if present
+                const previewContainer = document.getElementById('preview-container');
+                if (previewContainer) {
+                    previewContainer.classList.add('d-none');
+                }
+                
+                // Hide results container
+                const resultsContainer = document.getElementById('results-container');
+                if (resultsContainer) {
+                    resultsContainer.classList.add('d-none');
+                    
+                    // Reset results display flags
+                    window.inResultsMode = false;
+                    window.lastResultsData = null;
+                    
+                    // Remove any results mode classes from the body
+                    document.body.classList.remove('showing-results');
+                    document.body.classList.remove('results-mode');
+                }
+                
+                // Ensure scrolling is fully enabled
+                enableScrolling();
+                
+                // Hide any ad overlays that might still be visible
+                const adOverlay = document.getElementById('ad-overlay');
+                if (adOverlay) {
+                    adOverlay.style.display = 'none';
+                }
+                
+                const adOverlayResults = document.getElementById('ad-overlay-results');
+                if (adOverlayResults) {
+                    adOverlayResults.style.display = 'none';
+                }
+                
+                // Update scan button status in case a file was already selected
+                const scanButton = document.getElementById('scan-button');
+                if (scanButton) {
+                    scanButton.disabled = true;
+                }
+                
+                // Clean up any timers that might have been set
+                // (All counters and timers related to ads have been removed)
+                
+                // Scroll to the upload form
+                const ticketForm = document.getElementById('ticket-form');
+                if (ticketForm) {
+                    ticketForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        }
+        // Helper function to create checkmark for match indicators
+        // This ensures consistent checkmarks across all match indicators
+        window.createCheckmark = function() {
+            return ''; // We're now using CSS to create the checkmark visually
+        };
+        
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('ticket-image');
+        const fileSelectBtn = document.getElementById('file-select-btn');
+        const previewContainer = document.getElementById('preview-container');
+        const ticketPreview = document.getElementById('ticket-preview');
+        const removeImageBtn = document.getElementById('remove-image');
+        const scanButton = document.getElementById('scan-button');
+        const ticketForm = document.getElementById('ticket-form');
+        const lotteryTypeSelect = document.getElementById('lottery-type');
+        const loadingIndicator = document.getElementById('scanner-loading');
+        const resultsContainer = document.getElementById('results-container');
+        
+        // Initialize scan button state after a short delay
+        setTimeout(() => {
+            updateScanButton();
+            console.log("Initial button state check on page load");
+        }, 500);
+        
+        // File selection via button
+        fileSelectBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            fileInput.click();
+        });
+        
+        // File selection change
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        // Drag and drop events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('highlight');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('highlight');
+        }
+        
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        }
+        
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            
+            if (file) {
+                // Check if file is an image
+                if (!file.type.match('image.*')) {
+                    alert('Please select an image file');
+                    fileInput.value = ''; // Clear the file input
+                    return;
+                }
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    ticketPreview.src = e.target.result;
+                    previewContainer.classList.remove('d-none');
+                    // Update scan button state
+                    updateScanButton();
+                    console.log("File loaded successfully");
+                }
+                
+                reader.onerror = function() {
+                    alert('Error reading the image file. Please try a different image.');
+                    fileInput.value = ''; // Clear the file input on error
+                    updateScanButton();
+                }
+                
+                reader.readAsDataURL(file);
+            } else {
+                previewContainer.classList.add('d-none');
+                updateScanButton();
+            }
+        }
+        
+        removeImageBtn.addEventListener('click', function() {
+            ticketPreview.src = '';
+            fileInput.value = '';
+            previewContainer.classList.add('d-none');
+            updateScanButton();
+        });
+        
+        lotteryTypeSelect.addEventListener('change', updateScanButton);
+        
+        // Add a direct click handler for the scan button
+        scanButton.addEventListener('click', function(e) {
+            if (fileInput.files.length) {
+                e.preventDefault();
+                processForm(e);
+            }
+        });
+        
+        function updateScanButton() {
+            // Always keep the button enabled
+            scanButton.disabled = false;
+            console.log("Button state updated:", {
+                fileCount: fileInput.files.length,
+                lotteryType: lotteryTypeSelect.value,
+                disabled: false
+            });
+        }
+        
+        // Function to handle showing ads and processing the ticket
+        // Clear previous results to prevent mixing results from different tickets
+        function clearPreviousResults() {
+            // Clean up any existing countdown timers when clearing results
+            if (window.countdownInterval) {
+                clearInterval(window.countdownInterval);
+                window.countdownInterval = null;
+            }
+            
+            if (window.countdownTimeout) {
+                clearTimeout(window.countdownTimeout);
+                window.countdownTimeout = null;
+            }
+            
+            // Reset the countdown running flag since we're starting fresh
+            window.countdownRunning = false;
+            
+            // Hide result containers
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                resultsContainer.classList.add('d-none');
+            }
+            
+            const successContent = document.getElementById('success-content');
+            if (successContent) {
+                successContent.classList.add('d-none');
+            }
+            
+            // Clear winning numbers
+            const winningNumbersContainer = document.getElementById('winning-numbers');
+            if (winningNumbersContainer) {
+                winningNumbersContainer.innerHTML = '';
+            }
+            
+            // Clear ticket numbers
+            const ticketNumbersContainer = document.getElementById('ticket-numbers');
+            if (ticketNumbersContainer) {
+                ticketNumbersContainer.innerHTML = '';
+            }
+            
+            // Hide and clear all additional game containers
+            const additionalGameContainers = [
+                'powerball-plus-numbers-container',
+                'lotto-plus-1-numbers-container',
+                'lotto-plus-2-numbers-container'
+            ];
+            
+            additionalGameContainers.forEach(id => {
+                const container = document.getElementById(id);
+                if (container) {
+                    container.classList.add('d-none');
+                    
+                    // Also clear the numbers inside these containers
+                    const numbersEl = document.getElementById(id.replace('-container', ''));
+                    if (numbersEl) {
+                        numbersEl.innerHTML = '';
+                    }
+                    
+                    // Clear the matched numbers
+                    const matchedId = id.replace('numbers-container', 'matched-numbers');
+                    const matchedEl = document.getElementById(matchedId);
+                    if (matchedEl) {
+                        matchedEl.innerHTML = '';
+                    }
+                    
+                    // Reset the matched count
+                    const countId = id.replace('numbers-container', 'matched-count');
+                    const countEl = document.getElementById(countId);
+                    if (countEl) {
+                        countEl.textContent = '0';
+                    }
+                }
+            });
+            
+            // Hide related game sections if they exist
+            ['powerball-plus-section', 'lotto-plus-1-section', 'lotto-plus-2-section'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.classList.add('d-none');
+                }
+            });
+            
+            console.log('Cleared previous results');
+        }
+        
+        function processForm(event) {
+            event.preventDefault();
+            
+            // Check if file is selected
+            if (!fileInput.files.length) {
+                showError('Please select a ticket image first.');
+                return false;
+            }
+            
+            // Clear any previous results first
+            clearPreviousResults();
+            
+            // Show loading indicator
+            document.getElementById('scanner-loading').style.display = 'block';
+            document.getElementById('scan-button').disabled = true;
+            
+            // Create form data
+            const formData = new FormData(ticketForm);
+            
+            // Process ticket directly with simplified path
+            submitTicket(formData);
+            
+            return false; // Prevent default form submission
+        }
+        
+        // Function to submit and process the ticket
+        function submitTicket(formData) {
+            // Show loader
+            const loadingIndicator = document.getElementById('scanner-loading');
+            loadingIndicator.style.display = 'block';
+            
+            console.log('Sending ticket data to processing endpoint...');
+            // Submit form data (CSRF token is already included in the FormData)
+            fetch('/process-ticket', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Response received:', response.status);
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('Error response:', text);
+                        throw new Error('Server error: ' + response.status + ' - ' + text);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Success processing ticket:', data);
+                
+                // Enable the scan button again
+                document.getElementById('scan-button').disabled = false;
+                
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                
+                if (!data.success) {
+                    // Show the specific error from the API
+                    showError(data.error || 'Failed to process ticket. Please try again.');
+                    return;
+                }
+                
+                // Display results immediately without any ad overlay
+                displayResults(data);
+                
+            }) // End of fetch promise chain
+            .catch(error => {
+                console.error('Error processing ticket:', error);
+                
+                // Enable the scan button again
+                document.getElementById('scan-button').disabled = false;
+                
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                
+                // Show detailed error message
+                showError('Error processing ticket: ' + error.message);
+            });
+        }
+        
+        // Form submission event listener
+        ticketForm.addEventListener('submit', processForm);
+        
+    });
+    </script>
+                        const resultsContainer = document.getElementById('results-container');
+                        if (resultsContainer && resultsContainer.classList.contains('d-none')) {
+                            console.log('Results container was hidden, making visible again');
+                            resultsContainer.classList.remove('d-none');
+                            resultsContainer.style.display = 'block';
+                            
+                            // Force all ad overlays to stay hidden
+                            const allOverlays = document.querySelectorAll('[id^="ad-overlay"]');
+                            allOverlays.forEach(overlay => {
+                                overlay.style.display = 'none';
+                            });
+                        }
+                    }, 1000); // Check every second
+                };
+                
+                // FORCEFULLY disable the view results button for 15 seconds
+                // We'll use a global flag to track if countdown is already running
+                if (!window.countdownRunning) {
+                    console.log('Setting 15-second mandatory ad display timer...');
+                    
+                    // Set global flag to prevent multiple timers
+                    window.countdownRunning = true;
+                    
+                    // Disable the View Results button
+                    viewResultsBtn.disabled = true;
+                    viewResultsBtn.style.opacity = '0.5';
+                    viewResultsBtn.style.cursor = 'not-allowed';
+                    viewResultsBtn.innerHTML = '<i class="fas fa-lock me-2"></i> View Results (Wait 15s)';
+                    
+                    // Add a counter display to show remaining seconds
+                    // First, remove any existing countdown elements to prevent duplicates
+                    const existingCountdown = document.getElementById('ad-countdown');
+                    if (existingCountdown) {
+                        existingCountdown.remove();
+                    }
+                    
+                    // Get the countdown container
+                    const countdownContainer = adOverlayResults.querySelector('#countdown-container');
+                    
+                    // Only proceed if the countdown container exists
+                    if (countdownContainer) {
+                        const counterElement = document.createElement('div');
+                        counterElement.id = 'ad-countdown';
+                        counterElement.style.cssText = 'font-size: 18px; color: #0d6efd; font-weight: bold;';
+                        counterElement.innerHTML = '<i class="fas fa-clock me-2"></i><span id="countdown-number">Please wait for your results</span>';
+                        // Append to the countdown container above the button instead of the ad container
+                        countdownContainer.appendChild(counterElement);
+                    } else {
+                        console.warn('Countdown container not found in the DOM');
+                    }
+                    
+                    // DEFERRED COUNTDOWN: We now defer to critical-transition-fix.js
+                    // which handles all countdown functionality to prevent conflicts
+                    console.log("Inline countdown deferred to critical-transition-fix.js (single source of truth)");
+                    
+                    // Signal to the central timer system by setting a flag
+                    window.needsSecondAdCountdown = true;
+                    
+                    // Keep these for backward compatibility
+                    window.countdownStartTime = Date.now();
+                    window.countdownDuration = 15000; // 15 seconds in milliseconds
+                    
+                    // Ensure the countdown is triggered properly
+                    document.dispatchEvent(new CustomEvent('trigger-countdown', {
+                        detail: { phase: 'second', seconds: 15 }
+                    }));
+                    
+                    // Clear any existing timers to prevent conflicts
+                    if (window.countdownInterval) {
+                        clearInterval(window.countdownInterval);
+                    }
+                    
+                    if (window.countdownTimeout) {
+                        clearTimeout(window.countdownTimeout);
+                    }
+                    
+                    // COMPLETELY REMOVED: No countdown interval or countdown functionality in this file
+                    // We now defer ALL countdown functionality to critical-transition-fix.js
+                    
+                    // Just let critical-transition-fix.js know we have a button that needs countdown
+                    document.dispatchEvent(new CustomEvent('trigger-countdown', {
+                        detail: { buttonId: 'view-results-btn', phase: 'second' }
+                    }));
+                    
+                    console.log('Notified central timer system to handle countdown');
+                    
+                    // Fix iOS-specific button format issue (class="rounded-pill") 
+                    // Create a separate backup to specifically handle mobile lock icon
+                    setTimeout(() => {
+                        console.log('Mobile button format check at 5 seconds');
+                        
+                        // Find all view results buttons including ones with specific iOS format
+                        const allButtons = document.querySelectorAll('button');
+                        allButtons.forEach(btn => {
+                            // Check for any button containing "View Results" and "Wait"
+                            if (btn.innerText && btn.innerText.includes('View Results') && btn.innerText.includes('Wait')) {
+                                console.log('Found iOS-format View Results button with Wait text, fixing it');
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                btn.classList.remove('btn-secondary'); 
+                                btn.classList.add('btn-success');
+                                btn.style.opacity = '1';
+                                btn.style.cursor = 'pointer';
+                            }
+                        });
+                    }, 5000);
+                    
+                    // Set a single timeout for exactly 15 seconds from now
+                    // This is a backup to ensure the button is enabled after 15 seconds
+                    window.countdownTimeout = setTimeout(() => {
+                        console.log('15-second ad display timer completed at ' + new Date().toISOString());
+                        
+                        // Also run a specific fix for mobile/iOS button format
+                        const allButtons = document.querySelectorAll('button');
+                        allButtons.forEach(btn => {
+                            // Check for any button with "Wait" text
+                            if (btn.innerText && btn.innerText.includes('Wait')) {
+                                console.log('CRITICAL: Found iOS button still in wait state after 15s, fixing');
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                btn.classList.remove('btn-secondary');
+                                btn.classList.add('btn-success');
+                                btn.style.opacity = '1';
+                                btn.style.cursor = 'pointer';
+                            }
+                        });
+                        
+                        // Clear any running interval
+                        if (window.countdownInterval) {
+                            clearInterval(window.countdownInterval);
+                            window.countdownInterval = null;
+                        }
+                        
+                        // Reset the running flag
+                        window.countdownRunning = false;
+                        
+                        // Check if View Results was already clicked
+                        if (window.viewResultsBtnClicked) {
+                            console.log('Skipping auto-enable - View Results already clicked');
+                            return;
+                        }
+                        
+                        // Make sure the button is enabled
+                        if (adOverlayResults && adOverlayResults.style.display === 'flex') {
+                            if (viewResultsBtn) {
+                                // ABSOLUTELY FORCE button to be enabled and clickable
+                                viewResultsBtn.disabled = false;
+                                viewResultsBtn.style.opacity = '1';
+                                viewResultsBtn.style.cursor = 'pointer';
+                                viewResultsBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> View Results Now!';
+                                viewResultsBtn.classList.add('btn-pulse');
+                                
+                                // Mobile-specific visual cues
+                                viewResultsBtn.classList.remove('btn-secondary');
+                                viewResultsBtn.classList.add('btn-success');
+                                viewResultsBtn.setAttribute('data-forced-enabled', 'true');
+                                
+                                // Mobile device fix - check for any remaining "Wait" spans
+                                const allSpans = document.querySelectorAll('#view-results-btn span');
+                                allSpans.forEach(span => {
+                                    if (span.textContent.includes('Wait')) {
+                                        span.textContent = 'View Results Now!';
+                                    }
+                                });
+                                
+                                // CRITICAL FIX: Replace the button with a clone to remove any event handlers that might prevent clicks
+                                if (viewResultsBtn && viewResultsBtn.parentNode) {
+                                    try {
+                                        const newBtn = viewResultsBtn.cloneNode(true);
+                                        viewResultsBtn.parentNode.replaceChild(newBtn, viewResultsBtn);
+                                        viewResultsBtn = newBtn;
+                                    } catch (e) {
+                                        console.error('Error replacing button in backup timer:', e);
+                                        // Just continue with the existing button if replacement fails
+                                    }
+                                } else {
+                                    console.error('Button or its parent is null in backup timer, cannot replace');
+                                    // Try to find the button again
+                                    viewResultsBtn = document.getElementById('view-results-btn');
+                                }
+                                
+                                // Add a direct click handler that will ALWAYS fire
+                                viewResultsBtn.addEventListener('click', function directClickHandler(e) {
+                                    console.log('⚡ DIRECT CLICK HANDLER: View Results button clicked at ' + new Date().toISOString());
+                                    
+                                    // Set all the required flags
+                                    window.inResultsMode = true;
+                                    window.viewResultsBtnClicked = true;
+                                    window.resultsShown = true;
+                                    window.hasCompletedAdFlow = true;
+                                    window.permanentResultsMode = true;
+                                    
+                                    // Force hide overlays
+                                    document.querySelectorAll('[id^="ad-overlay"]').forEach(overlay => {
+                                        overlay.style.display = 'none';
+                                    });
+                                    
+                                    // Force show results
+                                    const resultsContainer = document.getElementById('results-container');
+                                    if (resultsContainer) {
+                                        resultsContainer.classList.remove('d-none');
+                                        resultsContainer.style.display = 'block';
+                                        
+                                        // CRITICAL FIX: If we have the last results data stored, redisplay it
+                                        if (window.lastResultsData) {
+                                            console.log('Redisplaying stored results data');
+                                            displayResults(window.lastResultsData);
+                                        } else {
+                                            console.error('No results data found to display');
+                                        }
+                                    }
+                                    
+                                    // Hide scan form
+                                    const scanForm = document.getElementById('scan-form-container');
+                                    if (scanForm) {
+                                        scanForm.classList.add('d-none');
+                                        scanForm.style.display = 'none';
+                                    }
+                                    
+                                    // Stop propagation and prevent default
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    return false;
+                                }, true); // Capture phase to execute first
+                            }
+                        }
+                    }, window.countdownDuration);
+                } else {
+                    console.log('Countdown already running, not starting a new one');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // Clean up any running timers in case of error
+                if (window.countdownInterval) {
+                    clearInterval(window.countdownInterval);
+                    window.countdownInterval = null;
+                }
+                
+                if (window.countdownTimeout) {
+                    clearTimeout(window.countdownTimeout);
+                    window.countdownTimeout = null;
+                }
+                
+                // Reset the countdown running flag
+                window.countdownRunning = false;
+                
+                // Hide ad loading overlay
+                const adOverlayLoading = document.getElementById('ad-overlay-loading');
+                adOverlayLoading.style.display = 'none';
+                
+                // Make sure scrolling is enabled in case of error
+                enableScrolling();
+                showError('An error occurred while scanning your ticket. Please try again.');
+            })
+            .finally(() => {
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                scanButton.disabled = false;
+                console.log("Scan completed - button enabled");
+            });
+        }
+        
+        // Event listener for form submission
+        ticketForm.addEventListener('submit', function(e) {
+            // Always prevent the default form submission
+            e.preventDefault();
+            
+            console.log('Form submitted at ' + new Date().toISOString());
+            
+            // Check if we're in results mode and prevent resetting unless explicitly requested
+            if (window.inResultsMode && !window.resetRequested) {
+                console.log('Already showing results, not processing new scan');
+                
+                // Show a confirmation dialog
+                if (confirm('You already have results displayed. Do you want to scan a new ticket?')) {
+                    console.log('User confirmed new scan');
+                    // Allow the form to proceed by setting reset flag
+                    window.resetRequested = true;
+                    
+                    // Reset state flags
+                    window.inResultsMode = false;
+                    window.showingResultsAfterAd = false;
+                    window.adClosed = false;
+                    window.viewResultsBtnClicked = false;
+                    
+                    // Clear monitor interval if it exists
+                    if (window.resultsMonitorInterval) {
+                        clearInterval(window.resultsMonitorInterval);
+                        window.resultsMonitorInterval = null;
+                    }
+                    
+                    // Clear all the body classes
+                    document.body.classList.remove('results-mode');
+                    document.body.classList.remove('showing-results');
+                    document.body.classList.remove('ad-completed');
+                    document.body.classList.remove('ad-closed');
+                    
+                    // Resubmit the form with the flag set
+                    setTimeout(() => {
+                        ticketForm.dispatchEvent(new Event('submit'));
+                        
+                        // Reset the flag after processing
+                        setTimeout(() => {
+                            window.resetRequested = false;
+                        }, 500);
+                    }, 100);
+                    
+                    return false;
+                } else {
+                    console.log('User cancelled new scan, keeping results visible');
+                    
+                    // Make sure results are still visible
+                    const resultsContainer = document.getElementById('results-container');
+                    if (resultsContainer) {
+                        resultsContainer.classList.remove('d-none');
+                        resultsContainer.style.display = 'block';
+                    }
+                    
+                    return false;
+                }
+            }
+            
+            // Only check if a file is selected
+            if (!fileInput.files.length) {
+                alert('Please select an image of your ticket');
+                return false;
+            }
+            
+            // Hide any currently displayed results
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer && !resultsContainer.classList.contains('d-none')) {
+                resultsContainer.classList.add('d-none');
+            }
+            
+            // Regular form submission that will go to scan-ticket endpoint
+            return true;
+        });
+        
+        // Enable body scrolling
+        function enableScrolling() {
+            // Get the scroll position before removing fixed positioning
+            const scrollY = document.body.style.top ? 
+                parseInt(document.body.style.top || '0', 10) * -1 : 
+                window.scrollY;
+            
+            // Reset all styles
+            document.body.style.overflow = '';
+            document.body.style.height = '';
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.documentElement.style.overflow = '';
+            document.documentElement.style.height = '';
+            document.documentElement.style.position = '';
+            
+            // Restore scroll position
+            window.scrollTo(0, scrollY);
+            
+            console.log('Scrolling enabled, restored to position:', scrollY);
+        }
+        
+        // Disable body scrolling
+        function disableScrolling() {
+            // Don't disable scrolling in Replit IDE to avoid scroll wheel issues
+            if (window.location.hostname.includes('replit.dev')) {
+                console.log('Scrolling kept enabled for Replit IDE');
+                return;
+            }
+            
+            // Store current scroll position
+            const scrollY = window.scrollY;
+            
+            document.body.style.overflow = 'hidden';
+            document.body.style.height = '100%';
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.width = '100%';
+            
+            document.documentElement.style.overflow = 'hidden';
+            document.documentElement.style.height = '100%';
+            
+            console.log('Scrolling disabled');
+        }
+        
+        // Use a simple global flag to prevent redirects
+        window.resultsShown = false;
+        
+        function displayResults(data) {
+            // Make sure we have valid data, using lastResultsData as a fallback
+            if (!data && window.lastResultsData) {
+                console.log('No data provided to displayResults, using lastResultsData instead');
+                data = window.lastResultsData;
+            }
+            
+            // Safety check to ensure we have valid data
+            if (!data) {
+                console.error('No results data available in displayResults function!');
+                showError('An error occurred while processing your ticket results. Please try again.');
+                return;
+            }
+            try {
+                console.log('Displaying ticket scanning results', new Date().toISOString());
+                
+                // Set flag to indicate we've shown results - this helps prevent redirects
+                window.resultsShown = true;
+
+                // Store the scan data permanently in window object
+                window.lastResultsData = data;
+                window.inResultsMode = true; 
+                window.resultsBeingDisplayed = true;
+                window.hasCompletedAdFlow = true;
+                
+                // Make sure scrolling is fully enabled and restored when showing results
+                enableScrolling();
+                
+                // Make sure body and document are still properly reset to avoid mobile scrolling issues
+                document.body.style.overflow = '';
+                document.body.style.height = '';
+                document.body.style.position = '';
+                document.body.style.width = '';
+                document.body.style.touchAction = 'auto';
+                document.documentElement.style.overflow = '';
+                document.documentElement.style.height = '';
+                
+                // Remove any references to ad overlays
+                // We're not using ads in the ticket scanner anymore
+                
+                // Add class to indicate we're showing results
+                document.body.classList.add('showing-results');
+                
+                // Show scan form container with "Scan Another" button option
+                const scanFormContainer = document.getElementById('scan-form-container');
+                if (scanFormContainer) {
+                    // We keep the scan form visible but add a class to show it's in results mode
+                    scanFormContainer.classList.add('results-active');
+                }
+                
+                // Prepare the results container first
+                if (resultsContainer) {
+                    // Show the results container - force it to be visible
+                    resultsContainer.classList.remove('d-none');
+                    resultsContainer.style.display = 'block';
+                    
+                    // Scroll to the results container with a delay to ensure it's rendered
+                    setTimeout(() => {
+                        // Double-check that the results container is still visible
+                        resultsContainer.classList.remove('d-none');
+                        resultsContainer.style.display = 'block';
+                        
+                        // Force scroll to it in case we lost position
+                        try {
+                            resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            console.log('Scrolled to results container');
+                        } catch (scrollError) {
+                            console.warn('Error scrolling to results:', scrollError);
+                        }
+                    }, 300);
+                } else {
+                    console.error('Results container not found!');
+                    return;
+                }
+                
+                // Hide error message by default
+                const errorMessage = document.getElementById('error-message');
+                if (errorMessage) {
+                    errorMessage.classList.add('d-none');
+                }
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                // Show success content
+                const successContent = document.getElementById('success-content');
+                if (successContent) {
+                    successContent.classList.remove('d-none');
+                } else {
+                    console.error('Success content container not found!');
+                    return;
+                }
+            
+            // Populate ticket info - with null checks
+            const resultLotteryType = document.getElementById('result-lottery-type');
+            if (resultLotteryType) resultLotteryType.textContent = data.lottery_type || 'Unknown';
+            
+            const resultDrawNumber = document.getElementById('result-draw-number');
+            if (resultDrawNumber) resultDrawNumber.textContent = data.draw_number || 'Unknown';
+            
+            const resultDrawDate = document.getElementById('result-draw-date');
+            if (resultDrawDate) resultDrawDate.textContent = data.draw_date || 'Unknown';
+            
+            // Populate detected information from OCR if available
+            if (data.ticket_info) {
+                const detectedGameType = document.getElementById('detected-game-type');
+                if (detectedGameType) {
+                    detectedGameType.textContent = data.ticket_info.detected_game_type || 'Unknown';
+                }
+                
+                const detectedDrawNumber = document.getElementById('detected-draw-number');
+                if (detectedDrawNumber) {
+                    detectedDrawNumber.textContent = data.ticket_info.detected_draw_number || 'Unknown';
+                }
+                
+                const detectedDrawDate = document.getElementById('detected-draw-date');
+                if (detectedDrawDate) {
+                    detectedDrawDate.textContent = data.ticket_info.detected_draw_date || 'Unknown';
+                }
+            } else {
+                const detectedInfo = document.getElementById('detected-info');
+                if (detectedInfo) {
+                    detectedInfo.classList.add('d-none');
+                }
+            }
+            
+            // Display ticket numbers
+            const ticketNumbersContainer = document.getElementById('ticket-numbers');
+            ticketNumbersContainer.innerHTML = '';
+            
+            // Check if we have raw selected numbers for a better display
+            if (data.ticket_info && data.ticket_info.raw_selected_numbers) {
+                // Array to track rows that should be skipped (e.g., A2/B2 rows that are merged with A1/B1)
+                const rowsToSkip = [];
+                
+                // First, let's organize and combine the row data 
+                // to display main numbers and bonus balls on the same line
+                const organizedRows = {};
+                
+                // First pass: Identify all row pairs (A1/A2, B1/B2, etc.)
+                Object.entries(data.ticket_info.raw_selected_numbers).forEach(([rowName, numbers]) => {
+                    // Check if this is a main row (like A1, B1) or bonus row (like A2, B2)
+                    if (rowName.match(/^[A-Z]1/) || rowName.match(/^[A-Z]1\(\d+\)/)) {
+                        // This is a main row (A1, B1, etc.)
+                        const baseRowName = rowName.charAt(0); // Get A, B, C, etc.
+                        
+                        // Initialize the combined row data
+                        organizedRows[baseRowName] = {
+                            mainRowName: rowName,
+                            mainNumbers: numbers,
+                            bonusRowName: null,
+                            bonusNumbers: []
+                        };
+                    }
+                    else if (rowName.match(/^[A-Z]2/) || rowName.match(/^[A-Z]2\(\d+\)/)) {
+                        // This is a bonus row (A2, B2, etc.)
+                        const baseRowName = rowName.charAt(0); // Get A, B, C, etc.
+                        
+                        // If we already have this base row, add as bonus
+                        if (organizedRows[baseRowName]) {
+                            organizedRows[baseRowName].bonusRowName = rowName;
+                            organizedRows[baseRowName].bonusNumbers = numbers;
+                            
+                            // Add this row to the skip list since we're handling it with its main row
+                            rowsToSkip.push(rowName);
+                        }
+                    }
+                });
+                
+                // Display numbers by rows
+                Object.entries(data.ticket_info.raw_selected_numbers).forEach(([rowName, numbers]) => {
+                    // Skip rows that are already handled (bonus number rows like A2, B2)
+                    if (rowsToSkip.includes(rowName)) {
+                        return;
+                    }
+                    
+                    // Check if this is a main row that has a corresponding bonus row
+                    const baseRowName = rowName.charAt(0);
+                    const combinedRow = organizedRows[baseRowName];
+                    
+                    // If this is a main row with a bonus ball, use the combined data
+                    // Otherwise, just use the original row data
+                    const combinedNumbers = combinedRow && combinedRow.mainRowName === rowName && combinedRow.bonusNumbers.length > 0 ? 
+                        [...numbers, ...combinedRow.bonusNumbers] : numbers;
+                    
+                    // Check if this row has any matches - use game_type to ensure matches are from the correct game
+                    let rowMatches = [];
+                    let rowBonusMatches = [];
+                    
+                    // Find the row with matches specifically for this game type
+                    if (data.rows_with_matches) {
+                        const matchingRow = data.rows_with_matches.find(match => 
+                            match.row === rowName && match.game_type === data.lottery_type);
+                        
+                        if (matchingRow) {
+                            rowMatches = matchingRow.matched_numbers || [];
+                            rowBonusMatches = matchingRow.matched_bonus || [];
+                        }
+                    } else {
+                        // Fallback to the old method if rows_with_matches isn't available
+                        rowMatches = numbers.filter(num => data.winning_numbers.includes(num));
+                        rowBonusMatches = numbers.filter(num => data.bonus_numbers.includes(num));
+                    }
+                    
+                    const hasMatches = rowMatches.length > 0 || rowBonusMatches.length > 0;
+                    
+                    // Create row label with match indicator if applicable
+                    const rowLabel = document.createElement('div');
+                    rowLabel.classList.add('mt-2', 'mb-1');
+                    
+                    // Check if this is Row A1, B1, etc. with a corresponding bonus number row
+                    let displayRowName = rowName;
+                    if (data.lottery_type.toLowerCase().includes('powerball') && 
+                        rowName.endsWith('1')) {
+                        // Check if we have a corresponding Row "X2" to match this Row "X1"
+                        const baseRowName = rowName.charAt(0); // Get the letter part (A, B, etc.)
+                        const nextRowName = baseRowName + '2';  // Create the next row name (A2, B2, etc.)
+                        
+                        // If there's a bonus row, display just "Row A" instead of "Row A1"
+                        if (data.ticket_info.raw_selected_numbers[nextRowName] && 
+                            data.ticket_info.raw_selected_numbers[nextRowName].length === 1) {
+                            displayRowName = baseRowName;
+                        }
+                    }
+                    
+                    if (hasMatches) {
+                        // Find the correct game-specific row with matches
+                        let matchCount = 0;
+                        const gameSpecificMatches = data.rows_with_matches ? 
+                            data.rows_with_matches.find(match => 
+                                match.row === rowName && match.game_type === data.lottery_type) : null;
+                                
+                        if (gameSpecificMatches) {
+                            // Use the total_matched from the game-specific data
+                            matchCount = gameSpecificMatches.total_matched;
+                        } else {
+                            // Fallback to counting matches manually
+                            matchCount = rowMatches.length + rowBonusMatches.length;
+                        }
+                        
+                        // Only show the badge if there are matches for this specific game
+                        if (matchCount > 0) {
+                            rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong> <span class="badge bg-success ms-2">Matches: ${matchCount}</span>`;
+                        } else {
+                            rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong>`;
+                        }
+                    } else {
+                        rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong>`;
+                    }
+                    ticketNumbersContainer.appendChild(rowLabel);
+                    
+                    // Create row container
+                    const rowContainer = document.createElement('div');
+                    rowContainer.classList.add('mb-3');
+                    
+                    // Track if we should show Powerball/bonus number indicator
+                    let isPowerball = false;
+                    
+                    // For Powerball tickets, if this row is a single-number row (like Row A2 with the bonus number),
+                    // it should NOT have a plus sign before it. Instead, the plus sign should come AFTER
+                    // the previous row's numbers.
+                    
+                    // Special handling for Powerball or Powerball Plus where Row A2, B2, etc. are bonus rows
+                    if (data.lottery_type.toLowerCase().includes('powerball') && 
+                        rowName.endsWith('2') && numbers.length === 1) {
+                        isPowerball = true;
+                    }
+                    
+                    // Add balls for this row
+                    // Use combined numbers array if available (main numbers + bonus numbers)
+                    // This displays the bonus balls on the same line as the main numbers
+                    const allNumbers = combinedNumbers || numbers;
+                    
+                    allNumbers.forEach((num, index) => {
+                        // For all lottery tickets, add a plus sign before the last number (bonus ball)
+                        // Check if this is the last number in the row
+                        if (index === allNumbers.length - 1) {
+                            // Add a plus sign before the last number (which is the bonus ball)
+                            const plusSpan = document.createElement('span');
+                            plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
+                            plusSpan.textContent = '+';
+                            plusSpan.style.color = '#FF5500'; // Orange for visibility
+                            rowContainer.appendChild(plusSpan);
+                        }
+                        
+                        // For legacy compatibility - keep the old bonus handling code
+                        const hasBonus = combinedRow && combinedRow.bonusNumbers.length > 0;
+                        const mainNumberCount = combinedRow ? combinedRow.mainNumbers.length : numbers.length;
+                        
+                        // Only add in special cases where the new approach doesn't work
+                        if (hasBonus && index === mainNumberCount && mainNumberCount !== allNumbers.length - 1) {
+                            const plusSpan = document.createElement('span');
+                            plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
+                            plusSpan.textContent = '+';
+                            plusSpan.style.color = '#FF5500'; // Orange for visibility
+                            rowContainer.appendChild(plusSpan);
+                        }
+                        
+                        const ball = document.createElement('span');
+                        ball.classList.add('lottery-ball');
+                        
+                        // Check if this number is a match in the current game type
+                        let isMatch = false;
+                        let isBonusMatch = false;
+                        
+                        // Use rowMatches array which is specific to this game type
+                        if (rowMatches.includes(num)) {
+                            isMatch = true;
+                        }
+                        
+                        if (rowBonusMatches.includes(num)) {
+                            isBonusMatch = true;
+                        }
+                        
+                        if (isMatch || isBonusMatch) {
+                            ball.classList.add('ball-matched');
+                            
+                            // Create match indicator with game-specific styling
+                            const matchIcon = document.createElement('div');
+                            matchIcon.classList.add('match-indicator');
+                            matchIcon.textContent = '✓'; // Direct text checkmark
+                            
+                            // Color code the match indicator based on game type
+                            if (data.lottery_type === "Powerball") {
+                                // Main Powerball game
+                                if (isBonusMatch) {
+                                    matchIcon.classList.add('match-powerball-bonus');
+                                    ball.setAttribute('title', 'Bonus match in Powerball');
+                                } else {
+                                    matchIcon.classList.add('match-powerball');
+                                    ball.setAttribute('title', 'Match in Powerball');
+                                }
+                            } else if (data.lottery_type === "Powerball Plus") {
+                                // Powerball Plus game
+                                if (isBonusMatch) {
+                                    matchIcon.classList.add('match-powerball-plus-bonus');
+                                    ball.setAttribute('title', 'Bonus match in Powerball Plus');
+                                } else {
+                                    matchIcon.classList.add('match-powerball-plus');
+                                    ball.setAttribute('title', 'Match in Powerball Plus');
+                                }
+                            } else if (data.lottery_type === "Lotto Plus 1") {
+                                // Lotto Plus 1 game
+                                if (isBonusMatch) {
+                                    matchIcon.classList.add('match-lotto-plus-1-bonus');
+                                    ball.setAttribute('title', 'Bonus match in Lotto Plus 1');
+                                } else {
+                                    matchIcon.classList.add('match-lotto-plus-1');
+                                    ball.setAttribute('title', 'Match in Lotto Plus 1');
+                                }
+                            } else if (data.lottery_type === "Lotto Plus 2") {
+                                // Lotto Plus 2 game
+                                if (isBonusMatch) {
+                                    matchIcon.classList.add('match-lotto-plus-2-bonus');
+                                    ball.setAttribute('title', 'Bonus match in Lotto Plus 2');
+                                } else {
+                                    matchIcon.classList.add('match-lotto-plus-2');
+                                    ball.setAttribute('title', 'Match in Lotto Plus 2');
+                                }
+                            } else {
+                                // Default for other game types like Lotto or Daily Lotto
+                                matchIcon.classList.add('match-powerball'); // Use green by default
+                                ball.setAttribute('title', 'Match in ' + data.lottery_type);
+                            }
+                            
+                            // Add the match indicator to the ball
+                            ball.appendChild(matchIcon);
+                        }
+                        
+                        // Add color classes in sequence or special color for Powerball/bonus balls
+                        if (isPowerball) {
+                            ball.classList.add('lottery-ball-blue', 'lottery-ball-bonus');
+                        } 
+                        // If this is the last ball in the row (bonus number), make it yellow
+                        else if (index === allNumbers.length - 1) {
+                            ball.classList.add('lottery-ball-yellow');
+                        }
+                        // Otherwise add colors in sequence
+                        else if (rowContainer.children.length % 4 === 0) {
+                            ball.classList.add('lottery-ball-red');
+                        } else if (rowContainer.children.length % 4 === 1) {
+                            ball.classList.add('lottery-ball-yellow');
+                        } else if (rowContainer.children.length % 4 === 2) {
+                            ball.classList.add('lottery-ball-green');
+                        } else {
+                            ball.classList.add('lottery-ball-blue');
+                        }
+                        
+                        ball.textContent = num;
+                        rowContainer.appendChild(ball);
+                    });
+                    
+                    ticketNumbersContainer.appendChild(rowContainer);
+                    
+                    // For Powerball tickets, if this is Row A1, B1, etc. and the next row is A2, B2, etc.
+                    // We'll handle the bonus number differently - we won't display a separate row
+                    if (data.lottery_type.toLowerCase().includes('powerball') && 
+                        rowName.endsWith('1')) {
+                        // Check if we have a corresponding Row "X2" to match this Row "X1"
+                        const baseRowName = rowName.charAt(0); // Get the letter part (A, B, etc.)
+                        const nextRowName = baseRowName + '2';  // Create the next row name (A2, B2, etc.)
+                        
+                        // Check if we have a corresponding bonus row
+                        if (data.ticket_info.raw_selected_numbers[nextRowName] && 
+                            data.ticket_info.raw_selected_numbers[nextRowName].length === 1) {
+                            
+                            // Instead of creating a new row, add a plus sign to the end of the current row
+                            const plusSpan = document.createElement('span');
+                            plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
+                            plusSpan.textContent = '+';
+                            plusSpan.style.color = '#FF5500'; // Orange for visibility
+                            rowContainer.appendChild(plusSpan);
+                            
+                            // Get the bonus number
+                            const bonusNumber = data.ticket_info.raw_selected_numbers[nextRowName][0];
+                            
+                            // Create the bonus ball in the same row
+                            const bonusBall = document.createElement('span');
+                            bonusBall.classList.add('lottery-ball', 'lottery-ball-bonus', 'lottery-ball-yellow');
+                            
+                            // Check if this bonus number is a match specific to this game
+                            let isBonusMatch = false;
+                            
+                            // Look for matches in the same game type
+                            if (data.rows_with_matches) {
+                                // Find any row with this bonus number matched in the current game
+                                const bonusMatchRow = data.rows_with_matches.find(match => 
+                                    match.game_type === data.lottery_type && 
+                                    match.matched_bonus && 
+                                    match.matched_bonus.includes(parseInt(bonusNumber)));
+                                
+                                if (bonusMatchRow) {
+                                    isBonusMatch = true;
+                                }
+                            } else {
+                                // Fallback to simple check if rows_with_matches isn't available
+                                isBonusMatch = data.bonus_numbers.includes(parseInt(bonusNumber));
+                            }
+                            
+                            if (isBonusMatch) {
+                                bonusBall.classList.add('ball-matched');
+                                bonusBall.setAttribute('title', `Bonus match in ${data.lottery_type}`);
+                                
+                                // Create match indicator with game-specific styling
+                                const matchIcon = document.createElement('div');
+                                matchIcon.classList.add('match-indicator');
+                                matchIcon.textContent = '✓'; // Direct text checkmark
+                                
+                                // Color code based on game type
+                                if (data.lottery_type === "Powerball") {
+                                    matchIcon.classList.add('match-powerball-bonus');
+                                } else if (data.lottery_type === "Powerball Plus") {
+                                    matchIcon.classList.add('match-powerball-plus-bonus');
+                                }
+                                
+                                // Add the match indicator to the ball
+                                bonusBall.appendChild(matchIcon);
+                            }
+                            
+                            bonusBall.textContent = bonusNumber;
+                            rowContainer.appendChild(bonusBall);
+                            
+                            // Skip the next row since we've already added its number here
+                            rowsToSkip.push(nextRowName);
+                        }
+                    }
+                });
+            } else {
+                // Fallback to flat display if raw data not available
+                data.ticket_numbers.forEach(num => {
+                    const ball = document.createElement('span');
+                    ball.classList.add('lottery-ball');
+                    
+                    // Add color classes in sequence
+                    if (ticketNumbersContainer.children.length % 4 === 0) {
+                        ball.classList.add('lottery-ball-red');
+                    } else if (ticketNumbersContainer.children.length % 4 === 1) {
+                        ball.classList.add('lottery-ball-yellow');
+                    } else if (ticketNumbersContainer.children.length % 4 === 2) {
+                        ball.classList.add('lottery-ball-green');
+                    } else {
+                        ball.classList.add('lottery-ball-blue');
+                    }
+                    
+                    ball.textContent = num;
+                    ticketNumbersContainer.appendChild(ball);
+                });
+            }
+            
+            // Display winning numbers (main numbers with bonus on same line)
+            const winningNumbersContainer = document.getElementById('winning-numbers');
+            winningNumbersContainer.innerHTML = '';
+            
+            // Update the game label
+            const primaryGameLabel = document.getElementById('primary-game-label');
+            primaryGameLabel.textContent = data.lottery_type + ' Numbers:';
+            
+            // Add main numbers
+            data.winning_numbers.forEach(num => {
+                const ball = document.createElement('span');
+                ball.classList.add('lottery-ball');
+                
+                // Add color classes in sequence
+                if (winningNumbersContainer.children.length % 4 === 0) {
+                    ball.classList.add('lottery-ball-red');
+                } else if (winningNumbersContainer.children.length % 4 === 1) {
+                    ball.classList.add('lottery-ball-yellow');
+                } else if (winningNumbersContainer.children.length % 4 === 2) {
+                    ball.classList.add('lottery-ball-green');
+                } else {
+                    ball.classList.add('lottery-ball-blue');
+                }
+                
+                ball.textContent = num;
+                winningNumbersContainer.appendChild(ball);
+            });
+            
+            // Add a plus sign followed immediately by bonus numbers on the same line
+            if (data.bonus_numbers && data.bonus_numbers.length > 0) {
+                // Create a container to hold the plus sign with better visibility
+                const plusContainer = document.createElement('div');
+                plusContainer.classList.add('d-inline-block', 'mx-3', 'position-relative', 'align-middle');
+                plusContainer.style.width = '60px'; // Even wider container for larger plus sign
+                plusContainer.style.height = '60px'; // Ensure height is also sufficient
+                plusContainer.style.textAlign = 'center';
+                plusContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'; // Light background for better visibility
+                plusContainer.style.borderRadius = '50%'; // Make it circular
+                plusContainer.style.display = 'inline-flex';
+                plusContainer.style.justifyContent = 'center';
+                plusContainer.style.alignItems = 'center';
+                
+                // Add plus sign with high visibility
+                const plusSpan = document.createElement('span');
+                plusSpan.classList.add('fw-bolder', 'fs-1'); // Larger font size
+                plusSpan.textContent = '+';
+                plusSpan.style.color = '#FF5500'; // Orange for visibility
+                plusSpan.style.textShadow = '1px 1px 2px rgba(0,0,0,0.5)'; // Light shadow
+                plusSpan.style.display = 'inline-block';
+                
+                plusContainer.appendChild(plusSpan);
+                winningNumbersContainer.appendChild(plusContainer);
+                
+                // Add bonus balls to the same container as main numbers
+                data.bonus_numbers.forEach(num => {
+                    const ball = document.createElement('span');
+                    // Make bonus balls visually distinct
+                    ball.classList.add('lottery-ball', 'lottery-ball-yellow');
+                    ball.textContent = num;
+                    winningNumbersContainer.appendChild(ball);
+                });
+            }
+            
+            // Debug to ensure we're getting bonus numbers
+            console.log("Main numbers: ", data.winning_numbers, "Bonus numbers: ", data.bonus_numbers || 'None');
+            console.log("Plus sign container added:", !!document.querySelector(".d-inline-block[style*='backgroundColor: rgba(255, 255, 255, 0.2)']"));
+            
+            // Log the element dimensions for debugging
+            setTimeout(() => {
+                const plusContainers = document.querySelectorAll(".d-inline-block[style*='backgroundColor: rgba(255, 255, 255, 0.2)']");
+                if (plusContainers.length > 0) {
+                    plusContainers.forEach((container, index) => {
+                        console.log(`Plus container ${index} dimensions:`, {
+                            width: container.offsetWidth,
+                            height: container.offsetHeight,
+                            visible: container.offsetWidth > 0 && container.offsetHeight > 0,
+                            display: window.getComputedStyle(container).display
+                        });
+                    });
+                } else {
+                    console.log("No plus containers found on the page");
+                }
+            }, 500);
+            
+            // Update the hidden bonus container (we don't display it separately anymore)
+            const bonusNumbersContainer = document.getElementById('bonus-numbers');
+            bonusNumbersContainer.innerHTML = '';
+            document.getElementById('bonus-numbers-container').classList.add('d-none');
+            
+            // Update matched count for display without showing matched balls
+            const matchedNumbersContainer = document.getElementById('matched-numbers');
+            matchedNumbersContainer.innerHTML = '';
+            
+            // Get unique matched numbers for the count
+            const uniqueMatchedNumbers = [...new Set(data.matched_numbers)];
+            document.getElementById('matched-count').textContent = uniqueMatchedNumbers.length;
+            
+            // Don't display matched balls here - we'll just show them in the rows below
+            // This makes Powerball and Powerball Plus sections match in appearance
+            
+            // Get unique matched bonus numbers and add them to the matched numbers section
+            if (data.matched_bonus && data.matched_bonus.length > 0) {
+                const uniqueMatchedBonus = [...new Set(data.matched_bonus)];
+                
+                // Add a separator if there are also matched main numbers
+                if (uniqueMatchedNumbers.length > 0) {
+                    const separator = document.createElement('div');
+                    separator.classList.add('mt-2', 'mb-2');
+                    separator.innerHTML = '<strong>Matched Bonus:</strong>';
+                    matchedNumbersContainer.appendChild(separator);
+                }
+                
+                uniqueMatchedBonus.forEach(num => {
+                    const ball = document.createElement('span');
+                    ball.classList.add('lottery-ball', 'ball-matched', 'lottery-ball-yellow');
+                    ball.style.animation = 'pulse 2s infinite';
+                    ball.setAttribute('title', `Bonus match in ${data.lottery_type}`);
+                    ball.textContent = num;
+                    matchedNumbersContainer.appendChild(ball);
+                });
+            }
+            
+            // Display matches by row for the main game type
+            if (data.ticket_info && data.ticket_info.raw_selected_numbers && data.rows_with_matches) {
+                // Add a section header for row-specific matches
+                const rowMatchesHeader = document.createElement('div');
+                rowMatchesHeader.classList.add('mt-4', 'mb-3');
+                rowMatchesHeader.innerHTML = `<h6>${data.lottery_type} Matches by Row:</h6>`;
+                matchedNumbersContainer.appendChild(rowMatchesHeader);
+                
+                // Find rows with matches for this specific game type
+                const rowsWithMatches = data.rows_with_matches.filter(row => row.game_type === data.lottery_type);
+                
+                if (rowsWithMatches.length > 0) {
+                    // Create rows with matches for the main game
+                    rowsWithMatches.forEach(rowData => {
+                        // Create row label with match indicator
+                        const rowLabel = document.createElement('div');
+                        rowLabel.classList.add('mt-3', 'mb-1');
+                        
+                        // Display row name with match count
+                        let displayRowName = rowData.row;
+                        
+                        // Show match count only if there are matches
+                        const matchCount = rowData.total_matched;
+                        if (matchCount > 0) {
+                            rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong> <span class="badge bg-success ms-2">Matches: ${matchCount}</span>`;
+                        } else {
+                            rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong>`;
+                        }
+                        matchedNumbersContainer.appendChild(rowLabel);
+                        
+                        // Create row container
+                        const rowContainer = document.createElement('div');
+                        rowContainer.classList.add('mb-3');
+                        
+                        // Add balls for this row
+                        rowData.numbers.forEach((num, index) => {
+                            // If this is the last number (bonus ball), add a plus sign before it
+                            if (index === rowData.numbers.length - 1) {
+                                // Add plus sign with high visibility
+                                const plusContainer = document.createElement('div');
+                                plusContainer.classList.add('d-inline-block', 'mx-2', 'align-middle');
+                                
+                                const plusSpan = document.createElement('span');
+                                plusSpan.classList.add('fw-bolder', 'fs-4');
+                                plusSpan.textContent = '+';
+                                plusSpan.style.color = '#FF5500'; // Orange for visibility
+                                
+                                plusContainer.appendChild(plusSpan);
+                                rowContainer.appendChild(plusContainer);
+                            }
+                            
+                            const ball = document.createElement('span');
+                            ball.classList.add('lottery-ball');
+                            
+                            // Check if this number is a match
+                            if (rowData.matched_numbers.includes(num)) {
+                                ball.classList.add('ball-matched');
+                                
+                                // Create match indicator with game-specific styling
+                                const matchIcon = document.createElement('div');
+                                matchIcon.classList.add('match-indicator');
+                                matchIcon.textContent = '✓'; // Direct text checkmark
+                                
+                                // Color code based on game type
+                                if (data.lottery_type === "Powerball") {
+                                    matchIcon.classList.add('match-powerball');
+                                    ball.setAttribute('title', 'Match in Powerball');
+                                } else if (data.lottery_type === "Powerball Plus") {
+                                    matchIcon.classList.add('match-powerball-plus');
+                                    ball.setAttribute('title', 'Match in Powerball Plus');
+                                } else if (data.lottery_type === "Lotto Plus 1") {
+                                    matchIcon.classList.add('match-lotto-plus-1');
+                                    ball.setAttribute('title', 'Match in Lotto Plus 1');
+                                } else if (data.lottery_type === "Lotto Plus 2") {
+                                    matchIcon.classList.add('match-lotto-plus-2');
+                                    ball.setAttribute('title', 'Match in Lotto Plus 2');
+                                } else {
+                                    matchIcon.classList.add('match-powerball'); // Default green
+                                    ball.setAttribute('title', `Match in ${data.lottery_type}`);
+                                }
+                                
+                                // Add the match indicator to the ball
+                                ball.appendChild(matchIcon);
+                            }
+                            
+                            // Check if this number is a bonus match
+                            if (rowData.matched_bonus && rowData.matched_bonus.includes(num)) {
+                                ball.classList.add('ball-matched', 'lottery-ball-yellow');
+                                ball.style.animation = 'pulse 2s infinite';
+                                
+                                // Create match indicator with game-specific styling
+                                const bonusIcon = document.createElement('span');
+                                bonusIcon.classList.add('match-indicator');
+                                bonusIcon.textContent = '✓'; // Direct text checkmark
+                                
+                                // Color code based on game type
+                                if (data.lottery_type === "Powerball") {
+                                    bonusIcon.classList.add('match-powerball-bonus');
+                                    ball.setAttribute('title', 'Bonus match in Powerball');
+                                } else if (data.lottery_type === "Powerball Plus") {
+                                    bonusIcon.classList.add('match-powerball-plus-bonus');
+                                    ball.setAttribute('title', 'Bonus match in Powerball Plus');
+                                } else if (data.lottery_type === "Lotto Plus 1") {
+                                    bonusIcon.classList.add('match-lotto-plus-1-bonus');
+                                    ball.setAttribute('title', 'Bonus match in Lotto Plus 1');
+                                } else if (data.lottery_type === "Lotto Plus 2") {
+                                    bonusIcon.classList.add('match-lotto-plus-2-bonus');
+                                    ball.setAttribute('title', 'Bonus match in Lotto Plus 2');
+                                } else {
+                                    bonusIcon.classList.add('match-powerball-bonus'); // Default blue
+                                    ball.setAttribute('title', `Bonus match in ${data.lottery_type}`);
+                                }
+                                
+                                // Add the match indicator to the ball
+                                ball.appendChild(bonusIcon);
+                            }
+                            
+                            // If this is the last number, make it yellow to identify as bonus
+                            if (index === rowData.numbers.length - 1) {
+                                ball.classList.add('lottery-ball-yellow');
+                            } 
+                            // Otherwise add color classes in sequence
+                            else if (!ball.classList.contains('lottery-ball-yellow')) {
+                                if (rowContainer.children.length % 4 === 0) {
+                                    ball.classList.add('lottery-ball-red');
+                                } else if (rowContainer.children.length % 4 === 1) {
+                                    ball.classList.add('lottery-ball-yellow');
+                                } else if (rowContainer.children.length % 4 === 2) {
+                                    ball.classList.add('lottery-ball-green');
+                                } else {
+                                    ball.classList.add('lottery-ball-blue');
+                                }
+                            }
+                            
+                            ball.textContent = num;
+                            rowContainer.appendChild(ball);
+                        });
+                        
+                        matchedNumbersContainer.appendChild(rowContainer);
+                    });
+                } else {
+                    const noMatchesMsg = document.createElement('p');
+                    noMatchesMsg.textContent = `No rows with ${data.lottery_type} matches found.`;
+                    matchedNumbersContainer.appendChild(noMatchesMsg);
+                }
+            }
+            
+            // Display prize information if any
+            const prizeContainer = document.getElementById('prize-container');
+            const noPrizeContainer = document.getElementById('no-prize-container');
+            
+            if (data.has_prize) {
+                prizeContainer.classList.remove('d-none');
+                noPrizeContainer.classList.add('d-none');
+                
+                document.getElementById('prize-lottery-type').textContent = data.lottery_type;
+                document.getElementById('prize-draw-number').textContent = data.draw_number;
+                document.getElementById('prize-division').textContent = data.prize_info.division;
+                document.getElementById('prize-match-type').textContent = data.prize_info.match_type;
+                document.getElementById('prize-amount').textContent = data.prize_info.prize_amount;
+                
+                // Check if we have a description to display
+                const descriptionContainer = document.getElementById('prize-description-container');
+                const descriptionElement = document.getElementById('prize-description');
+                if (data.prize_info.description) {
+                    descriptionElement.textContent = data.prize_info.description;
+                    descriptionContainer.classList.remove('d-none');
+                } else {
+                    descriptionContainer.classList.add('d-none');
+                }
+            } else {
+                prizeContainer.classList.add('d-none');
+                noPrizeContainer.classList.remove('d-none');
+            }
+            
+            // Check if ticket also plays Powerball Plus and display those results
+            // Make sure we only show the Powerball Plus section if this ticket plays Powerball Plus
+            // Using case-insensitive comparison for "Powerball" to handle OCR variations
+            if (data.lottery_type.toLowerCase() === "powerball".toLowerCase() && 
+                (data.powerball_plus_results || (data.ticket_info && data.ticket_info.plays_powerball_plus))) {
+                console.log("PowerBall Plus section should be visible");
+                // Update the primary game label to include the game name
+                const primaryGameLabel = document.getElementById('primary-game-label');
+                primaryGameLabel.textContent = 'Powerball Numbers:';
+                
+                // Powerball Plus Numbers - Add to the main winning numbers card
+                const ppNumbersContainer = document.getElementById('powerball-plus-numbers-container');
+                const ppNumbersDiv = document.getElementById('powerball-plus-numbers');
+                
+                // Show the container
+                ppNumbersContainer.classList.remove('d-none');
+                ppNumbersDiv.innerHTML = '';
+                
+                // Add main numbers if we have results
+                if (data.powerball_plus_results && data.powerball_plus_results.winning_numbers) {
+                    data.powerball_plus_results.winning_numbers.forEach((num, index) => {
+                    const ball = document.createElement('span');
+                    ball.classList.add('lottery-ball');
+                    
+                    // Add color classes in sequence
+                    if (index % 4 === 0) {
+                        ball.classList.add('lottery-ball-red');
+                    } else if (index % 4 === 1) {
+                        ball.classList.add('lottery-ball-yellow');
+                    } else if (index % 4 === 2) {
+                        ball.classList.add('lottery-ball-green');
+                    } else {
+                        ball.classList.add('lottery-ball-blue');
+                    }
+                    
+                    ball.textContent = num;
+                    ppNumbersDiv.appendChild(ball);
+                });
+                
+                // Always add a plus sign between main numbers and bonus, even if there's only one bonus number
+                if (data.powerball_plus_results.bonus_numbers && data.powerball_plus_results.bonus_numbers.length > 0) {
+                    // Create a container to hold the plus sign with better visibility
+                    const plusContainer = document.createElement('div');
+                    plusContainer.classList.add('d-inline-block', 'mx-3', 'position-relative', 'align-middle');
+                    plusContainer.style.width = '60px'; // Even wider container for larger plus sign
+                    plusContainer.style.height = '60px'; // Ensure height is also sufficient
+                    plusContainer.style.textAlign = 'center';
+                    plusContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'; // Light background for better visibility
+                    plusContainer.style.borderRadius = '50%'; // Make it circular
+                    plusContainer.style.display = 'inline-flex';
+                    plusContainer.style.justifyContent = 'center';
+                    plusContainer.style.alignItems = 'center';
+                    
+                    // Add plus sign with high visibility
+                    const plusSpan = document.createElement('span');
+                    plusSpan.classList.add('fw-bolder', 'fs-1'); // Larger font size
+                    plusSpan.textContent = '+';
+                    plusSpan.style.color = '#FF5500'; // Orange for visibility
+                    plusSpan.style.textShadow = '1px 1px 2px rgba(0,0,0,0.5)'; // Light shadow
+                    plusSpan.style.display = 'inline-block';
+                    
+                    plusContainer.appendChild(plusSpan);
+                    ppNumbersDiv.appendChild(plusContainer);
+                    
+                    // Add bonus numbers
+                    data.powerball_plus_results.bonus_numbers.forEach(num => {
+                        const ball = document.createElement('span');
+                        ball.classList.add('lottery-ball', 'lottery-ball-yellow');
+                        ball.textContent = num;
+                        ppNumbersDiv.appendChild(ball);
+                    });
+                }
+                }
+                
+                // Display Powerball Plus matches in the main card (with unique matched numbers)
+                if (data.powerball_plus_results && data.powerball_plus_results.matched_numbers && data.powerball_plus_results.matched_numbers.length > 0 || 
+                    (data.powerball_plus_results && data.powerball_plus_results.matched_bonus && data.powerball_plus_results.matched_bonus.length > 0)) {
+                    
+                    // PowerballPlus matches container is now always visible
+                    const ppMatchesContainer = document.getElementById('pp-matched-numbers-section');
+                    // No need to remove d-none class because the section is always visible now
+                    
+                    // Check if we have multiple rows with matches for Powerball Plus
+                    if (data.ticket_info && data.ticket_info.raw_selected_numbers && data.powerball_plus_results.rows_with_matches) {
+                        // Display matches by row for Powerball Plus
+                        const ppMatchedNumbersDiv = document.getElementById('pp-matched-numbers');
+                        ppMatchedNumbersDiv.innerHTML = '<h6 class="mb-3">Powerball Plus Matches by Row:</h6>';
+                        
+                        // Get unique matched numbers to update the count
+                        const uniquePPMatchedNumbers = [...new Set(data.powerball_plus_results.matched_numbers)];
+                        document.getElementById('pp-matched-count').textContent = uniquePPMatchedNumbers.length;
+                        
+                        // Create rows with matches for Powerball Plus game only
+                        const rowsToDisplay = data.powerball_plus_results.rows_with_matches || [];
+                        
+                        if (rowsToDisplay.length > 0) {
+                            // Rows with matches
+                            rowsToDisplay.forEach(rowData => {
+                                // Create row label with match indicator
+                                const rowLabel = document.createElement('div');
+                                rowLabel.classList.add('mt-3', 'mb-1');
+                                
+                                // Display row name with match count
+                                let displayRowName = rowData.row;
+                                
+                                // Show match count only if there are matches specific to this game type
+                                const matchCount = rowData.total_matched;
+                                if (matchCount > 0) {
+                                    rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong> <span class="badge bg-success ms-2">Matches: ${matchCount}</span>`;
+                                } else {
+                                    rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong>`;
+                                }
+                                ppMatchedNumbersDiv.appendChild(rowLabel);
+                                
+                                // Create row container
+                                const rowContainer = document.createElement('div');
+                                rowContainer.classList.add('mb-3');
+                                
+                                // Add balls for this row
+                                rowData.numbers.forEach((num, index) => {
+                                    // If this is the last number (bonus ball), add a plus sign before it
+                                    if (index === rowData.numbers.length - 1) {
+                                        // Add plus sign with high visibility
+                                        const plusContainer = document.createElement('div');
+                                        plusContainer.classList.add('d-inline-block', 'mx-2', 'align-middle');
+                                        
+                                        const plusSpan = document.createElement('span');
+                                        plusSpan.classList.add('fw-bolder', 'fs-4');
+                                        plusSpan.textContent = '+';
+                                        plusSpan.style.color = '#FF5500'; // Orange for visibility
+                                        
+                                        plusContainer.appendChild(plusSpan);
+                                        rowContainer.appendChild(plusContainer);
+                                    }
+                                    
+                                    const ball = document.createElement('span');
+                                    ball.classList.add('lottery-ball');
+                                    
+                                    // Check if this number is a match
+                                    if (rowData.matched_numbers.includes(num)) {
+                                        ball.classList.add('ball-matched');
+                                        
+                                        // Create match indicator with game-specific styling
+                                        const matchIcon = document.createElement('div');
+                                        matchIcon.classList.add('match-indicator');
+                                        matchIcon.textContent = '✓'; // Direct text checkmark
+                                        matchIcon.style.position = 'absolute';
+                                        matchIcon.style.top = '-5px';
+                                        matchIcon.style.right = '-5px';
+                                        matchIcon.style.zIndex = '2';
+                                        
+                                        matchIcon.classList.add('match-powerball-plus');
+                                        ball.setAttribute('title', 'Match in Powerball Plus');
+                                        ball.style.position = 'relative';
+                                        
+                                        // Add the match indicator to the ball
+                                        ball.appendChild(matchIcon);
+                                    }
+                                    
+                                    // Check if this number is a bonus match
+                                    if (rowData.matched_bonus && rowData.matched_bonus.includes(num)) {
+                                        ball.classList.add('ball-matched', 'lottery-ball-yellow');
+                                        ball.style.animation = 'pulse 2s infinite';
+                                        
+                                        // Create match indicator with game-specific styling
+                                        const bonusIcon = document.createElement('span');
+                                        bonusIcon.classList.add('match-indicator');
+                                        bonusIcon.textContent = '✓'; // Direct text checkmark
+                                        bonusIcon.style.position = 'absolute';
+                                        bonusIcon.style.top = '-5px';
+                                        bonusIcon.style.right = '-5px';
+                                        bonusIcon.style.zIndex = '2';
+                                        bonusIcon.classList.add('match-powerball-plus-bonus');
+                                        ball.setAttribute('title', 'Bonus match in Powerball Plus');
+                                        ball.style.position = 'relative';
+                                        
+                                        // Add the match indicator to the ball
+                                        ball.appendChild(bonusIcon);
+                                    }
+                                    
+                                    // If this is the last number, make it yellow to identify as bonus
+                                    if (index === rowData.numbers.length - 1) {
+                                        ball.classList.add('lottery-ball-yellow');
+                                    } 
+                                    // Otherwise add color classes in sequence
+                                    else if (!ball.classList.contains('lottery-ball-yellow')) {
+                                        if (rowContainer.children.length % 4 === 0) {
+                                            ball.classList.add('lottery-ball-red');
+                                        } else if (rowContainer.children.length % 4 === 1) {
+                                            ball.classList.add('lottery-ball-yellow');
+                                        } else if (rowContainer.children.length % 4 === 2) {
+                                            ball.classList.add('lottery-ball-green');
+                                        } else {
+                                            ball.classList.add('lottery-ball-blue');
+                                        }
+                                    }
+                                    
+                                    ball.textContent = num;
+                                    rowContainer.appendChild(ball);
+                                });
+                                
+                                ppMatchedNumbersDiv.appendChild(rowContainer);
+                            });
+                        } else {
+                            ppMatchedNumbersDiv.innerHTML += '<p>No rows with Powerball Plus matches found.</p>';
+                        }
+                    } else {
+                        // Legacy display method - for backward compatibility
+                        // Get unique matched numbers
+                        const uniquePPMatchedNumbers = [...new Set(data.powerball_plus_results.matched_numbers)];
+                        
+                        // Update matched count
+                        document.getElementById('pp-matched-count').textContent = uniquePPMatchedNumbers.length;
+                        
+                        // Display matched numbers
+                        const ppMatchedNumbersDiv = document.getElementById('pp-matched-numbers');
+                        ppMatchedNumbersDiv.innerHTML = '';
+                        
+                        if (uniquePPMatchedNumbers.length > 0) {
+                            uniquePPMatchedNumbers.forEach(num => {
+                                const ball = document.createElement('span');
+                                ball.classList.add('lottery-ball', 'ball-matched');
+                                ball.setAttribute('title', 'Match in Powerball Plus'); // Add game type indicator
+                                
+                                // Create match indicator with game-specific styling
+                                
+                                const matchIcon = document.createElement('div');
+                                matchIcon.classList.add('match-indicator');
+                                matchIcon.textContent = '✓'; // Direct text checkmark
+                                matchIcon.style.position = 'absolute';
+                                matchIcon.style.top = '-5px';
+                                matchIcon.style.right = '-5px';
+                                matchIcon.style.zIndex = '2';
+                                
+                                matchIcon.classList.add('match-powerball-plus');
+                                ball.style.position = 'relative';
+                                
+                                // Add the match indicator to the ball
+                                ball.appendChild(matchIcon);
+                                
+                                // Add color classes in sequence
+                                if (ppMatchedNumbersDiv.children.length % 4 === 0) {
+                                    ball.classList.add('lottery-ball-red');
+                                } else if (ppMatchedNumbersDiv.children.length % 4 === 1) {
+                                    ball.classList.add('lottery-ball-yellow');
+                                } else if (ppMatchedNumbersDiv.children.length % 4 === 2) {
+                                    ball.classList.add('lottery-ball-green');
+                                } else {
+                                    ball.classList.add('lottery-ball-blue');
+                                }
+                                
+                                ball.textContent = num;
+                                ppMatchedNumbersDiv.appendChild(ball);
+                            });
+                        } else {
+                            ppMatchedNumbersDiv.innerHTML = '<p>No matching main numbers found for Powerball Plus.</p>';
+                        }
+                        
+                        // Get unique matched bonus numbers and add them to the matched numbers section
+                        if (data.powerball_plus_results.matched_bonus && data.powerball_plus_results.matched_bonus.length > 0) {
+                            const uniquePPMatchedBonus = [...new Set(data.powerball_plus_results.matched_bonus)];
+                            
+                            // Add a separator if there are also matched main numbers
+                            if (uniquePPMatchedNumbers.length > 0) {
+                                const separator = document.createElement('div');
+                                separator.classList.add('mt-2', 'mb-2');
+                                separator.innerHTML = '<strong>Matched Bonus:</strong>';
+                                ppMatchedNumbersDiv.appendChild(separator);
+                            }
+                            
+                            uniquePPMatchedBonus.forEach(num => {
+                                const ball = document.createElement('span');
+                                ball.classList.add('lottery-ball', 'ball-matched', 'lottery-ball-yellow');
+                                ball.style.animation = 'pulse 2s infinite';
+                                ball.setAttribute('title', 'Bonus match in Powerball Plus'); // Add game type indicator
+                                
+                                // Create match indicator with game-specific styling for bonus match
+                                const bonusIcon = document.createElement('span');
+                                bonusIcon.classList.add('match-indicator');
+                                bonusIcon.textContent = '✓'; // Direct text checkmark
+                                bonusIcon.style.position = 'absolute';
+                                bonusIcon.style.top = '-5px';
+                                bonusIcon.style.right = '-5px';
+                                bonusIcon.style.zIndex = '2';
+                                bonusIcon.classList.add('match-powerball-plus-bonus');
+                                ball.style.position = 'relative';
+                                
+                                // Add the match indicator to the ball
+                                ball.appendChild(bonusIcon);
+                                
+                                ball.textContent = num;
+                                ppMatchedNumbersDiv.appendChild(ball);
+                            });
+                        }
+                    }
+                }
+                
+                // Keep the separate card for prize information
+                const powerballPlusContainer = document.getElementById('powerball-plus-container');
+                if (powerballPlusContainer) {
+                    // Show the container for prize information
+                    powerballPlusContainer.classList.remove('d-none');
+                    
+                    // Create header for prize information
+                    powerballPlusContainer.innerHTML = '';  // Clear any existing content
+                    
+                    // Only display prize information if there is a prize
+                    if (data.powerball_plus_results.has_prize) {
+                        // Create a card for Powerball Plus prize
+                        const ppPrizeCard = document.createElement('div');
+                        ppPrizeCard.classList.add('card', 'mb-4');
+                        
+                        // Card header
+                        const ppCardHeader = document.createElement('div');
+                        ppCardHeader.classList.add('card-header', 'bg-primary', 'text-white');
+                        ppCardHeader.innerHTML = `<h5 class="mb-0">Powerball Plus Prize</h5>`;
+                        ppPrizeCard.appendChild(ppCardHeader);
+                        
+                        // Card body
+                        const ppCardBody = document.createElement('div');
+                        ppCardBody.classList.add('card-body');
+                        
+                        // Prize information
+                        const ppPrizeSection = document.createElement('div');
+                        ppPrizeSection.classList.add('alert', 'alert-success', 'mt-3');
+                        
+                        // Build HTML content for prize info
+                        let prizeHtml = `
+                            <h6 class="alert-heading">Congratulations! You won a prize in Powerball Plus:</h6>
+                            <p>Division: ${data.powerball_plus_results.prize_info.division}</p>
+                            <p>Match Type: ${data.powerball_plus_results.prize_info.match_type}</p>
+                        `;
+                        
+                        // Add description if available
+                        if (data.powerball_plus_results.prize_info.description) {
+                            prizeHtml += `<p>Description: ${data.powerball_plus_results.prize_info.description}</p>`;
+                        }
+                        
+                        // Add prize amount
+                        prizeHtml += `<p>Prize Amount: ${data.powerball_plus_results.prize_info.prize_amount}</p>`;
+                        
+                        ppPrizeSection.innerHTML = prizeHtml;
+                        ppCardBody.appendChild(ppPrizeSection);
+                        
+                        ppPrizeCard.appendChild(ppCardBody);
+                        powerballPlusContainer.appendChild(ppPrizeCard);
+                    }
+                }
+            } else {
+                // Get the Powerball Plus container and hide it if it exists
+                const powerballPlusContainer = document.getElementById('powerball-plus-container');
+                if (powerballPlusContainer) {
+                    powerballPlusContainer.classList.add('d-none');
+                }
+            }
+            
+            // Handle Lotto Plus 1 numbers if present - but only if the main game is Lotto
+            if (data.lottery_type === "Lotto" && (data.lotto_plus_1_results || (data.ticket_info && data.ticket_info.plays_lotto_plus_1))) {
+                // Get the Lotto Plus 1 container
+                const lp1Container = document.getElementById('lotto-plus-1-numbers-container');
+                const lp1NumbersDiv = document.getElementById('lotto-plus-1-numbers');
+                
+                // Show the container
+                lp1Container.classList.remove('d-none');
+                lp1NumbersDiv.innerHTML = '';
+                
+                // Add main numbers if we have results
+                if (data.lotto_plus_1_results && data.lotto_plus_1_results.winning_numbers) {
+                    data.lotto_plus_1_results.winning_numbers.forEach((num, index) => {
+                    const ball = document.createElement('span');
+                    ball.classList.add('lottery-ball');
+                    
+                    // Add color classes in sequence
+                    if (index % 4 === 0) {
+                        ball.classList.add('lottery-ball-red');
+                    } else if (index % 4 === 1) {
+                        ball.classList.add('lottery-ball-yellow');
+                    } else if (index % 4 === 2) {
+                        ball.classList.add('lottery-ball-green');
+                    } else {
+                        ball.classList.add('lottery-ball-blue');
+                    }
+                    
+                    ball.textContent = num;
+                    lp1NumbersDiv.appendChild(ball);
+                });
+                
+                // Add plus sign and bonus numbers
+                if (data.lotto_plus_1_results.bonus_numbers && data.lotto_plus_1_results.bonus_numbers.length > 0) {
+                    const plusSpan = document.createElement('span');
+                    plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
+                    plusSpan.textContent = '+';
+                    lp1NumbersDiv.appendChild(plusSpan);
+                    
+                    // Add bonus numbers
+                    data.lotto_plus_1_results.bonus_numbers.forEach(num => {
+                        const ball = document.createElement('span');
+                        ball.classList.add('lottery-ball', 'lottery-ball-yellow');
+                        ball.textContent = num;
+                        lp1NumbersDiv.appendChild(ball);
+                    });
+                }
+                }
+                
+                // Display Lotto Plus 1 matches
+                if (data.lotto_plus_1_results && data.lotto_plus_1_results.matched_numbers && data.lotto_plus_1_results.matched_numbers.length > 0 || 
+                    (data.lotto_plus_1_results && data.lotto_plus_1_results.matched_bonus && data.lotto_plus_1_results.matched_bonus.length > 0)) {
+                    
+                    // Show the Lotto Plus 1 matches container
+                    const lp1MatchesContainer = document.getElementById('lp1-matched-numbers-section');
+                    if (lp1MatchesContainer) {
+                        lp1MatchesContainer.classList.remove('d-none');
+                    }
+                    
+                    // Check if we have multiple rows with matches for Lotto Plus 1
+                    if (data.ticket_info && data.ticket_info.raw_selected_numbers && data.lotto_plus_1_results.rows_with_matches) {
+                        // Display matches by row for Lotto Plus 1
+                        const lp1MatchedNumbersDiv = document.getElementById('lp1-matched-numbers');
+                        lp1MatchedNumbersDiv.innerHTML = '<h6 class="mb-3">Lotto Plus 1 Matches by Row:</h6>';
+                        
+                        // Get unique matched numbers to update the count
+                        const uniqueLP1MatchedNumbers = [...new Set(data.lotto_plus_1_results.matched_numbers)];
+                        document.getElementById('lp1-matched-count').textContent = uniqueLP1MatchedNumbers.length;
+                        
+                        // Create rows with matches for Lotto Plus 1 game only
+                        const rowsToDisplay = data.lotto_plus_1_results.rows_with_matches || [];
+                        
+                        if (rowsToDisplay.length > 0) {
+                            // Rows with matches
+                            rowsToDisplay.forEach(rowData => {
+                                // Create row label with match indicator
+                                const rowLabel = document.createElement('div');
+                                rowLabel.classList.add('mt-3', 'mb-1');
+                                
+                                // Display row name with match count
+                                let displayRowName = rowData.row;
+                                
+                                // Show match count only if there are matches specific to this game type
+                                const matchCount = rowData.total_matched;
+                                if (matchCount > 0) {
+                                    rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong> <span class="badge bg-success ms-2">Matches: ${matchCount}</span>`;
+                                } else {
+                                    rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong>`;
+                                }
+                                lp1MatchedNumbersDiv.appendChild(rowLabel);
+                                
+                                // Create row container
+                                const rowContainer = document.createElement('div');
+                                rowContainer.classList.add('mb-3');
+                                
+                                // Add balls for this row
+                                rowData.numbers.forEach(num => {
+                                    const ball = document.createElement('span');
+                                    ball.classList.add('lottery-ball');
+                                    
+                                    // Check if this number is a match
+                                    if (rowData.matched_numbers.includes(num)) {
+                                        ball.classList.add('ball-matched');
+                                        
+                                        
+                                        // Create match indicator with game-specific styling
+                                        const matchIcon = document.createElement('div');
+                                        matchIcon.classList.add('match-indicator');
+                                        matchIcon.textContent = '✓'; // Direct text checkmark
+                                        
+                                        matchIcon.classList.add('match-lotto-plus-1');
+                                        ball.setAttribute('title', 'Match in Lotto Plus 1');
+                                        
+                                        // Add the match indicator to the ball
+                                        ball.appendChild(matchIcon);
+                                    }
+                                    
+                                    // Check if this number is a bonus match
+                                    if (rowData.matched_bonus && rowData.matched_bonus.includes(num)) {
+                                        ball.classList.add('ball-matched', 'lottery-ball-yellow');
+                                        ball.style.animation = 'pulse 2s infinite';
+                                        
+                                        // Create match indicator with game-specific styling
+                                        const bonusIcon = document.createElement('span');
+                                        bonusIcon.classList.add('match-indicator');
+                                        bonusIcon.textContent = '✓'; // Direct text checkmark
+                                        bonusIcon.classList.add('match-lotto-plus-1-bonus');
+                                        ball.setAttribute('title', 'Bonus match in Lotto Plus 1');
+                                        
+                                        // Add the match indicator to the ball
+                                        ball.appendChild(bonusIcon);
+                                    }
+                                    
+                                    // Add color classes in sequence
+                                    if (!ball.classList.contains('lottery-ball-yellow')) {
+                                        if (rowContainer.children.length % 4 === 0) {
+                                            ball.classList.add('lottery-ball-red');
+                                        } else if (rowContainer.children.length % 4 === 1) {
+                                            ball.classList.add('lottery-ball-yellow');
+                                        } else if (rowContainer.children.length % 4 === 2) {
+                                            ball.classList.add('lottery-ball-green');
+                                        } else {
+                                            ball.classList.add('lottery-ball-blue');
+                                        }
+                                    }
+                                    
+                                    ball.textContent = num;
+                                    rowContainer.appendChild(ball);
+                                });
+                                
+                                lp1MatchedNumbersDiv.appendChild(rowContainer);
+                            });
+                        } else {
+                            lp1MatchedNumbersDiv.innerHTML += '<p>No rows with Lotto Plus 1 matches found.</p>';
+                        }
+                    } else {
+                        // Legacy display method - for backward compatibility
+                        // Get unique matched numbers
+                        const uniqueLP1MatchedNumbers = [...new Set(data.lotto_plus_1_results.matched_numbers)];
+                        
+                        // Update matched count
+                        document.getElementById('lp1-matched-count').textContent = uniqueLP1MatchedNumbers.length;
+                        
+                        // Display matched numbers
+                        const lp1MatchedNumbersDiv = document.getElementById('lp1-matched-numbers');
+                        lp1MatchedNumbersDiv.innerHTML = '';
+                        
+                        if (uniqueLP1MatchedNumbers.length > 0) {
+                            uniqueLP1MatchedNumbers.forEach(num => {
+                                const ball = document.createElement('span');
+                                ball.classList.add('lottery-ball', 'ball-matched');
+                                ball.setAttribute('title', 'Match in Lotto Plus 1'); // Add game type indicator
+                                
+                                
+                                // Create match indicator with game-specific styling
+                                const matchIcon = document.createElement('div');
+                                matchIcon.classList.add('match-indicator');
+                                matchIcon.textContent = '✓'; // Direct text checkmark
+                                
+                                matchIcon.classList.add('match-lotto-plus-1');
+                                
+                                // Add the match indicator to the ball
+                                ball.appendChild(matchIcon);
+                                
+                                // Add color classes in sequence
+                                if (lp1MatchedNumbersDiv.children.length % 4 === 0) {
+                                    ball.classList.add('lottery-ball-red');
+                                } else if (lp1MatchedNumbersDiv.children.length % 4 === 1) {
+                                    ball.classList.add('lottery-ball-yellow');
+                                } else if (lp1MatchedNumbersDiv.children.length % 4 === 2) {
+                                    ball.classList.add('lottery-ball-green');
+                                } else {
+                                    ball.classList.add('lottery-ball-blue');
+                                }
+                                
+                                ball.textContent = num;
+                                lp1MatchedNumbersDiv.appendChild(ball);
+                            });
+                        } else {
+                            lp1MatchedNumbersDiv.innerHTML = '<p>No matching main numbers found for Lotto Plus 1.</p>';
+                        }
+                        
+                        // Get unique matched bonus numbers and add them to the matched numbers section
+                        if (data.lotto_plus_1_results.matched_bonus && data.lotto_plus_1_results.matched_bonus.length > 0) {
+                            const uniqueLP1MatchedBonus = [...new Set(data.lotto_plus_1_results.matched_bonus)];
+                            
+                            // Add a separator if there are also matched main numbers
+                            if (uniqueLP1MatchedNumbers.length > 0) {
+                                const separator = document.createElement('div');
+                                separator.classList.add('mt-2', 'mb-2');
+                                separator.innerHTML = '<strong>Matched Bonus:</strong>';
+                                lp1MatchedNumbersDiv.appendChild(separator);
+                            }
+                            
+                            uniqueLP1MatchedBonus.forEach(num => {
+                                const ball = document.createElement('span');
+                                ball.classList.add('lottery-ball', 'ball-matched', 'lottery-ball-yellow');
+                                ball.style.animation = 'pulse 2s infinite';
+                                ball.setAttribute('title', 'Bonus match in Lotto Plus 1'); // Add game type indicator
+                                
+                                // Create match indicator with game-specific styling for bonus match
+                                const bonusIcon = document.createElement('span');
+                                bonusIcon.classList.add('match-indicator');
+                                bonusIcon.textContent = '✓'; // Direct text checkmark
+                                bonusIcon.classList.add('match-lotto-plus-1-bonus');
+                                
+                                // Add the match indicator to the ball
+                                ball.appendChild(bonusIcon);
+                                
+                                ball.textContent = num;
+                                lp1MatchedNumbersDiv.appendChild(ball);
+                            });
+                        }
+                    }
+                }
+            }
+            
+            // Handle Lotto Plus 2 numbers if present - but only if the main game is Lotto
+            if (data.lottery_type === "Lotto" && (data.lotto_plus_2_results || (data.ticket_info && data.ticket_info.plays_lotto_plus_2))) {
+                // Get the Lotto Plus 2 container
+                const lp2Container = document.getElementById('lotto-plus-2-numbers-container');
+                const lp2NumbersDiv = document.getElementById('lotto-plus-2-numbers');
+                
+                // Show the container
+                lp2Container.classList.remove('d-none');
+                lp2NumbersDiv.innerHTML = '';
+                
+                // Add main numbers if we have results
+                if (data.lotto_plus_2_results && data.lotto_plus_2_results.winning_numbers) {
+                    data.lotto_plus_2_results.winning_numbers.forEach((num, index) => {
+                    const ball = document.createElement('span');
+                    ball.classList.add('lottery-ball');
+                    
+                    // Add color classes in sequence
+                    if (index % 4 === 0) {
+                        ball.classList.add('lottery-ball-red');
+                    } else if (index % 4 === 1) {
+                        ball.classList.add('lottery-ball-yellow');
+                    } else if (index % 4 === 2) {
+                        ball.classList.add('lottery-ball-green');
+                    } else {
+                        ball.classList.add('lottery-ball-blue');
+                    }
+                    
+                    ball.textContent = num;
+                    lp2NumbersDiv.appendChild(ball);
+                });
+                
+                // Add plus sign and bonus numbers
+                if (data.lotto_plus_2_results.bonus_numbers && data.lotto_plus_2_results.bonus_numbers.length > 0) {
+                    const plusSpan = document.createElement('span');
+                    plusSpan.classList.add('mx-2', 'my-auto', 'fs-4');
+                    plusSpan.textContent = '+';
+                    lp2NumbersDiv.appendChild(plusSpan);
+                    
+                    // Add bonus numbers
+                    data.lotto_plus_2_results.bonus_numbers.forEach(num => {
+                        const ball = document.createElement('span');
+                        ball.classList.add('lottery-ball', 'lottery-ball-yellow');
+                        ball.textContent = num;
+                        lp2NumbersDiv.appendChild(ball);
+                    });
+                }
+                }
+                
+                // Display Lotto Plus 2 matches
+                if (data.lotto_plus_2_results && data.lotto_plus_2_results.matched_numbers && data.lotto_plus_2_results.matched_numbers.length > 0 || 
+                    (data.lotto_plus_2_results && data.lotto_plus_2_results.matched_bonus && data.lotto_plus_2_results.matched_bonus.length > 0)) {
+                    
+                    // Show the Lotto Plus 2 matches container
+                    const lp2MatchesContainer = document.getElementById('lp2-matched-numbers-section');
+                    if (lp2MatchesContainer) {
+                        lp2MatchesContainer.classList.remove('d-none');
+                    }
+                    
+                    // Check if we have multiple rows with matches for Lotto Plus 2
+                    if (data.ticket_info && data.ticket_info.raw_selected_numbers && data.lotto_plus_2_results.rows_with_matches) {
+                        // Display matches by row for Lotto Plus 2
+                        const lp2MatchedNumbersDiv = document.getElementById('lp2-matched-numbers');
+                        lp2MatchedNumbersDiv.innerHTML = '<h6 class="mb-3">Lotto Plus 2 Matches by Row:</h6>';
+                        
+                        // Get unique matched numbers to update the count
+                        const uniqueLP2MatchedNumbers = [...new Set(data.lotto_plus_2_results.matched_numbers)];
+                        document.getElementById('lp2-matched-count').textContent = uniqueLP2MatchedNumbers.length;
+                        
+                        // Create rows with matches for Lotto Plus 2 game only
+                        const rowsToDisplay = data.lotto_plus_2_results.rows_with_matches || [];
+                        
+                        if (rowsToDisplay.length > 0) {
+                            // Rows with matches
+                            rowsToDisplay.forEach(rowData => {
+                                // Create row label with match indicator
+                                const rowLabel = document.createElement('div');
+                                rowLabel.classList.add('mt-3', 'mb-1');
+                                
+                                // Display row name with match count
+                                let displayRowName = rowData.row;
+                                
+                                // Show match count only if there are matches specific to this game type
+                                const matchCount = rowData.total_matched;
+                                if (matchCount > 0) {
+                                    rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong> <span class="badge bg-success ms-2">Matches: ${matchCount}</span>`;
+                                } else {
+                                    rowLabel.innerHTML = `<strong>Row ${displayRowName}:</strong>`;
+                                }
+                                lp2MatchedNumbersDiv.appendChild(rowLabel);
+                                
+                                // Create row container
+                                const rowContainer = document.createElement('div');
+                                rowContainer.classList.add('mb-3');
+                                
+                                // Add balls for this row
+                                rowData.numbers.forEach(num => {
+                                    const ball = document.createElement('span');
+                                    ball.classList.add('lottery-ball');
+                                    
+                                    // Check if this number is a match
+                                    if (rowData.matched_numbers.includes(num)) {
+                                        
+                                        ball.classList.add('ball-matched');
+                                        
+                                        // Create match indicator with game-specific styling
+                                        const matchIcon = document.createElement('div');
+                                        matchIcon.classList.add('match-indicator');
+                                        matchIcon.textContent = '✓'; // Direct text checkmark
+                                        
+                                        matchIcon.classList.add('match-lotto-plus-2');
+                                        ball.setAttribute('title', 'Match in Lotto Plus 2');
+                                        
+                                        // Add the match indicator to the ball
+                                        ball.appendChild(matchIcon);
+                                    }
+                                    
+                                    // Check if this number is a bonus match
+                                    if (rowData.matched_bonus && rowData.matched_bonus.includes(num)) {
+                                        ball.classList.add('ball-matched', 'lottery-ball-yellow');
+                                        ball.style.animation = 'pulse 2s infinite';
+                                        
+                                        // Create match indicator with game-specific styling
+                                        const bonusIcon = document.createElement('span');
+                                        bonusIcon.classList.add('match-indicator');
+                                        bonusIcon.textContent = '✓'; // Direct text checkmark
+                                        bonusIcon.classList.add('match-lotto-plus-2-bonus');
+                                        ball.setAttribute('title', 'Bonus match in Lotto Plus 2');
+                                        
+                                        // Add the match indicator to the ball
+                                        ball.appendChild(bonusIcon);
+                                    }
+                                    
+                                    // Add color classes in sequence
+                                    if (!ball.classList.contains('lottery-ball-yellow')) {
+                                        if (rowContainer.children.length % 4 === 0) {
+                                            ball.classList.add('lottery-ball-red');
+                                        } else if (rowContainer.children.length % 4 === 1) {
+                                            ball.classList.add('lottery-ball-yellow');
+                                        } else if (rowContainer.children.length % 4 === 2) {
+                                            ball.classList.add('lottery-ball-green');
+                                        } else {
+                                            ball.classList.add('lottery-ball-blue');
+                                        }
+                                    }
+                                    
+                                    ball.textContent = num;
+                                    rowContainer.appendChild(ball);
+                                });
+                                
+                                lp2MatchedNumbersDiv.appendChild(rowContainer);
+                            });
+                        } else {
+                            lp2MatchedNumbersDiv.innerHTML += '<p>No rows with Lotto Plus 2 matches found.</p>';
+                        }
+                    } else {
+                        // Legacy display method - for backward compatibility
+                        // Get unique matched numbers
+                        const uniqueLP2MatchedNumbers = [...new Set(data.lotto_plus_2_results.matched_numbers)];
+                        
+                        // Update matched count
+                        document.getElementById('lp2-matched-count').textContent = uniqueLP2MatchedNumbers.length;
+                        
+                        // Display matched numbers
+                        const lp2MatchedNumbersDiv = document.getElementById('lp2-matched-numbers');
+                        lp2MatchedNumbersDiv.innerHTML = '';
+                        
+                        // Display both main and bonus matches together
+                        const allLP2Matches = [...uniqueLP2MatchedNumbers];
+                        
+                        // Add bonus matches if they exist
+                        if (data.lotto_plus_2_results.matched_bonus && data.lotto_plus_2_results.matched_bonus.length > 0) {
+                            // Add bonus numbers to the main matched numbers display
+                            allLP2Matches.push(...data.lotto_plus_2_results.matched_bonus);
+                        }
+                        
+                        if (allLP2Matches.length > 0) {
+                            allLP2Matches.forEach(num => {
+                                const ball = document.createElement('span');
+                                ball.classList.add('lottery-ball', 'ball-matched');
+                                
+                                // Style bonus numbers differently if needed
+                                if (data.lotto_plus_2_results.bonus_numbers.includes(num)) {
+                                    ball.classList.add('lottery-ball-yellow');
+                                    ball.style.animation = 'pulse 2s infinite';
+                                    ball.setAttribute('title', 'Bonus match in Lotto Plus 2'); // Add game type indicator
+                                    
+                                    // Create match indicator with game-specific styling for bonus match
+                                    const bonusIcon = document.createElement('span');
+                                    bonusIcon.classList.add('match-indicator');
+                                    bonusIcon.textContent = '✓'; // Direct text checkmark
+                                    bonusIcon.classList.add('match-lotto-plus-2-bonus');
+                                    
+                                    // Add the match indicator to the ball
+                                    ball.appendChild(bonusIcon);
+                                    
+                                } else {
+                                    ball.setAttribute('title', 'Match in Lotto Plus 2'); // Add game type indicator
+                                    
+                                    // Create match indicator with game-specific styling
+                                    const matchIcon = document.createElement('div');
+                                    matchIcon.classList.add('match-indicator');
+                                    matchIcon.textContent = '✓'; // Direct text checkmark
+                                    
+                                    matchIcon.classList.add('match-lotto-plus-2');
+                                    
+                                    // Add the match indicator to the ball
+                                    ball.appendChild(matchIcon);
+                                    // Add color classes in sequence for regular numbers
+                                    if (lp2MatchedNumbersDiv.children.length % 4 === 0) {
+                                        ball.classList.add('lottery-ball-red');
+                                    } else if (lp2MatchedNumbersDiv.children.length % 4 === 1) {
+                                        ball.classList.add('lottery-ball-yellow');
+                                    } else if (lp2MatchedNumbersDiv.children.length % 4 === 2) {
+                                        ball.classList.add('lottery-ball-green');
+                                    } else {
+                                        ball.classList.add('lottery-ball-blue');
+                                    }
+                                }
+                                
+                                ball.textContent = num;
+                                lp2MatchedNumbersDiv.appendChild(ball);
+                            });
+                        } else {
+                            lp2MatchedNumbersDiv.innerHTML = '<p>No matching numbers found for Lotto Plus 2.</p>';
+                        }
+                    }
+                }
+            }
+            
+            // Scroll to results with our improved scrolling function
+            setTimeout(() => {
+                // First make sure scrolling is fully enabled
+                if (typeof enableScrolling === 'function') {
+                    enableScrolling();
+                }
+                
+                // Then use our dedicated scroll to results function if available
+                if (typeof scrollToResults === 'function') {
+                    scrollToResults();
+                } else {
+                    // Fallback to basic scrolling if the function isn't available
+                    window.scrollTo({
+                        top: resultsContainer.offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 300);
+        } catch (error) {
+            console.error("Error displaying results:", error);
+            showError("An error occurred while displaying results. Please try again.");
+            enableScrolling();
+        }
+        }
+        
+        function showError(message) {
+            // Ensure scrolling is enabled
+            enableScrolling();
+            
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            const successContent = document.getElementById('success-content');
+            
+            errorText.textContent = message;
+            errorMessage.classList.remove('d-none');
+            successContent.classList.add('d-none');
+        }
+    });
+</script>
+<!-- DEFERRED SCRIPTS: Non-critical scripts that can load after page render -->
+<script src="{{ url_for('static', filename='js/fresh_checkmark.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/view-results-direct.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/mobile-button-fix.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/ios-specific-fix.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/rounded-pill-fix.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/smooth-scroll-fix.js') }}" defer></script>
+
+<!-- PERFORMANCE: Inline script to boost initial render speed on mobile -->
+<script>
+(function() {
+    // Immediately optimize page rendering
+    document.documentElement.classList.add('optimized-loading');
+    
+    // Detect mobile and immediately optimize
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        // Set viewport optimization
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        if (viewportMeta) {
+            viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+        }
+        
+        // Initialize critical UI elements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Touch optimization for buttons
+            document.querySelectorAll('button, a, .btn').forEach(function(el) {
+                el.addEventListener('touchstart', function(){}, {passive: true});
+            });
+            
+            // Optimize loading state
+            console.log('Mobile optimization complete');
+        });
+    }
+})();
+</script>
+{% endblock %}
