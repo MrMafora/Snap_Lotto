@@ -103,6 +103,7 @@ csrf = EnhancedCSRFProtect(app)
 
 # Exempt endpoints that don't need CSRF protection
 csrf.exempt('scan_ticket')
+csrf.exempt('process_ticket')
 csrf.exempt('check_js')
 csrf.exempt('resolve_health_alert')
 csrf.exempt('api_system_metrics')
