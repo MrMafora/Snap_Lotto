@@ -210,7 +210,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         fetch('/process-ticket', {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         })
         .then(response => {
             if (!response.ok) {
