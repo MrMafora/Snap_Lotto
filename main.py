@@ -629,6 +629,7 @@ def ticket_scanner():
                           meta_description=meta_description)
 
 @app.route('/process-ticket', methods=['POST'])
+@csrf.exempt
 def process_ticket():
     """Process a lottery ticket image and return JSON results"""
     if 'ticket_image' not in request.files:
