@@ -755,21 +755,15 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         
         // Function to submit and process the ticket
         function submitTicket(formData) {
-            // Add CSRF token to headers
-            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-            
             // Show loader
             const loadingIndicator = document.getElementById('scanner-loading');
             loadingIndicator.style.display = 'block';
             
             console.log('Sending ticket data to processing endpoint...');
-            // Add CSRF token to request headers and submit
+            // Submit form data (CSRF token is already included in the FormData)
             fetch('/process-ticket', {
                 method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': csrfToken
-                }
+                body: formData
             })
             .then(response => {
                 console.log('Response received:', response.status);
@@ -812,105 +806,10 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
                 // Show detailed error message
                 showError('Error processing ticket: ' + error.message);
             });
-                    
-                    // Clear ALL possible timers to prevent any conflicts
-                    // This is important to prevent any hidden callbacks from running later
-                    for (let i = 1; i < 10000; i++) {
-                        clearTimeout(i);
-                        clearInterval(i);
-                    }
-                    
-                    // Clear our named timers
-                    if (window.countdownInterval) {
-                        clearInterval(window.countdownInterval);
-                        window.countdownInterval = null;
-                    }
-                    
-                    if (window.countdownTimeout) {
-                        clearTimeout(window.countdownTimeout);
-                        window.countdownTimeout = null;
-                    }
-                    
-                    // Reset other possible timeout variables
-                    if (window.adDisplayTimeout) {
-                        clearTimeout(window.adDisplayTimeout);
-                        window.adDisplayTimeout = null;
-                    }
-                    
-                    if (window.resultDisplayTimeout) {
-                        clearTimeout(window.resultDisplayTimeout);
-                        window.resultDisplayTimeout = null;
-                    }
-                    
-                    // Set state flags immediately
-                    window.countdownRunning = false;
-                    window.inResultsMode = true;
-                    window.showingResultsAfterAd = true;
-                    window.adClosed = true;
-                    window.viewResultsBtnClicked = true; // New flag for tracking this specific click
-                    
-                    // Get the ad overlay for transition effects
-                    const adOverlay = document.getElementById('ad-overlay');
-                    if (adOverlay) {
-                        adOverlay.classList.add('closing');
-                    }
-                    
-                    // Apply closing animation to ad overlay results
-                    adOverlayResults.classList.add('closing');
-                    
-                    // Save the data for reuse if needed
-                    window.lastTicketData = data;
-                    
-                    console.log('Processing view results click, closing overlay');
-                    
-                    // Add the results-in-progress class to body immediately
-                    document.body.classList.add('results-mode');
-                    document.body.classList.add('showing-results');
-                    document.body.classList.add('ad-closed');
-                    
-                    // Force hide all overlays immediately (don't wait for animation)
-                    const allOverlays = document.querySelectorAll('[id^="ad-overlay"]');
-                    allOverlays.forEach(overlay => {
-                        overlay.style.display = 'none';
-                        overlay.style.opacity = '0';
-                        overlay.style.visibility = 'hidden';
-                    });
-                    
-                    // Make sure body scrolling is enabled using our improved function
-                    if (typeof enableScrolling === 'function') {
-                        enableScrolling();
-                    } else {
-                        // Fallback if function not available
-                        document.body.style.overflow = '';
-                        document.body.style.height = '';
-                        document.body.style.position = '';
-                    }
-                    
-                    console.log('About to display results after clicked View Results');
-                    
-                    // Display the results immediately
-                    displayResults(resultsToShow || data);
-                    
-                    // Make sure results are properly scrolled into view
-                    setTimeout(() => {
-                        // Use our dedicated scroll function if available
-                        if (typeof scrollToResults === 'function') {
-                            scrollToResults();
-                        } else {
-                            // Fallback scrolling
-                            const resultsContainer = document.getElementById('results-container');
-                            if (resultsContainer) {
-                                resultsContainer.scrollIntoView({
-                                    behavior: 'smooth',
-                                    block: 'start'
-                                });
-                            }
-                        }
-                    }, 500);
-                    
-                    // Create a persistent monitor to keep results visible
-                    // This ensures our results stay visible even if something tries to hide them
-                    window.resultsMonitorInterval = setInterval(() => {
+        }
+        
+        // Form submission event listener
+        ticketForm.addEventListener('submit', processForm);
                         const resultsContainer = document.getElementById('results-container');
                         if (resultsContainer && resultsContainer.classList.contains('d-none')) {
                             console.log('Results container was hidden, making visible again');
