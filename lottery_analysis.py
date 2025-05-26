@@ -346,7 +346,7 @@ class LotteryAnalyzer:
                             # Convert to numeric first to handle any string values
                             numeric_col = pd.to_numeric(lt_df[col], errors='coerce')
                             max_val = numeric_col.max()
-                            if not pd.isna(max_val) and max_val > max_number:
+                            if not pd.isna(max_val) and float(max_val) > float(max_number):
                                 max_number = int(max_val)
                         except Exception as e:
                             logger.warning(f"Error processing column {col}: {e}")

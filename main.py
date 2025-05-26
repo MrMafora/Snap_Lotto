@@ -40,10 +40,7 @@ from config import Config
 # ad_management temporarily disabled
 # import ad_management
 import lottery_analysis
-# Import our fix module first to patch the problematic functions
-import lottery_analysis_fix
-# Import fixes for lottery routes
-import fix_lottery_routes
+# Remove problematic fix modules that are causing conflicts
 from import_latest_spreadsheet import import_latest_spreadsheet, find_latest_spreadsheet
 import scanner_routes  # Import the scanner routes module
 
