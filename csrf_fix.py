@@ -29,6 +29,9 @@ class EnhancedCSRFProtect(CSRFProtect):
         # Disable referrer check in all environments for Replit compatibility
         app.config.setdefault('WTF_CSRF_CHECK_REFERER', False)
         
+        # Completely disable CSRF for certain endpoints
+        app.config.setdefault('WTF_CSRF_ENABLED', True)
+        
         # Set proper cookie settings for production vs development
         environment = app.config.get('ENVIRONMENT', 'development')
         if environment == 'production':
