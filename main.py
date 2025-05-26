@@ -42,7 +42,7 @@ from config import Config
 import lottery_analysis
 # Remove problematic fix modules that are causing conflicts
 from import_latest_spreadsheet import import_latest_spreadsheet, find_latest_spreadsheet
-import scanner_routes  # Import the scanner routes module
+# scanner_routes module temporarily disabled to resolve conflicts
 
 # Import auto_proxy to start the port proxy in the background
 try:
@@ -630,6 +630,7 @@ def ticket_scanner():
                           meta_description=meta_description)
 
 @app.route('/process-ticket', methods=['POST'])
+@csrf.exempt
 def process_ticket():
     """Process a lottery ticket image and return JSON results"""
     if 'ticket_image' not in request.files:
