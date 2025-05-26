@@ -733,7 +733,9 @@ Snap Scan and Win = Phanda Phusha Play. Our exclusive technology gives you insta
         function processForm(event) {
             event.preventDefault();
             
-            if (!validateScannerForm()) {
+            // Check if file is selected
+            if (!fileInput.files.length) {
+                showError('Please select a ticket image first.');
                 return false;
             }
             
