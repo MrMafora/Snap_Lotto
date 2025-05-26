@@ -665,16 +665,12 @@ def process_ticket():
         file.seek(0)
         file.save(file_path)
         
-        # Import the ticket scanner module
-        import ticket_scanner as ts
+        # Initialize the ticket scanner
+        from ticket_scanner import TicketScanner
+        scanner = TicketScanner()
         
-        # Process the ticket image using existing function
-        result = ts.process_ticket_image(
-            image_data=image_data,
-            lottery_type=lottery_type,
-            draw_number=draw_number,
-            file_extension=file_extension
-        )
+        # Process the ticket image using the scanner
+        result = scanner.scan_ticket(file_path)
         
         # Store result in session for results page
         session['scan_result'] = result
