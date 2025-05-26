@@ -665,12 +665,101 @@ def process_ticket():
         file.seek(0)
         file.save(file_path)
         
-        # Initialize the ticket scanner
-        from ticket_scanner import TicketScanner
-        scanner = TicketScanner()
-        
-        # Process the ticket image using the scanner
-        result = scanner.scan_ticket(file_path)
+        # Process the ticket using Anthropic AI with the new API key
+        try:
+            import base64
+            import json
+            import anthropic
+            
+            # Initialize Anthropic client with the new API key
+            client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_SNAP_LOTTERY'))
+            
+            # Read and encode the image
+            with open(file_path, 'rb') as image_file:
+                image_data = base64.b64encode(image_file.read()).decode('utf-8')
+            
+            # Create the message for Anthropic
+            message = client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=1000,
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": image_data
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": """Analyze this South African lottery ticket image and extract the following information in JSON format:
+                            {
+                                "success": true,
+                                "lottery_type": "PowerBall/Lotto/Daily Lotto/etc",
+                                "numbers": [array of main numbers],
+                                "powerball_or_bonus": number (if applicable),
+                                "draw_number": "string",
+                                "draw_date": "YYYY-MM-DD",
+                                "ticket_cost": "amount if visible"
+                            }
+                            
+                            Focus on extracting the exact numbers played, lottery type, and draw information visible on the ticket."""
+                        }
+                    ]
+                }]
+            )
+            
+            # Parse the response
+            response_text = message.content[0].text
+            
+            # Try to extract JSON from the response
+            try:
+                # Look for JSON in the response
+                import re
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                if json_match:
+                    ticket_data = json.loads(json_match.group())
+                else:
+                    ticket_data = json.loads(response_text)
+                
+                # Create a successful result
+                result = {
+                    'success': True,
+                    'ticket_data': ticket_data,
+                    'raw_response': response_text,
+                    'comparison': {
+                        'message': 'Ticket analyzed successfully! Check your numbers against the latest draw results.',
+                        'extracted_numbers': ticket_data.get('numbers', []),
+                        'lottery_type': ticket_data.get('lottery_type', 'Unknown')
+                    }
+                }
+                
+            except json.JSONDecodeError:
+                # If JSON parsing fails, create a result with the raw text
+                result = {
+                    'success': True,
+                    'ticket_data': {
+                        'lottery_type': lottery_type or 'PowerBall',
+                        'raw_analysis': response_text
+                    },
+                    'comparison': {
+                        'message': 'Ticket analyzed, but needs manual review',
+                        'raw_response': response_text
+                    }
+                }
+                
+        except Exception as e:
+            logger.error(f"Error processing ticket with Anthropic: {str(e)}")
+            result = {
+                'success': False,
+                'error': f"Error analyzing ticket: {str(e)}",
+                'ticket_data': {
+                    'lottery_type': lottery_type or 'PowerBall'
+                }
+            }
         
         # Store result in session for results page
         session['scan_result'] = result
