@@ -576,12 +576,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const pbBallsContainer = document.createElement('div');
             pbBallsContainer.className = 'd-flex flex-wrap gap-1';
 
-            // Parse winning numbers
+            // Parse winning numbers - handle double-encoded JSON
             let winningNumbers = [];
             try {
-                winningNumbers = JSON.parse(data.powerball_results.winning_numbers || '[]');
+                let rawNumbers = data.powerball_results.winning_numbers || '[]';
+                // If it's a string that looks like JSON, parse it
+                if (typeof rawNumbers === 'string') {
+                    // Handle double-encoded JSON strings
+                    if (rawNumbers.startsWith('"[')) {
+                        rawNumbers = JSON.parse(rawNumbers);
+                    }
+                    winningNumbers = JSON.parse(rawNumbers);
+                } else if (Array.isArray(rawNumbers)) {
+                    winningNumbers = rawNumbers;
+                }
+                console.log('Parsed PowerBall winning numbers:', winningNumbers);
             } catch (e) {
-                console.log('Could not parse winning numbers');
+                console.log('Could not parse PowerBall winning numbers:', e);
+                winningNumbers = [];
             }
 
             // Display winning main numbers
@@ -642,12 +654,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const pbPlusBallsContainer = document.createElement('div');
             pbPlusBallsContainer.className = 'd-flex flex-wrap gap-2 mb-2';
 
-            // Parse PowerBall Plus winning numbers
+            // Parse PowerBall Plus winning numbers - handle double-encoded JSON
             let winningPlusNumbers = [];
             try {
-                winningPlusNumbers = JSON.parse(data.powerball_plus_results.winning_numbers || '[]');
+                let rawPlusNumbers = data.powerball_plus_results.winning_numbers || '[]';
+                // If it's a string that looks like JSON, parse it
+                if (typeof rawPlusNumbers === 'string') {
+                    // Handle double-encoded JSON strings
+                    if (rawPlusNumbers.startsWith('"[')) {
+                        rawPlusNumbers = JSON.parse(rawPlusNumbers);
+                    }
+                    winningPlusNumbers = JSON.parse(rawPlusNumbers);
+                } else if (Array.isArray(rawPlusNumbers)) {
+                    winningPlusNumbers = rawPlusNumbers;
+                }
+                console.log('Parsed PowerBall Plus winning numbers:', winningPlusNumbers);
             } catch (e) {
-                console.log('Could not parse PowerBall Plus winning numbers');
+                console.log('Could not parse PowerBall Plus winning numbers:', e);
+                winningPlusNumbers = [];
             }
 
             // Display winning main numbers for PowerBall Plus
