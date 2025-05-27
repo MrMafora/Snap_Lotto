@@ -146,13 +146,6 @@ login_manager.login_view = 'login'
 app.config['WTF_CSRF_ENABLED'] = False  # Completely disable CSRF for Replit environment
 
 # All endpoints are now exempt from CSRF protection
-csrf.exempt('api_frequency_analysis')
-csrf.exempt('api_pattern_analysis')
-csrf.exempt('api_time_series_analysis')
-csrf.exempt('api_correlation_analysis')
-csrf.exempt('api_winner_analysis')
-csrf.exempt('api_lottery_prediction')
-csrf.exempt('api_full_analysis')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -388,7 +381,6 @@ def admin():
 # Removed duplicate api-tracking route - functionality moved to api_tracking_view() function
 
 @app.route('/login', methods=['GET', 'POST'])
-@csrf.exempt
 def login():
     """Login page"""
     if current_user.is_authenticated:
@@ -463,7 +455,6 @@ def ticket_scanner():
                           meta_description=meta_description)
 
 @app.route('/process-ticket', methods=['POST'])
-@csrf.exempt
 def process_ticket():
     """Process a lottery ticket image and return JSON results"""
     if 'ticket_image' not in request.files:
@@ -1376,7 +1367,6 @@ def get_file_upload_progress():
 
 @app.route('/api/file-upload-progress/reset', methods=['POST'])
 @login_required
-@csrf.exempt
 def reset_file_upload_progress():
     """Reset the file upload progress for the current user"""
     user_id = current_user.id
@@ -1391,7 +1381,6 @@ def reset_file_upload_progress():
 
 @app.route('/import-latest-spreadsheet', methods=['POST'])
 @login_required
-@csrf.exempt
 def import_latest_spreadsheet_route():
     """Import the latest spreadsheet file from attached_assets or uploads directory"""
     if not current_user.is_admin:
@@ -1534,7 +1523,6 @@ def import_details(import_id):
 
 @app.route('/import-data', methods=['GET', 'POST'])
 @login_required
-@csrf.exempt
 def import_data():
     """Import data from Excel spreadsheet"""
     global import_excel, import_snap_lotto_data
@@ -2380,7 +2368,6 @@ def view_zoomed_screenshot(screenshot_id):
 
 @app.route('/sync-all-screenshots', methods=['POST'])
 @login_required
-@csrf.exempt
 def sync_all_screenshots():
     """Sync all screenshots from their source URLs"""
     if not current_user.is_admin:
@@ -2414,7 +2401,6 @@ def sync_all_screenshots():
 
 @app.route('/sync-screenshot/<int:screenshot_id>', methods=['POST'])
 @login_required
-@csrf.exempt
 def sync_single_screenshot(screenshot_id):
     """Sync a single screenshot by its ID"""
     if not current_user.is_admin:
@@ -2450,7 +2436,6 @@ def sync_single_screenshot(screenshot_id):
 
 @app.route('/cleanup-screenshots', methods=['POST'])
 @login_required
-@csrf.exempt
 def cleanup_screenshots():
     """Route to cleanup old screenshots"""
     if not current_user.is_admin:
@@ -3051,14 +3036,12 @@ def system_status():
 
 @app.route('/admin/check-js', methods=['POST'])
 @login_required
-@csrf.exempt
 def check_js():
     """API endpoint to check if JavaScript is operational"""
     return jsonify({'success': True})
 
 @app.route('/admin/health-dashboard')
 @login_required
-@csrf.exempt
 def health_dashboard():
     """Health monitoring dashboard for system administrators"""
     import health_monitor
@@ -3235,7 +3218,6 @@ def health_alerts():
 
 @app.route('/admin/resolve-health-alert/<int:alert_id>', methods=['POST'])
 @login_required
-@csrf.exempt
 def resolve_health_alert(alert_id):
     """Manually resolve a health alert"""
     import health_monitor
@@ -3437,7 +3419,6 @@ def health_port_check():
 
 @app.route('/admin/run-health-checks', methods=['POST', 'GET'])
 @login_required
-@csrf.exempt
 def run_health_checks():
     """Manually trigger health checks"""
     import health_monitor
@@ -3451,7 +3432,6 @@ def run_health_checks():
     return redirect(url_for('health_dashboard'))
 
 @app.route('/health_check', methods=['GET'])
-@csrf.exempt
 def health_check():
     """Simple endpoint for health checks in Replit deployment"""
     return jsonify({
@@ -3463,7 +3443,6 @@ def health_check():
 
 
 @app.route('/api/system-metrics', methods=['GET'])
-@csrf.exempt
 def system_metrics():
     """API endpoint to get current system metrics for dashboard"""
     try:
