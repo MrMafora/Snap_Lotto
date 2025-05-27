@@ -3516,6 +3516,7 @@ lottery_analysis.register_analysis_routes(app, db)
 
 @app.route('/extract-lottery-data', methods=['GET', 'POST'])
 @login_required
+@csrf.exempt
 def extract_lottery_data():
     """Admin route to extract lottery data from images using AI"""
     if not current_user.is_admin:
