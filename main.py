@@ -877,8 +877,9 @@ def process_ticket():
                     'draw_date': ticket_data.get('draw_date', 'Not detected'),
                     'draw_number': ticket_data.get('draw_number', 'Not detected'),
                     'ticket_numbers': ticket_data.get('main_numbers', []),
-                    'powerball_number': ticket_data.get('powerball_number'),
+                    'powerball_number': ticket_data.get('powerball_number', 'Not detected'),
                     'powerball_plus_included': ticket_data.get('powerball_plus_included', 'NO'),
+                    'ticket_cost': ticket_data.get('ticket_cost', 'Not detected'),
                     'is_winner': False,  # Will be determined by comparison
                     'prize_amount': None,
                     'ticket_data': ticket_data,
