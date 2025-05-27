@@ -410,8 +410,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 lineDiv.appendChild(ballsContainer);
                 
-                // Add PowerBall number for this line if available
-                const powerballNum = data.all_powerball && data.all_powerball[index] ? data.all_powerball[index] : data.powerball_number;
+                // Add PowerBall number for this line if available - fix indexing
+                let powerballNum;
+                if (data.all_powerball && data.all_powerball.length > index) {
+                    powerballNum = data.all_powerball[index].toString().replace(/[\[\]"]/g, '');
+                } else if (data.all_powerball && data.all_powerball.length > 0) {
+                    powerballNum = data.all_powerball[0].toString().replace(/[\[\]"]/g, '');
+                } else if (data.powerball_number) {
+                    powerballNum = data.powerball_number.toString().replace(/[\[\]"]/g, '');
+                } else {
+                    powerballNum = null;
+                }
                 
                 if (powerballNum) {
                     const isPowerballMatch = winningPowerball && winningPowerball === powerballNum;
@@ -539,10 +548,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create winning numbers section
         const winningSection = document.createElement('div');
         winningSection.id = 'winning-numbers-display';
-        winningSection.className = 'mb-3 p-2 border rounded bg-warning bg-opacity-10';
+        winningSection.className = 'mb-3 p-3 border rounded bg-warning bg-opacity-10';
 
         const winningTitle = document.createElement('h6');
-        winningTitle.className = 'mb-2 text-warning';
+        winningTitle.className = 'mb-3 text-warning';
         winningTitle.innerHTML = '🏆 Winning Numbers';
         winningSection.appendChild(winningTitle);
 
@@ -602,7 +611,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 pbRow.appendChild(pbBall);
             }
 
-            pbRow.appendChild(pbBallsContainer);
+            pbBallsContainer.appendChild(pbRow);
             pbSection.appendChild(pbRow);
 
             winningSection.appendChild(pbSection);

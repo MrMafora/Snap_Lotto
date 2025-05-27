@@ -550,19 +550,16 @@ def process_ticket():
 CRITICAL INSTRUCTIONS:
 1. Find ALL number rows (A1, B1, C1, D1, E1, F1, etc.) - each row has 5 main numbers
 2. Find the PowerBall number for EACH row (A2, B2, C2, D2, E2, F2, etc.) - each row has its own PowerBall
-3. Return exactly this JSON format with ALL rows and their individual PowerBall numbers:
+3. The PowerBall numbers can be DIFFERENT for each row - extract the actual number shown for each line
+4. Return exactly this JSON format with ALL rows and their individual PowerBall numbers:
 
 {
     "lottery_type": "PowerBall",
     "all_lines": [
         [9, 15, 37, 39, 50],
-        [12, 26, 31, 32, 47],
-        [12, 21, 31, 36, 37],
-        [9, 24, 27, 29, 50],
-        [10, 11, 16, 31, 48],
-        [3, 16, 33, 41, 49]
+        [12, 26, 31, 32, 47]
     ],
-    "all_powerball": ["7", "7", "7", "7", "7", "7"],
+    "all_powerball": ["7", "12"],
     "powerball_plus_included": "YES",
     "draw_date": "21/03/25",
     "draw_number": "1599",
