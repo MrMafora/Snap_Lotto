@@ -944,7 +944,10 @@ def process_ticket():
         logger.info(f"Lottery type: {result.get('lottery_type')}")
         logger.info(f"Draw date: {result.get('draw_date')}")
         logger.info(f"Ticket numbers: {result.get('ticket_numbers')}")
-        logger.info(f"Raw response first 200 chars: {result.get('raw_response', '')[:200]}")
+        logger.info(f"PowerBall number: {result.get('powerball_number')}")
+        logger.info(f"PowerBall Plus included: {result.get('powerball_plus_included')}")
+        logger.info(f"Full result keys: {list(result.keys())}")
+        logger.info(f"Raw response: {result.get('raw_response', '')}")
         logger.info("====================")
         
         return jsonify(result)
