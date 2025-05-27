@@ -285,6 +285,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayResults(data) {
         // Display raw AI response for debugging
         console.log('Raw scanner data:', data);
+        console.log('lottery_type value:', data.lottery_type);
+        console.log('draw_date value:', data.draw_date);
+        console.log('draw_number value:', data.draw_number);
         
         // Add raw response display section if it doesn't exist
         let rawSection = document.getElementById('raw-response-section');
