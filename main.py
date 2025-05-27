@@ -44,12 +44,7 @@ import lottery_analysis
 from import_latest_spreadsheet import import_latest_spreadsheet, find_latest_spreadsheet
 # scanner_routes module temporarily disabled to resolve conflicts
 
-# Import auto_proxy to start the port proxy in the background
-try:
-    import auto_proxy
-    logger.info("Port proxy auto-starter loaded")
-except Exception as e:
-    logger.error(f"Failed to load port proxy auto-starter: {e}")
+# Auto proxy functionality cleaned up - using direct port configuration
 
 # Create the Flask application
 app = Flask(__name__)
