@@ -622,6 +622,10 @@ MUST FOLLOW:
                     lotto_plus_1_yes = ticket_data.get('lotto_plus_1_included', '').upper() == 'YES'
                     lotto_plus_2_yes = ticket_data.get('lotto_plus_2_included', '').upper() == 'YES'
                     
+                    # Extract draw information from ticket data
+                    actual_draw_number = ticket_data.get('draw_number')
+                    actual_draw_date = ticket_data.get('draw_date')
+                    
                     # For PowerBall tickets
                     if 'powerball' in lottery_type:
                         # Always check PowerBall main game
