@@ -570,59 +570,30 @@ document.addEventListener('DOMContentLoaded', function() {
             pbTitle.textContent = `PowerBall Draw ${data.powerball_results.draw_number}`;
             pbSection.appendChild(pbTitle);
 
-            const pbBallsContainer = document.createElement('div');
-            pbBallsContainer.className = 'd-flex flex-wrap gap-1 align-items-center';
+            const pbRow = document.createElement('div');
+            pbRow.className = 'd-flex align-items-center gap-2 mb-2';
 
-            // Parse winning numbers - robust handling for malformed data
+            const pbBallsContainer = document.createElement('div');
+            pbBallsContainer.className = 'd-flex flex-wrap gap-1';
+
+            // Parse winning numbers
             let winningNumbers = [];
-            console.log('Raw PowerBall winning numbers:', data.powerball_results.winning_numbers);
-            
             try {
-                const rawNumbers = data.powerball_results.winning_numbers;
-                if (Array.isArray(rawNumbers)) {
-                    winningNumbers = rawNumbers.map(n => parseInt(n));
-                } else if (typeof rawNumbers === 'string' && rawNumbers.trim() !== '' && rawNumbers !== '[') {
-                    // Handle various string formats
-                    let cleaned = rawNumbers.replace(/["\[\]\\]/g, ''); // Remove quotes, brackets, backslashes
-                    if (cleaned.includes(',')) {
-                        winningNumbers = cleaned.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-                    } else {
-                        // Try JSON parsing as fallback
-                        try {
-                            const parsed = JSON.parse(rawNumbers);
-                            if (Array.isArray(parsed)) {
-                                winningNumbers = parsed.map(n => parseInt(n));
-                            }
-                        } catch {
-                            // Extract numbers with regex as final fallback
-                            const matches = rawNumbers.match(/\d+/g);
-                            winningNumbers = matches ? matches.map(n => parseInt(n)) : [];
-                        }
-                    }
-                }
+                winningNumbers = JSON.parse(data.powerball_results.winning_numbers || '[]');
             } catch (e) {
-                console.log('Error parsing PowerBall winning numbers:', e);
-                winningNumbers = [];
+                console.log('Could not parse winning numbers');
             }
 
             // Display winning main numbers
-            if (winningNumbers.length > 0) {
-                winningNumbers.forEach((num, index) => {
-                    const colors = ['lottery-ball-red', 'lottery-ball-blue', 'lottery-ball-green', 'lottery-ball-yellow'];
-                    const colorClass = colors[index % colors.length];
+            winningNumbers.forEach((num, index) => {
+                const colors = ['lottery-ball-red', 'lottery-ball-blue', 'lottery-ball-green', 'lottery-ball-yellow'];
+                const colorClass = colors[index % colors.length];
 
-                    const ballElement = document.createElement('div');
-                    ballElement.className = `lottery-ball ${colorClass} me-1 mb-1`;
-                    ballElement.textContent = num;
-                    pbBallsContainer.appendChild(ballElement);
-                });
-            } else {
-                // Show fallback message if no numbers found
-                const noNumbersMsg = document.createElement('div');
-                noNumbersMsg.className = 'text-muted small';
-                noNumbersMsg.textContent = 'Numbers not available';
-                pbBallsContainer.appendChild(noNumbersMsg);
-            }
+                const ballElement = document.createElement('div');
+                ballElement.className = `lottery-ball ${colorClass} me-1 mb-1`;
+                ballElement.textContent = num;
+                pbBallsContainer.appendChild(ballElement);
+            });
 
             // Display winning Bonus Ball with + separator
             const winningPowerball = data.powerball_results.winning_powerball;
@@ -652,7 +623,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            pbRow.appendChild(pbBallsContainer);
+            pbBallsContainer.appendChild(pbRow);
             pbSection.appendChild(pbRow);
 
             winningSection.appendChild(pbSection);
