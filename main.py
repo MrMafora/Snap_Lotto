@@ -198,7 +198,7 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 # For the sake of brevity, only core routes are included
 
 @app.route('/')
-def index():
+def home():
     """Homepage with latest lottery results using direct database query"""
     from sqlalchemy import text
     import json
@@ -239,7 +239,9 @@ def index():
         """)).fetchall()
         
         # Process each result for template
+        print(f"DEBUG: Found {len(query_results)} rows from database")
         for row in query_results:
+            print(f"DEBUG: Processing row - Type: {row.lottery_type}, Draw: {row.draw_number}, Numbers: {row.numbers}")
             try:
                 # Parse JSON numbers from database
                 nums = json.loads(row.numbers) if row.numbers else []
@@ -276,16 +278,22 @@ def index():
                         return self.bonus_numbers
                 
                 result = LotteryResult(row.lottery_type, row.draw_number, row.draw_date, clean_nums, clean_bonus)
+                print(f"DEBUG: Created result object - Type: {result.lottery_type}, Numbers: {result.get_numbers_list()}")
                 latest_results.append(result)
                 
             except Exception as e:
                 continue
                 
     except Exception as e:
+        print(f"Error in home route: {e}")
         pass
     
     # Basic frequency data
     frequency_data = {'labels': [], 'data': [], 'total_draws': len(latest_results)}
+    
+    print(f"DEBUG: Final results being passed to template: {len(latest_results)} items")
+    for i, result in enumerate(latest_results):
+        print(f"DEBUG: Result {i}: {result.lottery_type} - Numbers: {result.get_numbers_list()}")
     
     return render_template('index.html', 
                          results=latest_results, 
