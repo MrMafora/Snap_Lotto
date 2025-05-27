@@ -1011,12 +1011,32 @@ def results():
         
         try:
             # Try to get results, but handle any errors
-            # Get latest results directly from database instead of data_aggregator
+            # Get latest results directly from database with AUTHENTIC lottery type names
             latest_results = {}
-            for lottery_type in ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lotto']:
-                latest_result = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
-                if latest_result:
-                    latest_results[lottery_type] = latest_result
+            # Use the actual lottery type names from your authentic South African database
+            authentic_lottery_types = [
+                'Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
+                'Lotto', 'Lotto Plus 1', 'Lotto Plus 2',
+                'Powerball', 'PowerBall', 'Powerball Plus', 
+                'Daily Lottery'
+            ]
+            
+            # Map each display lottery type to the correct database names
+            lottery_mapping = {
+                'Lottery': ['Lottery', 'Lotto'],
+                'Lottery Plus 1': ['Lottery Plus 1', 'Lotto Plus 1'], 
+                'Lottery Plus 2': ['Lottery Plus 2', 'Lotto Plus 2'],
+                'Powerball': ['Powerball', 'PowerBall'],
+                'Powerball Plus': ['Powerball Plus'],
+                'Daily Lottery': ['Daily Lottery']
+            }
+            
+            for display_type, db_names in lottery_mapping.items():
+                for db_name in db_names:
+                    latest_result = LotteryResult.query.filter_by(lottery_type=db_name).order_by(LotteryResult.draw_date.desc()).first()
+                    if latest_result:
+                        latest_results[display_type] = latest_result
+                        break  # Use first found result for this display type
             
             # Ensure latest_results is a dictionary
             if not isinstance(latest_results, dict):
