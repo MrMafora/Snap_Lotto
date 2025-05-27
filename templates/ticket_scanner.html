@@ -321,16 +321,56 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('detected-draw-date').textContent = data.draw_date || 'Not detected';
         document.getElementById('detected-draw-number').textContent = data.draw_number || 'Not detected';
         
-        // Display ticket numbers
+        // Display ticket numbers - show all lines if available
         const numbersContainer = document.getElementById('ticket-numbers');
         numbersContainer.innerHTML = '';
-        if (data.ticket_numbers && data.ticket_numbers.length > 0) {
+        
+        if (data.all_lines && data.all_lines.length > 0) {
+            // Show all lines with their line names
+            data.all_lines.forEach((line, index) => {
+                const lineDiv = document.createElement('div');
+                lineDiv.className = 'mb-2';
+                
+                const lineTitle = document.createElement('strong');
+                lineTitle.textContent = line.line_name || `Line ${index + 1}`;
+                lineTitle.className = 'me-2';
+                lineDiv.appendChild(lineTitle);
+                
+                // Add PowerBall number for this line if available
+                const powerballNum = data.all_powerball && data.all_powerball[index] ? data.all_powerball[index] : null;
+                
+                line.numbers.forEach(num => {
+                    const span = document.createElement('span');
+                    span.className = 'badge bg-primary me-1';
+                    span.textContent = num;
+                    lineDiv.appendChild(span);
+                });
+                
+                if (powerballNum) {
+                    const powerballSpan = document.createElement('span');
+                    powerballSpan.className = 'badge bg-warning text-dark me-1';
+                    powerballSpan.textContent = `PB: ${powerballNum}`;
+                    lineDiv.appendChild(powerballSpan);
+                }
+                
+                numbersContainer.appendChild(lineDiv);
+            });
+        } else if (data.ticket_numbers && data.ticket_numbers.length > 0) {
+            // Fallback to single line display
             data.ticket_numbers.forEach(num => {
                 const span = document.createElement('span');
                 span.className = 'badge bg-primary me-1';
                 span.textContent = num;
                 numbersContainer.appendChild(span);
             });
+            
+            // Add PowerBall number if available
+            if (data.powerball_number && data.powerball_number !== 'Not detected') {
+                const powerballSpan = document.createElement('span');
+                powerballSpan.className = 'badge bg-warning text-dark me-1';
+                powerballSpan.textContent = `PowerBall: ${data.powerball_number}`;
+                numbersContainer.appendChild(powerballSpan);
+            }
         }
         
         // Display results
