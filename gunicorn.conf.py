@@ -12,11 +12,11 @@ logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('gunicorn.conf')
 
-# Bind directly to port 8080
-bind = "0.0.0.0:8080"
+# Bind to port 5000 (matches workflow configuration)
+bind = "0.0.0.0:5000"
 
-# Optimize worker configuration 
-workers = multiprocessing.cpu_count() * 2 + 1
+# SECURITY FIX: Limit workers to prevent resource exhaustion attacks
+workers = 2  # Fixed to safe number instead of multiplying CPU count
 worker_class = "sync"
 threads = 4
 worker_connections = 1000
