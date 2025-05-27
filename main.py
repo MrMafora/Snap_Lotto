@@ -1166,7 +1166,7 @@ def export_template():
     filename = f"lottery_data_template_{timestamp}.xlsx"
     
     # Create template with lottery-specific tabs
-    create_template.create_template(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    create_lottery_template(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     
     return send_from_directory(
         app.config['UPLOAD_FOLDER'], 
