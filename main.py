@@ -920,8 +920,17 @@ def process_ticket():
                 ticket_numbers = all_lines[0]['numbers'] if all_lines else []
                 powerball_number = str(all_powerball[0]) if all_powerball else 'Not detected'
                 
-                # Determine if PowerBall Plus is included
-                powerball_plus_included = 'YES' if 'plus' in ticket_data.get('lottery_type', '').lower() else 'NO'
+                # Normalize game type terminology and determine add-ons
+                raw_game_type = ticket_data.get('lottery_type', '').lower()
+                if 'powerball' in raw_game_type:
+                    game_type = 'PowerBall'
+                    powerball_plus_included = 'YES' if 'plus' in raw_game_type else 'NO'
+                elif 'lotto' in raw_game_type:
+                    game_type = 'Lotto'
+                    powerball_plus_included = 'NO'  # This would be Lotto Plus 1/2 for Lotto games
+                else:
+                    game_type = ticket_data.get('lottery_type', 'Not detected')
+                    powerball_plus_included = 'NO'
                 
                 # Debug logging to see what we extracted
                 logger.info(f"DEBUG: ticket_data = {ticket_data}")
@@ -933,7 +942,7 @@ def process_ticket():
                 # Create a successful result matching frontend expectations
                 result = {
                     'success': True,
-                    'lottery_type': ticket_data.get('lottery_type', 'Not detected'),
+                    'lottery_type': game_type,
                     'draw_date': ticket_data.get('draw_date', 'Not detected'),
                     'draw_number': ticket_data.get('draw_number', 'Not detected'),
                     'ticket_numbers': ticket_numbers,
