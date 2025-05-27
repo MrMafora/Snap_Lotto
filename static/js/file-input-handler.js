@@ -153,7 +153,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Display results immediately
-                displayResults(data);
+                try {
+                    displayResults(data);
+                } catch (displayError) {
+                    console.error('Error displaying results:', displayError);
+                    // Show raw data in debug section as fallback
+                    const debugSection = document.getElementById('debug-section');
+                    if (debugSection) {
+                        debugSection.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                        debugSection.style.display = 'block';
+                    }
+                }
             })
             .catch(error => {
                 console.error('Error processing ticket:', error);
@@ -169,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Show detailed error message
-                showError('Error processing ticket: ' + error.message);
+                showError('Error processing ticket: ' + (error.message || 'Unknown error'));
             });
         });
     }
