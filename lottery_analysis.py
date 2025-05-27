@@ -245,10 +245,16 @@ class LotteryAnalyzer:
         # Create empty cache key for consistent lookup
         cache_key = f"api_freq_{lottery_type}_{days}"
         
-        # Return from cache if available to prevent duplicate processing
+        # Clear any cached error responses to force fresh analysis after bug fixes
         if cache_key in chart_cache:
-            logger.info(f"Returning cached frequency analysis for {cache_key}")
-            return chart_cache[cache_key]
+            cached_result = chart_cache[cache_key]
+            # If cached result has an error, clear it and regenerate
+            if isinstance(cached_result, dict) and ("error" in cached_result or "has_error" in cached_result):
+                logger.info(f"Clearing cached error for {cache_key} and regenerating")
+                del chart_cache[cache_key]
+            else:
+                logger.info(f"Returning cached frequency analysis for {cache_key}")
+                return cached_result
         try:
             # Step 1: Get and validate data
             df = self.get_lottery_data(lottery_type, days)
@@ -280,8 +286,24 @@ class LotteryAnalyzer:
                     # Find the highest number across all draws and all types
                     for col in all_number_cols:
                         max_val = all_types_df[col].max()
-                        if max_val and max_val > max_number:
-                            max_number = int(max_val)
+                        if max_val is not None:
+                            try:
+                                # Handle string to int conversion safely
+                                if isinstance(max_val, str):
+                                    max_val_int = int(float(max_val))
+                                else:
+                                    max_val_int = int(max_val)
+                                
+                                if max_val_int > max_number:
+                                    max_number = max_val_int
+                            except (ValueError, TypeError):
+                                # Skip invalid values
+                                logger.debug(f"Skipping invalid max value: {max_val}, type: {type(max_val)}")
+                                continue
+                    
+                    # Ensure we have a valid max_number, default to 50 if none found
+                    if max_number == 0:
+                        max_number = 50  # Default max for lottery numbers
                     
                     # Create a frequency array for all possible numbers
                     combined_frequency = np.zeros(max_number + 1, dtype=int)
