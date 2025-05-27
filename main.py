@@ -227,8 +227,13 @@ def index():
             # Process results for template display
             for result in results:
                 try:
+                    # Parse numbers and handle string format from database
                     numbers = json.loads(result.numbers) if result.numbers else []
                     bonus_numbers = json.loads(result.bonus_numbers) if result.bonus_numbers else []
+                    
+                    # Convert string numbers to integers (remove quotes)
+                    numbers = [int(str(num).strip('"')) for num in numbers if str(num).strip('"').isdigit()]
+                    bonus_numbers = [int(str(num).strip('"')) for num in bonus_numbers if str(num).strip('"').isdigit()]
                     
                     # Create result object with methods the template expects
                     class ResultObj:
