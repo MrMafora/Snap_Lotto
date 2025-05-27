@@ -872,16 +872,48 @@ def process_ticket():
                                     'total_matches': f"{plus_1_main_matches} main + {'Bonus' if plus_1_bonus_match else '0 Bonus'}"
                                 }
                 
+                # Extract and format the data properly for frontend display
+                # Handle both single and multiple lines of numbers
+                numbers = ticket_data.get('numbers', ticket_data.get('main_numbers', []))
+                powerball_numbers = ticket_data.get('powerball_or_bonus', ticket_data.get('powerball_number'))
+                
+                # If multiple lines, show the first line in the main display
+                if isinstance(numbers, list) and len(numbers) > 0:
+                    if isinstance(numbers[0], list):
+                        # Multiple lines - use first line for main display
+                        ticket_numbers = numbers[0]
+                        all_lines = numbers
+                    else:
+                        # Single line
+                        ticket_numbers = numbers
+                        all_lines = [numbers]
+                else:
+                    ticket_numbers = []
+                    all_lines = []
+                
+                # Handle PowerBall numbers
+                if isinstance(powerball_numbers, list) and len(powerball_numbers) > 0:
+                    powerball_number = str(powerball_numbers[0])
+                    all_powerball = powerball_numbers
+                else:
+                    powerball_number = str(powerball_numbers) if powerball_numbers else 'Not detected'
+                    all_powerball = [powerball_numbers] if powerball_numbers else []
+                
+                # Determine if PowerBall Plus is included
+                powerball_plus_included = 'YES' if 'plus' in ticket_data.get('lottery_type', '').lower() else 'NO'
+                
                 # Create a successful result matching frontend expectations
                 result = {
                     'success': True,
                     'lottery_type': ticket_data.get('lottery_type', 'Not detected'),
                     'draw_date': ticket_data.get('draw_date', 'Not detected'),
                     'draw_number': ticket_data.get('draw_number', 'Not detected'),
-                    'ticket_numbers': ticket_data.get('main_numbers', []),
-                    'powerball_number': ticket_data.get('powerball_number', 'Not detected'),
-                    'powerball_plus_included': ticket_data.get('powerball_plus_included', 'NO'),
+                    'ticket_numbers': ticket_numbers,
+                    'powerball_number': powerball_number,
+                    'powerball_plus_included': powerball_plus_included,
                     'ticket_cost': ticket_data.get('ticket_cost', 'Not detected'),
+                    'all_lines': all_lines,
+                    'all_powerball': all_powerball,
                     'is_winner': False,  # Will be determined by comparison
                     'prize_amount': None,
                     'ticket_data': ticket_data,
@@ -890,8 +922,8 @@ def process_ticket():
                     'powerball_plus_results': powerball_plus_results,
                     'comparison': {
                         'message': 'PowerBall ticket analyzed! Checked against both PowerBall AND PowerBall Plus results.',
-                        'extracted_numbers': ticket_data.get('main_numbers', []),
-                        'powerball_number': ticket_data.get('powerball_number'),
+                        'extracted_numbers': all_lines,
+                        'powerball_number': powerball_number,
                         'lottery_type': ticket_data.get('lottery_type', 'Unknown'),
                         'both_games_checked': bool(powerball_results and powerball_plus_results)
                     }
