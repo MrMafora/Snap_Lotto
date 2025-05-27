@@ -998,6 +998,7 @@ def how_to_play_daily_lotto():
 @app.route('/results')
 def results():
     """Show overview of all lottery types with links to specific results"""
+    logger.info("=== RESULTS ROUTE CALLED ===")
     lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
                      'Powerball', 'Powerball Plus', 'Daily Lottery']
     
