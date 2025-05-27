@@ -726,26 +726,35 @@ def process_ticket():
                         },
                         {
                             "type": "text",
-                            "text": """Analyze this South African lottery ticket image and extract the following information in JSON format:
+                            "text": """You are an expert South African lottery ticket reader. Extract EVERY piece of information from this ticket image with 100% accuracy.
+
+                            Look for these SPECIFIC elements on South African lottery tickets:
+                            
+                            1. LOTTERY TYPE: Look for "PowerBall", "Lotto", "Daily Lotto", "Lotto Plus" at the top
+                            2. MAIN NUMBERS: Find the player's selected numbers (usually in boxes or circles)
+                            3. POWERBALL NUMBER: For PowerBall tickets, find the red PowerBall number (1-20)
+                            4. DRAW DATE: Look for date in DD/MM/YYYY or similar format
+                            5. DRAW NUMBER: Usually starts with letters like "PB" for PowerBall
+                            6. TICKET COST: Look for "R" followed by amount
+                            7. MULTIPLIER: Look for "PowerPlay" or multiplier options
+                            8. DRAWS: How many draws (1, 2, 3, etc.)
+                            
+                            READ EVERY visible number, letter, and symbol on the ticket. Return in this EXACT JSON format:
+                            
                             {
                                 "success": true,
-                                "lottery_type": "PowerBall/Lotto/Daily Lotto/etc",
-                                "numbers": [array of main numbers],
-                                "powerball_or_bonus": number (if applicable),
-                                "draw_number": "string",
-                                "draw_date": "YYYY-MM-DD",
-                                "ticket_cost": "amount if visible"
+                                "lottery_type": "exact text found",
+                                "main_numbers": [list all main numbers you see],
+                                "powerball_number": "powerball number if PowerBall ticket",
+                                "draw_date": "exact date as written",
+                                "draw_number": "exact draw number/ID",
+                                "ticket_cost": "exact cost including R symbol",
+                                "multiplier": "any multiplier text",
+                                "number_of_draws": "how many draws",
+                                "all_text_found": "list every piece of text you can read on this ticket"
                             }
                             
-                            IMPORTANT INSTRUCTIONS:
-                            1. Look for the lottery type at the top (PowerBall, Lotto, Daily Lotto, etc.)
-                            2. Find the main numbers selection (usually 5-6 numbers)
-                            3. For PowerBall: look for the red PowerBall number (1-20)
-                            4. Find the draw number (usually starts with letters/numbers)
-                            5. Look for the draw date (format: day/month/year or similar)
-                            6. Extract ALL visible numbers the player selected
-                            
-                            Be very careful to read all text clearly. Return 'Not detected' for any field you cannot clearly read."""
+                            If you cannot read something clearly, write exactly what you can see, even if partial."""
                         }
                     ]
                 }]
