@@ -77,8 +77,18 @@ class LotteryAnalyzer:
             'Daily Lottery': 5
         }
         
-        # Store analysis results
+        # Store analysis results - force clear cache on initialization
         self.analysis_results = {}
+        # Clear any existing cache to reflect database changes
+        import os
+        cache_dir = os.path.join(os.getcwd(), 'static', 'analysis')
+        if os.path.exists(cache_dir):
+            import shutil
+            try:
+                shutil.rmtree(cache_dir)
+                os.makedirs(cache_dir, exist_ok=True)
+            except:
+                pass
         
     def _generate_frequency_chart(self, frequency, top_numbers, lottery_type, results):
         """Generate frequency chart data and add to results
