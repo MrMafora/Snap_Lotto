@@ -954,13 +954,13 @@ def process_ticket():
         session['scan_result'] = result
         
         # Debug: Print to console for troubleshooting
-        print("=== SCANNER DEBUG ===")
-        print(f"Result success: {result.get('success')}")
-        print(f"Lottery type: {result.get('lottery_type')}")
-        print(f"Draw date: {result.get('draw_date')}")
-        print(f"Ticket numbers: {result.get('ticket_numbers')}")
-        print(f"Raw response length: {len(result.get('raw_response', ''))}")
-        print("====================")
+        logger.info("=== SCANNER DEBUG ===")
+        logger.info(f"Result success: {result.get('success')}")
+        logger.info(f"Lottery type: {result.get('lottery_type')}")
+        logger.info(f"Draw date: {result.get('draw_date')}")
+        logger.info(f"Ticket numbers: {result.get('ticket_numbers')}")
+        logger.info(f"Raw response first 200 chars: {result.get('raw_response', '')[:200]}")
+        logger.info("====================")
         
         return jsonify(result)
     except Exception as e:
