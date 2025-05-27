@@ -916,9 +916,14 @@ def process_ticket():
                 elif powerball_numbers:
                     all_powerball = [powerball_numbers]
                 
-                # Use first line for main display
-                ticket_numbers = all_lines[0]['numbers'] if all_lines else []
+                # Use extracted numbers directly from ticket_data for main display
+                ticket_numbers = numbers if numbers else []
                 powerball_number = str(all_powerball[0]) if all_powerball else 'Not detected'
+                
+                # DEBUG: Ensure we actually have the numbers
+                if not ticket_numbers and numbers:
+                    ticket_numbers = numbers
+                    logger.info(f"DEBUG: Forced ticket_numbers to {ticket_numbers}")
                 
                 # Normalize game type terminology and determine add-ons
                 raw_game_type = ticket_data.get('lottery_type', '').lower()
@@ -1084,6 +1089,7 @@ def process_ticket():
         # Integrate extracted numbers properly into main display
         if result.get('ticket_data') and result['ticket_data'].get('main_numbers'):
             result['ticket_numbers'] = result['ticket_data']['main_numbers']
+            logger.info(f"FIXED: Set ticket_numbers to {result['ticket_numbers']}")
             
         # Add PowerBall number if detected
         if result.get('ticket_data') and result['ticket_data'].get('powerball_number'):
