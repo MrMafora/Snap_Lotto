@@ -984,10 +984,11 @@ def process_ticket():
                     }
                 }
                 
-                logger.info(f"DEBUG: Created result = {result}")
-                logger.info(f"DEBUG: result lottery_type = {result.get('lottery_type')}")
-                logger.info(f"DEBUG: result draw_date = {result.get('draw_date')}")
-                logger.info(f"DEBUG: result draw_number = {result.get('draw_number')}")
+                # Ensure we always return the extracted ticket data even if no draws match
+                logger.info(f"DEBUG: Final result created with lottery_type={result.get('lottery_type')}, draw_date={result.get('draw_date')}, draw_number={result.get('draw_number')}")
+                
+                # Log what the frontend will receive
+                logger.info(f"DEBUG: Frontend will receive: {json.dumps(result, indent=2, default=str)}")
                 logger.info(f"DEBUG: result all_lines = {result.get('all_lines')}")
                 logger.info(f"DEBUG: result all_powerball = {result.get('all_powerball')}")
                 
@@ -1068,11 +1069,20 @@ def process_ticket():
         if not result.get('powerball_plus_included'):
             result['powerball_plus_included'] = 'NO'
         
+        # Ensure we have the core display fields that frontend expects
+        if not result.get('lottery_type'):
+            result['lottery_type'] = result.get('ticket_data', {}).get('lottery_type', 'Not detected')
+        if not result.get('draw_date') or result.get('draw_date') == 'Not detected':
+            result['draw_date'] = result.get('ticket_data', {}).get('draw_date', 'Not detected')
+        if not result.get('draw_number') or result.get('draw_number') == 'Not detected':
+            result['draw_number'] = result.get('ticket_data', {}).get('draw_number', 'Not detected')
+        
         # Debug: Print to console for troubleshooting
         logger.info("=== SCANNER DEBUG ===")
         logger.info(f"Final result lottery type: {result.get('lottery_type')}")
+        logger.info(f"Final result draw date: {result.get('draw_date')}")
+        logger.info(f"Final result draw number: {result.get('draw_number')}")
         logger.info(f"Final result ticket numbers: {result.get('ticket_numbers')}")
-        logger.info(f"Final result PowerBall number: {result.get('powerball_number')}")
         logger.info(f"Final result success: {result.get('success')}")
         logger.info("====================")
         
