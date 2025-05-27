@@ -737,7 +737,15 @@ def process_ticket():
                                 "ticket_cost": "amount if visible"
                             }
                             
-                            Focus on extracting the exact numbers played, lottery type, and draw information visible on the ticket."""
+                            IMPORTANT INSTRUCTIONS:
+                            1. Look for the lottery type at the top (PowerBall, Lotto, Daily Lotto, etc.)
+                            2. Find the main numbers selection (usually 5-6 numbers)
+                            3. For PowerBall: look for the red PowerBall number (1-20)
+                            4. Find the draw number (usually starts with letters/numbers)
+                            5. Look for the draw date (format: day/month/year or similar)
+                            6. Extract ALL visible numbers the player selected
+                            
+                            Be very careful to read all text clearly. Return 'Not detected' for any field you cannot clearly read."""
                         }
                     ]
                 }]
