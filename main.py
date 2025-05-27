@@ -19,6 +19,55 @@ from functools import wraps
 
 # Set up logging first
 logging.basicConfig(level=logging.DEBUG)
+
+def create_lottery_template(filepath):
+    """Create an empty Excel template for lottery data import"""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
+    # Create a new workbook
+    wb = openpyxl.Workbook()
+    
+    # Remove the default sheet
+    wb.remove(wb.active)
+    
+    # Define lottery types and their columns
+    lottery_types = {
+        'Lotto': ['Draw Number', 'Draw Date', 'Ball 1', 'Ball 2', 'Ball 3', 'Ball 4', 'Ball 5', 'Ball 6', 'Bonus Ball'],
+        'Lotto Plus 1': ['Draw Number', 'Draw Date', 'Ball 1', 'Ball 2', 'Ball 3', 'Ball 4', 'Ball 5', 'Ball 6', 'Bonus Ball'],
+        'Lotto Plus 2': ['Draw Number', 'Draw Date', 'Ball 1', 'Ball 2', 'Ball 3', 'Ball 4', 'Ball 5', 'Ball 6', 'Bonus Ball'],
+        'PowerBall': ['Draw Number', 'Draw Date', 'Ball 1', 'Ball 2', 'Ball 3', 'Ball 4', 'Ball 5', 'PowerBall'],
+        'PowerBall Plus': ['Draw Number', 'Draw Date', 'Ball 1', 'Ball 2', 'Ball 3', 'Ball 4', 'Ball 5', 'PowerBall'],
+        'Daily Lotto': ['Draw Number', 'Draw Date', 'Ball 1', 'Ball 2', 'Ball 3', 'Ball 4', 'Ball 5']
+    }
+    
+    # Create a sheet for each lottery type
+    for lottery_type, columns in lottery_types.items():
+        ws = wb.create_sheet(title=lottery_type)
+        
+        # Add headers
+        for col_num, column_title in enumerate(columns, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.value = column_title
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            cell.alignment = Alignment(horizontal="center")
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 20)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    # Save the workbook
+    wb.save(filepath)
 logger = logging.getLogger(__name__)
 
 # Now that logger is defined, import other modules
@@ -1154,54 +1203,7 @@ def lottery_results(lottery_type):
                            title=f"{lottery_type} Results",
                            breadcrumbs=breadcrumbs)
 
-def create_lottery_template(filepath):
-    """Create an empty Excel template for lottery data import"""
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment
-    
-    # Create a new workbook
-    wb = openpyxl.Workbook()
-    
-    # Remove the default sheet
-    wb.remove(wb.active)
-    
-    # Define lottery types and their columns
-    lottery_types = {
-        'Lotto': ['Draw Number', 'Draw Date', 'Ball 1', 'Ball 2', 'Ball 3', 'Ball 4', 'Ball 5', 'Ball 6', 'Bonus Ball'],
-        'Lotto Plus 1': ['Draw Number', 'Draw Date', 'Ball 1', 'Ball 2', 'Ball 3', 'Ball 4', 'Ball 5', 'Ball 6', 'Bonus Ball'],
-        'Lotto Plus 2': ['Draw Number', 'Draw Date', 'Ball 1', 'Ball 2', 'Ball 3', 'Ball 4', 'Ball 5', 'Ball 6', 'Bonus Ball'],
-        'PowerBall': ['Draw Number', 'Draw Date', 'Ball 1', 'Ball 2', 'Ball 3', 'Ball 4', 'Ball 5', 'PowerBall'],
-        'PowerBall Plus': ['Draw Number', 'Draw Date', 'Ball 1', 'Ball 2', 'Ball 3', 'Ball 4', 'Ball 5', 'PowerBall'],
-        'Daily Lotto': ['Draw Number', 'Draw Date', 'Ball 1', 'Ball 2', 'Ball 3', 'Ball 4', 'Ball 5']
-    }
-    
-    # Create a sheet for each lottery type
-    for lottery_type, columns in lottery_types.items():
-        ws = wb.create_sheet(title=lottery_type)
-        
-        # Add headers
-        for col_num, column_title in enumerate(columns, 1):
-            cell = ws.cell(row=1, column=col_num)
-            cell.value = column_title
-            cell.font = Font(bold=True, color="FFFFFF")
-            cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-            cell.alignment = Alignment(horizontal="center")
-        
-        # Auto-adjust column widths
-        for column in ws.columns:
-            max_length = 0
-            column_letter = column[0].column_letter
-            for cell in column:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = min(max_length + 2, 20)
-            ws.column_dimensions[column_letter].width = adjusted_width
-    
-    # Save the workbook
-    wb.save(filepath)
+
 
 @app.route('/export-template')
 @login_required
