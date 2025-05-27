@@ -30,10 +30,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 # Use standard CSRF protection
 from flask_wtf.csrf import CSRFProtect
+import json
 
 # Import models only (lightweight)
 from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, db
 from config import Config
+from sqlalchemy import text
 
 # Import modules
 # ad_management temporarily disabled
@@ -1010,23 +1012,48 @@ def results():
         latest_results = {}
         
         try:
-            # Get latest results directly from database for each lottery type
+            # Use direct SQL approach to ensure we get authentic data
             latest_results = {}
             
             for lottery_type in lottery_types:
-                # Direct query for exact lottery type match
-                result = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+                # Direct SQL query to bypass any ORM issues
+                sql_query = """
+                    SELECT id, lottery_type, draw_number, draw_date, numbers, bonus_numbers
+                    FROM lottery_result 
+                    WHERE lottery_type = %s 
+                    ORDER BY draw_date DESC 
+                    LIMIT 1
+                """
+                
+                result = db.session.execute(text(sql_query), {'lottery_type': lottery_type}).fetchone()
                 
                 if result:
-                    latest_results[lottery_type] = result
-                    logger.info(f"✓ Found {lottery_type} - Draw {result.draw_number}")
+                    # Create a simple object to hold the data
+                    class ResultObj:
+                        def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
+                            self.lottery_type = lottery_type
+                            self.draw_number = draw_number
+                            self.draw_date = draw_date
+                            self.numbers = numbers
+                            self.bonus_numbers = bonus_numbers
+                        
+                        def get_numbers_list(self):
+                            return json.loads(self.numbers) if isinstance(self.numbers, str) else self.numbers
+                        
+                        def get_bonus_numbers_list(self):
+                            return json.loads(self.bonus_numbers) if isinstance(self.bonus_numbers, str) else self.bonus_numbers
+                    
+                    latest_results[lottery_type] = ResultObj(
+                        result[1], result[2], result[3], result[4], result[5]
+                    )
+                    logger.info(f"✓ Direct SQL: {lottery_type} - Draw {result[2]}")
                 else:
-                    logger.warning(f"✗ No data found for {lottery_type}")
+                    logger.warning(f"✗ Direct SQL: No data for {lottery_type}")
             
-            logger.info(f"Retrieved {len(latest_results)} lottery results for template")
+            logger.info(f"Direct SQL retrieved: {len(latest_results)} authentic lottery results")
             
         except Exception as e:
-            logger.error(f"Error getting latest results: {str(e)}")
+            logger.error(f"Direct SQL error: {str(e)}")
             latest_results = {}
         
         # Define breadcrumbs for SEO
@@ -1038,11 +1065,17 @@ def results():
         import time
         cache_buster = int(time.time())
         
-        # Final debug: Log exactly what we're passing to the template
-        logger.info(f"Passing to template - lottery_types: {lottery_types}")
-        logger.info(f"Passing to template - latest_results keys: {list(latest_results.keys())}")
-        for key, value in latest_results.items():
-            logger.info(f"Passing to template - {key}: {value.draw_number if value else 'None'}")
+        # Debug template data before rendering
+        logger.info(f"Template data - lottery_types: {lottery_types}")
+        logger.info(f"Template data - latest_results: {latest_results}")
+        
+        # Test each lottery type specifically
+        for lt in lottery_types:
+            if lt in latest_results:
+                result = latest_results[lt]
+                logger.info(f"✓ {lt}: Draw {result.draw_number}, Numbers: {result.numbers}")
+            else:
+                logger.error(f"✗ MISSING: {lt} not in latest_results")
         
         return render_template('results_overview.html',
                             lottery_types=lottery_types,
