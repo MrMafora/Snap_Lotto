@@ -198,15 +198,38 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 @app.route('/')
 def index():
     """Homepage with latest lottery results"""
-    # Ensure data_aggregator is loaded before using it
-    global data_aggregator
-    
     try:
-        # Import if not already loaded
-        if data_aggregator is None:
-            import data_aggregator as da
-            data_aggregator = da
-            logger.info("Loaded data_aggregator module on demand")
+        # Simple fallback to get page loading immediately
+        latest_results = {}
+        
+        # Try to get basic lottery results from database
+        try:
+            from models import LotteryResult
+            lottery_types = ['Lotto', 'Powerball', 'Daily Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'Powerball Plus']
+            
+            for lottery_type in lottery_types:
+                result = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+                if result:
+                    latest_results[lottery_type] = result
+                    
+        except Exception as e:
+            logger.error(f"Error loading lottery results: {e}")
+            # Continue with empty results to show the page
+        
+        return render_template('index.html', 
+                             latest_results=latest_results,
+                             results_list=list(latest_results.values()),
+                             all_lottery_types=list(latest_results.keys()),
+                             total_results=len(latest_results))
+                             
+    except Exception as e:
+        logger.error(f"Homepage error: {e}")
+        # Return a basic page if there are issues
+        return render_template('index.html', 
+                             latest_results={},
+                             results_list=[],
+                             all_lottery_types=[],
+                             total_results=0)
         
         # First, validate and correct any known draws (adds missing division data)
         try:
