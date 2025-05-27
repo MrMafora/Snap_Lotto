@@ -653,7 +653,7 @@ def ticket_scanner():
     # Additional SEO metadata
     meta_description = "Check if your South African lottery ticket is a winner. Our free ticket scanner uses advanced technology to analyze and verify your lottery tickets instantly."
     
-    return render_template('simple_scanner.html', 
+    return render_template('ticket_scanner.html', 
                           title="Lottery Ticket Scanner | Check If You've Won",
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
@@ -962,6 +962,12 @@ def process_ticket():
                 logger.info(f"DEBUG: - actual_draw_date: {actual_draw_date}")
                 logger.info(f"DEBUG: - actual_draw_number: {actual_draw_number}")
                 
+                # CRITICAL FIX: Ensure numbers are properly passed to frontend
+                if numbers and len(numbers) > 0:
+                    ticket_numbers = numbers
+                    all_lines = [numbers]
+                    logger.info(f"NUMBERS FIX: Set ticket_numbers={ticket_numbers}, all_lines={all_lines}")
+
                 # Create a successful result matching frontend expectations
                 result = {
                     'success': True,
@@ -982,7 +988,7 @@ def process_ticket():
                     'powerball_plus_results': powerball_plus_results,
                     'comparison': {
                         'message': 'PowerBall ticket analyzed! Checked against both PowerBall AND PowerBall Plus results.',
-                        'extracted_numbers': all_lines,
+                        'extracted_numbers': ticket_numbers if ticket_numbers else [],
                         'powerball_number': powerball_number,
                         'lottery_type': ticket_data.get('lottery_type', 'Unknown'),
                         'both_games_checked': bool(powerball_results and powerball_plus_results)
@@ -1090,6 +1096,11 @@ def process_ticket():
         if result.get('ticket_data') and result['ticket_data'].get('main_numbers'):
             result['ticket_numbers'] = result['ticket_data']['main_numbers']
             logger.info(f"FIXED: Set ticket_numbers to {result['ticket_numbers']}")
+        
+        # CRITICAL FIX: Force ticket numbers if they're still empty but we have them in ticket_data
+        if (not result.get('ticket_numbers') or len(result.get('ticket_numbers', [])) == 0) and result.get('ticket_data', {}).get('main_numbers'):
+            result['ticket_numbers'] = result['ticket_data']['main_numbers']
+            logger.info(f"FORCED FIX: ticket_numbers = {result['ticket_numbers']}")
             
         # Add PowerBall number if detected
         if result.get('ticket_data') and result['ticket_data'].get('powerball_number'):
