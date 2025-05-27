@@ -564,7 +564,7 @@ def process_ticket():
                             The A2(XX) line contains the BONUS/POWERBALL number after the colon (:)
                             QP before A2 means Quick Pick was used, but extract the same way
                             
-                            Return this exact format for MULTIPLE ROWS:
+                            MANDATORY FORMAT - NO EXCEPTIONS:
                             
                             {
                                 "lottery_type": "PowerBall",
@@ -580,17 +580,13 @@ def process_ticket():
                                 "ticket_cost": "R15.00"
                             }
                             
-                            Look for:
-                            - Game type (PowerBall, Lotto, Daily Lotto)
-                            - A1(XX): followed by the main numbers after the colon
-                            - B1(XX): followed by second row numbers after the colon (if present)
-                            - C1(XX): followed by third row numbers after the colon (if present)
-                            - A2(XX): followed by the bonus/powerball number after the colon
-                            - PowerBall Plus inclusion (YES/NO)
-                            - Draw date and number
-                            - Ticket cost
+                            ABSOLUTELY FORBIDDEN: Never use "main_numbers" - only "all_lines"!
                             
-                            CRITICAL: Return "all_lines" array with ALL rows, not "main_numbers"!
+                            Extract ALL ticket rows:
+                            - Find every A1, B1, C1, D1 line
+                            - Extract numbers after colon for each row
+                            - Put ALL rows in "all_lines" array
+                            - Never use "main_numbers" field
                             
                             Return ONLY the JSON object, no other text."""
                         }
