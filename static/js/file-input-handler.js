@@ -280,10 +280,18 @@ function displayResults(data) {
     if (ticketNumbersContainer) {
         ticketNumbersContainer.innerHTML = '';
         
-        // Use the correct data structure from your authentic PowerBall ticket
+        // Handle both all_lines (new) and ticket_numbers (old) formats
+        let linesToDisplay = [];
+        
         if (data.all_lines && Array.isArray(data.all_lines)) {
+            linesToDisplay = data.all_lines;
+        } else if (data.ticket_numbers && Array.isArray(data.ticket_numbers)) {
+            linesToDisplay = [data.ticket_numbers];
+        }
+        
+        if (linesToDisplay.length > 0) {
             // Display each line of numbers from your ticket
-            data.all_lines.forEach((numbers, lineIndex) => {
+            linesToDisplay.forEach((numbers, lineIndex) => {
                 if (Array.isArray(numbers)) {
                     // Create row label
                     const rowLabel = document.createElement('div');

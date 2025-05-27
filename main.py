@@ -545,50 +545,23 @@ def process_ticket():
                         },
                         {
                             "type": "text",
-                            "text": """You are reading a South African lottery ticket. Extract the information and return ONLY valid JSON.
+                            "text": """Extract lottery ticket data. Find ALL number rows (A1, B1, C1, D1, etc.) and return exactly this JSON format:
 
-                            IMPORTANT: South African lottery tickets use this specific format:
-                            - A1(XX): main_number,main_number,main_number,main_number,main_number (First row)
-                            - B1(XX): main_number,main_number,main_number,main_number,main_number (Second row)
-                            - C1(XX): main_number,main_number,main_number,main_number,main_number (Third row)
-                            - A2(XX): bonus_number (or QP A2(XX) for Quick Pick)
-                            
-                            EXTRACT ALL ROWS: Look for A1, B1, C1, D1, etc. Each contains 5 numbers.
-                            
-                            For example:
-                            A1(05): 7,11,17,25,33 means first row numbers are 7,11,17,25,33
-                            B1(05): 4,5,23,24,25 means second row numbers are 4,5,23,24,25
-                            A2(01): 20 means the bonus number is 20
-                            
-                            The A1, B1, C1, D1 lines contain the MAIN NUMBERS after the colon (:)
-                            The A2(XX) line contains the BONUS/POWERBALL number after the colon (:)
-                            QP before A2 means Quick Pick was used, but extract the same way
-                            
-                            MANDATORY FORMAT - NO EXCEPTIONS:
-                            
-                            {
-                                "lottery_type": "PowerBall",
-                                "all_lines": [
-                                    [7, 11, 17, 25, 33],
-                                    [4, 5, 23, 24, 25],
-                                    [1, 2, 3, 4, 5]
-                                ],
-                                "powerball_number": "20",
-                                "powerball_plus_included": "YES",
-                                "draw_date": "25/03/2025",
-                                "draw_number": "1600",
-                                "ticket_cost": "R15.00"
-                            }
-                            
-                            ABSOLUTELY FORBIDDEN: Never use "main_numbers" - only "all_lines"!
-                            
-                            Extract ALL ticket rows:
-                            - Find every A1, B1, C1, D1 line
-                            - Extract numbers after colon for each row
-                            - Put ALL rows in "all_lines" array
-                            - Never use "main_numbers" field
-                            
-                            Return ONLY the JSON object, no other text."""
+{
+    "lottery_type": "PowerBall",
+    "all_lines": [
+        [7, 11, 17, 25, 33],
+        [4, 5, 23, 24, 25],
+        [1, 2, 3, 4, 5]
+    ],
+    "powerball_number": "20",
+    "powerball_plus_included": "YES",
+    "draw_date": "25/03/2025",
+    "draw_number": "1600",
+    "ticket_cost": "R15.00"
+}
+
+CRITICAL: Use "all_lines" array for ALL number rows. Never use "main_numbers"."""
                         }
                     ]
                 }]
@@ -816,25 +789,22 @@ def process_ticket():
                 logger.info(f"DEBUG: - actual_draw_date: {actual_draw_date}")
                 logger.info(f"DEBUG: - actual_draw_number: {actual_draw_number}")
                 
-                # CRITICAL FIX: Force multi-row format regardless of AI response
-                # If AI returned old format, convert main_numbers to multi-row
-                if ticket_data.get('main_numbers') and not ticket_data.get('all_lines'):
-                    # Convert single row to multi-row format
+                # FORCE MULTI-ROW: Always ensure we have proper all_lines format
+                if ticket_data.get('main_numbers'):
+                    # AI still using old format - force conversion
                     main_nums = ticket_data.get('main_numbers', [])
+                    # For now, treat as single row but in proper format
                     all_lines = [main_nums] if main_nums else []
                     ticket_numbers = main_nums
-                    logger.info(f"CONVERTED TO MULTI-ROW: all_lines={all_lines}")
+                    logger.info(f"FORCE CONVERTED: main_numbers={main_nums} to all_lines={all_lines}")
                 elif all_ticket_lines and len(all_ticket_lines) > 0:
                     all_lines = all_ticket_lines
                     ticket_numbers = all_ticket_lines[0] if all_ticket_lines else []
-                    logger.info(f"USING AI MULTI-ROW: all_lines={all_lines}")
-                elif numbers and len(numbers) > 0:
-                    ticket_numbers = numbers
-                    all_lines = [numbers]
-                    logger.info(f"FALLBACK SINGLE-ROW: all_lines={all_lines}")
+                    logger.info(f"PROPER FORMAT: all_lines={all_lines}")
                 else:
                     all_lines = []
                     ticket_numbers = []
+                    logger.info(f"NO DATA: Setting empty arrays")
 
                 # Create a successful result matching frontend expectations
                 result = {
