@@ -148,11 +148,11 @@ def init_lazy_modules():
     
     # Note: Removed signal alarm since it only works in main thread
     
-    # Import heavy modules only when needed
-    try:
-        import data_aggregator as da
-    except ImportError:
-        da = None
+    # Import heavy modules only when needed - data_aggregator not available
+    # try:
+    #     import data_aggregator as da
+    # except ImportError:
+    da = None
     try:
         import ocr_processor as op
     except ImportError:
@@ -166,8 +166,8 @@ def init_lazy_modules():
     except ImportError:
         hm = None
     
-    # Store module references
-    data_aggregator = da
+    # Store module references - data_aggregator not available
+    # data_aggregator = da
     import_excel = None  # Functionality integrated into main app
     import_snap_lotto_data = None  # Functionality integrated into main app
     ocr_processor = op
@@ -1057,14 +1057,14 @@ def lottery_results(lottery_type):
     # Ensure data_aggregator is loaded before using it
     global data_aggregator
     
-    # Import if not already loaded
-    if data_aggregator is None:
-        import data_aggregator as da
-        data_aggregator = da
-        logger.info("Loaded data_aggregator module on demand")
+    # Import if not already loaded - data_aggregator not available
+    # if data_aggregator is None:
+    #     import data_aggregator as da
+    #     data_aggregator = da
+    #     logger.info("Loaded data_aggregator module on demand")
     
-    # Get all results for this lottery type
-    all_results = data_aggregator.get_all_results_by_lottery_type(lottery_type)
+    # Get all results for this lottery type directly from database
+    all_results = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).all()
     
     # Create a paginated result from the raw list
     # This mimics SQLAlchemy's pagination object with the properties the template expects

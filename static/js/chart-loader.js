@@ -126,7 +126,7 @@ function fetchChartData(lotteryType, timePeriod) {
         })
         .then(data => {
             // Pass data to chart renderer functions
-            console.log("Chart data received:", data.lotteryTypes);
+            console.log("Chart data received:", data);
             renderCharts(data);
         })
         .catch(error => {
