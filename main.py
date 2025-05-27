@@ -927,7 +927,11 @@ def process_ticket():
                     powerball_plus_included = 'YES' if 'plus' in raw_game_type else 'NO'
                 elif 'lotto' in raw_game_type or 'lottery' in raw_game_type:
                     game_type = 'Lottery'
-                    powerball_plus_included = 'NO'  # This would be Lottery Plus 1/2 for Lottery games
+                    # Check for Plus 1 and Plus 2 mentions
+                    if 'plus' in raw_game_type:
+                        powerball_plus_included = 'YES'  # Lottery Plus games are included
+                    else:
+                        powerball_plus_included = 'NO'
                 else:
                     game_type = ticket_data.get('lottery_type', 'Not detected')
                     powerball_plus_included = 'NO'
