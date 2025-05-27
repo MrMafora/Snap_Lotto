@@ -418,7 +418,7 @@ def login():
             login_user(user)
             flash('Login successful!', 'success')
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('index'))
+            return redirect(next_page or url_for('home'))
         else:
             flash('Invalid username or password', 'danger')
     
