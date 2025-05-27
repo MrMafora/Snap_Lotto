@@ -1140,8 +1140,9 @@ function updateDivisionChart(data) {
         return;
     }
     
-    // Get the frequency data for this lottery type
-    const frequencyData = data[selectedLotteryType].frequency;
+    // Get the top numbers data for this lottery type (limit to top 10)
+    const topNumbers = data[selectedLotteryType].top_numbers;
+    const frequencyData = topNumbers ? topNumbers.slice(0, 10).map(item => item[1]) : [];
     
     // If no frequency data, show a message and return
     if (!frequencyData || !frequencyData.length) {
@@ -1174,14 +1175,11 @@ function updateDivisionChart(data) {
     chartContainer.style.height = '220px'; // Match the height of frequency chart wrapper
     tempChartContainer.appendChild(chartContainer);
     
-    // Collect the frequency data and sort by frequency
-    const sortedNumbers = [];
-    for (let i = 0; i < frequencyData.length; i++) {
-        sortedNumbers.push({
-            number: i + 1,
-            frequency: frequencyData[i]
-        });
-    }
+    // Use the actual top numbers data (already sorted by frequency)
+    const sortedNumbers = topNumbers.slice(0, 10).map(item => ({
+        number: item[0],
+        frequency: item[1]
+    }));
     
     // Sort by frequency descending
     sortedNumbers.sort((a, b) => b.frequency - a.frequency);
