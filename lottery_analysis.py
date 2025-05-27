@@ -2179,7 +2179,7 @@ def register_analysis_routes(app, db):
     """
     from flask import render_template, request, jsonify, send_from_directory, redirect, url_for
     from flask_login import login_required, current_user
-    from main import csrf
+    # CSRF protection disabled for Replit environment
     
     # Create analyzer instance
     analyzer = LotteryAnalyzer(db)
