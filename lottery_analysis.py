@@ -339,11 +339,14 @@ class LotteryAnalyzer:
                     top_indices = np.argsort(combined_frequency)[-10:]
                     top_numbers = [(i+1, combined_frequency[i]) for i in top_indices]
                     
+                    # Convert draw_number to strings for comparison to avoid type mismatch
+                    total_draws = len(df['draw_number'].astype(str).unique())
+                    
                     results["All Lottery Types"] = {
                         'frequency': combined_frequency.tolist(),
                         'top_numbers': sorted(top_numbers, key=lambda x: x[1], reverse=True),
                         'is_combined': True,
-                        'total_draws': len(df['draw_number'].unique())
+                        'total_draws': total_draws
                     }
                     
                     # Generate frequency chart for combined data
