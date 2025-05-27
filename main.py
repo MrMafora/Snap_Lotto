@@ -583,10 +583,14 @@ def process_ticket():
                             Look for:
                             - Game type (PowerBall, Lotto, Daily Lotto)
                             - A1(XX): followed by the main numbers after the colon
+                            - B1(XX): followed by second row numbers after the colon (if present)
+                            - C1(XX): followed by third row numbers after the colon (if present)
                             - A2(XX): followed by the bonus/powerball number after the colon
                             - PowerBall Plus inclusion (YES/NO)
                             - Draw date and number
                             - Ticket cost
+                            
+                            CRITICAL: Return "all_lines" array with ALL rows, not "main_numbers"!
                             
                             Return ONLY the JSON object, no other text."""
                         }
@@ -616,18 +620,23 @@ def process_ticket():
                 powerball_results = {}
                 powerball_plus_results = {}
                 
+                # Initialize variables
+                all_ticket_lines = []
+                player_main_numbers = []
+                
                 # Handle both old format (main_numbers) and new format (all_lines)
-                if ticket_data.get('all_lines') or ticket_data.get('main_numbers'):
-                    if ticket_data.get('all_lines'):
-                        # New multi-row format - use first row for comparison
-                        player_main_numbers = ticket_data.get('all_lines', [])[0] if ticket_data.get('all_lines') else []
-                        all_ticket_lines = ticket_data.get('all_lines', [])
-                    else:
-                        # Old single-row format
-                        player_main_numbers = ticket_data.get('main_numbers', [])
-                        all_ticket_lines = [player_main_numbers] if player_main_numbers else []
-                    
-                    player_powerball = ticket_data.get('powerball_number')
+                if ticket_data.get('all_lines'):
+                    # New multi-row format - use all rows
+                    all_ticket_lines = ticket_data.get('all_lines', [])
+                    player_main_numbers = all_ticket_lines[0] if all_ticket_lines else []
+                elif ticket_data.get('main_numbers'):
+                    # Old single-row format - convert to multi-row format
+                    player_main_numbers = ticket_data.get('main_numbers', [])
+                    all_ticket_lines = [player_main_numbers] if player_main_numbers else []
+                
+                player_powerball = ticket_data.get('powerball_number')
+                
+                if all_ticket_lines or player_main_numbers:
                     
                     # Check which games to compare based on lottery type and YES indicators
                     lottery_type = ticket_data.get('lottery_type', '').lower()
@@ -811,15 +820,25 @@ def process_ticket():
                 logger.info(f"DEBUG: - actual_draw_date: {actual_draw_date}")
                 logger.info(f"DEBUG: - actual_draw_number: {actual_draw_number}")
                 
-                # CRITICAL FIX: Use all ticket lines from AI response
-                if all_ticket_lines and len(all_ticket_lines) > 0:
+                # CRITICAL FIX: Force multi-row format regardless of AI response
+                # If AI returned old format, convert main_numbers to multi-row
+                if ticket_data.get('main_numbers') and not ticket_data.get('all_lines'):
+                    # Convert single row to multi-row format
+                    main_nums = ticket_data.get('main_numbers', [])
+                    all_lines = [main_nums] if main_nums else []
+                    ticket_numbers = main_nums
+                    logger.info(f"CONVERTED TO MULTI-ROW: all_lines={all_lines}")
+                elif all_ticket_lines and len(all_ticket_lines) > 0:
                     all_lines = all_ticket_lines
-                    ticket_numbers = all_ticket_lines[0] if all_ticket_lines else []  # First row for backward compatibility
-                    logger.info(f"MULTI-ROW FIX: Set all_lines={all_lines}, ticket_numbers={ticket_numbers}")
+                    ticket_numbers = all_ticket_lines[0] if all_ticket_lines else []
+                    logger.info(f"USING AI MULTI-ROW: all_lines={all_lines}")
                 elif numbers and len(numbers) > 0:
                     ticket_numbers = numbers
                     all_lines = [numbers]
-                    logger.info(f"SINGLE-ROW FIX: Set ticket_numbers={ticket_numbers}, all_lines={all_lines}")
+                    logger.info(f"FALLBACK SINGLE-ROW: all_lines={all_lines}")
+                else:
+                    all_lines = []
+                    ticket_numbers = []
 
                 # Create a successful result matching frontend expectations
                 result = {
@@ -835,6 +854,11 @@ def process_ticket():
                     'all_powerball': all_powerball,
                     'is_winner': False,  # Will be determined by comparison
                     'prize_amount': None,
+                    'has_matches': False,  # Required by frontend
+                    'matched_count': 0,    # Required by frontend
+                    'matched_bonus_count': 0,  # Required by frontend
+                    'winning_numbers': [],     # Required by frontend
+                    'bonus_numbers': [],       # Required by frontend
                     'ticket_data': ticket_data,
                     'raw_response': response_text,
                     'powerball_results': powerball_results,
