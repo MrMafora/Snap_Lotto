@@ -271,13 +271,13 @@ def index():
             logger.error(f"Database error: {e}")
         
         return render_template('index.html', 
-                             latest_results=latest_results,
+                             results=latest_results,
                              frequency_data=frequency_data)
                              
     except Exception as e:
         logger.error(f"Homepage error: {e}")
         return render_template('index.html', 
-                             latest_results=[],
+                             results=[],
                              frequency_data={'labels': [], 'data': [], 'total_draws': 0})
 
 
