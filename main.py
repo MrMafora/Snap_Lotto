@@ -200,53 +200,61 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 @app.route('/')
 def home():
     """Homepage with latest authentic South African lottery results"""
-    # Use exact same approach as working analytics to get your authentic data
+    results = []
+    
     try:
+        # Get your authentic data using the proven working approach
         from models import LotteryResult
         import json
         
-        # Get latest result for each lottery type - same as analytics approach
-        lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lottery', 'Lotto', 'Lotto Plus 1', 'Lotto Plus 2']
-        results = []
+        # Get one latest result per lottery type
+        lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lottery']
         
         for lottery_type in lottery_types:
-            # Get most recent result for this type
-            latest = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+            latest = db.session.query(LotteryResult).filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
             
             if latest and latest.numbers:
                 try:
-                    # Parse numbers exactly like analytics does
                     numbers_data = json.loads(latest.numbers) if latest.numbers else []
                     bonus_data = json.loads(latest.bonus_numbers) if latest.bonus_numbers else []
                     
-                    # Clean numbers exactly like analytics
                     numbers = [int(str(n).strip('"').strip()) for n in numbers_data if str(n).strip()]
                     bonus_numbers = [int(str(b).strip('"').strip()) for b in bonus_data if str(b).strip()]
                     
-                    if numbers:  # Only add if we have valid numbers
-                        # Normalize type name
-                        display_type = lottery_type.replace('Lotto', 'Lottery')
+                    if numbers:
+                        # Create proper result object that template expects
+                        class LotteryResultDisplay:
+                            def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
+                                self.lottery_type = lottery_type
+                                self.draw_number = str(draw_number)
+                                self.draw_date = draw_date
+                                self.numbers = numbers
+                                self.bonus_numbers = bonus_numbers
+                            
+                            def get_numbers_list(self):
+                                return self.numbers
+                            
+                            def get_bonus_numbers_list(self):
+                                return self.bonus_numbers
                         
-                        # Create simple result object
-                        result = type('Result', (), {
-                            'lottery_type': display_type,
-                            'draw_number': str(latest.draw_number),
-                            'draw_date': latest.draw_date,
-                            'numbers': numbers,
-                            'bonus_numbers': bonus_numbers,
-                            'get_numbers_list': lambda: numbers,
-                            'get_bonus_numbers_list': lambda: bonus_numbers
-                        })()
+                        result = LotteryResultDisplay(
+                            latest.lottery_type,
+                            latest.draw_number,
+                            latest.draw_date,
+                            numbers,
+                            bonus_numbers
+                        )
                         
                         results.append(result)
                         
-                except:
+                except Exception as e:
+                    logger.error(f"Error processing {lottery_type}: {str(e)}")
                     continue
-        
-        return render_template('index.html', results=results)
-        
-    except:
-        return render_template('index.html', results=[])
+                    
+    except Exception as e:
+        logger.error(f"Error loading authentic lottery data: {str(e)}")
+    
+    return render_template('index.html', results=results)
 
 
 @app.route('/debug-data')
