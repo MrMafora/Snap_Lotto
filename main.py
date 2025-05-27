@@ -910,18 +910,31 @@ def process_ticket():
                 }
                 
             except json.JSONDecodeError as e:
-                # If JSON parsing fails, create a result with the raw text
+                # If JSON parsing fails, extract basic info from text and create result
                 logger.error(f"JSON parsing failed: {str(e)}")
-                logger.error(f"Raw response text: {response_text}")
+                logger.info(f"Attempting to extract basic info from response text")
+                
+                # Try to extract basic information from the raw text
+                lottery_type_from_text = 'PowerBall' if 'powerball' in response_text.lower() else 'Not detected'
+                
                 result = {
                     'success': True,
+                    'lottery_type': lottery_type_from_text,
+                    'draw_date': 'Check raw response below',
+                    'draw_number': 'Check raw response below', 
+                    'ticket_numbers': [],
+                    'powerball_number': 'Check raw response below',
+                    'powerball_plus_included': 'Check raw response below',
+                    'is_winner': False,
+                    'prize_amount': None,
                     'ticket_data': {
-                        'lottery_type': lottery_type or 'PowerBall',
+                        'lottery_type': lottery_type_from_text,
                         'raw_analysis': response_text,
                         'parsing_error': str(e)
                     },
+                    'raw_response': response_text,
                     'comparison': {
-                        'message': 'Ticket analyzed, but JSON parsing failed. Check raw response.',
+                        'message': 'Ticket analyzed but needs manual review. Check the raw response for details.',
                         'raw_response': response_text,
                         'error': str(e)
                     }
@@ -939,6 +952,15 @@ def process_ticket():
         
         # Store result in session for results page
         session['scan_result'] = result
+        
+        # Debug: Print to console for troubleshooting
+        print("=== SCANNER DEBUG ===")
+        print(f"Result success: {result.get('success')}")
+        print(f"Lottery type: {result.get('lottery_type')}")
+        print(f"Draw date: {result.get('draw_date')}")
+        print(f"Ticket numbers: {result.get('ticket_numbers')}")
+        print(f"Raw response length: {len(result.get('raw_response', ''))}")
+        print("====================")
         
         return jsonify(result)
     except Exception as e:
