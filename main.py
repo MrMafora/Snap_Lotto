@@ -1010,53 +1010,35 @@ def results():
         latest_results = {}
         
         try:
-            # Try to get results, but handle any errors
-            # Get latest results directly from database with AUTHENTIC lottery type names
+            # Simplified and direct approach to get authentic lottery results
             latest_results = {}
-            # Use the actual lottery type names from your authentic South African database
-            authentic_lottery_types = [
-                'Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
-                'Lotto', 'Lotto Plus 1', 'Lotto Plus 2',
-                'Powerball', 'PowerBall', 'Powerball Plus', 
-                'Daily Lottery'
-            ]
             
-            # Map each display lottery type to the correct database names
-            lottery_mapping = {
-                'Lottery': ['Lottery', 'Lotto'],
-                'Lottery Plus 1': ['Lottery Plus 1', 'Lotto Plus 1'], 
-                'Lottery Plus 2': ['Lottery Plus 2', 'Lotto Plus 2'],
-                'Powerball': ['Powerball', 'PowerBall'],
-                'Powerball Plus': ['Powerball Plus'],
-                'Daily Lottery': ['Daily Lottery']
-            }
-            
-            for display_type, db_names in lottery_mapping.items():
-                for db_name in db_names:
-                    latest_result = LotteryResult.query.filter_by(lottery_type=db_name).order_by(LotteryResult.draw_date.desc()).first()
-                    if latest_result:
-                        latest_results[display_type] = latest_result
-                        logger.info(f"Found result for {display_type}: Draw {latest_result.draw_number}, Date: {latest_result.draw_date}")
-                        break  # Use first found result for this display type
-            
-            logger.info(f"Total lottery results found: {len(latest_results)} types with data")
-            logger.info(f"Latest results keys: {list(latest_results.keys())}")
-            logger.info(f"Lottery types list: {lottery_types}")
-            
-            # Debug: Check which lottery types have results
-            for ltype in lottery_types:
-                if ltype in latest_results:
-                    result = latest_results[ltype]
-                    logger.info(f"✓ Template will show results for: {ltype}")
-                    logger.info(f"  - Draw: {result.draw_number}, Numbers: {result.numbers}, Type: {type(result.numbers)}")
-                    logger.info(f"  - Boolean check: {bool(result.numbers) if result else False}")
+            # Direct database queries for each lottery type with authentic South African data
+            for lottery_type in lottery_types:
+                logger.info(f"Searching for {lottery_type}...")
+                
+                # Try exact match first
+                result = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+                
+                # If no exact match, try alternative names for authenticity
+                if not result and lottery_type == 'Lottery':
+                    result = LotteryResult.query.filter_by(lottery_type='Lotto').order_by(LotteryResult.draw_date.desc()).first()
+                elif not result and lottery_type == 'Lottery Plus 1':
+                    result = LotteryResult.query.filter_by(lottery_type='Lotto Plus 1').order_by(LotteryResult.draw_date.desc()).first()
+                elif not result and lottery_type == 'Lottery Plus 2':
+                    result = LotteryResult.query.filter_by(lottery_type='Lotto Plus 2').order_by(LotteryResult.draw_date.desc()).first()
+                elif not result and lottery_type == 'Powerball':
+                    result = LotteryResult.query.filter_by(lottery_type='PowerBall').order_by(LotteryResult.draw_date.desc()).first()
+                
+                if result:
+                    latest_results[lottery_type] = result
+                    logger.info(f"✓ SUCCESS: Found {lottery_type} - Draw {result.draw_number}, Numbers: {result.numbers}")
                 else:
-                    logger.warning(f"✗ Template will show 'No results available' for: {ltype}")
+                    logger.warning(f"✗ FAILED: No result found for {lottery_type}")
             
-            # Ensure latest_results is a dictionary
-            if not isinstance(latest_results, dict):
-                latest_results = {}
-                logger.warning("get_latest_results() did not return a dictionary")
+            logger.info(f"FINAL RESULTS: {len(latest_results)} lottery types ready for template")
+            logger.info(f"Template will receive keys: {list(latest_results.keys())}")
+            
         except Exception as e:
             logger.error(f"Error getting latest results: {str(e)}")
             latest_results = {}  # Use empty dict on any error
@@ -1069,6 +1051,12 @@ def results():
         # Add cache busting to ensure fresh data display
         import time
         cache_buster = int(time.time())
+        
+        # Final debug: Log exactly what we're passing to the template
+        logger.info(f"Passing to template - lottery_types: {lottery_types}")
+        logger.info(f"Passing to template - latest_results keys: {list(latest_results.keys())}")
+        for key, value in latest_results.items():
+            logger.info(f"Passing to template - {key}: {value.draw_number if value else 'None'}")
         
         return render_template('results_overview.html',
                             lottery_types=lottery_types,

@@ -12,8 +12,9 @@
                     <h5 class="card-title mb-0">{{ lottery_type }}</h5>
                 </div>
                 <div class="card-body">
-                    {% if latest_results and lottery_type in latest_results and latest_results[lottery_type] %}
+                    {% if latest_results.get(lottery_type) %}
                     {% set result = latest_results[lottery_type] %}
+                    <!-- DEBUG: Found result for {{ lottery_type }}: Draw {{ result.draw_number }} -->
                     <div class="text-center mb-3">
                         <p class="fw-bold">Latest Draw #{{ result.draw_number }}</p>
                         <p class="text-muted">{{ result.draw_date.strftime('%d %b %Y') }}</p>
