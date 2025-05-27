@@ -545,26 +545,35 @@ def process_ticket():
                         },
                         {
                             "type": "text",
-                            "text": """Extract lottery ticket data. Find ALL number rows (A1, B1, C1, D1, etc.) and their corresponding PowerBall numbers (A2, B2, C2, D2, etc.). Return exactly this JSON format:
+                            "text": """Extract lottery ticket data from this South African PowerBall ticket. 
+
+CRITICAL INSTRUCTIONS:
+1. Find ALL number rows (A1, B1, C1, D1, E1, F1, etc.) - each row has 5 main numbers
+2. Find the PowerBall number for EACH row (A2, B2, C2, D2, E2, F2, etc.) - each row has its own PowerBall
+3. Return exactly this JSON format with ALL rows and their individual PowerBall numbers:
 
 {
     "lottery_type": "PowerBall",
     "all_lines": [
-        [7, 11, 17, 25, 33],
-        [4, 5, 23, 24, 25],
-        [1, 2, 3, 4, 5]
+        [9, 15, 37, 39, 50],
+        [12, 26, 31, 32, 47],
+        [12, 21, 31, 36, 37],
+        [9, 24, 27, 29, 50],
+        [10, 11, 16, 31, 48],
+        [3, 16, 33, 41, 49]
     ],
-    "all_powerball": ["20", "15", "08"],
+    "all_powerball": ["7", "7", "7", "7", "7", "7"],
     "powerball_plus_included": "YES",
-    "draw_date": "25/03/2025",
-    "draw_number": "1600",
-    "ticket_cost": "R15.00"
+    "draw_date": "21/03/25",
+    "draw_number": "1599",
+    "ticket_cost": "R30.00"
 }
 
-CRITICAL: 
-- Use "all_lines" array for ALL number rows. Never use "main_numbers".
-- Use "all_powerball" array with PowerBall number for EACH row (A2, B2, C2, etc.)
-- Each PowerBall number corresponds to the same index in all_lines array"""
+MUST FOLLOW:
+- "all_lines" must contain EVERY visible number row (A1, B1, C1, etc.)
+- "all_powerball" must contain the PowerBall number for EACH row (A2, B2, C2, etc.)
+- The arrays must be the same length - one PowerBall per row
+- Extract the ACTUAL PowerBall numbers from the ticket, don't assume they're all the same"""
                         }
                     ]
                 }]
