@@ -320,10 +320,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const ballsContainer = document.createElement('div');
                 ballsContainer.className = 'd-flex flex-wrap gap-2 mb-2';
                 
-                // Add main numbers as lottery balls
-                lineNumbers.forEach(num => {
+                // Add main numbers as lottery balls with colors
+                lineNumbers.forEach((num, numIndex) => {
                     const ballElement = document.createElement('div');
-                    ballElement.className = 'lottery-ball me-1 mb-1';
+                    
+                    // Assign colors based on number position for variety
+                    const colors = ['lottery-ball-red', 'lottery-ball-blue', 'lottery-ball-green', 'lottery-ball-yellow'];
+                    const colorClass = colors[numIndex % colors.length];
+                    
+                    ballElement.className = `lottery-ball ${colorClass} me-1 mb-1`;
                     ballElement.textContent = num;
                     ballsContainer.appendChild(ballElement);
                 });
@@ -343,7 +348,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     powerballContainer.className = 'd-flex flex-wrap gap-2';
                     
                     const powerballBall = document.createElement('div');
-                    powerballBall.className = 'lottery-ball powerball me-1 mb-1';
+                    powerballBall.className = 'lottery-ball lottery-ball-red me-1 mb-1';
+                    powerballBall.style.border = '3px solid #ffd700';
                     powerballBall.textContent = powerballNum;
                     powerballContainer.appendChild(powerballBall);
                     
