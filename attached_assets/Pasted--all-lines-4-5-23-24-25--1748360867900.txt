@@ -1,0 +1,100 @@
+{
+  "all_lines": [
+    [
+      4,
+      5,
+      23,
+      24,
+      25
+    ],
+    [
+      15,
+      17,
+      18,
+      23,
+      42
+    ]
+  ],
+  "all_powerball": [
+    "02"
+  ],
+  "bonus_numbers": [],
+  "comparison": {
+    "both_games_checked": true,
+    "extracted_numbers": [
+      4,
+      5,
+      23,
+      24,
+      25
+    ],
+    "lottery_type": "PowerBall",
+    "message": "PowerBall ticket analyzed! Checked against both PowerBall AND PowerBall Plus results.",
+    "powerball_number": "02"
+  },
+  "draw_date": "25/03/2025",
+  "draw_number": "1600",
+  "has_matches": false,
+  "is_winner": false,
+  "lottery_type": "PowerBall",
+  "matched_bonus_count": 0,
+  "matched_count": 0,
+  "powerball_number": "02",
+  "powerball_plus_included": "YES",
+  "powerball_plus_results": {
+    "draw_date": "2025-05-16",
+    "draw_number": "1615",
+    "lottery_type": "PowerBall Plus",
+    "main_matches": 0,
+    "powerball_match": false,
+    "total_matches": "0 main + 0 PowerBall",
+    "winning_numbers": "[\"10\", \"11\", \"25\", \"26\", \"44\"]",
+    "winning_powerball": "["
+  },
+  "powerball_results": {
+    "draw_date": "2025-05-16",
+    "draw_number": "1615",
+    "lottery_type": "PowerBall",
+    "main_matches": 0,
+    "powerball_match": false,
+    "total_matches": "0 main + 0 PowerBall",
+    "winning_numbers": "[\"14\", \"17\", \"18\", \"33\", \"37\"]",
+    "winning_powerball": "["
+  },
+  "prize_amount": null,
+  "raw_response": "{\n    \"lottery_type\": \"PowerBall\",\n    \"all_lines\": [\n        [4, 5, 23, 24, 25],\n        [15, 17, 18, 23, 42]\n    ],\n    \"powerball_number\": \"02\",\n    \"powerball_plus_included\": \"YES\",\n    \"draw_date\": \"25/03/2025\",\n    \"draw_number\": \"1600\",\n    \"ticket_cost\": \"R15.00\"\n}\n\nNote: The ticket shows A1(05) and B1(05) rows, where:\n- A1(05): 04 05 23 24 25 A2(01):02\n- B1(05): 15 17 18 23 42 B2(01):04\n\nI've included both lines in the all_lines array and used the first PowerBall number (02) as the powerball_number since this appears to be for the main PowerBall game.",
+  "success": true,
+  "ticket_cost": "R15.00",
+  "ticket_data": {
+    "all_lines": [
+      [
+        4,
+        5,
+        23,
+        24,
+        25
+      ],
+      [
+        15,
+        17,
+        18,
+        23,
+        42
+      ]
+    ],
+    "draw_date": "25/03/2025",
+    "draw_number": "1600",
+    "lottery_type": "PowerBall",
+    "powerball_number": "02",
+    "powerball_plus_included": "YES",
+    "ticket_cost": "R15.00"
+  },
+  "ticket_numbers": [
+    4,
+    5,
+    23,
+    24,
+    25
+  ],
+  "winning_numbers": []
+}

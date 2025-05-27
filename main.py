@@ -545,7 +545,7 @@ def process_ticket():
                         },
                         {
                             "type": "text",
-                            "text": """Extract lottery ticket data. Find ALL number rows (A1, B1, C1, D1, etc.) and return exactly this JSON format:
+                            "text": """Extract lottery ticket data. Find ALL number rows (A1, B1, C1, D1, etc.) and their corresponding PowerBall numbers (A2, B2, C2, D2, etc.). Return exactly this JSON format:
 
 {
     "lottery_type": "PowerBall",
@@ -554,14 +554,17 @@ def process_ticket():
         [4, 5, 23, 24, 25],
         [1, 2, 3, 4, 5]
     ],
-    "powerball_number": "20",
+    "all_powerball": ["20", "15", "08"],
     "powerball_plus_included": "YES",
     "draw_date": "25/03/2025",
     "draw_number": "1600",
     "ticket_cost": "R15.00"
 }
 
-CRITICAL: Use "all_lines" array for ALL number rows. Never use "main_numbers"."""
+CRITICAL: 
+- Use "all_lines" array for ALL number rows. Never use "main_numbers".
+- Use "all_powerball" array with PowerBall number for EACH row (A2, B2, C2, etc.)
+- Each PowerBall number corresponds to the same index in all_lines array"""
                         }
                     ]
                 }]
