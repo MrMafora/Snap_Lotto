@@ -372,7 +372,7 @@ def admin():
     # Get recent imports
     try:
         from models import ImportHistory
-        recent_imports = ImportHistory.query.order_by(ImportHistory.timestamp.desc()).limit(5).all()
+        recent_imports = ImportHistory.query.order_by(ImportHistory.import_date.desc()).limit(5).all()
     except Exception as e:
         app.logger.error(f"Error getting import history: {str(e)}")
         recent_imports = []
