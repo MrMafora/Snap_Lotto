@@ -1010,44 +1010,24 @@ def results():
         latest_results = {}
         
         try:
-            # Get the most recent authentic results for each lottery type
+            # Get latest results directly from database for each lottery type
             latest_results = {}
             
-            # Find the most recent authentic result across all naming variations
             for lottery_type in lottery_types:
-                logger.info(f"Searching for authentic {lottery_type} data...")
+                # Direct query for exact lottery type match
+                result = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
                 
-                # Get all possible variations and find the most recent
-                possible_names = []
-                if lottery_type == 'Lottery':
-                    possible_names = ['Lottery', 'Lotto']
-                elif lottery_type == 'Lottery Plus 1':
-                    possible_names = ['Lottery Plus 1', 'Lotto Plus 1']
-                elif lottery_type == 'Lottery Plus 2':
-                    possible_names = ['Lottery Plus 2', 'Lotto Plus 2']
-                elif lottery_type == 'Powerball':
-                    possible_names = ['Powerball', 'PowerBall']
+                if result:
+                    latest_results[lottery_type] = result
+                    logger.info(f"✓ Found {lottery_type} - Draw {result.draw_number}")
                 else:
-                    possible_names = [lottery_type]
-                
-                # Find the most recent authentic result across all variations
-                most_recent_result = None
-                for name_variation in possible_names:
-                    result = LotteryResult.query.filter_by(lottery_type=name_variation).order_by(LotteryResult.draw_date.desc()).first()
-                    if result and (not most_recent_result or result.draw_date > most_recent_result.draw_date):
-                        most_recent_result = result
-                
-                if most_recent_result:
-                    latest_results[lottery_type] = most_recent_result
-                    logger.info(f"✓ AUTHENTIC: {lottery_type} -> Draw {most_recent_result.draw_number}, Date: {most_recent_result.draw_date}")
-                else:
-                    logger.warning(f"✗ No authentic data found for {lottery_type}")
+                    logger.warning(f"✗ No data found for {lottery_type}")
             
-            logger.info(f"Successfully retrieved {len(latest_results)} authentic lottery results")
+            logger.info(f"Retrieved {len(latest_results)} lottery results for template")
             
         except Exception as e:
-            logger.error(f"Error retrieving authentic lottery data: {str(e)}")
-            latest_results = {}  # Use empty dict on any error
+            logger.error(f"Error getting latest results: {str(e)}")
+            latest_results = {}
         
         # Define breadcrumbs for SEO
         breadcrumbs = [
