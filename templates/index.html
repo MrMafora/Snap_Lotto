@@ -1042,8 +1042,9 @@ function updateFrequencyChart(data) {
         'bg-secondary'  // 10th - Gray (reusing)
     ];
     
-    // Process and display the top numbers
-    topNumbers.slice(0, 10).forEach((item, index) => {
+    // Process and display ONLY the top 10 numbers (limit to exactly 10)
+    const top10Numbers = topNumbers.slice(0, 10);
+    top10Numbers.forEach((item, index) => {
         if (!Array.isArray(item) || item.length < 2) return;
         
         const number = item[0];
@@ -1105,8 +1106,8 @@ function updateFrequencyChart(data) {
     topTitle.innerHTML = '<strong>Top Numbers:</strong>';
     topBox.appendChild(topTitle);
     
-    // Add top 5 numbers
-    topNumbers.slice(0, 5).forEach(([number, freq]) => {
+    // Add top 5 numbers from the limited top 10 set
+    top10Numbers.slice(0, 5).forEach(([number, freq]) => {
         const item = document.createElement('div');
         item.textContent = `# ${number}: ${freq} times`;
         topBox.appendChild(item);
