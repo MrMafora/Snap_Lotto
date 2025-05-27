@@ -24,4 +24,8 @@ dependencies = [
     "flask-wtf>=1.2.2",
     "numpy>=2.2.4",
     "wtforms>=3.2.1",
+    "matplotlib>=3.10.3",
+    "psutil>=7.0.0",
+    "scikit-learn>=1.6.1",
+    "seaborn>=0.13.2",
 ]
