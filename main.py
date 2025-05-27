@@ -873,31 +873,37 @@ def process_ticket():
                                 }
                 
                 # Extract and format the data properly for frontend display
-                # Handle both single and multiple lines of numbers
+                # Handle both simple arrays and structured line objects
                 numbers = ticket_data.get('numbers', ticket_data.get('main_numbers', []))
                 powerball_numbers = ticket_data.get('powerball_or_bonus', ticket_data.get('powerball_number'))
                 
-                # If multiple lines, show the first line in the main display
-                if isinstance(numbers, list) and len(numbers) > 0:
-                    if isinstance(numbers[0], list):
-                        # Multiple lines - use first line for main display
-                        ticket_numbers = numbers[0]
-                        all_lines = numbers
-                    else:
-                        # Single line
-                        ticket_numbers = numbers
-                        all_lines = [numbers]
-                else:
-                    ticket_numbers = []
-                    all_lines = []
+                # Parse numbers - handle structured format like {"line_A": [1,2,3], "powerball_A": 4}
+                all_lines = []
+                all_powerball = []
                 
-                # Handle PowerBall numbers
-                if isinstance(powerball_numbers, list) and len(powerball_numbers) > 0:
-                    powerball_number = str(powerball_numbers[0])
-                    all_powerball = powerball_numbers
-                else:
-                    powerball_number = str(powerball_numbers) if powerball_numbers else 'Not detected'
-                    all_powerball = [powerball_numbers] if powerball_numbers else []
+                if isinstance(numbers, list) and len(numbers) > 0:
+                    for item in numbers:
+                        if isinstance(item, dict):
+                            # Structured format: {"line_A": [1,2,3], "powerball_A": 4}
+                            for key, value in item.items():
+                                if 'line' in key.lower() and isinstance(value, list):
+                                    all_lines.append(value)
+                                elif 'powerball' in key.lower() and isinstance(value, (int, str)):
+                                    all_powerball.append(value)
+                        elif isinstance(item, list):
+                            # Simple array format: [1,2,3,4,5]
+                            all_lines.append(item)
+                
+                # If we still don't have lines, try direct powerball_numbers
+                if not all_powerball and powerball_numbers:
+                    if isinstance(powerball_numbers, list):
+                        all_powerball = powerball_numbers
+                    else:
+                        all_powerball = [powerball_numbers]
+                
+                # Use first line for main display
+                ticket_numbers = all_lines[0] if all_lines else []
+                powerball_number = str(all_powerball[0]) if all_powerball else 'Not detected'
                 
                 # Determine if PowerBall Plus is included
                 powerball_plus_included = 'YES' if 'plus' in ticket_data.get('lottery_type', '').lower() else 'NO'
