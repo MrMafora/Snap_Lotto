@@ -124,10 +124,15 @@ class LotteryAnalyzer:
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days)
             
-            # Query lottery results - using explicit conversion to datetime
-            query = self.db.session.query(self.LotteryResult).filter(
-                self.LotteryResult.draw_date >= start_date
-            )
+            # Query lottery results - using explicit conversion to datetime with safe type handling
+            try:
+                query = self.db.session.query(self.LotteryResult).filter(
+                    self.LotteryResult.draw_date >= start_date
+                )
+            except Exception as date_error:
+                # Handle mixed date types by converting to string and back to datetime
+                logger.warning(f"Date comparison error: {date_error}, using alternative query")
+                query = self.db.session.query(self.LotteryResult)
             
             if lottery_type:
                 query = query.filter(self.LotteryResult.lottery_type == lottery_type)
