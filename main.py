@@ -946,12 +946,23 @@ def process_ticket():
                 logger.info(f"DEBUG: ticket_numbers = {ticket_numbers}")
                 logger.info(f"DEBUG: powerball_number = {powerball_number}")
                 
+                # Extract the actual values from nested ticket_data or use the top-level game_type
+                actual_lottery_type = ticket_data.get('lottery_type') or game_type or 'Not detected'
+                actual_draw_date = ticket_data.get('draw_date', 'Not detected')
+                actual_draw_number = ticket_data.get('draw_number', 'Not detected')
+                
+                # Debug what we're about to send to frontend
+                logger.info(f"DEBUG: About to create result with:")
+                logger.info(f"DEBUG: - actual_lottery_type: {actual_lottery_type}")
+                logger.info(f"DEBUG: - actual_draw_date: {actual_draw_date}")
+                logger.info(f"DEBUG: - actual_draw_number: {actual_draw_number}")
+                
                 # Create a successful result matching frontend expectations
                 result = {
                     'success': True,
-                    'lottery_type': game_type,
-                    'draw_date': ticket_data.get('draw_date', 'Not detected'),
-                    'draw_number': ticket_data.get('draw_number', 'Not detected'),
+                    'lottery_type': actual_lottery_type,
+                    'draw_date': actual_draw_date,
+                    'draw_number': actual_draw_number,
                     'ticket_numbers': ticket_numbers,
                     'powerball_number': powerball_number,
                     'powerball_plus_included': powerball_plus_included,
