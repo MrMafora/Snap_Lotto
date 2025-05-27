@@ -21,10 +21,11 @@ function renderFrequencyChart(frequencyData) {
         // Clear previous chart
         barChartContainer.innerHTML = '';
         
-        // Create a container for the number frequency chart
+        // Create a container for the number frequency chart with symmetric spacing
         const frequencyChart = document.createElement('div');
-        frequencyChart.className = 'frequency-chart d-flex align-items-end justify-content-between pb-2';
+        frequencyChart.className = 'frequency-chart d-flex align-items-end justify-content-center pb-2';
         frequencyChart.style.height = '200px';
+        frequencyChart.style.gap = '8px'; // Even spacing between all bars
         
         // Sort data by frequency (descending)
         const sortedData = [...frequencyData].sort((a, b) => b.frequency - a.frequency);
@@ -39,12 +40,22 @@ function renderFrequencyChart(frequencyData) {
             'bg-success'    // 3rd place (green)
         ];
         
-        // Create bar for each number
-        sortedData.forEach((item, index) => {
+        // Create bar for ONLY the top 10 numbers
+        const top10Data = sortedData.slice(0, 10);
+        console.log('CHART RENDERER: Displaying exactly', top10Data.length, 'bars:', top10Data);
+        
+        top10Data.forEach((item, index) => {
             const { number, frequency } = item;
             
-            // Calculate height percentage (with 10% minimum for visibility)
-            const heightPercentage = 10 + ((frequency / maxFrequency) * 90);
+            // Calculate height percentage with better visual balance and symmetry
+            // Use a more gradual scale for better visual harmony
+            const minHeight = 25; // Minimum height for smallest bars
+            const maxHeight = 100; // Maximum height for tallest bars
+            const heightRange = maxHeight - minHeight;
+            
+            // Create more symmetric scaling using a gentler curve
+            const normalizedFreq = frequency / maxFrequency;
+            const heightPercentage = minHeight + (normalizedFreq * heightRange * 0.8);
             
             // Create column for this number
             const barColumn = document.createElement('div');
@@ -62,7 +73,7 @@ function renderFrequencyChart(frequencyData) {
             const bar = document.createElement('div');
             bar.className = `interactive-bar ${index < 3 ? colorClasses[index] : 'bg-primary'}`;
             bar.style.height = `${heightPercentage}%`;
-            bar.style.width = '100%';
+            bar.style.width = '40px'; // Fixed width for all bars for perfect symmetry
             bar.style.borderRadius = '4px';
             bar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
             bar.style.transition = 'transform 0.2s';
