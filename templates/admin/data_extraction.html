@@ -42,12 +42,9 @@
                     </form>
 
                     <!-- Process All Images -->
-                    <form method="POST" onsubmit="return confirm('This will process all authentic lottery screenshots from the screenshots folder. Continue?')">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="test_mode" value="false">
-                        <button type="submit" class="btn btn-success btn-lg w-100">
-                            <i class="fas fa-magic me-2"></i> Extract All Lottery Data
-                        </button>
+                    <button id="extractAllData" class="btn btn-success btn-lg w-100" onclick="extractAllLotteryData()">
+                        <i class="fas fa-magic me-2"></i> Extract All Lottery Data
+                    </button>
                         <small class="text-muted">Processes all lottery images and populates your database</small>
                     </form>
                 </div>
@@ -282,4 +279,46 @@
     border-color: #198754 !important;
 }
 </style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function extractAllLotteryData() {
+    if (!confirm('This will process all authentic lottery screenshots from the attached_assets folder. Continue?')) {
+        return;
+    }
+    
+    const button = document.getElementById('extractAllData');
+    const originalText = button.innerHTML;
+    
+    // Show loading state
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processing...';
+    button.disabled = true;
+    
+    try {
+        const response = await fetch('/api/extract-lottery-data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`Success! ${result.message}`);
+            // Reload page to show results
+            window.location.reload();
+        } else {
+            alert(`Error: ${result.error}`);
+        }
+    } catch (error) {
+        alert(`Network error: ${error.message}`);
+    } finally {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
+</script>
 {% endblock %}
