@@ -730,14 +730,20 @@ def process_ticket():
 
                             Look for these SPECIFIC elements on South African lottery tickets:
                             
-                            1. LOTTERY TYPE: Look for "PowerBall", "Lotto", "Daily Lotto", "Lotto Plus" at the top
-                            2. MAIN NUMBERS: Find the player's selected numbers (usually in boxes or circles)
-                            3. POWERBALL NUMBER: For PowerBall tickets, find the red PowerBall number (1-20)
-                            4. DRAW DATE: Look for date in DD/MM/YYYY or similar format
-                            5. DRAW NUMBER: Usually starts with letters like "PB" for PowerBall
-                            6. TICKET COST: Look for "R" followed by amount
-                            7. MULTIPLIER: Look for "PowerPlay" or multiplier options
-                            8. DRAWS: How many draws (1, 2, 3, etc.)
+                            1. LOTTERY TYPE: Look for "PowerBall", "Lotto", "Daily Lotto" at the top
+                            2. ADDITIONAL GAMES: Look for "YES" next to:
+                               - "PowerBall Plus" (for PowerBall tickets)
+                               - "Lotto Plus 1" (for Lotto tickets) 
+                               - "Lotto Plus 2" (for Lotto tickets)
+                            3. MAIN NUMBERS: Find the player's selected numbers (usually in boxes or circles)
+                            4. POWERBALL NUMBER: For PowerBall tickets, find the red PowerBall number (1-20)
+                            5. DRAW DATE: Look for date in DD/MM/YYYY or similar format
+                            6. DRAW NUMBER: Usually starts with letters like "PB" for PowerBall
+                            7. TICKET COST: Look for "R" followed by amount
+                            8. MULTIPLIER: Look for "PowerPlay" or multiplier options
+                            9. DRAWS: How many draws (1, 2, 3, etc.)
+                            
+                            CRITICAL: Look specifically for "YES" indicators next to additional game names to determine which games the ticket includes.
                             
                             READ EVERY visible number, letter, and symbol on the ticket. Return in this EXACT JSON format:
                             
@@ -746,6 +752,9 @@ def process_ticket():
                                 "lottery_type": "exact text found",
                                 "main_numbers": [list all main numbers you see],
                                 "powerball_number": "powerball number if PowerBall ticket",
+                                "powerball_plus_included": "YES/NO - look for YES next to PowerBall Plus",
+                                "lotto_plus_1_included": "YES/NO - look for YES next to Lotto Plus 1",
+                                "lotto_plus_2_included": "YES/NO - look for YES next to Lotto Plus 2",
                                 "draw_date": "exact date as written",
                                 "draw_number": "exact draw number/ID",
                                 "ticket_cost": "exact cost including R symbol",
@@ -777,51 +786,101 @@ def process_ticket():
                 powerball_results = {}
                 powerball_plus_results = {}
                 
-                if ticket_data.get('main_numbers') and 'powerball' in ticket_data.get('lottery_type', '').lower():
+                if ticket_data.get('main_numbers'):
                     player_main_numbers = ticket_data.get('main_numbers', [])
                     player_powerball = ticket_data.get('powerball_number')
                     
-                    # Get latest PowerBall results
-                    powerball_draw = LotteryResult.query.filter_by(lottery_type='Powerball').order_by(LotteryResult.draw_date.desc()).first()
-                    if powerball_draw:
-                        powerball_numbers = powerball_draw.numbers if powerball_draw.numbers else []
-                        powerball_bonus = powerball_draw.bonus_numbers[0] if powerball_draw.bonus_numbers else None
-                        
-                        # Count matches for PowerBall
-                        main_matches = len(set(player_main_numbers) & set(powerball_numbers))
-                        powerball_match = (player_powerball == powerball_bonus) if player_powerball and powerball_bonus else False
-                        
-                        powerball_results = {
-                            'lottery_type': 'PowerBall',
-                            'draw_number': powerball_draw.draw_number,
-                            'draw_date': powerball_draw.draw_date.strftime('%Y-%m-%d'),
-                            'winning_numbers': powerball_numbers,
-                            'winning_powerball': powerball_bonus,
-                            'main_matches': main_matches,
-                            'powerball_match': powerball_match,
-                            'total_matches': f"{main_matches} main + {'PowerBall' if powerball_match else '0 PowerBall'}"
-                        }
+                    # Check which games to compare based on lottery type and YES indicators
+                    lottery_type = ticket_data.get('lottery_type', '').lower()
+                    powerball_plus_yes = ticket_data.get('powerball_plus_included', '').upper() == 'YES'
+                    lotto_plus_1_yes = ticket_data.get('lotto_plus_1_included', '').upper() == 'YES'
+                    lotto_plus_2_yes = ticket_data.get('lotto_plus_2_included', '').upper() == 'YES'
                     
-                    # Get latest PowerBall Plus results  
-                    powerball_plus_draw = LotteryResult.query.filter_by(lottery_type='Powerball Plus').order_by(LotteryResult.draw_date.desc()).first()
-                    if powerball_plus_draw:
-                        plus_numbers = powerball_plus_draw.numbers if powerball_plus_draw.numbers else []
-                        plus_bonus = powerball_plus_draw.bonus_numbers[0] if powerball_plus_draw.bonus_numbers else None
+                    # For PowerBall tickets
+                    if 'powerball' in lottery_type:
+                        # Always check PowerBall main game
+                        powerball_draw = LotteryResult.query.filter_by(lottery_type='Powerball').order_by(LotteryResult.draw_date.desc()).first()
+                        if powerball_draw:
+                            powerball_numbers = powerball_draw.numbers if powerball_draw.numbers else []
+                            powerball_bonus = powerball_draw.bonus_numbers[0] if powerball_draw.bonus_numbers else None
+                            
+                            main_matches = len(set(player_main_numbers) & set(powerball_numbers))
+                            powerball_match = (player_powerball == powerball_bonus) if player_powerball and powerball_bonus else False
+                            
+                            powerball_results = {
+                                'lottery_type': 'PowerBall',
+                                'draw_number': powerball_draw.draw_number,
+                                'draw_date': powerball_draw.draw_date.strftime('%Y-%m-%d'),
+                                'winning_numbers': powerball_numbers,
+                                'winning_powerball': powerball_bonus,
+                                'main_matches': main_matches,
+                                'powerball_match': powerball_match,
+                                'total_matches': f"{main_matches} main + {'PowerBall' if powerball_match else '0 PowerBall'}"
+                            }
                         
-                        # Count matches for PowerBall Plus
-                        plus_main_matches = len(set(player_main_numbers) & set(plus_numbers))
-                        plus_powerball_match = (player_powerball == plus_bonus) if player_powerball and plus_bonus else False
+                        # Check PowerBall Plus only if YES indicator found
+                        if powerball_plus_yes:
+                            powerball_plus_draw = LotteryResult.query.filter_by(lottery_type='Powerball Plus').order_by(LotteryResult.draw_date.desc()).first()
+                            if powerball_plus_draw:
+                                plus_numbers = powerball_plus_draw.numbers if powerball_plus_draw.numbers else []
+                                plus_bonus = powerball_plus_draw.bonus_numbers[0] if powerball_plus_draw.bonus_numbers else None
+                                
+                                plus_main_matches = len(set(player_main_numbers) & set(plus_numbers))
+                                plus_powerball_match = (player_powerball == plus_bonus) if player_powerball and plus_bonus else False
+                                
+                                powerball_plus_results = {
+                                    'lottery_type': 'PowerBall Plus',
+                                    'draw_number': powerball_plus_draw.draw_number,
+                                    'draw_date': powerball_plus_draw.draw_date.strftime('%Y-%m-%d'),
+                                    'winning_numbers': plus_numbers,
+                                    'winning_powerball': plus_bonus,
+                                    'main_matches': plus_main_matches,
+                                    'powerball_match': plus_powerball_match,
+                                    'total_matches': f"{plus_main_matches} main + {'PowerBall' if plus_powerball_match else '0 PowerBall'}"
+                                }
+                    
+                    # For Lotto tickets
+                    elif 'lotto' in lottery_type:
+                        # Always check main Lotto game
+                        lotto_draw = LotteryResult.query.filter_by(lottery_type='Lotto').order_by(LotteryResult.draw_date.desc()).first()
+                        if lotto_draw:
+                            lotto_numbers = lotto_draw.numbers if lotto_draw.numbers else []
+                            lotto_bonus = lotto_draw.bonus_numbers[0] if lotto_draw.bonus_numbers else None
+                            
+                            main_matches = len(set(player_main_numbers) & set(lotto_numbers))
+                            bonus_match = lotto_bonus in player_main_numbers if lotto_bonus else False
+                            
+                            powerball_results = {  # Using same variable for consistency in frontend
+                                'lottery_type': 'Lotto',
+                                'draw_number': lotto_draw.draw_number,
+                                'draw_date': lotto_draw.draw_date.strftime('%Y-%m-%d'),
+                                'winning_numbers': lotto_numbers,
+                                'winning_bonus': lotto_bonus,
+                                'main_matches': main_matches,
+                                'bonus_match': bonus_match,
+                                'total_matches': f"{main_matches} main + {'Bonus' if bonus_match else '0 Bonus'}"
+                            }
                         
-                        powerball_plus_results = {
-                            'lottery_type': 'PowerBall Plus',
-                            'draw_number': powerball_plus_draw.draw_number,
-                            'draw_date': powerball_plus_draw.draw_date.strftime('%Y-%m-%d'),
-                            'winning_numbers': plus_numbers,
-                            'winning_powerball': plus_bonus,
-                            'main_matches': plus_main_matches,
-                            'powerball_match': plus_powerball_match,
-                            'total_matches': f"{plus_main_matches} main + {'PowerBall' if plus_powerball_match else '0 PowerBall'}"
-                        }
+                        # Check Lotto Plus 1 if YES indicator found
+                        if lotto_plus_1_yes:
+                            lotto_plus_1_draw = LotteryResult.query.filter_by(lottery_type='Lotto Plus 1').order_by(LotteryResult.draw_date.desc()).first()
+                            if lotto_plus_1_draw:
+                                plus_1_numbers = lotto_plus_1_draw.numbers if lotto_plus_1_draw.numbers else []
+                                plus_1_bonus = lotto_plus_1_draw.bonus_numbers[0] if lotto_plus_1_draw.bonus_numbers else None
+                                
+                                plus_1_main_matches = len(set(player_main_numbers) & set(plus_1_numbers))
+                                plus_1_bonus_match = plus_1_bonus in player_main_numbers if plus_1_bonus else False
+                                
+                                powerball_plus_results = {  # Using same variable for consistency
+                                    'lottery_type': 'Lotto Plus 1',
+                                    'draw_number': lotto_plus_1_draw.draw_number,
+                                    'draw_date': lotto_plus_1_draw.draw_date.strftime('%Y-%m-%d'),
+                                    'winning_numbers': plus_1_numbers,
+                                    'winning_bonus': plus_1_bonus,
+                                    'main_matches': plus_1_main_matches,
+                                    'bonus_match': plus_1_bonus_match,
+                                    'total_matches': f"{plus_1_main_matches} main + {'Bonus' if plus_1_bonus_match else '0 Bonus'}"
+                                }
                 
                 # Create a successful result with both comparisons
                 result = {
