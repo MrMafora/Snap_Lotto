@@ -1040,6 +1040,18 @@ def results():
                         break  # Use first found result for this display type
             
             logger.info(f"Total lottery results found: {len(latest_results)} types with data")
+            logger.info(f"Latest results keys: {list(latest_results.keys())}")
+            logger.info(f"Lottery types list: {lottery_types}")
+            
+            # Debug: Check which lottery types have results
+            for ltype in lottery_types:
+                if ltype in latest_results:
+                    result = latest_results[ltype]
+                    logger.info(f"✓ Template will show results for: {ltype}")
+                    logger.info(f"  - Draw: {result.draw_number}, Numbers: {result.numbers}, Type: {type(result.numbers)}")
+                    logger.info(f"  - Boolean check: {bool(result.numbers) if result else False}")
+                else:
+                    logger.warning(f"✗ Template will show 'No results available' for: {ltype}")
             
             # Ensure latest_results is a dictionary
             if not isinstance(latest_results, dict):
@@ -1054,11 +1066,16 @@ def results():
             {"name": "Results", "url": url_for('results')}
         ]
         
+        # Add cache busting to ensure fresh data display
+        import time
+        cache_buster = int(time.time())
+        
         return render_template('results_overview.html',
                             lottery_types=lottery_types,
                             latest_results=latest_results,
                             title="All Lottery Results",
-                            breadcrumbs=breadcrumbs)
+                            breadcrumbs=breadcrumbs,
+                            cache_buster=cache_buster)
                             
     except Exception as e:
         logger.error(f"Critical error in results route: {str(e)}", exc_info=True)
