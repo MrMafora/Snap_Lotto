@@ -348,31 +348,7 @@ def admin():
         recent_health_checks=recent_health_checks
     )
 
-@app.route('/admin/api-tracking')
-@login_required
-def api_tracking_dashboard():
-    """Dashboard for tracking API requests to external services"""
-    if not current_user.is_admin:
-        flash('You must be an admin to access this page.', 'danger')
-        return redirect(url_for('index'))
-
-    screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
-    schedule_configs = ScheduleConfig.query.all()
-
-    # Define breadcrumbs for SEO
-    breadcrumbs = [
-        {"name": "Admin Dashboard", "url": url_for('admin_dashboard')}
-    ]
-
-    # Define SEO metadata
-    meta_description = "Admin dashboard for the South African lottery results system. Manage data, screenshots, schedule configurations, and system settings."
-    
-    return render_template('admin/dashboard.html', 
-                          screenshots=screenshots,
-                          schedule_configs=schedule_configs,
-                          title="Admin Dashboard | Lottery Results Management",
-                          breadcrumbs=breadcrumbs,
-                          meta_description=meta_description)
+# Removed duplicate api-tracking route - functionality moved to api_tracking_view() function
 
 @app.route('/login', methods=['GET', 'POST'])
 @csrf.exempt
@@ -998,7 +974,6 @@ def how_to_play_daily_lotto():
 @app.route('/results')
 def results():
     """Show overview of all lottery types with links to specific results"""
-    logger.info("=== RESULTS ROUTE CALLED ===")
     lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
                      'Powerball', 'Powerball Plus', 'Daily Lottery']
     
