@@ -176,7 +176,7 @@ def init_lazy_modules():
     
     # Initialize scheduler and health monitoring in background after imports are complete
     with app.app_context():
-        scheduler.init_scheduler(app)
+        # scheduler.init_scheduler(app)  # Commented out - module not available
         health_monitor.init_health_monitor(app, db)
         
         # Register scanner routes for ticket scanning functionality
