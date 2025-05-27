@@ -271,7 +271,7 @@ def home():
     except Exception as e:
         results = []
     
-    return render_template('index.html', results=results)
+    return render_template('home.html', results=results)
 
 
 @app.route('/admin')
