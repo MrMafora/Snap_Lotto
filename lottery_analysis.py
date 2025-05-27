@@ -312,18 +312,12 @@ class LotteryAnalyzer:
                     
                     # Count occurrences of each number across all lottery types
                     for col in all_number_cols:
-                        for num in all_types_df[col].dropna():
+                        # Convert the entire column to numeric values first to avoid type mismatches
+                        numeric_col = pd.to_numeric(all_types_df[col], errors='coerce')
+                        for num in numeric_col.dropna():
                             try:
-                                # Handle all possible type conversions safely
-                                if isinstance(num, str):
-                                    # Try to convert string to float first, then to int to handle decimal strings
-                                    num_int = int(float(num))
-                                else:
-                                    # Convert directly to int for numeric types
-                                    num_int = int(num)
-                                    
-                                # Ensure both values are integers for comparison
-                                if 0 <= num_int <= int(max_number):
+                                num_int = int(num)
+                                if 0 <= num_int <= max_number:
                                     combined_frequency[num_int] += 1
                             except (ValueError, TypeError):
                                 # Skip invalid number formats
