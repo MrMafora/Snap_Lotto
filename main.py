@@ -203,75 +203,72 @@ def home():
     from sqlalchemy import text
     import json
     
-    # Get authentic lottery results directly
+    # Get your authentic lottery results directly using raw SQL like the analytics
+    results = []
     try:
-        # Simple query to get latest results per type
+        # Query your genuine database for the latest results
         query = text("""
             SELECT DISTINCT ON (lottery_type) 
                    lottery_type, draw_number, draw_date, numbers, bonus_numbers
             FROM lottery_result 
-            WHERE numbers IS NOT NULL 
+            WHERE numbers IS NOT NULL AND numbers != ''
             ORDER BY lottery_type, draw_date DESC, id DESC
-            LIMIT 6
         """)
         
-        rows = db.session.execute(query).fetchall()
+        raw_results = db.session.execute(query).fetchall()
         
-        # Process your authentic data
-        results = []
-        for row in rows:
-            # Parse JSON numbers safely  
+        for row in raw_results:
             try:
+                # Parse your authentic JSON data
                 numbers = json.loads(row.numbers) if row.numbers else []
                 bonus_numbers = json.loads(row.bonus_numbers) if row.bonus_numbers else []
                 
-                # Convert to clean integers
+                # Clean the authentic numbers
                 clean_numbers = []
                 for n in numbers:
                     try:
-                        clean_numbers.append(int(str(n).strip('"').strip()))
+                        clean_numbers.append(int(str(n).strip().strip('"')))
                     except:
-                        pass
-                        
+                        continue
+                
                 clean_bonus = []
                 for b in bonus_numbers:
                     try:
-                        clean_bonus.append(int(str(b).strip('"').strip()))
+                        clean_bonus.append(int(str(b).strip().strip('"')))
                     except:
-                        pass
+                        continue
                 
-                # Normalize lottery type
-                lottery_type = row.lottery_type
-                if 'Lotto' in lottery_type:
-                    lottery_type = lottery_type.replace('Lotto', 'Lottery')
-                
-                # Create result object with proper methods
-                from types import SimpleNamespace
-                result = SimpleNamespace()
-                result.lottery_type = lottery_type
-                result.draw_number = str(row.draw_number)
-                result.draw_date = row.draw_date
-                result.numbers = clean_numbers
-                result.bonus_numbers = clean_bonus
-                
-                # Add methods that capture the current values
-                def make_get_numbers(nums):
-                    return lambda: nums
-                def make_get_bonus(bonus):
-                    return lambda: bonus
+                if clean_numbers:  # Only include if we have valid numbers
+                    # Normalize naming for display
+                    display_type = row.lottery_type
+                    if 'Lotto' in display_type:
+                        display_type = display_type.replace('Lotto', 'Lottery')
                     
-                result.get_numbers_list = make_get_numbers(clean_numbers)
-                result.get_bonus_numbers_list = make_get_bonus(clean_bonus)
-                
-                results.append(result)
-                
+                    # Create result object with proper structure
+                    class ResultObj:
+                        def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
+                            self.lottery_type = lottery_type
+                            self.draw_number = str(draw_number)
+                            self.draw_date = draw_date
+                            self.numbers = numbers
+                            self.bonus_numbers = bonus_numbers
+                        
+                        def get_numbers_list(self):
+                            return self.numbers
+                        
+                        def get_bonus_numbers_list(self):
+                            return self.bonus_numbers
+                    
+                    result = ResultObj(display_type, row.draw_number, row.draw_date, clean_numbers, clean_bonus)
+                    results.append(result)
+                    
             except Exception as e:
                 continue
                 
     except Exception as e:
         results = []
     
-    return render_template('home.html', results=results)
+    return render_template('index.html', results=results)
 
 
 @app.route('/admin')
