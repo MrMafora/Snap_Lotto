@@ -326,6 +326,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Get winning numbers for comparison
                 let winningNumbers = [];
                 let winningPowerball = '';
+                let winningPlusNumbers = [];
+                let winningPlusPowerball = '';
                 
                 if (data.powerball_results) {
                     try {
@@ -333,17 +335,44 @@ document.addEventListener('DOMContentLoaded', function() {
                     } catch (e) {
                         console.log('Could not parse winning numbers for comparison');
                     }
-                    winningPowerball = data.powerball_results.winning_powerball ? 
-                        data.powerball_results.winning_powerball.replace(/[\[\]"]/g, '') : '';
+                    let pbNumber = data.powerball_results.winning_powerball ? 
+                        data.powerball_results.winning_powerball.toString().replace(/[\[\]"]/g, '') : '';
+                    if (pbNumber.includes(',')) {
+                        pbNumber = pbNumber.split(',')[0];
+                    }
+                    winningPowerball = pbNumber;
+                }
+                
+                // Get PowerBall Plus winning numbers if ticket includes it
+                if (data.powerball_plus_results && (data.powerball_plus_included === "YES" || data.ticket_data?.powerball_plus_included === "YES")) {
+                    try {
+                        winningPlusNumbers = JSON.parse(data.powerball_plus_results.winning_numbers || '[]').map(n => parseInt(n));
+                    } catch (e) {
+                        console.log('Could not parse PowerBall Plus winning numbers for comparison');
+                    }
+                    let pbPlusNumber = data.powerball_plus_results.winning_powerball ? 
+                        data.powerball_plus_results.winning_powerball.toString().replace(/[\[\]"]/g, '') : '';
+                    if (pbPlusNumber.includes(',')) {
+                        pbPlusNumber = pbPlusNumber.split(',')[0];
+                    }
+                    winningPlusPowerball = pbPlusNumber;
                 }
                 
                 // Count matches for this line
                 let lineMatches = 0;
                 
+                // Count matches for both PowerBall and PowerBall Plus
+                let lineMatchesPB = 0;
+                let lineMatchesPBPlus = 0;
+                
                 // Add main numbers as lottery balls with colors and match indicators
                 lineNumbers.forEach((num, numIndex) => {
-                    const isMatch = winningNumbers.includes(parseInt(num));
-                    if (isMatch) lineMatches++;
+                    const isMatchPB = winningNumbers.includes(parseInt(num));
+                    const isMatchPBPlus = winningPlusNumbers.includes(parseInt(num));
+                    const isMatch = isMatchPB || isMatchPBPlus;
+                    
+                    if (isMatchPB) lineMatchesPB++;
+                    if (isMatchPBPlus) lineMatchesPBPlus++;
                     
                     const colors = ['lottery-ball-red', 'lottery-ball-blue', 'lottery-ball-green', 'lottery-ball-yellow'];
                     const colorClass = colors[numIndex % colors.length];
@@ -386,9 +415,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (powerballNum) {
                     const isPowerballMatch = winningPowerball && winningPowerball === powerballNum;
+                    const isPowerballPlusMatch = winningPlusPowerball && winningPlusPowerball === powerballNum;
+                    const isBonusMatch = isPowerballMatch || isPowerballPlusMatch;
                     
                     const powerballTitle = document.createElement('div');
-                    powerballTitle.innerHTML = `<strong>PowerBall:</strong>`;
+                    powerballTitle.innerHTML = `<strong>Bonus Ball:</strong>`;
                     powerballTitle.className = 'mb-2';
                     lineDiv.appendChild(powerballTitle);
                     
@@ -403,8 +434,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     powerballBall.style.border = '3px solid #ffd700';
                     powerballBall.textContent = powerballNum;
                     
-                    // Add check mark for PowerBall match
-                    if (isPowerballMatch) {
+                    // Add check mark for Bonus Ball match
+                    if (isBonusMatch) {
                         const checkMark = document.createElement('div');
                         checkMark.className = 'position-absolute';
                         checkMark.style.top = '-8px';
@@ -427,18 +458,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     powerballContainer.appendChild(powerballWrapper);
                     lineDiv.appendChild(powerballContainer);
                     
-                    // Display match summary for this line
+                    // Display match summary for this line - show both PowerBall and PowerBall Plus results
                     const matchSummary = document.createElement('div');
-                    matchSummary.className = `alert ${(lineMatches > 0 || isPowerballMatch) ? 'alert-success' : 'alert-info'} mb-0`;
+                    const hasAnyMatches = lineMatchesPB > 0 || lineMatchesPBPlus > 0 || isBonusMatch;
+                    matchSummary.className = `alert ${hasAnyMatches ? 'alert-success' : 'alert-info'} mb-0`;
                     
-                    const totalMatches = lineMatches + (isPowerballMatch ? 1 : 0);
-                    matchSummary.innerHTML = `
-                        <strong>Line ${index + 1} Results:</strong> 
-                        ${lineMatches} main number${lineMatches !== 1 ? 's' : ''} matched
-                        ${isPowerballMatch ? ' + PowerBall matched!' : ''}
-                        ${totalMatches > 0 ? '<br><span class="badge bg-primary">Check Prize Division!</span>' : ''}
-                    `;
+                    let summaryText = `<strong>Line ${index + 1} Results:</strong><br>`;
                     
+                    // PowerBall results
+                    summaryText += `PowerBall: ${lineMatchesPB} main number${lineMatchesPB !== 1 ? 's' : ''}`;
+                    if (isPowerballMatch) summaryText += ' + Bonus Ball';
+                    summaryText += ' matched<br>';
+                    
+                    // PowerBall Plus results (if ticket includes it)
+                    if (data.powerball_plus_included === "YES" || data.ticket_data?.powerball_plus_included === "YES") {
+                        summaryText += `PowerBall Plus: ${lineMatchesPBPlus} main number${lineMatchesPBPlus !== 1 ? 's' : ''}`;
+                        if (isPowerballPlusMatch) summaryText += ' + Bonus Ball';
+                        summaryText += ' matched<br>';
+                    }
+                    
+                    if (hasAnyMatches) {
+                        summaryText += '<span class="badge bg-primary">Check Prize Division!</span>';
+                    }
+                    
+                    matchSummary.innerHTML = summaryText;
                     lineDiv.appendChild(matchSummary);
                 }
                 
@@ -495,25 +538,28 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create winning numbers section
         const winningSection = document.createElement('div');
         winningSection.id = 'winning-numbers-display';
-        winningSection.className = 'mb-4 p-3 border rounded bg-warning bg-opacity-10';
+        winningSection.className = 'mb-3 p-2 border rounded bg-warning bg-opacity-10';
 
-        const winningTitle = document.createElement('h5');
-        winningTitle.className = 'mb-3 text-warning';
-        winningTitle.innerHTML = '🏆 Winning Numbers for Your Draw';
+        const winningTitle = document.createElement('h6');
+        winningTitle.className = 'mb-2 text-warning';
+        winningTitle.innerHTML = '🏆 Winning Numbers';
         winningSection.appendChild(winningTitle);
 
         // Display PowerBall results if available
         if (data.powerball_results) {
             const pbSection = document.createElement('div');
-            pbSection.className = 'mb-3';
+            pbSection.className = 'mb-2';
 
-            const pbTitle = document.createElement('h6');
-            pbTitle.className = 'text-primary mb-2';
-            pbTitle.textContent = `PowerBall Draw ${data.powerball_results.draw_number} (${data.powerball_results.draw_date})`;
+            const pbTitle = document.createElement('div');
+            pbTitle.className = 'text-primary small mb-1';
+            pbTitle.textContent = `PowerBall Draw ${data.powerball_results.draw_number}`;
             pbSection.appendChild(pbTitle);
 
+            const pbRow = document.createElement('div');
+            pbRow.className = 'd-flex align-items-center gap-2 mb-2';
+
             const pbBallsContainer = document.createElement('div');
-            pbBallsContainer.className = 'd-flex flex-wrap gap-2 mb-2';
+            pbBallsContainer.className = 'd-flex flex-wrap gap-1';
 
             // Parse winning numbers
             let winningNumbers = [];
@@ -536,11 +582,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             pbSection.appendChild(pbBallsContainer);
 
-            // Display winning PowerBall
-            if (data.powerball_results.winning_powerball) {
+            // Display winning Bonus Ball - fix the parsing to get actual number
+            const winningPowerball = data.powerball_results.winning_powerball;
+            if (winningPowerball) {
                 const pbLabel = document.createElement('div');
                 pbLabel.className = 'small text-muted mb-1';
-                pbLabel.textContent = 'Winning PowerBall:';
+                pbLabel.textContent = 'Winning Bonus Ball:';
                 pbSection.appendChild(pbLabel);
 
                 const pbContainer = document.createElement('div');
@@ -549,13 +596,80 @@ document.addEventListener('DOMContentLoaded', function() {
                 const pbBall = document.createElement('div');
                 pbBall.className = 'lottery-ball lottery-ball-red';
                 pbBall.style.border = '3px solid #ffd700';
-                pbBall.textContent = data.powerball_results.winning_powerball.replace(/[\[\]"]/g, '');
+                // Better parsing of bonus ball number
+                let pbNumber = winningPowerball.toString().replace(/[\[\]"]/g, '');
+                if (pbNumber.includes(',')) {
+                    pbNumber = pbNumber.split(',')[0];
+                }
+                pbBall.textContent = pbNumber;
                 pbContainer.appendChild(pbBall);
 
                 pbSection.appendChild(pbContainer);
             }
 
             winningSection.appendChild(pbSection);
+        }
+
+        // Display PowerBall Plus results if ticket includes it
+        if (data.powerball_plus_results && (data.powerball_plus_included === "YES" || data.ticket_data?.powerball_plus_included === "YES")) {
+            const pbPlusSection = document.createElement('div');
+            pbPlusSection.className = 'mb-3 p-2 border rounded bg-light';
+
+            const pbPlusTitle = document.createElement('h6');
+            pbPlusTitle.className = 'text-success mb-2';
+            pbPlusTitle.textContent = `PowerBall Plus Draw ${data.powerball_plus_results.draw_number} (${data.powerball_plus_results.draw_date})`;
+            pbPlusSection.appendChild(pbPlusTitle);
+
+            const pbPlusBallsContainer = document.createElement('div');
+            pbPlusBallsContainer.className = 'd-flex flex-wrap gap-2 mb-2';
+
+            // Parse PowerBall Plus winning numbers
+            let winningPlusNumbers = [];
+            try {
+                winningPlusNumbers = JSON.parse(data.powerball_plus_results.winning_numbers || '[]');
+            } catch (e) {
+                console.log('Could not parse PowerBall Plus winning numbers');
+            }
+
+            // Display winning main numbers for PowerBall Plus
+            winningPlusNumbers.forEach((num, index) => {
+                const colors = ['lottery-ball-red', 'lottery-ball-blue', 'lottery-ball-green', 'lottery-ball-yellow'];
+                const colorClass = colors[index % colors.length];
+
+                const ballElement = document.createElement('div');
+                ballElement.className = `lottery-ball ${colorClass} me-1 mb-1`;
+                ballElement.textContent = num;
+                pbPlusBallsContainer.appendChild(ballElement);
+            });
+
+            pbPlusSection.appendChild(pbPlusBallsContainer);
+
+            // Display winning PowerBall Plus Bonus Ball number
+            const winningPlusPowerball = data.powerball_plus_results.winning_powerball;
+            if (winningPlusPowerball) {
+                const pbPlusLabel = document.createElement('div');
+                pbPlusLabel.className = 'small text-muted mb-1';
+                pbPlusLabel.textContent = 'Winning Bonus Ball:';
+                pbPlusSection.appendChild(pbPlusLabel);
+
+                const pbPlusContainer = document.createElement('div');
+                pbPlusContainer.className = 'd-flex gap-2';
+
+                const pbPlusBall = document.createElement('div');
+                pbPlusBall.className = 'lottery-ball lottery-ball-red';
+                pbPlusBall.style.border = '3px solid #28a745';
+                // Better parsing of bonus ball number
+                let pbPlusNumber = winningPlusPowerball.toString().replace(/[\[\]"]/g, '');
+                if (pbPlusNumber.includes(',')) {
+                    pbPlusNumber = pbPlusNumber.split(',')[0];
+                }
+                pbPlusBall.textContent = pbPlusNumber;
+                pbPlusContainer.appendChild(pbPlusBall);
+
+                pbPlusSection.appendChild(pbPlusContainer);
+            }
+
+            winningSection.appendChild(pbPlusSection);
         }
 
         // Insert before ticket numbers
