@@ -283,6 +283,39 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displayResults(data) {
+        // Display raw AI response for debugging
+        console.log('Raw scanner data:', data);
+        
+        // Add raw response display section if it doesn't exist
+        let rawSection = document.getElementById('raw-response-section');
+        if (!rawSection) {
+            const resultsContainer = document.getElementById('results-container');
+            rawSection = document.createElement('div');
+            rawSection.id = 'raw-response-section';
+            rawSection.className = 'card mt-4';
+            rawSection.innerHTML = `
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fa fa-code me-2"></i>Raw AI Response
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Debug Information:</strong> This shows exactly what the AI extracted from your ticket.
+                    </div>
+                    <pre id="raw-response-content" class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;"></pre>
+                </div>
+            `;
+            resultsContainer.appendChild(rawSection);
+        }
+        
+        // Show raw response
+        const rawContent = document.getElementById('raw-response-content');
+        if (rawContent) {
+            rawContent.textContent = JSON.stringify(data, null, 2);
+        }
+        rawSection.style.display = 'block';
+        
         // Display ticket info
         document.getElementById('detected-lottery-type').textContent = data.lottery_type || 'Not detected';
         document.getElementById('detected-draw-date').textContent = data.draw_date || 'Not detected';
