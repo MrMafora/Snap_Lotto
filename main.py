@@ -207,13 +207,34 @@ def index():
     latest_results = []
     
     try:
-        # Query database for latest results per lottery type
+        # Query database for latest results per lottery type, handling both Lotto/Lottery naming
         query_results = db.session.execute(text("""
-            SELECT DISTINCT ON (lottery_type) 
-                   lottery_type, draw_number, draw_date, numbers, bonus_numbers
-            FROM lottery_result 
-            WHERE numbers IS NOT NULL 
-            ORDER BY lottery_type, draw_date DESC, id DESC
+            WITH normalized_types AS (
+                SELECT 
+                    CASE 
+                        WHEN lottery_type = 'Lotto' THEN 'Lottery'
+                        WHEN lottery_type = 'Lotto Plus 1' THEN 'Lottery Plus 1'
+                        WHEN lottery_type = 'Lotto Plus 2' THEN 'Lottery Plus 2'
+                        ELSE lottery_type
+                    END as lottery_type,
+                    draw_number, draw_date, numbers, bonus_numbers,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY 
+                            CASE 
+                                WHEN lottery_type = 'Lotto' THEN 'Lottery'
+                                WHEN lottery_type = 'Lotto Plus 1' THEN 'Lottery Plus 1'
+                                WHEN lottery_type = 'Lotto Plus 2' THEN 'Lottery Plus 2'
+                                ELSE lottery_type
+                            END 
+                        ORDER BY draw_date DESC, id DESC
+                    ) as rn
+                FROM lottery_result 
+                WHERE numbers IS NOT NULL
+            )
+            SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers
+            FROM normalized_types 
+            WHERE rn = 1
+            ORDER BY draw_date DESC
             LIMIT 6
         """)).fetchall()
         
