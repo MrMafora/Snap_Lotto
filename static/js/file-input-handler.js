@@ -280,24 +280,25 @@ function displayResults(data) {
     if (ticketNumbersContainer) {
         ticketNumbersContainer.innerHTML = '';
         
-        // Check if we have raw selected numbers for a better display
-        if (data.ticket_info && data.ticket_info.raw_selected_numbers) {
-            // Process and display each row of numbers
-            Object.entries(data.ticket_info.raw_selected_numbers).forEach(([rowName, numbers]) => {
-                // Create row label
-                const rowLabel = document.createElement('div');
-                rowLabel.classList.add('mt-2', 'mb-1');
-                rowLabel.innerHTML = `<strong>Row ${rowName}:</strong>`;
-                ticketNumbersContainer.appendChild(rowLabel);
-                
-                // Create row container
-                const rowContainer = document.createElement('div');
-                rowContainer.classList.add('mb-3', 'd-flex', 'flex-wrap');
-                
-                // Add balls for this row
-                numbers.forEach(number => {
-                    const ballElement = document.createElement('div');
-                    ballElement.classList.add('lottery-ball', 'me-2', 'mb-2');
+        // Use the correct data structure from your authentic PowerBall ticket
+        if (data.all_lines && Array.isArray(data.all_lines)) {
+            // Display each line of numbers from your ticket
+            data.all_lines.forEach((numbers, lineIndex) => {
+                if (Array.isArray(numbers)) {
+                    // Create row label
+                    const rowLabel = document.createElement('div');
+                    rowLabel.classList.add('mt-2', 'mb-1');
+                    rowLabel.innerHTML = `<strong>Line ${lineIndex + 1} - Main Numbers:</strong>`;
+                    ticketNumbersContainer.appendChild(rowLabel);
+                    
+                    // Create row container
+                    const rowContainer = document.createElement('div');
+                    rowContainer.classList.add('mb-3', 'd-flex', 'flex-wrap');
+                    
+                    // Add balls for main numbers
+                    numbers.forEach(number => {
+                        const ballElement = document.createElement('div');
+                        ballElement.classList.add('lottery-ball', 'me-2', 'mb-2');
                     
                     // Check if this number matches a winning number
                     const isMatch = data.winning_numbers && data.winning_numbers.includes(number);
@@ -339,6 +340,42 @@ function displayResults(data) {
             });
             
             ticketNumbersContainer.appendChild(rowContainer);
+        } else if (data.ticket_numbers && Array.isArray(data.ticket_numbers)) {
+            // Handle your authentic PowerBall ticket data format
+            const rowLabel = document.createElement('div');
+            rowLabel.classList.add('mt-2', 'mb-1');
+            rowLabel.innerHTML = `<strong>Your Numbers:</strong>`;
+            ticketNumbersContainer.appendChild(rowLabel);
+            
+            const rowContainer = document.createElement('div');
+            rowContainer.classList.add('mb-3', 'd-flex', 'flex-wrap');
+            
+            data.ticket_numbers.forEach(number => {
+                const ballElement = document.createElement('div');
+                ballElement.classList.add('lottery-ball', 'me-2', 'mb-2');
+                ballElement.textContent = number;
+                rowContainer.appendChild(ballElement);
+            });
+            
+            ticketNumbersContainer.appendChild(rowContainer);
+            
+            // Add PowerBall if available
+            if (data.powerball_number) {
+                const powerballLabel = document.createElement('div');
+                powerballLabel.classList.add('mt-3', 'mb-1');
+                powerballLabel.innerHTML = `<strong>PowerBall:</strong>`;
+                ticketNumbersContainer.appendChild(powerballLabel);
+                
+                const powerballContainer = document.createElement('div');
+                powerballContainer.classList.add('mb-3', 'd-flex', 'flex-wrap');
+                
+                const ballElement = document.createElement('div');
+                ballElement.classList.add('lottery-ball', 'powerball', 'me-2', 'mb-2');
+                ballElement.textContent = data.powerball_number;
+                powerballContainer.appendChild(ballElement);
+                
+                ticketNumbersContainer.appendChild(powerballContainer);
+            }
         }
     }
     
