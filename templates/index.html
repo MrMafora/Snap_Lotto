@@ -1042,42 +1042,46 @@ function updateFrequencyChart(data) {
         'bg-secondary'  // 10th - Gray (reusing)
     ];
     
-    // Process and display ONLY the top 10 numbers (limit to exactly 10)
-    const top10Numbers = topNumbers.slice(0, 10);
-    top10Numbers.forEach((item, index) => {
+    // Process and display EXACTLY 10 numbers - hard limit
+    const exactlyTop10 = topNumbers.slice(0, 10);
+    console.log('Rendering exactly', exactlyTop10.length, 'bars for top numbers:', exactlyTop10);
+    
+    exactlyTop10.forEach((item, index) => {
         if (!Array.isArray(item) || item.length < 2) return;
         
         const number = item[0];
         const frequency = item[1];
         
-        // Create column container for this bar
+        // Create column container for this bar - exactly 10% width for 10 bars
         const column = document.createElement('div');
         column.style.display = 'flex';
         column.style.flexDirection = 'column';
         column.style.alignItems = 'center';
-        column.style.width = '9%';
+        column.style.width = '10%';  // Exactly 10% for 10 bars
         column.style.position = 'relative';
+        column.style.marginRight = index < exactlyTop10.length - 1 ? '0' : '0';  // No margin needed
         barContainer.appendChild(column);
         
         // Calculate height as percentage (0-100%) of the dynamic maxYValue
         const maxYValue = yAxisValues[0]; // Now dynamically calculated
         const heightPercent = (frequency / maxYValue) * 100;
         
-        // Create the bar itself
+        // Create the bar itself - PROPERLY from bottom to top
         const bar = document.createElement('div');
         bar.className = `${barColors[index]}`;
         bar.style.width = '100%';
         bar.style.height = `${heightPercent}%`;
         bar.style.position = 'absolute';
-        bar.style.bottom = '0';
+        bar.style.bottom = '0';  // Anchor to bottom for proper bar chart
         bar.style.borderRadius = '3px 3px 0 0';
         bar.style.display = 'flex';
         bar.style.justifyContent = 'center';
-        bar.style.alignItems = 'center';
+        bar.style.alignItems = 'flex-end';  // Align text to bottom of bar
         bar.style.color = 'white';
         bar.style.fontWeight = 'bold';
         bar.style.fontSize = '11px';
         bar.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        bar.style.paddingBottom = '3px';  // Small padding for text
         bar.textContent = frequency;
         column.appendChild(bar);
         
@@ -1107,7 +1111,7 @@ function updateFrequencyChart(data) {
     topBox.appendChild(topTitle);
     
     // Add top 5 numbers from the limited top 10 set
-    top10Numbers.slice(0, 5).forEach(([number, freq]) => {
+    exactlyTop10.slice(0, 5).forEach(([number, freq]) => {
         const item = document.createElement('div');
         item.textContent = `# ${number}: ${freq} times`;
         topBox.appendChild(item);
