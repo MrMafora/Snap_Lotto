@@ -548,29 +548,36 @@ def process_ticket():
                             "text": """You are reading a South African lottery ticket. Extract the information and return ONLY valid JSON.
 
                             IMPORTANT: South African lottery tickets use this specific format:
-                            - A1(XX): main_number,main_number,main_number,main_number,main_number
-                            - A2(XX): bonus_number
-                            - QP A2(XX): bonus_number (if Quick Pick was used)
+                            - A1(XX): main_number,main_number,main_number,main_number,main_number (First row)
+                            - B1(XX): main_number,main_number,main_number,main_number,main_number (Second row)
+                            - C1(XX): main_number,main_number,main_number,main_number,main_number (Third row)
+                            - A2(XX): bonus_number (or QP A2(XX) for Quick Pick)
+                            
+                            EXTRACT ALL ROWS: Look for A1, B1, C1, D1, etc. Each contains 5 numbers.
                             
                             For example:
-                            A1(05): 7,11,17,25,33 means the main numbers are 7,11,17,25,33
+                            A1(05): 7,11,17,25,33 means first row numbers are 7,11,17,25,33
+                            B1(05): 4,5,23,24,25 means second row numbers are 4,5,23,24,25
                             A2(01): 20 means the bonus number is 20
-                            QP A2(01): 20 means the bonus number is 20 (Quick Pick)
                             
-                            The A1(XX) line contains the MAIN NUMBERS after the colon (:)
+                            The A1, B1, C1, D1 lines contain the MAIN NUMBERS after the colon (:)
                             The A2(XX) line contains the BONUS/POWERBALL number after the colon (:)
                             QP before A2 means Quick Pick was used, but extract the same way
                             
-                            Return this exact format:
+                            Return this exact format for MULTIPLE ROWS:
                             
                             {
-                                "lottery_type": "Lotto",
-                                "main_numbers": [7, 11, 17, 25, 33],
+                                "lottery_type": "PowerBall",
+                                "all_lines": [
+                                    [7, 11, 17, 25, 33],
+                                    [4, 5, 23, 24, 25],
+                                    [1, 2, 3, 4, 5]
+                                ],
                                 "powerball_number": "20",
                                 "powerball_plus_included": "YES",
-                                "draw_date": "26/03/2025",
-                                "draw_number": "2527",
-                                "ticket_cost": "R30.00"
+                                "draw_date": "25/03/2025",
+                                "draw_number": "1600",
+                                "ticket_cost": "R15.00"
                             }
                             
                             Look for:
@@ -609,8 +616,17 @@ def process_ticket():
                 powerball_results = {}
                 powerball_plus_results = {}
                 
-                if ticket_data.get('main_numbers'):
-                    player_main_numbers = ticket_data.get('main_numbers', [])
+                # Handle both old format (main_numbers) and new format (all_lines)
+                if ticket_data.get('all_lines') or ticket_data.get('main_numbers'):
+                    if ticket_data.get('all_lines'):
+                        # New multi-row format - use first row for comparison
+                        player_main_numbers = ticket_data.get('all_lines', [])[0] if ticket_data.get('all_lines') else []
+                        all_ticket_lines = ticket_data.get('all_lines', [])
+                    else:
+                        # Old single-row format
+                        player_main_numbers = ticket_data.get('main_numbers', [])
+                        all_ticket_lines = [player_main_numbers] if player_main_numbers else []
+                    
                     player_powerball = ticket_data.get('powerball_number')
                     
                     # Check which games to compare based on lottery type and YES indicators
@@ -795,11 +811,15 @@ def process_ticket():
                 logger.info(f"DEBUG: - actual_draw_date: {actual_draw_date}")
                 logger.info(f"DEBUG: - actual_draw_number: {actual_draw_number}")
                 
-                # CRITICAL FIX: Ensure numbers are properly passed to frontend
-                if numbers and len(numbers) > 0:
+                # CRITICAL FIX: Use all ticket lines from AI response
+                if all_ticket_lines and len(all_ticket_lines) > 0:
+                    all_lines = all_ticket_lines
+                    ticket_numbers = all_ticket_lines[0] if all_ticket_lines else []  # First row for backward compatibility
+                    logger.info(f"MULTI-ROW FIX: Set all_lines={all_lines}, ticket_numbers={ticket_numbers}")
+                elif numbers and len(numbers) > 0:
                     ticket_numbers = numbers
                     all_lines = [numbers]
-                    logger.info(f"NUMBERS FIX: Set ticket_numbers={ticket_numbers}, all_lines={all_lines}")
+                    logger.info(f"SINGLE-ROW FIX: Set ticket_numbers={ticket_numbers}, all_lines={all_lines}")
 
                 # Create a successful result matching frontend expectations
                 result = {
