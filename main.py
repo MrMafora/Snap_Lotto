@@ -1081,14 +1081,17 @@ def process_ticket():
         if result.get('lottery_type') and 'Lotto' in result['lottery_type']:
             result['lottery_type'] = result['lottery_type'].replace('Lotto', 'Lottery')
         
-        # Debug: Print to console for troubleshooting
-        logger.info("=== SCANNER DEBUG ===")
-        logger.info(f"Final result lottery type: {result.get('lottery_type')}")
-        logger.info(f"Final result draw date: {result.get('draw_date')}")
-        logger.info(f"Final result draw number: {result.get('draw_number')}")
-        logger.info(f"Final result ticket numbers: {result.get('ticket_numbers')}")
-        logger.info(f"Final result success: {result.get('success')}")
-        logger.info("====================")
+        # Integrate extracted numbers properly into main display
+        if result.get('ticket_data') and result['ticket_data'].get('main_numbers'):
+            result['ticket_numbers'] = result['ticket_data']['main_numbers']
+            
+        # Add PowerBall number if detected
+        if result.get('ticket_data') and result['ticket_data'].get('powerball_number'):
+            result['powerball_number'] = result['ticket_data']['powerball_number']
+        
+        # Ensure we show PowerBall Plus inclusion status
+        if result.get('ticket_data') and result['ticket_data'].get('powerball_plus_included'):
+            result['powerball_plus_included'] = result['ticket_data']['powerball_plus_included']
         
         return jsonify(result)
     except Exception as e:
