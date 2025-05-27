@@ -418,13 +418,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     const isPowerballPlusMatch = winningPlusPowerball && winningPlusPowerball === powerballNum;
                     const isBonusMatch = isPowerballMatch || isPowerballPlusMatch;
                     
-                    const powerballTitle = document.createElement('div');
-                    powerballTitle.innerHTML = `<strong>Bonus Ball:</strong>`;
-                    powerballTitle.className = 'mb-2';
-                    lineDiv.appendChild(powerballTitle);
+                    // Add + sign separator
+                    const plusSign = document.createElement('span');
+                    plusSign.className = 'mx-2 align-self-center fs-4 fw-bold text-muted';
+                    plusSign.textContent = '+';
+                    ballsContainer.appendChild(plusSign);
                     
                     const powerballContainer = document.createElement('div');
-                    powerballContainer.className = 'd-flex flex-wrap gap-2 mb-3';
+                    powerballContainer.className = 'd-flex gap-2';
                     
                     const powerballWrapper = document.createElement('div');
                     powerballWrapper.className = 'position-relative d-inline-block';
@@ -580,18 +581,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 pbBallsContainer.appendChild(ballElement);
             });
 
-            pbSection.appendChild(pbBallsContainer);
-
-            // Display winning Bonus Ball - fix the parsing to get actual number
+            // Display winning Bonus Ball with + separator
             const winningPowerball = data.powerball_results.winning_powerball;
             if (winningPowerball) {
-                const pbLabel = document.createElement('div');
-                pbLabel.className = 'small text-muted mb-1';
-                pbLabel.textContent = 'Winning Bonus Ball:';
-                pbSection.appendChild(pbLabel);
-
-                const pbContainer = document.createElement('div');
-                pbContainer.className = 'd-flex gap-2';
+                // Add + sign separator
+                const plusSign = document.createElement('span');
+                plusSign.className = 'mx-2 align-self-center fs-5 fw-bold text-muted';
+                plusSign.textContent = '+';
+                pbRow.appendChild(plusSign);
 
                 const pbBall = document.createElement('div');
                 pbBall.className = 'lottery-ball lottery-ball-red';
@@ -602,10 +599,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     pbNumber = pbNumber.split(',')[0];
                 }
                 pbBall.textContent = pbNumber;
-                pbContainer.appendChild(pbBall);
-
-                pbSection.appendChild(pbContainer);
+                pbRow.appendChild(pbBall);
             }
+
+            pbRow.appendChild(pbBallsContainer);
+            pbSection.appendChild(pbRow);
 
             winningSection.appendChild(pbSection);
         }
