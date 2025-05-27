@@ -171,11 +171,16 @@ class LotteryAnalyzer:
                         else:
                             bonus_numbers = result.bonus_numbers
                     
-                    # Create row dictionary
+                    # Create row dictionary - ensure draw_number is an integer
+                    try:
+                        draw_number = int(result.draw_number) if result.draw_number else 0
+                    except (ValueError, TypeError):
+                        draw_number = 0
+                        
                     row = {
                         'id': result.id,
                         'lottery_type': result.lottery_type,
-                        'draw_number': result.draw_number,
+                        'draw_number': draw_number,
                         'draw_date': result.draw_date,
                     }
                     
