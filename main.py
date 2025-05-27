@@ -461,6 +461,11 @@ def index():
         # Home page doesn't need breadcrumbs (it's the root), but we define an empty list for consistency
         breadcrumbs = []
         
+        # DEBUG: Log what we're passing to template
+        logger.info(f"Passing to template: {len(results_list)} results")
+        for r in results_list[:3]:  # Log first 3 results
+            logger.info(f"Result: {r.lottery_type} - Draw {r.draw_number} - Date {r.draw_date}")
+
         return render_template('index.html', 
                             latest_results=latest_results,
                             results=results_list,
