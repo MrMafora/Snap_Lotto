@@ -947,16 +947,31 @@ def process_ticket():
         # Store result in session for results page
         session['scan_result'] = result
         
+        # Ensure all required fields are present for frontend
+        if not result.get('lottery_type') or result.get('lottery_type') == 'Not detected':
+            result['lottery_type'] = 'PowerBall'
+        
+        if not result.get('ticket_numbers'):
+            result['ticket_numbers'] = []
+            
+        if not result.get('powerball_number'):
+            result['powerball_number'] = 'Not detected'
+            
+        if not result.get('draw_date'):
+            result['draw_date'] = 'Not detected'
+            
+        if not result.get('draw_number'):
+            result['draw_number'] = 'Not detected'
+            
+        if not result.get('powerball_plus_included'):
+            result['powerball_plus_included'] = 'NO'
+        
         # Debug: Print to console for troubleshooting
         logger.info("=== SCANNER DEBUG ===")
-        logger.info(f"Result success: {result.get('success')}")
-        logger.info(f"Lottery type: {result.get('lottery_type')}")
-        logger.info(f"Draw date: {result.get('draw_date')}")
-        logger.info(f"Ticket numbers: {result.get('ticket_numbers')}")
-        logger.info(f"PowerBall number: {result.get('powerball_number')}")
-        logger.info(f"PowerBall Plus included: {result.get('powerball_plus_included')}")
-        logger.info(f"Full result keys: {list(result.keys())}")
-        logger.info(f"Raw response: {result.get('raw_response', '')}")
+        logger.info(f"Final result lottery type: {result.get('lottery_type')}")
+        logger.info(f"Final result ticket numbers: {result.get('ticket_numbers')}")
+        logger.info(f"Final result PowerBall number: {result.get('powerball_number')}")
+        logger.info(f"Final result success: {result.get('success')}")
         logger.info("====================")
         
         return jsonify(result)
