@@ -773,15 +773,69 @@ def process_ticket():
                 else:
                     ticket_data = json.loads(response_text)
                 
-                # Create a successful result
+                # Check for PowerBall + PowerBall Plus combination and compare with both results
+                powerball_results = {}
+                powerball_plus_results = {}
+                
+                if ticket_data.get('main_numbers') and 'powerball' in ticket_data.get('lottery_type', '').lower():
+                    player_main_numbers = ticket_data.get('main_numbers', [])
+                    player_powerball = ticket_data.get('powerball_number')
+                    
+                    # Get latest PowerBall results
+                    powerball_draw = LotteryResult.query.filter_by(lottery_type='Powerball').order_by(LotteryResult.draw_date.desc()).first()
+                    if powerball_draw:
+                        powerball_numbers = powerball_draw.numbers if powerball_draw.numbers else []
+                        powerball_bonus = powerball_draw.bonus_numbers[0] if powerball_draw.bonus_numbers else None
+                        
+                        # Count matches for PowerBall
+                        main_matches = len(set(player_main_numbers) & set(powerball_numbers))
+                        powerball_match = (player_powerball == powerball_bonus) if player_powerball and powerball_bonus else False
+                        
+                        powerball_results = {
+                            'lottery_type': 'PowerBall',
+                            'draw_number': powerball_draw.draw_number,
+                            'draw_date': powerball_draw.draw_date.strftime('%Y-%m-%d'),
+                            'winning_numbers': powerball_numbers,
+                            'winning_powerball': powerball_bonus,
+                            'main_matches': main_matches,
+                            'powerball_match': powerball_match,
+                            'total_matches': f"{main_matches} main + {'PowerBall' if powerball_match else '0 PowerBall'}"
+                        }
+                    
+                    # Get latest PowerBall Plus results  
+                    powerball_plus_draw = LotteryResult.query.filter_by(lottery_type='Powerball Plus').order_by(LotteryResult.draw_date.desc()).first()
+                    if powerball_plus_draw:
+                        plus_numbers = powerball_plus_draw.numbers if powerball_plus_draw.numbers else []
+                        plus_bonus = powerball_plus_draw.bonus_numbers[0] if powerball_plus_draw.bonus_numbers else None
+                        
+                        # Count matches for PowerBall Plus
+                        plus_main_matches = len(set(player_main_numbers) & set(plus_numbers))
+                        plus_powerball_match = (player_powerball == plus_bonus) if player_powerball and plus_bonus else False
+                        
+                        powerball_plus_results = {
+                            'lottery_type': 'PowerBall Plus',
+                            'draw_number': powerball_plus_draw.draw_number,
+                            'draw_date': powerball_plus_draw.draw_date.strftime('%Y-%m-%d'),
+                            'winning_numbers': plus_numbers,
+                            'winning_powerball': plus_bonus,
+                            'main_matches': plus_main_matches,
+                            'powerball_match': plus_powerball_match,
+                            'total_matches': f"{plus_main_matches} main + {'PowerBall' if plus_powerball_match else '0 PowerBall'}"
+                        }
+                
+                # Create a successful result with both comparisons
                 result = {
                     'success': True,
                     'ticket_data': ticket_data,
                     'raw_response': response_text,
+                    'powerball_results': powerball_results,
+                    'powerball_plus_results': powerball_plus_results,
                     'comparison': {
-                        'message': 'Ticket analyzed successfully! Check your numbers against the latest draw results.',
-                        'extracted_numbers': ticket_data.get('numbers', []),
-                        'lottery_type': ticket_data.get('lottery_type', 'Unknown')
+                        'message': 'PowerBall ticket analyzed! Checked against both PowerBall AND PowerBall Plus results.',
+                        'extracted_numbers': ticket_data.get('main_numbers', []),
+                        'powerball_number': ticket_data.get('powerball_number'),
+                        'lottery_type': ticket_data.get('lottery_type', 'Unknown'),
+                        'both_games_checked': bool(powerball_results and powerball_plus_results)
                     }
                 }
                 
