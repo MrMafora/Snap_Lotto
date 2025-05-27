@@ -1036,7 +1036,10 @@ def results():
                     latest_result = LotteryResult.query.filter_by(lottery_type=db_name).order_by(LotteryResult.draw_date.desc()).first()
                     if latest_result:
                         latest_results[display_type] = latest_result
+                        logger.info(f"Found result for {display_type}: Draw {latest_result.draw_number}, Date: {latest_result.draw_date}")
                         break  # Use first found result for this display type
+            
+            logger.info(f"Total lottery results found: {len(latest_results)} types with data")
             
             # Ensure latest_results is a dictionary
             if not isinstance(latest_results, dict):
