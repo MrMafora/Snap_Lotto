@@ -197,51 +197,67 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 
 @app.route('/')
 def index():
-    """Homepage with latest lottery results - standardized approach"""
+    """Homepage with latest lottery results - clean and working approach"""
     try:
-        # Get results directly from database bypassing complex analysis
         latest_results = []
         frequency_data = {'labels': [], 'data': [], 'total_draws': 0}
         
-        # Direct database query to get your 220 lottery results
+        # Get latest lottery results directly from database
         try:
             from sqlalchemy import text
             import json
             
+            # Get one result per lottery type - latest by date
             results = db.session.execute(text("""
+                WITH ranked_results AS (
+                    SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers,
+                           ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY draw_date DESC, id DESC) as rn
+                    FROM lottery_result 
+                    WHERE numbers IS NOT NULL
+                )
                 SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers
-                FROM lottery_result 
-                ORDER BY draw_date DESC, id DESC 
-                LIMIT 10
+                FROM ranked_results 
+                WHERE rn = 1
+                ORDER BY draw_date DESC
+                LIMIT 6
             """)).fetchall()
             
-            # Process results with proper error handling
+            # Process results for template display
             for result in results:
                 try:
-                    # Parse JSON numbers safely
                     numbers = json.loads(result.numbers) if result.numbers else []
                     bonus_numbers = json.loads(result.bonus_numbers) if result.bonus_numbers else []
                     
-                    latest_results.append({
-                        'lottery_type': result.lottery_type,
-                        'draw_number': str(result.draw_number),
-                        'draw_date': result.draw_date.strftime('%Y-%m-%d') if result.draw_date else '',
-                        'numbers': numbers,
-                        'bonus_numbers': bonus_numbers
-                    })
+                    # Create result object with methods the template expects
+                    class ResultObj:
+                        def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
+                            self.lottery_type = lottery_type
+                            self.draw_number = str(draw_number)
+                            self.draw_date = draw_date
+                            self.numbers = numbers
+                            self.bonus_numbers = bonus_numbers
+                        
+                        def get_numbers_list(self):
+                            return self.numbers
+                        
+                        def get_bonus_numbers_list(self):
+                            return self.bonus_numbers
+                    
+                    result_obj = ResultObj(result.lottery_type, result.draw_number, 
+                                         result.draw_date, numbers, bonus_numbers)
+                    latest_results.append(result_obj)
                 except Exception as e:
                     logger.error(f"Error processing result: {e}")
                     continue
-                    
-            # Simple frequency calculation without complex analysis
+            
+            # Calculate frequency data from recent results
             if latest_results:
                 number_count = {}
                 for result in latest_results:
-                    for num in result['numbers']:
+                    for num in result.get_numbers_list():
                         if isinstance(num, int):
                             number_count[num] = number_count.get(num, 0) + 1
                 
-                # Get top 5 most frequent numbers
                 top_numbers = sorted(number_count.items(), key=lambda x: x[1], reverse=True)[:5]
                 frequency_data = {
                     'labels': [str(num) for num, _ in top_numbers],
@@ -250,7 +266,7 @@ def index():
                 }
                 
         except Exception as e:
-            logger.error(f"Error loading lottery results: {e}")
+            logger.error(f"Database error: {e}")
         
         return render_template('index.html', 
                              latest_results=latest_results,
@@ -261,84 +277,6 @@ def index():
         return render_template('index.html', 
                              latest_results=[],
                              frequency_data={'labels': [], 'data': [], 'total_draws': 0})
-        
-        # First, validate and correct any known draws (adds missing division data)
-        try:
-            corrected = data_aggregator.validate_and_correct_known_draws()
-            if corrected > 0:
-                logger.info(f"Corrected {corrected} lottery draws with verified data")
-        except Exception as e:
-            logger.error(f"Error in validate_and_correct_known_draws: {e}")
-        
-        # Get the latest results for each lottery type
-        try:
-            latest_results = data_aggregator.get_latest_results()
-            
-            # Convert dictionary of results to a list for iteration in the template
-            results_list = []
-            
-            # Use a dictionary to track unique draw numbers per type to avoid duplicates
-            seen_draws = {}
-            normalized_results = {}
-            
-            # First, create a dictionary to group results by normalized type
-            type_groups = {}
-            for lottery_type, result in latest_results.items():
-                # Normalize the lottery type
-                normalized_type = data_aggregator.normalize_lottery_type(lottery_type)
-                
-                # Group all results by normalized type
-                if normalized_type not in type_groups:
-                    type_groups[normalized_type] = []
-                type_groups[normalized_type].append(result)
-            
-            # Now select the newest result for each normalized type
-            for normalized_type, type_results in type_groups.items():
-                # Sort by date (newest first)
-                type_results.sort(key=lambda x: x.draw_date, reverse=True)
-                # Take the newest result only
-                newest_result = type_results[0]
-                normalized_results[normalized_type] = newest_result
-            
-            # Second pass: add results using normalized keys to avoid duplicates
-            for normalized_type, result in normalized_results.items():
-                # Generate a deduplication key using normalized type
-                key = f"{normalized_type}_{result.draw_number}"
-                if key not in seen_draws:
-                    # Clone the result to avoid modifying the database object directly
-                    # This prevents unique constraint violations when adding to results_list
-                    result_clone = LotteryResult(
-                        id=result.id,
-                        lottery_type=normalized_type,  # Use normalized type
-                        draw_number=result.draw_number,
-                        draw_date=result.draw_date,
-                        numbers=result.numbers,
-                        bonus_numbers=result.bonus_numbers,
-                        divisions=result.divisions,
-                        source_url=result.source_url,
-                        screenshot_id=result.screenshot_id,
-                        ocr_provider=result.ocr_provider,
-                        ocr_model=result.ocr_model,
-                        ocr_timestamp=result.ocr_timestamp,
-                        created_at=result.created_at
-                    )
-                    results_list.append(result_clone)
-                    seen_draws[key] = True
-            
-            # Get the latest results for each lottery type based on standardized order
-            # This is a reusable approach that doesn't require hardcoding
-            logger.info("Getting latest lottery results in standardized order")
-            ordered_list = []
-            
-            # Define the desired order of lottery types as shown in the screenshot
-            lottery_type_order = [
-                "Lottery", 
-                "Powerball Plus", 
-                "Lottery Plus 1", 
-                "Powerball", 
-                "Lottery Plus 2", 
-                "Daily Lottery"
-            ]
             
             # Sort results_list directly to match our preferred order
             def get_order_index(result):
