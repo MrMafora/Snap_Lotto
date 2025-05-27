@@ -902,6 +902,13 @@ def process_ticket():
                 # Determine if PowerBall Plus is included
                 powerball_plus_included = 'YES' if 'plus' in ticket_data.get('lottery_type', '').lower() else 'NO'
                 
+                # Debug logging to see what we extracted
+                logger.info(f"DEBUG: ticket_data = {ticket_data}")
+                logger.info(f"DEBUG: numbers = {numbers}")
+                logger.info(f"DEBUG: powerball_numbers = {powerball_numbers}")
+                logger.info(f"DEBUG: ticket_numbers = {ticket_numbers}")
+                logger.info(f"DEBUG: powerball_number = {powerball_number}")
+                
                 # Create a successful result matching frontend expectations
                 result = {
                     'success': True,
@@ -928,6 +935,8 @@ def process_ticket():
                         'both_games_checked': bool(powerball_results and powerball_plus_results)
                     }
                 }
+                
+                logger.info(f"DEBUG: Created result = {result}")
                 
             except json.JSONDecodeError as e:
                 # If JSON parsing fails, create a basic result that shows the response
@@ -979,21 +988,29 @@ def process_ticket():
         # Store result in session for results page
         session['scan_result'] = result
         
-        # Ensure all required fields are present for frontend
+        # Ensure all required fields are present for frontend - but preserve extracted data
         if not result.get('lottery_type') or result.get('lottery_type') == 'Not detected':
-            result['lottery_type'] = 'PowerBall'
+            # Only set default if we truly have no data
+            if not result.get('ticket_data', {}).get('lottery_type'):
+                result['lottery_type'] = 'PowerBall'
         
         if not result.get('ticket_numbers'):
             result['ticket_numbers'] = []
             
-        if not result.get('powerball_number'):
-            result['powerball_number'] = 'Not detected'
+        if not result.get('powerball_number') or result.get('powerball_number') == 'Not detected':
+            # Only set default if we truly have no data
+            if not result.get('ticket_data', {}).get('powerball_or_bonus'):
+                result['powerball_number'] = 'Not detected'
             
-        if not result.get('draw_date'):
-            result['draw_date'] = 'Not detected'
+        if not result.get('draw_date') or result.get('draw_date') == 'Not detected':
+            # Only set default if we truly have no data
+            if not result.get('ticket_data', {}).get('draw_date'):
+                result['draw_date'] = 'Not detected'
             
-        if not result.get('draw_number'):
-            result['draw_number'] = 'Not detected'
+        if not result.get('draw_number') or result.get('draw_number') == 'Not detected':
+            # Only set default if we truly have no data
+            if not result.get('ticket_data', {}).get('draw_number'):
+                result['draw_number'] = 'Not detected'
             
         if not result.get('powerball_plus_included'):
             result['powerball_plus_included'] = 'NO'
