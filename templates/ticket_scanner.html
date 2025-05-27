@@ -97,23 +97,19 @@
                             </div>
                             
                             <div id="success-content" class="d-none">
-                                <div class="card mb-4">
-                                    <div class="card-header bg-light">
-                                        <h5 class="mb-0" id="ticket-info-title">Your Ticket</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <p><strong>Lottery Type:</strong> <span id="detected-lottery-type"></span></p>
-                                                <p><strong>Draw Date:</strong> <span id="detected-draw-date"></span></p>
-                                                <p><strong>Draw Number:</strong> <span id="detected-draw-number"></span></p>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <p><strong>Your Numbers:</strong></p>
-                                                <div id="ticket-numbers" class="numbers-display"></div>
-                                            </div>
+                                <!-- Ticket Info Header -->
+                                <div class="mb-3 p-3 bg-light rounded">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <h5 class="mb-2">🎫 <span id="detected-lottery-type"></span> Ticket</h5>
+                                            <p class="mb-0"><strong>Draw:</strong> <span id="detected-draw-number"></span> • <strong>Date:</strong> <span id="detected-draw-date"></span></p>
                                         </div>
                                     </div>
+                                </div>
+                                
+                                <!-- Your Numbers Section -->
+                                <div class="mb-4">
+                                    <div id="ticket-numbers" class="numbers-display"></div>
                                 </div>
 
                                 <div class="card">
