@@ -726,44 +726,29 @@ def process_ticket():
                         },
                         {
                             "type": "text",
-                            "text": """You are an expert South African lottery ticket reader. Extract EVERY piece of information from this ticket image with 100% accuracy.
+                            "text": """You are reading a South African lottery ticket. Extract the information and return ONLY valid JSON.
 
-                            Look for these SPECIFIC elements on South African lottery tickets:
-                            
-                            1. LOTTERY TYPE: Look for "PowerBall", "Lotto", "Daily Lotto" at the top
-                            2. ADDITIONAL GAMES: Look for "YES" next to:
-                               - "PowerBall Plus" (for PowerBall tickets)
-                               - "Lotto Plus 1" (for Lotto tickets) 
-                               - "Lotto Plus 2" (for Lotto tickets)
-                            3. MAIN NUMBERS: Find the player's selected numbers (usually in boxes or circles)
-                            4. POWERBALL NUMBER: For PowerBall tickets, find the red PowerBall number (1-20)
-                            5. DRAW DATE: Look for date in DD/MM/YYYY or similar format
-                            6. DRAW NUMBER: Usually starts with letters like "PB" for PowerBall
-                            7. TICKET COST: Look for "R" followed by amount
-                            8. MULTIPLIER: Look for "PowerPlay" or multiplier options
-                            9. DRAWS: How many draws (1, 2, 3, etc.)
-                            
-                            CRITICAL: Look specifically for "YES" indicators next to additional game names to determine which games the ticket includes.
-                            
-                            READ EVERY visible number, letter, and symbol on the ticket. Return in this EXACT JSON format:
+                            Return this exact format:
                             
                             {
-                                "success": true,
-                                "lottery_type": "exact text found",
-                                "main_numbers": [list all main numbers you see],
-                                "powerball_number": "powerball number if PowerBall ticket",
-                                "powerball_plus_included": "YES/NO - look for YES next to PowerBall Plus",
-                                "lotto_plus_1_included": "YES/NO - look for YES next to Lotto Plus 1",
-                                "lotto_plus_2_included": "YES/NO - look for YES next to Lotto Plus 2",
-                                "draw_date": "exact date as written",
-                                "draw_number": "exact draw number/ID",
-                                "ticket_cost": "exact cost including R symbol",
-                                "multiplier": "any multiplier text",
-                                "number_of_draws": "how many draws",
-                                "all_text_found": "list every piece of text you can read on this ticket"
+                                "lottery_type": "PowerBall",
+                                "main_numbers": [1, 2, 3, 4, 5],
+                                "powerball_number": "10",
+                                "powerball_plus_included": "YES",
+                                "draw_date": "16/05/2025",
+                                "draw_number": "PB1615",
+                                "ticket_cost": "R15.00"
                             }
                             
-                            If you cannot read something clearly, write exactly what you can see, even if partial."""
+                            Look for:
+                            - Game type (PowerBall, Lotto, Daily Lotto)
+                            - Player's chosen numbers
+                            - PowerBall number (red ball 1-20)
+                            - "YES" next to PowerBall Plus
+                            - Draw date and number
+                            - Ticket cost
+                            
+                            Return ONLY the JSON object, no other text."""
                         }
                     ]
                 }]
