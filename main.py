@@ -142,15 +142,16 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Initialize CSRF Protection
+# Initialize CSRF Protection with Replit-friendly settings
 csrf = CSRFProtect(app)
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Disable default CSRF for Replit compatibility
 # Exempt ticket scanner from CSRF for file uploads
 csrf.exempt('process_ticket')
-# EnhancedCSRFProtect class handles all the configuration, so we don't need to set these manually
 
 # Exempt endpoints that don't need CSRF protection
 csrf.exempt('scan_ticket')
 csrf.exempt('process_ticket')
+csrf.exempt('extract_lottery_data')
 csrf.exempt('check_js')
 csrf.exempt('resolve_health_alert')
 csrf.exempt('api_system_metrics')
