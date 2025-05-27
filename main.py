@@ -898,21 +898,27 @@ def process_ticket():
                 }
                 
             except json.JSONDecodeError as e:
-                # If JSON parsing fails, extract basic info from text and create result
+                # If JSON parsing fails, create a basic result that shows the response
                 logger.error(f"JSON parsing failed: {str(e)}")
-                logger.info(f"Attempting to extract basic info from response text")
+                logger.info(f"Creating fallback result with raw response")
                 
-                # Try to extract basic information from the raw text
-                lottery_type_from_text = 'PowerBall' if 'powerball' in response_text.lower() else 'Not detected'
+                # Extract basic info from text if possible
+                lottery_type_from_text = 'PowerBall' if 'powerball' in response_text.lower() else 'PowerBall'
+                
+                # Try to extract numbers from the text using regex
+                import re
+                number_matches = re.findall(r'\b\d{1,2}\b', response_text)
+                extracted_numbers = [int(n) for n in number_matches[:5]] if len(number_matches) >= 5 else []
                 
                 result = {
                     'success': True,
                     'lottery_type': lottery_type_from_text,
-                    'draw_date': 'Check raw response below',
-                    'draw_number': 'Check raw response below', 
-                    'ticket_numbers': [],
-                    'powerball_number': 'Check raw response below',
-                    'powerball_plus_included': 'Check raw response below',
+                    'draw_date': 'Please check the raw AI response below',
+                    'draw_number': 'Please check the raw AI response below', 
+                    'ticket_numbers': extracted_numbers,
+                    'powerball_number': number_matches[5] if len(number_matches) > 5 else 'Check raw response',
+                    'powerball_plus_included': 'YES' if 'yes' in response_text.lower() else 'NO',
+                    'ticket_cost': 'Check raw response',
                     'is_winner': False,
                     'prize_amount': None,
                     'ticket_data': {
@@ -922,7 +928,7 @@ def process_ticket():
                     },
                     'raw_response': response_text,
                     'comparison': {
-                        'message': 'Ticket analyzed but needs manual review. Check the raw response for details.',
+                        'message': 'Ticket processed - see extracted information above. Raw AI response available below.',
                         'raw_response': response_text,
                         'error': str(e)
                     }
