@@ -149,22 +149,10 @@ def init_lazy_modules():
     # Note: Removed signal alarm since it only works in main thread
     
     # Import heavy modules only when needed
-    try:
-        import data_aggregator as da
-    except ImportError:
-        da = None
-    try:
-        import ocr_processor as op
-    except ImportError:
-        op = None
-    try:
-        import screenshot_manager as sm
-    except ImportError:
-        sm = None
-    try:
-        import health_monitor as hm
-    except ImportError:
-        hm = None
+    import data_aggregator as da
+    import ocr_processor as op
+    import screenshot_manager as sm
+    import health_monitor as hm
     
     # Store module references
     data_aggregator = da
