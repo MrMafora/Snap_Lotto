@@ -23,14 +23,13 @@ logger = logging.getLogger(__name__)
 
 # Now that logger is defined, import other modules
 import scheduler  # Import directly at the top level for screenshot functions
-import create_template  # Import directly for template creation
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, send_from_directory, send_file, session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-# Import EnhancedCSRFProtect instead of CSRFProtect
-from csrf_fix import EnhancedCSRFProtect
+# Use standard CSRF protection
+from flask_wtf.csrf import CSRFProtect
 
 # Import models only (lightweight)
 from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, db
@@ -41,7 +40,7 @@ from config import Config
 # import ad_management
 import lottery_analysis
 # Remove problematic fix modules that are causing conflicts
-from import_latest_spreadsheet import import_latest_spreadsheet, find_latest_spreadsheet
+# Import functionality integrated into main application
 # scanner_routes module temporarily disabled to resolve conflicts
 
 # Auto proxy functionality cleaned up - using direct port configuration
@@ -93,7 +92,9 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 # Initialize CSRF Protection
-csrf = EnhancedCSRFProtect(app)
+csrf = CSRFProtect(app)
+# Exempt ticket scanner from CSRF for file uploads
+csrf.exempt('process_ticket')
 # EnhancedCSRFProtect class handles all the configuration, so we don't need to set these manually
 
 # Exempt endpoints that don't need CSRF protection
@@ -149,16 +150,14 @@ def init_lazy_modules():
     
     # Import heavy modules only when needed
     import data_aggregator as da
-    import import_excel as ie
-    import import_snap_lotto_data as isld
     import ocr_processor as op
     import screenshot_manager as sm
     import health_monitor as hm
     
     # Store module references
     data_aggregator = da
-    import_excel = ie
-    import_snap_lotto_data = isld
+    import_excel = None  # Functionality integrated into main app
+    import_snap_lotto_data = None  # Functionality integrated into main app
     ocr_processor = op
     screenshot_manager = sm
     health_monitor = hm
