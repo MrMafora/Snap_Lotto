@@ -1121,8 +1121,19 @@ def how_to_play_daily_lotto():
 @app.route('/results')
 def results():
     """Show overview of all lottery types with links to specific results"""
+    # Map display names to database names to handle authentic data from official screenshots
     lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
                      'Powerball', 'Powerball Plus', 'Daily Lottery']
+    
+    # Database mapping for authentic lottery data (from official screenshots)
+    db_name_mapping = {
+        'Lottery': 'Lotto',
+        'Lottery Plus 1': 'Lotto Plus 1', 
+        'Lottery Plus 2': 'Lotto Plus 2',
+        'Powerball': 'PowerBall',
+        'Powerball Plus': 'PowerBall Plus',
+        'Daily Lottery': 'Daily Lotto'
+    }
     
     try:
         # Ensure data_aggregator is loaded before using it
@@ -1138,8 +1149,45 @@ def results():
             # Use direct SQL approach to ensure we get authentic data
             latest_results = {}
             
+            # Direct approach: Get the authentic Lotto data and map it to Lottery display
+            lotto_result = db.session.execute(text("""
+                SELECT id, lottery_type, draw_number, draw_date, numbers, bonus_numbers
+                FROM lottery_result 
+                WHERE lottery_type = 'Lotto'
+                ORDER BY draw_date DESC 
+                LIMIT 1
+            """)).fetchone()
+            
+            if lotto_result:
+                # Create result object for Lottery (mapped from Lotto)
+                class ResultObj:
+                    def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
+                        self.lottery_type = lottery_type
+                        self.draw_number = draw_number
+                        self.draw_date = draw_date
+                        self.numbers = numbers
+                        self.bonus_numbers = bonus_numbers
+                    
+                    def get_numbers_list(self):
+                        return json.loads(self.numbers) if isinstance(self.numbers, str) else self.numbers
+                    
+                    def get_bonus_numbers_list(self):
+                        return json.loads(self.bonus_numbers) if isinstance(self.bonus_numbers, str) else self.bonus_numbers
+                
+                latest_results['Lottery'] = ResultObj(
+                    lotto_result[1], lotto_result[2], lotto_result[3], lotto_result[4], lotto_result[5]
+                )
+                app.logger.info(f"✓ Successfully mapped Lotto data to Lottery display")
+            
+            # Keep the original loop for other lottery types when we have more data
             for lottery_type in lottery_types:
-                # Direct SQL query to bypass any ORM issues
+                if lottery_type == 'Lottery':
+                    continue  # Already handled above
+                    
+                # Use database name mapping for authentic lottery data
+                db_lottery_type = db_name_mapping.get(lottery_type, lottery_type)
+                
+                # Direct SQL query to get authentic lottery data
                 sql_query = """
                     SELECT id, lottery_type, draw_number, draw_date, numbers, bonus_numbers
                     FROM lottery_result 
@@ -1148,7 +1196,7 @@ def results():
                     LIMIT 1
                 """
                 
-                result = db.session.execute(text(sql_query), {'lottery_type': lottery_type}).fetchone()
+                result = db.session.execute(text(sql_query), {'lottery_type': db_lottery_type}).fetchone()
                 
                 if result:
                     # Create a simple object to hold the data
