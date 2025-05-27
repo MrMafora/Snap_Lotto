@@ -283,41 +283,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displayResults(data) {
-        // Display raw AI response for debugging
-        console.log('Raw scanner data:', data);
-        console.log('lottery_type value:', data.lottery_type);
-        console.log('draw_date value:', data.draw_date);
-        console.log('draw_number value:', data.draw_number);
+        console.log('Displaying ticket results:', data);
         
-        // Add raw response display section if it doesn't exist
-        let rawSection = document.getElementById('raw-response-section');
-        if (!rawSection) {
-            const resultsContainer = document.getElementById('results-container');
-            rawSection = document.createElement('div');
-            rawSection.id = 'raw-response-section';
-            rawSection.className = 'card mt-4';
-            rawSection.innerHTML = `
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fa fa-code me-2"></i>Raw AI Response
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <strong>Debug Information:</strong> This shows exactly what the AI extracted from your ticket.
-                    </div>
-                    <pre id="raw-response-content" class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;"></pre>
-                </div>
-            `;
-            resultsContainer.appendChild(rawSection);
-        }
+        // Show the main results container
+        const resultsContainer = document.getElementById('results-container');
+        const successContent = document.getElementById('success-content');
         
-        // Show raw response
-        const rawContent = document.getElementById('raw-response-content');
-        if (rawContent) {
-            rawContent.textContent = JSON.stringify(data, null, 2);
+        if (resultsContainer) {
+            resultsContainer.classList.remove('d-none');
         }
-        rawSection.style.display = 'block';
+        if (successContent) {
+            successContent.classList.remove('d-none');
+        }
         
         // Display ticket info
         document.getElementById('detected-lottery-type').textContent = data.lottery_type || 'Not detected';
@@ -329,31 +306,48 @@ document.addEventListener('DOMContentLoaded', function() {
         numbersContainer.innerHTML = '';
         
         if (data.all_lines && data.all_lines.length > 0) {
-            // Show all lines with their line names
-            data.all_lines.forEach((line, index) => {
+            // Show all lines - data.all_lines contains arrays of numbers directly
+            data.all_lines.forEach((lineNumbers, index) => {
                 const lineDiv = document.createElement('div');
-                lineDiv.className = 'mb-2';
+                lineDiv.className = 'mb-3';
                 
-                const lineTitle = document.createElement('strong');
-                lineTitle.textContent = line.line_name || `Line ${index + 1}`;
-                lineTitle.className = 'me-2';
+                const lineTitle = document.createElement('div');
+                lineTitle.innerHTML = `<strong>Line ${index + 1} Numbers:</strong>`;
+                lineTitle.className = 'mb-2';
                 lineDiv.appendChild(lineTitle);
                 
-                // Add PowerBall number for this line if available
-                const powerballNum = data.all_powerball && data.all_powerball[index] ? data.all_powerball[index] : null;
+                // Create container for lottery balls
+                const ballsContainer = document.createElement('div');
+                ballsContainer.className = 'd-flex flex-wrap gap-2 mb-2';
                 
-                line.numbers.forEach(num => {
-                    const span = document.createElement('span');
-                    span.className = 'badge bg-primary me-1';
-                    span.textContent = num;
-                    lineDiv.appendChild(span);
+                // Add main numbers as lottery balls
+                lineNumbers.forEach(num => {
+                    const ballElement = document.createElement('div');
+                    ballElement.className = 'lottery-ball me-1 mb-1';
+                    ballElement.textContent = num;
+                    ballsContainer.appendChild(ballElement);
                 });
                 
+                lineDiv.appendChild(ballsContainer);
+                
+                // Add PowerBall number for this line if available
+                const powerballNum = data.all_powerball && data.all_powerball[index] ? data.all_powerball[index] : data.powerball_number;
+                
                 if (powerballNum) {
-                    const powerballSpan = document.createElement('span');
-                    powerballSpan.className = 'badge bg-warning text-dark me-1';
-                    powerballSpan.textContent = `PB: ${powerballNum}`;
-                    lineDiv.appendChild(powerballSpan);
+                    const powerballTitle = document.createElement('div');
+                    powerballTitle.innerHTML = `<strong>PowerBall:</strong>`;
+                    powerballTitle.className = 'mb-2';
+                    lineDiv.appendChild(powerballTitle);
+                    
+                    const powerballContainer = document.createElement('div');
+                    powerballContainer.className = 'd-flex flex-wrap gap-2';
+                    
+                    const powerballBall = document.createElement('div');
+                    powerballBall.className = 'lottery-ball powerball me-1 mb-1';
+                    powerballBall.textContent = powerballNum;
+                    powerballContainer.appendChild(powerballBall);
+                    
+                    lineDiv.appendChild(powerballContainer);
                 }
                 
                 numbersContainer.appendChild(lineDiv);
