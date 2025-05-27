@@ -938,6 +938,9 @@ def process_ticket():
                 
                 # Debug logging to see what we extracted
                 logger.info(f"DEBUG: ticket_data = {ticket_data}")
+                logger.info(f"DEBUG: ticket_data.get('lottery_type') = {ticket_data.get('lottery_type')}")
+                logger.info(f"DEBUG: raw_game_type = {raw_game_type}")
+                logger.info(f"DEBUG: game_type = {game_type}")
                 logger.info(f"DEBUG: numbers = {numbers}")
                 logger.info(f"DEBUG: powerball_numbers = {powerball_numbers}")
                 logger.info(f"DEBUG: ticket_numbers = {ticket_numbers}")
