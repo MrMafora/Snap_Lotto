@@ -756,7 +756,9 @@ def process_ticket():
             
             # Parse the response
             response_text = message.content[0].text
-            logger.info(f"AI Response: {response_text[:500]}...")  # Log first 500 chars for debugging
+            logger.info("=== FULL AI RESPONSE ===")
+            logger.info(response_text)
+            logger.info("========================")
             
             # Try to extract JSON from the response
             try:
