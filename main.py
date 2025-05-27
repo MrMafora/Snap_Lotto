@@ -1003,11 +1003,11 @@ def results():
         # Ensure data_aggregator is loaded before using it
         global data_aggregator
         
-        # Import if not already loaded
-        if data_aggregator is None:
-            import data_aggregator as da
-            data_aggregator = da
-            logger.info("Loaded data_aggregator module on demand")
+        # Import if not already loaded - commented out as module not available
+        # if data_aggregator is None:
+        #     import data_aggregator as da
+        #     data_aggregator = da
+        #     logger.info("Loaded data_aggregator module on demand")
         
         # Initialize with empty dict in case the next step fails
         latest_results = {}
