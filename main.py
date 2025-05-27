@@ -1003,18 +1003,20 @@ def results():
         # Ensure data_aggregator is loaded before using it
         global data_aggregator
         
-        # Import if not already loaded - commented out as module not available
-        # if data_aggregator is None:
-        #     import data_aggregator as da
-        #     data_aggregator = da
-        #     logger.info("Loaded data_aggregator module on demand")
+        # Import if not already loaded - data_aggregator module not available
+        # Module functionality replaced with direct database queries
         
         # Initialize with empty dict in case the next step fails
         latest_results = {}
         
         try:
             # Try to get results, but handle any errors
-            latest_results = data_aggregator.get_latest_results()
+            # Get latest results directly from database instead of data_aggregator
+            latest_results = {}
+            for lottery_type in ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lotto']:
+                latest_result = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+                if latest_result:
+                    latest_results[lottery_type] = latest_result
             
             # Ensure latest_results is a dictionary
             if not isinstance(latest_results, dict):
@@ -1966,7 +1968,7 @@ def visualizations():
 @app.route('/api/visualization-data')
 def visualization_data():
     """API endpoint for visualization data"""
-    import data_aggregator
+    # import data_aggregator  # Module not available
     from collections import Counter
     import logging
     
