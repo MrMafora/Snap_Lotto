@@ -547,23 +547,34 @@ def process_ticket():
                             "type": "text",
                             "text": """You are reading a South African lottery ticket. Extract the information and return ONLY valid JSON.
 
+                            IMPORTANT: South African lottery tickets use this specific format:
+                            - A1(XX): main_number,main_number,main_number,main_number,main_number
+                            - A2(XX): bonus_number
+                            
+                            For example:
+                            A1(05): 7,11,17,25,33 means the main numbers are 7,11,17,25,33
+                            A2(01): 20 means the bonus number is 20
+                            
+                            The A1(XX) line contains the MAIN NUMBERS after the colon (:)
+                            The A2(XX) line contains the BONUS/POWERBALL number after the colon (:)
+                            
                             Return this exact format:
                             
                             {
-                                "lottery_type": "PowerBall",
-                                "main_numbers": [1, 2, 3, 4, 5],
-                                "powerball_number": "10",
+                                "lottery_type": "Lotto",
+                                "main_numbers": [7, 11, 17, 25, 33],
+                                "powerball_number": "20",
                                 "powerball_plus_included": "YES",
-                                "draw_date": "16/05/2025",
-                                "draw_number": "PB1615",
-                                "ticket_cost": "R15.00"
+                                "draw_date": "26/03/2025",
+                                "draw_number": "2527",
+                                "ticket_cost": "R30.00"
                             }
                             
                             Look for:
                             - Game type (PowerBall, Lotto, Daily Lotto)
-                            - Player's chosen numbers
-                            - PowerBall number (red ball 1-20)
-                            - "YES" next to PowerBall Plus
+                            - A1(XX): followed by the main numbers after the colon
+                            - A2(XX): followed by the bonus/powerball number after the colon
+                            - PowerBall Plus inclusion (YES/NO)
                             - Draw date and number
                             - Ticket cost
                             
