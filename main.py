@@ -145,6 +145,7 @@ login_manager.login_view = 'login'
 # Initialize CSRF Protection with Replit-friendly settings
 csrf = CSRFProtect(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Disable default CSRF for Replit compatibility
+app.config['WTF_CSRF_ENABLED'] = False  # Completely disable CSRF for Replit environment
 # Exempt ticket scanner from CSRF for file uploads
 csrf.exempt('process_ticket')
 
