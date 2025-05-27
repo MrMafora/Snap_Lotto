@@ -89,18 +89,87 @@ class LotteryAnalyzer:
             lottery_type (str): Type of lottery
             results (dict): Results dictionary to update
         """
-        # Skip chart generation for API responses to improve speed
-        # Just store numerical data for faster response times
+        # Sort top numbers by frequency, highest first and limit to top 10
+        sorted_top = sorted(top_numbers, key=lambda x: x[1], reverse=True)[:10]
         
-        # Sort top numbers by frequency, highest first
-        sorted_top = sorted(top_numbers, key=lambda x: x[1], reverse=True)
+        # Create a beautiful frequency chart for top 10 numbers
+        try:
+            import matplotlib.pyplot as plt
+            import matplotlib.patches as patches
+            from matplotlib.colors import LinearSegmentedColormap
+            
+            # Create figure with better proportions
+            fig, ax = plt.subplots(figsize=(12, 7))
+            
+            # Extract numbers and frequencies for top 10
+            numbers = [str(num) for num, freq in sorted_top]
+            frequencies = [freq for num, freq in sorted_top]
+            
+            # Create a beautiful gradient color scheme
+            colors = ['#FF6B6B', '#FF8E53', '#FF9E40', '#FFB84D', '#FFC65A', 
+                     '#4ECDC4', '#45B7D1', '#5DADE2', '#6C7CE0', '#8B7ED8']
+            
+            # Create the bar chart with enhanced styling
+            bars = ax.bar(numbers, frequencies, color=colors[:len(numbers)], 
+                         alpha=0.8, edgecolor='white', linewidth=2)
+            
+            # Add value labels on top of bars
+            for i, (bar, freq) in enumerate(zip(bars, frequencies)):
+                height = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2., height + 0.5,
+                       f'{freq}', ha='center', va='bottom', fontweight='bold', fontsize=11)
+            
+            # Customize the chart appearance
+            ax.set_title(f'Top 10 Most Frequent Numbers - {lottery_type}', 
+                        fontsize=16, fontweight='bold', pad=20, color='#2C3E50')
+            ax.set_xlabel('Lottery Numbers', fontsize=12, fontweight='bold', color='#34495E')
+            ax.set_ylabel('Frequency Count', fontsize=12, fontweight='bold', color='#34495E')
+            
+            # Style the grid and axes
+            ax.grid(True, alpha=0.3, linestyle='--', axis='y')
+            ax.set_axisbelow(True)
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['left'].set_color('#BDC3C7')
+            ax.spines['bottom'].set_color('#BDC3C7')
+            
+            # Set y-axis to start from 0 and add some padding at the top
+            ax.set_ylim(0, max(frequencies) * 1.15 if frequencies else 1)
+            
+            # Customize tick parameters
+            ax.tick_params(axis='both', which='major', labelsize=10, colors='#2C3E50')
+            ax.tick_params(axis='x', rotation=0)
+            
+            # Add a subtle background gradient
+            gradient = ax.imshow([[0, 1]], extent=[ax.get_xlim()[0], ax.get_xlim()[1], 
+                                                  ax.get_ylim()[0], ax.get_ylim()[1]], 
+                                aspect='auto', alpha=0.05, cmap='Blues_r')
+            
+            plt.tight_layout()
+            
+            # Save chart as image file
+            chart_filename = f'frequency_{lottery_type.replace(" ", "_")}.png'
+            chart_path = os.path.join(STATIC_DIR, chart_filename)
+            plt.savefig(chart_path, dpi=150, bbox_inches='tight', facecolor='white')
+            
+            # Generate base64 for embedding
+            img_buffer = io.BytesIO()
+            plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight', facecolor='white')
+            img_buffer.seek(0)
+            img_base64 = base64.b64encode(img_buffer.read()).decode('utf-8')
+            plt.close()
+            
+        except Exception as e:
+            logger.error(f"Error generating chart for {lottery_type}: {str(e)}")
+            img_base64 = None
+            chart_filename = None
         
-        # Store results without generating charts
+        # Store results with top 10 numbers only
         results[lottery_type] = {
             'frequency': frequency.tolist(),
-            'top_numbers': sorted_top,
-            'chart_path': f'/static/analysis/frequency_{lottery_type.replace(" ", "_")}.png',
-            'chart_base64': None  # Skip image generation for faster API response
+            'top_numbers': sorted_top,  # Only top 10 numbers
+            'chart_path': f'/static/analysis/{chart_filename}' if chart_filename else None,
+            'chart_base64': img_base64
         }
         
     def get_lottery_data(self, lottery_type=None, days=365):
@@ -415,7 +484,7 @@ class LotteryAnalyzer:
                     
                     # Generate frequency chart
                     # Get top numbers
-                    top_indices = np.argsort(frequency)[-5:]
+                    top_indices = np.argsort(frequency)[-10:]
                     top_numbers = [(i+1, frequency[i]) for i in top_indices]
                     
                     # Add total draws count to the results
