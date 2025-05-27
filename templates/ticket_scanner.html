@@ -301,6 +301,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('detected-draw-date').textContent = data.draw_date || 'Not detected';
         document.getElementById('detected-draw-number').textContent = data.draw_number || 'Not detected';
         
+        // Display winning numbers first
+        displayWinningNumbers(data);
+        
         // Display ticket numbers - show all lines if available
         const numbersContainer = document.getElementById('ticket-numbers');
         numbersContainer.innerHTML = '';
@@ -320,17 +323,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 const ballsContainer = document.createElement('div');
                 ballsContainer.className = 'd-flex flex-wrap gap-2 mb-2';
                 
-                // Add main numbers as lottery balls with colors
+                // Get winning numbers for comparison
+                let winningNumbers = [];
+                let winningPowerball = '';
+                
+                if (data.powerball_results) {
+                    try {
+                        winningNumbers = JSON.parse(data.powerball_results.winning_numbers || '[]').map(n => parseInt(n));
+                    } catch (e) {
+                        console.log('Could not parse winning numbers for comparison');
+                    }
+                    winningPowerball = data.powerball_results.winning_powerball ? 
+                        data.powerball_results.winning_powerball.replace(/[\[\]"]/g, '') : '';
+                }
+                
+                // Count matches for this line
+                let lineMatches = 0;
+                
+                // Add main numbers as lottery balls with colors and match indicators
                 lineNumbers.forEach((num, numIndex) => {
-                    const ballElement = document.createElement('div');
+                    const isMatch = winningNumbers.includes(parseInt(num));
+                    if (isMatch) lineMatches++;
                     
-                    // Assign colors based on number position for variety
                     const colors = ['lottery-ball-red', 'lottery-ball-blue', 'lottery-ball-green', 'lottery-ball-yellow'];
                     const colorClass = colors[numIndex % colors.length];
                     
+                    const ballWrapper = document.createElement('div');
+                    ballWrapper.className = 'position-relative d-inline-block';
+                    
+                    const ballElement = document.createElement('div');
                     ballElement.className = `lottery-ball ${colorClass} me-1 mb-1`;
                     ballElement.textContent = num;
-                    ballsContainer.appendChild(ballElement);
+                    
+                    // Add check mark for matches
+                    if (isMatch) {
+                        const checkMark = document.createElement('div');
+                        checkMark.className = 'position-absolute';
+                        checkMark.style.top = '-8px';
+                        checkMark.style.right = '-8px';
+                        checkMark.style.backgroundColor = '#28a745';
+                        checkMark.style.color = 'white';
+                        checkMark.style.borderRadius = '50%';
+                        checkMark.style.width = '20px';
+                        checkMark.style.height = '20px';
+                        checkMark.style.display = 'flex';
+                        checkMark.style.alignItems = 'center';
+                        checkMark.style.justifyContent = 'center';
+                        checkMark.style.fontSize = '12px';
+                        checkMark.style.fontWeight = 'bold';
+                        checkMark.innerHTML = '✓';
+                        ballWrapper.appendChild(checkMark);
+                    }
+                    
+                    ballWrapper.appendChild(ballElement);
+                    ballsContainer.appendChild(ballWrapper);
                 });
                 
                 lineDiv.appendChild(ballsContainer);
@@ -339,21 +385,61 @@ document.addEventListener('DOMContentLoaded', function() {
                 const powerballNum = data.all_powerball && data.all_powerball[index] ? data.all_powerball[index] : data.powerball_number;
                 
                 if (powerballNum) {
+                    const isPowerballMatch = winningPowerball && winningPowerball === powerballNum;
+                    
                     const powerballTitle = document.createElement('div');
                     powerballTitle.innerHTML = `<strong>PowerBall:</strong>`;
                     powerballTitle.className = 'mb-2';
                     lineDiv.appendChild(powerballTitle);
                     
                     const powerballContainer = document.createElement('div');
-                    powerballContainer.className = 'd-flex flex-wrap gap-2';
+                    powerballContainer.className = 'd-flex flex-wrap gap-2 mb-3';
+                    
+                    const powerballWrapper = document.createElement('div');
+                    powerballWrapper.className = 'position-relative d-inline-block';
                     
                     const powerballBall = document.createElement('div');
                     powerballBall.className = 'lottery-ball lottery-ball-red me-1 mb-1';
                     powerballBall.style.border = '3px solid #ffd700';
                     powerballBall.textContent = powerballNum;
-                    powerballContainer.appendChild(powerballBall);
                     
+                    // Add check mark for PowerBall match
+                    if (isPowerballMatch) {
+                        const checkMark = document.createElement('div');
+                        checkMark.className = 'position-absolute';
+                        checkMark.style.top = '-8px';
+                        checkMark.style.right = '-8px';
+                        checkMark.style.backgroundColor = '#28a745';
+                        checkMark.style.color = 'white';
+                        checkMark.style.borderRadius = '50%';
+                        checkMark.style.width = '20px';
+                        checkMark.style.height = '20px';
+                        checkMark.style.display = 'flex';
+                        checkMark.style.alignItems = 'center';
+                        checkMark.style.justifyContent = 'center';
+                        checkMark.style.fontSize = '12px';
+                        checkMark.style.fontWeight = 'bold';
+                        checkMark.innerHTML = '✓';
+                        powerballWrapper.appendChild(checkMark);
+                    }
+                    
+                    powerballWrapper.appendChild(powerballBall);
+                    powerballContainer.appendChild(powerballWrapper);
                     lineDiv.appendChild(powerballContainer);
+                    
+                    // Display match summary for this line
+                    const matchSummary = document.createElement('div');
+                    matchSummary.className = `alert ${(lineMatches > 0 || isPowerballMatch) ? 'alert-success' : 'alert-info'} mb-0`;
+                    
+                    const totalMatches = lineMatches + (isPowerballMatch ? 1 : 0);
+                    matchSummary.innerHTML = `
+                        <strong>Line ${index + 1} Results:</strong> 
+                        ${lineMatches} main number${lineMatches !== 1 ? 's' : ''} matched
+                        ${isPowerballMatch ? ' + PowerBall matched!' : ''}
+                        ${totalMatches > 0 ? '<br><span class="badge bg-primary">Check Prize Division!</span>' : ''}
+                    `;
+                    
+                    lineDiv.appendChild(matchSummary);
                 }
                 
                 numbersContainer.appendChild(lineDiv);
@@ -392,6 +478,88 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('success-content').classList.remove('d-none');
         document.getElementById('error-message').classList.add('d-none');
         resultsContainer.classList.remove('d-none');
+    }
+
+    // Function to display winning numbers from the draw
+    function displayWinningNumbers(data) {
+        // Find a place to insert winning numbers - add it before the ticket numbers
+        const numbersContainer = document.getElementById('ticket-numbers');
+        if (!numbersContainer) return;
+
+        // Remove any existing winning numbers display
+        const existingWinning = document.getElementById('winning-numbers-display');
+        if (existingWinning) {
+            existingWinning.remove();
+        }
+
+        // Create winning numbers section
+        const winningSection = document.createElement('div');
+        winningSection.id = 'winning-numbers-display';
+        winningSection.className = 'mb-4 p-3 border rounded bg-warning bg-opacity-10';
+
+        const winningTitle = document.createElement('h5');
+        winningTitle.className = 'mb-3 text-warning';
+        winningTitle.innerHTML = '🏆 Winning Numbers for Your Draw';
+        winningSection.appendChild(winningTitle);
+
+        // Display PowerBall results if available
+        if (data.powerball_results) {
+            const pbSection = document.createElement('div');
+            pbSection.className = 'mb-3';
+
+            const pbTitle = document.createElement('h6');
+            pbTitle.className = 'text-primary mb-2';
+            pbTitle.textContent = `PowerBall Draw ${data.powerball_results.draw_number} (${data.powerball_results.draw_date})`;
+            pbSection.appendChild(pbTitle);
+
+            const pbBallsContainer = document.createElement('div');
+            pbBallsContainer.className = 'd-flex flex-wrap gap-2 mb-2';
+
+            // Parse winning numbers
+            let winningNumbers = [];
+            try {
+                winningNumbers = JSON.parse(data.powerball_results.winning_numbers || '[]');
+            } catch (e) {
+                console.log('Could not parse winning numbers');
+            }
+
+            // Display winning main numbers
+            winningNumbers.forEach((num, index) => {
+                const colors = ['lottery-ball-red', 'lottery-ball-blue', 'lottery-ball-green', 'lottery-ball-yellow'];
+                const colorClass = colors[index % colors.length];
+
+                const ballElement = document.createElement('div');
+                ballElement.className = `lottery-ball ${colorClass} me-1 mb-1`;
+                ballElement.textContent = num;
+                pbBallsContainer.appendChild(ballElement);
+            });
+
+            pbSection.appendChild(pbBallsContainer);
+
+            // Display winning PowerBall
+            if (data.powerball_results.winning_powerball) {
+                const pbLabel = document.createElement('div');
+                pbLabel.className = 'small text-muted mb-1';
+                pbLabel.textContent = 'Winning PowerBall:';
+                pbSection.appendChild(pbLabel);
+
+                const pbContainer = document.createElement('div');
+                pbContainer.className = 'd-flex gap-2';
+
+                const pbBall = document.createElement('div');
+                pbBall.className = 'lottery-ball lottery-ball-red';
+                pbBall.style.border = '3px solid #ffd700';
+                pbBall.textContent = data.powerball_results.winning_powerball.replace(/[\[\]"]/g, '');
+                pbContainer.appendChild(pbBall);
+
+                pbSection.appendChild(pbContainer);
+            }
+
+            winningSection.appendChild(pbSection);
+        }
+
+        // Insert before ticket numbers
+        numbersContainer.parentNode.insertBefore(winningSection, numbersContainer);
     }
 });
 </script>
