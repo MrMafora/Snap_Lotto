@@ -570,18 +570,25 @@ document.addEventListener('DOMContentLoaded', function() {
             pbTitle.textContent = `PowerBall Draw ${data.powerball_results.draw_number}`;
             pbSection.appendChild(pbTitle);
 
-            const pbRow = document.createElement('div');
-            pbRow.className = 'd-flex align-items-center gap-2 mb-2';
-
             const pbBallsContainer = document.createElement('div');
-            pbBallsContainer.className = 'd-flex flex-wrap gap-1';
+            pbBallsContainer.className = 'd-flex flex-wrap gap-1 align-items-center';
 
-            // Parse winning numbers
+            // Parse winning numbers - handle both string and array formats
             let winningNumbers = [];
             try {
-                winningNumbers = JSON.parse(data.powerball_results.winning_numbers || '[]');
+                if (typeof data.powerball_results.winning_numbers === 'string') {
+                    winningNumbers = JSON.parse(data.powerball_results.winning_numbers || '[]');
+                } else if (Array.isArray(data.powerball_results.winning_numbers)) {
+                    winningNumbers = data.powerball_results.winning_numbers;
+                }
             } catch (e) {
-                console.log('Could not parse winning numbers');
+                console.log('Could not parse winning numbers:', e);
+                // Fallback: try to extract numbers from malformed JSON
+                const numbersStr = data.powerball_results.winning_numbers || '';
+                const matches = numbersStr.match(/\d+/g);
+                if (matches) {
+                    winningNumbers = matches.map(n => parseInt(n));
+                }
             }
 
             // Display winning main numbers
@@ -623,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            pbBallsContainer.appendChild(pbRow);
+            pbRow.appendChild(pbBallsContainer);
             pbSection.appendChild(pbRow);
 
             winningSection.appendChild(pbSection);
