@@ -485,31 +485,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     powerballContainer.appendChild(powerballWrapper);
                     lineDiv.appendChild(powerballContainer);
                     
-                    // Display match summary for this line - show both PowerBall and PowerBall Plus results
-                    const matchSummary = document.createElement('div');
-                    const hasAnyMatches = lineMatchesPB > 0 || lineMatchesPBPlus > 0 || isBonusMatch;
-                    matchSummary.className = `alert ${hasAnyMatches ? 'alert-success' : 'alert-info'} mb-0`;
-                    
-                    let summaryText = `<strong>Line ${index + 1} Results:</strong><br>`;
-                    
-                    // PowerBall results
-                    summaryText += `PowerBall: ${lineMatchesPB} main number${lineMatchesPB !== 1 ? 's' : ''}`;
-                    if (isPowerballMatch) summaryText += ' + Bonus Ball';
-                    summaryText += ' matched<br>';
-                    
-                    // PowerBall Plus results (if ticket includes it)
-                    if (data.powerball_plus_included === "YES" || data.ticket_data?.powerball_plus_included === "YES") {
-                        summaryText += `PowerBall Plus: ${lineMatchesPBPlus} main number${lineMatchesPBPlus !== 1 ? 's' : ''}`;
-                        if (isPowerballPlusMatch) summaryText += ' + Bonus Ball';
-                        summaryText += ' matched<br>';
-                    }
-                    
-                    if (hasAnyMatches) {
-                        summaryText += '<span class="badge bg-primary">Check Prize Division!</span>';
-                    }
-                    
-                    matchSummary.innerHTML = summaryText;
-                    lineDiv.appendChild(matchSummary);
+                    // No summary box - checkmarks on numbers will show matches instead
                 }
                 
                 numbersContainer.appendChild(lineDiv);
@@ -655,6 +631,65 @@ document.addEventListener('DOMContentLoaded', function() {
             pbBallsContainer.appendChild(pbRow);
             pbSection.appendChild(pbRow);
 
+            winningSection.appendChild(pbSection);
+        }
+
+        // Display PowerBall results first (main game)
+        if (data.powerball_results) {
+            const pbSection = document.createElement('div');
+            pbSection.className = 'mb-3 p-3 border rounded bg-light';
+
+            const pbTitle = document.createElement('h6');
+            pbTitle.className = 'text-primary mb-2';
+            pbTitle.textContent = `PowerBall Draw ${data.powerball_results.draw_number} (${data.powerball_results.draw_date})`;
+            pbSection.appendChild(pbTitle);
+
+            const pbBallsContainer = document.createElement('div');
+            pbBallsContainer.className = 'd-flex flex-wrap gap-2 mb-2';
+
+            // Display PowerBall main numbers
+            winningNumbers.forEach((num, index) => {
+                const colors = ['lottery-ball-red', 'lottery-ball-blue', 'lottery-ball-green', 'lottery-ball-yellow'];
+                const colorClass = colors[index % colors.length];
+
+                const ballElement = document.createElement('div');
+                ballElement.className = `lottery-ball ${colorClass} me-1 mb-1`;
+                ballElement.textContent = num;
+                pbBallsContainer.appendChild(ballElement);
+            });
+
+            // Add + sign separator after main numbers
+            const plusSign = document.createElement('span');
+            plusSign.className = 'mx-2 align-self-center fs-5 fw-bold text-muted';
+            plusSign.textContent = '+';
+            pbBallsContainer.appendChild(plusSign);
+
+            // Display winning PowerBall bonus ball
+            const winningPowerball = data.powerball_results.winning_powerball;
+            let pbNumber = '';
+            
+            if (winningPowerball && winningPowerball !== '[' && winningPowerball !== '') {
+                if (Array.isArray(winningPowerball)) {
+                    pbNumber = winningPowerball[0];
+                } else {
+                    pbNumber = winningPowerball.toString().replace(/[\[\]"]/g, '');
+                    if (pbNumber.includes(',')) {
+                        pbNumber = pbNumber.split(',')[0];
+                    }
+                }
+            }
+            
+            if (!pbNumber || pbNumber === '' || pbNumber === '[') {
+                pbNumber = '?';
+            }
+            
+            const pbBall = document.createElement('div');
+            pbBall.className = 'lottery-ball lottery-ball-red';
+            pbBall.style.border = '3px solid #ffd700';
+            pbBall.textContent = pbNumber;
+            pbBallsContainer.appendChild(pbBall);
+
+            pbSection.appendChild(pbBallsContainer);
             winningSection.appendChild(pbSection);
         }
 

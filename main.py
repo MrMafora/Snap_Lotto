@@ -625,7 +625,36 @@ MUST FOLLOW:
                     # For PowerBall tickets
                     if 'powerball' in lottery_type:
                         # Always check PowerBall main game
-                        powerball_draw = LotteryResult.query.filter_by(lottery_type='Powerball').order_by(LotteryResult.draw_date.desc()).first()
+                        # Try to find the specific draw from the ticket first
+                        powerball_draw = None
+                        if actual_draw_number:
+                            powerball_draw = LotteryResult.query.filter_by(
+                                lottery_type='Powerball',
+                                draw_number=int(actual_draw_number)
+                            ).first()
+                        
+                        # If specific draw not found, try by date
+                        if not powerball_draw and actual_draw_date:
+                            try:
+                                # Convert date format from DD/MM/YY to proper date
+                                date_parts = actual_draw_date.split('/')
+                                if len(date_parts) == 3:
+                                    day, month, year = date_parts
+                                    if len(year) == 2:
+                                        year = '20' + year
+                                    target_date = datetime.strptime(f"{year}-{month.zfill(2)}-{day.zfill(2)}", '%Y-%m-%d').date()
+                                    
+                                    powerball_draw = LotteryResult.query.filter_by(
+                                        lottery_type='Powerball'
+                                    ).filter(
+                                        LotteryResult.draw_date == target_date
+                                    ).first()
+                            except Exception as e:
+                                logger.warning(f"Error parsing draw date {actual_draw_date}: {e}")
+                        
+                        # Fallback to latest draw if nothing found
+                        if not powerball_draw:
+                            powerball_draw = LotteryResult.query.filter_by(lottery_type='Powerball').order_by(LotteryResult.draw_date.desc()).first()
                         if powerball_draw:
                             powerball_numbers = powerball_draw.numbers if powerball_draw.numbers else []
                             powerball_bonus = powerball_draw.bonus_numbers[0] if powerball_draw.bonus_numbers else None
@@ -646,7 +675,36 @@ MUST FOLLOW:
                         
                         # Check PowerBall Plus only if YES indicator found
                         if powerball_plus_yes:
-                            powerball_plus_draw = LotteryResult.query.filter_by(lottery_type='Powerball Plus').order_by(LotteryResult.draw_date.desc()).first()
+                            # Try to find the specific PowerBall Plus draw from the ticket
+                            powerball_plus_draw = None
+                            if actual_draw_number:
+                                powerball_plus_draw = LotteryResult.query.filter_by(
+                                    lottery_type='Powerball Plus',
+                                    draw_number=int(actual_draw_number)
+                                ).first()
+                            
+                            # If specific draw not found, try by date
+                            if not powerball_plus_draw and actual_draw_date:
+                                try:
+                                    # Convert date format from DD/MM/YY to proper date
+                                    date_parts = actual_draw_date.split('/')
+                                    if len(date_parts) == 3:
+                                        day, month, year = date_parts
+                                        if len(year) == 2:
+                                            year = '20' + year
+                                        target_date = datetime.strptime(f"{year}-{month.zfill(2)}-{day.zfill(2)}", '%Y-%m-%d').date()
+                                        
+                                        powerball_plus_draw = LotteryResult.query.filter_by(
+                                            lottery_type='Powerball Plus'
+                                        ).filter(
+                                            LotteryResult.draw_date == target_date
+                                        ).first()
+                                except Exception as e:
+                                    logger.warning(f"Error parsing PowerBall Plus draw date {actual_draw_date}: {e}")
+                            
+                            # Fallback to latest draw if nothing found
+                            if not powerball_plus_draw:
+                                powerball_plus_draw = LotteryResult.query.filter_by(lottery_type='Powerball Plus').order_by(LotteryResult.draw_date.desc()).first()
                             if powerball_plus_draw:
                                 plus_numbers = powerball_plus_draw.numbers if powerball_plus_draw.numbers else []
                                 plus_bonus = powerball_plus_draw.bonus_numbers[0] if powerball_plus_draw.bonus_numbers else None
