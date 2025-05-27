@@ -197,39 +197,70 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 
 @app.route('/')
 def index():
-    """Homepage with latest lottery results"""
+    """Homepage with latest lottery results - standardized approach"""
     try:
-        # Simple fallback to get page loading immediately
-        latest_results = {}
+        # Get results directly from database bypassing complex analysis
+        latest_results = []
+        frequency_data = {'labels': [], 'data': [], 'total_draws': 0}
         
-        # Try to get basic lottery results from database
+        # Direct database query to get your 220 lottery results
         try:
-            from models import LotteryResult
-            lottery_types = ['Lotto', 'Powerball', 'Daily Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'Powerball Plus']
+            from sqlalchemy import text
+            import json
             
-            for lottery_type in lottery_types:
-                result = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
-                if result:
-                    latest_results[lottery_type] = result
+            results = db.session.execute(text("""
+                SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers
+                FROM lottery_result 
+                ORDER BY draw_date DESC, id DESC 
+                LIMIT 10
+            """)).fetchall()
+            
+            # Process results with proper error handling
+            for result in results:
+                try:
+                    # Parse JSON numbers safely
+                    numbers = json.loads(result.numbers) if result.numbers else []
+                    bonus_numbers = json.loads(result.bonus_numbers) if result.bonus_numbers else []
                     
+                    latest_results.append({
+                        'lottery_type': result.lottery_type,
+                        'draw_number': str(result.draw_number),
+                        'draw_date': result.draw_date.strftime('%Y-%m-%d') if result.draw_date else '',
+                        'numbers': numbers,
+                        'bonus_numbers': bonus_numbers
+                    })
+                except Exception as e:
+                    logger.error(f"Error processing result: {e}")
+                    continue
+                    
+            # Simple frequency calculation without complex analysis
+            if latest_results:
+                number_count = {}
+                for result in latest_results:
+                    for num in result['numbers']:
+                        if isinstance(num, int):
+                            number_count[num] = number_count.get(num, 0) + 1
+                
+                # Get top 5 most frequent numbers
+                top_numbers = sorted(number_count.items(), key=lambda x: x[1], reverse=True)[:5]
+                frequency_data = {
+                    'labels': [str(num) for num, _ in top_numbers],
+                    'data': [freq for _, freq in top_numbers],
+                    'total_draws': len(latest_results)
+                }
+                
         except Exception as e:
             logger.error(f"Error loading lottery results: {e}")
-            # Continue with empty results to show the page
         
         return render_template('index.html', 
                              latest_results=latest_results,
-                             results_list=list(latest_results.values()),
-                             all_lottery_types=list(latest_results.keys()),
-                             total_results=len(latest_results))
+                             frequency_data=frequency_data)
                              
     except Exception as e:
         logger.error(f"Homepage error: {e}")
-        # Return a basic page if there are issues
         return render_template('index.html', 
-                             latest_results={},
-                             results_list=[],
-                             all_lottery_types=[],
-                             total_results=0)
+                             latest_results=[],
+                             frequency_data={'labels': [], 'data': [], 'total_draws': 0})
         
         # First, validate and correct any known draws (adds missing division data)
         try:
