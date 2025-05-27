@@ -958,6 +958,11 @@ def process_ticket():
                 }
                 
                 logger.info(f"DEBUG: Created result = {result}")
+                logger.info(f"DEBUG: result lottery_type = {result.get('lottery_type')}")
+                logger.info(f"DEBUG: result draw_date = {result.get('draw_date')}")
+                logger.info(f"DEBUG: result draw_number = {result.get('draw_number')}")
+                logger.info(f"DEBUG: result all_lines = {result.get('all_lines')}")
+                logger.info(f"DEBUG: result all_powerball = {result.get('all_powerball')}")
                 
             except json.JSONDecodeError as e:
                 # If JSON parsing fails, create a basic result that shows the response
