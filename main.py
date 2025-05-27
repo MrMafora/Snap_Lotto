@@ -199,68 +199,79 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 
 @app.route('/')
 def home():
-    """Homepage with latest lottery results"""
+    """Homepage with latest authentic South African lottery results"""
     from sqlalchemy import text
     import json
     
-    latest_results = []
-    
+    # Get authentic lottery results directly
     try:
-        # Get your authentic South African lottery data
-        rows = db.session.execute(text("""
-            SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers
+        # Simple query to get latest results per type
+        query = text("""
+            SELECT DISTINCT ON (lottery_type) 
+                   lottery_type, draw_number, draw_date, numbers, bonus_numbers
             FROM lottery_result 
             WHERE numbers IS NOT NULL 
-            ORDER BY draw_date DESC 
-            LIMIT 20
-        """)).fetchall()
+            ORDER BY lottery_type, draw_date DESC, id DESC
+            LIMIT 6
+        """)
         
-        # Track which lottery types we've seen
-        seen_types = set()
+        rows = db.session.execute(query).fetchall()
         
+        # Process your authentic data
+        results = []
         for row in rows:
-            # Normalize lottery type names
-            normalized_type = row.lottery_type
-            if row.lottery_type == 'Lotto':
-                normalized_type = 'Lottery'
-            elif row.lottery_type == 'Lotto Plus 1':
-                normalized_type = 'Lottery Plus 1'
-            elif row.lottery_type == 'Lotto Plus 2':
-                normalized_type = 'Lottery Plus 2'
-            
-            # Only take the latest result for each lottery type
-            if normalized_type not in seen_types:
-                seen_types.add(normalized_type)
-                
-                # Parse authentic numbers
+            # Parse JSON numbers safely  
+            try:
                 numbers = json.loads(row.numbers) if row.numbers else []
                 bonus_numbers = json.loads(row.bonus_numbers) if row.bonus_numbers else []
                 
-                # Convert to integers
-                clean_numbers = [int(str(n).strip('"')) for n in numbers if str(n).strip('"').isdigit()]
-                clean_bonus = [int(str(b).strip('"')) for b in bonus_numbers if str(b).strip('"').isdigit()]
+                # Convert to clean integers
+                clean_numbers = []
+                for n in numbers:
+                    try:
+                        clean_numbers.append(int(str(n).strip('"').strip()))
+                    except:
+                        pass
+                        
+                clean_bonus = []
+                for b in bonus_numbers:
+                    try:
+                        clean_bonus.append(int(str(b).strip('"').strip()))
+                    except:
+                        pass
                 
-                # Create result object
-                result = type('Result', (), {
-                    'lottery_type': normalized_type,
-                    'draw_number': str(row.draw_number),
-                    'draw_date': row.draw_date,
-                    'numbers': clean_numbers,
-                    'bonus_numbers': clean_bonus,
-                    'get_numbers_list': lambda: clean_numbers,
-                    'get_bonus_numbers_list': lambda: clean_bonus
-                })()
+                # Normalize lottery type
+                lottery_type = row.lottery_type
+                if 'Lotto' in lottery_type:
+                    lottery_type = lottery_type.replace('Lotto', 'Lottery')
                 
-                latest_results.append(result)
+                # Create result object with proper methods
+                from types import SimpleNamespace
+                result = SimpleNamespace()
+                result.lottery_type = lottery_type
+                result.draw_number = str(row.draw_number)
+                result.draw_date = row.draw_date
+                result.numbers = clean_numbers
+                result.bonus_numbers = clean_bonus
                 
-                # Stop when we have 6 different lottery types
-                if len(latest_results) >= 6:
-                    break
-    
+                # Add methods that capture the current values
+                def make_get_numbers(nums):
+                    return lambda: nums
+                def make_get_bonus(bonus):
+                    return lambda: bonus
+                    
+                result.get_numbers_list = make_get_numbers(clean_numbers)
+                result.get_bonus_numbers_list = make_get_bonus(clean_bonus)
+                
+                results.append(result)
+                
+            except Exception as e:
+                continue
+                
     except Exception as e:
-        latest_results = []
+        results = []
     
-    return render_template('index.html', results=latest_results)
+    return render_template('index.html', results=results)
 
 
 @app.route('/admin')
