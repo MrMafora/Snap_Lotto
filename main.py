@@ -614,6 +614,10 @@ MUST FOLLOW:
                 
                 player_powerball = ticket_data.get('powerball_number')
                 
+                # Extract draw information from ticket data FIRST
+                actual_draw_number = ticket_data.get('draw_number')
+                actual_draw_date = ticket_data.get('draw_date')
+                
                 if all_ticket_lines or player_main_numbers:
                     
                     # Check which games to compare based on lottery type and YES indicators
@@ -621,10 +625,6 @@ MUST FOLLOW:
                     powerball_plus_yes = ticket_data.get('powerball_plus_included', '').upper() == 'YES'
                     lotto_plus_1_yes = ticket_data.get('lotto_plus_1_included', '').upper() == 'YES'
                     lotto_plus_2_yes = ticket_data.get('lotto_plus_2_included', '').upper() == 'YES'
-                    
-                    # Extract draw information from ticket data
-                    actual_draw_number = ticket_data.get('draw_number')
-                    actual_draw_date = ticket_data.get('draw_date')
                     
                     # For PowerBall tickets
                     if 'powerball' in lottery_type:
