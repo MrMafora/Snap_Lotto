@@ -550,13 +550,16 @@ def process_ticket():
                             IMPORTANT: South African lottery tickets use this specific format:
                             - A1(XX): main_number,main_number,main_number,main_number,main_number
                             - A2(XX): bonus_number
+                            - QP A2(XX): bonus_number (if Quick Pick was used)
                             
                             For example:
                             A1(05): 7,11,17,25,33 means the main numbers are 7,11,17,25,33
                             A2(01): 20 means the bonus number is 20
+                            QP A2(01): 20 means the bonus number is 20 (Quick Pick)
                             
                             The A1(XX) line contains the MAIN NUMBERS after the colon (:)
                             The A2(XX) line contains the BONUS/POWERBALL number after the colon (:)
+                            QP before A2 means Quick Pick was used, but extract the same way
                             
                             Return this exact format:
                             
