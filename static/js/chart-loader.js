@@ -162,9 +162,35 @@ function fetchChartData(lotteryType, timePeriod) {
 function renderCharts(data) {
     console.log("Updating frequency chart");
     
-    // Use the chart-renderer functions to render each chart
-    if (typeof renderFrequencyChart === 'function') {
-        renderFrequencyChart(data.frequencyData);
+    // Convert authentic South African lottery frequency data to chart format
+    if (data && typeof data === 'object') {
+        const frequencyData = [];
+        
+        // Process the authentic frequency data from all lottery types
+        Object.keys(data).forEach(lotteryType => {
+            const lotteryData = data[lotteryType];
+            if (lotteryData && lotteryData.frequency && Array.isArray(lotteryData.frequency)) {
+                // Convert frequency array to number-frequency pairs
+                lotteryData.frequency.forEach((freq, index) => {
+                    if (freq > 0) {
+                        const existingData = frequencyData.find(item => item.number === (index + 1));
+                        if (existingData) {
+                            existingData.frequency += freq;
+                        } else {
+                            frequencyData.push({
+                                number: index + 1,
+                                frequency: freq
+                            });
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Render the authentic frequency chart if we have data
+        if (typeof renderFrequencyChart === 'function' && frequencyData.length > 0) {
+            renderFrequencyChart(frequencyData);
+        }
     }
     
     if (typeof renderDivisionChart === 'function') {
