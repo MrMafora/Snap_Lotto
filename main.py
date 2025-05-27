@@ -200,75 +200,80 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 @app.route('/')
 def home():
     """Homepage with latest authentic South African lottery results"""
+    # Use exact same approach as working analytics to get your authentic data
+    try:
+        from models import LotteryResult
+        import json
+        
+        # Get latest result for each lottery type - same as analytics approach
+        lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lottery', 'Lotto', 'Lotto Plus 1', 'Lotto Plus 2']
+        results = []
+        
+        for lottery_type in lottery_types:
+            # Get most recent result for this type
+            latest = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+            
+            if latest and latest.numbers:
+                try:
+                    # Parse numbers exactly like analytics does
+                    numbers_data = json.loads(latest.numbers) if latest.numbers else []
+                    bonus_data = json.loads(latest.bonus_numbers) if latest.bonus_numbers else []
+                    
+                    # Clean numbers exactly like analytics
+                    numbers = [int(str(n).strip('"').strip()) for n in numbers_data if str(n).strip()]
+                    bonus_numbers = [int(str(b).strip('"').strip()) for b in bonus_data if str(b).strip()]
+                    
+                    if numbers:  # Only add if we have valid numbers
+                        # Normalize type name
+                        display_type = lottery_type.replace('Lotto', 'Lottery')
+                        
+                        # Create simple result object
+                        result = type('Result', (), {
+                            'lottery_type': display_type,
+                            'draw_number': str(latest.draw_number),
+                            'draw_date': latest.draw_date,
+                            'numbers': numbers,
+                            'bonus_numbers': bonus_numbers,
+                            'get_numbers_list': lambda: numbers,
+                            'get_bonus_numbers_list': lambda: bonus_numbers
+                        })()
+                        
+                        results.append(result)
+                        
+                except:
+                    continue
+        
+        return render_template('index.html', results=results)
+        
+    except:
+        return render_template('index.html', results=[])
+
+
+@app.route('/debug-data')
+def debug_data():
+    """Debug endpoint to check authentic lottery data"""
     from sqlalchemy import text
     import json
     
-    # Get your authentic lottery results directly using raw SQL like the analytics
-    results = []
     try:
-        # Query your genuine database for the latest results
-        query = text("""
-            SELECT DISTINCT ON (lottery_type) 
-                   lottery_type, draw_number, draw_date, numbers, bonus_numbers
-            FROM lottery_result 
-            WHERE numbers IS NOT NULL AND numbers != ''
-            ORDER BY lottery_type, draw_date DESC, id DESC
-        """)
+        query = text("SELECT lottery_type, draw_number, numbers FROM lottery_result LIMIT 5")
+        rows = db.session.execute(query).fetchall()
         
-        raw_results = db.session.execute(query).fetchall()
+        debug_info = {
+            'total_rows': len(rows),
+            'sample_data': []
+        }
         
-        for row in raw_results:
-            try:
-                # Parse your authentic JSON data
-                numbers = json.loads(row.numbers) if row.numbers else []
-                bonus_numbers = json.loads(row.bonus_numbers) if row.bonus_numbers else []
-                
-                # Clean the authentic numbers
-                clean_numbers = []
-                for n in numbers:
-                    try:
-                        clean_numbers.append(int(str(n).strip().strip('"')))
-                    except:
-                        continue
-                
-                clean_bonus = []
-                for b in bonus_numbers:
-                    try:
-                        clean_bonus.append(int(str(b).strip().strip('"')))
-                    except:
-                        continue
-                
-                if clean_numbers:  # Only include if we have valid numbers
-                    # Normalize naming for display
-                    display_type = row.lottery_type
-                    if 'Lotto' in display_type:
-                        display_type = display_type.replace('Lotto', 'Lottery')
-                    
-                    # Create result object with proper structure
-                    class ResultObj:
-                        def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
-                            self.lottery_type = lottery_type
-                            self.draw_number = str(draw_number)
-                            self.draw_date = draw_date
-                            self.numbers = numbers
-                            self.bonus_numbers = bonus_numbers
-                        
-                        def get_numbers_list(self):
-                            return self.numbers
-                        
-                        def get_bonus_numbers_list(self):
-                            return self.bonus_numbers
-                    
-                    result = ResultObj(display_type, row.draw_number, row.draw_date, clean_numbers, clean_bonus)
-                    results.append(result)
-                    
-            except Exception as e:
-                continue
-                
+        for row in rows:
+            debug_info['sample_data'].append({
+                'lottery_type': row.lottery_type,
+                'draw_number': str(row.draw_number),
+                'numbers': row.numbers
+            })
+        
+        return debug_info
     except Exception as e:
-        results = []
-    
-    return render_template('index.html', results=results)
+        return {'error': str(e)}
 
 
 @app.route('/admin')
