@@ -179,17 +179,24 @@ class LotteryAnalyzer:
                         'draw_date': result.draw_date,
                     }
                     
-                    # Add individual numbers as separate columns
+                    # Add individual numbers as separate columns - ensure they're integers
                     max_numbers = self.required_numbers.get(result.lottery_type, 6)
                     for i in range(max_numbers):
                         if i < len(numbers):
-                            row[f'number_{i+1}'] = numbers[i]
+                            # Ensure all numbers are stored as integers
+                            try:
+                                row[f'number_{i+1}'] = int(numbers[i])
+                            except (ValueError, TypeError):
+                                row[f'number_{i+1}'] = None
                         else:
                             row[f'number_{i+1}'] = None
                     
-                    # Add bonus number if applicable
+                    # Add bonus number if applicable - ensure it's an integer
                     if result.lottery_type in ['Powerball', 'Powerball Plus'] and bonus_numbers:
-                        row['bonus_number'] = bonus_numbers[0] if len(bonus_numbers) > 0 else None
+                        try:
+                            row['bonus_number'] = int(bonus_numbers[0]) if len(bonus_numbers) > 0 else None
+                        except (ValueError, TypeError):
+                            row['bonus_number'] = None
                     
                     # Add division data if available
                     if result.divisions:
@@ -245,16 +252,9 @@ class LotteryAnalyzer:
         # Create empty cache key for consistent lookup
         cache_key = f"api_freq_{lottery_type}_{days}"
         
-        # Clear any cached error responses to force fresh analysis after bug fixes
-        if cache_key in chart_cache:
-            cached_result = chart_cache[cache_key]
-            # If cached result has an error, clear it and regenerate
-            if isinstance(cached_result, dict) and ("error" in cached_result or "has_error" in cached_result):
-                logger.info(f"Clearing cached error for {cache_key} and regenerating")
-                del chart_cache[cache_key]
-            else:
-                logger.info(f"Returning cached frequency analysis for {cache_key}")
-                return cached_result
+        # Clear all cached results to force completely fresh analysis with integer fixes
+        chart_cache.clear()
+        logger.info("Cleared all cached analysis results to force fresh integer-safe processing")
         try:
             # Step 1: Get and validate data
             df = self.get_lottery_data(lottery_type, days)
@@ -372,6 +372,10 @@ class LotteryAnalyzer:
                                 max_number = int(max_val)
                         except Exception as e:
                             logger.warning(f"Error processing column {col}: {e}")
+                    
+                    # Ensure we have a valid max_number for individual lottery types too
+                    if max_number == 0:
+                        max_number = 50  # Default max for lottery numbers
                     
                     # Create a frequency array for all possible numbers
                     frequency = np.zeros(max_number + 1, dtype=int)
