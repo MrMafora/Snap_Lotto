@@ -353,7 +353,7 @@ def create_system_prompt(lottery_type):
     You are a South African lottery data extraction specialist. Your task is to extract lottery results and related data from screenshots of the National Lottery website. 
     
     Important notes:
-    - South African lottery formats include Lotto (6 numbers + 1 bonus), Lotto Plus 1 (6 numbers + 1 bonus), Lotto Plus 2 (6 numbers + 1 bonus), Powerball (5 numbers + 1 bonus), Powerball Plus (5 numbers + 1 bonus), and Daily Lotto (5 numbers, no bonus).
+    - South African lottery formats include Lottery (6 numbers + 1 bonus), Lottery Plus 1 (6 numbers + 1 bonus), Lottery Plus 2 (6 numbers + 1 bonus), Powerball (5 numbers + 1 bonus), Powerball Plus (5 numbers + 1 bonus), and Daily Lottery (5 numbers, no bonus).
     - For history pages: Extract EACH DRAW shown in the image, not just the most recent one. There can be multiple draws shown on a single page.
     - Draw numbers are sometimes shown as "Draw 1234" or "DRAW 1234" - extract only the number portion.
     - Dates are in DD-MM-YYYY or DD/MM/YYYY format as typical in South Africa.
@@ -370,7 +370,7 @@ def create_system_prompt(lottery_type):
 
     Return the data in this structured JSON format:
     {
-        "lottery_type": "The type of lottery (e.g., Lotto, Powerball)",
+        "lottery_type": "The type of lottery (e.g., Lottery, Powerball)",
         "results": [
             {
                 "draw_number": "Draw ID number",
@@ -395,7 +395,7 @@ def create_system_prompt(lottery_type):
     # Add lottery-specific details
     if "lotto" in lottery_type.lower() and "plus" not in lottery_type.lower() and "daily" not in lottery_type.lower():
         base_prompt += """
-        For Lotto:
+        For Lottery:
         - Extract 6 main numbers and 1 bonus number
         - Division 1 = six correct numbers
         - Division 2 = five correct numbers + bonus number
@@ -408,15 +408,15 @@ def create_system_prompt(lottery_type):
         """
     elif "lotto plus 1" in lottery_type.lower():
         base_prompt += """
-        For Lotto Plus 1:
+        For Lottery Plus 1:
         - Extract 6 main numbers and 1 bonus number
-        - Same division structure as Lotto
+        - Same division structure as Lottery
         """
     elif "lotto plus 2" in lottery_type.lower():
         base_prompt += """
-        For Lotto Plus 2:
+        For Lottery Plus 2:
         - Extract 6 main numbers and 1 bonus number
-        - Same division structure as Lotto
+        - Same division structure as Lottery
         """
     elif "powerball" in lottery_type.lower() and "plus" not in lottery_type.lower():
         base_prompt += """
