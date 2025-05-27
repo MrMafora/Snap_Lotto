@@ -393,7 +393,7 @@ def create_system_prompt(lottery_type):
     """
     
     # Add lottery-specific details
-    if "lotto" in lottery_type.lower() and "plus" not in lottery_type.lower() and "daily" not in lottery_type.lower():
+    if ("lotto" in lottery_type.lower() or "lottery" in lottery_type.lower()) and "plus" not in lottery_type.lower() and "daily" not in lottery_type.lower():
         base_prompt += """
         For Lottery:
         - Extract 6 main numbers and 1 bonus number
@@ -406,13 +406,13 @@ def create_system_prompt(lottery_type):
         - Division 7 = three correct numbers
         - Division 8 = two correct numbers + bonus number
         """
-    elif "lotto plus 1" in lottery_type.lower():
+    elif "lotto plus 1" in lottery_type.lower() or "lottery plus 1" in lottery_type.lower():
         base_prompt += """
         For Lottery Plus 1:
         - Extract 6 main numbers and 1 bonus number
         - Same division structure as Lottery
         """
-    elif "lotto plus 2" in lottery_type.lower():
+    elif "lotto plus 2" in lottery_type.lower() or "lottery plus 2" in lottery_type.lower():
         base_prompt += """
         For Lottery Plus 2:
         - Extract 6 main numbers and 1 bonus number

@@ -1077,6 +1077,10 @@ def process_ticket():
         if not result.get('draw_number') or result.get('draw_number') == 'Not detected':
             result['draw_number'] = result.get('ticket_data', {}).get('draw_number', 'Not detected')
         
+        # Standardize "Lotto" to "Lottery" terminology in the response
+        if result.get('lottery_type') and 'Lotto' in result['lottery_type']:
+            result['lottery_type'] = result['lottery_type'].replace('Lotto', 'Lottery')
+        
         # Debug: Print to console for troubleshooting
         logger.info("=== SCANNER DEBUG ===")
         logger.info(f"Final result lottery type: {result.get('lottery_type')}")
