@@ -771,6 +771,7 @@ def process_ticket():
             
             # Parse the response
             response_text = message.content[0].text
+            logger.info(f"AI Response: {response_text[:500]}...")  # Log first 500 chars for debugging
             
             # Try to extract JSON from the response
             try:
@@ -779,8 +780,10 @@ def process_ticket():
                 json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
                 if json_match:
                     ticket_data = json.loads(json_match.group())
+                    logger.info(f"Extracted JSON: {ticket_data}")
                 else:
                     ticket_data = json.loads(response_text)
+                    logger.info(f"Direct JSON parse: {ticket_data}")
                 
                 # Check for PowerBall + PowerBall Plus combination and compare with both results
                 powerball_results = {}
