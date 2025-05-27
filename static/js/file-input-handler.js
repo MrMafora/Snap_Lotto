@@ -329,23 +329,25 @@ function displayResults(data) {
             const rowContainer = document.createElement('div');
             rowContainer.classList.add('mb-3', 'd-flex', 'flex-wrap');
             
-            data.ticket_info.selected_numbers.forEach(number => {
-                const ballElement = document.createElement('div');
-                ballElement.classList.add('lottery-ball', 'me-2', 'mb-2');
-                
-                // Check if this number matches a winning number
-                const isMatch = data.winning_numbers && data.winning_numbers.includes(number);
-                const isBonusMatch = data.bonus_numbers && data.bonus_numbers.includes(number);
-                
-                if (isMatch) {
-                    ballElement.classList.add('matched');
-                } else if (isBonusMatch) {
-                    ballElement.classList.add('bonus-matched');
-                }
-                
-                ballElement.textContent = number;
-                rowContainer.appendChild(ballElement);
-            });
+            if (data.ticket_info && data.ticket_info.selected_numbers && Array.isArray(data.ticket_info.selected_numbers)) {
+                data.ticket_info.selected_numbers.forEach(number => {
+                    const ballElement = document.createElement('div');
+                    ballElement.classList.add('lottery-ball', 'me-2', 'mb-2');
+                    
+                    // Check if this number matches a winning number
+                    const isMatch = data.winning_numbers && data.winning_numbers.includes(number);
+                    const isBonusMatch = data.bonus_numbers && data.bonus_numbers.includes(number);
+                    
+                    if (isMatch) {
+                        ballElement.classList.add('matched');
+                    } else if (isBonusMatch) {
+                        ballElement.classList.add('bonus-matched');
+                    }
+                    
+                    ballElement.textContent = number;
+                    rowContainer.appendChild(ballElement);
+                });
+            }
             
             ticketNumbersContainer.appendChild(rowContainer);
         } else if (data.ticket_numbers && Array.isArray(data.ticket_numbers)) {
