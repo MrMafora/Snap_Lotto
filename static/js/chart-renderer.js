@@ -166,6 +166,88 @@ function renderFrequencyChart(frequencyData) {
     }
 }
 
+// Function to render Hot & Cold Numbers section
+function renderHotColdNumbers(frequencyData) {
+    if (!frequencyData || !Array.isArray(frequencyData) || frequencyData.length === 0) {
+        console.warn('No frequency data available for hot/cold numbers');
+        return;
+    }
+    
+    try {
+        // Sort data by frequency (descending for hot, ascending for cold)
+        const sortedData = [...frequencyData].sort((a, b) => b.frequency - a.frequency);
+        
+        // Get hot numbers (top 5 most frequent)
+        const hotNumbers = sortedData.slice(0, 5);
+        
+        // Get cold numbers (bottom 5 least frequent)
+        const coldNumbers = sortedData.slice(-5).reverse(); // Reverse to show least frequent first
+        
+        // Update Hot Numbers section
+        const hotNumbersContainer = document.getElementById('hotNumbersContainer');
+        if (hotNumbersContainer && hotNumbers.length > 0) {
+            const colors = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'];
+            let hotHTML = '';
+            
+            hotNumbers.forEach((item, index) => {
+                hotHTML += `
+                    <div class="hot-number-item me-2 mb-2">
+                        <span class="lottery-ball lottery-ball-sm ${colors[index]}">
+                            <span class="number">${item.number}</span>
+                        </span>
+                        <small class="frequency-label d-block text-center mt-1">${item.frequency}x</small>
+                    </div>
+                `;
+            });
+            
+            hotNumbersContainer.innerHTML = hotHTML;
+        }
+        
+        // Update Cold Numbers section
+        const coldNumbersContainer = document.getElementById('coldNumbersContainer');
+        if (coldNumbersContainer && coldNumbers.length > 0) {
+            let coldHTML = '';
+            
+            coldNumbers.forEach((item, index) => {
+                coldHTML += `
+                    <div class="cold-number-item me-2 mb-2">
+                        <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
+                            <span class="number">${item.number}</span>
+                        </span>
+                        <small class="frequency-label d-block text-center mt-1">${item.frequency}x</small>
+                    </div>
+                `;
+            });
+            
+            coldNumbersContainer.innerHTML = coldHTML;
+        }
+        
+        // Update Numbers Not Drawn Recently section
+        const absentNumbersContainer = document.getElementById('absentNumbersContainer');
+        if (absentNumbersContainer && coldNumbers.length > 0) {
+            let absentHTML = '';
+            
+            // Show the 3 least frequent numbers as "not drawn recently"
+            const absentNumbers = coldNumbers.slice(0, 3);
+            absentNumbers.forEach((item, index) => {
+                absentHTML += `
+                    <div class="absent-number-item me-2 mb-2">
+                        <span class="lottery-ball lottery-ball-sm lottery-ball-gray">
+                            <span class="number">${item.number}</span>
+                        </span>
+                        <small class="frequency-label d-block text-center mt-1">${item.frequency}x</small>
+                    </div>
+                `;
+            });
+            
+            absentNumbersContainer.innerHTML = absentHTML;
+        }
+        
+    } catch (error) {
+        console.error('Error rendering hot/cold numbers:', error);
+    }
+}
+
 // Function to render division statistics chart
 function renderDivisionChart(divisionData) {
     if (!divisionData || !Array.isArray(divisionData) || divisionData.length === 0) {

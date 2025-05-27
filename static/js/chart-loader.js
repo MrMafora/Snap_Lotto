@@ -191,6 +191,11 @@ function renderCharts(data) {
         if (typeof renderFrequencyChart === 'function' && frequencyData.length > 0) {
             renderFrequencyChart(frequencyData);
         }
+        
+        // Render Hot & Cold Numbers section with the same authentic data
+        if (typeof renderHotColdNumbers === 'function' && frequencyData.length > 0) {
+            renderHotColdNumbers(frequencyData);
+        }
     }
     
     if (typeof renderDivisionChart === 'function') {
