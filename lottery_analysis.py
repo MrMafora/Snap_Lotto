@@ -290,15 +290,12 @@ class LotteryAnalyzer:
                     
                     # Find the highest number across all draws and all types
                     for col in all_number_cols:
-                        max_val = all_types_df[col].max()
-                        if max_val is not None:
+                        # Convert the entire column to numeric values first
+                        numeric_col = pd.to_numeric(all_types_df[col], errors='coerce')
+                        max_val = numeric_col.max()
+                        if not pd.isna(max_val):
                             try:
-                                # Handle string to int conversion safely
-                                if isinstance(max_val, str):
-                                    max_val_int = int(float(max_val))
-                                else:
-                                    max_val_int = int(max_val)
-                                
+                                max_val_int = int(max_val)
                                 if max_val_int > max_number:
                                     max_number = max_val_int
                             except (ValueError, TypeError):
@@ -325,7 +322,8 @@ class LotteryAnalyzer:
                                     # Convert directly to int for numeric types
                                     num_int = int(num)
                                     
-                                if 0 <= num_int <= max_number:
+                                # Ensure both values are integers for comparison
+                                if 0 <= num_int <= int(max_number):
                                     combined_frequency[num_int] += 1
                             except (ValueError, TypeError):
                                 # Skip invalid number formats
@@ -405,7 +403,8 @@ class LotteryAnalyzer:
                                     # Skip other types
                                     continue
                                     
-                                if 0 <= num_int <= max_number:
+                                # Ensure both values are integers for comparison
+                                if 0 <= num_int <= int(max_number):
                                     frequency[num_int] += 1
                             except (ValueError, TypeError):
                                 # Skip invalid number formats
@@ -423,7 +422,7 @@ class LotteryAnalyzer:
                     # Add total draws count to the results
                     if lt not in results:
                         results[lt] = {}
-                    results[lt]['total_draws'] = len(lt_df['draw_number'].unique())
+                    results[lt]['total_draws'] = len(lt_df['draw_number'].astype(str).unique())
                     
                     # Generate frequency chart for this lottery type
                     self._generate_frequency_chart(frequency, top_numbers, lt, results)
