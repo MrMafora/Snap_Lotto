@@ -25,7 +25,9 @@ function renderFrequencyChart(frequencyData) {
         const frequencyChart = document.createElement('div');
         frequencyChart.className = 'frequency-chart d-flex align-items-end justify-content-center pb-2';
         frequencyChart.style.height = '200px';
-        frequencyChart.style.gap = '8px'; // Even spacing between all bars
+        frequencyChart.style.gap = '6px'; // Tighter spacing to fit better
+        frequencyChart.style.width = '100%';
+        frequencyChart.style.padding = '0 10px'; // Add padding so bars don't touch edges
         
         // Sort data by frequency (descending)
         const sortedData = [...frequencyData].sort((a, b) => b.frequency - a.frequency);
@@ -64,16 +66,18 @@ function renderFrequencyChart(frequencyData) {
             barColumn.setAttribute('data-bs-toggle', 'tooltip');
             barColumn.setAttribute('data-bs-placement', 'top');
             
-            // Create interactive bar container with proper height
+            // Create interactive bar container with proper height and bottom alignment
             const barContainer = document.createElement('div');
             barContainer.className = 'interactive-bar-container';
             barContainer.style.height = '170px';
+            barContainer.style.display = 'flex';
+            barContainer.style.alignItems = 'flex-end'; // Align bars to bottom
             
             // Create the actual bar with appropriate height and color
             const bar = document.createElement('div');
             bar.className = `interactive-bar ${index < 3 ? colorClasses[index] : 'bg-primary'}`;
             bar.style.height = `${heightPercentage}%`;
-            bar.style.width = '40px'; // Fixed width for all bars for perfect symmetry
+            bar.style.width = '35px'; // Slightly smaller width so all bars fit comfortably
             bar.style.borderRadius = '4px';
             bar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
             bar.style.transition = 'transform 0.2s';
