@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Scanner Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .scanner-box { border: 2px dashed #ccc; padding: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Ticket Scanner Test</h1>
+    <div class="scanner-box">
+        <p>Upload your lottery ticket image:</p>
+        <input type="file" accept="image/*" id="ticketFile">
+        <button onclick="testScan()">Test Scan</button>
+    </div>
+    
+    <div id="results" style="margin-top: 20px;"></div>
+    
+    <script>
+        function testScan() {
+            document.getElementById('results').innerHTML = '<p>Scanner test working!</p>';
+        }
+    </script>
+</body>
+</html>
