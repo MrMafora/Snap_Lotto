@@ -3465,6 +3465,59 @@ def system_metrics():
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
 
+@app.route('/extract-lottery-data', methods=['GET', 'POST'])
+@login_required
+def extract_lottery_data():
+    """Admin route to extract lottery data from images using AI"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('home'))
+    
+    if request.method == 'GET':
+        # Show the extraction interface
+        return render_template('admin/data_extraction.html',
+                             title="AI Data Extraction | Admin Dashboard")
+    
+    try:
+        from automated_data_extractor import LotteryDataExtractor
+        
+        extractor = LotteryDataExtractor()
+        
+        # Check if testing single image or processing all
+        test_mode = request.form.get('test_mode') == 'true'
+        
+        if test_mode:
+            # Test with a single image
+            test_image = "attached_assets/IMG_8174.png"
+            if os.path.exists(test_image):
+                result = extractor.test_single_image(test_image)
+                if result:
+                    flash(f'Test successful! Extracted: {result["lottery_type"]} with {len(result["main_numbers"])} numbers', 'success')
+                    return render_template('admin/data_extraction.html',
+                                         test_result=result,
+                                         title="AI Data Extraction | Admin Dashboard")
+                else:
+                    flash('Test failed. Please check your Anthropic API key configuration.', 'danger')
+            else:
+                flash('Test image not found.', 'danger')
+        else:
+            # Process all images
+            results = extractor.process_all_images("attached_assets")
+            
+            flash(f'Processing complete! Successfully extracted {results["successful"]} lottery records, {results["failed"]} failed.', 
+                  'success' if results["successful"] > 0 else 'warning')
+            
+            return render_template('admin/data_extraction.html',
+                                 extraction_results=results,
+                                 title="AI Data Extraction | Admin Dashboard")
+            
+    except Exception as e:
+        app.logger.error(f"Error in extract_lottery_data route: {str(e)}")
+        flash(f'Error during data extraction: {str(e)}', 'danger')
+    
+    return render_template('admin/data_extraction.html',
+                         title="AI Data Extraction | Admin Dashboard")
+
 # API Request Tracking routes 
 @app.route('/admin/api-tracking')
 @login_required
