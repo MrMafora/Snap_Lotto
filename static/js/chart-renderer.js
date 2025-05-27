@@ -25,9 +25,9 @@ function renderFrequencyChart(frequencyData) {
         const frequencyChart = document.createElement('div');
         frequencyChart.className = 'frequency-chart d-flex align-items-end justify-content-center pb-2';
         frequencyChart.style.height = '200px';
-        frequencyChart.style.gap = '4px'; // Even tighter spacing for perfect fit
+        frequencyChart.style.gap = '8px'; // Optimal spacing for proper box fill
         frequencyChart.style.width = '100%';
-        frequencyChart.style.padding = '20px 25px'; // Generous padding inside card
+        frequencyChart.style.padding = '15px 20px'; // Balanced padding for proper fill
         frequencyChart.style.maxWidth = '100%'; // Use full available width
         frequencyChart.style.margin = '0 auto'; // Center the entire chart
         frequencyChart.style.boxSizing = 'border-box'; // Include padding in width calculation
@@ -80,7 +80,7 @@ function renderFrequencyChart(frequencyData) {
             const bar = document.createElement('div');
             bar.className = `interactive-bar ${index < 3 ? colorClasses[index] : 'bg-primary'}`;
             bar.style.height = `${heightPercentage}%`;
-            bar.style.width = '28px'; // Adjusted width to fit comfortably with card padding
+            bar.style.width = '36px'; // Larger width to properly fill the available space
             bar.style.borderRadius = '4px';
             bar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
             bar.style.transition = 'transform 0.2s';
