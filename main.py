@@ -885,9 +885,17 @@ def process_ticket():
                                     'total_matches': f"{plus_1_main_matches} main + {'Bonus' if plus_1_bonus_match else '0 Bonus'}"
                                 }
                 
-                # Create a successful result with both comparisons
+                # Create a successful result matching frontend expectations
                 result = {
                     'success': True,
+                    'lottery_type': ticket_data.get('lottery_type', 'Not detected'),
+                    'draw_date': ticket_data.get('draw_date', 'Not detected'),
+                    'draw_number': ticket_data.get('draw_number', 'Not detected'),
+                    'ticket_numbers': ticket_data.get('main_numbers', []),
+                    'powerball_number': ticket_data.get('powerball_number'),
+                    'powerball_plus_included': ticket_data.get('powerball_plus_included', 'NO'),
+                    'is_winner': False,  # Will be determined by comparison
+                    'prize_amount': None,
                     'ticket_data': ticket_data,
                     'raw_response': response_text,
                     'powerball_results': powerball_results,
@@ -901,17 +909,21 @@ def process_ticket():
                     }
                 }
                 
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
                 # If JSON parsing fails, create a result with the raw text
+                logger.error(f"JSON parsing failed: {str(e)}")
+                logger.error(f"Raw response text: {response_text}")
                 result = {
                     'success': True,
                     'ticket_data': {
                         'lottery_type': lottery_type or 'PowerBall',
-                        'raw_analysis': response_text
+                        'raw_analysis': response_text,
+                        'parsing_error': str(e)
                     },
                     'comparison': {
-                        'message': 'Ticket analyzed, but needs manual review',
-                        'raw_response': response_text
+                        'message': 'Ticket analyzed, but JSON parsing failed. Check raw response.',
+                        'raw_response': response_text,
+                        'error': str(e)
                     }
                 }
                 
