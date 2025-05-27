@@ -199,105 +199,68 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 
 @app.route('/')
 def home():
-    """Homepage with latest lottery results using direct database query"""
+    """Homepage with latest lottery results"""
     from sqlalchemy import text
     import json
     
-    # Simple, direct approach to get authentic lottery data
     latest_results = []
     
     try:
-        # Query database for latest results per lottery type, handling both Lotto/Lottery naming
-        query_results = db.session.execute(text("""
-            WITH normalized_types AS (
-                SELECT 
-                    CASE 
-                        WHEN lottery_type = 'Lotto' THEN 'Lottery'
-                        WHEN lottery_type = 'Lotto Plus 1' THEN 'Lottery Plus 1'
-                        WHEN lottery_type = 'Lotto Plus 2' THEN 'Lottery Plus 2'
-                        ELSE lottery_type
-                    END as lottery_type,
-                    draw_number, draw_date, numbers, bonus_numbers,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY 
-                            CASE 
-                                WHEN lottery_type = 'Lotto' THEN 'Lottery'
-                                WHEN lottery_type = 'Lotto Plus 1' THEN 'Lottery Plus 1'
-                                WHEN lottery_type = 'Lotto Plus 2' THEN 'Lottery Plus 2'
-                                ELSE lottery_type
-                            END 
-                        ORDER BY draw_date DESC, id DESC
-                    ) as rn
-                FROM lottery_result 
-                WHERE numbers IS NOT NULL
-            )
+        # Get your authentic South African lottery data
+        rows = db.session.execute(text("""
             SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers
-            FROM normalized_types 
-            WHERE rn = 1
-            ORDER BY draw_date DESC
-            LIMIT 6
+            FROM lottery_result 
+            WHERE numbers IS NOT NULL 
+            ORDER BY draw_date DESC 
+            LIMIT 20
         """)).fetchall()
         
-        # Process each result for template
-        print(f"DEBUG: Found {len(query_results)} rows from database")
-        for row in query_results:
-            print(f"DEBUG: Processing row - Type: {row.lottery_type}, Draw: {row.draw_number}, Numbers: {row.numbers}")
-            try:
-                # Parse JSON numbers from database
-                nums = json.loads(row.numbers) if row.numbers else []
-                bonus = json.loads(row.bonus_numbers) if row.bonus_numbers else []
+        # Track which lottery types we've seen
+        seen_types = set()
+        
+        for row in rows:
+            # Normalize lottery type names
+            normalized_type = row.lottery_type
+            if row.lottery_type == 'Lotto':
+                normalized_type = 'Lottery'
+            elif row.lottery_type == 'Lotto Plus 1':
+                normalized_type = 'Lottery Plus 1'
+            elif row.lottery_type == 'Lotto Plus 2':
+                normalized_type = 'Lottery Plus 2'
+            
+            # Only take the latest result for each lottery type
+            if normalized_type not in seen_types:
+                seen_types.add(normalized_type)
                 
-                # Clean and convert to integers
-                clean_nums = []
-                for n in nums:
-                    try:
-                        clean_nums.append(int(str(n).strip('"')))
-                    except:
-                        continue
-                        
-                clean_bonus = []
-                for b in bonus:
-                    try:
-                        clean_bonus.append(int(str(b).strip('"')))
-                    except:
-                        continue
+                # Parse authentic numbers
+                numbers = json.loads(row.numbers) if row.numbers else []
+                bonus_numbers = json.loads(row.bonus_numbers) if row.bonus_numbers else []
+                
+                # Convert to integers
+                clean_numbers = [int(str(n).strip('"')) for n in numbers if str(n).strip('"').isdigit()]
+                clean_bonus = [int(str(b).strip('"')) for b in bonus_numbers if str(b).strip('"').isdigit()]
                 
                 # Create result object
-                class LotteryResult:
-                    def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
-                        self.lottery_type = lottery_type
-                        self.draw_number = str(draw_number)
-                        self.draw_date = draw_date
-                        self.numbers = numbers
-                        self.bonus_numbers = bonus_numbers
-                    
-                    def get_numbers_list(self):
-                        return self.numbers
-                    
-                    def get_bonus_numbers_list(self):
-                        return self.bonus_numbers
+                result = type('Result', (), {
+                    'lottery_type': normalized_type,
+                    'draw_number': str(row.draw_number),
+                    'draw_date': row.draw_date,
+                    'numbers': clean_numbers,
+                    'bonus_numbers': clean_bonus,
+                    'get_numbers_list': lambda: clean_numbers,
+                    'get_bonus_numbers_list': lambda: clean_bonus
+                })()
                 
-                result = LotteryResult(row.lottery_type, row.draw_number, row.draw_date, clean_nums, clean_bonus)
-                print(f"DEBUG: Created result object - Type: {result.lottery_type}, Numbers: {result.get_numbers_list()}")
                 latest_results.append(result)
                 
-            except Exception as e:
-                continue
-                
+                # Stop when we have 6 different lottery types
+                if len(latest_results) >= 6:
+                    break
+    
     except Exception as e:
-        print(f"Error in home route: {e}")
-        pass
+        latest_results = []
     
-    # Basic frequency data
-    frequency_data = {'labels': [], 'data': [], 'total_draws': len(latest_results)}
-    
-    print(f"DEBUG: Final results being passed to template: {len(latest_results)} items")
-    for i, result in enumerate(latest_results):
-        print(f"DEBUG: Result {i}: {result.lottery_type} - Numbers: {result.get_numbers_list()}")
-    
-    return render_template('index.html', 
-                         results=latest_results, 
-                         frequency_data=frequency_data)
+    return render_template('index.html', results=latest_results)
 
 
 @app.route('/admin')
