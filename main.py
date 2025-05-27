@@ -887,17 +887,24 @@ def process_ticket():
                         if isinstance(value, list):
                             all_lines.append({'line_name': key, 'numbers': value})
                 elif isinstance(numbers, list) and len(numbers) > 0:
-                    for item in numbers:
-                        if isinstance(item, dict):
-                            # Structured format: {"line_A": [1,2,3], "powerball_A": 4}
-                            for key, value in item.items():
-                                if 'line' in key.lower() and isinstance(value, list):
-                                    all_lines.append({'line_name': key, 'numbers': value})
-                                elif 'powerball' in key.lower() and isinstance(value, (int, str)):
-                                    all_powerball.append(value)
-                        elif isinstance(item, list):
-                            # Simple array format: [1,2,3,4,5]
-                            all_lines.append({'line_name': f'Line {len(all_lines)+1}', 'numbers': item})
+                    # Check if this is an array of arrays (most common current format)
+                    if isinstance(numbers[0], list):
+                        # Array of arrays: [[9,15,37,39,50], [12,26,31,32,47], ...]
+                        for i, line_numbers in enumerate(numbers):
+                            all_lines.append({'line_name': f'Line {i+1}', 'numbers': line_numbers})
+                    else:
+                        # Single array or other format
+                        for item in numbers:
+                            if isinstance(item, dict):
+                                # Structured format: {"line_A": [1,2,3], "powerball_A": 4}
+                                for key, value in item.items():
+                                    if 'line' in key.lower() and isinstance(value, list):
+                                        all_lines.append({'line_name': key, 'numbers': value})
+                                    elif 'powerball' in key.lower() and isinstance(value, (int, str)):
+                                        all_powerball.append(value)
+                            elif isinstance(item, list):
+                                # Simple array format: [1,2,3,4,5]
+                                all_lines.append({'line_name': f'Line {len(all_lines)+1}', 'numbers': item})
                 
                 # Handle PowerBall numbers - new format: {"A2": 2, "B2": 4}
                 if isinstance(powerball_numbers, dict):

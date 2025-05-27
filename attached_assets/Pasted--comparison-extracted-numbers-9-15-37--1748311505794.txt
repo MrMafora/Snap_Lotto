@@ -1,0 +1,111 @@
+{
+  "comparison": {
+    "extracted_numbers": [
+      [
+        9,
+        15,
+        37,
+        39,
+        50
+      ],
+      [
+        12,
+        26,
+        31,
+        32,
+        47
+      ],
+      [
+        12,
+        21,
+        31,
+        36,
+        37
+      ],
+      [
+        9,
+        24,
+        27,
+        29,
+        50
+      ],
+      [
+        10,
+        11,
+        16,
+        31,
+        48
+      ],
+      [
+        3,
+        16,
+        33,
+        41,
+        49
+      ]
+    ],
+    "lottery_type": "PowerBall Plus",
+    "message": "Ticket analyzed successfully! Check your numbers against the latest draw results."
+  },
+  "raw_response": "Looking at this South African PowerBall ticket, I'll extract the requested information:\n\n{\n    \"success\": true,\n    \"lottery_type\": \"PowerBall Plus\",\n    \"numbers\": [\n        [9, 15, 37, 39, 50],\n        [12, 26, 31, 32, 47],\n        [12, 21, 31, 36, 37],\n        [9, 24, 27, 29, 50],\n        [10, 11, 16, 31, 48],\n        [3, 16, 33, 41, 49]\n    ],\n    \"powerball_or_bonus\": [7, 16, 10, 12, 14, 3],\n    \"draw_number\": \"1599\",\n    \"draw_date\": \"2025-03-21\",\n    \"ticket_cost\": \"R45.00\"\n}\n\nNotes:\n- This is a PowerBall Plus ticket with multiple sets of numbers\n- Each line has 5 main numbers followed by a PowerBall number (marked as QP)\n- The total cost includes 15% VAT\n- The ticket shows multiple lines (A1-F1) with their corresponding PowerBall numbers (A2-F2)",
+  "success": true,
+  "ticket_data": {
+    "draw_date": "2025-03-21",
+    "draw_number": "1599",
+    "lottery_type": "PowerBall Plus",
+    "numbers": [
+      [
+        9,
+        15,
+        37,
+        39,
+        50
+      ],
+      [
+        12,
+        26,
+        31,
+        32,
+        47
+      ],
+      [
+        12,
+        21,
+        31,
+        36,
+        37
+      ],
+      [
+        9,
+        24,
+        27,
+        29,
+        50
+      ],
+      [
+        10,
+        11,
+        16,
+        31,
+        48
+      ],
+      [
+        3,
+        16,
+        33,
+        41,
+        49
+      ]
+    ],
+    "powerball_or_bonus": [
+      7,
+      16,
+      10,
+      12,
+      14,
+      3
+    ],
+    "success": true,
+    "ticket_cost": "R45.00"
+  }
+}
