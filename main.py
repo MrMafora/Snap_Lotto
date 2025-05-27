@@ -199,91 +199,76 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 
 @app.route('/')
 def index():
-    """Homepage with latest lottery results - clean and working approach"""
+    """Homepage with latest lottery results using direct database query"""
+    from sqlalchemy import text
+    import json
+    
+    # Simple, direct approach to get authentic lottery data
+    latest_results = []
+    
     try:
-        latest_results = []
-        frequency_data = {'labels': [], 'data': [], 'total_draws': 0}
+        # Query database for latest results per lottery type
+        query_results = db.session.execute(text("""
+            SELECT DISTINCT ON (lottery_type) 
+                   lottery_type, draw_number, draw_date, numbers, bonus_numbers
+            FROM lottery_result 
+            WHERE numbers IS NOT NULL 
+            ORDER BY lottery_type, draw_date DESC, id DESC
+            LIMIT 6
+        """)).fetchall()
         
-        # Get latest lottery results directly from database
-        try:
-            from sqlalchemy import text
-            import json
-            
-            # Get one result per lottery type - latest by date
-            results = db.session.execute(text("""
-                WITH ranked_results AS (
-                    SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers,
-                           ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY draw_date DESC, id DESC) as rn
-                    FROM lottery_result 
-                    WHERE numbers IS NOT NULL
-                )
-                SELECT lottery_type, draw_number, draw_date, numbers, bonus_numbers
-                FROM ranked_results 
-                WHERE rn = 1
-                ORDER BY draw_date DESC
-                LIMIT 6
-            """)).fetchall()
-            
-            # Process results for template display
-            for result in results:
-                try:
-                    # Parse numbers and handle string format from database
-                    numbers = json.loads(result.numbers) if result.numbers else []
-                    bonus_numbers = json.loads(result.bonus_numbers) if result.bonus_numbers else []
-                    
-                    # Convert string numbers to integers (remove quotes)
-                    numbers = [int(str(num).strip('"')) for num in numbers if str(num).strip('"').isdigit()]
-                    bonus_numbers = [int(str(num).strip('"')) for num in bonus_numbers if str(num).strip('"').isdigit()]
-                    
-                    # Create result object with methods the template expects
-                    class ResultObj:
-                        def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
-                            self.lottery_type = lottery_type
-                            self.draw_number = str(draw_number)
-                            self.draw_date = draw_date
-                            self.numbers = numbers
-                            self.bonus_numbers = bonus_numbers
-                        
-                        def get_numbers_list(self):
-                            return self.numbers
-                        
-                        def get_bonus_numbers_list(self):
-                            return self.bonus_numbers
-                    
-                    result_obj = ResultObj(result.lottery_type, result.draw_number, 
-                                         result.draw_date, numbers, bonus_numbers)
-                    latest_results.append(result_obj)
-                except Exception as e:
-                    logger.error(f"Error processing result: {e}")
-                    continue
-            
-            # Calculate frequency data from recent results
-            if latest_results:
-                number_count = {}
-                for result in latest_results:
-                    for num in result.get_numbers_list():
-                        if isinstance(num, int):
-                            number_count[num] = number_count.get(num, 0) + 1
+        # Process each result for template
+        for row in query_results:
+            try:
+                # Parse JSON numbers from database
+                nums = json.loads(row.numbers) if row.numbers else []
+                bonus = json.loads(row.bonus_numbers) if row.bonus_numbers else []
                 
-                top_numbers = sorted(number_count.items(), key=lambda x: x[1], reverse=True)[:5]
-                frequency_data = {
-                    'labels': [str(num) for num, _ in top_numbers],
-                    'data': [freq for _, freq in top_numbers],
-                    'total_draws': len(latest_results)
-                }
+                # Clean and convert to integers
+                clean_nums = []
+                for n in nums:
+                    try:
+                        clean_nums.append(int(str(n).strip('"')))
+                    except:
+                        continue
+                        
+                clean_bonus = []
+                for b in bonus:
+                    try:
+                        clean_bonus.append(int(str(b).strip('"')))
+                    except:
+                        continue
                 
-        except Exception as e:
-            logger.error(f"Database error: {e}")
-        
-        return render_template('index.html', 
-                             results=latest_results,
-                             frequency_data=frequency_data)
-                             
+                # Create result object
+                class LotteryResult:
+                    def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
+                        self.lottery_type = lottery_type
+                        self.draw_number = str(draw_number)
+                        self.draw_date = draw_date
+                        self.numbers = numbers
+                        self.bonus_numbers = bonus_numbers
+                    
+                    def get_numbers_list(self):
+                        return self.numbers
+                    
+                    def get_bonus_numbers_list(self):
+                        return self.bonus_numbers
+                
+                result = LotteryResult(row.lottery_type, row.draw_number, row.draw_date, clean_nums, clean_bonus)
+                latest_results.append(result)
+                
+            except Exception as e:
+                continue
+                
     except Exception as e:
-        logger.error(f"Homepage error: {e}")
-        return render_template('index.html', 
-                             results=[],
-                             frequency_data={'labels': [], 'data': [], 'total_draws': 0})
+        pass
+    
+    # Basic frequency data
+    frequency_data = {'labels': [], 'data': [], 'total_draws': len(latest_results)}
+    
+    return render_template('index.html', 
+                         results=latest_results, 
+                         frequency_data=frequency_data)
 
 
 @app.route('/admin')
