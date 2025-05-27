@@ -637,8 +637,8 @@ MUST FOLLOW:
                                 'lottery_type': 'PowerBall',
                                 'draw_number': powerball_draw.draw_number,
                                 'draw_date': powerball_draw.draw_date.strftime('%Y-%m-%d'),
-                                'winning_numbers': powerball_numbers,
-                                'winning_powerball': powerball_bonus,
+                                'winning_numbers': json.dumps(powerball_numbers) if powerball_numbers else "[]",
+                                'winning_powerball': str(powerball_bonus) if powerball_bonus else "",
                                 'main_matches': main_matches,
                                 'powerball_match': powerball_match,
                                 'total_matches': f"{main_matches} main + {'PowerBall' if powerball_match else '0 PowerBall'}"
@@ -658,8 +658,8 @@ MUST FOLLOW:
                                     'lottery_type': 'PowerBall Plus',
                                     'draw_number': powerball_plus_draw.draw_number,
                                     'draw_date': powerball_plus_draw.draw_date.strftime('%Y-%m-%d'),
-                                    'winning_numbers': plus_numbers,
-                                    'winning_powerball': plus_bonus,
+                                    'winning_numbers': json.dumps(plus_numbers) if plus_numbers else "[]",
+                                    'winning_powerball': str(plus_bonus) if plus_bonus else "",
                                     'main_matches': plus_main_matches,
                                     'powerball_match': plus_powerball_match,
                                     'total_matches': f"{plus_main_matches} main + {'PowerBall' if plus_powerball_match else '0 PowerBall'}"
