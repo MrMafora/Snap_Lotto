@@ -1020,7 +1020,7 @@ def results():
                 sql_query = """
                     SELECT id, lottery_type, draw_number, draw_date, numbers, bonus_numbers
                     FROM lottery_result 
-                    WHERE lottery_type = %s 
+                    WHERE lottery_type = :lottery_type 
                     ORDER BY draw_date DESC 
                     LIMIT 1
                 """
