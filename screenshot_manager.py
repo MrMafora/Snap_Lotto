@@ -33,8 +33,10 @@ def setup_chrome_driver():
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36')
     
     try:
-        # Simple Chrome driver initialization
-        driver = webdriver.Chrome(options=chrome_options)
+        # Use the system Chrome driver
+        from selenium.webdriver.chrome.service import Service
+        service = Service('/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
+        driver = webdriver.Chrome(service=service, options=chrome_options)
         logger.info("Chrome driver initialized successfully")
         return driver
     except Exception as e:
