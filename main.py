@@ -238,7 +238,13 @@ def home():
         db_lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'PowerBall', 'PowerBall Plus', 'Daily Lotto']
         
         for db_lottery_type in db_lottery_types:
+            app.logger.info(f"HOMEPAGE: Searching for {db_lottery_type}")
             latest = db.session.query(LotteryResult).filter_by(lottery_type=db_lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+            
+            if latest:
+                app.logger.info(f"HOMEPAGE: Found {db_lottery_type} draw {latest.draw_number}")
+            else:
+                app.logger.info(f"HOMEPAGE: No data found for {db_lottery_type}")
             
             if latest and latest.numbers:
                 try:
@@ -308,6 +314,12 @@ def home():
         sorted_types[display_name] = result
     
     app.logger.info(f"✓ Passing {len(sorted_types)} lottery results to homepage template")
+    app.logger.info(f"✓ Template data: results={len(results)}, sorted_types={list(sorted_types.keys())}")
+    
+    # Debug: Print first result details
+    if results:
+        first_result = results[0]
+        app.logger.info(f"✓ First result: {first_result.lottery_type}, draw {first_result.draw_number}, numbers {first_result.numbers}")
     
     return render_template('index.html', results=results, sorted_types=sorted_types)
 
