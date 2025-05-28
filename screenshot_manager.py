@@ -6,6 +6,7 @@ Handles automated screenshot capture and synchronization for lottery data
 import os
 import requests
 import time
+import random
 import threading
 from datetime import datetime
 from selenium import webdriver
@@ -87,37 +88,76 @@ def capture_screenshot_from_url(url, output_path):
             driver.set_page_load_timeout(20)
             
             try:
-                # Navigate to the website with aggressive timeout handling
-                driver.get(url)
-                logger.info(f"Successfully loaded {url}")
-            except Exception as load_error:
-                logger.warning(f"Page load timeout, but attempting screenshot anyway: {load_error}")
-            
-            # Wait longer for lottery site content to load
-            time.sleep(5)
-            
-            # Take screenshot regardless of page load status
-            try:
-                driver.save_screenshot(output_path)
-                logger.info(f"Screenshot captured and saved to {output_path}")
+                # Human-like navigation behavior
+                logger.info(f"Starting human-like navigation to {url}")
                 
-                # Check if screenshot was created with any content
-                if os.path.exists(output_path):
-                    size = os.path.getsize(output_path)
-                    logger.info(f"Screenshot file size: {size} bytes")
+                # First visit a common site to establish normal browsing pattern
+                driver.get("https://www.google.com")
+                time.sleep(random.uniform(1.5, 3.0))
+                
+                # Now navigate to the lottery site like a human would
+                driver.get(url)
+                logger.info(f"Navigated to lottery website")
+                
+                # Human-like behavior: wait and scroll like a real user
+                time.sleep(random.uniform(3.0, 6.0))
+                
+                # Simulate human scrolling behavior
+                for _ in range(3):
+                    driver.execute_script("window.scrollBy(0, 300);")
+                    time.sleep(random.uniform(0.8, 1.5))
+                
+                # Scroll back to top to capture the important content
+                driver.execute_script("window.scrollTo(0, 0);")
+                time.sleep(random.uniform(2.0, 4.0))
+                
+                # Simulate mouse movement (human-like cursor activity)
+                try:
+                    from selenium.webdriver.common.action_chains import ActionChains
+                    actions = ActionChains(driver)
+                    body = driver.find_element("tag name", "body")
+                    actions.move_to_element(body).perform()
+                    time.sleep(random.uniform(1.0, 2.0))
+                except:
+                    pass  # Continue if mouse simulation fails
+                
+                logger.info(f"Completed human-like browsing simulation")
+                
+            except Exception as load_error:
+                logger.warning(f"Navigation completed with some issues: {load_error}")
+            
+            # Final wait before screenshot
+            time.sleep(random.uniform(2.0, 4.0))
+            
+            # Take screenshot with retry mechanism
+            for attempt in range(3):
+                try:
+                    logger.info(f"Capturing screenshot (attempt {attempt + 1})")
+                    driver.save_screenshot(output_path)
                     
-                    if size > 5000:  # Lower threshold for lottery sites
-                        return True
+                    # Verify screenshot was created
+                    if os.path.exists(output_path):
+                        size = os.path.getsize(output_path)
+                        logger.info(f"Screenshot saved! File size: {size} bytes")
+                        
+                        if size > 5000:
+                            logger.info("✓ Screenshot captured successfully with good content")
+                            return True
+                        else:
+                            logger.warning(f"Screenshot small ({size} bytes) but saved")
+                            return True
                     else:
-                        logger.warning(f"Screenshot too small ({size} bytes), but saved anyway")
-                        return True  # Return true even for small files
-                else:
-                    logger.error(f"Screenshot file was not created")
-                    return False
-                    
-            except Exception as screenshot_error:
-                logger.error(f"Failed to save screenshot: {screenshot_error}")
-                return False
+                        logger.error(f"Screenshot file not created on attempt {attempt + 1}")
+                        if attempt < 2:
+                            time.sleep(2)
+                        
+                except Exception as screenshot_error:
+                    logger.error(f"Screenshot attempt {attempt + 1} failed: {screenshot_error}")
+                    if attempt < 2:
+                        time.sleep(2)
+            
+            logger.error("All screenshot attempts failed")
+            return False
             
         except Exception as e:
             logger.error(f"Error capturing screenshot from {url}: {str(e)}")
