@@ -86,6 +86,9 @@ from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisemen
 from config import Config
 from sqlalchemy import text
 
+# Import performance cache manager
+from cache_manager import cache, cached_query, get_optimized_latest_results, get_optimized_lottery_stats, clear_results_cache
+
 # Import modules
 # ad_management temporarily disabled
 # import ad_management
@@ -220,78 +223,83 @@ def init_lazy_modules():
 
 # HOMEPAGE ROUTE - Must be first to ensure authentic lottery data displays
 @app.route('/')
+@cached_query(ttl=300)  # Cache homepage for 5 minutes
 def home():
-    """Homepage displaying authentic South African lottery results"""
+    """OPTIMIZED Homepage displaying authentic South African lottery results"""
     from models import LotteryResult
     import json
     
-    print("🔴 HOMEPAGE ROUTE HIT - Loading authentic lottery data")
-    app.logger.info("=== HOMEPAGE: Loading authentic lottery data ===")
-    results = []
+    app.logger.info("=== OPTIMIZED HOMEPAGE: Loading cached lottery data ===")
     
-    # Get authentic lottery data from official National Lottery screenshots
-    lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'PowerBall', 'PowerBall Plus', 'Daily Lotto']
-    
-    for lottery_type in lottery_types:
-        latest = db.session.query(LotteryResult).filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
-        app.logger.info(f"HOMEPAGE: Checking {lottery_type} - Found: {latest is not None}")
+    # Use optimized cached query for faster loading
+    try:
+        latest_results = get_optimized_latest_results(limit=6)
+        results = []
         
-        if latest and latest.numbers:
-            app.logger.info(f"HOMEPAGE: {lottery_type} - Draw {latest.draw_number}, Numbers: {latest.numbers}")
-            
-            # Process authentic numbers
-            if isinstance(latest.numbers, list):
-                numbers = latest.numbers
-            else:
-                numbers_data = json.loads(latest.numbers) if latest.numbers else []
-                numbers = [int(str(n).strip('"').strip()) for n in numbers_data if str(n).strip()]
-            
-            # Process authentic bonus numbers
-            if isinstance(latest.bonus_numbers, list):
-                bonus_numbers = latest.bonus_numbers
-            elif latest.bonus_numbers:
-                bonus_data = json.loads(latest.bonus_numbers)
-                bonus_numbers = [int(str(b).strip('"').strip()) for b in bonus_data if str(b).strip()]
-            else:
-                bonus_numbers = []
-            
-            if numbers:
-                class LotteryDisplay:
-                    def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
-                        self.lottery_type = lottery_type
-                        self.draw_number = str(draw_number)
-                        self.draw_date = draw_date
-                        self.numbers = numbers
-                        self.bonus_numbers = bonus_numbers
+        # Process latest results by lottery type
+        lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'PowerBall', 'PowerBall Plus', 'Daily Lotto']
+        processed_types = set()
+        
+        for lottery_result in latest_results:
+            if lottery_result.lottery_type in lottery_types and lottery_result.lottery_type not in processed_types:
+                if lottery_result.numbers:
+                    # Process authentic numbers efficiently
+                    if isinstance(lottery_result.numbers, list):
+                        numbers = lottery_result.numbers
+                    else:
+                        numbers_data = json.loads(lottery_result.numbers) if lottery_result.numbers else []
+                        numbers = [int(str(n).strip('"').strip()) for n in numbers_data if str(n).strip()]
                     
-                    def get_numbers_list(self):
-                        return self.numbers
+                    # Process authentic bonus numbers efficiently
+                    if isinstance(lottery_result.bonus_numbers, list):
+                        bonus_numbers = lottery_result.bonus_numbers
+                    elif lottery_result.bonus_numbers:
+                        bonus_data = json.loads(lottery_result.bonus_numbers)
+                        bonus_numbers = [int(str(b).strip('"').strip()) for b in bonus_data if str(b).strip()]
+                    else:
+                        bonus_numbers = []
                     
-                    def get_bonus_numbers_list(self):
-                        return self.bonus_numbers
-                
-                result = LotteryDisplay(latest.lottery_type, latest.draw_number, latest.draw_date, numbers, bonus_numbers)
-                results.append(result)
-                app.logger.info(f"HOMEPAGE: ✓ Added {lottery_type} to results - Numbers: {numbers}")
-    
-    app.logger.info(f"HOMEPAGE: Total results to display: {len(results)}")
-    
-    # Create display mapping
-    sorted_types = {}
-    for result in results:
-        display_name = result.lottery_type
-        if result.lottery_type == 'Lotto':
-            display_name = 'Lottery'
-        elif result.lottery_type == 'PowerBall':
-            display_name = 'Powerball'
-        elif result.lottery_type == 'PowerBall Plus':
-            display_name = 'Powerball Plus'
-        elif result.lottery_type == 'Daily Lotto':
-            display_name = 'Daily Lottery'
-        sorted_types[display_name] = result
-    
-    app.logger.info(f"HOMEPAGE: Sorted types keys: {list(sorted_types.keys())}")
-    return render_template('index.html', results=results, sorted_types=sorted_types)
+                    if numbers:
+                        class LotteryDisplay:
+                            def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
+                                self.lottery_type = lottery_type
+                                self.draw_number = str(draw_number)
+                                self.draw_date = draw_date
+                                self.numbers = numbers
+                                self.bonus_numbers = bonus_numbers
+                            
+                            def get_numbers_list(self):
+                                return self.numbers
+                            
+                            def get_bonus_numbers_list(self):
+                                return self.bonus_numbers
+                        
+                        result = LotteryDisplay(lottery_result.lottery_type, lottery_result.draw_number, 
+                                              lottery_result.draw_date, numbers, bonus_numbers)
+                        results.append(result)
+                        processed_types.add(lottery_result.lottery_type)
+        
+        # Create optimized display mapping
+        sorted_types = {}
+        for result in results:
+            display_name = result.lottery_type
+            if result.lottery_type == 'Lotto':
+                display_name = 'Lottery'
+            elif result.lottery_type == 'PowerBall':
+                display_name = 'Powerball'
+            elif result.lottery_type == 'PowerBall Plus':
+                display_name = 'Powerball Plus'
+            elif result.lottery_type == 'Daily Lotto':
+                display_name = 'Daily Lottery'
+            sorted_types[display_name] = result
+        
+        app.logger.info(f"OPTIMIZED HOMEPAGE: Loaded {len(results)} results from cache")
+        return render_template('index.html', results=results, sorted_types=sorted_types)
+        
+    except Exception as e:
+        app.logger.error(f"Error in optimized homepage: {str(e)}")
+        # Fallback to basic empty results if cache fails
+        return render_template('index.html', results=[], sorted_types={})
 
 # Start lazy loading in background thread AFTER homepage route is registered
 threading.Thread(target=init_lazy_modules, daemon=True).start()
