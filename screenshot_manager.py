@@ -22,13 +22,30 @@ logger = logging.getLogger(__name__)
 _screenshot_lock = threading.Lock()
 
 def setup_chrome_driver():
-    """Chrome driver setup following Selenium best practices"""
+    """Chrome driver setup with advanced anti-detection features"""
     options = webdriver.ChromeOptions()
+    
+    # Essential security options
     options.add_argument("--no-sandbox")
-    options.add_argument("--headless")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-gpu")
+    
+    # Advanced anti-detection arguments
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-plugins")
+    options.add_argument("--disable-images")
+    options.add_argument("--disable-javascript")
+    options.add_argument("--disable-web-security")
+    options.add_argument("--allow-running-insecure-content")
+    options.add_argument("--ignore-certificate-errors")
+    options.add_argument("--ignore-ssl-errors")
+    options.add_argument("--ignore-certificate-errors-spki-list")
+    
+    # Exclude automation switches
+    options.add_experimental_option('excludeSwitches', ['enable-automation'])
+    options.add_experimental_option('useAutomationExtension', False)
     
     # Human-like user agent
     options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
@@ -37,7 +54,11 @@ def setup_chrome_driver():
         # Use ChromeService properly
         service = webdriver.ChromeService(executable_path='/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
         driver = webdriver.Chrome(service=service, options=options)
-        logger.info("Chrome driver initialized successfully")
+        
+        # Additional stealth measures
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        
+        logger.info("Chrome driver initialized with anti-detection features")
         return driver
     except Exception as e:
         logger.error(f"Failed to setup Chrome driver: {str(e)}")
