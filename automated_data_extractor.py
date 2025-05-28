@@ -164,10 +164,10 @@ class LotteryDataExtractor:
                 logging.error(f"Missing required fields in extracted data: {extracted_data}")
                 return False
             
-            # Check if this exact record already exists
+            # Check if this exact record already exists - convert draw_number to string for comparison
             existing = LotteryResult.query.filter_by(
                 lottery_type=extracted_data['lottery_type'],
-                draw_number=extracted_data.get('draw_number'),
+                draw_number=str(extracted_data.get('draw_number')) if extracted_data.get('draw_number') else None,
                 draw_date=extracted_data.get('draw_date')
             ).first()
             
@@ -178,7 +178,7 @@ class LotteryDataExtractor:
             # Create comprehensive lottery result with all data including financial information
             lottery_result = LotteryResult(
                 lottery_type=extracted_data['lottery_type'],
-                draw_number=extracted_data.get('draw_number'),
+                draw_number=str(extracted_data.get('draw_number')) if extracted_data.get('draw_number') else None,
                 draw_date=datetime.fromisoformat(extracted_data['draw_date']) if extracted_data.get('draw_date') else None,
                 numbers=json.dumps(extracted_data['main_numbers']),
                 bonus_numbers=json.dumps([extracted_data['bonus_number']]) if extracted_data.get('bonus_number') else None,
