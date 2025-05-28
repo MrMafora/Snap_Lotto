@@ -19,7 +19,6 @@ class DailyLotteryAutomation:
     
     def __init__(self, app):
         self.app = app
-        self.screenshot_manager = screenshot_manager
         self.data_extractor = LotteryDataExtractor()
         
     def cleanup_old_screenshots(self):
@@ -58,13 +57,23 @@ class DailyLotteryAutomation:
     def capture_fresh_screenshots(self):
         """Step 2: Capture brand new screenshots from lottery websites"""
         try:
-            logger.info("Starting capture of fresh lottery screenshots...")
+            logger.info("DEBUG: Starting capture of fresh lottery screenshots...")
+            
+            # Import the screenshot manager function directly
+            from screenshot_manager import retake_all_screenshots
+            
             with self.app.app_context():
-                count = self.screenshot_manager.retake_all_screenshots(self.app, use_threading=False)
+                logger.info("DEBUG: Calling retake_all_screenshots...")
+                count = retake_all_screenshots(self.app, use_threading=False)
+                logger.info(f"DEBUG: Screenshot capture returned count: {count}")
+            
             logger.info(f"Fresh screenshot capture completed. Processed {count} lottery sites")
             return True, count
+            
         except Exception as e:
-            logger.error(f"Failed to capture fresh screenshots: {str(e)}")
+            logger.error(f"DEBUG: Failed to capture fresh screenshots: {str(e)}")
+            import traceback
+            logger.error(f"DEBUG: Traceback: {traceback.format_exc()}")
             return False, 0
     
     def process_screenshots_with_ai(self):
