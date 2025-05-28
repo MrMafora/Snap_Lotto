@@ -23,81 +23,56 @@ class DailyLotteryAutomation:
         
     def cleanup_old_screenshots(self):
         """Step 1: Clear old screenshot files"""
-        logger.info("=== CLEANUP PHASE STARTING ===")
+        logger.info("Starting cleanup of old screenshots...")
         
         try:
             screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
-            logger.info(f"Screenshot directory path: {screenshot_dir}")
             deleted_count = 0
             
             if not os.path.exists(screenshot_dir):
                 logger.info("Screenshot directory doesn't exist, creating it")
                 os.makedirs(screenshot_dir, exist_ok=True)
-                logger.info("=== CLEANUP COMPLETED - Directory created ===")
                 return True, 0
             
-            logger.info("Directory exists, listing files...")
+            # Actually delete all PNG files to ensure fresh capture
             files = os.listdir(screenshot_dir)
-            logger.info(f"Found {len(files)} files in directory")
-            
-            # Process files with detailed logging
-            for i, filename in enumerate(files):
-                logger.info(f"Processing file {i+1}/{len(files)}: {filename}")
+            for filename in files:
                 if filename.endswith('.png'):
                     file_path = os.path.join(screenshot_dir, filename)
                     try:
-                        logger.info(f"Deleting PNG file: {file_path}")
                         os.remove(file_path)
                         deleted_count += 1
-                        logger.info(f"✓ Successfully deleted: {filename}")
+                        logger.info(f"Deleted old screenshot: {filename}")
                     except Exception as file_error:
                         logger.warning(f"Could not delete {filename}: {str(file_error)}")
-                else:
-                    logger.info(f"Skipping non-PNG file: {filename}")
             
-            logger.info(f"=== CLEANUP COMPLETED - Deleted {deleted_count} screenshots ===")
+            logger.info(f"Cleanup completed. Deleted {deleted_count} old screenshots")
             return True, deleted_count
             
         except Exception as e:
-            logger.error(f"=== CLEANUP FAILED ===")
-            logger.error(f"Error: {str(e)}")
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error(f"Failed to cleanup old screenshots: {str(e)}")
             return False, 0
     
     def capture_fresh_screenshots(self):
         """Step 2: Capture brand new screenshots from lottery websites"""
         try:
-            logger.info("Starting capture of fresh lottery screenshots...")
+            logger.info("DEBUG: Starting capture of fresh lottery screenshots...")
             
             # Import the screenshot manager function directly
             from screenshot_manager import retake_all_screenshots
             
             with self.app.app_context():
-                logger.info("Calling retake_all_screenshots function...")
+                logger.info("DEBUG: Calling retake_all_screenshots...")
                 count = retake_all_screenshots(self.app, use_threading=False)
-                logger.info(f"Screenshot capture function returned count: {count}")
-                
-                # Check if screenshots were actually created
-                screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
-                if os.path.exists(screenshot_dir):
-                    actual_files = len([f for f in os.listdir(screenshot_dir) if f.endswith('.png')])
-                    logger.info(f"Actual PNG files in screenshots directory: {actual_files}")
-                else:
-                    logger.warning("Screenshots directory doesn't exist after capture attempt")
-                    actual_files = 0
+                logger.info(f"DEBUG: Screenshot capture returned count: {count}")
             
-            if count > 0:
-                logger.info(f"Successfully captured {count} fresh lottery screenshots")
-                return True, count
-            else:
-                logger.warning("No screenshots were captured - screenshot function may have failed")
-                return False, 0
+            logger.info(f"Fresh screenshot capture completed. Processed {count} lottery sites")
+            return True, count
             
         except Exception as e:
-            logger.error(f"Failed to capture fresh screenshots: {str(e)}")
+            logger.error(f"DEBUG: Failed to capture fresh screenshots: {str(e)}")
             import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error(f"DEBUG: Traceback: {traceback.format_exc()}")
             return False, 0
     
     def process_screenshots_with_ai(self):

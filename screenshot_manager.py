@@ -27,21 +27,9 @@ def setup_chrome_driver():
     chrome_options.add_argument('--window-size=1920,1080')
     chrome_options.add_argument('--disable-web-security')
     chrome_options.add_argument('--allow-running-insecure-content')
-    chrome_options.add_argument('--disable-extensions')
-    chrome_options.add_argument('--disable-plugins')
-    chrome_options.add_argument('--single-process')
-    chrome_options.add_argument('--disable-background-timer-throttling')
-    chrome_options.add_argument('--disable-renderer-backgrounding')
-    chrome_options.add_argument('--disable-backgrounding-occluded-windows')
-    
-    # Set the correct Chromium binary path that's working on your system
-    chrome_options.binary_location = '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser'
     
     try:
-        from selenium.webdriver.chrome.service import Service
-        service = Service()
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        logger.info("Chrome driver setup successful with correct Chromium path")
+        driver = webdriver.Chrome(options=chrome_options)
         return driver
     except Exception as e:
         logger.error(f"Failed to setup Chrome driver: {str(e)}")
