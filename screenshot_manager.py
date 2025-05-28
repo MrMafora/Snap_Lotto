@@ -19,7 +19,7 @@ def capture_screenshot_from_url(url, output_path):
         
         # Create a simple Node.js script using Puppeteer
         puppeteer_script = f"""
-const puppeteer = require('puppeteer');
+const puppeteer = require('/home/runner/workspace/node_modules/puppeteer');
 
 (async () => {{
   const browser = await puppeteer.launch({{
