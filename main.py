@@ -2390,9 +2390,14 @@ def sync_all_screenshots():
         return redirect(url_for('index'))
     
     try:
-        # Use the scheduler module imported at the top level to retake all screenshots
-        # Don't use threading for UI operations to ensure synchronous behavior
-        count = scheduler.retake_all_screenshots(app, use_threading=False)
+        # Import scheduler module for screenshot operations
+        try:
+            import screenshot_manager as scheduler
+            count = scheduler.retake_all_screenshots(app, use_threading=False)
+        except ImportError:
+            # Fallback - manual screenshot sync without scheduler
+            count = 0
+            flash('Screenshot sync functionality is temporarily unavailable.', 'warning')
         
         # Store status in session for display on next page load
         if count > 0:
