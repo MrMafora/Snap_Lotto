@@ -227,12 +227,75 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 @app.route('/')
 def home():
     """Homepage with latest authentic South African lottery results"""
+    from models import LotteryResult
+    import json
+    
     results = []
     
-    try:
-        # Get your authentic data using the actual database names
-        from models import LotteryResult
-        import json
+    # Get your authentic lottery data from official National Lottery screenshots
+    lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'PowerBall', 'PowerBall Plus', 'Daily Lotto']
+    
+    for lottery_type in lottery_types:
+        latest = db.session.query(LotteryResult).filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+        
+        if latest and latest.numbers:
+            # Process your authentic numbers
+            if isinstance(latest.numbers, list):
+                numbers = latest.numbers
+            else:
+                numbers_data = json.loads(latest.numbers) if latest.numbers else []
+                numbers = [int(str(n).strip('"').strip()) for n in numbers_data if str(n).strip()]
+            
+            # Process your authentic bonus numbers
+            if isinstance(latest.bonus_numbers, list):
+                bonus_numbers = latest.bonus_numbers
+            elif latest.bonus_numbers:
+                bonus_data = json.loads(latest.bonus_numbers)
+                bonus_numbers = [int(str(b).strip('"').strip()) for b in bonus_data if str(b).strip()]
+            else:
+                bonus_numbers = []
+            
+            if numbers:
+                # Create result object for your authentic lottery data
+                class AuthenticResult:
+                    def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
+                        self.lottery_type = lottery_type
+                        self.draw_number = str(draw_number)
+                        self.draw_date = draw_date
+                        self.numbers = numbers
+                        self.bonus_numbers = bonus_numbers
+                    
+                    def get_numbers_list(self):
+                        return self.numbers
+                    
+                    def get_bonus_numbers_list(self):
+                        return self.bonus_numbers
+                
+                result = AuthenticResult(
+                    latest.lottery_type,
+                    latest.draw_number,
+                    latest.draw_date,
+                    numbers,
+                    bonus_numbers
+                )
+                results.append(result)
+    
+    # Create display mapping for template
+    sorted_types = {}
+    for result in results:
+        display_name = result.lottery_type
+        if result.lottery_type == 'Lotto':
+            display_name = 'Lottery'
+        elif result.lottery_type == 'PowerBall':
+            display_name = 'Powerball'
+        elif result.lottery_type == 'PowerBall Plus':
+            display_name = 'Powerball Plus'
+        elif result.lottery_type == 'Daily Lotto':
+            display_name = 'Daily Lottery'
+        
+        sorted_types[display_name] = result
+    
+    return render_template('index.html', results=results, sorted_types=sorted_types)
         
         # Use the actual lottery type names from your authentic database
         db_lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'PowerBall', 'PowerBall Plus', 'Daily Lotto']
@@ -296,6 +359,8 @@ def home():
                     
     except Exception as e:
         app.logger.error(f"Error loading authentic lottery data: {str(e)}")
+    
+    app.logger.info(f"HOMEPAGE: Retrieved {len(results)} lottery results")
     
     # Create the sorted_types structure that the template expects
     sorted_types = {}
