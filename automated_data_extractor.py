@@ -74,7 +74,10 @@ class LotteryDataExtractor:
             
             CRITICAL REQUIREMENTS:
             - Use exact lottery type names: Lotto, Lotto Plus 1, Lotto Plus 2, PowerBall, PowerBall Plus, Daily Lotto
-            - Extract ALL 8 divisions if visible with exact winner counts and prize amounts
+            - Extract ALL divisions with exact winner counts and prize amounts:
+              * PowerBall & PowerBall Plus: 9 divisions (DIV 1-9)
+              * Lotto, Lotto Plus 1 & Lotto Plus 2: 8 divisions (DIV 1-8)
+              * Daily Lotto: 4 divisions (DIV 1-4)
             - Capture ALL financial data from "MORE INFO" sections
             - Include exact prize amounts with "R" formatting (e.g., "R50,728,897.73")
             - Extract numbers exactly as shown in the colored circles
