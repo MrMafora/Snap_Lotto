@@ -356,7 +356,7 @@ def retake_selected_screenshots(app, selected_urls, use_threading=True):
             for url in selected_urls:
                 try:
                     logger.info(f"Capturing screenshot for: {url}")
-                    success = take_single_screenshot(url, app)
+                    success = capture_screenshot_from_url(url)
                     if success:
                         success_count += 1
                         logger.info(f"Successfully captured screenshot for {url}")
