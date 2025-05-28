@@ -106,10 +106,39 @@ def capture_screenshot_from_url(url, output_path):
             except Exception as load_error:
                 logger.warning(f"Page load timeout, continuing with screenshot: {load_error}")
             
-            # Take screenshot with retry mechanism
+            # Take full-page screenshot with retry mechanism
             for attempt in range(3):
                 try:
-                    logger.info(f"Capturing screenshot (attempt {attempt + 1})")
+                    logger.info(f"Capturing full-page screenshot (attempt {attempt + 1})")
+                    
+                    # Get the full page height including all content
+                    total_height = driver.execute_script("""
+                        return Math.max(
+                            document.body.scrollHeight,
+                            document.body.offsetHeight,
+                            document.documentElement.clientHeight,
+                            document.documentElement.scrollHeight,
+                            document.documentElement.offsetHeight
+                        );
+                    """)
+                    
+                    # Ensure minimum height for lottery pages
+                    total_height = max(total_height, 2000)
+                    logger.info(f"Full page height calculated: {total_height}px")
+                    
+                    # Set browser to capture the complete page
+                    driver.set_window_size(1920, total_height)
+                    time.sleep(3)
+                    
+                    # Scroll to bottom to ensure all content is loaded
+                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                    time.sleep(2)
+                    
+                    # Scroll back to top for clean screenshot
+                    driver.execute_script("window.scrollTo(0, 0);")
+                    time.sleep(1)
+                    
+                    # Take the full screenshot
                     driver.save_screenshot(output_path)
                     
                     # Verify screenshot was created
