@@ -77,15 +77,29 @@ def capture_screenshot_from_url(url, output_path):
         return False
     
     try:
-        driver = setup_chrome_driver()
-        if not driver:
+        # Simple, working Chrome setup
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--window-size=1920,1080')
+        
+        from selenium.webdriver.chrome.service import Service
+        service = Service('/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
+        
+        try:
+            driver = webdriver.Chrome(service=service, options=options)
+            driver.set_page_load_timeout(15)
+        except Exception as e:
+            logger.error(f"Failed to create driver: {e}")
             return False
         
         try:
             logger.info(f"Capturing screenshot from {url}")
             
-            # Set shorter timeout like yesterday
-            driver.set_page_load_timeout(10)
+            # Set shorter timeout and ensure screenshots directory exists
+            driver.set_page_load_timeout(15)
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
             
             try:
                 # Navigate directly to the lottery website
