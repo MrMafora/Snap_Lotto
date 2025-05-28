@@ -6,6 +6,7 @@ Handles automated screenshot capture and synchronization for lottery data
 import os
 import requests
 import time
+import threading
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -16,6 +17,9 @@ from models import Screenshot, db
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Global lock to prevent multiple screenshot processes
+_screenshot_lock = threading.Lock()
 
 def setup_chrome_driver():
     """Simple Chrome driver setup that works reliably"""
@@ -38,44 +42,56 @@ def setup_chrome_driver():
         return None
 
 def capture_screenshot_from_url(url, output_path):
-    """Capture a screenshot from a given URL with human-like behavior"""
-    driver = setup_chrome_driver()
-    if not driver:
+    """Capture a screenshot from a given URL with lottery website protection handling"""
+    # Prevent multiple screenshot processes from running simultaneously
+    if not _screenshot_lock.acquire(blocking=False):
+        logger.warning("Screenshot capture already in progress, skipping")
         return False
     
     try:
-        logger.info(f"Capturing screenshot from {url}")
+        driver = setup_chrome_driver()
+        if not driver:
+            return False
         
-        # Navigate to the lottery website like a human
-        driver.get(url)
-        
-        # Wait for page to load completely
-        WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.TAG_NAME, "body"))
-        )
-        
-        # Human-like delay for page content to fully load
-        time.sleep(5)
-        
-        # Scroll down a bit like a human might do
-        driver.execute_script("window.scrollTo(0, 200);")
-        time.sleep(1)
-        
-        # Scroll back to top for full page capture
-        driver.execute_script("window.scrollTo(0, 0);")
-        time.sleep(1)
-        
-        # Take screenshot
-        driver.save_screenshot(output_path)
-        logger.info(f"Screenshot saved to {output_path}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Error capturing screenshot from {url}: {str(e)}")
-        return False
+        try:
+            logger.info(f"Capturing screenshot from {url}")
+            
+            # Set aggressive timeout to prevent hanging on lottery sites
+            driver.set_page_load_timeout(20)
+            
+            try:
+                # Navigate to the website
+                driver.get(url)
+            except Exception as load_error:
+                logger.warning(f"Page load timeout, but continuing: {load_error}")
+                # Continue anyway - sometimes lottery sites load partially
+            
+            # Very brief wait for any content
+            time.sleep(2)
+            
+            # Take screenshot regardless of full page load
+            driver.save_screenshot(output_path)
+            logger.info(f"Screenshot saved to {output_path}")
+            
+            # Verify screenshot was created and has content
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                return True
+            else:
+                logger.error(f"Screenshot file too small or missing")
+                return False
+            
+        except Exception as e:
+            logger.error(f"Error capturing screenshot from {url}: {str(e)}")
+            return False
+        finally:
+            try:
+                if driver:
+                    driver.quit()
+            except:
+                pass  # Ignore cleanup errors
+                
     finally:
-        if driver:
-            driver.quit()
+        _screenshot_lock.release()
 
 def retake_all_screenshots(app, use_threading=True):
     """Retake all screenshots from configured URLs"""
