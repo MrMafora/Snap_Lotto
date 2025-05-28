@@ -3729,8 +3729,11 @@ def run_automation_step():
         automation = DailyLotteryAutomation(app)
         
         if step == 'cleanup':
-            result = automation.cleanup_old_screenshots()
-            message = "Successfully cleared old screenshots"
+            success, count = automation.cleanup_old_screenshots()
+            if success:
+                message = f"Successfully cleared {count} old screenshots"
+            else:
+                raise Exception(f"Cleanup failed - could not delete screenshots")
             
         elif step == 'capture':
             result = automation.capture_fresh_screenshots()
