@@ -34,17 +34,17 @@ def setup_chrome_driver():
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-gpu")
     
-    # Advanced anti-detection arguments
+    # Human-like browser arguments
     options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--disable-plugins")
-    options.add_argument("--disable-images")
-    options.add_argument("--disable-javascript")
-    options.add_argument("--disable-web-security")
-    options.add_argument("--allow-running-insecure-content")
-    options.add_argument("--ignore-certificate-errors")
-    options.add_argument("--ignore-ssl-errors")
-    options.add_argument("--ignore-certificate-errors-spki-list")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-extensions-except")
+    options.add_argument("--disable-plugins-discovery")
+    options.add_argument("--enable-features=NetworkService,NetworkServiceLogging")
+    options.add_argument("--disable-background-timer-throttling")
+    options.add_argument("--disable-backgrounding-occluded-windows")
+    options.add_argument("--disable-renderer-backgrounding")
+    options.add_argument("--disable-features=TranslateUI")
+    options.add_argument("--disable-ipc-flooding-protection")
     
     # Exclude automation switches
     options.add_experimental_option('excludeSwitches', ['enable-automation'])
