@@ -32,7 +32,7 @@ def setup_chrome_driver():
     # Essential security options
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--window-size=1920,1400")
+    options.add_argument("--window-size=1920,1800")
     options.add_argument("--disable-gpu")
     
     # Human-like browser arguments
@@ -94,7 +94,14 @@ def capture_screenshot_from_url(url, output_path):
                 
                 # Wait for page to load
                 time.sleep(3)
-                logger.info(f"Page loaded, ready for screenshot")
+                
+                # Scroll to ensure all content is loaded and visible
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2)
+                driver.execute_script("window.scrollTo(0, 0);")
+                time.sleep(1)
+                
+                logger.info(f"Page loaded and scrolled, ready for full screenshot")
                 
             except Exception as load_error:
                 logger.warning(f"Page load timeout, continuing with screenshot: {load_error}")
