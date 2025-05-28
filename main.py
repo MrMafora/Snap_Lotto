@@ -429,10 +429,11 @@ def login():
 def logout():
     """Logout route"""
     logout_user()
+    session.clear()  # Clear session data
     flash('You have been logged out.', 'info')
-    from flask import make_response
-    response = make_response('<script>window.location.href="/";</script>')
-    return response
+    # Use direct return with status code
+    from werkzeug.wrappers import Response
+    return Response(status=302, headers={'Location': '/'})
 
 @app.route('/scan-lottery-ticket-south-africa')
 @app.route('/scanner-landing')
