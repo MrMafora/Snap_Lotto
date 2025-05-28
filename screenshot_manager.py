@@ -7,62 +7,43 @@ import os
 import requests
 import time
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from playwright.sync_api import sync_playwright
 from models import Screenshot, db
 import logging
 
 logger = logging.getLogger(__name__)
 
-def setup_chrome_driver():
-    """Setup Chrome driver with appropriate options for screenshot capture"""
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--window-size=1920,1080')
-    chrome_options.add_argument('--disable-web-security')
-    chrome_options.add_argument('--allow-running-insecure-content')
-    
-    try:
-        driver = webdriver.Chrome(options=chrome_options)
-        return driver
-    except Exception as e:
-        logger.error(f"Failed to setup Chrome driver: {str(e)}")
-        return None
-
 def capture_screenshot_from_url(url, output_path):
-    """Capture a screenshot from a given URL"""
-    driver = setup_chrome_driver()
-    if not driver:
-        return False
-    
+    """Capture a screenshot from a given URL using Playwright"""
     try:
         logger.info(f"Capturing screenshot from {url}")
-        driver.get(url)
         
-        # Wait for page to load
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.TAG_NAME, "body"))
-        )
-        
-        # Additional wait for dynamic content
-        time.sleep(3)
-        
-        # Take screenshot
-        driver.save_screenshot(output_path)
-        logger.info(f"Screenshot saved to {output_path}")
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            
+            # Set viewport size for full lottery page capture
+            page.set_viewport_size({"width": 1920, "height": 1080})
+            
+            # Navigate to the lottery URL
+            page.goto(url, wait_until="networkidle", timeout=30000)
+            
+            # Additional wait for lottery results to fully load
+            time.sleep(3)
+            
+            # Take full page screenshot
+            page.screenshot(path=output_path, full_page=True)
+            
+            browser.close()
+            
+        logger.info(f"Screenshot successfully saved to {output_path}")
         return True
         
     except Exception as e:
         logger.error(f"Error capturing screenshot from {url}: {str(e)}")
+        import traceback
+        logger.error(f"Screenshot capture traceback: {traceback.format_exc()}")
         return False
-    finally:
-        driver.quit()
 
 def retake_all_screenshots(app, use_threading=True):
     """Retake all screenshots from configured URLs"""
