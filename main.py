@@ -430,7 +430,7 @@ def logout():
     """Logout route"""
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('home'))
+    return redirect('/')
 
 @app.route('/scan-lottery-ticket-south-africa')
 @app.route('/scanner-landing')
