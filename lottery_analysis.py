@@ -2325,7 +2325,6 @@ def register_analysis_routes(app, db):
                               prediction=prediction)
     
     @app.route('/api/lottery-analysis/frequency')
-    @csrf.exempt
     def api_frequency_analysis():
         """Optimized API endpoint for frequency analysis data"""
         logger.info("=== FREQUENCY ANALYSIS API CALLED ===")
@@ -2408,7 +2407,6 @@ def register_analysis_routes(app, db):
             )
     
     @app.route('/api/lottery-analysis/patterns')
-    @csrf.exempt
     def api_pattern_analysis():
         """API endpoint for pattern analysis data"""
         print("=== PATTERN ANALYSIS API CALLED ===")
@@ -2499,7 +2497,6 @@ def register_analysis_routes(app, db):
             )
     
     @app.route('/api/lottery-analysis/time-series')
-    @csrf.exempt
     def api_time_series_analysis():
         """API endpoint for time series analysis data"""
         print("=== TIME SERIES ANALYSIS API CALLED ===")
@@ -2551,7 +2548,6 @@ def register_analysis_routes(app, db):
             )
     
     @app.route('/api/lottery-analysis/correlations')
-    @csrf.exempt
     def api_correlation_analysis():
         """API endpoint for correlation analysis data"""
         print("=== CORRELATION ANALYSIS API CALLED ===")
@@ -2611,7 +2607,6 @@ def register_analysis_routes(app, db):
             )
     
     @app.route('/api/lottery-analysis/winners')
-    @csrf.exempt
     def api_winner_analysis():
         """API endpoint for winner analysis data"""
         print("=== WINNER ANALYSIS API CALLED ===")
@@ -2663,7 +2658,6 @@ def register_analysis_routes(app, db):
             )
     
     @app.route('/api/lottery-analysis/predict')
-    @csrf.exempt
     def api_lottery_prediction():
         """API endpoint for lottery prediction"""
         print("=== PREDICTION API CALLED ===")
@@ -2712,7 +2706,6 @@ def register_analysis_routes(app, db):
             )
     
     @app.route('/api/lottery-analysis/verify-predictions')
-    @csrf.exempt
     def api_verify_predictions():
         """API endpoint for verifying predictions against actual results"""
         print("=== VERIFY PREDICTIONS API CALLED ===")
@@ -2775,7 +2768,6 @@ def register_analysis_routes(app, db):
             )
     
     @app.route('/api/lottery-analysis/full')
-    @csrf.exempt
     def api_full_analysis():
         """API endpoint for full analysis data"""
         print("=== FULL ANALYSIS API CALLED ===")
