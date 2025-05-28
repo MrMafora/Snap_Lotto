@@ -37,14 +37,14 @@
             </div>
             <div class="card-body">
                 <div class="list-group">
+                    <a href="{{ url_for('automation_control') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-magic me-2"></i> Automation Control Center
+                    </a>
                     <a href="{{ url_for('import_data') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-file-excel me-2"></i> Import Spreadsheet
                     </a>
-                    <a href="{{ url_for('extract_lottery_data') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-robot me-2"></i> AI Data Extraction
-                    </a>
                     <a href="{{ url_for('daily_automation_dashboard') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-cogs me-2"></i> Daily Automation System
+                        <i class="fas fa-clock me-2"></i> Daily Scheduler
                     </a>
                     <a href="{{ url_for('import_history') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-history me-2"></i> Import History
@@ -72,9 +72,6 @@
                 <div class="list-group">
                     <a href="{{ url_for('settings') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-cog me-2"></i> Manage Data Syncs
-                    </a>
-                    <a href="{{ url_for('export_screenshots') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-download me-2"></i> Export Screenshots & Template
                     </a>
                     <a href="{{ url_for('register') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-user-plus me-2"></i> Add Admin User

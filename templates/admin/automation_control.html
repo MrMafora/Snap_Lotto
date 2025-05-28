@@ -1,0 +1,486 @@
+{% extends "base.html" %}
+
+{% block title %}Automation Control Center | Snap Lotto{% endblock %}
+
+{% block head_content %}
+<style>
+    /* Ensure gallery container is properly scrollable */
+    html, body {
+        height: 100%;
+        overflow-y: auto !important;
+    }
+    
+    .gallery-container {
+        overflow-y: visible !important;
+    }
+    
+    /* Fix for image containers preventing scroll */
+    .gallery-image-container {
+        pointer-events: auto;
+    }
+    
+    .gallery-image-container img {
+        pointer-events: auto;
+    }
+    
+    .automation-step {
+        transition: all 0.3s ease;
+    }
+    
+    .automation-step:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: white;
+        margin-right: 15px;
+    }
+    
+    .bg-lottery-red {
+        background-color: #dc3545 !important;
+    }
+</style>
+<script>
+    // Fix for scrolling issues on page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Remove any scroll-blocking event listeners
+        document.addEventListener('wheel', function(event) {
+            event.stopPropagation();
+        }, true);
+        
+        // Ensure images don't capture scroll events and prevent dragging
+        const galleryImages = document.querySelectorAll('.gallery-image-container img');
+        galleryImages.forEach(img => {
+            // Prevent wheel events from being captured
+            img.addEventListener('wheel', function(event) {
+                event.stopPropagation();
+            }, false);
+            
+            // Prevent dragging which can interfere with scrolling
+            img.setAttribute('draggable', 'false');
+            img.addEventListener('dragstart', function(event) {
+                event.preventDefault();
+            });
+            
+            // Ensure pointer events work properly
+            img.style.pointerEvents = 'auto';
+        });
+        
+        // Add prevention for any other event handlers that might block scrolling
+        document.body.style.overflowY = 'scroll';
+        document.documentElement.style.overflowY = 'scroll';
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header lottery-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="card-title mb-0">AUTOMATION CONTROL CENTER</h4>
+                            <p class="mb-0 text-muted">Complete lottery data automation with manual controls</p>
+                        </div>
+                        <a href="{{ url_for('admin') }}" class="btn btn-sm btn-outline-dark">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete Automation Workflow -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-magic me-2"></i> Complete Automated Workflow
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> 
+                        Run the complete daily automation: Clear → Capture → AI Process → Database Update
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>What this does:</h6>
+                            <ol>
+                                <li>Clears old screenshots from the system</li>
+                                <li>Captures fresh lottery data from official websites</li>
+                                <li>Uses AI to extract authentic lottery numbers</li>
+                                <li>Updates your database with real results</li>
+                            </ol>
+                        </div>
+                        <div class="col-md-4">
+                            <form action="{{ url_for('run_daily_automation') }}" method="POST" class="mb-3">
+                                <button type="submit" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-play me-2"></i> Run Complete Workflow
+                                </button>
+                            </form>
+                            
+                            <div class="text-center">
+                                <small class="text-muted">This may take 5-10 minutes to complete</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Individual Automation Steps -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header lottery-header">
+                    <h5 class="card-title mb-0">MANUAL STEP CONTROLS</h5>
+                    <p class="mb-0 text-muted">Run individual parts of the automation process</p>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Step 1: Clear Old Screenshots -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card automation-step h-100">
+                                <div class="card-header bg-warning text-dark">
+                                    <div class="d-flex align-items-center">
+                                        <div class="step-number bg-dark">1</div>
+                                        <h6 class="mb-0">Clear Old Screenshots</h6>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <p>Remove old screenshot files to make space for fresh captures</p>
+                                    <form action="{{ url_for('run_automation_step') }}" method="POST">
+                                        <input type="hidden" name="step" value="cleanup">
+                                        <button type="submit" class="btn btn-warning w-100">
+                                            <i class="fas fa-broom me-2"></i> Clear Old Screenshots
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Capture Fresh Screenshots -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card automation-step h-100">
+                                <div class="card-header bg-info text-white">
+                                    <div class="d-flex align-items-center">
+                                        <div class="step-number bg-dark">2</div>
+                                        <h6 class="mb-0">Capture Fresh Screenshots</h6>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <p>Take new screenshots from official lottery websites</p>
+                                    <form action="{{ url_for('run_automation_step') }}" method="POST">
+                                        <input type="hidden" name="step" value="capture">
+                                        <button type="submit" class="btn btn-info w-100">
+                                            <i class="fas fa-camera me-2"></i> Capture Screenshots
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: AI Data Processing -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card automation-step h-100">
+                                <div class="card-header bg-success text-white">
+                                    <div class="d-flex align-items-center">
+                                        <div class="step-number bg-dark">3</div>
+                                        <h6 class="mb-0">AI Data Processing</h6>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <p>Use AI to extract lottery data from captured screenshots</p>
+                                    <form action="{{ url_for('run_automation_step') }}" method="POST">
+                                        <input type="hidden" name="step" value="ai_process">
+                                        <input type="hidden" name="csrf_token" value="">
+                                        <button type="submit" class="btn btn-success w-100">
+                                            <i class="fas fa-robot me-2"></i> Process with AI
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Database Update -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card automation-step h-100">
+                                <div class="card-header bg-primary text-white">
+                                    <div class="d-flex align-items-center">
+                                        <div class="step-number bg-dark">4</div>
+                                        <h6 class="mb-0">Database Update</h6>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <p>Save extracted lottery data to your database</p>
+                                    <form action="{{ url_for('run_automation_step') }}" method="POST">
+                                        <input type="hidden" name="step" value="database_update">
+                                        <input type="hidden" name="csrf_token" value="">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-database me-2"></i> Update Database
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Testing Section -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-flask me-2"></i> AI Testing & Validation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Test AI extraction on authentic lottery screenshots to verify functionality</p>
+                    
+                    <!-- Test Single Image -->
+                    <form method="POST" action="{{ url_for('test_ai_extraction') }}" class="mb-3">
+                        <input type="hidden" name="test_mode" value="true">
+                        <input type="hidden" name="csrf_token" value="">
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="fas fa-flask me-2"></i> Test AI on Sample Image
+                        </button>
+                    </form>
+                    <small class="text-muted">Tests extraction accuracy on authentic lottery screenshots</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-download me-2"></i> Export Tools
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Download templates and export screenshot archives</p>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('export_template') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-file-excel me-1"></i> Download Excel Template
+                        </a>
+                        <a href="{{ url_for('export_screenshots_zip') }}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-file-archive me-1"></i> Export All Screenshots
+                        </a>
+                        <a href="{{ url_for('export_combined_zip') }}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-download me-1"></i> Combined Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status and Results -->
+    {% if automation_status %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-{{ 'success' if automation_status.success else 'danger' }}">
+                <div class="card-header bg-{{ 'success' if automation_status.success else 'danger' }} text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-{{ 'check-circle' if automation_status.success else 'exclamation-circle' }} me-2"></i> 
+                        Automation Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>{{ automation_status.message }}</strong></p>
+                    {% if automation_status.details %}
+                    <div class="mt-3">
+                        <h6>Details:</h6>
+                        <pre class="bg-light p-3 rounded">{{ automation_status.details }}</pre>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Test Results -->
+    {% if test_result %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-check-circle me-2"></i> AI Test Results
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Extracted Data:</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Lottery Type:</strong></td>
+                                    <td><span class="badge bg-primary">{{ test_result.lottery_type }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Draw Number:</strong></td>
+                                    <td>{{ test_result.draw_number or 'Not detected' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Draw Date:</strong></td>
+                                    <td>{{ test_result.draw_date or 'Not detected' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Main Numbers:</strong></td>
+                                    <td>
+                                        {% for num in test_result.main_numbers %}
+                                            <span class="badge bg-lottery-red me-1">{{ num }}</span>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% if test_result.bonus_number %}
+                                <tr>
+                                    <td><strong>Bonus Number:</strong></td>
+                                    <td><span class="badge bg-warning text-dark">{{ test_result.bonus_number }}</span></td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>AI Confidence & Notes:</h6>
+                            <p><strong>Confidence:</strong> {{ test_result.confidence }}%</p>
+                            <p><strong>Notes:</strong> {{ test_result.notes or 'No additional notes' }}</p>
+                            <p><strong>Source:</strong> {{ test_result.source_image }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Screenshot Gallery -->
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header lottery-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">SCREENSHOT GALLERY</h5>
+                        <div>
+                            <form action="{{ url_for('sync_all_screenshots') }}" method="POST" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="">
+                                <button type="submit" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-sync me-1"></i> Sync All
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p>Browse and manage individual screenshots</p>
+                    
+                    <div class="row gallery-container">
+                        {% for screenshot in screenshots %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100 gallery-card" style="user-select: none;">
+                                <div class="gallery-image-container">
+                                    <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" target="_blank">
+                                        <img src="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
+                                             alt="{{ screenshot.lottery_type }} screenshot"
+                                             class="img-fluid">
+                                    </a>
+                                </div>
+                                <div class="card-body d-flex flex-column">
+                                    <h6 class="card-title">{{ screenshot.lottery_type }}</h6>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            {{ screenshot.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        </small>
+                                    </p>
+                                    <div class="mt-auto">
+                                        <div class="d-flex justify-content-between gap-1 mb-2">
+                                            <a href="{{ url_for('view_screenshot', screenshot_id=screenshot.id) }}" 
+                                               class="btn btn-sm btn-primary flex-fill" 
+                                               download>
+                                                <i class="fas fa-download me-1"></i> Download
+                                            </a>
+                                            {% if screenshot.zoomed_path %}
+                                            <a href="{{ url_for('view_zoomed_screenshot', screenshot_id=screenshot.id) }}" 
+                                               class="btn btn-sm btn-secondary flex-fill" 
+                                               target="_blank">
+                                                <i class="fas fa-search-plus me-1"></i> Zoomed
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                        <form action="{{ url_for('sync_single_screenshot', screenshot_id=screenshot.id) }}" method="POST">
+                                            <input type="hidden" name="csrf_token" value="">
+                                            <button type="submit" class="btn btn-sm btn-warning w-100">
+                                                <i class="fas fa-sync me-1"></i> Resync
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col-12">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-circle me-2"></i> No screenshots available. Run "Capture Screenshots" to get started.
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Access Navigation -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-external-link-alt me-2"></i> Quick Access
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Access your lottery data and tools</p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{{ url_for('results') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-list me-1"></i> View All Results
+                        </a>
+                        <a href="{{ url_for('visualizations') }}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-chart-line me-1"></i> Analytics Dashboard
+                        </a>
+                        <a href="{{ url_for('ticket_scanner') }}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-qrcode me-1"></i> Ticket Scanner
+                        </a>
+                        <a href="{{ url_for('daily_automation_dashboard') }}" class="btn btn-outline-warning btn-sm">
+                            <i class="fas fa-clock me-1"></i> Daily Scheduler
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -3675,6 +3675,133 @@ def api_tracking_view():
         service_tokens=service_tokens
     )
 
+@app.route('/admin/automation-control')
+@login_required
+def automation_control():
+    """Unified automation control center"""
+    if not current_user.is_admin:
+        flash('You must be an admin to access automation controls.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Get current screenshots
+    screenshots = Screenshot.query.order_by(Screenshot.timestamp.desc()).all()
+    
+    # Get any status messages from session
+    automation_status = session.pop('automation_status', None)
+    test_result = session.pop('test_result', None)
+    
+    return render_template('admin/automation_control.html',
+                         screenshots=screenshots,
+                         automation_status=automation_status,
+                         test_result=test_result)
+
+@app.route('/admin/run-automation-step', methods=['POST'])
+@login_required
+def run_automation_step():
+    """Run individual automation steps"""
+    if not current_user.is_admin:
+        flash('You must be an admin to run automation steps.', 'danger')
+        return redirect(url_for('index'))
+    
+    step = request.form.get('step')
+    
+    try:
+        from daily_automation import DailyLotteryAutomation
+        automation = DailyLotteryAutomation(app)
+        
+        if step == 'cleanup':
+            result = automation.cleanup_old_screenshots()
+            message = "Successfully cleared old screenshots"
+            
+        elif step == 'capture':
+            result = automation.capture_fresh_screenshots()
+            message = "Successfully captured fresh screenshots"
+            
+        elif step == 'ai_process':
+            result = automation.process_screenshots_with_ai()
+            message = "Successfully processed screenshots with AI"
+            
+        elif step == 'database_update':
+            result = automation.update_database_with_results()
+            message = "Successfully updated database with results"
+            
+        else:
+            raise ValueError(f"Unknown automation step: {step}")
+        
+        session['automation_status'] = {
+            'success': True,
+            'message': message,
+            'details': str(result) if result else None
+        }
+        flash(f'{message}', 'success')
+        
+    except Exception as e:
+        error_msg = f"Failed to run {step}: {str(e)}"
+        session['automation_status'] = {
+            'success': False,
+            'message': error_msg,
+            'details': str(e)
+        }
+        flash(error_msg, 'danger')
+    
+    return redirect(url_for('automation_control'))
+
+@app.route('/admin/run-daily-automation', methods=['POST'])
+@login_required
+def run_daily_automation():
+    """Run the complete daily automation workflow"""
+    if not current_user.is_admin:
+        flash('You must be an admin to run daily automation.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        from daily_automation import run_daily_automation
+        result = run_daily_automation(app)
+        
+        session['automation_status'] = {
+            'success': True,
+            'message': "Complete daily automation workflow completed successfully",
+            'details': str(result) if result else None
+        }
+        flash('Daily automation workflow completed successfully!', 'success')
+        
+    except Exception as e:
+        error_msg = f"Failed to run daily automation: {str(e)}"
+        session['automation_status'] = {
+            'success': False,
+            'message': error_msg,
+            'details': str(e)
+        }
+        flash(error_msg, 'danger')
+    
+    return redirect(url_for('automation_control'))
+
+@app.route('/admin/test-ai-extraction', methods=['POST'])
+@login_required
+def test_ai_extraction():
+    """Test AI extraction on a sample image"""
+    if not current_user.is_admin:
+        flash('You must be an admin to test AI extraction.', 'danger')
+        return redirect(url_for('index'))
+    
+    try:
+        from automated_data_extractor import LotteryDataExtractor
+        extractor = LotteryDataExtractor()
+        
+        # Test on a sample image
+        test_result = extractor.test_single_image("attached_assets/Powerball_Results_20250527_034926.png")
+        
+        if test_result:
+            session['test_result'] = test_result
+            flash('AI extraction test completed successfully!', 'success')
+        else:
+            flash('AI extraction test failed - no result returned', 'warning')
+            
+    except Exception as e:
+        flash(f'AI extraction test failed: {str(e)}', 'danger')
+    
+    return redirect(url_for('automation_control'))
+
 @app.route('/admin/daily-automation')
 @login_required
 def daily_automation_dashboard():
