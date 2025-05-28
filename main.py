@@ -3736,16 +3736,25 @@ def run_automation_step():
                 raise Exception(f"Cleanup failed - could not delete screenshots")
             
         elif step == 'capture':
-            result = automation.capture_fresh_screenshots()
-            message = "Successfully captured fresh screenshots"
+            success, count = automation.capture_fresh_screenshots()
+            if success:
+                message = f"Successfully captured {count} fresh screenshots"
+            else:
+                raise Exception(f"Screenshot capture failed")
             
         elif step == 'ai_process':
-            result = automation.process_screenshots_with_ai()
-            message = "Successfully processed screenshots with AI"
+            success, count = automation.process_screenshots_with_ai()
+            if success:
+                message = f"Successfully processed {count} screenshots with AI"
+            else:
+                raise Exception(f"AI processing failed")
             
         elif step == 'database_update':
-            result = automation.update_database_with_results()
-            message = "Successfully updated database with results"
+            success, count = automation.update_database_with_results()
+            if success:
+                message = f"Successfully updated database with {count} lottery results"
+            else:
+                raise Exception(f"Database update failed")
             
         else:
             raise ValueError(f"Unknown automation step: {step}")
