@@ -56,23 +56,36 @@ class DailyLotteryAutomation:
     def capture_fresh_screenshots(self):
         """Step 2: Capture brand new screenshots from lottery websites"""
         try:
-            logger.info("DEBUG: Starting capture of fresh lottery screenshots...")
+            logger.info("Starting capture of fresh lottery screenshots...")
             
             # Import the screenshot manager function directly
             from screenshot_manager import retake_all_screenshots
             
             with self.app.app_context():
-                logger.info("DEBUG: Calling retake_all_screenshots...")
+                logger.info("Calling retake_all_screenshots function...")
                 count = retake_all_screenshots(self.app, use_threading=False)
-                logger.info(f"DEBUG: Screenshot capture returned count: {count}")
+                logger.info(f"Screenshot capture function returned count: {count}")
+                
+                # Check if screenshots were actually created
+                screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
+                if os.path.exists(screenshot_dir):
+                    actual_files = len([f for f in os.listdir(screenshot_dir) if f.endswith('.png')])
+                    logger.info(f"Actual PNG files in screenshots directory: {actual_files}")
+                else:
+                    logger.warning("Screenshots directory doesn't exist after capture attempt")
+                    actual_files = 0
             
-            logger.info(f"Fresh screenshot capture completed. Processed {count} lottery sites")
-            return True, count
+            if count > 0:
+                logger.info(f"Successfully captured {count} fresh lottery screenshots")
+                return True, count
+            else:
+                logger.warning("No screenshots were captured - screenshot function may have failed")
+                return False, 0
             
         except Exception as e:
-            logger.error(f"DEBUG: Failed to capture fresh screenshots: {str(e)}")
+            logger.error(f"Failed to capture fresh screenshots: {str(e)}")
             import traceback
-            logger.error(f"DEBUG: Traceback: {traceback.format_exc()}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False, 0
     
     def process_screenshots_with_ai(self):
