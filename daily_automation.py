@@ -93,24 +93,31 @@ class DailyLotteryAutomation:
                 os.makedirs(screenshot_dir, exist_ok=True)
                 return True, 0
             
-            # Actually delete all PNG files to ensure fresh capture
-            files = os.listdir(screenshot_dir)
-            for filename in files:
-                if filename.endswith('.png'):
+            # Quick cleanup - only delete PNG files, skip logging each file for speed
+            try:
+                files = os.listdir(screenshot_dir)
+                png_files = [f for f in files if f.endswith('.png')]
+                
+                logger.info(f"Found {len(png_files)} PNG files to clean up")
+                
+                for filename in png_files:
                     file_path = os.path.join(screenshot_dir, filename)
                     try:
                         os.remove(file_path)
                         deleted_count += 1
-                        logger.info(f"Deleted old screenshot: {filename}")
-                    except Exception as file_error:
-                        logger.warning(f"Could not delete {filename}: {str(file_error)}")
-            
-            logger.info(f"Cleanup completed. Deleted {deleted_count} old screenshots")
-            return True, deleted_count
+                    except Exception:
+                        pass  # Skip files that can't be deleted
+                
+                logger.info(f"Cleanup completed. Deleted {deleted_count} old screenshots")
+                return True, deleted_count
+                
+            except Exception as cleanup_error:
+                logger.warning(f"Cleanup had issues but continuing: {str(cleanup_error)}")
+                return True, 0  # Continue workflow even if cleanup has issues
             
         except Exception as e:
             logger.error(f"Failed to cleanup old screenshots: {str(e)}")
-            return False, 0
+            return True, 0  # Don't fail the entire workflow for cleanup issues
     
     def capture_fresh_screenshots(self, groups=None):
         """Step 2: Capture brand new screenshots from lottery websites
@@ -254,20 +261,9 @@ class DailyLotteryAutomation:
                                    Examples: ['group1'], ['group2'], ['group1', 'group3'], ['all']
         """
         if groups is None:
-            # Auto-detect today's lottery groups for scheduled runs
-            active_groups = self.get_todays_lottery_groups()
-            if not active_groups:
-                logger.info("No lottery draws scheduled for today - workflow completed")
-                return {
-                    'start_time': datetime.now(),
-                    'cleanup': {'success': True, 'count': 0},
-                    'capture': {'success': True, 'count': 0},
-                    'processing': {'success': True, 'count': 0},
-                    'database': {'success': True, 'count': 0},
-                    'overall_success': True,
-                    'message': 'No draws scheduled for today'
-                }
-            groups = active_groups
+            # For manual runs, always process all groups by default
+            logger.info("Manual workflow triggered - processing all lottery groups")
+            groups = ['all']
             
         workflow_start = datetime.now()
         logger.info(f"=== DAILY LOTTERY AUTOMATION STARTED at {workflow_start} for groups: {groups} ===")
