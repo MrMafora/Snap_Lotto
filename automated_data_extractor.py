@@ -33,38 +33,56 @@ class LotteryDataExtractor:
             # Encode the image
             base64_image = self.encode_image(image_path)
             
-            # Create the prompt for accurate data extraction
+            # Create the comprehensive prompt for complete data extraction
             prompt = """
-            You are an expert at extracting lottery data from images with 100% accuracy.
+            You are an expert at extracting comprehensive lottery data from images with 100% accuracy.
             
-            Analyze this lottery results image and extract the following information:
+            Analyze this lottery results image and extract ALL visible information including:
             
-            1. Lottery Type (PowerBall, PowerBall Plus, Lottery, Lottery Plus 1, Lottery Plus 2, Daily Lottery)
-            2. Draw Number (if visible)
-            3. Draw Date (if visible)
-            4. Main Numbers (the colored circles with numbers)
-            5. Bonus/Power Ball Number (if applicable)
+            1. Basic Information: Lottery Type, Draw Number, Draw Date, Numbers
+            2. Division Breakdown: All 8 divisions with winner counts and prize amounts
+            3. Financial Data: Rollover amount, pool size, sales, next jackpot
+            4. Additional Info: Draw machine, next draw date
             
             Return the data in this exact JSON format:
             {
-                "lottery_type": "PowerBall",
-                "draw_number": 1603,
-                "draw_date": "2024-04-09",
-                "main_numbers": [15, 17, 22, 33, 45],
-                "bonus_number": 12,
+                "lottery_type": "Lotto",
+                "draw_number": 2544,
+                "draw_date": "2025-05-24",
+                "main_numbers": [3, 7, 29, 33, 37, 46],
+                "bonus_number": 43,
+                "divisions": [
+                    {"division": 1, "description": "SIX CORRECT NUMBERS", "winners": 0, "prize_per_winner": "R0.00"},
+                    {"division": 2, "description": "FIVE CORRECT NUMBERS + BONUS BALL", "winners": 1, "prize_per_winner": "R119,033.40"},
+                    {"division": 3, "description": "FIVE CORRECT NUMBERS", "winners": 56, "prize_per_winner": "R3,696.70"},
+                    {"division": 4, "description": "FOUR CORRECT NUMBERS + BONUS BALL", "winners": 117, "prize_per_winner": "R2,211.70"},
+                    {"division": 5, "description": "FOUR CORRECT NUMBERS", "winners": 3065, "prize_per_winner": "R141.90"},
+                    {"division": 6, "description": "THREE CORRECT NUMBERS + BONUS BALL", "winners": 3699, "prize_per_winner": "R102.10"},
+                    {"division": 7, "description": "THREE CORRECT NUMBERS", "winners": 56754, "prize_per_winner": "R50.00"},
+                    {"division": 8, "description": "TWO CORRECT NUMBERS + BONUS BALL", "winners": 39105, "prize_per_winner": "R20.00"}
+                ],
+                "rollover_amount": "R50,728,897.73",
+                "rollover_number": 17,
+                "total_pool_size": "R55,746,106.63",
+                "total_sales": "R19,544,815.00",
+                "next_jackpot": "R53,000,000.00",
+                "draw_machine": "RNG2",
+                "next_draw_date": "2025-05-28",
                 "confidence": 100,
-                "notes": "Any relevant observations"
+                "notes": "Complete extraction with all division and financial data"
             }
             
             CRITICAL REQUIREMENTS:
-            - Use exact lottery type names: PowerBall, PowerBall Plus, Lottery, Lottery Plus 1, Lottery Plus 2, Daily Lottery
+            - Use exact lottery type names: Lotto, Lotto Plus 1, Lotto Plus 2, PowerBall, PowerBall Plus, Daily Lotto
+            - Extract ALL 8 divisions if visible with exact winner counts and prize amounts
+            - Capture ALL financial data from "MORE INFO" sections
+            - Include exact prize amounts with "R" formatting (e.g., "R50,728,897.73")
             - Extract numbers exactly as shown in the colored circles
-            - If draw number or date is not visible, use null
+            - If any field is not visible, use null
             - Confidence should be 100 only if you're absolutely certain
             - For PowerBall types, the smaller circle after "+" is the bonus/power number
-            - For regular Lottery types, there may be a bonus ball
             
-            Be extremely precise - this data will be used for authentic lottery results.
+            Be extremely precise - this data will be used for authentic lottery results and must include ALL visible division and financial data.
             """
             
             message = self.client.messages.create(
@@ -157,13 +175,24 @@ class LotteryDataExtractor:
                 logging.info(f"Record already exists for {extracted_data['lottery_type']} draw {extracted_data.get('draw_number')}")
                 return False
             
-            # Create new lottery result
+            # Create comprehensive lottery result with all data including financial information
             lottery_result = LotteryResult(
                 lottery_type=extracted_data['lottery_type'],
                 draw_number=extracted_data.get('draw_number'),
                 draw_date=datetime.fromisoformat(extracted_data['draw_date']) if extracted_data.get('draw_date') else None,
                 numbers=json.dumps(extracted_data['main_numbers']),
                 bonus_numbers=json.dumps([extracted_data['bonus_number']]) if extracted_data.get('bonus_number') else None,
+                divisions=json.dumps(extracted_data.get('divisions', [])),  # Store all division data
+                
+                # Store comprehensive financial data
+                rollover_amount=extracted_data.get('rollover_amount'),
+                rollover_number=extracted_data.get('rollover_number'),
+                total_pool_size=extracted_data.get('total_pool_size'),
+                total_sales=extracted_data.get('total_sales'),
+                next_jackpot=extracted_data.get('next_jackpot'),
+                draw_machine=extracted_data.get('draw_machine'),
+                next_draw_date=datetime.fromisoformat(extracted_data['next_draw_date']) if extracted_data.get('next_draw_date') else None,
+                
                 source_url=extracted_data.get('source_image', 'extracted_from_screenshots'),
                 ocr_provider='anthropic',
                 ocr_model='claude-opus-4-20250514',
