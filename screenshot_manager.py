@@ -356,7 +356,19 @@ def retake_selected_screenshots(app, selected_urls, use_threading=True):
             for url in selected_urls:
                 try:
                     logger.info(f"Capturing screenshot for: {url}")
-                    success = capture_screenshot_from_url(url)
+                    # Generate output path for screenshot
+                    from urllib.parse import urlparse
+                    import re
+                    
+                    # Create filename from URL
+                    parsed = urlparse(url)
+                    filename = re.sub(r'[^\w\-_.]', '_', parsed.path.strip('/'))
+                    if not filename:
+                        filename = parsed.netloc.replace('.', '_')
+                    filename = f"{filename}_{int(time.time())}.png"
+                    
+                    output_path = os.path.join(os.getcwd(), 'screenshots', filename)
+                    success = capture_screenshot_from_url(url, output_path)
                     if success:
                         success_count += 1
                         logger.info(f"Successfully captured screenshot for {url}")
