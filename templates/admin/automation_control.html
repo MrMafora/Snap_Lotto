@@ -608,6 +608,71 @@
 
 {% block scripts %}
 <script>
+// Global variable to store selected lottery group
+let selectedGroup = null;
+
+function selectGroup(groupId) {
+    selectedGroup = groupId;
+    
+    // Update the UI to show selected group
+    const infoDiv = document.getElementById('selected-group-info');
+    const textSpan = document.getElementById('selected-group-text');
+    
+    const groupNames = {
+        'group1': 'Group 1: Lottery (Lotto, Lotto Plus 1, Lotto Plus 2) - Wed & Sat',
+        'group2': 'Group 2: PowerBall (PowerBall, PowerBall Plus) - Tue & Fri', 
+        'group3': 'Group 3: Daily Lottery (Daily Lotto) - Every Day',
+        'all': 'Group 4: All Lottery Types - Complete Coverage'
+    };
+    
+    textSpan.textContent = `Selected: ${groupNames[groupId]}`;
+    infoDiv.classList.remove('d-none');
+    infoDiv.classList.remove('alert-secondary', 'alert-success', 'alert-warning', 'alert-primary', 'alert-danger');
+    
+    // Color code based on group
+    if (groupId === 'group1') {
+        infoDiv.classList.add('alert-primary');
+    } else if (groupId === 'group2') {
+        infoDiv.classList.add('alert-success');
+    } else if (groupId === 'group3') {
+        infoDiv.classList.add('alert-warning');
+    } else if (groupId === 'all') {
+        infoDiv.classList.add('alert-danger');
+    }
+    
+    // Update the hidden input field for capture step
+    const captureGroupsInput = document.getElementById('capture-groups');
+    if (captureGroupsInput) {
+        captureGroupsInput.value = groupId;
+    }
+    
+    // Highlight selected button
+    document.querySelectorAll('.card button').forEach(btn => {
+        btn.classList.remove('btn-outline-primary', 'btn-outline-success', 'btn-outline-warning', 'btn-outline-danger');
+        if (btn.textContent.includes('Group 1')) {
+            btn.classList.add('btn-primary');
+        } else if (btn.textContent.includes('Group 2')) {
+            btn.classList.add('btn-success');
+        } else if (btn.textContent.includes('Group 3')) {
+            btn.classList.add('btn-warning');
+        } else if (btn.textContent.includes('All Groups')) {
+            btn.classList.add('btn-danger');
+        }
+    });
+    
+    // Highlight the selected group button
+    event.target.classList.remove('btn-primary', 'btn-success', 'btn-warning', 'btn-danger');
+    if (groupId === 'group1') {
+        event.target.classList.add('btn-outline-primary');
+    } else if (groupId === 'group2') {
+        event.target.classList.add('btn-outline-success');
+    } else if (groupId === 'group3') {
+        event.target.classList.add('btn-outline-warning');
+    } else if (groupId === 'all') {
+        event.target.classList.add('btn-outline-danger');
+    }
+}
+
 async function runCompleteAutomation() {
     const button = document.getElementById('runCompleteWorkflow');
     const progressDiv = document.getElementById('automationProgress');
@@ -620,9 +685,10 @@ async function runCompleteAutomation() {
     button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Running...';
     progressDiv.classList.remove('d-none');
     
+    // Include selected group in automation steps
     const steps = [
         { name: 'Clearing old screenshots', endpoint: '/admin/run-automation-step', data: {step: 'cleanup'}, progress: 25 },
-        { name: 'Capturing fresh screenshots', endpoint: '/admin/run-automation-step', data: {step: 'capture'}, progress: 50 },
+        { name: 'Capturing fresh screenshots', endpoint: '/admin/run-automation-step', data: {step: 'capture', groups: selectedGroup || ''}, progress: 50 },
         { name: 'Processing with AI', endpoint: '/admin/run-automation-step', data: {step: 'ai_process'}, progress: 75 },
         { name: 'Updating database', endpoint: '/admin/run-automation-step', data: {step: 'database_update'}, progress: 100 }
     ];
