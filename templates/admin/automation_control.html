@@ -209,7 +209,6 @@
                                     <p>Use AI to extract lottery data from captured screenshots</p>
                                     <form action="{{ url_for('run_automation_step') }}" method="POST">
                                         <input type="hidden" name="step" value="ai_process">
-                                        <input type="hidden" name="csrf_token" value="">
                                         <button type="submit" class="btn btn-success w-100">
                                             <i class="fas fa-robot me-2"></i> Process with AI
                                         </button>
@@ -231,7 +230,6 @@
                                     <p>Save extracted lottery data to your database</p>
                                     <form action="{{ url_for('run_automation_step') }}" method="POST">
                                         <input type="hidden" name="step" value="database_update">
-                                        <input type="hidden" name="csrf_token" value="">
                                         <button type="submit" class="btn btn-primary w-100">
                                             <i class="fas fa-database me-2"></i> Update Database
                                         </button>
@@ -260,7 +258,6 @@
                     <!-- Test Single Image -->
                     <form method="POST" action="{{ url_for('test_ai_extraction') }}" class="mb-3">
                         <input type="hidden" name="test_mode" value="true">
-                        <input type="hidden" name="csrf_token" value="">
                         <button type="submit" class="btn btn-warning w-100">
                             <i class="fas fa-flask me-2"></i> Test AI on Sample Image
                         </button>
@@ -386,7 +383,6 @@
                         <h5 class="card-title mb-0">SCREENSHOT GALLERY</h5>
                         <div>
                             <form action="{{ url_for('sync_all_screenshots') }}" method="POST" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="">
                                 <button type="submit" class="btn btn-sm btn-warning">
                                     <i class="fas fa-sync me-1"></i> Sync All
                                 </button>
@@ -431,7 +427,6 @@
                                             {% endif %}
                                         </div>
                                         <form action="{{ url_for('sync_single_screenshot', screenshot_id=screenshot.id) }}" method="POST">
-                                            <input type="hidden" name="csrf_token" value="">
                                             <button type="submit" class="btn btn-sm btn-warning w-100">
                                                 <i class="fas fa-sync me-1"></i> Resync
                                             </button>
