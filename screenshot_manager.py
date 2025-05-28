@@ -107,13 +107,31 @@ def capture_screenshot_from_url(url, output_path):
                 driver.get(url)
                 
                 # Wait for page to load
-                time.sleep(3)
+                time.sleep(5)
                 
-                # Scroll to ensure all content is loaded and visible
-                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(2)
-                driver.execute_script("window.scrollTo(0, 0);")
-                time.sleep(1)
+                # Simple screenshot without complex scrolling
+                logger.info("Taking screenshot...")
+                screenshot_success = driver.save_screenshot(output_path)
+                
+                if screenshot_success and os.path.exists(output_path):
+                    file_size = os.path.getsize(output_path)
+                    logger.info(f"Screenshot saved: {output_path} ({file_size} bytes)")
+                    
+                    # Apply smart cropping if file is valid
+                    if file_size > 1000:
+                        try:
+                            crop_white_space(output_path, output_path)
+                            logger.info("Smart cropping applied")
+                        except Exception as crop_error:
+                            logger.warning(f"Smart cropping failed: {crop_error}")
+                        
+                        return True
+                    else:
+                        logger.error("Screenshot file too small")
+                        return False
+                else:
+                    logger.error("Failed to save screenshot")
+                    return False
                 
                 logger.info(f"Page loaded and scrolled, ready for full screenshot")
                 
