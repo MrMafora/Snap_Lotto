@@ -22,21 +22,21 @@ logger = logging.getLogger(__name__)
 _screenshot_lock = threading.Lock()
 
 def setup_chrome_driver():
-    """Simple Chrome driver setup that works reliably"""
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--window-size=1920,1080')
+    """Chrome driver setup following Selenium best practices"""
+    options = webdriver.ChromeOptions()
+    options.add_argument("--no-sandbox")
+    options.add_argument("--headless")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-gpu")
     
     # Human-like user agent
-    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36')
+    options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
     
     try:
-        # Use the system Chrome driver
-        from selenium.webdriver.chrome.service import Service
-        service = Service('/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        # Use ChromeService properly
+        service = webdriver.ChromeService(executable_path='/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
+        driver = webdriver.Chrome(service=service, options=options)
         logger.info("Chrome driver initialized successfully")
         return driver
     except Exception as e:
