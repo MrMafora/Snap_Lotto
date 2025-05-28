@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% block title %}Daily Automation System{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card lottery-card">
+                <div class="card-header lottery-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-robot me-2"></i>
+                        Daily Automation System
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        Complete automated workflow: Clear old screenshots → Capture fresh ones → AI processing → Database updates
+                    </p>
+                    
+                    <!-- System Status -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-clock me-2"></i>
+                                        Scheduler Status
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if scheduler_status and scheduler_status.running %}
+                                        <span class="badge bg-success fs-6">
+                                            <i class="fas fa-play me-1"></i>Running
+                                        </span>
+                                        <p class="mt-2 mb-1">
+                                            <strong>Daily Run Time:</strong> {{ scheduler_status.run_time }}
+                                        </p>
+                                        {% if scheduler_status.next_run %}
+                                        <p class="mb-1">
+                                            <strong>Next Run:</strong> {{ scheduler_status.next_run.strftime('%Y-%m-%d %H:%M') }}
+                                        </p>
+                                        {% endif %}
+                                        {% if scheduler_status.last_run %}
+                                        <p class="mb-0">
+                                            <strong>Last Run:</strong> {{ scheduler_status.last_run.strftime('%Y-%m-%d %H:%M') }}
+                                        </p>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-warning fs-6">
+                                            <i class="fas fa-pause me-1"></i>Stopped
+                                        </span>
+                                        <p class="mt-2 mb-0">Automatic daily processing is not running</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-cogs me-2"></i>
+                                        Automation Workflow
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="workflow-steps">
+                                        <div class="step">
+                                            <i class="fas fa-trash text-danger me-2"></i>
+                                            <span>Clear old screenshots</span>
+                                        </div>
+                                        <div class="step">
+                                            <i class="fas fa-camera text-primary me-2"></i>
+                                            <span>Capture fresh lottery data</span>
+                                        </div>
+                                        <div class="step">
+                                            <i class="fas fa-brain text-success me-2"></i>
+                                            <span>AI processing & extraction</span>
+                                        </div>
+                                        <div class="step">
+                                            <i class="fas fa-database text-info me-2"></i>
+                                            <span>Update database with results</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Control Buttons -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-secondary">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-controls me-2"></i>
+                                        System Controls
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex flex-wrap gap-3">
+                                        <!-- Manual Run Button -->
+                                        <form method="POST" action="{{ url_for('run_daily_automation_manual') }}" class="d-inline">
+                                            <button type="submit" class="btn btn-lottery-primary btn-lg">
+                                                <i class="fas fa-play me-2"></i>
+                                                Run Now (Manual)
+                                            </button>
+                                        </form>
+                                        
+                                        <!-- Scheduler Controls -->
+                                        {% if scheduler_status and scheduler_status.running %}
+                                            <form method="POST" action="{{ url_for('scheduler_control', action='stop') }}" class="d-inline">
+                                                <button type="submit" class="btn btn-warning btn-lg">
+                                                    <i class="fas fa-pause me-2"></i>
+                                                    Stop Scheduler
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <form method="POST" action="{{ url_for('scheduler_control', action='start') }}" class="d-inline">
+                                                <button type="submit" class="btn btn-success btn-lg">
+                                                    <i class="fas fa-play me-2"></i>
+                                                    Start Scheduler
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        
+                                        <!-- Quick Navigation -->
+                                        <a href="{{ url_for('export_screenshots') }}" class="btn btn-outline-primary btn-lg">
+                                            <i class="fas fa-images me-2"></i>
+                                            View Screenshots
+                                        </a>
+                                        
+                                        <a href="{{ url_for('extract_lottery_data') }}" class="btn btn-outline-success btn-lg">
+                                            <i class="fas fa-brain me-2"></i>
+                                            AI Data Extraction
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Last Run Results -->
+                    {% if scheduler_status and scheduler_status.last_results %}
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card border-info">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-history me-2"></i>
+                                        Last Automation Results
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    {% set results = scheduler_status.last_results %}
+                                    
+                                    {% if results.overall_success %}
+                                        <div class="alert alert-success">
+                                            <i class="fas fa-check-circle me-2"></i>
+                                            Last automation completed successfully!
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            Last automation completed with issues
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <div class="row text-center">
+                                        {% if results.cleanup %}
+                                        <div class="col-md-3">
+                                            <div class="metric">
+                                                <div class="metric-value">
+                                                    {{ "✅" if results.cleanup.success else "❌" }}
+                                                </div>
+                                                <div class="metric-label">Cleanup</div>
+                                                <small>{{ results.cleanup.count }} files</small>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if results.capture %}
+                                        <div class="col-md-3">
+                                            <div class="metric">
+                                                <div class="metric-value">
+                                                    {{ "✅" if results.capture.success else "❌" }}
+                                                </div>
+                                                <div class="metric-label">Screenshots</div>
+                                                <small>{{ results.capture.count }} captured</small>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if results.processing %}
+                                        <div class="col-md-3">
+                                            <div class="metric">
+                                                <div class="metric-value">
+                                                    {{ "✅" if results.processing.success else "❌" }}
+                                                </div>
+                                                <div class="metric-label">AI Processing</div>
+                                                <small>{{ results.processing.count }} processed</small>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if results.database %}
+                                        <div class="col-md-3">
+                                            <div class="metric">
+                                                <div class="metric-value">
+                                                    {{ "✅" if results.database.success else "❌" }}
+                                                </div>
+                                                <div class="metric-label">Database</div>
+                                                <small>{{ results.database.count }} results</small>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if results.duration %}
+                                    <p class="text-muted text-center mt-3 mb-0">
+                                        <small>Duration: {{ results.duration }}</small>
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Instructions -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card border-light">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        How It Works
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled mb-0">
+                                        <li class="mb-2">
+                                            <i class="fas fa-clock text-primary me-2"></i>
+                                            <strong>Automatic:</strong> Runs every day at 1:00 AM automatically when scheduler is enabled
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-hand-pointer text-success me-2"></i>
+                                            <strong>Manual:</strong> Click "Run Now" to trigger the complete workflow immediately
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-shield-alt text-info me-2"></i>
+                                            <strong>Safe:</strong> Always clears old data before capturing fresh lottery results
+                                        </li>
+                                        <li class="mb-0">
+                                            <i class="fas fa-brain text-warning me-2"></i>
+                                            <strong>Intelligent:</strong> Uses AI to extract authentic lottery data with high accuracy
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.workflow-steps .step {
+    padding: 0.5rem 0;
+    border-left: 2px solid #dee2e6;
+    padding-left: 1rem;
+    margin-left: 0.5rem;
+    position: relative;
+}
+
+.workflow-steps .step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: -2px;
+    bottom: -1px;
+    width: 2px;
+    height: 1rem;
+    background: #dee2e6;
+}
+
+.metric {
+    padding: 1rem 0;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.metric-label {
+    font-weight: 600;
+    color: #6c757d;
+}
+</style>
+{% endblock %}

@@ -168,8 +168,8 @@ import_excel = None
 import_snap_lotto_data = None
 ocr_processor = None
 screenshot_manager = None
-# scheduler is imported at the top level to ensure screenshot functions work
 health_monitor = None
+daily_scheduler = None
 
 def init_lazy_modules():
     """Initialize modules in a background thread with timeout"""
@@ -3675,7 +3675,94 @@ def api_tracking_view():
         service_tokens=service_tokens
     )
 
+@app.route('/admin/daily-automation')
+@login_required
+def daily_automation_dashboard():
+    """Admin dashboard for daily automation system"""
+    if not current_user.is_admin:
+        flash('You must be an admin to access automation settings.', 'danger')
+        return redirect(url_for('home'))
+    
+    global daily_scheduler
+    
+    # Initialize scheduler if not already done
+    if daily_scheduler is None:
+        try:
+            import scheduler
+            daily_scheduler = scheduler.init_scheduler(app, "01:00")
+        except Exception as e:
+            logger.error(f"Failed to initialize scheduler: {str(e)}")
+            daily_scheduler = None
+    
+    # Get scheduler status
+    scheduler_status = None
+    if daily_scheduler:
+        scheduler_status = daily_scheduler.get_status()
+    
+    return render_template('admin/daily_automation.html', 
+                         scheduler_status=scheduler_status)
+
+@app.route('/admin/run-daily-automation', methods=['POST'])
+@login_required
+def run_daily_automation_manual():
+    """Manually trigger the daily automation workflow"""
+    if not current_user.is_admin:
+        flash('You must be an admin to run automation.', 'danger')
+        return redirect(url_for('home'))
+    
+    try:
+        from daily_automation import run_daily_automation
+        
+        logger.info("Manual daily automation triggered by admin")
+        results = run_daily_automation(app)
+        
+        if results['overall_success']:
+            flash('Daily automation completed successfully!', 'success')
+            flash(f"Processed {results['capture']['count']} screenshots with AI analysis", 'info')
+        else:
+            flash('Daily automation completed with some issues. Check logs for details.', 'warning')
+            
+    except Exception as e:
+        logger.error(f"Error running manual daily automation: {str(e)}")
+        flash(f'Error running daily automation: {str(e)}', 'danger')
+    
+    return redirect(url_for('daily_automation_dashboard'))
+
+@app.route('/admin/scheduler-control/<action>', methods=['POST'])
+@login_required
+def scheduler_control(action):
+    """Control the automated scheduler (start/stop)"""
+    if not current_user.is_admin:
+        flash('You must be an admin to control the scheduler.', 'danger')
+        return redirect(url_for('home'))
+    
+    global daily_scheduler
+    
+    try:
+        if action == 'start':
+            if daily_scheduler is None:
+                import scheduler
+                daily_scheduler = scheduler.init_scheduler(app, "01:00")
+                flash('Automated scheduler started successfully! Daily processing will run at 1:00 AM.', 'success')
+            else:
+                flash('Scheduler is already running.', 'info')
+                
+        elif action == 'stop':
+            if daily_scheduler:
+                daily_scheduler.stop_scheduler()
+                daily_scheduler = None
+                flash('Automated scheduler stopped.', 'warning')
+            else:
+                flash('Scheduler is not running.', 'info')
+                
+    except Exception as e:
+        logger.error(f"Error controlling scheduler: {str(e)}")
+        flash(f'Error controlling scheduler: {str(e)}', 'danger')
+    
+    return redirect(url_for('daily_automation_dashboard'))
+
 # When running directly, not through gunicorn
+
 if __name__ == "__main__":
     # Extra logging to help diagnose startup issues
     import logging
