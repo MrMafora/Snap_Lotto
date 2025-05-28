@@ -181,7 +181,7 @@
                                         <small class="text-muted">Clearing old screenshots...</small>
                                     </div>
                                     
-                                    <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('cleanup')">
+                                    <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('cleanup'); return true;">
                                         <input type="hidden" name="step" value="cleanup">
                                         <button type="submit" class="btn btn-warning w-100" id="cleanup-btn">
                                             <i class="fas fa-broom me-2"></i> Clear Old Screenshots
@@ -211,7 +211,7 @@
                                         <small class="text-muted">Capturing screenshots from lottery websites...</small>
                                     </div>
                                     
-                                    <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('capture')">
+                                    <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('capture'); return true;">
                                         <input type="hidden" name="step" value="capture">
                                         <button type="submit" class="btn btn-info w-100" id="capture-btn">
                                             <i class="fas fa-camera me-2"></i> Capture Screenshots
@@ -247,7 +247,7 @@
                                         <strong>Prerequisites:</strong> This step requires fresh screenshots from steps 1 & 2
                                     </div>
                                     
-                                    <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('ai_process')">
+                                    <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('ai_process'); return true;">
                                         <input type="hidden" name="step" value="ai_process">
                                         <button type="submit" class="btn btn-success w-100" id="ai_process-btn">
                                             <i class="fas fa-robot me-2"></i> Process with AI
@@ -283,7 +283,7 @@
                                         <strong>Prerequisites:</strong> This step requires completed AI processing from step 3
                                     </div>
                                     
-                                    <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('database_update')">
+                                    <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('database_update'); return true;">
                                         <input type="hidden" name="step" value="database_update">
                                         <button type="submit" class="btn btn-primary w-100" id="database_update-btn">
                                             <i class="fas fa-database me-2"></i> Update Database
