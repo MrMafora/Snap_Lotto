@@ -172,9 +172,18 @@
                                 </div>
                                 <div class="card-body">
                                     <p>Remove old screenshot files to make space for fresh captures</p>
-                                    <form action="{{ url_for('run_automation_step') }}" method="POST">
+                                    
+                                    <!-- Progress indicator for this step -->
+                                    <div id="cleanup-progress" class="d-none mb-3">
+                                        <div class="progress">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" style="width: 100%"></div>
+                                        </div>
+                                        <small class="text-muted">Clearing old screenshots...</small>
+                                    </div>
+                                    
+                                    <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('cleanup')">
                                         <input type="hidden" name="step" value="cleanup">
-                                        <button type="submit" class="btn btn-warning w-100">
+                                        <button type="submit" class="btn btn-warning w-100" id="cleanup-btn">
                                             <i class="fas fa-broom me-2"></i> Clear Old Screenshots
                                         </button>
                                     </form>
@@ -193,9 +202,18 @@
                                 </div>
                                 <div class="card-body">
                                     <p>Take new screenshots from official lottery websites</p>
-                                    <form action="{{ url_for('run_automation_step') }}" method="POST">
+                                    
+                                    <!-- Progress indicator for this step -->
+                                    <div id="capture-progress" class="d-none mb-3">
+                                        <div class="progress">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 100%"></div>
+                                        </div>
+                                        <small class="text-muted">Capturing screenshots from lottery websites...</small>
+                                    </div>
+                                    
+                                    <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('capture')">
                                         <input type="hidden" name="step" value="capture">
-                                        <button type="submit" class="btn btn-info w-100">
+                                        <button type="submit" class="btn btn-info w-100" id="capture-btn">
                                             <i class="fas fa-camera me-2"></i> Capture Screenshots
                                         </button>
                                     </form>
@@ -214,9 +232,18 @@
                                 </div>
                                 <div class="card-body">
                                     <p>Use AI to extract lottery data from captured screenshots</p>
-                                    <form action="{{ url_for('run_automation_step') }}" method="POST">
+                                    
+                                    <!-- Progress indicator for this step -->
+                                    <div id="ai_process-progress" class="d-none mb-3">
+                                        <div class="progress">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 100%"></div>
+                                        </div>
+                                        <small class="text-muted">AI analyzing lottery screenshots...</small>
+                                    </div>
+                                    
+                                    <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('ai_process')">
                                         <input type="hidden" name="step" value="ai_process">
-                                        <button type="submit" class="btn btn-success w-100">
+                                        <button type="submit" class="btn btn-success w-100" id="ai_process-btn">
                                             <i class="fas fa-robot me-2"></i> Process with AI
                                         </button>
                                     </form>
@@ -235,9 +262,18 @@
                                 </div>
                                 <div class="card-body">
                                     <p>Save extracted lottery data to your database</p>
-                                    <form action="{{ url_for('run_automation_step') }}" method="POST">
+                                    
+                                    <!-- Progress indicator for this step -->
+                                    <div id="database_update-progress" class="d-none mb-3">
+                                        <div class="progress">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%"></div>
+                                        </div>
+                                        <small class="text-muted">Updating database with lottery results...</small>
+                                    </div>
+                                    
+                                    <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('database_update')">
                                         <input type="hidden" name="step" value="database_update">
-                                        <button type="submit" class="btn btn-primary w-100">
+                                        <button type="submit" class="btn btn-primary w-100" id="database_update-btn">
                                             <i class="fas fa-database me-2"></i> Update Database
                                         </button>
                                     </form>
@@ -620,5 +656,66 @@ document.addEventListener('DOMContentLoaded', function() {
         addStepButtonProgress(button, 'Syncing');
     });
 });
+
+// Function to show progress for individual steps
+function showStepProgress(stepName) {
+    const progressDiv = document.getElementById(stepName + '-progress');
+    const button = document.getElementById(stepName + '-btn');
+    
+    if (progressDiv && button) {
+        // Show progress bar
+        progressDiv.classList.remove('d-none');
+        
+        // Disable and update button
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processing...';
+        
+        // Add visual feedback
+        button.classList.add('disabled');
+        
+        // Set a timeout to re-enable button if something goes wrong
+        setTimeout(() => {
+            if (button.disabled) {
+                button.disabled = false;
+                button.classList.remove('disabled');
+                progressDiv.classList.add('d-none');
+                
+                // Restore original button content
+                const originalContent = {
+                    'cleanup': '<i class="fas fa-broom me-2"></i> Clear Old Screenshots',
+                    'capture': '<i class="fas fa-camera me-2"></i> Capture Screenshots',
+                    'ai_process': '<i class="fas fa-robot me-2"></i> Process with AI',
+                    'database_update': '<i class="fas fa-database me-2"></i> Update Database'
+                };
+                
+                button.innerHTML = originalContent[stepName] || 'Run Step';
+            }
+        }, 300000); // 5 minute timeout
+    }
+}
+
+// Enhanced step button progress handler
+function addStepButtonProgress(button, stepName) {
+    button.addEventListener('click', function(e) {
+        // Show immediate visual feedback
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> ' + stepName + '...';
+        
+        // Add loading class
+        this.classList.add('disabled');
+        
+        // Re-enable after a delay if not handled by server response
+        setTimeout(() => {
+            if (this.disabled) {
+                this.disabled = false;
+                this.classList.remove('disabled');
+                this.innerHTML = this.getAttribute('data-original-text') || stepName;
+            }
+        }, 120000); // 2 minute timeout for individual steps
+    });
+    
+    // Store original text
+    button.setAttribute('data-original-text', button.innerHTML);
+}
 </script>
 {% endblock %}
