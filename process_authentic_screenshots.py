@@ -14,7 +14,7 @@ def process_authentic_lottery_data():
     
     # Authentic lottery data extracted from your National Lottery screenshots
     authentic_data = [
-        # Lotto (Main lottery)
+        # Lotto (Main lottery) - Complete data from authentic screenshot
         {
             "lottery_type": "Lotto",
             "draw_number": "2544",
@@ -22,9 +22,23 @@ def process_authentic_lottery_data():
             "main_numbers": [3, 7, 29, 33, 37, 46],
             "bonus_number": 43,
             "divisions": {
-                "div1": {"winners": 0, "amount": "R119,033.40"},
-                "div2": {"winners": 5, "amount": "R3,696.70"},
-                "div3": {"winners": 3965, "amount": "R141.90"}
+                "div1": {"description": "SIX CORRECT NUMBERS", "winners": 0, "amount": "R0.00"},
+                "div2": {"description": "FIVE CORRECT NUMBERS + BONUS BALL", "winners": 1, "amount": "R119,033.40"},
+                "div3": {"description": "FIVE CORRECT NUMBERS", "winners": 56, "amount": "R3,696.70"},
+                "div4": {"description": "FOUR CORRECT NUMBERS + BONUS BALL", "winners": 117, "amount": "R2,211.70"},
+                "div5": {"description": "FOUR CORRECT NUMBERS", "winners": 3065, "amount": "R141.90"},
+                "div6": {"description": "THREE CORRECT NUMBERS + BONUS BALL", "winners": 3699, "amount": "R102.10"},
+                "div7": {"description": "THREE CORRECT NUMBERS", "winners": 56754, "amount": "R50.00"},
+                "div8": {"description": "TWO CORRECT NUMBERS + BONUS BALL", "winners": 39105, "amount": "R20.00"}
+            },
+            "additional_info": {
+                "rollover_amount": "R50,728,897.73",
+                "rollover_number": 17,
+                "total_pool_size": "R55,746,106.63",
+                "total_sales": "R19,544,815.00",
+                "next_jackpot": "R53,000,000.00",
+                "draw_machine": "RNG2",
+                "next_draw_date": "2025-05-28"
             }
         },
         # Lotto Plus 1
@@ -119,7 +133,10 @@ def process_authentic_lottery_data():
                     draw_date=datetime.fromisoformat(data['draw_date']),
                     numbers=json.dumps(data['main_numbers']),
                     bonus_numbers=json.dumps([data['bonus_number']]) if data.get('bonus_number') else None,
-                    divisions=json.dumps(data['divisions']) if data.get('divisions') else None,
+                    divisions=json.dumps({
+                        'divisions': data['divisions'],
+                        'additional_info': data.get('additional_info', {})
+                    }) if data.get('divisions') else None,
                     source_url='authentic_national_lottery_screenshots',
                     ocr_provider='anthropic',
                     ocr_model='claude-opus-4-20250514',
