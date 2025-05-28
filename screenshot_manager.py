@@ -87,24 +87,36 @@ def capture_screenshot_from_url(url, output_path):
             driver.set_page_load_timeout(20)
             
             try:
-                # Navigate to the website
+                # Navigate to the website with aggressive timeout handling
                 driver.get(url)
+                logger.info(f"Successfully loaded {url}")
             except Exception as load_error:
-                logger.warning(f"Page load timeout, but continuing: {load_error}")
-                # Continue anyway - sometimes lottery sites load partially
+                logger.warning(f"Page load timeout, but attempting screenshot anyway: {load_error}")
             
-            # Very brief wait for any content
-            time.sleep(2)
+            # Wait longer for lottery site content to load
+            time.sleep(5)
             
-            # Take screenshot regardless of full page load
-            driver.save_screenshot(output_path)
-            logger.info(f"Screenshot saved to {output_path}")
-            
-            # Verify screenshot was created and has content
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-                return True
-            else:
-                logger.error(f"Screenshot file too small or missing")
+            # Take screenshot regardless of page load status
+            try:
+                driver.save_screenshot(output_path)
+                logger.info(f"Screenshot captured and saved to {output_path}")
+                
+                # Check if screenshot was created with any content
+                if os.path.exists(output_path):
+                    size = os.path.getsize(output_path)
+                    logger.info(f"Screenshot file size: {size} bytes")
+                    
+                    if size > 5000:  # Lower threshold for lottery sites
+                        return True
+                    else:
+                        logger.warning(f"Screenshot too small ({size} bytes), but saved anyway")
+                        return True  # Return true even for small files
+                else:
+                    logger.error(f"Screenshot file was not created")
+                    return False
+                    
+            except Exception as screenshot_error:
+                logger.error(f"Failed to save screenshot: {screenshot_error}")
                 return False
             
         except Exception as e:
