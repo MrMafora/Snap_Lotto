@@ -16,6 +16,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from models import Screenshot, db
 import logging
 
+# Force Chrome driver path globally
+os.environ['CHROMEDRIVER_PATH'] = '/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver'
+
 logger = logging.getLogger(__name__)
 
 # Global lock to prevent multiple screenshot processes
