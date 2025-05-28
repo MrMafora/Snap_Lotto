@@ -128,11 +128,18 @@
                             </ol>
                         </div>
                         <div class="col-md-4">
-                            <form action="{{ url_for('run_daily_automation') }}" method="POST" class="mb-3">
-                                <button type="submit" class="btn btn-success btn-lg w-100">
-                                    <i class="fas fa-play me-2"></i> Run Complete Workflow
-                                </button>
-                            </form>
+                            <button id="runCompleteWorkflow" class="btn btn-success btn-lg w-100 mb-3" onclick="runCompleteAutomation()">
+                                <i class="fas fa-play me-2"></i> Run Complete Workflow
+                            </button>
+                            
+                            <!-- Progress Display -->
+                            <div id="automationProgress" class="d-none">
+                                <div class="progress mb-3">
+                                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <div id="currentStep" class="text-center small mb-2">Starting automation...</div>
+                                <div id="stepDetails" class="text-center small text-muted"></div>
+                            </div>
                             
                             <div class="text-center">
                                 <small class="text-muted">This may take 5-10 minutes to complete</small>
@@ -478,4 +485,139 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function runCompleteAutomation() {
+    const button = document.getElementById('runCompleteWorkflow');
+    const progressDiv = document.getElementById('automationProgress');
+    const progressBar = document.getElementById('progressBar');
+    const currentStep = document.getElementById('currentStep');
+    const stepDetails = document.getElementById('stepDetails');
+    
+    // Show progress and disable button
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Running...';
+    progressDiv.classList.remove('d-none');
+    
+    const steps = [
+        { name: 'Clearing old screenshots', endpoint: '/admin/run-automation-step', data: {step: 'cleanup'}, progress: 25 },
+        { name: 'Capturing fresh screenshots', endpoint: '/admin/run-automation-step', data: {step: 'capture'}, progress: 50 },
+        { name: 'Processing with AI', endpoint: '/admin/run-automation-step', data: {step: 'ai_process'}, progress: 75 },
+        { name: 'Updating database', endpoint: '/admin/run-automation-step', data: {step: 'database_update'}, progress: 100 }
+    ];
+    
+    try {
+        for (let i = 0; i < steps.length; i++) {
+            const step = steps[i];
+            currentStep.textContent = `Step ${i + 1}/4: ${step.name}`;
+            stepDetails.textContent = 'Processing...';
+            progressBar.style.width = `${step.progress}%`;
+            
+            const formData = new FormData();
+            formData.append('step', step.data.step);
+            
+            const response = await fetch(step.endpoint, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Step failed: ${step.name}`);
+            }
+            
+            stepDetails.textContent = 'Completed successfully';
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause between steps
+        }
+        
+        // Success
+        currentStep.textContent = 'Automation completed successfully!';
+        stepDetails.textContent = 'All lottery data has been updated';
+        progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+        progressBar.classList.add('bg-success');
+        
+        // Reload page after 3 seconds to show results
+        setTimeout(() => {
+            window.location.reload();
+        }, 3000);
+        
+    } catch (error) {
+        // Error handling
+        currentStep.textContent = 'Automation failed';
+        stepDetails.textContent = error.message;
+        progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+        progressBar.classList.add('bg-danger');
+        
+        // Re-enable button after error
+        setTimeout(() => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-play me-2"></i> Run Complete Workflow';
+            progressDiv.classList.add('d-none');
+            progressBar.style.width = '0%';
+            progressBar.classList.remove('bg-danger', 'bg-success');
+            progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+        }, 5000);
+    }
+}
+
+// Add progress indicators to individual step buttons
+function addStepButtonProgress(button, stepName) {
+    const originalHTML = button.innerHTML;
+    
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Show loading state
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processing...';
+        
+        // Submit the form
+        const form = button.closest('form');
+        if (form) {
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form)
+            }).then(response => {
+                if (response.ok) {
+                    // Success - reload to show results
+                    window.location.reload();
+                } else {
+                    // Error - restore button
+                    button.disabled = false;
+                    button.innerHTML = originalHTML;
+                    alert('Step failed. Please try again.');
+                }
+            }).catch(error => {
+                // Network error - restore button
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+                alert('Network error. Please try again.');
+            });
+        }
+    });
+}
+
+// Initialize step button progress on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Add progress to individual step buttons
+    const stepButtons = document.querySelectorAll('form[action*="run-automation-step"] button');
+    stepButtons.forEach(button => {
+        const stepName = button.textContent.trim();
+        addStepButtonProgress(button, stepName);
+    });
+    
+    // Add progress to test AI button
+    const testAIButton = document.querySelector('form[action*="test-ai-extraction"] button');
+    if (testAIButton) {
+        addStepButtonProgress(testAIButton, 'Testing AI');
+    }
+    
+    // Add progress to sync buttons
+    const syncButtons = document.querySelectorAll('form[action*="sync"] button');
+    syncButtons.forEach(button => {
+        addStepButtonProgress(button, 'Syncing');
+    });
+});
+</script>
 {% endblock %}
