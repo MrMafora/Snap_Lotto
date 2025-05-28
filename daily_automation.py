@@ -23,35 +23,34 @@ class DailyLotteryAutomation:
         
     def cleanup_old_screenshots(self):
         """Step 1: Clear old screenshot files"""
-        logger.info("DEBUG: Starting cleanup function")
+        logger.info("Starting cleanup of old screenshots...")
         
         try:
-            logger.info("DEBUG: Cleanup started")
             screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
-            logger.info(f"DEBUG: Screenshot directory: {screenshot_dir}")
-            
             deleted_count = 0
             
             if not os.path.exists(screenshot_dir):
-                logger.info("DEBUG: Screenshot directory doesn't exist, creating it")
+                logger.info("Screenshot directory doesn't exist, creating it")
                 os.makedirs(screenshot_dir, exist_ok=True)
                 return True, 0
             
-            # List files first
-            logger.info("DEBUG: Listing files in screenshot directory")
+            # Actually delete all PNG files to ensure fresh capture
             files = os.listdir(screenshot_dir)
-            logger.info(f"DEBUG: Found {len(files)} files")
+            for filename in files:
+                if filename.endswith('.png'):
+                    file_path = os.path.join(screenshot_dir, filename)
+                    try:
+                        os.remove(file_path)
+                        deleted_count += 1
+                        logger.info(f"Deleted old screenshot: {filename}")
+                    except Exception as file_error:
+                        logger.warning(f"Could not delete {filename}: {str(file_error)}")
             
-            # Skip cleanup for now to isolate the issue
-            logger.info("DEBUG: Skipping actual file deletion for debugging")
-            
-            logger.info(f"DEBUG: Cleanup completed successfully. Would have processed {len(files)} files")
-            return True, len(files)
+            logger.info(f"Cleanup completed. Deleted {deleted_count} old screenshots")
+            return True, deleted_count
             
         except Exception as e:
-            logger.error(f"DEBUG: Exception in cleanup: {str(e)}")
-            import traceback
-            logger.error(f"DEBUG: Traceback: {traceback.format_exc()}")
+            logger.error(f"Failed to cleanup old screenshots: {str(e)}")
             return False, 0
     
     def capture_fresh_screenshots(self):
