@@ -4,75 +4,68 @@ Handles automated screenshot capture and synchronization for lottery data
 """
 
 import os
-import requests
+import subprocess
 import time
 from datetime import datetime
-from playwright.sync_api import sync_playwright
 from models import Screenshot, db
 import logging
 
 logger = logging.getLogger(__name__)
 
-def setup_chrome_driver():
-    """Setup Chrome driver with appropriate options for screenshot capture"""
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--window-size=1920,1080')
-    chrome_options.add_argument('--disable-web-security')
-    chrome_options.add_argument('--allow-running-insecure-content')
-    chrome_options.add_argument('--disable-extensions')
-    chrome_options.add_argument('--disable-plugins')
-    chrome_options.add_argument('--disable-images')
-    chrome_options.add_argument('--disable-javascript')
-    chrome_options.add_argument('--single-process')
-    chrome_options.add_argument('--disable-background-timer-throttling')
-    chrome_options.add_argument('--disable-renderer-backgrounding')
-    chrome_options.add_argument('--disable-backgrounding-occluded-windows')
-    
-    # Set binary location to use system chromium
-    chrome_options.binary_location = '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser'
-    
-    try:
-        from selenium.webdriver.chrome.service import Service
-        service = Service()
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        logger.info("Chrome driver setup successful")
-        return driver
-    except Exception as e:
-        logger.error(f"Failed to setup Chrome driver: {str(e)}")
-        return None
-
 def capture_screenshot_from_url(url, output_path):
-    """Capture a screenshot from a given URL"""
-    driver = setup_chrome_driver()
-    if not driver:
-        return False
-    
+    """Capture a screenshot from a given URL using Puppeteer via Node.js"""
     try:
         logger.info(f"Capturing screenshot from {url}")
-        driver.get(url)
         
-        # Wait for page to load
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.TAG_NAME, "body"))
-        )
+        # Create a simple Node.js script using Puppeteer
+        puppeteer_script = f"""
+const puppeteer = require('puppeteer');
+
+(async () => {{
+  const browser = await puppeteer.launch({{
+    headless: true,
+    args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+  }});
+  
+  const page = await browser.newPage();
+  await page.setViewport({{ width: 1920, height: 1080 }});
+  
+  try {{
+    await page.goto('{url}', {{ waitUntil: 'networkidle0', timeout: 30000 }});
+    await page.waitForTimeout(3000);
+    await page.screenshot({{ path: '{output_path}', fullPage: true }});
+    console.log('Screenshot captured successfully');
+  }} catch (error) {{
+    console.error('Screenshot failed:', error.message);
+    process.exit(1);
+  }} finally {{
+    await browser.close();
+  }}
+}})();
+"""
         
-        # Additional wait for dynamic content
-        time.sleep(3)
+        # Write the script to a temporary file
+        script_path = '/tmp/screenshot_capture.js'
+        with open(script_path, 'w') as f:
+            f.write(puppeteer_script)
         
-        # Take screenshot
-        driver.save_screenshot(output_path)
-        logger.info(f"Screenshot saved to {output_path}")
-        return True
+        # Execute the Node.js script with proper working directory
+        result = subprocess.run(['node', script_path], 
+                              capture_output=True, text=True, timeout=60,
+                              cwd='/home/runner/workspace')
         
+        if result.returncode == 0:
+            logger.info(f"Screenshot saved to {output_path}")
+            # Clean up temporary script
+            os.remove(script_path)
+            return True
+        else:
+            logger.error(f"Puppeteer failed: {result.stderr}")
+            return False
+            
     except Exception as e:
-        logger.error(f"Error capturing screenshot from {url}: {str(e)}")
+        logger.error(f"Failed to capture screenshot from {url}: {str(e)}")
         return False
-    finally:
-        driver.quit()
 
 def retake_all_screenshots(app, use_threading=True):
     """Retake all screenshots from configured URLs"""

@@ -1,5 +1,8 @@
 {pkgs}: {
   deps = [
+    pkgs.nspr
+    pkgs.nss
+    pkgs.glib
     pkgs.jq
     pkgs.tk
     pkgs.tcl
