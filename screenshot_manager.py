@@ -51,32 +51,19 @@ def setup_chrome_driver():
     options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
     
     try:
-        # Force use of system Chrome driver - bypass WebDriverManager
-        import os
-        os.environ['WDM_LOCAL'] = '1'  # Disable WebDriverManager
-        
-        # Use ChromeService with explicit system path
-        service = webdriver.ChromeService(executable_path='/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
+        # Use the working system Chrome driver path directly
+        from selenium.webdriver.chrome.service import Service
+        service = Service('/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
         driver = webdriver.Chrome(service=service, options=options)
         
         # Additional stealth measures
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         
-        logger.info("Chrome driver initialized with system driver and anti-detection features")
+        logger.info("Chrome driver initialized successfully")
         return driver
     except Exception as e:
         logger.error(f"Failed to setup Chrome driver: {str(e)}")
-        logger.info("Attempting fallback Chrome driver setup...")
-        
-        # Fallback: try without service specification
-        try:
-            driver = webdriver.Chrome(options=options)
-            driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-            logger.info("Chrome driver initialized with fallback method")
-            return driver
-        except Exception as fallback_error:
-            logger.error(f"Fallback Chrome driver also failed: {str(fallback_error)}")
-            return None
+        return None
 
 def capture_screenshot_from_url(url, output_path):
     """Capture a screenshot from a given URL with lottery website protection handling"""
