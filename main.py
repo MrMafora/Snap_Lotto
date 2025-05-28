@@ -1259,8 +1259,23 @@ def lottery_results(lottery_type):
     #     data_aggregator = da
     #     logger.info("Loaded data_aggregator module on demand")
     
+    # Map display names to database names for authentic lottery data
+    lottery_type_mapping = {
+        'Lottery': 'Lotto',
+        'Lottery Plus 1': 'Lotto Plus 1', 
+        'Lottery Plus 2': 'Lotto Plus 2',
+        'Powerball': 'PowerBall',
+        'Powerball Plus': 'PowerBall Plus',
+        'Daily Lottery': 'Daily Lotto'
+    }
+    
+    # Get the actual database lottery type name
+    db_lottery_type = lottery_type_mapping.get(lottery_type, lottery_type)
+    
     # Get all results for this lottery type directly from database
-    all_results = LotteryResult.query.filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).all()
+    all_results = LotteryResult.query.filter_by(lottery_type=db_lottery_type).order_by(LotteryResult.draw_date.desc()).all()
+    
+    logger.info(f"Looking for lottery type '{lottery_type}' mapped to DB type '{db_lottery_type}', found {len(all_results)} results")
     
     # Create a paginated result from the raw list
     # This mimics SQLAlchemy's pagination object with the properties the template expects
