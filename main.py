@@ -430,7 +430,9 @@ def logout():
     """Logout route"""
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect('/')
+    from flask import make_response
+    response = make_response('<script>window.location.href="/";</script>')
+    return response
 
 @app.route('/scan-lottery-ticket-south-africa')
 @app.route('/scanner-landing')
