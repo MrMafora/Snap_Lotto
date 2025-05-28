@@ -226,27 +226,27 @@ threading.Thread(target=init_lazy_modules, daemon=True).start()
 
 @app.route('/')
 def home():
-    """Homepage with latest authentic South African lottery results"""
+    """Homepage displaying authentic South African lottery results"""
     from models import LotteryResult
     import json
     
     results = []
     
-    # Get your authentic lottery data from official National Lottery screenshots
+    # Get authentic lottery data from official National Lottery screenshots
     lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'PowerBall', 'PowerBall Plus', 'Daily Lotto']
     
     for lottery_type in lottery_types:
         latest = db.session.query(LotteryResult).filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
         
         if latest and latest.numbers:
-            # Process your authentic numbers
+            # Process authentic numbers
             if isinstance(latest.numbers, list):
                 numbers = latest.numbers
             else:
                 numbers_data = json.loads(latest.numbers) if latest.numbers else []
                 numbers = [int(str(n).strip('"').strip()) for n in numbers_data if str(n).strip()]
             
-            # Process your authentic bonus numbers
+            # Process authentic bonus numbers
             if isinstance(latest.bonus_numbers, list):
                 bonus_numbers = latest.bonus_numbers
             elif latest.bonus_numbers:
@@ -256,8 +256,7 @@ def home():
                 bonus_numbers = []
             
             if numbers:
-                # Create result object for your authentic lottery data
-                class AuthenticResult:
+                class LotteryDisplay:
                     def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
                         self.lottery_type = lottery_type
                         self.draw_number = str(draw_number)
@@ -271,16 +270,10 @@ def home():
                     def get_bonus_numbers_list(self):
                         return self.bonus_numbers
                 
-                result = AuthenticResult(
-                    latest.lottery_type,
-                    latest.draw_number,
-                    latest.draw_date,
-                    numbers,
-                    bonus_numbers
-                )
+                result = LotteryDisplay(latest.lottery_type, latest.draw_number, latest.draw_date, numbers, bonus_numbers)
                 results.append(result)
     
-    # Create display mapping for template
+    # Create display mapping
     sorted_types = {}
     for result in results:
         display_name = result.lottery_type
@@ -292,94 +285,9 @@ def home():
             display_name = 'Powerball Plus'
         elif result.lottery_type == 'Daily Lotto':
             display_name = 'Daily Lottery'
-        
         sorted_types[display_name] = result
     
     return render_template('index.html', results=results, sorted_types=sorted_types)
-        
-        # Use the actual lottery type names from your authentic database
-        db_lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'PowerBall', 'PowerBall Plus', 'Daily Lotto']
-        
-        for db_lottery_type in db_lottery_types:
-            app.logger.info(f"HOMEPAGE: Searching for {db_lottery_type}")
-            latest = db.session.query(LotteryResult).filter_by(lottery_type=db_lottery_type).order_by(LotteryResult.draw_date.desc()).first()
-            
-            if latest:
-                app.logger.info(f"HOMEPAGE: Found {db_lottery_type} draw {latest.draw_number}")
-            else:
-                app.logger.info(f"HOMEPAGE: No data found for {db_lottery_type}")
-            
-            if latest and latest.numbers:
-                try:
-                    # Handle both list and JSON string formats
-                    if isinstance(latest.numbers, list):
-                        numbers = latest.numbers
-                    else:
-                        numbers_data = json.loads(latest.numbers) if latest.numbers else []
-                        numbers = [int(str(n).strip('"').strip()) for n in numbers_data if str(n).strip()]
-                    
-                    if isinstance(latest.bonus_numbers, list):
-                        bonus_numbers = latest.bonus_numbers
-                    elif latest.bonus_numbers:
-                        bonus_data = json.loads(latest.bonus_numbers)
-                        bonus_numbers = [int(str(b).strip('"').strip()) for b in bonus_data if str(b).strip()]
-                    else:
-                        bonus_numbers = []
-                    
-                    if numbers:
-                        # Create proper result object that template expects
-                        class LotteryResultDisplay:
-                            def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
-                                self.lottery_type = lottery_type
-                                self.draw_number = str(draw_number)
-                                self.draw_date = draw_date
-                                self.numbers = numbers
-                                self.bonus_numbers = bonus_numbers
-                            
-                            def get_numbers_list(self):
-                                return self.numbers
-                            
-                            def get_bonus_numbers_list(self):
-                                return self.bonus_numbers
-                        
-                        result = LotteryResultDisplay(
-                            latest.lottery_type,
-                            latest.draw_number,
-                            latest.draw_date,
-                            numbers,
-                            bonus_numbers
-                        )
-                        
-                        results.append(result)
-                        app.logger.info(f"✓ Added {latest.lottery_type} to homepage results")
-                        
-                except Exception as e:
-                    app.logger.error(f"Error processing {db_lottery_type}: {str(e)}")
-                    continue
-                    
-    except Exception as e:
-        app.logger.error(f"Error loading authentic lottery data: {str(e)}")
-    
-    app.logger.info(f"HOMEPAGE: Retrieved {len(results)} lottery results")
-    
-    # Create the sorted_types structure that the template expects
-    sorted_types = {}
-    for result in results:
-        # Map database names to display names
-        display_name = result.lottery_type
-        if result.lottery_type == 'Lotto':
-            display_name = 'Lottery'
-        elif result.lottery_type == 'PowerBall':
-            display_name = 'Powerball'
-        elif result.lottery_type == 'PowerBall Plus':
-            display_name = 'Powerball Plus'
-        elif result.lottery_type == 'Daily Lotto':
-            display_name = 'Daily Lottery'
-        
-        sorted_types[display_name] = result
-    
-    app.logger.info(f"✓ Passing {len(sorted_types)} lottery results to homepage template")
-    app.logger.info(f"✓ Template data: results={len(results)}, sorted_types={list(sorted_types.keys())}")
     
     # Debug: Print first result details
     if results:
