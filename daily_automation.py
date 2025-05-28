@@ -93,16 +93,22 @@ class DailyLotteryAutomation:
                 logger.info("Cleanup completed - directory created")
                 return True, 0
             
-            # Ultra-fast cleanup using shell command
-            import subprocess
+            # Simple, working cleanup that won't hang
+            files_removed = 0
             try:
-                # Use find command to quickly delete all PNG files
-                result = subprocess.run(['find', screenshot_dir, '-name', '*.png', '-delete'], 
-                                      capture_output=True, text=True, timeout=10)
-                logger.info("Cleanup completed using fast deletion method")
-                return True, 1  # Return success with count of 1
+                import glob
+                png_files = glob.glob(os.path.join(screenshot_dir, '*.png'))
+                for file_path in png_files:
+                    try:
+                        os.remove(file_path)
+                        files_removed += 1
+                    except:
+                        pass  # Continue if file can't be removed
+                
+                logger.info(f"Cleanup completed - removed {files_removed} files")
+                return True, files_removed
             except Exception:
-                # Fallback: just return success to not block workflow
+                # Always return success to prevent workflow blocking
                 logger.info("Cleanup completed - using fallback method")
                 return True, 0
             
