@@ -84,50 +84,20 @@ def capture_screenshot_from_url(url, output_path):
         try:
             logger.info(f"Capturing screenshot from {url}")
             
-            # Set aggressive timeout to prevent hanging on lottery sites
-            driver.set_page_load_timeout(20)
+            # Set shorter timeout like yesterday
+            driver.set_page_load_timeout(10)
             
             try:
-                # Human-like navigation behavior
-                logger.info(f"Starting human-like navigation to {url}")
-                
-                # First visit a common site to establish normal browsing pattern
-                driver.get("https://www.google.com")
-                time.sleep(random.uniform(1.5, 3.0))
-                
-                # Now navigate to the lottery site like a human would
+                # Navigate directly to the lottery website
+                logger.info(f"Navigating to {url}")
                 driver.get(url)
-                logger.info(f"Navigated to lottery website")
                 
-                # Human-like behavior: wait and scroll like a real user
-                time.sleep(random.uniform(3.0, 6.0))
-                
-                # Simulate human scrolling behavior
-                for _ in range(3):
-                    driver.execute_script("window.scrollBy(0, 300);")
-                    time.sleep(random.uniform(0.8, 1.5))
-                
-                # Scroll back to top to capture the important content
-                driver.execute_script("window.scrollTo(0, 0);")
-                time.sleep(random.uniform(2.0, 4.0))
-                
-                # Simulate mouse movement (human-like cursor activity)
-                try:
-                    from selenium.webdriver.common.action_chains import ActionChains
-                    actions = ActionChains(driver)
-                    body = driver.find_element("tag name", "body")
-                    actions.move_to_element(body).perform()
-                    time.sleep(random.uniform(1.0, 2.0))
-                except:
-                    pass  # Continue if mouse simulation fails
-                
-                logger.info(f"Completed human-like browsing simulation")
+                # Wait for page to load
+                time.sleep(3)
+                logger.info(f"Page loaded, ready for screenshot")
                 
             except Exception as load_error:
-                logger.warning(f"Navigation completed with some issues: {load_error}")
-            
-            # Final wait before screenshot
-            time.sleep(random.uniform(2.0, 4.0))
+                logger.warning(f"Page load timeout, continuing with screenshot: {load_error}")
             
             # Take screenshot with retry mechanism
             for attempt in range(3):
