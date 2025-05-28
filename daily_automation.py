@@ -83,8 +83,57 @@ class DailyLotteryAutomation:
             # Get the screenshots directory
             screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
             if not os.path.exists(screenshot_dir):
-                logger.warning("Screenshots directory not found")
+                logger.error("Screenshots directory not found - cannot process AI data")
                 return False, 0
+            
+            # Check if we have fresh screenshots to process
+            png_files = [f for f in os.listdir(screenshot_dir) if f.endswith('.png')]
+            if not png_files:
+                logger.error("No screenshot files found in screenshots directory")
+                logger.error("Please run 'Clear Old Screenshots' followed by 'Capture Screenshots' first")
+                return False, 0
+            
+            # Check if screenshots are recent (within last 24 hours)
+            import time
+            current_time = time.time()
+            fresh_screenshots = []
+            
+            for png_file in png_files:
+                file_path = os.path.join(screenshot_dir, png_file)
+                file_mod_time = os.path.getmtime(file_path)
+                age_hours = (current_time - file_mod_time) / 3600
+                
+                if age_hours <= 24:  # Less than 24 hours old
+                    fresh_screenshots.append(png_file)
+                else:
+                    logger.warning(f"Screenshot {png_file} is {age_hours:.1f} hours old - may be stale")
+            
+            if not fresh_screenshots:
+                logger.error("No fresh screenshots found (all files are older than 24 hours)")
+                logger.error("Please run 'Capture Screenshots' to get fresh lottery data")
+                return False, 0
+            
+            # Validate we have the minimum required lottery screenshots
+            required_lottery_types = ['lotto', 'powerball', 'daily']
+            found_types = set()
+            
+            for screenshot in fresh_screenshots:
+                screenshot_lower = screenshot.lower()
+                if 'lotto' in screenshot_lower:
+                    found_types.add('lotto')
+                elif 'powerball' in screenshot_lower:
+                    found_types.add('powerball')  
+                elif 'daily' in screenshot_lower:
+                    found_types.add('daily')
+            
+            missing_types = [t for t in required_lottery_types if t not in found_types]
+            if missing_types:
+                logger.warning(f"Missing screenshots for lottery types: {missing_types}")
+                logger.warning("AI will process available screenshots but some lottery data may be incomplete")
+            
+            logger.info(f"Found {len(fresh_screenshots)} fresh screenshots to process:")
+            for screenshot in fresh_screenshots:
+                logger.info(f"  - {screenshot}")
             
             # Process all fresh PNG files in the directory
             processed_count = self.data_extractor.process_all_images(screenshot_dir)
