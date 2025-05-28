@@ -91,8 +91,13 @@ class LotteryDataExtractor:
                 ]
             )
             
-            # Parse the response
-            response_text = message.content[0].text
+            # Parse the response - handle different response types
+            if hasattr(message.content[0], 'text'):
+                response_text = message.content[0].text
+            else:
+                response_text = str(message.content[0])
+            
+            logging.info(f"Raw API response: {response_text[:200]}...")
             
             # Extract JSON from response - handle multiple JSON objects
             try:
