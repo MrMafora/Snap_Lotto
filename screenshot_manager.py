@@ -138,16 +138,69 @@ def capture_screenshot_from_url(url, output_path):
                     driver.execute_script("window.scrollTo(0, 0);")
                     time.sleep(1)
                     
-                    # Take the full screenshot
-                    driver.save_screenshot(output_path)
+                    # Take the full screenshot first
+                    temp_path = output_path.replace('.png', '_temp.png')
+                    driver.save_screenshot(temp_path)
                     
-                    # Verify screenshot was created
+                    # Crop the screenshot to remove white space and focus on lottery content
+                    if os.path.exists(temp_path):
+                        try:
+                            from PIL import Image
+                            import numpy as np
+                            
+                            # Open and process the image
+                            img = Image.open(temp_path)
+                            img_array = np.array(img)
+                            
+                            # Find the content boundaries by detecting non-white areas
+                            # Look for areas that aren't pure white (255,255,255)
+                            gray = np.mean(img_array, axis=2)
+                            content_mask = gray < 250  # Slightly less than pure white to catch subtle content
+                            
+                            # Find bounding box of content
+                            rows = np.any(content_mask, axis=1)
+                            cols = np.any(content_mask, axis=0)
+                            
+                            if np.any(rows) and np.any(cols):
+                                top, bottom = np.where(rows)[0][[0, -1]]
+                                left, right = np.where(cols)[0][[0, -1]]
+                                
+                                # Add small padding around content
+                                padding = 50
+                                top = max(0, top - padding)
+                                left = max(0, left - padding)
+                                bottom = min(img_array.shape[0], bottom + padding)
+                                right = min(img_array.shape[1], right + padding)
+                                
+                                # Crop the image to content area
+                                cropped_img = img.crop((left, top, right, bottom))
+                                cropped_img.save(output_path, 'PNG', quality=95)
+                                
+                                logger.info(f"✓ Screenshot cropped from {img.size} to {cropped_img.size}")
+                            else:
+                                # If no content detected, save original
+                                img.save(output_path, 'PNG', quality=95)
+                                logger.warning("No content boundaries detected, saving original")
+                            
+                            # Clean up temp file
+                            os.remove(temp_path)
+                            
+                        except ImportError:
+                            # If PIL not available, use original screenshot
+                            os.rename(temp_path, output_path)
+                            logger.warning("PIL not available, using uncropped screenshot")
+                        except Exception as crop_error:
+                            # If cropping fails, use original screenshot
+                            os.rename(temp_path, output_path)
+                            logger.warning(f"Cropping failed, using original: {crop_error}")
+                    
+                    # Verify final screenshot was created
                     if os.path.exists(output_path):
                         size = os.path.getsize(output_path)
-                        logger.info(f"Screenshot saved! File size: {size} bytes")
+                        logger.info(f"Final screenshot saved! File size: {size} bytes")
                         
                         if size > 5000:
-                            logger.info("✓ Screenshot captured successfully with good content")
+                            logger.info("✓ Screenshot captured and optimized successfully")
                             return True
                         else:
                             logger.warning(f"Screenshot small ({size} bytes) but saved")
