@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.chromedriver
     pkgs.jq
     pkgs.tk
     pkgs.tcl

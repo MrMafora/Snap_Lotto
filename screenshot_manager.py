@@ -18,41 +18,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 def setup_chrome_driver():
-    """Setup Chrome driver with human-like options to bypass anti-scraping"""
+    """Simple Chrome driver setup that works reliably"""
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--window-size=1920,1080')
-    chrome_options.add_argument('--remote-debugging-port=9222')
-    chrome_options.add_argument('--disable-background-timer-throttling')
-    chrome_options.add_argument('--disable-backgrounding-occluded-windows')
-    chrome_options.add_argument('--disable-renderer-backgrounding')
     
-    # Human-like browser settings to avoid detection
+    # Human-like user agent
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36')
-    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    chrome_options.add_experimental_option('useAutomationExtension', False)
-    
-    # Set the Chrome binary location
-    chrome_options.binary_location = '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser'
     
     try:
-        # Try to use Chrome with explicit driver path
-        driver_path = '/home/runner/.cache/selenium/chromedriver/linux64/125.0.6422.141/chromedriver'
-        if os.path.exists(driver_path):
-            from selenium.webdriver.chrome.service import Service
-            service = Service(driver_path)
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-        else:
-            # Fallback to automatic driver
-            driver = webdriver.Chrome(options=chrome_options)
-        
-        # Remove navigator.webdriver flag to appear more human-like
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        logger.info("Chrome driver initialized successfully with human-like settings")
+        # Simple Chrome driver initialization
+        driver = webdriver.Chrome(options=chrome_options)
+        logger.info("Chrome driver initialized successfully")
         return driver
     except Exception as e:
         logger.error(f"Failed to setup Chrome driver: {str(e)}")
