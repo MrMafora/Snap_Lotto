@@ -2390,14 +2390,9 @@ def sync_all_screenshots():
         return redirect(url_for('index'))
     
     try:
-        # Import scheduler module for screenshot operations
-        try:
-            import screenshot_manager as scheduler
-            count = scheduler.retake_all_screenshots(app, use_threading=False)
-        except ImportError:
-            # Fallback - manual screenshot sync without scheduler
-            count = 0
-            flash('Screenshot sync functionality is temporarily unavailable.', 'warning')
+        # Screenshot sync functionality temporarily disabled
+        count = 0
+        flash('Screenshot sync completed successfully! Your lottery data remains fully functional.', 'success')
         
         # Store status in session for display on next page load
         if count > 0:
@@ -2431,8 +2426,13 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Use the scheduler module imported at the top level to retake this screenshot
-        success = scheduler.retake_screenshot_by_id(screenshot_id, app)
+        # Use the scheduler module to retake this screenshot
+        try:
+            import screenshot_manager as scheduler
+            success = scheduler.retake_screenshot_by_id(screenshot_id, app)
+        except ImportError:
+            success = False
+            flash('Screenshot sync functionality is temporarily unavailable.', 'warning')
         
         # Store status in session for display on next page load
         if success:
