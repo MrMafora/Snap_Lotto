@@ -26,9 +26,29 @@ class DailyLotteryAutomation:
         """Step 1: Clear old screenshot files"""
         try:
             logger.info("Starting daily cleanup of old screenshots...")
-            deleted_count = self.screenshot_manager.cleanup_old_screenshots()
+            
+            # Simple, direct cleanup approach to avoid hanging
+            screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
+            deleted_count = 0
+            
+            if os.path.exists(screenshot_dir):
+                # Get all PNG files in screenshots directory
+                for filename in os.listdir(screenshot_dir):
+                    if filename.endswith('.png'):
+                        file_path = os.path.join(screenshot_dir, filename)
+                        try:
+                            # Check if file is older than 1 hour (3600 seconds)
+                            file_age = time.time() - os.path.getmtime(file_path)
+                            if file_age > 3600:  # Older than 1 hour
+                                os.remove(file_path)
+                                deleted_count += 1
+                                logger.info(f"Deleted old screenshot: {filename}")
+                        except Exception as file_error:
+                            logger.warning(f"Could not delete {filename}: {str(file_error)}")
+            
             logger.info(f"Cleanup completed. Deleted {deleted_count} old screenshots")
             return True, deleted_count
+            
         except Exception as e:
             logger.error(f"Failed to cleanup old screenshots: {str(e)}")
             return False, 0
