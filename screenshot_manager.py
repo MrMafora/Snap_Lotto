@@ -7,11 +7,7 @@ import os
 import requests
 import time
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from playwright.sync_api import sync_playwright
 from models import Screenshot, db
 import logging
 
@@ -27,9 +23,23 @@ def setup_chrome_driver():
     chrome_options.add_argument('--window-size=1920,1080')
     chrome_options.add_argument('--disable-web-security')
     chrome_options.add_argument('--allow-running-insecure-content')
+    chrome_options.add_argument('--disable-extensions')
+    chrome_options.add_argument('--disable-plugins')
+    chrome_options.add_argument('--disable-images')
+    chrome_options.add_argument('--disable-javascript')
+    chrome_options.add_argument('--single-process')
+    chrome_options.add_argument('--disable-background-timer-throttling')
+    chrome_options.add_argument('--disable-renderer-backgrounding')
+    chrome_options.add_argument('--disable-backgrounding-occluded-windows')
+    
+    # Set binary location to use system chromium
+    chrome_options.binary_location = '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser'
     
     try:
-        driver = webdriver.Chrome(options=chrome_options)
+        from selenium.webdriver.chrome.service import Service
+        service = Service()
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        logger.info("Chrome driver setup successful")
         return driver
     except Exception as e:
         logger.error(f"Failed to setup Chrome driver: {str(e)}")
