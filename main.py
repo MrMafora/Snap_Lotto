@@ -230,6 +230,8 @@ def home():
     from models import LotteryResult
     import json
     
+    print("🔴 HOMEPAGE ROUTE HIT - Loading authentic lottery data")
+    app.logger.info("=== HOMEPAGE: Loading authentic lottery data ===")
     results = []
     
     # Get authentic lottery data from official National Lottery screenshots
@@ -237,8 +239,11 @@ def home():
     
     for lottery_type in lottery_types:
         latest = db.session.query(LotteryResult).filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+        app.logger.info(f"HOMEPAGE: Checking {lottery_type} - Found: {latest is not None}")
         
         if latest and latest.numbers:
+            app.logger.info(f"HOMEPAGE: {lottery_type} - Draw {latest.draw_number}, Numbers: {latest.numbers}")
+            
             # Process authentic numbers
             if isinstance(latest.numbers, list):
                 numbers = latest.numbers
@@ -272,6 +277,9 @@ def home():
                 
                 result = LotteryDisplay(latest.lottery_type, latest.draw_number, latest.draw_date, numbers, bonus_numbers)
                 results.append(result)
+                app.logger.info(f"HOMEPAGE: ✓ Added {lottery_type} to results - Numbers: {numbers}")
+    
+    app.logger.info(f"HOMEPAGE: Total results to display: {len(results)}")
     
     # Create display mapping
     sorted_types = {}
@@ -287,13 +295,7 @@ def home():
             display_name = 'Daily Lottery'
         sorted_types[display_name] = result
     
-    return render_template('index.html', results=results, sorted_types=sorted_types)
-    
-    # Debug: Print first result details
-    if results:
-        first_result = results[0]
-        app.logger.info(f"✓ First result: {first_result.lottery_type}, draw {first_result.draw_number}, numbers {first_result.numbers}")
-    
+    app.logger.info(f"HOMEPAGE: Sorted types keys: {list(sorted_types.keys())}")
     return render_template('index.html', results=results, sorted_types=sorted_types)
 
 
