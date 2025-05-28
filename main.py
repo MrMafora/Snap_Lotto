@@ -396,7 +396,7 @@ def admin():
 def login():
     """Login page"""
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('home'))
     
     if request.method == 'POST':
         username = request.form.get('username')
