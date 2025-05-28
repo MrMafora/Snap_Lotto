@@ -208,29 +208,35 @@ def retake_screenshot_by_id(screenshot_id, app):
 def retake_single_screenshot(screenshot, app):
     """Retake a single screenshot object"""
     try:
+        from models import db
+        
         # Ensure screenshots directory exists
         screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
         os.makedirs(screenshot_dir, exist_ok=True)
         
-        # Generate filename
+        # Generate filename based on lottery type and URL
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{screenshot.lottery_type}_{timestamp}.png"
+        url_part = screenshot.url.split('/')[-1] if screenshot.url else 'unknown'
+        filename = f"{timestamp}_{url_part}.png"
         output_path = os.path.join(screenshot_dir, filename)
         
-        # Capture screenshot
+        logger.info(f"Attempting to retake screenshot: {screenshot.lottery_type} from {screenshot.url}")
+        
+        # Capture screenshot using human-like browser behavior
         if capture_screenshot_from_url(screenshot.url, output_path):
-            # Update database record
-            screenshot.filename = filename
-            screenshot.file_path = output_path
-            screenshot.last_updated = datetime.utcnow()
-            screenshot.status = 'success'
-            db.session.commit()
+            # Update database record with new path and timestamp
+            screenshot.path = output_path
+            screenshot.timestamp = datetime.utcnow()
+            screenshot.processed = False  # Mark as unprocessed for fresh data
             
-            logger.info(f"Successfully updated screenshot for {screenshot.lottery_type}")
+            with app.app_context():
+                db.session.commit()
+            
+            logger.info(f"✓ Successfully updated screenshot for {screenshot.lottery_type}")
+            logger.info(f"✓ New file saved: {output_path}")
             return True
         else:
-            screenshot.status = 'failed'
-            db.session.commit()
+            logger.warning(f"Failed to capture screenshot for {screenshot.lottery_type}")
             return False
             
     except Exception as e:
