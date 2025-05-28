@@ -230,15 +230,15 @@ def home():
     results = []
     
     try:
-        # Get your authentic data using the proven working approach
+        # Get your authentic data using the actual database names
         from models import LotteryResult
         import json
         
-        # Get one latest result per lottery type
-        lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lottery']
+        # Use the actual lottery type names from your authentic database
+        db_lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'PowerBall', 'PowerBall Plus', 'Daily Lotto']
         
-        for lottery_type in lottery_types:
-            latest = db.session.query(LotteryResult).filter_by(lottery_type=lottery_type).order_by(LotteryResult.draw_date.desc()).first()
+        for db_lottery_type in db_lottery_types:
+            latest = db.session.query(LotteryResult).filter_by(lottery_type=db_lottery_type).order_by(LotteryResult.draw_date.desc()).first()
             
             if latest and latest.numbers:
                 try:
@@ -273,9 +273,10 @@ def home():
                         )
                         
                         results.append(result)
+                        app.logger.info(f"✓ Added {latest.lottery_type} to homepage results")
                         
                 except Exception as e:
-                    logger.error(f"Error processing {lottery_type}: {str(e)}")
+                    app.logger.error(f"Error processing {db_lottery_type}: {str(e)}")
                     continue
                     
     except Exception as e:
