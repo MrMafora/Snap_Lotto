@@ -242,11 +242,20 @@ def home():
             
             if latest and latest.numbers:
                 try:
-                    numbers_data = json.loads(latest.numbers) if latest.numbers else []
-                    bonus_data = json.loads(latest.bonus_numbers) if latest.bonus_numbers else []
+                    # Handle both list and JSON string formats
+                    if isinstance(latest.numbers, list):
+                        numbers = latest.numbers
+                    else:
+                        numbers_data = json.loads(latest.numbers) if latest.numbers else []
+                        numbers = [int(str(n).strip('"').strip()) for n in numbers_data if str(n).strip()]
                     
-                    numbers = [int(str(n).strip('"').strip()) for n in numbers_data if str(n).strip()]
-                    bonus_numbers = [int(str(b).strip('"').strip()) for b in bonus_data if str(b).strip()]
+                    if isinstance(latest.bonus_numbers, list):
+                        bonus_numbers = latest.bonus_numbers
+                    elif latest.bonus_numbers:
+                        bonus_data = json.loads(latest.bonus_numbers)
+                        bonus_numbers = [int(str(b).strip('"').strip()) for b in bonus_data if str(b).strip()]
+                    else:
+                        bonus_numbers = []
                     
                     if numbers:
                         # Create proper result object that template expects
@@ -280,9 +289,27 @@ def home():
                     continue
                     
     except Exception as e:
-        logger.error(f"Error loading authentic lottery data: {str(e)}")
+        app.logger.error(f"Error loading authentic lottery data: {str(e)}")
     
-    return render_template('index.html', results=results)
+    # Create the sorted_types structure that the template expects
+    sorted_types = {}
+    for result in results:
+        # Map database names to display names
+        display_name = result.lottery_type
+        if result.lottery_type == 'Lotto':
+            display_name = 'Lottery'
+        elif result.lottery_type == 'PowerBall':
+            display_name = 'Powerball'
+        elif result.lottery_type == 'PowerBall Plus':
+            display_name = 'Powerball Plus'
+        elif result.lottery_type == 'Daily Lotto':
+            display_name = 'Daily Lottery'
+        
+        sorted_types[display_name] = result
+    
+    app.logger.info(f"✓ Passing {len(sorted_types)} lottery results to homepage template")
+    
+    return render_template('index.html', results=results, sorted_types=sorted_types)
 
 
 @app.route('/debug-data')
