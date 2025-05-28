@@ -7,48 +7,62 @@ import os
 import requests
 import time
 from datetime import datetime
-from playwright.sync_api import sync_playwright
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from models import Screenshot, db
 import logging
 
 logger = logging.getLogger(__name__)
 
-def capture_screenshot_from_url(url, output_path):
-    """Capture a screenshot from a given URL using requests + web scraping"""
+def setup_chrome_driver():
+    """Setup Chrome driver with appropriate options for screenshot capture"""
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_argument('--disable-web-security')
+    chrome_options.add_argument('--allow-running-insecure-content')
+    
     try:
-        logger.info(f"Capturing data from {url}")
+        driver = webdriver.Chrome(options=chrome_options)
+        return driver
+    except Exception as e:
+        logger.error(f"Failed to setup Chrome driver: {str(e)}")
+        return None
+
+def capture_screenshot_from_url(url, output_path):
+    """Capture a screenshot from a given URL"""
+    driver = setup_chrome_driver()
+    if not driver:
+        return False
+    
+    try:
+        logger.info(f"Capturing screenshot from {url}")
+        driver.get(url)
         
-        # For now, create a placeholder file to test the automation workflow
-        # This simulates capturing fresh lottery data
-        import base64
-        from PIL import Image, ImageDraw, ImageFont
+        # Wait for page to load
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        )
         
-        # Create a simple image showing the URL being processed
-        img = Image.new('RGB', (1920, 1080), color='white')
-        draw = ImageDraw.Draw(img)
+        # Additional wait for dynamic content
+        time.sleep(3)
         
-        # Add text showing this is a fresh capture
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        text = f"Fresh lottery data captured from:\n{url}\nTimestamp: {timestamp}"
-        
-        try:
-            # Try to use a basic font
-            font = ImageFont.load_default()
-        except:
-            # Fallback if font loading fails
-            pass
-            
-        draw.text((50, 50), text, fill='black')
-        
-        # Save the image
-        img.save(output_path)
-        
+        # Take screenshot
+        driver.save_screenshot(output_path)
         logger.info(f"Screenshot saved to {output_path}")
         return True
         
     except Exception as e:
-        logger.error(f"Failed to capture screenshot from {url}: {str(e)}")
+        logger.error(f"Error capturing screenshot from {url}: {str(e)}")
         return False
+    finally:
+        driver.quit()
 
 def retake_all_screenshots(app, use_threading=True):
     """Retake all screenshots from configured URLs"""
