@@ -177,6 +177,18 @@ class LotteryResult(db.Model):
             except json.JSONDecodeError:
                 return {}
         return {}
+    
+    def get_parsed_divisions(self):
+        """Return parsed divisions data for template display"""
+        if not self.divisions or self.divisions == '[]':
+            return None
+            
+        try:
+            # Parse the JSON string from the database
+            division_data = json.loads(self.divisions)
+            return division_data
+        except (json.JSONDecodeError, TypeError):
+            return None
         
     def get_formatted_date(self):
         """Return properly formatted date string (YYYY-MM-DD)"""
