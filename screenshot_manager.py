@@ -9,11 +9,9 @@ import time
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 from models import Screenshot, db
 import logging
 
@@ -27,26 +25,34 @@ def setup_chrome_driver():
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_argument('--remote-debugging-port=9222')
+    chrome_options.add_argument('--disable-background-timer-throttling')
+    chrome_options.add_argument('--disable-backgrounding-occluded-windows')
+    chrome_options.add_argument('--disable-renderer-backgrounding')
     
     # Human-like browser settings to avoid detection
-    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-    chrome_options.add_argument('--accept-lang=en-US,en;q=0.9')
-    chrome_options.add_argument('--accept-encoding=gzip, deflate, br')
-    chrome_options.add_argument('--accept=text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8')
+    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36')
     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
     
+    # Set the Chrome binary location
     chrome_options.binary_location = '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser'
     
     try:
-        # Use WebDriver Manager to get the correct ChromeDriver
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        # Try to use Chrome with explicit driver path
+        driver_path = '/home/runner/.cache/selenium/chromedriver/linux64/125.0.6422.141/chromedriver'
+        if os.path.exists(driver_path):
+            from selenium.webdriver.chrome.service import Service
+            service = Service(driver_path)
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+        else:
+            # Fallback to automatic driver
+            driver = webdriver.Chrome(options=chrome_options)
         
-        # Remove navigator.webdriver flag
+        # Remove navigator.webdriver flag to appear more human-like
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        logger.info("Chrome driver initialized with human-like settings")
+        logger.info("Chrome driver initialized successfully with human-like settings")
         return driver
     except Exception as e:
         logger.error(f"Failed to setup Chrome driver: {str(e)}")
