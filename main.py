@@ -218,12 +218,7 @@ def init_lazy_modules():
     
     logger.info("All modules lazy-loaded successfully")
 
-# Start lazy loading in background thread
-threading.Thread(target=init_lazy_modules, daemon=True).start()
-
-# Additional routes and functionality would be defined here...
-# For the sake of brevity, only core routes are included
-
+# HOMEPAGE ROUTE - Must be first to ensure authentic lottery data displays
 @app.route('/')
 def home():
     """Homepage displaying authentic South African lottery results"""
@@ -298,6 +293,8 @@ def home():
     app.logger.info(f"HOMEPAGE: Sorted types keys: {list(sorted_types.keys())}")
     return render_template('index.html', results=results, sorted_types=sorted_types)
 
+# Start lazy loading in background thread AFTER homepage route is registered
+threading.Thread(target=init_lazy_modules, daemon=True).start()
 
 @app.route('/debug-data')
 def debug_data():
