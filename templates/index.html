@@ -234,6 +234,10 @@
                                 {% set display_type = result.lottery_type %}
                                 {% if 'Lotto' in display_type %}
                                     {% set display_type = display_type.replace('Lotto', 'Lottery') %}
+                                {% elif result.lottery_type == 'PowerBall' %}
+                                    {% set display_type = 'Powerball' %}
+                                {% elif result.lottery_type == 'PowerBall Plus' %}
+                                    {% set display_type = 'Powerball Plus' %}
                                 {% endif %}
                                 {% if display_type in sorted_types and sorted_types[display_type] is none %}
                                     {% set _ = sorted_types.update({display_type: result}) %}
