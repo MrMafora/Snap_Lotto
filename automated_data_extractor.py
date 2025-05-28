@@ -159,8 +159,10 @@ class LotteryDataExtractor:
                 draw_date=datetime.fromisoformat(extracted_data['draw_date']) if extracted_data.get('draw_date') else None,
                 numbers=json.dumps(extracted_data['main_numbers']),
                 bonus_numbers=json.dumps([extracted_data['bonus_number']]) if extracted_data.get('bonus_number') else None,
-                screenshot_url=extracted_data.get('source_image'),
-                verified=True if extracted_data.get('confidence', 0) >= 95 else False
+                source_url=extracted_data.get('source_image', 'extracted_from_screenshots'),
+                ocr_provider='anthropic',
+                ocr_model='claude-opus-4-20250514',
+                ocr_timestamp=datetime.utcnow()
             )
             
             db.session.add(lottery_result)
