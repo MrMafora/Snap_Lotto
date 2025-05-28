@@ -279,6 +279,46 @@ def cleanup_old_screenshots():
         logger.error(f"Error during cleanup: {str(e)}")
         return 0
 
+def retake_selected_screenshots(app, selected_urls, use_threading=True):
+    """Retake screenshots for specific lottery URLs
+    
+    Args:
+        app: Flask application instance
+        selected_urls (list): List of URLs to capture screenshots for
+        use_threading (bool): Whether to use threading for captures
+        
+    Returns:
+        int: Number of screenshots successfully captured
+    """
+    if not selected_urls:
+        logger.warning("No URLs provided for screenshot capture")
+        return 0
+        
+    with _screenshot_lock:
+        logger.info(f"Starting selective screenshot capture for {len(selected_urls)} URLs")
+        
+        with app.app_context():
+            success_count = 0
+            
+            for url in selected_urls:
+                try:
+                    logger.info(f"Capturing screenshot for: {url}")
+                    success = take_single_screenshot(url, app)
+                    if success:
+                        success_count += 1
+                        logger.info(f"Successfully captured screenshot for {url}")
+                    else:
+                        logger.warning(f"Failed to capture screenshot for {url}")
+                        
+                    # Small delay between captures to avoid rate limiting
+                    time.sleep(2)
+                    
+                except Exception as e:
+                    logger.error(f"Error capturing screenshot for {url}: {str(e)}")
+                    
+            logger.info(f"Selective screenshot capture completed. {success_count}/{len(selected_urls)} successful")
+            return success_count
+
 def init_scheduler(app):
     """Initialize screenshot scheduler (placeholder for future automation)"""
     logger.info("Screenshot manager initialized")

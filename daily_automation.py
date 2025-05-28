@@ -1,6 +1,7 @@
 """
 Daily Automated Lottery Data Processing System
 Handles the complete workflow: Clear → Capture → Process → Update Database
+Now supports smart scheduling by lottery draw groups and days
 """
 
 import os
@@ -15,11 +16,69 @@ from automated_data_extractor import LotteryDataExtractor
 logger = logging.getLogger(__name__)
 
 class DailyLotteryAutomation:
-    """Manages the complete daily automation workflow"""
+    """Manages the complete daily automation workflow with smart group scheduling"""
     
     def __init__(self, app):
         self.app = app
         self.data_extractor = LotteryDataExtractor()
+        
+        # Define lottery groups and their draw schedule
+        self.lottery_groups = {
+            'group1': {
+                'name': 'Lottery Group',
+                'lotteries': ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2'],
+                'urls': [
+                    'https://www.nationallottery.co.za/results/lotto',
+                    'https://www.nationallottery.co.za/results/lotto-plus-1-results',
+                    'https://www.nationallottery.co.za/results/lotto-plus-2-results'
+                ],
+                'draw_days': ['Wednesday', 'Saturday']  # Wednesday=2, Saturday=5
+            },
+            'group2': {
+                'name': 'PowerBall Group', 
+                'lotteries': ['Powerball', 'Powerball Plus'],
+                'urls': [
+                    'https://www.nationallottery.co.za/results/powerball',
+                    'https://www.nationallottery.co.za/results/powerball-plus'
+                ],
+                'draw_days': ['Tuesday', 'Friday']  # Tuesday=1, Friday=4
+            },
+            'group3': {
+                'name': 'Daily Lottery',
+                'lotteries': ['Daily Lotto'],
+                'urls': [
+                    'https://www.nationallottery.co.za/results/daily-lotto'
+                ],
+                'draw_days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']  # Every day
+            }
+        }
+    
+    def get_todays_lottery_groups(self):
+        """Determine which lottery groups have draws today"""
+        today = datetime.now().strftime('%A')  # Gets day name like 'Wednesday'
+        active_groups = []
+        
+        for group_id, group_info in self.lottery_groups.items():
+            if today in group_info['draw_days']:
+                active_groups.append(group_id)
+                logger.info(f"Today ({today}) has draws for {group_info['name']}")
+        
+        return active_groups
+    
+    def get_urls_for_groups(self, groups):
+        """Get all URLs for specified lottery groups"""
+        if groups == ['all']:
+            # Return all URLs from all groups
+            all_urls = []
+            for group_info in self.lottery_groups.values():
+                all_urls.extend(group_info['urls'])
+            return all_urls
+        
+        urls = []
+        for group_id in groups:
+            if group_id in self.lottery_groups:
+                urls.extend(self.lottery_groups[group_id]['urls'])
+        return urls
         
     def cleanup_old_screenshots(self):
         """Step 1: Clear old screenshot files"""
@@ -53,26 +112,49 @@ class DailyLotteryAutomation:
             logger.error(f"Failed to cleanup old screenshots: {str(e)}")
             return False, 0
     
-    def capture_fresh_screenshots(self):
-        """Step 2: Capture brand new screenshots from lottery websites"""
+    def capture_fresh_screenshots(self, groups=None):
+        """Step 2: Capture brand new screenshots from lottery websites
+        
+        Args:
+            groups (list, optional): List of group IDs to capture screenshots for.
+                                   If None or ['all'], captures all groups.
+                                   Examples: ['group1'], ['group2'], ['group1', 'group3'], ['all']
+        """
         try:
-            logger.info("DEBUG: Starting capture of fresh lottery screenshots...")
+            # Determine which groups to process
+            if groups is None:
+                # Auto-detect today's lottery groups for scheduled runs
+                active_groups = self.get_todays_lottery_groups()
+                if not active_groups:
+                    logger.info("No lottery draws scheduled for today - skipping screenshot capture")
+                    return True, 0
+            else:
+                active_groups = groups
+            
+            logger.info(f"Starting capture of fresh lottery screenshots for groups: {active_groups}")
+            
+            # Get URLs for the specified groups
+            urls_to_capture = self.get_urls_for_groups(active_groups)
+            
+            if not urls_to_capture:
+                logger.warning("No URLs found for specified groups")
+                return False, 0
             
             # Import the screenshot manager function directly
-            from screenshot_manager import retake_all_screenshots
+            from screenshot_manager import retake_selected_screenshots
             
             with self.app.app_context():
-                logger.info("DEBUG: Calling retake_all_screenshots...")
-                count = retake_all_screenshots(self.app, use_threading=False)
-                logger.info(f"DEBUG: Screenshot capture returned count: {count}")
+                logger.info(f"Capturing screenshots for {len(urls_to_capture)} lottery sites")
+                count = retake_selected_screenshots(self.app, urls_to_capture, use_threading=False)
+                logger.info(f"Screenshot capture returned count: {count}")
             
             logger.info(f"Fresh screenshot capture completed. Processed {count} lottery sites")
             return True, count
             
         except Exception as e:
-            logger.error(f"DEBUG: Failed to capture fresh screenshots: {str(e)}")
+            logger.error(f"Failed to capture fresh screenshots: {str(e)}")
             import traceback
-            logger.error(f"DEBUG: Traceback: {traceback.format_exc()}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False, 0
     
     def process_screenshots_with_ai(self):
@@ -163,10 +245,32 @@ class DailyLotteryAutomation:
             logger.error(f"Failed to update database: {str(e)}")
             return False, 0
     
-    def run_complete_daily_workflow(self):
-        """Execute the complete daily automation workflow"""
+    def run_complete_daily_workflow(self, groups=None):
+        """Execute the complete daily automation workflow
+        
+        Args:
+            groups (list, optional): List of group IDs to process.
+                                   If None, auto-detects today's active groups.
+                                   Examples: ['group1'], ['group2'], ['group1', 'group3'], ['all']
+        """
+        if groups is None:
+            # Auto-detect today's lottery groups for scheduled runs
+            active_groups = self.get_todays_lottery_groups()
+            if not active_groups:
+                logger.info("No lottery draws scheduled for today - workflow completed")
+                return {
+                    'start_time': datetime.now(),
+                    'cleanup': {'success': True, 'count': 0},
+                    'capture': {'success': True, 'count': 0},
+                    'processing': {'success': True, 'count': 0},
+                    'database': {'success': True, 'count': 0},
+                    'overall_success': True,
+                    'message': 'No draws scheduled for today'
+                }
+            groups = active_groups
+            
         workflow_start = datetime.now()
-        logger.info(f"=== DAILY LOTTERY AUTOMATION STARTED at {workflow_start} ===")
+        logger.info(f"=== DAILY LOTTERY AUTOMATION STARTED at {workflow_start} for groups: {groups} ===")
         
         results = {
             'start_time': workflow_start,
@@ -174,7 +278,8 @@ class DailyLotteryAutomation:
             'capture': {'success': False, 'count': 0},
             'processing': {'success': False, 'count': 0},
             'database': {'success': False, 'count': 0},
-            'overall_success': False
+            'overall_success': False,
+            'groups': groups
         }
         
         try:
@@ -186,8 +291,8 @@ class DailyLotteryAutomation:
                 logger.error("Daily workflow stopped: Cleanup failed")
                 return results
             
-            # Step 2: Capture fresh screenshots
-            capture_success, capture_count = self.capture_fresh_screenshots()
+            # Step 2: Capture fresh screenshots for selected groups
+            capture_success, capture_count = self.capture_fresh_screenshots(groups)
             results['capture'] = {'success': capture_success, 'count': capture_count}
             
             if not capture_success:

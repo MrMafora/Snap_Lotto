@@ -151,6 +151,75 @@
         </div>
     </div>
 
+    <!-- Lottery Group Selection -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header lottery-header">
+                    <h5 class="card-title mb-0">LOTTERY GROUP SELECTION</h5>
+                    <p class="mb-0 text-muted">Choose which lottery groups to process based on South African draw schedule</p>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-primary">Group 1: Lottery</h6>
+                                    <p class="small">Lotto, Lotto Plus 1, Lotto Plus 2</p>
+                                    <p class="small text-muted"><strong>Draw Days:</strong> Wednesday & Saturday</p>
+                                    <button class="btn btn-sm btn-primary" onclick="selectGroup('group1')">Select Group 1</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-success">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-success">Group 2: PowerBall</h6>
+                                    <p class="small">PowerBall, PowerBall Plus</p>
+                                    <p class="small text-muted"><strong>Draw Days:</strong> Tuesday & Friday</p>
+                                    <button class="btn btn-sm btn-success" onclick="selectGroup('group2')">Select Group 2</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-warning">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-warning">Group 3: Daily</h6>
+                                    <p class="small">Daily Lotto</p>
+                                    <p class="small text-muted"><strong>Draw Days:</strong> Every Day</p>
+                                    <button class="btn btn-sm btn-warning" onclick="selectGroup('group3')">Select Group 3</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-danger">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title text-danger">Group 4: All</h6>
+                                    <p class="small">All Lottery Types</p>
+                                    <p class="small text-muted"><strong>Process:</strong> Complete Coverage</p>
+                                    <button class="btn btn-sm btn-danger" onclick="selectGroup('all')">Select All Groups</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Smart Scheduling:</strong> The automated system runs daily at 1:00 AM and automatically processes only the lottery groups that have draws scheduled for that day.
+                                <br><strong>Manual Control:</strong> You can override this and run any group manually using the controls below.
+                            </div>
+                            <div id="selected-group-info" class="alert alert-secondary d-none">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <span id="selected-group-text">No group selected</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Individual Automation Steps -->
     <div class="row mb-4">
         <div class="col-12">
@@ -213,6 +282,7 @@
                                     
                                     <form action="{{ url_for('run_automation_step') }}" method="POST" onsubmit="showStepProgress('capture'); return true;">
                                         <input type="hidden" name="step" value="capture">
+                                        <input type="hidden" name="groups" id="capture-groups" value="">
                                         <button type="submit" class="btn btn-info w-100" id="capture-btn">
                                             <i class="fas fa-camera me-2"></i> Capture Screenshots
                                         </button>
