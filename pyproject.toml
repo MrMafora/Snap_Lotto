@@ -28,4 +28,7 @@ dependencies = [
     "psutil>=7.0.0",
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",
+    "requests>=2.32.3",
+    "selenium>=4.33.0",
+    "schedule>=1.2.2",
 ]

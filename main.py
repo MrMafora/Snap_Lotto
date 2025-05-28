@@ -1937,11 +1937,16 @@ def retake_screenshots():
         return redirect(url_for('index'))
         
     try:
-        result = scheduler.retake_all_screenshots()
+        # Load screenshot manager for automated operations
+        global screenshot_manager
+        if screenshot_manager is None:
+            import screenshot_manager
         
-        if result:
-            success_count = sum(1 for status in result.values() if status == 'success')
-            fail_count = len(result) - success_count
+        count = screenshot_manager.retake_all_screenshots(app)
+        
+        if count > 0:
+            success_count = count
+            fail_count = 0
             
             flash(f'Screenshot process started. {success_count} URLs queued successfully. {fail_count} failed.', 'info')
         else:
@@ -2390,9 +2395,13 @@ def sync_all_screenshots():
         return redirect(url_for('index'))
     
     try:
-        # Screenshot sync functionality temporarily disabled
-        count = 0
-        flash('Screenshot sync completed successfully! Your lottery data remains fully functional.', 'success')
+        # Load screenshot manager for automated screenshot operations
+        global screenshot_manager
+        if screenshot_manager is None:
+            import screenshot_manager
+        
+        # Execute automated screenshot sync
+        count = screenshot_manager.retake_all_screenshots(app, use_threading=False)
         
         # Store status in session for display on next page load
         if count > 0:
@@ -2426,13 +2435,12 @@ def sync_single_screenshot(screenshot_id):
         # Get the screenshot
         screenshot = Screenshot.query.get_or_404(screenshot_id)
         
-        # Use the scheduler module to retake this screenshot
-        try:
-            import screenshot_manager as scheduler
-            success = scheduler.retake_screenshot_by_id(screenshot_id, app)
-        except ImportError:
-            success = False
-            flash('Screenshot sync functionality is temporarily unavailable.', 'warning')
+        # Use the screenshot manager to retake this screenshot
+        global screenshot_manager
+        if screenshot_manager is None:
+            import screenshot_manager
+        
+        success = screenshot_manager.retake_screenshot_by_id(screenshot_id, app)
         
         # Store status in session for display on next page load
         if success:
@@ -2463,8 +2471,12 @@ def cleanup_screenshots():
         return redirect(url_for('index'))
         
     try:
-        # Run the cleanup function from scheduler module imported at the top level
-        scheduler.cleanup_old_screenshots()
+        # Run the cleanup function from screenshot manager
+        global screenshot_manager
+        if screenshot_manager is None:
+            import screenshot_manager
+        
+        deleted_count = screenshot_manager.cleanup_old_screenshots()
         
         # Store success message in session
         session['sync_status'] = {
