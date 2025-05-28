@@ -17,7 +17,8 @@ class LotteryDataExtractor:
     
     def __init__(self):
         self.client = anthropic.Anthropic(
-            api_key=os.environ.get('ANTHROPIC_API_SNAP_LOTTERY')
+            api_key=os.environ.get('ANTHROPIC_API_SNAP_LOTTERY'),
+            timeout=30.0
         )
         self.processed_images = set()
         self.extraction_results = []
@@ -89,7 +90,7 @@ class LotteryDataExtractor:
             """
             
             message = self.client.messages.create(
-                model="claude-opus-4-20250514",
+                model="claude-3-5-sonnet-20241022",
                 max_tokens=1000,
                 messages=[
                     {
