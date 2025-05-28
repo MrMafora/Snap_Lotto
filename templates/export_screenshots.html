@@ -127,7 +127,7 @@
                                     <i class="fas fa-info-circle me-1"></i> This process may take a minute or two to complete. Please be patient as all screenshots are synchronized.
                                 </div>
                                 <form action="{{ url_for('sync_all_screenshots') }}" method="POST">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="csrf_token" value=""">
                                     <button type="submit" class="btn btn-warning">
                                         <i class="fas fa-sync me-2"></i> Sync All Screenshots
                                     </button>
@@ -152,7 +152,7 @@
                                 <h6>Manage Gallery</h6>
                                 <p class="small text-muted">If you have too many screenshots, click below to keep only the latest one for each URL.</p>
                                 <form action="{{ url_for('cleanup_screenshots') }}" method="POST">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="csrf_token" value="">
                                     <button type="submit" class="btn btn-sm btn-outline-danger">
                                         <i class="fas fa-broom me-1"></i> Cleanup Old Screenshots
                                     </button>
@@ -208,7 +208,7 @@
                                         {% endif %}
                                     </div>
                                     <form action="{{ url_for('sync_single_screenshot', screenshot_id=screenshot.id) }}" method="POST">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="csrf_token" value="">
                                         <button type="submit" class="btn btn-sm btn-warning w-100">
                                             <i class="fas fa-sync me-1"></i> Resync
                                         </button>
