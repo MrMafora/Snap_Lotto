@@ -1,10 +1,5 @@
 {pkgs}: {
   deps = [
-    pkgs.mesa
-    pkgs.libxkbcommon
-    pkgs.nspr
-    pkgs.nss
-    pkgs.glib
     pkgs.jq
     pkgs.tk
     pkgs.tcl
