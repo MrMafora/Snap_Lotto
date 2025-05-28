@@ -7,43 +7,90 @@ import os
 import requests
 import time
 from datetime import datetime
-from playwright.sync_api import sync_playwright
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 from models import Screenshot, db
 import logging
 
 logger = logging.getLogger(__name__)
 
+def setup_chrome_driver():
+    """Setup Chrome driver with human-like options to bypass anti-scraping"""
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--window-size=1920,1080')
+    
+    # Human-like browser settings to avoid detection
+    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    chrome_options.add_argument('--accept-lang=en-US,en;q=0.9')
+    chrome_options.add_argument('--accept-encoding=gzip, deflate, br')
+    chrome_options.add_argument('--accept=text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8')
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    
+    chrome_options.binary_location = '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser'
+    
+    try:
+        # Use WebDriver Manager to get the correct ChromeDriver
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        
+        # Remove navigator.webdriver flag
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        logger.info("Chrome driver initialized with human-like settings")
+        return driver
+    except Exception as e:
+        logger.error(f"Failed to setup Chrome driver: {str(e)}")
+        return None
+
 def capture_screenshot_from_url(url, output_path):
-    """Capture a screenshot from a given URL using Playwright"""
+    """Capture a screenshot from a given URL with human-like behavior"""
+    driver = setup_chrome_driver()
+    if not driver:
+        return False
+    
     try:
         logger.info(f"Capturing screenshot from {url}")
         
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            
-            # Set viewport size for full lottery page capture
-            page.set_viewport_size({"width": 1920, "height": 1080})
-            
-            # Navigate to the lottery URL
-            page.goto(url, wait_until="networkidle", timeout=30000)
-            
-            # Additional wait for lottery results to fully load
-            time.sleep(3)
-            
-            # Take full page screenshot
-            page.screenshot(path=output_path, full_page=True)
-            
-            browser.close()
-            
-        logger.info(f"Screenshot successfully saved to {output_path}")
+        # Navigate to the lottery website like a human
+        driver.get(url)
+        
+        # Wait for page to load completely
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        )
+        
+        # Human-like delay for page content to fully load
+        time.sleep(5)
+        
+        # Scroll down a bit like a human might do
+        driver.execute_script("window.scrollTo(0, 200);")
+        time.sleep(1)
+        
+        # Scroll back to top for full page capture
+        driver.execute_script("window.scrollTo(0, 0);")
+        time.sleep(1)
+        
+        # Take screenshot
+        driver.save_screenshot(output_path)
+        logger.info(f"Screenshot saved to {output_path}")
         return True
         
     except Exception as e:
         logger.error(f"Error capturing screenshot from {url}: {str(e)}")
-        import traceback
-        logger.error(f"Screenshot capture traceback: {traceback.format_exc()}")
         return False
+    finally:
+        if driver:
+            driver.quit()
 
 def retake_all_screenshots(app, use_threading=True):
     """Retake all screenshots from configured URLs"""
