@@ -81,19 +81,16 @@ class DailyLotteryAutomation:
         return urls
         
     def cleanup_old_screenshots(self):
-        """Step 1: Clear old screenshot files"""
-        logger.info("Starting cleanup of old screenshots...")
+        """Step 1: Clear old screenshot files - Independent operation"""
+        logger.info("Step 1: Starting cleanup of old screenshots...")
         
         try:
             screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
             
-            if not os.path.exists(screenshot_dir):
-                logger.info("Screenshot directory doesn't exist, creating it")
-                os.makedirs(screenshot_dir, exist_ok=True)
-                logger.info("Cleanup completed - directory created")
-                return True, 0
+            # Ensure directory exists
+            os.makedirs(screenshot_dir, exist_ok=True)
             
-            # Simple, working cleanup that won't hang
+            # Quick file count and removal
             files_removed = 0
             try:
                 import glob
@@ -117,7 +114,7 @@ class DailyLotteryAutomation:
             return True, 0  # Always return success to prevent workflow blocking
     
     def capture_fresh_screenshots(self, groups=None):
-        """Step 2: Capture brand new screenshots from lottery websites
+        """Step 2: Capture fresh screenshots - Isolated from other steps
         
         Args:
             groups (list, optional): List of group IDs to capture screenshots for.
