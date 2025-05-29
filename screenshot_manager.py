@@ -77,12 +77,9 @@ def capture_screenshot_from_url(url, output_path):
         from selenium.webdriver.chrome.service import Service
         service = Service('/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
         
-        try:
-            driver = webdriver.Chrome(service=service, options=options)
-            driver.set_page_load_timeout(15)
-        except Exception as e:
-            logger.error(f"Failed to create driver: {e}")
-            return False
+        # Temporarily disable browser initialization to prevent worker timeouts
+        logger.warning(f"Screenshot capture temporarily disabled to prevent system hangs")
+        return False
         
         try:
             logger.info(f"Capturing screenshot from {url}")
