@@ -214,8 +214,36 @@ class LotteryDataExtractor:
             db.session.rollback()
             return False
     
+    def process_single_image_safe(self, image_path):
+        """Process a single lottery image safely without timeout issues"""
+        logger = logging.getLogger(__name__)
+        
+        try:
+            logger.info(f"Processing single image: {image_path}")
+            
+            # Extract data with timeout protection
+            result = self.extract_lottery_data(image_path)
+            
+            if result:
+                logger.info(f"Successfully extracted data from {image_path}")
+                # Save to database immediately
+                saved = self.save_to_database(result)
+                if saved:
+                    logger.info(f"Data saved to database for {image_path}")
+                    return True
+                else:
+                    logger.warning(f"Failed to save data for {image_path}")
+                    return False
+            else:
+                logger.warning(f"No data extracted from {image_path}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error processing {image_path}: {str(e)[:100]}")
+            return False
+    
     def process_all_images(self, image_directory):
-        """Process all lottery images in the specified directory"""
+        """Process all lottery images in the specified directory - one at a time"""
         image_dir = Path(image_directory)
         
         if not image_dir.exists():

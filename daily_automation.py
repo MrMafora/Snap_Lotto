@@ -159,7 +159,7 @@ class DailyLotteryAutomation:
             return False, 0
     
     def process_screenshots_with_ai(self):
-        """Step 3: Send fresh screenshots to AI for data extraction"""
+        """Step 3: Process screenshots one by one with Claude Opus 4 - Independent operation"""
         try:
             logger.info("Starting AI processing of fresh screenshots...")
             
@@ -218,19 +218,35 @@ class DailyLotteryAutomation:
             for screenshot in fresh_screenshots:
                 logger.info(f"  - {screenshot}")
             
-            # Process all fresh PNG files in the directory
-            processed_count = self.data_extractor.process_all_images(screenshot_dir)
-            logger.info(f"AI processing completed. Processed {processed_count} screenshots")
-            return True, processed_count
+            # Process each screenshot individually to prevent timeouts
+            from automated_data_extractor import LotteryDataExtractor
+            extractor = LotteryDataExtractor()
+            
+            successful_extractions = 0
+            
+            for screenshot_file in fresh_screenshots:
+                screenshot_path = os.path.join(screenshot_dir, screenshot_file)
+                logger.info(f"Processing: {screenshot_file}")
+                
+                # Process one image at a time
+                success = extractor.process_single_image_safe(screenshot_path)
+                if success:
+                    successful_extractions += 1
+                    logger.info(f"Successfully processed {screenshot_file}")
+                else:
+                    logger.warning(f"Failed to process {screenshot_file}")
+            
+            logger.info(f"AI processing completed. Processed {successful_extractions} screenshots")
+            return True, successful_extractions
             
         except Exception as e:
             logger.error(f"Failed to process screenshots with AI: {str(e)}")
             return False, 0
     
     def update_database_with_results(self):
-        """Step 4: Update database with fresh lottery data"""
+        """Step 4: Verify database has fresh lottery data - Independent operation"""
         try:
-            logger.info("Starting database update with fresh lottery results...")
+            logger.info("Step 4: Checking database for fresh lottery results...")
             
             with self.app.app_context():
                 # Get count of results added today
@@ -239,11 +255,14 @@ class DailyLotteryAutomation:
                     db.func.date(LotteryResult.created_at) == today
                 ).count()
                 
-            logger.info(f"Database update completed. {new_results} fresh results available")
+                # Also get total results count for context
+                total_results = LotteryResult.query.count()
+                
+            logger.info(f"Database status: {new_results} fresh results today, {total_results} total results")
             return True, new_results
             
         except Exception as e:
-            logger.error(f"Failed to update database: {str(e)}")
+            logger.error(f"Database check failed: {str(e)}")
             return False, 0
     
     def run_complete_daily_workflow(self, groups=None):
