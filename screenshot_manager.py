@@ -26,26 +26,16 @@ logger = logging.getLogger(__name__)
 _screenshot_lock = threading.Lock()
 
 def setup_chrome_driver():
-    """Chrome driver setup with advanced anti-detection features"""
+    """Simple Chrome driver setup with timeout protection"""
     options = webdriver.ChromeOptions()
     
-    # Essential security options
+    # Essential options only
+    options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--window-size=1920,1800")
     options.add_argument("--disable-gpu")
-    
-    # Human-like browser arguments
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-extensions-except")
-    options.add_argument("--disable-plugins-discovery")
-    options.add_argument("--enable-features=NetworkService,NetworkServiceLogging")
-    options.add_argument("--disable-background-timer-throttling")
-    options.add_argument("--disable-backgrounding-occluded-windows")
-    options.add_argument("--disable-renderer-backgrounding")
-    options.add_argument("--disable-features=TranslateUI")
-    options.add_argument("--disable-ipc-flooding-protection")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--timeout=10")
     
     # Exclude automation switches
     options.add_experimental_option('excludeSwitches', ['enable-automation'])
