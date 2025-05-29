@@ -2489,6 +2489,8 @@ def sync_single_screenshot(screenshot_id):
     
     return redirect(url_for('export_screenshots'))
 
+
+
 @app.route('/cleanup-screenshots', methods=['POST'])
 @login_required
 def cleanup_screenshots():
