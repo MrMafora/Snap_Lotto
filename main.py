@@ -3740,63 +3740,48 @@ def test_cleanup():
 def run_automation_step():
     """Run individual automation steps"""
     if not current_user.is_admin:
-        flash('You must be an admin to run automation steps.', 'danger')
-        return redirect(url_for('index'))
+        return jsonify({'error': 'Admin access required'}), 403
     
     step = request.form.get('step')
+    app.logger.info(f"Starting automation step: {step}")
     
     try:
-        from automation_controller import AutomationController
-        controller = AutomationController()
-        
         if step == 'cleanup':
-            success, count = controller.run_step_1()
-            if success:
-                message = f"Successfully cleared {count} old screenshots"
-            else:
-                raise Exception(f"Cleanup failed - could not delete screenshots")
+            from step1_cleanup import cleanup_screenshots
+            success, count = cleanup_screenshots()
+            message = f"Successfully cleared {count} old screenshots" if success else "Cleanup failed"
             
         elif step == 'capture':
-            success, count = controller.run_step_2()
-            if success:
-                message = f"Successfully captured {count} fresh screenshots"
-            else:
-                raise Exception(f"Screenshot capture failed")
+            from step2_capture import capture_lottery_screenshots
+            success, count = capture_lottery_screenshots()
+            message = f"Successfully captured {count} fresh screenshots" if success else "Screenshot capture failed"
             
         elif step == 'ai_process':
-            success, count = controller.run_step_3()
-            if success:
-                message = f"Successfully processed {count} screenshots with AI"
-            else:
-                raise Exception(f"AI processing failed")
+            from step3_ai_process import process_screenshots_with_ai
+            success, count = process_screenshots_with_ai()
+            message = f"Successfully processed {count} screenshots with AI" if success else "AI processing failed"
             
         elif step == 'database_update':
-            success, count = controller.run_step_4()
-            if success:
-                message = f"Successfully updated database with {count} lottery results"
-            else:
-                raise Exception(f"Database update failed")
+            from step4_database import update_database
+            success, count = update_database()
+            message = f"Successfully updated database with {count} lottery results" if success else "Database update failed"
             
         else:
-            raise ValueError(f"Unknown automation step: {step}")
+            return jsonify({'error': f'Unknown step: {step}'}), 400
         
-        session['automation_status'] = {
-            'success': True,
-            'message': message,
-            'details': f'Processed {count} items' if count else None
-        }
-        flash(f'{message}', 'success')
+        app.logger.info(f"Step {step} completed: success={success}, count={count}")
+        
+        if success:
+            flash(message, 'success')
+        else:
+            flash(message, 'danger')
+            
+        return redirect(url_for('automation_control'))
         
     except Exception as e:
-        error_msg = f"Failed to run {step}: {str(e)}"
-        session['automation_status'] = {
-            'success': False,
-            'message': error_msg,
-            'details': str(e)
-        }
-        flash(error_msg, 'danger')
-    
-    return redirect(url_for('automation_control'))
+        app.logger.error(f"Step {step} failed: {e}")
+        flash(f"Failed to run {step}: {str(e)}", 'danger')
+        return redirect(url_for('automation_control'))
 
 @app.route('/admin/run-daily-automation', methods=['POST'])
 @login_required
