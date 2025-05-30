@@ -41,36 +41,33 @@
 }
 
 /* Specific column widths for results table */
+/* GAME TYPE column */
 .table th:nth-child(1),
 .table td:nth-child(1) {
-    width: 15%;
-    min-width: 120px;
+    width: 18%;
+    min-width: 140px;
 }
 
+/* DRAW column */
 .table th:nth-child(2),
 .table td:nth-child(2) {
-    width: 12%;
-    min-width: 100px;
+    width: 10%;
+    min-width: 80px;
 }
 
+/* DATE column - increased width to prevent truncation */
 .table th:nth-child(3),
 .table td:nth-child(3) {
-    width: 12%;
-    min-width: 100px;
+    width: 15%;
+    min-width: 120px;
+    white-space: nowrap;
 }
 
-/* WINNING NUMBERS column - make it much wider */
+/* NUMBERS column */
 .table th:nth-child(4),
 .table td:nth-child(4) {
-    width: 45%;
-    min-width: 400px;
-}
-
-/* BONUS NUMBERS column */
-.table th:nth-child(5),
-.table td:nth-child(5) {
-    width: 16%;
-    min-width: 120px;
+    width: 57%;
+    min-width: 350px;
 }
 
 /* Lottery Ball Styles */
