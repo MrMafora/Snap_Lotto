@@ -153,7 +153,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between mb-2">
                                 {% if result.draw_number %}
-                                    <strong>Draw {{ result.draw_number.replace('Draw', '').replace('DRAW', '').replace('Lotto', '').replace('Plus 1', '').replace('Plus 2', '').replace('Powerball', '').replace('Daily', '').strip() }}</strong>
+                                    <strong>Draw {{ result.draw_number|string|replace('Draw', '')|replace('DRAW', '')|replace('Lotto', '')|replace('Plus 1', '')|replace('Plus 2', '')|replace('Powerball', '')|replace('Daily', '')|trim }}</strong>
                                     <a href="{{ url_for('draw_details', lottery_type=result.lottery_type, draw_number=result.draw_number) }}" class="btn btn-sm btn-outline-primary">Details <i class="fa fa-info-circle"></i></a>
                                 {% else %}
                                     <strong>Draw Details</strong>
