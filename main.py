@@ -2535,17 +2535,22 @@ def export_combined_zip():
         import io
         import zipfile
         import tempfile
+        import glob
         from datetime import datetime
         
         # Create a timestamp for filenames
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        # Get all screenshots
-        screenshots = Screenshot.query.order_by(Screenshot.lottery_type).all()
+        # Get actual screenshot files from filesystem
+        screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
+        screenshot_files = []
         
-        if not screenshots:
-            flash('No screenshots available to export.', 'warning')
-            return redirect(url_for('export_screenshots'))
+        if os.path.exists(screenshot_dir):
+            screenshot_files = glob.glob(os.path.join(screenshot_dir, '*.png'))
+        
+        if not screenshot_files:
+            flash('No screenshot files available to export.', 'warning')
+            return redirect(url_for('admin_automation_control'))
         
         # Create a temporary directory for the template
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -2558,26 +2563,32 @@ def export_combined_zip():
             memory_file = io.BytesIO()
             with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
                 # Add the template to the ZIP file
-                zf.write(template_path, f"template/{template_filename}")
+                if os.path.exists(template_path):
+                    zf.write(template_path, f"template/{template_filename}")
                 
-                # Add screenshots to the ZIP file
-                for screenshot in screenshots:
-                    if os.path.exists(screenshot.path):
-                        # Get the file extension
-                        _, ext = os.path.splitext(screenshot.path)
-                        # Create a unique filename for each screenshot
-                        lottery_type = screenshot.lottery_type.replace(' ', '_')
-                        ss_timestamp = screenshot.timestamp.strftime('%Y%m%d_%H%M%S')
-                        filename = f"{lottery_type}_{ss_timestamp}{ext}"
-                        
-                        # Add the screenshot to the ZIP file in a screenshots folder
-                        zf.write(screenshot.path, f"screenshots/{filename}")
-                        
-                        # Add zoomed version if it exists
-                        if screenshot.zoomed_path and os.path.exists(screenshot.zoomed_path):
-                            _, zoomed_ext = os.path.splitext(screenshot.zoomed_path)
-                            zoomed_filename = f"{lottery_type}_{ss_timestamp}_zoomed{zoomed_ext}"
-                            zf.write(screenshot.zoomed_path, f"screenshots/{zoomed_filename}")
+                # Add actual screenshot files to the ZIP file
+                for screenshot_path in screenshot_files:
+                    if os.path.exists(screenshot_path):
+                        filename = os.path.basename(screenshot_path)
+                        zf.write(screenshot_path, f"screenshots/{filename}")
+                
+                # Add README file with instructions
+                readme_content = f"""Lottery Data Export - {timestamp}
+
+This archive contains:
+1. Template folder: Excel template for manual data entry
+2. Screenshots folder: Captured lottery result pages ({len(screenshot_files)} files)
+
+Screenshot files are named with format: lottery_type_YYYYMMDD_HHMMSS.png
+All images are full-page captures containing complete lottery data including:
+- Winning numbers
+- Division breakdowns
+- Prize amounts
+- Draw dates and numbers
+
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+                zf.writestr("README.txt", readme_content)
             
             # Reset the file pointer to the beginning of the file
             memory_file.seek(0)
@@ -2592,7 +2603,7 @@ def export_combined_zip():
     except Exception as e:
         app.logger.error(f"Error creating combined ZIP file: {str(e)}")
         flash(f'Error creating combined ZIP file: {str(e)}', 'danger')
-        return redirect(url_for('export_screenshots'))
+        return redirect(url_for('admin_automation_control'))
 
 @app.route('/port_check')
 def port_check():
