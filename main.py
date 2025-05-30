@@ -2336,37 +2336,39 @@ def visualization_data():
 @app.route('/results/<lottery_type>/<draw_number>')
 def draw_details(lottery_type, draw_number):
     """Show detailed information for a specific draw"""
-    # Get all results with matching lottery type using direct database query
-    # Map display lottery type to database lottery type
-    db_lottery_type = lottery_type
-    if lottery_type == 'Lottery':
-        db_lottery_type = 'Lotto'
-    elif lottery_type == 'Powerball':
-        db_lottery_type = 'PowerBall'
-    elif lottery_type == 'Daily Lottery':
-        db_lottery_type = 'Daily Lotto'
-    
-    # Get all results for this lottery type from database
-    all_results = LotteryResult.query.filter_by(lottery_type=db_lottery_type).order_by(LotteryResult.draw_date.desc()).all()
-    
-    # Find the specific draw
-    result = None
-    draw_number = draw_number.strip()
-    
-    for r in all_results:
-        r_draw_number = r.draw_number
-        # Clean up the draw number for comparison (ensure it's a string first)
-        if isinstance(r_draw_number, int):
-            r_draw_number = str(r_draw_number)
-        else:
-            r_draw_number_str = str(r_draw_number).replace('Draw', '').replace('DRAW', '').replace(
-                'Lotto', '').replace('Plus 1', '').replace('Plus 2', '').replace(
-                'Powerball', '').replace('Daily', '').strip()
-            r_draw_number = r_draw_number_str
+    try:
+        # Map display lottery type to database lottery type
+        db_lottery_type = lottery_type
+        if lottery_type == 'Lottery':
+            db_lottery_type = 'Lotto'
+        elif lottery_type == 'Powerball':
+            db_lottery_type = 'PowerBall'
+        elif lottery_type == 'Daily Lottery':
+            db_lottery_type = 'Daily Lotto'
         
-        if r_draw_number == draw_number or r.draw_number == draw_number:
-            result = r
-            break
+        # Get all results for this lottery type from database
+        all_results = LotteryResult.query.filter_by(lottery_type=db_lottery_type).order_by(LotteryResult.draw_date.desc()).all()
+        
+        # Find the specific draw
+        result = None
+        target_draw_number = str(draw_number).strip()
+        
+        for r in all_results:
+            # Simple comparison - convert both to strings and compare
+            if str(r.draw_number) == target_draw_number:
+                result = r
+                break
+            # Also try integer comparison if both can be converted to int
+            try:
+                if int(r.draw_number) == int(target_draw_number):
+                    result = r
+                    break
+            except (ValueError, TypeError):
+                pass
+    except Exception as e:
+        app.logger.error(f"Error in draw_details: {e}")
+        flash("Error loading draw details", "error")
+        return redirect(url_for('lottery_results', lottery_type=lottery_type))
     
     if not result:
         flash(f"Draw {draw_number} not found for {lottery_type}", "warning")
