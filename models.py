@@ -158,6 +158,10 @@ class LotteryResult(db.Model):
                     return [parts[1].strip()]
             return []
             
+        # If bonus_numbers is an integer, convert to string first
+        if isinstance(self.bonus_numbers, int):
+            return [str(self.bonus_numbers)]
+            
         # If bonus_numbers is JSON formatted
         if isinstance(self.bonus_numbers, str) and self.bonus_numbers.strip().startswith('['):
             try:
@@ -167,13 +171,18 @@ class LotteryResult(db.Model):
                 
         # If it's a space separated format
         if isinstance(self.bonus_numbers, str):
-            return [num.strip() for num in self.bonus_numbers.split() if num.strip()]
+            # Handle comma-separated bonus numbers
+            if ',' in self.bonus_numbers:
+                return [num.strip() for num in self.bonus_numbers.split(',') if num.strip()]
+            else:
+                return [num.strip() for num in self.bonus_numbers.split() if num.strip()]
             
         # If somehow bonus_numbers is already a list
         if isinstance(self.bonus_numbers, list):
             return self.bonus_numbers
             
-        return []
+        # Fallback: convert whatever it is to string and return as single-item list
+        return [str(self.bonus_numbers)]
     
     def get_divisions(self):
         """Return divisions data as a Python dict, or empty dict if None"""
