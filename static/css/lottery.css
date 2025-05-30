@@ -38,19 +38,21 @@
 /* Lottery Balls Container - Keep numbers in single row */
 .lottery-balls-container {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: nowrap !important;
     justify-content: center;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     overflow-x: auto;
     min-height: 60px;
+    width: 100%;
+    max-width: none;
 }
 
 /* Lottery Ball Styles */
 .lottery-ball {
     position: relative;
-    width: 50px;
-    height: 50px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     background-color: var(--lottery-red);
     color: white;
@@ -64,35 +66,39 @@
     align-items: center;
     justify-content: center;
     font-weight: bold;
+    font-size: 0.9rem;
+    min-width: 42px;
 }
 
 /* Mobile-specific lottery ball styles */
 @media (max-width: 576px) {
     .lottery-balls-container {
-        gap: 4px;
-        min-height: 50px;
+        gap: 3px;
+        min-height: 46px;
     }
     
     .lottery-ball {
-        width: 40px;
-        height: 40px;
-        font-size: 0.9rem;
+        width: 36px;
+        height: 36px;
+        font-size: 0.8rem;
         margin: 0;
+        min-width: 36px;
     }
 }
 
 /* Even smaller screens */
 @media (max-width: 360px) {
     .lottery-balls-container {
-        gap: 3px;
-        min-height: 44px;
+        gap: 2px;
+        min-height: 38px;
     }
     
     .lottery-ball {
-        width: 34px;
-        height: 34px;
-        font-size: 0.85rem;
+        width: 30px;
+        height: 30px;
+        font-size: 0.75rem;
         margin: 0;
+        min-width: 30px;
     }
 }
 
