@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header lottery-header">
         <div class="d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">{{ lottery_type }} - Draw {{ result.draw_number.replace('Draw', '').replace('DRAW', '').replace('Lotto', '').replace('Plus 1', '').replace('Plus 2', '').replace('Powerball', '').replace('Daily', '').strip() }}</h4>
+            <h4 class="mb-0">{{ lottery_type }} - Draw {{ result.draw_number }}</h4>
             <a href="{{ url_for('lottery_results', lottery_type=lottery_type) }}" class="btn btn-sm btn-lottery-secondary">
                 <i class="fa fa-arrow-left"></i> Back to Results
             </a>

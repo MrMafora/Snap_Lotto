@@ -2359,15 +2359,19 @@ def draw_details(lottery_type, draw_number):
         elif lottery_type == 'Daily Lottery':
             db_lottery_type = 'Daily Lotto'
         
-        # Query for the specific draw
-        app.logger.info(f"Looking for draw: lottery_type='{db_lottery_type}', draw_number='{str(draw_number)}'")
+        # Query for the specific draw (draw_number is stored as integer)
+        try:
+            draw_num_int = int(draw_number)
+        except ValueError:
+            flash(f"Invalid draw number: {draw_number}", "error")
+            return redirect(url_for('lottery_results', lottery_type=lottery_type))
+            
         result = LotteryResult.query.filter_by(
             lottery_type=db_lottery_type,
-            draw_number=str(draw_number)
+            draw_number=draw_num_int
         ).first()
         
         if not result:
-            app.logger.warning(f"Draw {draw_number} not found for {db_lottery_type}")
             flash(f"Draw {draw_number} not found for {lottery_type}", "warning")
             return redirect(url_for('lottery_results', lottery_type=lottery_type))
         
