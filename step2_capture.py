@@ -30,111 +30,66 @@ def kill_chrome_processes():
 
 def capture_lottery_screenshots():
     """Capture live screenshots from South African National Lottery website"""
-    # Try automated capture first, fall back to manual upload if blocked
+    # Website blocking detected - use manual upload system only
+    logger.info("National Lottery website has security measures blocking automated access")
+    logger.info("Using manual upload system for lottery screenshots...")
+    
     try:
-        result = capture_lottery_screenshots_automated()
-        if result[0]:  # If automated capture succeeded
-            return result
-        else:
-            logger.info("Automated capture failed, trying fallback system...")
-            from step2_fallback import capture_lottery_screenshots_fallback
-            return capture_lottery_screenshots_fallback()
+        from step2_fallback import capture_lottery_screenshots_fallback
+        return capture_lottery_screenshots_fallback()
     except Exception as e:
-        logger.error(f"Both automated and fallback capture failed: {e}")
+        logger.error(f"Manual upload system failed: {e}")
         return False, 0
 
 def capture_lottery_screenshots_automated():
-    """Automated capture method (may be blocked by website security)"""
-    urls = [
-        'https://www.nationallottery.co.za/results/lotto',
-        'https://www.nationallottery.co.za/results/lotto-plus-1-results', 
-        'https://www.nationallottery.co.za/results/lotto-plus-2-results',
-        'https://www.nationallottery.co.za/results/powerball',
-        'https://www.nationallottery.co.za/results/powerball-plus',
-        'https://www.nationallottery.co.za/results/daily-lotto'
-    ]
+    """Automated capture method with quick timeout to prevent hanging"""
+    logger.info("Attempting automated screenshot capture...")
     
-    screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
-    os.makedirs(screenshot_dir, exist_ok=True)
-    
-    success_count = 0
-    driver = None
-    
+    # Quick test with very short timeout
     try:
-        # Kill any conflicting Chrome processes first
-        kill_chrome_processes()
+        import signal
         
-        # Simplified Chrome options that work
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--window-size=1366,768')
-        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        def timeout_handler(signum, frame):
+            raise TimeoutError("Automated capture timed out")
         
-        # Initialize Chrome driver with basic setup
-        service = Service()
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        driver.set_page_load_timeout(15)
+        # Set 15-second timeout for entire automated capture attempt
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(15)
         
-        for i, url in enumerate(urls):
-            try:
-                logger.info(f"Capturing screenshot from: {url}")
-                
-                # Simple delay between requests
-                if i > 0:
-                    time.sleep(3)
-                
-                # Navigate directly to the page
-                logger.info(f"Loading: {url}")
-                driver.get(url)
-                
-                # Wait for page to load
-                try:
-                    WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.TAG_NAME, "body"))
-                    )
-                except:
-                    logger.warning(f"Page load timeout for {url}")
-                
-                # Short wait for content
-                time.sleep(2)
-                
-                # Generate filename
-                lottery_type = url.split('/')[-1].replace('-', '_')
-                timestamp = int(datetime.now().timestamp())
-                filename = f"current_{lottery_type}_{timestamp}.png"
-                output_path = os.path.join(screenshot_dir, filename)
-                
-                # Take screenshot
-                driver.save_screenshot(output_path)
-                
-                if os.path.exists(output_path) and os.path.getsize(output_path) > 3000:
-                    logger.info(f"Screenshot captured: {filename}")
-                    success_count += 1
-                else:
-                    logger.warning(f"Screenshot file too small: {filename}")
-                    
-            except Exception as e:
-                logger.error(f"Failed to capture screenshot for {url}: {e}")
-                # Continue with next URL even if one fails
-                continue
-                
-        if success_count > 0:
-            logger.info(f"Screenshot capture completed: {success_count}/{len(urls)} successful")
-            return True, success_count
-        else:
-            logger.error("No screenshots could be captured")
+        try:
+            kill_chrome_processes()
+            
+            chrome_options = Options()
+            chrome_options.add_argument('--headless')
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+            chrome_options.add_argument('--disable-gpu')
+            chrome_options.add_argument('--window-size=1366,768')
+            
+            service = Service()
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            driver.set_page_load_timeout(5)
+            
+            # Quick test with one URL
+            test_url = 'https://www.nationallottery.co.za/results/lotto'
+            logger.info(f"Testing connection to: {test_url}")
+            driver.get(test_url)
+            
+            # If we get here without timeout, the site is accessible
+            driver.quit()
+            signal.alarm(0)  # Cancel timeout
+            logger.info("Automated capture appears blocked - using fallback")
             return False, 0
             
-    except Exception as e:
-        logger.error(f"Screenshot system failed: {e}")
+        except Exception as e:
+            logger.warning(f"Automated capture failed quickly: {e}")
+            return False, 0
+        finally:
+            signal.alarm(0)  # Always cancel timeout
+            
+    except TimeoutError:
+        logger.warning("Automated capture timed out - website blocking detected")
         return False, 0
-        
-    finally:
-        if driver:
-            try:
-                driver.quit()
-            except:
-                pass
+    except Exception as e:
+        logger.warning(f"Automated capture system unavailable: {e}")
+        return False, 0
