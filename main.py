@@ -244,11 +244,8 @@ def home():
             if lottery_result.lottery_type in lottery_types and lottery_result.lottery_type not in processed_types:
                 if lottery_result.numbers:
                     # Process authentic numbers efficiently
-                    if isinstance(lottery_result.numbers, list):
-                        numbers = lottery_result.numbers
-                    else:
-                        numbers_data = json.loads(lottery_result.numbers) if lottery_result.numbers else []
-                        numbers = [int(str(n).strip('"').strip()) for n in numbers_data if str(n).strip()]
+                    numbers = lottery_result.get_numbers_list()
+                    numbers = [int(str(n).strip()) for n in numbers if str(n).strip()]
                     
                     # Process authentic bonus numbers efficiently
                     if isinstance(lottery_result.bonus_numbers, list):

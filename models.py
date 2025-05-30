@@ -128,11 +128,17 @@ class LotteryResult(db.Model):
             except json.JSONDecodeError:
                 pass
                 
-        # If it's space-separated numbers format (09 18 19 30 31 40 + 28)
+        # Handle comma-separated or space-separated numbers format
         if isinstance(self.numbers, str):
-            # Remove any bonus number indicator and split by spaces
+            # Remove any bonus number indicator
             cleaned = self.numbers.split('+')[0].strip()
-            return [num.strip() for num in cleaned.split() if num.strip()]
+            
+            # Check if comma-separated (like "1,2,3,18,29,32")
+            if ',' in cleaned:
+                return [num.strip() for num in cleaned.split(',') if num.strip()]
+            # Otherwise space-separated (like "09 18 19 30 31 40")
+            else:
+                return [num.strip() for num in cleaned.split() if num.strip()]
             
         # If somehow numbers is already a list
         if isinstance(self.numbers, list):
