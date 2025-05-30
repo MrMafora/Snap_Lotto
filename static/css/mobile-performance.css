@@ -1,0 +1,253 @@
+/* Mobile Performance Optimization for Snap Lotto */
+
+/* Hardware acceleration for smooth animations */
+* {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
+}
+
+/* Optimize touch responsiveness */
+body {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Allow text selection for input fields */
+input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+/* Performance optimized animations */
+@keyframes optimizedPulse {
+    0%, 100% { 
+        transform: scale(1) translateZ(0);
+        opacity: 1;
+    }
+    50% { 
+        transform: scale(1.05) translateZ(0);
+        opacity: 0.8;
+    }
+}
+
+/* Smooth scrolling optimization */
+html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Container optimizations for mobile */
+.container-fluid {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+/* Optimized card layout for mobile */
+@media (max-width: 768px) {
+    .card {
+        border-radius: 8px;
+        margin-bottom: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transform: translateZ(0);
+        will-change: transform;
+    }
+    
+    .card-body {
+        padding: 8px 12px;
+    }
+    
+    .card-header {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Ultra-responsive lottery balls */
+@media (max-width: 576px) {
+    .lottery-ball {
+        width: 24px;
+        height: 24px;
+        font-size: 10px;
+        margin: 1px;
+        border-width: 1px;
+        transform: translateZ(0);
+        will-change: transform;
+    }
+    
+    .lottery-ball-sm {
+        width: 20px;
+        height: 20px;
+        font-size: 9px;
+        margin: 1px;
+    }
+}
+
+/* Touch-optimized buttons */
+.btn {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transform: translateZ(0);
+}
+
+/* Fast table rendering */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    will-change: scroll-position;
+}
+
+.table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+/* Optimized mobile navigation */
+.mobile-nav {
+    transform: translateZ(0);
+    will-change: transform;
+    backdrop-filter: blur(10px);
+}
+
+.mobile-nav-link {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s ease;
+}
+
+/* Performance-optimized animations */
+.pulse-btn {
+    animation: optimizedPulse 2s infinite;
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* Reduce repaints and reflows */
+.lottery-ball, .card, .btn {
+    contain: layout style paint;
+}
+
+/* GPU-accelerated transforms */
+.border-glow {
+    transform: scale(1.1) translateZ(0);
+    will-change: transform, box-shadow;
+}
+
+/* Optimized image loading */
+img {
+    max-width: 100%;
+    height: auto;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
+}
+
+/* Memory-efficient chart container */
+canvas {
+    transform: translateZ(0);
+    will-change: auto;
+}
+
+/* Optimized flex layouts */
+.numbers-container {
+    contain: layout;
+    will-change: auto;
+}
+
+/* Critical loading optimization */
+@media (max-width: 576px) {
+    /* Reduce visual complexity on very small screens */
+    .box-shadow {
+        box-shadow: none !important;
+    }
+    
+    /* Simplify borders for performance */
+    .border {
+        border-width: 1px !important;
+    }
+    
+    /* Optimize text rendering */
+    body {
+        text-rendering: optimizeSpeed;
+    }
+    
+    /* Reduce transition complexity */
+    * {
+        transition-duration: 0.1s !important;
+    }
+}
+
+/* Ultra-small screen optimizations */
+@media (max-width: 320px) {
+    .container, .container-fluid {
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+    
+    .card {
+        margin-bottom: 4px;
+        border-radius: 4px;
+    }
+    
+    .card-body {
+        padding: 4px 6px;
+    }
+    
+    .lottery-ball {
+        width: 20px;
+        height: 20px;
+        font-size: 8px;
+        margin: 0.5px;
+    }
+    
+    .table-lottery th,
+    .table-lottery td {
+        padding: 2px;
+        font-size: 0.7rem;
+    }
+    
+    /* Disable complex animations on very small screens */
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* Network-aware optimizations */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Memory optimization for tables */
+.table-lottery {
+    contain: layout style;
+    overflow: hidden;
+}
+
+/* Lazy loading optimization */
+.chart-container {
+    contain: layout style paint;
+    min-height: 200px;
+}
+
+/* Performance critical class */
+.performance-critical {
+    transform: translateZ(0);
+    will-change: auto;
+    contain: layout style paint;
+}
