@@ -242,15 +242,15 @@ def capture_screenshot_from_url(url, output_path):
         except Exception as e:
             logger.error(f"Error capturing screenshot from {url}: {str(e)}")
             return False
+        except Exception as e:
+            logger.error(f"Error during screenshot capture: {str(e)}")
+            return False
         finally:
             try:
                 if driver:
                     driver.quit()
             except:
-                pass  # Ignore cleanup errors
-                
-    finally:
-        _screenshot_lock.release()
+                pass
 
 def retake_all_screenshots(app, use_threading=True):
     """Retake all screenshots from configured URLs"""
