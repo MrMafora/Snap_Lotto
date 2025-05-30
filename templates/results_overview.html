@@ -21,7 +21,7 @@
                     
                     <div class="lottery-balls-container text-center mb-3">
                         {% if result.numbers %}
-                            {% set numbers_list = result.get_numbers_list() %}
+                            {% set numbers_list = result.get_winning_numbers_list() %}
                             
                             {% for number in numbers_list %}
                                 {% set ball_class = 'lottery-ball ' %}
@@ -41,12 +41,15 @@
                             
                             {% if result.bonus_numbers %}
                                 <span class="bonus-indicator">+</span>
-                                {% set bonus_list = [] %}
                                 {% set bonus_list = result.get_bonus_numbers_list() %}
                                 
-                                {% for bonus in bonus_list %}
-                                <span class="lottery-ball lottery-ball-yellow">{{ bonus }}</span>
-                                {% endfor %}
+                                {% if bonus_list is iterable and bonus_list is not string %}
+                                    {% for bonus in bonus_list %}
+                                    <span class="lottery-ball lottery-ball-yellow">{{ bonus }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="lottery-ball lottery-ball-yellow">{{ result.bonus_numbers }}</span>
+                                {% endif %}
                             {% endif %}
                         {% else %}
                             <p class="text-center">No winning numbers available</p>
