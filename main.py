@@ -3724,6 +3724,17 @@ def automation_control():
                          automation_status=automation_status,
                          test_result=test_result)
 
+@app.route('/test-cleanup', methods=['POST'])
+def test_cleanup():
+    """Test route for Step 1 cleanup without authentication"""
+    try:
+        from daily_automation import DailyLotteryAutomation
+        automation = DailyLotteryAutomation(app)
+        success, count = automation.cleanup_old_screenshots()
+        return f"SUCCESS: Removed {count} files"
+    except Exception as e:
+        return f"ERROR: {str(e)}"
+
 @app.route('/admin/run-automation-step', methods=['POST'])
 @login_required
 def run_automation_step():

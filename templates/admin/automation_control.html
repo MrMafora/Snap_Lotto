@@ -252,6 +252,7 @@
                                     
                                     <form action="/admin/run-automation-step" method="POST" onsubmit="showStepProgress('cleanup'); return true;">
                                         <input type="hidden" name="step" value="cleanup">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                                         <button type="submit" class="btn btn-warning w-100" id="cleanup-btn">
                                             <i class="fas fa-broom me-2"></i> Clear Old Screenshots
                                         </button>
