@@ -89,16 +89,26 @@ class LotteryDataExtractor:
             Be extremely precise - this data will be used for authentic lottery results and must include ALL visible division and financial data.
             """
             
+            # First pass - detailed extraction
             message = self.client.messages.create(
                 model="claude-opus-4-20250514",
-                max_tokens=1500,
+                max_tokens=2000,
                 messages=[
                     {
                         "role": "user",
                         "content": [
                             {
                                 "type": "text",
-                                "text": prompt
+                                "text": prompt + """
+                                
+VERIFICATION STEP: After extracting data, perform these accuracy checks:
+1. Count each lottery number carefully - examine every digit twice
+2. Verify number sequences are logical and in range
+3. Cross-check division counts with visible prize table data
+4. Confirm all monetary amounts match the visible currency formatting
+5. Double-check draw dates and numbers against page headers
+
+Return the verified JSON data only after these checks."""
                             },
                             {
                                 "type": "image",
