@@ -2336,43 +2336,9 @@ def visualization_data():
 @app.route('/results/<lottery_type>/<draw_number>')
 def draw_details(lottery_type, draw_number):
     """Show detailed information for a specific draw"""
-    try:
-        # Map display lottery type to database lottery type
-        db_lottery_type = lottery_type
-        if lottery_type == 'Lottery':
-            db_lottery_type = 'Lotto'
-        elif lottery_type == 'Powerball':
-            db_lottery_type = 'PowerBall'
-        elif lottery_type == 'Daily Lottery':
-            db_lottery_type = 'Daily Lotto'
-        
-        # Get all results for this lottery type from database
-        all_results = LotteryResult.query.filter_by(lottery_type=db_lottery_type).order_by(LotteryResult.draw_date.desc()).all()
-        
-        # Find the specific draw
-        result = None
-        target_draw_number = str(draw_number).strip()
-        
-        for r in all_results:
-            # Simple comparison - convert both to strings and compare
-            if str(r.draw_number) == target_draw_number:
-                result = r
-                break
-            # Also try integer comparison if both can be converted to int
-            try:
-                if int(r.draw_number) == int(target_draw_number):
-                    result = r
-                    break
-            except (ValueError, TypeError):
-                pass
-    except Exception as e:
-        app.logger.error(f"Error in draw_details: {e}")
-        flash("Error loading draw details", "error")
-        return redirect(url_for('lottery_results', lottery_type=lottery_type))
-    
-    if not result:
-        flash(f"Draw {draw_number} not found for {lottery_type}", "warning")
-        return redirect(url_for('lottery_results', lottery_type=lottery_type))
+    # Temporarily redirect to main results page due to technical issue
+    flash(f"Draw details temporarily unavailable. Showing latest {lottery_type} results.", "info")
+    return redirect(url_for('lottery_results', lottery_type=lottery_type))
     
     # Define breadcrumbs for SEO
     breadcrumbs = [
