@@ -35,6 +35,44 @@
     border-bottom: 3px solid var(--lottery-red);
 }
 
+/* Table styling for lottery results */
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Specific column widths for results table */
+.table th:nth-child(1),
+.table td:nth-child(1) {
+    width: 15%;
+    min-width: 120px;
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+    width: 12%;
+    min-width: 100px;
+}
+
+.table th:nth-child(3),
+.table td:nth-child(3) {
+    width: 12%;
+    min-width: 100px;
+}
+
+/* WINNING NUMBERS column - make it much wider */
+.table th:nth-child(4),
+.table td:nth-child(4) {
+    width: 45%;
+    min-width: 400px;
+}
+
+/* BONUS NUMBERS column */
+.table th:nth-child(5),
+.table td:nth-child(5) {
+    width: 16%;
+    min-width: 120px;
+}
+
 /* Lottery Ball Styles */
 .lottery-ball {
     position: relative;
