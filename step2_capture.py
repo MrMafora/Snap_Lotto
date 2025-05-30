@@ -70,10 +70,61 @@ def capture_lottery_screenshots():
             page = context.new_page()
             
             for i, url in enumerate(urls):
-            try:
-                logger.info(f"Attempting screenshot capture from: {url}")
+                try:
+                    logger.info(f"Attempting screenshot capture from: {url}")
+                    
+                    # Navigate with retry logic
+                    page.goto(url, wait_until='networkidle', timeout=30000)
+                    
+                    # Human-like behavior - wait and scroll
+                    time.sleep(random.uniform(2, 4))
+                    
+                    # Scroll to ensure content loads
+                    page.evaluate("window.scrollTo(0, document.body.scrollHeight/2)")
+                    time.sleep(random.uniform(1, 2))
+                    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    time.sleep(random.uniform(1, 3))
+                    page.evaluate("window.scrollTo(0, 0)")
+                    time.sleep(random.uniform(1, 2))
+                    
+                    # Wait for lottery results to load
+                    page.wait_for_timeout(3000)
+                    
+                    # Take screenshot
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    lottery_type = url.split('/')[-1].replace('-', '_')
+                    filename = f"{timestamp}_{lottery_type}.png"
+                    filepath = os.path.join(screenshot_dir, filename)
+                    
+                    page.screenshot(path=filepath, full_page=True)
+                    
+                    if os.path.exists(filepath):
+                        size = os.path.getsize(filepath)
+                        logger.info(f"Screenshot captured successfully: {filename} ({size} bytes)")
+                        success_count += 1
+                    else:
+                        logger.error(f"Screenshot file not created: {filename}")
+                        
+                except Exception as e:
+                    logger.error(f"Failed to capture screenshot from {url}: {e}")
+                    continue
                 
-                # Try with extended timeout and retry logic
+                # Delay between captures to avoid detection
+                if i < len(urls) - 1:
+                    time.sleep(random.uniform(3, 6))
+            
+            browser.close()
+            
+    except Exception as e:
+        logger.error(f"Screenshot capture failed: {e}")
+        return False, 0
+    
+    if success_count > 0:
+        logger.info(f"Screenshot capture completed: {success_count}/{len(urls)} successful")
+        return True, success_count
+    else:
+        logger.error("No screenshots could be captured")
+        return False, 0
                 success = False
                 for attempt in range(2):
                     try:
