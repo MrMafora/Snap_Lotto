@@ -86,7 +86,7 @@ class LotteryResult(db.Model):
     """Model for storing lottery results extracted from screenshots"""
     id = db.Column(db.Integer, primary_key=True)
     lottery_type = db.Column(db.String(50), nullable=False, comment="Game Type")
-    draw_number = db.Column(db.String(20), nullable=True, comment="Draw ID")
+    draw_number = db.Column(db.Integer, nullable=True, comment="Draw ID")
     draw_date = db.Column(db.DateTime, nullable=False, comment="Game Date")
     numbers = db.Column(db.String(255), nullable=False, comment="Winning Numbers (JSON string array)")  # Stored as JSON string
     bonus_numbers = db.Column(db.String(255), nullable=True, comment="Bonus Numbers (JSON string array)")  # Stored as JSON string

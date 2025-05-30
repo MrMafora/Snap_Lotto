@@ -90,7 +90,7 @@
         <h5 class="card-subtitle mb-3">Prize Divisions</h5>
         {% if result.divisions and result.divisions != '[]' %}
             {% set division_data = result.get_parsed_divisions() %}
-            {% if division_data and division_data.get('divisions') %}
+            {% if division_data %}
                 <div class="table-responsive">
                     <table class="table table-lottery">
                         <thead>
@@ -102,114 +102,17 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for div_num in range(1, 10) %}
-                                {% set div_key = 'div' + div_num|string %}
-                                {% if division_data.divisions.get(div_key) %}
-                                    {% set div_info = division_data.divisions[div_key] %}
-                                    <tr>
-                                        <td><strong>DIV {{ div_num }}</strong></td>
-                                        <td>
-                                            {% if result.lottery_type == 'PowerBall' %}
-                                                {% if div_num == 1 %}FIVE CORRECT NUMBERS + POWERBALL
-                                                {% elif div_num == 2 %}FIVE CORRECT NUMBERS
-                                                {% elif div_num == 3 %}FOUR CORRECT NUMBERS + POWERBALL
-                                                {% elif div_num == 4 %}FOUR CORRECT NUMBERS
-                                                {% elif div_num == 5 %}THREE CORRECT NUMBERS + POWERBALL
-                                                {% elif div_num == 6 %}THREE CORRECT NUMBERS
-                                                {% elif div_num == 7 %}TWO CORRECT NUMBERS + POWERBALL
-                                                {% elif div_num == 8 %}ONE CORRECT NUMBER + POWERBALL
-                                                {% elif div_num == 9 %}MATCH POWERBALL{% endif %}
-                                            {% elif result.lottery_type == 'PowerBall Plus' %}
-                                                {% if div_num == 1 %}FIVE CORRECT NUMBERS + POWERBALL
-                                                {% elif div_num == 2 %}FIVE CORRECT NUMBERS
-                                                {% elif div_num == 3 %}FOUR CORRECT NUMBERS + POWERBALL
-                                                {% elif div_num == 4 %}FOUR CORRECT NUMBERS
-                                                {% elif div_num == 5 %}THREE CORRECT NUMBERS + POWERBALL
-                                                {% elif div_num == 6 %}THREE CORRECT NUMBERS
-                                                {% elif div_num == 7 %}TWO CORRECT NUMBERS + POWERBALL
-                                                {% elif div_num == 8 %}ONE CORRECT NUMBER + POWERBALL
-                                                {% elif div_num == 9 %}MATCH POWERBALL{% endif %}
-                                            {% elif 'Lotto' in result.lottery_type %}
-                                                {% if div_num == 1 %}SIX CORRECT NUMBERS
-                                                {% elif div_num == 2 %}FIVE CORRECT NUMBERS + BONUS BALL
-                                                {% elif div_num == 3 %}FIVE CORRECT NUMBERS
-                                                {% elif div_num == 4 %}FOUR CORRECT NUMBERS + BONUS BALL
-                                                {% elif div_num == 5 %}FOUR CORRECT NUMBERS
-                                                {% elif div_num == 6 %}THREE CORRECT NUMBERS + BONUS BALL
-                                                {% elif div_num == 7 %}THREE CORRECT NUMBERS
-                                                {% elif div_num == 8 %}TWO CORRECT NUMBERS + BONUS BALL{% endif %}
-                                            {% elif 'Daily' in result.lottery_type %}
-                                                {% if div_num == 1 %}FIVE CORRECT NUMBERS
-                                                {% elif div_num == 2 %}FOUR CORRECT NUMBERS
-                                                {% elif div_num == 3 %}THREE CORRECT NUMBERS
-                                                {% elif div_num == 4 %}TWO CORRECT NUMBERS{% endif %}
-                                            {% else %}
-                                                Division {{ div_num }}
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ div_info.get('winners', '0') }}</td>
-                                        <td>{{ div_info.get('amount', 'R0.00') }}</td>
-                                    </tr>
-                                {% elif div_num <= 8 and 'Lotto' in result.lottery_type %}
-                                    <!-- Show empty rows for Lotto (8 divisions) -->
-                                {% elif div_num <= 9 and 'PowerBall' in result.lottery_type %}
-                                    <!-- Show empty rows for PowerBall (9 divisions) -->
-                                {% elif div_num <= 4 and 'Daily' in result.lottery_type %}
-                                    <!-- Show empty rows for Daily Lotto (4 divisions) -->
-                                {% endif %}
+                            {% for division in division_data %}
+                                <tr>
+                                    <td><strong>DIV {{ division.division }}</strong></td>
+                                    <td>{{ division.description }}</td>
+                                    <td>{{ division.winners }}</td>
+                                    <td>{{ division.prize_per_winner }}</td>
+                                </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-                
-                <!-- Additional Financial Information -->
-                {% if division_data.get('additional_info') and division_data.additional_info %}
-                    <div class="mt-4">
-                        <h6 class="text-muted mb-3">Additional Information</h6>
-                        <div class="row">
-                            {% if division_data.additional_info.get('rollover_amount') %}
-                            <div class="col-md-6 col-lg-3 mb-2">
-                                <div class="card bg-light">
-                                    <div class="card-body py-2">
-                                        <small class="text-muted">Rollover Amount</small>
-                                        <div class="fw-bold">{{ division_data.additional_info.rollover_amount }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                            {% if division_data.additional_info.get('total_pool_size') %}
-                            <div class="col-md-6 col-lg-3 mb-2">
-                                <div class="card bg-light">
-                                    <div class="card-body py-2">
-                                        <small class="text-muted">Total Pool Size</small>
-                                        <div class="fw-bold">{{ division_data.additional_info.total_pool_size }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                            {% if division_data.additional_info.get('total_sales') %}
-                            <div class="col-md-6 col-lg-3 mb-2">
-                                <div class="card bg-light">
-                                    <div class="card-body py-2">
-                                        <small class="text-muted">Total Sales</small>
-                                        <div class="fw-bold">{{ division_data.additional_info.total_sales }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                            {% if division_data.additional_info.get('next_jackpot') %}
-                            <div class="col-md-6 col-lg-3 mb-2">
-                                <div class="card bg-light">
-                                    <div class="card-body py-2">
-                                        <small class="text-muted">Next Jackpot</small>
-                                        <div class="fw-bold">{{ division_data.additional_info.next_jackpot }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endif %}
             {% else %}
                 <div class="alert alert-info">
                     Division data is being processed. Please check back shortly for complete prize breakdown.
