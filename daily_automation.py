@@ -141,8 +141,8 @@ class DailyLotteryAutomation:
                 logger.warning("No URLs found for specified groups")
                 return False, 0
             
-            # Import the fixed screenshot manager function
-            from screenshot_manager_fixed import retake_selected_screenshots
+            # Import the screenshot manager function
+            from screenshot_manager import retake_selected_screenshots
             
             with self.app.app_context():
                 logger.info(f"Capturing screenshots for {len(urls_to_capture)} lottery sites")
