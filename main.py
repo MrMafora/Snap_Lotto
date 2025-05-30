@@ -248,13 +248,8 @@ def home():
                     numbers = [int(str(n).strip()) for n in numbers if str(n).strip()]
                     
                     # Process authentic bonus numbers efficiently
-                    if isinstance(lottery_result.bonus_numbers, list):
-                        bonus_numbers = lottery_result.bonus_numbers
-                    elif lottery_result.bonus_numbers:
-                        bonus_data = json.loads(lottery_result.bonus_numbers)
-                        bonus_numbers = [int(str(b).strip('"').strip()) for b in bonus_data if str(b).strip()]
-                    else:
-                        bonus_numbers = []
+                    bonus_numbers = lottery_result.get_bonus_numbers_list()
+                    bonus_numbers = [int(str(b).strip()) for b in bonus_numbers if str(b).strip()]
                     
                     if numbers:
                         class LotteryDisplay:
