@@ -200,18 +200,17 @@ def capture_with_ultimate_stealth():
                             logger.error(f"All navigation attempts failed for {url}: {e}")
                             continue
                     
-                    # Wait for page to stabilize
-                    time.sleep(3)
+                    # Wait for page to load completely
+                    time.sleep(4)
                     
-                    # Simple mouse movement
+                    # Scroll to load dynamic content
                     try:
-                        page.mouse.move(300, 300)
+                        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                        time.sleep(1)
+                        page.evaluate("window.scrollTo(0, 0)")
                         time.sleep(1)
                     except:
                         pass
-                    
-                    # Wait for content
-                    time.sleep(2)
                     
                     # Take screenshot with error handling
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -221,21 +220,21 @@ def capture_with_ultimate_stealth():
                     
                     screenshot_success = False
                     
-                    # Try viewport screenshot first (faster and more reliable)
+                    # Always capture full page to get all lottery data
                     try:
-                        logger.info(f"Attempting viewport screenshot: {filename}")
-                        page.screenshot(path=filepath, timeout=10000)
+                        logger.info(f"Capturing full page screenshot: {filename}")
+                        page.screenshot(path=filepath, full_page=True, timeout=15000)
                         screenshot_success = True
-                        logger.info(f"Viewport screenshot successful: {filename}")
+                        logger.info(f"Full page screenshot successful: {filename}")
                     except Exception as e:
-                        logger.warning(f"Viewport screenshot failed: {e}")
+                        logger.warning(f"Full page screenshot failed: {e}")
                         
-                        # Fallback to full page screenshot
+                        # Fallback to viewport screenshot if full page fails
                         try:
-                            logger.info(f"Attempting full page screenshot: {filename}")
-                            page.screenshot(path=filepath, full_page=True, timeout=15000)
+                            logger.info(f"Attempting viewport screenshot fallback: {filename}")
+                            page.screenshot(path=filepath, timeout=10000)
                             screenshot_success = True
-                            logger.info(f"Full page screenshot successful: {filename}")
+                            logger.info(f"Viewport screenshot fallback successful: {filename}")
                         except Exception as e:
                             logger.error(f"All screenshot attempts failed: {e}")
                             continue
