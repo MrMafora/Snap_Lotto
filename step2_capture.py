@@ -220,23 +220,24 @@ def capture_with_ultimate_stealth():
                     
                     screenshot_success = False
                     
-                    # Always capture full page to get all lottery data
+                    # Capture full page with optimized approach
                     try:
-                        logger.info(f"Capturing full page screenshot: {filename}")
-                        page.screenshot(path=filepath, full_page=True, timeout=15000)
+                        logger.info(f"Taking full page screenshot: {filename}")
+                        # Use shorter timeout and full_page=True for complete lottery data
+                        page.screenshot(path=filepath, full_page=True, timeout=8000)
                         screenshot_success = True
-                        logger.info(f"Full page screenshot successful: {filename}")
+                        logger.info(f"Full page screenshot completed: {filename}")
                     except Exception as e:
-                        logger.warning(f"Full page screenshot failed: {e}")
+                        logger.warning(f"Full page failed: {e}")
                         
-                        # Fallback to viewport screenshot if full page fails
+                        # Quick viewport fallback
                         try:
-                            logger.info(f"Attempting viewport screenshot fallback: {filename}")
-                            page.screenshot(path=filepath, timeout=10000)
+                            logger.info(f"Viewport fallback: {filename}")
+                            page.screenshot(path=filepath, timeout=5000)
                             screenshot_success = True
-                            logger.info(f"Viewport screenshot fallback successful: {filename}")
+                            logger.info(f"Viewport fallback completed: {filename}")
                         except Exception as e:
-                            logger.error(f"All screenshot attempts failed: {e}")
+                            logger.error(f"Both screenshot methods failed: {e}")
                             continue
                     
                     # Verify screenshot quality
