@@ -1168,7 +1168,12 @@ def results():
                         self.bonus_numbers = bonus_numbers
                     
                     def get_numbers_list(self):
-                        return json.loads(self.numbers) if isinstance(self.numbers, str) else self.numbers
+                        if isinstance(self.numbers, str):
+                            if self.numbers.startswith('['):
+                                return json.loads(self.numbers)
+                            else:
+                                return self.numbers.split(',')
+                        return self.numbers
                     
                     def get_bonus_numbers_list(self):
                         return json.loads(self.bonus_numbers) if isinstance(self.bonus_numbers, str) else self.bonus_numbers
