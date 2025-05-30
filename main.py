@@ -2355,10 +2355,14 @@ def draw_details(lottery_type, draw_number):
     
     for r in all_results:
         r_draw_number = r.draw_number
-        # Clean up the draw number for comparison
-        r_draw_number = r_draw_number.replace('Draw', '').replace('DRAW', '').replace(
-            'Lotto', '').replace('Plus 1', '').replace('Plus 2', '').replace(
-            'Powerball', '').replace('Daily', '').strip()
+        # Clean up the draw number for comparison (ensure it's a string first)
+        if isinstance(r_draw_number, int):
+            r_draw_number = str(r_draw_number)
+        else:
+            r_draw_number_str = str(r_draw_number).replace('Draw', '').replace('DRAW', '').replace(
+                'Lotto', '').replace('Plus 1', '').replace('Plus 2', '').replace(
+                'Powerball', '').replace('Daily', '').strip()
+            r_draw_number = r_draw_number_str
         
         if r_draw_number == draw_number or r.draw_number == draw_number:
             result = r
