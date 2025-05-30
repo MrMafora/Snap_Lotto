@@ -1166,17 +1166,18 @@ def results():
                         return self.numbers if self.numbers else []
                     
                     def get_bonus_numbers_list(self):
+                        if self.bonus_numbers is None:
+                            return []
                         if isinstance(self.bonus_numbers, str):
-                            if self.bonus_numbers.startswith('['):
-                                try:
-                                    return json.loads(self.bonus_numbers)
-                                except:
-                                    return [self.bonus_numbers.strip('[]')]
-                            else:
-                                return [self.bonus_numbers] if self.bonus_numbers else []
+                            bonus_str = self.bonus_numbers.strip()
+                            if bonus_str:
+                                return [bonus_str]
+                            return []
                         elif isinstance(self.bonus_numbers, (int, float)):
                             return [str(self.bonus_numbers)]
-                        return self.bonus_numbers if self.bonus_numbers else []
+                        elif isinstance(self.bonus_numbers, list):
+                            return self.bonus_numbers
+                        return [str(self.bonus_numbers)] if self.bonus_numbers else []
                 
                 latest_results['Lottery'] = ResultObj(
                     lotto_result[1], lotto_result[2], lotto_result[3], lotto_result[4], lotto_result[5]
@@ -1219,7 +1220,19 @@ def results():
                             return self.numbers if self.numbers else []
                         
                         def get_bonus_numbers_list(self):
-                            return json.loads(self.bonus_numbers) if isinstance(self.bonus_numbers, str) else self.bonus_numbers
+                            if self.bonus_numbers is None:
+                                return []
+                            if isinstance(self.bonus_numbers, str):
+                                # Handle simple string like "03"
+                                bonus_str = self.bonus_numbers.strip()
+                                if bonus_str:
+                                    return [bonus_str]
+                                return []
+                            elif isinstance(self.bonus_numbers, (int, float)):
+                                return [str(self.bonus_numbers)]
+                            elif isinstance(self.bonus_numbers, list):
+                                return self.bonus_numbers
+                            return [str(self.bonus_numbers)] if self.bonus_numbers else []
                     
                     latest_results[lottery_type] = ResultObj(
                         result[1], result[2], result[3], result[4], result[5]
