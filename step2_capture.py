@@ -17,8 +17,34 @@ from selenium.webdriver.support import expected_conditions as EC
 
 logger = logging.getLogger(__name__)
 
+# Kill any existing chrome processes to prevent conflicts
+def kill_chrome_processes():
+    """Kill any running Chrome processes that might interfere"""
+    try:
+        import subprocess
+        subprocess.run(['pkill', '-f', 'chrome'], stderr=subprocess.DEVNULL)
+        subprocess.run(['pkill', '-f', 'chromedriver'], stderr=subprocess.DEVNULL)
+        time.sleep(2)
+    except:
+        pass
+
 def capture_lottery_screenshots():
     """Capture live screenshots from South African National Lottery website"""
+    # Try automated capture first, fall back to manual upload if blocked
+    try:
+        result = capture_lottery_screenshots_automated()
+        if result[0]:  # If automated capture succeeded
+            return result
+        else:
+            logger.info("Automated capture failed, trying fallback system...")
+            from step2_fallback import capture_lottery_screenshots_fallback
+            return capture_lottery_screenshots_fallback()
+    except Exception as e:
+        logger.error(f"Both automated and fallback capture failed: {e}")
+        return False, 0
+
+def capture_lottery_screenshots_automated():
+    """Automated capture method (may be blocked by website security)"""
     urls = [
         'https://www.nationallottery.co.za/results/lotto',
         'https://www.nationallottery.co.za/results/lotto-plus-1-results', 
@@ -35,109 +61,45 @@ def capture_lottery_screenshots():
     driver = None
     
     try:
-        # Advanced stealth Chrome options
+        # Kill any conflicting Chrome processes first
+        kill_chrome_processes()
+        
+        # Simplified Chrome options that work
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--window-size=1920,1080')
-        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option('useAutomationExtension', False)
-        chrome_options.add_argument('--disable-extensions')
-        chrome_options.add_argument('--disable-plugins-discovery')
-        chrome_options.add_argument('--disable-web-security')
-        chrome_options.add_argument('--ignore-certificate-errors')
-        chrome_options.add_argument('--allow-running-insecure-content')
-        chrome_options.add_argument('--disable-features=VizDisplayCompositor')
-        
-        # Real browser user agent
+        chrome_options.add_argument('--window-size=1366,768')
         chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         
-        # Initialize Chrome driver
+        # Initialize Chrome driver with basic setup
         service = Service()
         driver = webdriver.Chrome(service=service, options=chrome_options)
-        
-        # Advanced anti-detection
-        driver.execute_script("""
-            Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-            Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-            Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
-            Object.defineProperty(navigator, 'permissions', {get: () => ({query: x => Promise.resolve({state: 'granted'})})});
-            window.chrome = {runtime: {}};
-            Object.defineProperty(navigator, 'deviceMemory', {get: () => 8});
-            Object.defineProperty(navigator, 'hardwareConcurrency', {get: () => 4});
-        """)
+        driver.set_page_load_timeout(15)
         
         for i, url in enumerate(urls):
             try:
                 logger.info(f"Capturing screenshot from: {url}")
                 
-                # Longer human-like delay between requests
+                # Simple delay between requests
                 if i > 0:
-                    delay = random.uniform(8, 15)
-                    logger.info(f"Human-like delay: {delay:.1f}s")
-                    time.sleep(delay)
+                    time.sleep(3)
                 
-                # First visit the main lottery homepage to appear more human
-                if i == 0:
-                    logger.info("Visiting homepage first...")
-                    driver.get("https://www.nationallottery.co.za")
-                    time.sleep(random.uniform(3, 6))
-                    
-                    # Human actions on homepage
-                    try:
-                        actions = ActionChains(driver)
-                        actions.move_by_offset(random.randint(100, 300), random.randint(100, 300))
-                        actions.perform()
-                        time.sleep(random.uniform(1, 3))
-                        driver.execute_script(f"window.scrollTo(0, {random.randint(200, 500)});")
-                        time.sleep(random.uniform(2, 4))
-                    except:
-                        pass
-                
-                # Set page load timeout
-                driver.set_page_load_timeout(30)
-                
-                # Navigate to the results page
-                logger.info(f"Navigating to: {url}")
+                # Navigate directly to the page
+                logger.info(f"Loading: {url}")
                 driver.get(url)
                 
-                # Wait longer for page to fully load
+                # Wait for page to load
                 try:
-                    WebDriverWait(driver, 20).until(
+                    WebDriverWait(driver, 10).until(
                         EC.presence_of_element_located((By.TAG_NAME, "body"))
                     )
-                    time.sleep(random.uniform(2, 4))
                 except:
-                    logger.warning(f"Page load timeout for {url}, taking screenshot anyway")
+                    logger.warning(f"Page load timeout for {url}")
                 
-                # More extensive human-like behavior
-                try:
-                    actions = ActionChains(driver)
-                    
-                    # Multiple random mouse movements
-                    for _ in range(random.randint(2, 4)):
-                        actions.move_by_offset(random.randint(-100, 100), random.randint(-100, 100))
-                        actions.perform()
-                        time.sleep(random.uniform(0.5, 1.5))
-                    
-                    # Random scrolling behavior
-                    scroll_amount = random.randint(200, 600)
-                    driver.execute_script(f"window.scrollTo(0, {scroll_amount});")
-                    time.sleep(random.uniform(1, 3))
-                    
-                    # Scroll back up a bit
-                    scroll_back = scroll_amount - random.randint(50, 150)
-                    driver.execute_script(f"window.scrollTo(0, {scroll_back});")
-                    time.sleep(random.uniform(1, 2))
-                    
-                except:
-                    pass
-                
-                # Final wait for content to fully load
-                time.sleep(random.uniform(3, 6))
+                # Short wait for content
+                time.sleep(2)
                 
                 # Generate filename
                 lottery_type = url.split('/')[-1].replace('-', '_')

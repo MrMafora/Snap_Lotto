@@ -14,8 +14,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Simple lock for sequential processing
-_screenshot_lock = threading.Lock()
+# Disabled lock to prevent conflicts with step2_capture.py
+# _screenshot_lock = threading.Lock()
 
 def capture_screenshot_from_url(url, output_path):
     """Simplified screenshot capture with proper lock handling"""
