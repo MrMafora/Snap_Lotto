@@ -4,12 +4,14 @@ Uses Selenium WebDriver to capture current lottery screenshots
 """
 import os
 import time
+import random
 import logging
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -33,43 +35,74 @@ def capture_lottery_screenshots():
     driver = None
     
     try:
-        # Setup Chrome options
+        # Setup Chrome options for human-like behavior
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--window-size=1366,768')  # Common screen size
         chrome_options.add_argument('--disable-blink-features=AutomationControlled')
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option('useAutomationExtension', False)
-        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        
+        # Rotate user agents like a real user
+        user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ]
+        chrome_options.add_argument(f'--user-agent={random.choice(user_agents)}')
         
         # Initialize Chrome driver
         service = Service()
         driver = webdriver.Chrome(service=service, options=chrome_options)
+        
+        # Remove automation indicators
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]})")
+        driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']})")
         
         for i, url in enumerate(urls):
             try:
                 logger.info(f"Capturing screenshot from: {url}")
                 
-                # Set shorter page load timeout
-                driver.set_page_load_timeout(20)
+                # Human-like delay between requests
+                if i > 0:
+                    delay = random.uniform(3, 8)
+                    logger.info(f"Human-like delay: {delay:.1f}s")
+                    time.sleep(delay)
+                
+                # Set page load timeout
+                driver.set_page_load_timeout(25)
                 
                 # Navigate to the page
                 driver.get(url)
                 
-                # Wait for page to load with shorter timeout
+                # Wait for page to load
                 try:
-                    WebDriverWait(driver, 10).until(
+                    WebDriverWait(driver, 12).until(
                         EC.presence_of_element_located((By.TAG_NAME, "body"))
                     )
                 except:
                     logger.warning(f"Page load timeout for {url}, taking screenshot anyway")
                 
-                # Short wait for content
-                time.sleep(2)
+                # Human-like behavior: scroll a bit
+                try:
+                    actions = ActionChains(driver)
+                    # Random small scroll to mimic human behavior
+                    scroll_amount = random.randint(100, 300)
+                    driver.execute_script(f"window.scrollTo(0, {scroll_amount});")
+                    time.sleep(random.uniform(1, 2))
+                    
+                    # Move mouse to random position
+                    actions.move_by_offset(random.randint(50, 200), random.randint(50, 200))
+                    actions.perform()
+                except:
+                    pass
+                
+                # Wait for content to load
+                time.sleep(random.uniform(2, 4))
                 
                 # Generate filename
                 lottery_type = url.split('/')[-1].replace('-', '_')
