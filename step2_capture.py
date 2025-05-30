@@ -41,7 +41,7 @@ def capture_with_ultimate_stealth():
         with sync_playwright() as p:
             # Use system Chromium with maximum stealth
             browser = p.chromium.launch(
-                headless=False,  # Try non-headless first
+                headless=True,  # Back to headless for server environment
                 executable_path='/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
                 args=[
                     '--no-sandbox',
@@ -170,54 +170,89 @@ def capture_with_ultimate_stealth():
                 try:
                     logger.info(f"Ultimate stealth capture attempt: {url}")
                     
-                    # Navigate with maximum patience
-                    page.goto(url, wait_until='load', timeout=60000)
+                    # Multiple navigation attempts with different strategies
+                    navigation_success = False
                     
-                    # Extensive human simulation
-                    time.sleep(random.uniform(5, 10))
-                    
-                    # Multiple mouse movements
-                    for _ in range(3):
-                        page.mouse.move(
-                            random.randint(100, 800), 
-                            random.randint(100, 600)
-                        )
-                        time.sleep(random.uniform(0.5, 1.5))
-                    
-                    # Realistic scrolling
-                    for _ in range(random.randint(2, 4)):
-                        page.mouse.wheel(0, random.randint(100, 400))
-                        time.sleep(random.uniform(1, 2))
-                    
-                    # Wait for any dynamic content
-                    time.sleep(random.uniform(3, 6))
-                    
-                    # Try to wait for lottery-specific content
+                    # Strategy 1: Direct navigation
                     try:
-                        page.wait_for_selector('body', timeout=10000)
+                        page.goto(url, wait_until='domcontentloaded', timeout=30000)
+                        navigation_success = True
+                        logger.info(f"Navigation successful: {url}")
+                    except Exception as e:
+                        logger.warning(f"Direct navigation failed: {e}")
+                    
+                    # Strategy 2: If direct fails, try with different wait condition
+                    if not navigation_success:
+                        try:
+                            page.goto(url, wait_until='load', timeout=20000)
+                            navigation_success = True
+                            logger.info(f"Secondary navigation successful: {url}")
+                        except Exception as e:
+                            logger.warning(f"Secondary navigation failed: {e}")
+                    
+                    # Strategy 3: Last resort - basic navigation
+                    if not navigation_success:
+                        try:
+                            page.goto(url, timeout=15000)
+                            navigation_success = True
+                            logger.info(f"Basic navigation successful: {url}")
+                        except Exception as e:
+                            logger.error(f"All navigation attempts failed for {url}: {e}")
+                            continue
+                    
+                    # Wait for page to stabilize
+                    time.sleep(3)
+                    
+                    # Simple mouse movement
+                    try:
+                        page.mouse.move(300, 300)
+                        time.sleep(1)
                     except:
                         pass
                     
-                    # Take screenshot with full page
+                    # Wait for content
+                    time.sleep(2)
+                    
+                    # Take screenshot with error handling
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     lottery_type = url.split('/')[-1].replace('-', '_')
                     filename = f"{timestamp}_{lottery_type}.png"
                     filepath = os.path.join(screenshot_dir, filename)
                     
-                    page.screenshot(path=filepath, full_page=True, timeout=30000)
+                    screenshot_success = False
                     
-                    if os.path.exists(filepath) and os.path.getsize(filepath) > 10000:
-                        logger.info(f"Ultimate capture SUCCESS: {filename}")
+                    # Try viewport screenshot first (faster and more reliable)
+                    try:
+                        logger.info(f"Attempting viewport screenshot: {filename}")
+                        page.screenshot(path=filepath, timeout=10000)
+                        screenshot_success = True
+                        logger.info(f"Viewport screenshot successful: {filename}")
+                    except Exception as e:
+                        logger.warning(f"Viewport screenshot failed: {e}")
+                        
+                        # Fallback to full page screenshot
+                        try:
+                            logger.info(f"Attempting full page screenshot: {filename}")
+                            page.screenshot(path=filepath, full_page=True, timeout=15000)
+                            screenshot_success = True
+                            logger.info(f"Full page screenshot successful: {filename}")
+                        except Exception as e:
+                            logger.error(f"All screenshot attempts failed: {e}")
+                            continue
+                    
+                    # Verify screenshot quality
+                    if os.path.exists(filepath) and os.path.getsize(filepath) > 5000:
+                        logger.info(f"Screenshot captured successfully: {filename} ({os.path.getsize(filepath)} bytes)")
                         success_count += 1
                     else:
-                        logger.warning(f"Screenshot file too small: {filename}")
+                        logger.warning(f"Screenshot file too small or missing: {filename}")
                     
                 except Exception as e:
-                    logger.error(f"Ultimate capture failed for {url}: {e}")
+                    logger.error(f"Complete capture failed for {url}: {e}")
                     continue
                 
-                # Extended delay between requests
-                time.sleep(random.uniform(10, 20))
+                # Reasonable delay between requests
+                time.sleep(random.uniform(5, 10))
             
             browser.close()
             
