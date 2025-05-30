@@ -3746,32 +3746,32 @@ def run_automation_step():
     step = request.form.get('step')
     
     try:
-        from daily_automation import DailyLotteryAutomation
-        automation = DailyLotteryAutomation(app)
+        from automation_controller import AutomationController
+        controller = AutomationController()
         
         if step == 'cleanup':
-            success, count = automation.cleanup_old_screenshots()
+            success, count = controller.run_step_1()
             if success:
                 message = f"Successfully cleared {count} old screenshots"
             else:
                 raise Exception(f"Cleanup failed - could not delete screenshots")
             
         elif step == 'capture':
-            success, count = automation.capture_fresh_screenshots()
+            success, count = controller.run_step_2()
             if success:
                 message = f"Successfully captured {count} fresh screenshots"
             else:
                 raise Exception(f"Screenshot capture failed")
             
         elif step == 'ai_process':
-            success, count = automation.process_screenshots_with_ai()
+            success, count = controller.run_step_3()
             if success:
                 message = f"Successfully processed {count} screenshots with AI"
             else:
                 raise Exception(f"AI processing failed")
             
         elif step == 'database_update':
-            success, count = automation.update_database_with_results()
+            success, count = controller.run_step_4()
             if success:
                 message = f"Successfully updated database with {count} lottery results"
             else:
