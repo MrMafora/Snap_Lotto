@@ -251,8 +251,8 @@ def capture_with_ultimate_stealth():
                     logger.error(f"Complete capture failed for {url}: {e}")
                     continue
                 
-                # Reasonable delay between requests
-                time.sleep(random.uniform(5, 10))
+                # Shorter delay now that capture is working
+                time.sleep(random.uniform(3, 6))
             
             browser.close()
             
