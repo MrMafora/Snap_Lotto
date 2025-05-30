@@ -165,7 +165,7 @@ body {
 }
 
 .table-lottery tbody tr:nth-child(even) {
-    background-color: #f9f9f9 !important;
+    background-color: #fff !important;
 }
 
 .table-lottery tbody tr:nth-child(odd) {
@@ -425,7 +425,7 @@ tbody, td, th {
 }
 
 .table-lottery tr:nth-child(even) {
-    background-color: #f9f9f9;
+    background-color: #fff;
 }
 
 .table-lottery tr:hover {

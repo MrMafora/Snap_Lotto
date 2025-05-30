@@ -86,7 +86,7 @@ body {
 }
 
 .card-body {
-    min-height: 100px;
+    min-height: auto;
 }
 
 /* Smooth transitions for better UX */
