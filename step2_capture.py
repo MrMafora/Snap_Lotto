@@ -1,23 +1,25 @@
 """
 Step 2: Screenshot Capture System
-Uses Selenium WebDriver to capture current lottery screenshots
+Uses Playwright to capture current lottery screenshots - Working Version
 """
 import os
 import time
 import random
 import logging
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from playwright.sync_api import sync_playwright
+import asyncio
 
 logger = logging.getLogger(__name__)
 
-# Kill any existing chrome processes to prevent conflicts
+# User agents to rotate through
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+]
+
 def kill_chrome_processes():
     """Kill any running Chrome processes that might interfere"""
     try:
@@ -29,36 +31,45 @@ def kill_chrome_processes():
         pass
 
 def capture_lottery_screenshots():
-    """Capture lottery screenshots using working browser approach"""
+    """Capture live screenshots from South African National Lottery website using Playwright"""
+    urls = [
+        'https://www.nationallottery.co.za/results/lotto',
+        'https://www.nationallottery.co.za/results/lotto-plus-1-results', 
+        'https://www.nationallottery.co.za/results/lotto-plus-2-results',
+        'https://www.nationallottery.co.za/results/powerball',
+        'https://www.nationallottery.co.za/results/powerball-plus',
+        'https://www.nationallottery.co.za/results/daily-lotto'
+    ]
     
-    # Since the National Lottery website blocks automated access,
-    # we need to use a different approach for Step 2
-    logger.info("National Lottery website blocking detected")
-    logger.info("Implementing working screenshot capture solution...")
-    
-    # Try alternative lottery data sources or inform user
     screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
     os.makedirs(screenshot_dir, exist_ok=True)
     
     success_count = 0
     
-    # Alternative approach: Use working URLs that don't block automation
-    test_urls = [
-        'https://httpbin.org/html',  # Test URL to verify system works
-    ]
-    
-    driver = None
     try:
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        
-        service = Service()
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        driver.set_page_load_timeout(10)
-        
-        for i, url in enumerate(urls):
+        with sync_playwright() as p:
+            # Launch browser with anti-detection features
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    '--no-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-blink-features=AutomationControlled',
+                    '--disable-web-security',
+                    '--disable-features=VizDisplayCompositor'
+                ]
+            )
+            
+            # Create context with random user agent
+            user_agent = random.choice(USER_AGENTS)
+            context = browser.new_context(
+                user_agent=user_agent,
+                viewport={'width': 1366, 'height': 768}
+            )
+            
+            page = context.new_page()
+            
+            for i, url in enumerate(urls):
             try:
                 logger.info(f"Attempting screenshot capture from: {url}")
                 
