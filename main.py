@@ -3783,7 +3783,7 @@ def run_automation_step():
         session['automation_status'] = {
             'success': True,
             'message': message,
-            'details': str(result) if result else None
+            'details': f'Processed {count} items' if count else None
         }
         flash(f'{message}', 'success')
         
