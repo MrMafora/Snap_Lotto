@@ -1168,7 +1168,17 @@ def results():
                         return self.numbers
                     
                     def get_bonus_numbers_list(self):
-                        return json.loads(self.bonus_numbers) if isinstance(self.bonus_numbers, str) else self.bonus_numbers
+                        if isinstance(self.bonus_numbers, str):
+                            if self.bonus_numbers.startswith('['):
+                                try:
+                                    return json.loads(self.bonus_numbers)
+                                except:
+                                    return [self.bonus_numbers.strip('[]')]
+                            else:
+                                return [self.bonus_numbers] if self.bonus_numbers else []
+                        elif isinstance(self.bonus_numbers, (int, float)):
+                            return [str(self.bonus_numbers)]
+                        return self.bonus_numbers if self.bonus_numbers else []
                 
                 latest_results['Lottery'] = ResultObj(
                     lotto_result[1], lotto_result[2], lotto_result[3], lotto_result[4], lotto_result[5]

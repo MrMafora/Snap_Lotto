@@ -21,7 +21,7 @@
                     
                     <div class="lottery-balls-container text-center mb-3">
                         {% if result.numbers %}
-                            {% set numbers_list = result.get_winning_numbers_list() %}
+                            {% set numbers_list = result.get_numbers_list() %}
                             
                             {% for number in numbers_list %}
                                 {% set ball_class = 'lottery-ball ' %}

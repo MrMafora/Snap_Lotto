@@ -86,7 +86,7 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                                 <td>
                                     {% if result.draw_number %}
                                         <a href="{{ url_for('draw_details', lottery_type=result.lottery_type, draw_number=result.draw_number) }}" class="text-decoration-none">
-                                            <strong>Draw {{ result.draw_number.replace('Draw', '').replace('DRAW', '').replace('Lotto', '').replace('Plus 1', '').replace('Plus 2', '').replace('Powerball', '').replace('Daily', '').strip() }}</strong>
+                                            <strong>Draw {{ result.draw_number }}</strong>
                                             <span class="ms-1 text-primary"><i class="fa fa-info-circle" title="View prize details"></i></span>
                                         </a>
                                     {% else %}
