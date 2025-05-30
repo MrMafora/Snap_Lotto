@@ -61,27 +61,29 @@ def setup_chrome_driver():
 
 def capture_screenshot_from_url(url, output_path):
     """Capture a screenshot from a given URL with lottery website protection handling"""
-    # Prevent multiple screenshot processes from running simultaneously
-    if not _screenshot_lock.acquire(blocking=False):
-        logger.warning("Screenshot capture already in progress, skipping")
-        return False
-    
-    try:
-        # Simple, working Chrome setup
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--window-size=1920,1080')
-        
-        from selenium.webdriver.chrome.service import Service
-        service = Service('/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
-        
-        # Temporarily disable browser initialization to prevent worker timeouts
-        logger.warning(f"Screenshot capture temporarily disabled to prevent system hangs")
-        return False
+    # Use blocking lock to wait for previous captures to complete
+    with _screenshot_lock:
+        logger.info(f"Starting screenshot capture for: {url}")
+        driver = None
         
         try:
+            # Simple, working Chrome setup
+            options = webdriver.ChromeOptions()
+            options.add_argument('--headless')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            options.add_argument('--window-size=1920,1080')
+            
+            from selenium.webdriver.chrome.service import Service
+            service = Service('/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
+            
+            # Try to initialize Chrome driver
+            driver = webdriver.Chrome(service=service, options=options)
+            logger.info(f"Chrome driver initialized successfully for: {url}")
+            
+            # Set page load timeout and create output directory
+            driver.set_page_load_timeout(15)
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
             logger.info(f"Capturing screenshot from {url}")
             
             # Set shorter timeout and ensure screenshots directory exists
