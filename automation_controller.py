@@ -4,7 +4,7 @@ Manages the 4-step lottery automation workflow
 """
 import logging
 from step1_cleanup import cleanup_screenshots
-from step2_capture_fixed import capture_lottery_screenshots
+from step2_capture import capture_lottery_screenshots
 from step3_ai_process import process_screenshots_with_ai
 from step4_database import update_database
 
