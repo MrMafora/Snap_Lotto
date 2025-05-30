@@ -2349,22 +2349,49 @@ def visualization_data():
 @app.route('/results/<lottery_type>/<draw_number>')
 def draw_details(lottery_type, draw_number):
     """Show detailed information for a specific draw"""
-    # Temporarily redirect to main results page due to technical issue
-    flash(f"Draw details temporarily unavailable. Showing latest {lottery_type} results.", "info")
-    return redirect(url_for('lottery_results', lottery_type=lottery_type))
-    
-    # Define breadcrumbs for SEO
-    breadcrumbs = [
-        {"name": "Results", "url": url_for('results')},
-        {"name": lottery_type, "url": url_for('lottery_results', lottery_type=lottery_type)},
-        {"name": f"Draw {draw_number}", "url": url_for('draw_details', lottery_type=lottery_type, draw_number=draw_number)}
-    ]
-    
-    return render_template('draw_details.html',
-                          result=result,
-                          lottery_type=lottery_type,
-                          title=f"{lottery_type} Draw {draw_number} Details",
-                          breadcrumbs=breadcrumbs)
+    try:
+        # Map display lottery type to database lottery type
+        db_lottery_type = lottery_type
+        if lottery_type == 'Lottery':
+            db_lottery_type = 'Lotto'
+        elif lottery_type == 'Powerball':
+            db_lottery_type = 'PowerBall'
+        elif lottery_type == 'Daily Lottery':
+            db_lottery_type = 'Daily Lotto'
+        
+        # Query for the specific draw
+        app.logger.info(f"Looking for draw: lottery_type='{db_lottery_type}', draw_number='{str(draw_number)}'")
+        result = LotteryResult.query.filter_by(
+            lottery_type=db_lottery_type,
+            draw_number=str(draw_number)
+        ).first()
+        
+        if not result:
+            app.logger.warning(f"Draw {draw_number} not found for {db_lottery_type}")
+            flash(f"Draw {draw_number} not found for {lottery_type}", "warning")
+            return redirect(url_for('lottery_results', lottery_type=lottery_type))
+        
+        # Get previous and next draws for navigation
+        prev_draw = LotteryResult.query.filter(
+            LotteryResult.lottery_type == db_lottery_type,
+            LotteryResult.draw_date < result.draw_date
+        ).order_by(LotteryResult.draw_date.desc()).first()
+        
+        next_draw = LotteryResult.query.filter(
+            LotteryResult.lottery_type == db_lottery_type,
+            LotteryResult.draw_date > result.draw_date
+        ).order_by(LotteryResult.draw_date.asc()).first()
+        
+        return render_template('draw_details.html',
+                             result=result,
+                             lottery_type=lottery_type,
+                             prev_draw=prev_draw,
+                             next_draw=next_draw)
+                             
+    except Exception as e:
+        app.logger.error(f"Error in draw_details: {e}")
+        flash("Error loading draw details", "error")
+        return redirect(url_for('lottery_results', lottery_type=lottery_type))
 
 @app.route('/screenshot/<int:screenshot_id>')
 def view_screenshot(screenshot_id):
