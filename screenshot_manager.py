@@ -18,22 +18,9 @@ logger = logging.getLogger(__name__)
 # _screenshot_lock = threading.Lock()
 
 def capture_screenshot_from_url(url, output_path):
-    """Simplified screenshot capture with proper lock handling"""
-    logger.info(f"Starting screenshot capture for: {url}")
-    driver = None
-    
-    try:
-        # Simple Chrome setup
-        options = Options()
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--window-size=1920,1080')
-        options.add_argument('--disable-gpu')
-        
-        # Use system Chrome driver
-        service = Service('/nix/store/3qnxr5x6gw3k9a9i7d0akz0m6bksbwff-chromedriver-125.0.6422.141/bin/chromedriver')
-        driver = webdriver.Chrome(service=service, options=options)
+    """Disabled to prevent conflicts with step2_capture.py"""
+    logger.warning("Screenshot manager disabled - using step2_capture.py instead")
+    return False
         
         # Set timeout and navigate
         driver.set_page_load_timeout(20)

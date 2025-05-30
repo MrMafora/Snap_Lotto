@@ -30,16 +30,86 @@ def kill_chrome_processes():
 
 def capture_lottery_screenshots():
     """Capture live screenshots from South African National Lottery website"""
-    # Website blocking detected - use manual upload system only
-    logger.info("National Lottery website has security measures blocking automated access")
-    logger.info("Using manual upload system for lottery screenshots...")
+    urls = [
+        'https://www.nationallottery.co.za/results/lotto',
+        'https://www.nationallottery.co.za/results/lotto-plus-1-results', 
+        'https://www.nationallottery.co.za/results/lotto-plus-2-results',
+        'https://www.nationallottery.co.za/results/powerball',
+        'https://www.nationallottery.co.za/results/powerball-plus',
+        'https://www.nationallottery.co.za/results/daily-lotto'
+    ]
+    
+    screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
+    os.makedirs(screenshot_dir, exist_ok=True)
+    
+    success_count = 0
+    driver = None
     
     try:
-        from step2_fallback import capture_lottery_screenshots_fallback
-        return capture_lottery_screenshots_fallback()
+        # Kill any conflicting processes
+        kill_chrome_processes()
+        
+        # Optimized Chrome options for Replit environment
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-web-security')
+        chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+        chrome_options.add_argument('--window-size=1366,768')
+        chrome_options.add_argument('--remote-debugging-port=9222')
+        
+        # Initialize driver with timeout protection
+        service = Service()
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        driver.set_page_load_timeout(15)
+        driver.implicitly_wait(10)
+        
+        for i, url in enumerate(urls):
+            try:
+                logger.info(f"Capturing screenshot from: {url}")
+                
+                # Navigate to page
+                driver.get(url)
+                time.sleep(5)  # Wait for page load
+                
+                # Generate filename
+                lottery_type = url.split('/')[-1].replace('-', '_')
+                timestamp = int(datetime.now().timestamp())
+                filename = f"current_{lottery_type}_{timestamp}.png"
+                output_path = os.path.join(screenshot_dir, filename)
+                
+                # Take screenshot
+                driver.save_screenshot(output_path)
+                
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 5000:
+                    logger.info(f"Screenshot captured: {filename}")
+                    success_count += 1
+                else:
+                    logger.warning(f"Screenshot file too small: {filename}")
+                    
+            except Exception as e:
+                logger.error(f"Failed to capture screenshot for {url}: {e}")
+                continue
+                
+        if success_count > 0:
+            logger.info(f"Screenshot capture completed: {success_count}/{len(urls)} successful")
+            return True, success_count
+        else:
+            logger.error("No screenshots could be captured")
+            return False, 0
+            
     except Exception as e:
-        logger.error(f"Manual upload system failed: {e}")
+        logger.error(f"Screenshot system failed: {e}")
         return False, 0
+        
+    finally:
+        if driver:
+            try:
+                driver.quit()
+            except:
+                pass
 
 def capture_lottery_screenshots_automated():
     """Automated capture method with quick timeout to prevent hanging"""
