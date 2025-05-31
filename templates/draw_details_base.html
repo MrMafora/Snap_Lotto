@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="viewport" content="width=900, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>{% block title %}Snap Lotto{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
@@ -13,6 +13,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/lottery.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-performance.css') }}">
+    <style>
+        /* Force width constraint for draw details page */
+        * {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .card, .card-body, .row, .col, .col-md-4, .col-md-8, .table {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg mb-2 sticky-top">
@@ -50,7 +61,7 @@
     </nav>
 
     <!-- Custom constrained container for draw details -->
-    <div style="max-width: 1200px; margin: 0 auto; padding: 0 15px;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 0 15px; box-sizing: border-box; overflow-x: hidden;">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
