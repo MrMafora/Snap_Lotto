@@ -40,40 +40,23 @@
     overflow-x: auto;
 }
 
-/* Compact table styling for better space usage */
+/* Clean table styling */
 .table-lottery {
-    font-size: 0.9rem;
-    margin-bottom: 0 !important;
-    border-collapse: collapse !important;
+    font-size: 0.95rem;
+    margin-bottom: 0;
 }
 
 .table-lottery th,
 .table-lottery td {
-    padding: 6px 8px !important;
-    vertical-align: middle !important;
-    border-top: 1px solid #dee2e6 !important;
-    line-height: 1.2 !important;
+    padding: 12px 15px;
+    vertical-align: middle;
+    border-top: 1px solid #dee2e6;
 }
 
 .table-lottery thead th {
-    border-bottom: 2px solid #dee2e6 !important;
-    padding: 8px 8px !important;
     background-color: #f8f9fa;
-}
-
-.table-lottery tbody tr:first-child td {
-    border-top: none !important;
-}
-
-/* Remove any default Bootstrap spacing that might be causing the gap */
-.table-lottery thead,
-.table-lottery tbody {
-    vertical-align: top !important;
-}
-
-.table-lottery tr {
-    margin: 0 !important;
-    padding: 0 !important;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
 }
 
 /* Specific column widths for results table */
