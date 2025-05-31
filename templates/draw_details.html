@@ -2,11 +2,22 @@
 
 {% block title %}{{ lottery_type }} Draw Details | Snap Lotto{% endblock %}
 
+{% block container_class %}container-fluid{% endblock %}
+
 {% block content %}
 <style>
-.container.px-2.px-sm-3 {
+body .container-fluid {
     max-width: 1200px !important;
-    margin: 0 auto !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100% !important;
+}
+@media (min-width: 1200px) {
+    body .container-fluid {
+        max-width: 1200px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
 }
 </style>
 <div class="card">

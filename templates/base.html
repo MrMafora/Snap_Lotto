@@ -155,7 +155,7 @@
     <div id="ad-container-loader" style="display: none;"></div>
     <div id="ad-container-interstitial" style="display: none;"></div>
     
-    <div class="container px-2 px-sm-3">
+    <div class="{% block container_class %}container{% endblock %} px-2 px-sm-3">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
