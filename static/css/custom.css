@@ -1,5 +1,25 @@
 /* Custom styles for Snap Lotto - SA National Lottery Theme */
 
+/* Draw details page width constraint - override Bootstrap container-fluid */
+.container-fluid.px-2.px-sm-3,
+body .container-fluid.px-2.px-sm-3,
+html body .container-fluid.px-2.px-sm-3 {
+    max-width: 1200px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100% !important;
+}
+
+@media (min-width: 1200px) {
+    .container-fluid.px-2.px-sm-3,
+    body .container-fluid.px-2.px-sm-3,
+    html body .container-fluid.px-2.px-sm-3 {
+        max-width: 1200px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+}
+
 :root {
     --sa-lottery-yellow: #FFE11D;
     --sa-lottery-red: #E03237;
