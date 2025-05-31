@@ -223,15 +223,14 @@ def init_lazy_modules():
 
 # HOMEPAGE ROUTE - Must be first to ensure authentic lottery data displays
 @app.route('/')
-@cached_query(ttl=300)  # Cache homepage for 5 minutes
 def home():
     """OPTIMIZED Homepage displaying authentic South African lottery results"""
     from models import LotteryResult
     import json
     
-    app.logger.info("=== OPTIMIZED HOMEPAGE: Loading cached lottery data ===")
+    app.logger.info("=== HOMEPAGE: Loading fresh lottery data from database ===")
     
-    # Use optimized cached query for faster loading
+    # Load fresh data directly from database
     try:
         latest_results = get_optimized_latest_results(limit=6)
         results = []
@@ -285,7 +284,7 @@ def home():
                 display_name = 'Daily Lottery'
             sorted_types[display_name] = result
         
-        app.logger.info(f"OPTIMIZED HOMEPAGE: Loaded {len(results)} results from cache")
+        app.logger.info(f"HOMEPAGE: Loaded {len(results)} results from database")
         return render_template('index.html', results=results, sorted_types=sorted_types)
         
     except Exception as e:

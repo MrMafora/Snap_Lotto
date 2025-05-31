@@ -89,23 +89,15 @@ def cached_query(ttl=300):
     return decorator
 
 def get_optimized_latest_results(limit=10):
-    """Optimized query for latest lottery results with caching"""
+    """Optimized query for latest lottery results - loads fresh data from database"""
     from models import LotteryResult, db
     
-    cache_key = f"latest_results_{limit}"
-    cached_results = cache.get(cache_key)
-    
-    if cached_results is not None:
-        return cached_results
-    
-    # Optimized query with selective loading
+    # Always load fresh data from database
     results = db.session.query(LotteryResult)\
         .order_by(LotteryResult.draw_date.desc(), LotteryResult.created_at.desc())\
         .limit(limit)\
         .all()
     
-    # Cache for 5 minutes
-    cache.set(cache_key, results, 300)
     return results
 
 def get_optimized_lottery_stats():
