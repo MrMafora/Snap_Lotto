@@ -89,199 +89,47 @@
             letter-spacing: 0.5px;
         }
         
-        /* Desktop layout styling */
-        .desktop-layout {
-            width: 100%;
+        /* Override viewport to fix width for desktop */
+        .container, .container-fluid {
+            max-width: 1200px !important;
+            width: 100% !important;
         }
         
-        .top-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
+        /* Bootstrap column fix for proper desktop display */
+        .col-lg-5, .col-lg-4, .col-lg-3 {
+            display: block !important;
+            width: auto !important;
         }
         
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #495057;
-            border-bottom: 2px solid #e9ecef;
-            padding-bottom: 8px;
+        /* Force row to display as flex on desktop */
+        .row {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            gap: 20px !important;
         }
         
-        /* Draw Information Section */
-        .draw-info-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #ffc107;
+        /* Set fixed widths for desktop columns */
+        .col-lg-5 {
+            flex: 0 0 40% !important;
         }
         
-        .info-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+        .col-lg-4 {
+            flex: 0 0 35% !important;
         }
         
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .info-row:last-child {
-            border-bottom: none;
-        }
-        
-        .info-label {
-            font-weight: 500;
-            color: #6c757d;
-            font-size: 0.85rem;
-            min-width: 100px;
-        }
-        
-        .info-value {
-            font-weight: 600;
-            color: #212529;
-        }
-        
-        .draw-number {
-            font-size: 1.2rem;
-            color: #007bff;
-        }
-        
-        .game-badge {
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        
-        .lotto-badge {
-            background: #007bff;
-            color: white;
-        }
-        
-        .powerball-badge {
-            background: #dc3545;
-            color: white;
-        }
-        
-        .daily-badge {
-            background: #28a745;
-            color: white;
-        }
-        
-        .source-link {
-            color: #007bff;
-            text-decoration: none;
-        }
-        
-        /* Winning Numbers Section */
-        .winning-numbers-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #28a745;
-            text-align: center;
-        }
-        
-        .numbers-display {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .main-numbers {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .number-ball {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 16px;
-            color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        .ball-red { background: linear-gradient(135deg, #dc3545, #c82333); }
-        .ball-yellow { background: linear-gradient(135deg, #ffc107, #e0a800); }
-        .ball-green { background: linear-gradient(135deg, #28a745, #1e7e34); }
-        .ball-blue { background: linear-gradient(135deg, #007bff, #0056b3); }
-        .ball-bonus { background: linear-gradient(135deg, #6f42c1, #59359a); }
-        
-        .bonus-numbers {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .bonus-label {
-            font-size: 0.9rem;
-            color: #6c757d;
-            font-weight: 500;
-        }
-        
-        /* Quick Stats Section */
-        .quick-stats-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #17a2b8;
-            text-align: center;
-        }
-        
-        .stats-display {
-            display: flex;
-            justify-content: space-around;
-            gap: 15px;
-        }
-        
-        .stat-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            min-width: 60px;
-        }
-        
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #007bff;
-            margin-bottom: 5px;
-        }
-        
-        .stat-desc {
-            font-size: 0.75rem;
-            color: #6c757d;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .col-lg-3 {
+            flex: 0 0 25% !important;
         }
         
         /* Responsive adjustments */
         @media (max-width: 768px) {
-            .top-section {
-                grid-template-columns: 1fr;
-                gap: 20px;
+            .row {
+                flex-wrap: wrap !important;
+                flex-direction: column !important;
+            }
+            
+            .col-lg-5, .col-lg-4, .col-lg-3 {
+                flex: 1 1 100% !important;
             }
             
             .container, .container-fluid {
@@ -293,7 +141,7 @@
                 padding: 15px;
             }
             
-            .number-ball {
+            .lottery-ball {
                 width: 35px;
                 height: 35px;
                 font-size: 12px;
