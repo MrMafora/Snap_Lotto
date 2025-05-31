@@ -20,30 +20,32 @@
 
 .table-lottery th,
 .table-lottery td {
-    padding: 6px 4px !important;
-    font-size: 0.75rem !important;
-    word-break: break-word !important;
-}
-
-.table-lottery th:nth-child(2),
-.table-lottery td:nth-child(2) {
-    max-width: 180px !important;
-    word-wrap: break-word !important;
+    padding: 8px 6px !important;
+    font-size: 0.85rem !important;
+    white-space: nowrap !important;
 }
 
 .table-lottery th:nth-child(1),
 .table-lottery td:nth-child(1) {
-    min-width: 60px !important;
+    width: 15% !important;
+}
+
+.table-lottery th:nth-child(2),
+.table-lottery td:nth-child(2) {
+    width: 45% !important;
+    white-space: nowrap !important;
 }
 
 .table-lottery th:nth-child(3),
 .table-lottery td:nth-child(3) {
-    min-width: 60px !important;
+    width: 20% !important;
+    text-align: center !important;
 }
 
 .table-lottery th:nth-child(4),
 .table-lottery td:nth-child(4) {
-    min-width: 80px !important;
+    width: 20% !important;
+    text-align: right !important;
 }
 
 /* Draw details page width constraint - override Bootstrap container-fluid */
