@@ -1,49 +1,48 @@
 /* Custom styles for Snap Lotto - SA National Lottery Theme */
 
-/* Force page width constraints for draw details */
-.container-fluid, .container {
+/* Draw details page specific styling only */
+.draw-details-page .container-fluid {
     max-width: 1000px !important;
     margin: 0 auto !important;
 }
 
-/* Table responsive fixes for draw details */
-.table-responsive {
+.draw-details-page .table-responsive {
     max-width: 100% !important;
     overflow-x: auto !important;
 }
 
-.table-lottery {
+.draw-details-page .table-lottery {
     font-size: 0.75rem !important;
     table-layout: fixed !important;
     width: 100% !important;
 }
 
-.table-lottery th,
-.table-lottery td {
+.draw-details-page .table-lottery th,
+.draw-details-page .table-lottery td {
     padding: 8px 6px !important;
     font-size: 0.85rem !important;
     white-space: nowrap !important;
 }
 
-.table-lottery th:nth-child(1),
-.table-lottery td:nth-child(1) {
+.draw-details-page .table-lottery th:nth-child(1),
+.draw-details-page .table-lottery td:nth-child(1) {
     width: 15% !important;
 }
 
-.table-lottery th:nth-child(2),
-.table-lottery td:nth-child(2) {
+.draw-details-page .table-lottery th:nth-child(2),
+.draw-details-page .table-lottery td:nth-child(2) {
     width: 45% !important;
     white-space: nowrap !important;
 }
 
-.table-lottery th:nth-child(3),
-.table-lottery td:nth-child(3) {
+.draw-details-page .table-lottery th:nth-child(3),
+.draw-details-page .table-lottery td:nth-child(3) {
     width: 20% !important;
     text-align: center !important;
 }
 
-.table-lottery th:nth-child(4),
-.table-lottery td:nth-child(4) {
+.draw-details-page .table-lottery th:nth-child(4),
+.draw-details-page .table-lottery td:nth-child(4) {
     width: 20% !important;
     text-align: right !important;
 }
