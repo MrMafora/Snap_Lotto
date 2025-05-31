@@ -14,29 +14,46 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-performance.css') }}">
     <style>
-        /* Optimize width for draw details page */
-        html, body {
-            width: 100% !important;
-            max-width: none !important;
-        }
-        
-        .container, .container-fluid {
-            max-width: 700px !important;
-            padding: 0 15px !important;
-        }
-        
-        .row {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-        }
-        
-        .col-lg-5, .col-lg-4, .col-lg-3, .col-md-6, .col-md-12 {
-            padding-left: 8px !important;
-            padding-right: 8px !important;
-        }
-        
-        .table {
-            font-size: 0.9rem !important;
+        /* Override mobile performance constraints for better readability */
+        @media (min-width: 1px) {
+            .container, .container-fluid {
+                padding-left: 20px !important;
+                padding-right: 20px !important;
+                max-width: 900px !important;
+                margin: 0 auto !important;
+            }
+            
+            .card {
+                max-width: 100% !important;
+                margin: 0 auto !important;
+            }
+            
+            .card-body {
+                padding: 15px !important;
+            }
+            
+            .table-lottery th,
+            .table-lottery td {
+                padding: 8px 6px !important;
+                font-size: 0.9rem !important;
+            }
+            
+            .lottery-ball {
+                width: 32px !important;
+                height: 32px !important;
+                font-size: 12px !important;
+                margin: 2px !important;
+            }
+            
+            .row {
+                margin-left: -10px !important;
+                margin-right: -10px !important;
+            }
+            
+            .col-lg-5, .col-lg-4, .col-lg-3, .col-md-6, .col-md-12 {
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+            }
         }
     </style>
 </head>
