@@ -4,6 +4,7 @@ Extract lottery data from screenshots using Anthropic Claude
 """
 import os
 import base64
+import json
 import logging
 from anthropic import Anthropic
 
@@ -106,7 +107,6 @@ VERIFY EACH NUMBER TWICE before responding. Accuracy is critical."""
                 
                 # Validate the extracted data for accuracy
                 try:
-                    import json
                     extracted_data = json.loads(response)
                     
                     # Validation checks for data integrity
@@ -158,6 +158,13 @@ VERIFY EACH NUMBER TWICE before responding. Accuracy is critical."""
                 
             except Exception as e:
                 logger.error(f"Error processing {image_file}: {e}")
+        
+        # Save extracted lottery data to file for database update step
+        if extracted_results:
+            output_file = os.path.join(os.getcwd(), 'extracted_lottery_data.json')
+            with open(output_file, 'w') as f:
+                json.dump(extracted_results, f, indent=2)
+            logger.info(f"Saved {len(extracted_results)} lottery results to {output_file}")
         
         logger.info(f"AI processing completed: {processed_count}/{len(png_files)} images processed")
         return processed_count > 0, processed_count
