@@ -724,14 +724,24 @@ canvas {
 
 /* Draw details page width constraint */
 .draw-details-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 15px;
+    max-width: 1200px !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 15px !important;
+    box-sizing: border-box !important;
 }
 
 @media (max-width: 1200px) {
     .draw-details-container {
-        max-width: 95%;
+        max-width: 95% !important;
+        margin: 0 auto !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .draw-details-container {
+        max-width: 100% !important;
+        padding: 0 10px !important;
     }
 }
 
