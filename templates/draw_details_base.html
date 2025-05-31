@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1200, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>{% block title %}Snap Lotto{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
@@ -89,36 +89,43 @@
             letter-spacing: 0.5px;
         }
         
-        /* Override viewport to fix width for desktop */
+        /* Match homepage container styling exactly */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
         .container, .container-fluid {
             max-width: 1200px !important;
-            width: 100% !important;
+            margin: 0 auto !important;
+            padding-left: 15px !important;
+            padding-right: 15px !important;
         }
         
-        /* Bootstrap column fix for proper desktop display */
-        .col-lg-5, .col-lg-4, .col-lg-3 {
-            display: block !important;
-            width: auto !important;
+        /* Override Bootstrap responsive behavior to maintain desktop layout */
+        @media (min-width: 992px) {
+            .col-lg-5 {
+                flex: 0 0 41.666667% !important;
+                max-width: 41.666667% !important;
+            }
+            
+            .col-lg-4 {
+                flex: 0 0 33.333333% !important;
+                max-width: 33.333333% !important;
+            }
+            
+            .col-lg-3 {
+                flex: 0 0 25% !important;
+                max-width: 25% !important;
+            }
         }
         
-        /* Force row to display as flex on desktop */
-        .row {
-            display: flex !important;
-            flex-wrap: nowrap !important;
-            gap: 20px !important;
-        }
-        
-        /* Set fixed widths for desktop columns */
-        .col-lg-5 {
-            flex: 0 0 40% !important;
-        }
-        
-        .col-lg-4 {
-            flex: 0 0 35% !important;
-        }
-        
-        .col-lg-3 {
-            flex: 0 0 25% !important;
+        /* Ensure row stays horizontal on desktop */
+        @media (min-width: 992px) {
+            .row {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+            }
         }
         
         /* Responsive adjustments */
