@@ -2,7 +2,7 @@
 
 /* Force page width constraints for draw details */
 .container-fluid, .container {
-    max-width: 1100px !important;
+    max-width: 1000px !important;
     margin: 0 auto !important;
 }
 
