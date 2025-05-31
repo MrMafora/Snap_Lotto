@@ -13,103 +13,102 @@
         </div>
     </div>
     <div class="card-body">
-        <div class="row mb-4 gx-4">
-            <!-- Draw Information Section -->
-            <div class="col-lg-5 col-md-6 mb-4">
-                <h5 class="card-subtitle mb-3">Draw Information</h5>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <label class="info-label">Game Type:</label>
-                        <div class="info-value">
-                            {% if 'Lottery Plus' in result.lottery_type or 'Lotto Plus' in result.lottery_type %}
-                                <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
-                            {% elif 'Powerball' in result.lottery_type %}
-                                <span class="game-type-badge game-type-powerball">{{ result.lottery_type }}</span>
-                            {% elif 'Daily' in result.lottery_type %}
-                                <span class="game-type-badge game-type-daily">{{ result.lottery_type }}</span>
-                            {% else %}
-                                <span class="game-type-badge game-type-lotto">{{ result.lottery_type }}</span>
-                            {% endif %}
+        <div class="desktop-layout">
+            <!-- Top section with three columns side by side -->
+            <div class="top-section">
+                <!-- Draw Information Section -->
+                <div class="draw-info-section">
+                    <h5 class="section-title">Draw Information</h5>
+                    <div class="info-grid">
+                        <div class="info-row">
+                            <span class="info-label">GAME TYPE:</span>
+                            <div class="info-value">
+                                {% if 'Lottery Plus' in result.lottery_type or 'Lotto Plus' in result.lottery_type %}
+                                    <span class="game-badge lotto-badge">{{ result.lottery_type }}</span>
+                                {% elif 'Powerball' in result.lottery_type %}
+                                    <span class="game-badge powerball-badge">{{ result.lottery_type }}</span>
+                                {% elif 'Daily' in result.lottery_type %}
+                                    <span class="game-badge daily-badge">{{ result.lottery_type }}</span>
+                                {% else %}
+                                    <span class="game-badge lotto-badge">{{ result.lottery_type }}</span>
+                                {% endif %}
+                            </div>
                         </div>
-                    </div>
-                    <div class="info-item">
-                        <label class="info-label">Draw Number:</label>
-                        <div class="info-value"><strong>{{ result.draw_number }}</strong></div>
-                    </div>
-                    <div class="info-item">
-                        <label class="info-label">Draw Date:</label>
-                        <div class="info-value">{{ result.draw_date.strftime('%A, %B %d, %Y') }}</div>
-                    </div>
-                    <div class="info-item">
-                        <label class="info-label">Data Source:</label>
-                        <div class="info-value">
-                            {% if result.source_url %}
-                                <a href="https://www.nationallottery.co.za" target="_blank" class="text-decoration-none">
-                                    nationallottery.co.za
-                                    <i class="fa fa-external-link-alt small ms-1"></i>
-                                </a>
-                            {% else %}
-                                manual-import (excel-spreadsheet)
-                            {% endif %}
+                        <div class="info-row">
+                            <span class="info-label">DRAW NUMBER:</span>
+                            <span class="info-value draw-number">{{ result.draw_number }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">DRAW DATE:</span>
+                            <span class="info-value">{{ result.draw_date.strftime('%A, %B %d, %Y') }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">DATA SOURCE:</span>
+                            <div class="info-value">
+                                {% if result.source_url %}
+                                    <a href="https://www.nationallottery.co.za" target="_blank" class="source-link">
+                                        nationallottery.co.za
+                                        <i class="fa fa-external-link-alt"></i>
+                                    </a>
+                                {% else %}
+                                    manual-import (excel-spreadsheet)
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Winning Numbers Section -->
-            <div class="col-lg-4 col-md-6 mb-4">
-                <h5 class="card-subtitle mb-3">Winning Numbers</h5>
-                <div class="numbers-container">
-                    <div class="main-numbers mb-3">
-                        <div class="d-flex flex-wrap justify-content-center gap-2">
+                
+                <!-- Winning Numbers Section -->
+                <div class="winning-numbers-section">
+                    <h5 class="section-title">Winning Numbers</h5>
+                    <div class="numbers-display">
+                        <div class="main-numbers">
                             {% for num in result.get_numbers_list() %}
-                                {% set ball_class = 'lottery-ball lottery-ball-lg ' %}
+                                {% set ball_class = 'number-ball ' %}
                                 
                                 {% if loop.index0 % 4 == 0 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                    {% set ball_class = ball_class + 'ball-red' %}
                                 {% elif loop.index0 % 4 == 1 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                    {% set ball_class = ball_class + 'ball-yellow' %}
                                 {% elif loop.index0 % 4 == 2 %}
-                                    {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                    {% set ball_class = ball_class + 'ball-green' %}
                                 {% else %}
-                                    {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                                    {% set ball_class = ball_class + 'ball-blue' %}
                                 {% endif %}
                                 
                                 <span class="{{ ball_class }}">{{ num }}</span>
                             {% endfor %}
                         </div>
-                    </div>
-                    
-                    {% if result.get_bonus_numbers_list() %}
-                    <div class="bonus-numbers">
-                        <h6 class="mb-2 text-center">Bonus Number{% if result.get_bonus_numbers_list()|length > 1 %}s{% endif %}</h6>
-                        <div class="d-flex flex-wrap justify-content-center gap-2">
+                        
+                        {% if result.get_bonus_numbers_list() %}
+                        <div class="bonus-numbers">
+                            <div class="bonus-label">Bonus Number</div>
                             {% for num in result.get_bonus_numbers_list() %}
-                                <span class="lottery-ball lottery-ball-lg lottery-ball-bonus">{{ num }}</span>
+                                <span class="number-ball ball-bonus">{{ num }}</span>
                             {% endfor %}
                         </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </div>
-            </div>
-            
-            <!-- Quick Stats Section -->
-            <div class="col-lg-3 col-md-12 mb-4">
-                <h5 class="card-subtitle mb-3">Quick Stats</h5>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-value">{{ result.get_numbers_list()|length }}</div>
-                        <div class="stat-label">Numbers</div>
-                    </div>
-                    {% if result.get_bonus_numbers_list() %}
-                    <div class="stat-item">
-                        <div class="stat-value">{{ result.get_bonus_numbers_list()|length }}</div>
-                        <div class="stat-label">Bonus</div>
-                    </div>
-                    {% endif %}
-                    <div class="stat-item">
-                        <div class="stat-value">{{ result.draw_date.strftime('%d') }}</div>
-                        <div class="stat-label">{{ result.draw_date.strftime('%b') }}</div>
+                
+                <!-- Quick Stats Section -->
+                <div class="quick-stats-section">
+                    <h5 class="section-title">Quick Stats</h5>
+                    <div class="stats-display">
+                        <div class="stat-box">
+                            <div class="stat-number">{{ result.get_numbers_list()|length }}</div>
+                            <div class="stat-desc">NUMBERS</div>
+                        </div>
+                        {% if result.get_bonus_numbers_list() %}
+                        <div class="stat-box">
+                            <div class="stat-number">{{ result.get_bonus_numbers_list()|length }}</div>
+                            <div class="stat-desc">BONUS</div>
+                        </div>
+                        {% endif %}
+                        <div class="stat-box">
+                            <div class="stat-number">{{ result.draw_date.strftime('%d') }}</div>
+                            <div class="stat-desc">{{ result.draw_date.strftime('%b').upper() }}</div>
+                        </div>
                     </div>
                 </div>
             </div>
