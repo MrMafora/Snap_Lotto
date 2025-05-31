@@ -722,6 +722,19 @@ canvas {
     }
 }
 
+/* Draw details page width constraint */
+.draw-details-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+@media (max-width: 1200px) {
+    .draw-details-container {
+        max-width: 95%;
+    }
+}
+
 /* Small phone optimization */
 @media (max-width: 576px) {
     body {
