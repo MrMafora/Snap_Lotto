@@ -14,26 +14,15 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-performance.css') }}">
     <style>
-        /* Force width constraint for draw details page */
-        body {
-            max-width: 450px !important;
-            margin: 0 auto !important;
-            padding: 0 8px !important;
-        }
-        
-        * {
-            max-width: 100% !important;
-            box-sizing: border-box !important;
+        /* Optimize width for draw details page */
+        html, body {
+            width: 100% !important;
+            max-width: none !important;
         }
         
         .container, .container-fluid {
-            max-width: 100% !important;
-            padding: 0 !important;
-        }
-        
-        .card, .card-body, .row, .col, .col-md-4, .col-md-8, .col-lg-3, .col-lg-4, .col-lg-5, .table {
-            width: 100% !important;
-            max-width: 100% !important;
+            max-width: 700px !important;
+            padding: 0 15px !important;
         }
         
         .row {
@@ -42,8 +31,12 @@
         }
         
         .col-lg-5, .col-lg-4, .col-lg-3, .col-md-6, .col-md-12 {
-            padding-left: 3px !important;
-            padding-right: 3px !important;
+            padding-left: 8px !important;
+            padding-right: 8px !important;
+        }
+        
+        .table {
+            font-size: 0.9rem !important;
         }
     </style>
 </head>
@@ -83,7 +76,7 @@
     </nav>
 
     <!-- Custom constrained container for draw details -->
-    <div style="max-width: 1200px; margin: 0 auto; padding: 0 15px; box-sizing: border-box; overflow-x: hidden;">
+    <div style="max-width: 700px; margin: 0 auto; padding: 0 15px; box-sizing: border-box; overflow-x: hidden;">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
