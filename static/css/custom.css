@@ -137,10 +137,6 @@ body {
     body {
         font-size: 14px;
     }
-    
-    .container {
-        max-width: 100%;
-    }
 }
 
 /* Force override dark theme for all tables */
@@ -740,7 +736,6 @@ canvas {
 
 @media (max-width: 768px) {
     .draw-details-container {
-        max-width: 100% !important;
         padding: 0 10px !important;
     }
 }

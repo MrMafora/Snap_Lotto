@@ -3,9 +3,15 @@
 {% block title %}{{ lottery_type }} Draw Details | Snap Lotto{% endblock %}
 
 {% block content %}
-<div style="display: grid; grid-template-columns: 1fr minmax(auto, 1200px) 1fr; grid-gap: 0;">
-    <div></div>
-    <div style="padding: 0 15px;">
+<style>
+.draw-details-page {
+    max-width: 1200px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+</style>
+<div class="draw-details-page">
 <div class="card">
     <div class="card-header lottery-header">
         <div class="d-flex justify-content-between align-items-center">
@@ -165,7 +171,5 @@
     </p>
 </div>
 </div>
-    </div>
-    <div></div>
 </div>
 {% endblock %}
