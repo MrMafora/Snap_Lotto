@@ -191,8 +191,8 @@
         </div>
     </nav>
 
-    <!-- Custom constrained container for draw details -->
-    <div style="max-width: 700px; margin: 0 auto; padding: 0 15px; box-sizing: border-box; overflow-x: hidden;">
+    <!-- Container matching homepage styling -->
+    <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 15px; box-sizing: border-box;">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
