@@ -31,6 +31,7 @@ def process_screenshots_with_ai():
             return False, 0
         
         processed_count = 0
+        extracted_results = []
         
         for image_file in png_files:
             try:
@@ -146,6 +147,7 @@ VERIFY EACH NUMBER TWICE before responding. Accuracy is critical."""
                         logger.warning(f"Validation errors for {image_file}: {validation_errors}")
                     else:
                         logger.info(f"✓ Data validation passed for {image_file}")
+                        extracted_results.append(extracted_data)
                         
                 except json.JSONDecodeError:
                     logger.error(f"Invalid JSON response for {image_file}")
