@@ -40,6 +40,17 @@
     overflow-x: auto;
 }
 
+/* Compact table styling for better space usage */
+.table-lottery {
+    font-size: 0.9rem;
+}
+
+.table-lottery th,
+.table-lottery td {
+    padding: 8px 12px !important;
+    vertical-align: middle !important;
+}
+
 /* Specific column widths for results table */
 /* GAME TYPE column */
 .table th:nth-child(1),
