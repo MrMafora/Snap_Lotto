@@ -13,37 +13,98 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/lottery.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <style>
-        /* Fixed width layout for desktop viewing */
+        /* Desktop-optimized layout matching homepage */
         body {
-            min-width: 1200px !important;
-            overflow-x: auto !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
         }
         
         .container, .container-fluid {
-            max-width: 1100px !important;
-            width: 100% !important;
-            padding-left: 10px !important;
-            padding-right: 10px !important;
+            max-width: 1200px !important;
             margin: 0 auto !important;
+            padding: 0 15px !important;
         }
         
+        /* Card styling to match homepage */
         .card {
-            width: 100% !important;
-            max-width: none !important;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
         
-        .table-responsive {
-            overflow-x: visible !important;
+        .card-header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 15px 20px;
+            font-weight: 600;
         }
         
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* Table styling to match homepage */
         .table {
-            width: 100% !important;
-            table-layout: auto !important;
+            margin-bottom: 0;
         }
         
-        .table th, .table td {
-            white-space: nowrap !important;
-            padding: 8px 12px !important;
+        .table th {
+            background-color: #f8f9fa;
+            border-top: none;
+            font-weight: 600;
+            padding: 12px 15px;
+        }
+        
+        .table td {
+            padding: 12px 15px;
+            vertical-align: middle;
+        }
+        
+        /* Lottery ball styling */
+        .lottery-ball {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin: 2px;
+            color: white;
+        }
+        
+        /* Quick stats styling */
+        .text-center h3 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .text-muted {
+            color: #6c757d !important;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container, .container-fluid {
+                max-width: 100% !important;
+                padding: 0 10px !important;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .lottery-ball {
+                width: 35px;
+                height: 35px;
+                font-size: 12px;
+            }
         }
     </style>
 </head>
