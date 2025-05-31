@@ -18,7 +18,7 @@ class LotteryDataExtractor:
     def __init__(self):
         self.client = anthropic.Anthropic(
             api_key=os.environ.get('ANTHROPIC_API_SNAP_LOTTERY'),
-            timeout=120.0
+            timeout=30.0  # Reduced timeout for faster processing
         )
         self.processed_images = set()
         self.extraction_results = []
