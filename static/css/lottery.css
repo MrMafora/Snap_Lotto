@@ -48,15 +48,18 @@
 
 .table-lottery th,
 .table-lottery td {
-    padding: 8px 15px;
+    padding: 6px 8px;
     vertical-align: middle;
     border-top: 1px solid #dee2e6;
+    font-size: 0.9rem;
 }
 
 .table-lottery thead th {
     background-color: #f8f9fa;
     border-bottom: 2px solid #dee2e6;
     font-weight: 600;
+    padding: 4px 6px;
+    font-size: 0.85rem;
 }
 
 /* Specific column widths for results table */
