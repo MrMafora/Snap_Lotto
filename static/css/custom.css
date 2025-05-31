@@ -1,5 +1,29 @@
 /* Custom styles for Snap Lotto - SA National Lottery Theme */
 
+/* Force page width constraints for draw details */
+.container-fluid, .container {
+    max-width: 1100px !important;
+    margin: 0 auto !important;
+}
+
+/* Table responsive fixes for draw details */
+.table-responsive {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+}
+
+.table-lottery {
+    font-size: 0.85rem !important;
+    white-space: nowrap !important;
+    min-width: auto !important;
+}
+
+.table-lottery th,
+.table-lottery td {
+    padding: 8px 6px !important;
+    font-size: 0.8rem !important;
+}
+
 /* Draw details page width constraint - override Bootstrap container-fluid */
 .container-fluid.px-2.px-sm-3,
 body .container-fluid.px-2.px-sm-3,
