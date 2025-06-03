@@ -264,20 +264,31 @@
         padding: 4px !important;
     }
     
-    /* Lottery numbers mobile sizing */
+    /* Lottery numbers mobile sizing - improved readability */
     .lottery-number {
-        width: 22px !important;
-        height: 22px !important;
-        font-size: 9px !important;
-        line-height: 22px !important;
-        margin: 1px 0.5px !important;
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 10px !important;
+        line-height: 24px !important;
+        margin: 2px 1px !important;
+        box-sizing: border-box !important;
+        text-align: center !important;
+        vertical-align: middle !important;
+        padding: 0 !important;
+        border: none !important;
     }
     
     .bonus-number {
-        width: 18px !important;
-        height: 18px !important;
-        font-size: 8px !important;
-        line-height: 18px !important;
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+        line-height: 20px !important;
+        margin: 2px 1px !important;
+        box-sizing: border-box !important;
+        text-align: center !important;
+        vertical-align: middle !important;
+        padding: 0 !important;
+        border: none !important;
     }
 }
 

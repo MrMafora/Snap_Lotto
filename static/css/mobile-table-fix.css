@@ -89,39 +89,47 @@
         padding: 4px !important;
     }
     
-    /* Lottery number balls - smaller for mobile */
+    /* Lottery number balls - optimized for mobile readability */
     .lottery-number {
-        width: 20px !important;
-        height: 20px !important;
-        font-size: 8px !important;
-        line-height: 20px !important;
-        margin: 1px 0.5px !important;
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 10px !important;
+        line-height: 24px !important;
+        margin: 2px 1px !important;
         border-radius: 50% !important;
         display: inline-block !important;
         text-align: center !important;
         font-weight: bold !important;
         color: white !important;
         vertical-align: middle !important;
+        box-sizing: border-box !important;
+        padding: 0 !important;
+        border: none !important;
     }
     
     /* Bonus number styling */
     .bonus-number {
-        width: 16px !important;
-        height: 16px !important;
-        font-size: 7px !important;
-        line-height: 16px !important;
-        margin: 1px 0.5px !important;
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+        line-height: 20px !important;
+        margin: 2px 1px !important;
+        box-sizing: border-box !important;
+        padding: 0 !important;
+        border: none !important;
     }
     
     /* Badge improvements for game types */
     .badge {
-        font-size: 8px !important;
-        padding: 1px 3px !important;
-        line-height: 1.1 !important;
+        font-size: 9px !important;
+        padding: 2px 4px !important;
+        line-height: 1.2 !important;
         word-wrap: break-word !important;
         white-space: normal !important;
         display: inline-block !important;
-        max-width: 65px !important;
+        max-width: 80px !important;
+        text-align: center !important;
+        vertical-align: middle !important;
     }
     
     /* Header improvements */
@@ -163,24 +171,34 @@
 /* Extra small screens */
 @media (max-width: 400px) {
     .lottery-number {
-        width: 18px !important;
-        height: 18px !important;
-        font-size: 7px !important;
-        line-height: 18px !important;
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 9px !important;
+        line-height: 22px !important;
+        margin: 1px !important;
     }
     
     .bonus-number {
-        width: 14px !important;
-        height: 14px !important;
-        font-size: 6px !important;
-        line-height: 14px !important;
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 8px !important;
+        line-height: 18px !important;
+        margin: 1px !important;
     }
     
     .table-lottery th:first-child,
     .table-lottery td:first-child {
-        width: 60px !important;
-        min-width: 60px !important;
-        max-width: 60px !important;
-        font-size: 8px !important;
+        width: 75px !important;
+        min-width: 75px !important;
+        max-width: 75px !important;
+        font-size: 9px !important;
+        padding: 4px 3px !important;
+    }
+    
+    /* Adjust numbers column to give more space */
+    .table-lottery th:nth-child(4),
+    .table-lottery td:nth-child(4) {
+        min-width: 120px !important;
+        padding: 6px 3px !important;
     }
 }
