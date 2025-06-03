@@ -48,6 +48,164 @@ html {
 }
 
 /* Container optimizations for mobile */
+@media (max-width: 768px) {
+    .container, .container-fluid {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+        max-width: 100% !important;
+    }
+    
+    /* Fix lottery results table on mobile */
+    .table-lottery {
+        font-size: 13px !important;
+        margin-bottom: 0 !important;
+    }
+    
+    .table-lottery th,
+    .table-lottery td {
+        padding: 8px 4px !important;
+        vertical-align: middle !important;
+        word-wrap: break-word !important;
+    }
+    
+    /* Game type column - make narrower */
+    .table-lottery th:first-child,
+    .table-lottery td:first-child {
+        width: 80px !important;
+        min-width: 80px !important;
+        max-width: 80px !important;
+        font-size: 11px !important;
+        line-height: 1.2 !important;
+        padding: 6px 2px !important;
+    }
+    
+    /* Draw number column */
+    .table-lottery th:nth-child(2),
+    .table-lottery td:nth-child(2) {
+        width: 60px !important;
+        min-width: 60px !important;
+        max-width: 60px !important;
+        font-size: 11px !important;
+    }
+    
+    /* Date column */
+    .table-lottery th:nth-child(3),
+    .table-lottery td:nth-child(3) {
+        width: 70px !important;
+        min-width: 70px !important;
+        max-width: 70px !important;
+        font-size: 10px !important;
+    }
+    
+    /* Numbers column - allow to expand */
+    .table-lottery th:nth-child(4),
+    .table-lottery td:nth-child(4) {
+        width: auto !important;
+        min-width: 120px !important;
+    }
+    
+    /* Fix lottery number balls on mobile */
+    .lottery-number {
+        width: 25px !important;
+        height: 25px !important;
+        font-size: 10px !important;
+        line-height: 25px !important;
+        margin: 1px !important;
+        border-radius: 50% !important;
+        display: inline-block !important;
+        text-align: center !important;
+        font-weight: bold !important;
+        color: white !important;
+    }
+    
+    /* Bonus number styling */
+    .bonus-number {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+        line-height: 20px !important;
+        margin: 1px !important;
+    }
+    
+    /* Game type badges */
+    .badge {
+        font-size: 9px !important;
+        padding: 2px 4px !important;
+        line-height: 1.2 !important;
+        word-wrap: break-word !important;
+        white-space: normal !important;
+    }
+    
+    /* Header improvements */
+    .header-section {
+        padding: 10px 0 !important;
+    }
+    
+    /* Card improvements */
+    .card {
+        margin-bottom: 15px !important;
+        border-radius: 8px !important;
+    }
+    
+    .card-body {
+        padding: 12px !important;
+    }
+    
+    /* Typography improvements */
+    h1 {
+        font-size: 1.75rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    h2 {
+        font-size: 1.5rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    h3 {
+        font-size: 1.25rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    h4 {
+        font-size: 1.1rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    /* Button improvements */
+    .btn {
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+        border-radius: 6px !important;
+    }
+    
+    .btn-sm {
+        padding: 4px 8px !important;
+        font-size: 12px !important;
+    }
+    
+    /* Remove horizontal scroll */
+    body {
+        overflow-x: hidden !important;
+    }
+    
+    .table-responsive {
+        border: none !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    
+    /* Fix dropdown on mobile */
+    .dropdown-menu {
+        font-size: 14px !important;
+        min-width: 150px !important;
+    }
+    
+    .dropdown-item {
+        padding: 8px 16px !important;
+        font-size: 14px !important;
+    }
+}
 .container-fluid {
     padding-left: 8px;
     padding-right: 8px;
