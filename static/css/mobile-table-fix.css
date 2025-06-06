@@ -3,15 +3,15 @@
 /* Force minimum width for mobile devices */
 @media (max-width: 768px) {
     body {
-        min-width: 320px !important;
-        overflow-x: auto !important;
+        min-width: 375px !important;
+        overflow-x: hidden !important;
     }
     
     .container,
     .container-fluid {
-        padding-left: 5px !important;
-        padding-right: 5px !important;
-        margin: 0 !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+        margin: 0 auto !important;
         max-width: 100% !important;
         width: 100% !important;
     }
@@ -23,13 +23,14 @@
         margin: 0 !important;
         padding: 0 !important;
         border: none !important;
+        width: 100% !important;
     }
     
     .table-lottery {
         width: 100% !important;
-        min-width: 100% !important;
-        table-layout: auto !important;
-        font-size: 11px !important;
+        min-width: 600px !important;
+        table-layout: fixed !important;
+        font-size: 12px !important;
         margin: 0 !important;
         border-collapse: collapse !important;
     }
@@ -45,17 +46,17 @@
         text-overflow: ellipsis !important;
     }
     
-    /* Game type column - increased width for POWERBALL PLUS */
+    /* Game type column - optimized for all lottery types */
     .table-lottery th:first-child,
     .table-lottery td:first-child {
-        width: 95px !important;
-        min-width: 95px !important;
-        max-width: 95px !important;
-        font-size: 10px !important;
-        line-height: 1.1 !important;
+        width: 110px !important;
+        min-width: 110px !important;
+        max-width: 110px !important;
+        font-size: 11px !important;
+        line-height: 1.2 !important;
         white-space: normal !important;
         word-wrap: break-word !important;
-        padding: 6px 3px !important;
+        padding: 8px 4px !important;
         vertical-align: middle !important;
         overflow: visible !important;
         text-overflow: clip !important;
@@ -64,31 +65,43 @@
     /* Draw number column */
     .table-lottery th:nth-child(2),
     .table-lottery td:nth-child(2) {
-        width: 50px !important;
-        min-width: 50px !important;
-        max-width: 50px !important;
-        font-size: 10px !important;
+        width: 60px !important;
+        min-width: 60px !important;
+        max-width: 60px !important;
+        font-size: 11px !important;
         text-align: center !important;
+        padding: 8px 4px !important;
     }
     
     /* Date column */
     .table-lottery th:nth-child(3),
     .table-lottery td:nth-child(3) {
-        width: 75px !important;
-        min-width: 75px !important;
-        max-width: 75px !important;
-        font-size: 9px !important;
+        width: 80px !important;
+        min-width: 80px !important;
+        max-width: 80px !important;
+        font-size: 10px !important;
         white-space: normal !important;
         word-wrap: break-word !important;
+        padding: 8px 4px !important;
     }
     
     /* Numbers column - flexible width */
     .table-lottery th:nth-child(4),
     .table-lottery td:nth-child(4) {
         width: auto !important;
-        min-width: 140px !important;
+        min-width: 200px !important;
         white-space: normal !important;
-        padding: 4px !important;
+        padding: 8px 4px !important;
+    }
+    
+    /* Details column */
+    .table-lottery th:nth-child(5),
+    .table-lottery td:nth-child(5) {
+        width: 70px !important;
+        min-width: 70px !important;
+        max-width: 70px !important;
+        text-align: center !important;
+        padding: 8px 4px !important;
     }
     
     /* Lottery number balls - optimized for mobile readability */
