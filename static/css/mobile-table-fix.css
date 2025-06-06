@@ -85,23 +85,13 @@
         padding: 8px 4px !important;
     }
     
-    /* Numbers column - flexible width */
+    /* Numbers column - flexible width with more space */
     .table-lottery th:nth-child(4),
     .table-lottery td:nth-child(4) {
         width: auto !important;
-        min-width: 200px !important;
+        min-width: 240px !important;
         white-space: normal !important;
-        padding: 8px 4px !important;
-    }
-    
-    /* Details column */
-    .table-lottery th:nth-child(5),
-    .table-lottery td:nth-child(5) {
-        width: 70px !important;
-        min-width: 70px !important;
-        max-width: 70px !important;
-        text-align: center !important;
-        padding: 8px 4px !important;
+        padding: 8px 6px !important;
     }
     
     /* Lottery number balls - optimized for mobile readability */

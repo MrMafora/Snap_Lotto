@@ -92,21 +92,12 @@
         word-wrap: break-word !important;
     }
     
-    /* Column 4: Numbers - Flexible for all balls */
+    /* Column 4: Numbers - Flexible for all balls with extra space */
     .table-lottery th:nth-child(4),
     .table-lottery td:nth-child(4) {
         width: auto !important;
-        min-width: 280px !important;
-        padding: 6px !important;
-    }
-    
-    /* Column 5: Details/Actions */
-    .table-lottery th:nth-child(5),
-    .table-lottery td:nth-child(5) {
-        width: 80px !important;
-        min-width: 80px !important;
-        text-align: center !important;
-        font-size: 11px !important;
+        min-width: 320px !important;
+        padding: 8px !important;
     }
     
     /* Game type badges */
