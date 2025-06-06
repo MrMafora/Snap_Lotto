@@ -305,6 +305,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show the main results container
         const resultsContainer = document.getElementById('results-container');
         const successContent = document.getElementById('success-content');
+        const errorContainer = document.getElementById('error-message');
+        
+        // Hide error message first
+        if (errorContainer) {
+            errorContainer.classList.add('d-none');
+        }
         
         if (resultsContainer) {
             resultsContainer.classList.remove('d-none');
@@ -314,24 +320,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Display ticket info
-        document.getElementById('detected-lottery-type').textContent = data.lottery_type || 'Not detected';
-        document.getElementById('detected-draw-date').textContent = data.draw_date || 'Not detected';
-        document.getElementById('detected-draw-number').textContent = data.draw_number || 'Not detected';
+        const lotteryTypeEl = document.getElementById('detected-lottery-type');
+        const drawDateEl = document.getElementById('detected-draw-date');
+        const drawNumberEl = document.getElementById('detected-draw-number');
+        
+        if (lotteryTypeEl) lotteryTypeEl.textContent = data.lottery_type || 'Not detected';
+        if (drawDateEl) drawDateEl.textContent = data.draw_date || 'Not detected';
+        if (drawNumberEl) drawNumberEl.textContent = data.draw_number || 'Not detected';
         
         // Display enhanced results with prize analysis
         displayEnhancedResults(data);
         
         // Display ticket numbers - show all lines if available
         const numbersContainer = document.getElementById('ticket-numbers');
-        numbersContainer.innerHTML = '';
-        
-        if (data.all_lines && data.all_lines.length > 0) {
-            // Show all lines - data.all_lines contains arrays of numbers directly
-            data.all_lines.forEach((lineNumbers, index) => {
-                const lineDiv = document.createElement('div');
-                lineDiv.className = 'mb-3';
-                
-                const lineTitle = document.createElement('div');
+        if (numbersContainer) {
+            numbersContainer.innerHTML = '';
+            
+            if (data.all_lines && data.all_lines.length > 0) {
+                // Show all lines - data.all_lines contains arrays of numbers directly
+                data.all_lines.forEach((lineNumbers, index) => {
+                    const lineDiv = document.createElement('div');
+                    lineDiv.className = 'mb-3';
+                    
+                    const lineTitle = document.createElement('div');
                 lineTitle.innerHTML = `<strong>Line ${index + 1} Numbers:</strong>`;
                 lineTitle.className = 'mb-2';
                 lineDiv.appendChild(lineTitle);
@@ -503,8 +514,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     // No summary box - checkmarks on numbers will show matches instead
                 }
                 
-                numbersContainer.appendChild(lineDiv);
-            });
+                    numbersContainer.appendChild(lineDiv);
+                });
+            }
         } else if (data.ticket_numbers && data.ticket_numbers.length > 0) {
             // Fallback to single line display
             data.ticket_numbers.forEach(num => {
