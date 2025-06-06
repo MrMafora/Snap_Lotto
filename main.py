@@ -1199,19 +1199,24 @@ def results():
                             return self.bonus_numbers
                         return [str(self.bonus_numbers)] if self.bonus_numbers else []
                 
-                # Parse LOTTO numbers before creating ResultObj
+                # Parse LOTTO numbers before creating ResultObj - ensure lists not strings
                 import json
                 lotto_numbers = lotto_result[4]  # main_numbers
                 lotto_bonus = lotto_result[5]    # bonus_numbers
                 
-                # Parse main numbers
+                # Parse main numbers - handle JSON string format
                 if isinstance(lotto_numbers, str) and lotto_numbers.startswith('['):
                     try:
                         lotto_numbers = json.loads(lotto_numbers)
+                        app.logger.info(f"Parsed LOTTO main numbers: {lotto_numbers}")
                     except:
                         lotto_numbers = []
+                elif isinstance(lotto_numbers, list):
+                    app.logger.info(f"LOTTO main numbers already parsed: {lotto_numbers}")
+                else:
+                    lotto_numbers = []
                 
-                # Parse bonus numbers  
+                # Parse bonus numbers - handle PostgreSQL array or JSON format
                 if isinstance(lotto_bonus, str):
                     if lotto_bonus.startswith('['):
                         try:
@@ -1224,6 +1229,15 @@ def results():
                             lotto_bonus = [int(n.strip()) for n in clean_str.split(',') if n.strip()] if clean_str else []
                         except:
                             lotto_bonus = []
+                    else:
+                        lotto_bonus = []
+                elif isinstance(lotto_bonus, list):
+                    # Already a list from database
+                    pass
+                else:
+                    lotto_bonus = []
+                    
+                app.logger.info(f"Creating LOTTO ResultObj with numbers: {lotto_numbers}, bonus: {lotto_bonus}")
                 
                 latest_results['Lottery'] = ResultObj(
                     lotto_result[1], lotto_result[2], lotto_result[3], lotto_numbers, lotto_bonus
