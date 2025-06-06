@@ -501,6 +501,92 @@ def ticket_scanner():
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)
 
+@app.route('/api/scan-ticket', methods=['POST'])
+def api_scan_ticket():
+    """API endpoint for processing uploaded ticket images using Google Gemini 2.5 Pro"""
+    try:
+        if 'ticket_image' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['ticket_image']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Save uploaded file
+        filename = secure_filename(file.filename)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        safe_filename = f"ticket_{timestamp}_{filename}"
+        file_path = os.path.join('uploads', safe_filename)
+        
+        # Ensure uploads directory exists
+        os.makedirs('uploads', exist_ok=True)
+        file.save(file_path)
+        
+        # Process with Google Gemini 2.5 Pro
+        import google.generativeai as genai
+        genai.configure(api_key=os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY'))
+        model = genai.GenerativeModel('gemini-1.5-pro')
+        
+        # Load and prepare image
+        import PIL.Image
+        image = PIL.Image.open(file_path)
+        
+        # Enhanced prompt for comprehensive ticket analysis
+        prompt = """Analyze this South African lottery ticket image and extract ALL visible information in JSON format.
+
+IMPORTANT: Extract EXACTLY what you see on the ticket. Do not make assumptions.
+
+Return JSON with this structure:
+{
+    "lottery_type": "LOTTO|POWERBALL|DAILY LOTTO|AUTO-DETECT",
+    "draw_date": "YYYY-MM-DD or visible date",
+    "draw_number": "visible draw number",
+    "ticket_cost": "visible cost amount",
+    "all_lines": [
+        [1, 2, 3, 4, 5, 6],
+        [7, 8, 9, 10, 11, 12]
+    ],
+    "bonus_numbers": [number] or [],
+    "powerball_numbers": [number] or [],
+    "lotto_plus_1_included": "YES|NO|NOT_VISIBLE",
+    "lotto_plus_2_included": "YES|NO|NOT_VISIBLE",
+    "powerball_plus_included": "YES|NO|NOT_VISIBLE"
+}
+
+Extract ALL visible data accurately."""
+        
+        response = model.generate_content([image, prompt])
+        response_text = response.text
+        
+        logger.info(f"Gemini response: {response_text}")
+        
+        # Extract and clean JSON
+        import re
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            json_text = json_match.group()
+            # Fix leading zeros in JSON (05 -> "05")
+            json_text = re.sub(r'(\[|\,)\s*0(\d)', r'\1"0\2"', json_text)
+            ticket_data = json.loads(json_text)
+            
+            # Clean up the file
+            os.remove(file_path)
+            
+            return jsonify({
+                'success': True,
+                'data': ticket_data,
+                'message': 'Ticket processed successfully'
+            })
+        else:
+            return jsonify({'error': 'Could not extract ticket data'}), 400
+            
+    except Exception as e:
+        logger.error(f"Error processing ticket: {e}")
+        # Clean up file if it exists
+        if 'file_path' in locals() and os.path.exists(file_path):
+            os.remove(file_path)
+        return jsonify({'error': f'Processing error: {str(e)}'}), 500
+
 @app.route('/process-ticket', methods=['POST'])
 def process_ticket():
     """Process a lottery ticket image and return JSON results"""
