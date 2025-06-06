@@ -609,10 +609,13 @@ CRITICAL INSTRUCTIONS:
                     
                     # Always compare against main LOTTO results
                     if player_numbers:
-                        lotto_draw = LotteryResult.query.filter_by(lottery_type='Lotto').order_by(LotteryResult.draw_date.desc()).first()
+                        lotto_draw = LotteryResult.query.filter_by(lottery_type='LOTTO').order_by(LotteryResult.draw_date.desc()).first()
+                        logger.info(f"Database query result: {lotto_draw}")
                         if lotto_draw:
-                            winning_numbers = lotto_draw.numbers if lotto_draw.numbers else []
+                            # Parse the main_numbers field which is stored as JSON string
+                            winning_numbers = json.loads(lotto_draw.main_numbers) if lotto_draw.main_numbers else []
                             winning_bonus = lotto_draw.bonus_numbers[0] if lotto_draw.bonus_numbers else None
+                            logger.info(f"Parsed winning numbers: {winning_numbers}, bonus: {winning_bonus}")
                             
                             main_matches = len(set(player_numbers) & set(winning_numbers))
                             bonus_match = (player_bonus == winning_bonus) if player_bonus and winning_bonus else False
@@ -632,7 +635,7 @@ CRITICAL INSTRUCTIONS:
                     
                     # Compare against LOTTO Plus 1 if selected
                     if lotto_plus_1_included.upper() == 'YES' and player_numbers:
-                        lotto_plus_1_draw = LotteryResult.query.filter_by(lottery_type='Lotto Plus 1').order_by(LotteryResult.draw_date.desc()).first()
+                        lotto_plus_1_draw = LotteryResult.query.filter_by(lottery_type='LOTTO PLUS 1').order_by(LotteryResult.draw_date.desc()).first()
                         if lotto_plus_1_draw:
                             plus_1_numbers = lotto_plus_1_draw.numbers if lotto_plus_1_draw.numbers else []
                             plus_1_bonus = lotto_plus_1_draw.bonus_numbers[0] if lotto_plus_1_draw.bonus_numbers else None
@@ -653,7 +656,7 @@ CRITICAL INSTRUCTIONS:
                     
                     # Compare against LOTTO Plus 2 if selected
                     if lotto_plus_2_included.upper() == 'YES' and player_numbers:
-                        lotto_plus_2_draw = LotteryResult.query.filter_by(lottery_type='Lotto Plus 2').order_by(LotteryResult.draw_date.desc()).first()
+                        lotto_plus_2_draw = LotteryResult.query.filter_by(lottery_type='LOTTO PLUS 2').order_by(LotteryResult.draw_date.desc()).first()
                         if lotto_plus_2_draw:
                             plus_2_numbers = lotto_plus_2_draw.numbers if lotto_plus_2_draw.numbers else []
                             plus_2_bonus = lotto_plus_2_draw.bonus_numbers[0] if lotto_plus_2_draw.bonus_numbers else None
