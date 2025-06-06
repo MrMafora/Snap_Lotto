@@ -261,10 +261,13 @@ def home():
                 if row.main_numbers:
                     # Parse PostgreSQL array format like "{15,22,25,31,36}"
                     main_nums_str = str(row.main_numbers)
+                    app.logger.info(f"Processing {row.lottery_type} main_numbers: {main_nums_str}")
                     if main_nums_str.startswith('{') and main_nums_str.endswith('}'):
                         # Extract numbers from PostgreSQL array format
                         nums_only = main_nums_str[1:-1]  # Remove { }
-                        numbers = [int(n.strip()) for n in nums_only.split(',') if n.strip().isdigit()]
+                        if nums_only.strip():  # Only process if not empty
+                            numbers = [int(n.strip()) for n in nums_only.split(',') if n.strip().isdigit()]
+                        app.logger.info(f"Parsed {row.lottery_type} numbers: {numbers}")
                 
                 # Parse bonus_numbers field directly
                 bonus_numbers = []
