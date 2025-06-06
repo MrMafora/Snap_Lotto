@@ -1,216 +1,200 @@
+#!/usr/bin/env python3
 """
 Comprehensive lottery data extraction from screenshots with full prize division details
 """
+
 import os
 import json
 import base64
-import anthropic
+import logging
 from datetime import datetime
-from models import db, LotteryResult
+from models import LotteryResult, db
 from main import app
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def extract_comprehensive_lottery_data(image_path):
     """Extract complete lottery data including divisions, winners, and financial details"""
-    client = anthropic.Anthropic(
-        api_key=os.environ.get('ANTHROPIC_API_SNAP_LOTTERY')
-    )
-    
-    # Encode image
-    with open(image_path, "rb") as image_file:
-        base64_image = base64.b64encode(image_file.read()).decode('utf-8')
-    
-    prompt = """
-    Extract ALL lottery data from this image with complete details. Return ONLY valid JSON with this exact structure:
-
-    {
-        "lottery_type": "LOTTO",
-        "draw_id": 2547,
-        "draw_date": "2025-06-04",
-        "winning_numbers": {
-            "draw_order": [12, 34, 8, 52, 36, 24],
-            "numerical_order": [8, 24, 12, 34, 36, 52],
-            "bonus_ball": 26
-        },
-        "prize_divisions": [
-            {
-                "division": "DIV 1",
-                "requirement": "SIX CORRECT NUMBERS",
-                "winners": 4,
-                "prize_amount": "R0.00"
-            },
-            {
-                "division": "DIV 2", 
-                "requirement": "FIVE CORRECT NUMBERS + BONUS BALL",
-                "winners": 39,
-                "prize_amount": "R0.00"
-            },
-            {
-                "division": "DIV 3",
-                "requirement": "FIVE CORRECT NUMBERS", 
-                "winners": 108,
-                "prize_amount": "R6,883.20"
-            }
-        ],
-        "additional_info": {
-            "rollover_amount": "R63,481,569.30",
-            "rollover_no": 20,
-            "total_pool_size": "R67,302,275.10", 
-            "total_sales": "R15,402,610.00",
-            "next_jackpot": "R67,000,000.00",
-            "draw_machine": "RNG 1",
-            "next_draw_date": "2025-06-07"
-        }
-    }
-
-    CRITICAL REQUIREMENTS:
-    1. Extract draw order numbers (left side) NOT numerical order (right side)
-    2. Include ALL prize divisions with exact winners and amounts
-    3. Capture all financial information (rollover, pool size, sales)
-    4. Get exact lottery type name as shown
-    5. Extract draw ID number and dates accurately
-    6. Include bonus ball if present
-    7. Return valid JSON only, no other text
-    """
-    
-    response = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
-        max_tokens=3000,
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "text", "text": prompt},
-                {
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": "image/png",
-                        "data": base64_image
-                    }
-                }
-            ]
-        }]
-    )
-    
     try:
-        # Extract JSON from response
-        content = response.content[0].text.strip()
-        if content.startswith('```json'):
-            content = content[7:-3]
-        elif content.startswith('```'):
-            content = content[3:-3]
+        import google.generativeai as genai
         
-        data = json.loads(content)
-        return data
+        api_key = os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY')
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')
         
-    except (json.JSONDecodeError, KeyError, IndexError) as e:
-        print(f"Error parsing AI response: {e}")
-        print(f"Raw response: {response.content[0].text}")
+        with open(image_path, "rb") as f:
+            image_data = base64.b64encode(f.read()).decode('utf-8')
+        
+        # Advanced developer-focused prompt for comprehensive extraction
+        advanced_prompt = """You are an automated data extraction API. Your task is to analyze the provided image of a lottery result and return the data in a structured JSON format.
+
+Instructions:
+- Strictly adhere to the JSON schema defined below.
+- Extract all data points accurately from the image.
+- If a field is not present in the image (e.g., a bonus ball in Daily Lotto), use null as its value.
+- Parse numbers from strings where specified (e.g., Draw ID, Winners). Currency values should remain as strings to preserve formatting.
+
+JSON Output Schema:
+{
+  "gameName": "String",
+  "drawId": "Number",
+  "drawDate": "String (YYYY-MM-DD)",
+  "winningNumbers": {
+    "asDrawn": ["Array of Numbers"],
+    "numericalOrder": ["Array of Numbers"],
+    "bonusBall": "Number | null"
+  },
+  "prizeDivisions": [
+    {
+      "division": "Number",
+      "description": "String",
+      "winners": "Number",
+      "prizeAmount": "String"
+    }
+  ],
+  "jackpotInfo": {
+     "nextJackpot": "String",
+     "nextDrawDate": "String (YYYY-MM-DD)"
+  },
+  "additionalInfo": {
+    "rolloverAmount": "String | null",
+    "totalPoolSize": "String | null",
+    "totalSales": "String | null"
+  }
+}
+
+Example Extraction Guidelines:
+- gameName: Extract from the main title (e.g., "LOTTO PLUS 1").
+- drawId: Extract the "DRAW ID" number.
+- winningNumbers.bonusBall: This is the number after the + sign.
+- prizeDivisions.description: Extract the text description for each prize tier (e.g., "SIX CORRECT NUMBERS", "FIVE CORRECT NUMBERS + BONUS BALL").
+- jackpotInfo.nextJackpot: Find the estimated jackpot amount for the next draw, often at the bottom of the page.
+
+Process the attached image and return the JSON output."""
+
+        response = model.generate_content([
+            advanced_prompt,
+            {"mime_type": "image/png", "data": image_data}
+        ])
+        
+        if response and response.text:
+            text = response.text.strip()
+            if text.startswith('```json'):
+                text = text[7:]
+            if text.endswith('```'):
+                text = text[:-3]
+            
+            extracted_data = json.loads(text)
+            logger.info(f"✅ Comprehensive extraction successful for {extracted_data.get('gameName')}")
+            return extracted_data
+    
+    except Exception as e:
+        logger.error(f"Error in comprehensive extraction for {image_path}: {e}")
         return None
 
 def save_comprehensive_lottery_data(data):
     """Save comprehensive lottery data to database"""
-    if not data:
-        return False
-        
-    with app.app_context():
-        try:
-            # Check if this draw already exists
-            existing = LotteryResult.query.filter_by(
-                lottery_type=data['lottery_type'],
-                draw_number=data['draw_id']
-            ).first()
-            
-            if existing:
-                print(f"Draw {data['draw_id']} for {data['lottery_type']} already exists")
-                return False
-            
+    try:
+        with app.app_context():
             # Parse draw date
-            draw_date = datetime.strptime(data['draw_date'], '%Y-%m-%d')
+            draw_date = datetime.strptime(data['drawDate'], '%Y-%m-%d').date()
             
-            # Format numbers for PostgreSQL array storage
-            main_numbers = '{' + ','.join(map(str, data['winning_numbers']['draw_order'])) + '}'
-            bonus_numbers = None
-            if 'bonus_ball' in data['winning_numbers'] and data['winning_numbers']['bonus_ball']:
-                bonus_numbers = '{' + str(data['winning_numbers']['bonus_ball']) + '}'
+            # Extract winning numbers
+            winning_numbers = data['winningNumbers']['asDrawn']
+            bonus_numbers = [data['winningNumbers']['bonusBall']] if data['winningNumbers']['bonusBall'] else []
             
-            # Create new lottery result with comprehensive data
-            lottery_result = LotteryResult(
-                lottery_type=data['lottery_type'],
-                draw_number=data['draw_id'],
+            # Create comprehensive lottery result
+            new_result = LotteryResult(
+                lottery_type=data['gameName'],
+                draw_number=str(data['drawId']),
                 draw_date=draw_date,
-                main_numbers=main_numbers,
-                bonus_numbers=bonus_numbers,
-                divisions=json.dumps(data['prize_divisions']),
-                rollover_amount=data['additional_info'].get('rollover_amount'),
-                rollover_number=data['additional_info'].get('rollover_no'),
-                total_pool_size=data['additional_info'].get('total_pool_size'),
-                total_sales=data['additional_info'].get('total_sales'),
-                next_jackpot=data['additional_info'].get('next_jackpot'),
-                draw_machine=data['additional_info'].get('draw_machine'),
-                next_draw_date_str=data['additional_info'].get('next_draw_date')
+                numbers=json.dumps(winning_numbers),
+                bonus_numbers=json.dumps(bonus_numbers),
+                source_url='https://www.nationallottery.co.za/results',
+                ocr_provider='gemini-2.5-pro-comprehensive'
             )
             
-            db.session.add(lottery_result)
+            # Add comprehensive data as JSON metadata if available
+            if 'prizeDivisions' in data:
+                new_result.metadata = json.dumps({
+                    'prize_divisions': data['prizeDivisions'],
+                    'jackpot_info': data.get('jackpotInfo', {}),
+                    'additional_info': data.get('additionalInfo', {}),
+                    'winning_numbers_ordered': data['winningNumbers'].get('numericalOrder', [])
+                })
+            
+            db.session.add(new_result)
             db.session.commit()
             
-            print(f"Successfully saved {data['lottery_type']} draw {data['draw_id']}")
+            logger.info(f"✅ Saved comprehensive data for {data['gameName']} Draw {data['drawId']}")
             return True
             
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error saving lottery data: {e}")
-            return False
+    except Exception as e:
+        logger.error(f"Error saving comprehensive data: {e}")
+        db.session.rollback()
+        return False
 
 def process_screenshot_comprehensive(image_path):
     """Process a single screenshot with comprehensive extraction"""
-    print(f"Processing {image_path} for comprehensive lottery data...")
+    logger.info(f"Processing comprehensive extraction: {image_path}")
     
-    data = extract_comprehensive_lottery_data(image_path)
-    if data:
-        success = save_comprehensive_lottery_data(data)
+    extracted_data = extract_comprehensive_lottery_data(image_path)
+    if extracted_data:
+        success = save_comprehensive_lottery_data(extracted_data)
+        
         if success:
-            print(f"Successfully processed {image_path}")
-            return True
+            logger.info(f"✅ Complete processing successful for {extracted_data['gameName']}")
+            return extracted_data
         else:
-            print(f"Failed to save data from {image_path}")
-            return False
+            logger.error(f"❌ Database save failed for {extracted_data['gameName']}")
     else:
-        print(f"Failed to extract data from {image_path}")
-        return False
+        logger.error(f"❌ Extraction failed for {image_path}")
+    
+    return None
 
 def batch_process_screenshots():
     """Process all lottery screenshots with comprehensive extraction"""
-    screenshot_dir = "attached_assets"
-    processed_count = 0
-    
-    # Get all lottery screenshot files
-    lottery_files = [
-        f for f in os.listdir(screenshot_dir) 
-        if f.endswith('.png') and any(x in f.lower() for x in ['lotto', 'powerball', 'daily'])
+    screenshots = [
+        "screenshots/20250606_171929_lotto.png",
+        "screenshots/20250606_171942_lotto_plus_1_results.png",
+        "screenshots/20250606_171954_lotto_plus_2_results.png", 
+        "screenshots/20250606_172007_powerball.png",
+        "screenshots/20250606_172018_powerball_plus.png",
+        "screenshots/20250606_172030_daily_lotto.png"
     ]
     
-    print(f"Found {len(lottery_files)} lottery screenshots to process")
+    logger.info("=== STARTING COMPREHENSIVE LOTTERY EXTRACTION ===")
     
-    for filename in lottery_files:
-        image_path = os.path.join(screenshot_dir, filename)
-        try:
-            if process_screenshot_comprehensive(image_path):
-                processed_count += 1
-        except Exception as e:
-            print(f"Error processing {filename}: {e}")
-            continue
+    results = []
+    successful_extractions = 0
     
-    print(f"Processed {processed_count} out of {len(lottery_files)} screenshots")
-    return processed_count
+    for screenshot in screenshots:
+        if os.path.exists(screenshot):
+            result = process_screenshot_comprehensive(screenshot)
+            if result:
+                results.append(result)
+                successful_extractions += 1
+                
+                # Display summary for this extraction
+                game_name = result.get('gameName', 'Unknown')
+                draw_id = result.get('drawId', 'Unknown')
+                winning_nums = result.get('winningNumbers', {}).get('asDrawn', [])
+                bonus_ball = result.get('winningNumbers', {}).get('bonusBall')
+                
+                logger.info(f"📊 {game_name} Draw {draw_id}: {winning_nums} + [{bonus_ball}]")
+                
+                # Show prize divisions if available
+                divisions = result.get('prizeDivisions', [])
+                if divisions:
+                    logger.info(f"   Prize Divisions: {len(divisions)} tiers")
+                    for div in divisions[:3]:  # Show first 3 divisions
+                        logger.info(f"   Div {div.get('division')}: {div.get('winners')} winners @ {div.get('prizeAmount')}")
+        else:
+            logger.warning(f"Screenshot not found: {screenshot}")
+    
+    logger.info(f"=== COMPREHENSIVE EXTRACTION COMPLETE: {successful_extractions}/{len(screenshots)} successful ===")
+    return results
 
 if __name__ == "__main__":
-    # Process specific screenshot or all screenshots
-    import sys
-    
-    if len(sys.argv) > 1:
-        # Process specific file
-        image_path = sys.argv[1]
-        process_screenshot_comprehensive(image_path)
-    else:
-        # Process all screenshots
-        batch_process_screenshots()
+    batch_process_screenshots()
