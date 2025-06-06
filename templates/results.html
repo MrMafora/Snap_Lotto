@@ -67,17 +67,15 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                         {% for result in results.items %}
                             <tr>
                                 <td>
-                                    {% if 'Lotto' in result.lottery_type %}
-                                        {% set display_type = result.lottery_type.replace('Lotto', 'Lottery') %}
-                                    {% else %}
-                                        {% set display_type = result.lottery_type %}
+                                    {% set display_type = result.lottery_type %}
+                                    {# Always normalize any legacy Lotto references to Lottery for display #}
+                                    {% if 'LOTTO' in display_type %}
+                                        {% set display_type = display_type.replace('LOTTO', 'LOTTERY') %}
                                     {% endif %}
                                     
-                                    {% if 'Lottery Plus' in display_type %}
-                                        <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
-                                    {% elif 'Powerball' in display_type %}
+                                    {% if 'POWERBALL' in display_type %}
                                         <span class="game-type-badge game-type-powerball">{{ display_type }}</span>
-                                    {% elif 'Daily' in display_type %}
+                                    {% elif 'DAILY' in display_type %}
                                         <span class="game-type-badge game-type-daily">{{ display_type }}</span>
                                     {% else %}
                                         <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
@@ -131,18 +129,16 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
                 {% for result in results.items %}
                     <div class="card mb-3 result-card">
                         <div class="card-header py-2">
-                            {% if 'Lotto' in result.lottery_type %}
-                                {% set display_type = result.lottery_type.replace('Lotto', 'Lottery') %}
-                            {% else %}
-                                {% set display_type = result.lottery_type %}
+                            {% set display_type = result.lottery_type %}
+                            {# Always normalize any legacy Lotto references to Lottery for display #}
+                            {% if 'LOTTO' in display_type %}
+                                {% set display_type = display_type.replace('LOTTO', 'LOTTERY') %}
                             {% endif %}
                             
                             <div class="d-flex align-items-center justify-content-between">
-                                {% if 'Lottery Plus' in display_type %}
-                                    <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
-                                {% elif 'Powerball' in display_type %}
+                                {% if 'POWERBALL' in display_type %}
                                     <span class="game-type-badge game-type-powerball">{{ display_type }}</span>
-                                {% elif 'Daily' in display_type %}
+                                {% elif 'DAILY' in display_type %}
                                     <span class="game-type-badge game-type-daily">{{ display_type }}</span>
                                 {% else %}
                                     <span class="game-type-badge game-type-lottery">{{ display_type }}</span>

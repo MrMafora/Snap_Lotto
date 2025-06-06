@@ -1138,12 +1138,12 @@ def results():
     
     # Database mapping for authentic lottery data (from official screenshots)
     db_name_mapping = {
-        'Lottery': 'Lotto',
-        'Lottery Plus 1': 'Lotto Plus 1', 
-        'Lottery Plus 2': 'Lotto Plus 2',
-        'Powerball': 'PowerBall',
-        'Powerball Plus': 'PowerBall Plus',
-        'Daily Lottery': 'Daily Lotto'
+        'Lottery': 'LOTTO',
+        'Lottery Plus 1': 'LOTTO PLUS 1', 
+        'Lottery Plus 2': 'LOTTO PLUS 2',
+        'Powerball': 'POWERBALL',
+        'Powerball Plus': 'POWERBALL PLUS',
+        'Daily Lottery': 'DAILY LOTTO'
     }
     
     try:
@@ -1162,9 +1162,9 @@ def results():
             
             # Direct approach: Get the authentic Lotto data and map it to Lottery display
             lotto_result = db.session.execute(text("""
-                SELECT id, lottery_type, draw_number, draw_date, numbers, bonus_numbers
-                FROM lottery_result 
-                WHERE lottery_type = 'Lotto'
+                SELECT id, lottery_type, draw_number, draw_date, main_numbers, bonus_numbers
+                FROM lottery_results 
+                WHERE lottery_type = 'LOTTO'
                 ORDER BY draw_date DESC 
                 LIMIT 1
             """)).fetchone()
