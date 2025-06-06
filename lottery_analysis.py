@@ -214,12 +214,12 @@ class LotteryAnalyzer:
                 query = self.db.session.query(self.LotteryResult)
             
             if lottery_type:
-                query = query.filter(self.LotteryResults.lottery_type == lottery_type)
+                query = query.filter(self.LotteryResult.lottery_type == lottery_type)
                 
             # Order by lottery type and draw date
             results = query.order_by(
-                self.LotteryResults.lottery_type,
-                self.LotteryResults.draw_date.desc()
+                self.LotteryResult.lottery_type,
+                self.LotteryResult.draw_date.desc()
             ).all()
             
             logger.info(f"Retrieved {len(results)} lottery results for analysis")
