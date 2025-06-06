@@ -177,7 +177,7 @@ daily_scheduler = None
 
 def init_lazy_modules():
     """Initialize modules in a background thread with timeout"""
-    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, health_monitor
+    global data_aggregator, import_excel, import_snap_lotto_data, ocr_processor, screenshot_manager, health_monitor, daily_scheduler
     
     # Note: Removed signal alarm since it only works in main thread
     
@@ -199,6 +199,11 @@ def init_lazy_modules():
     except ImportError:
         hm = None
     
+    try:
+        import scheduler as sched
+    except ImportError:
+        sched = None
+    
     # Store module references - data_aggregator not available
     # data_aggregator = da
     import_excel = None  # Functionality integrated into main app
@@ -206,11 +211,19 @@ def init_lazy_modules():
     ocr_processor = op
     screenshot_manager = sm
     health_monitor = hm
+    daily_scheduler = sched
     
     # Initialize scheduler and health monitoring in background after imports are complete
     with app.app_context():
-        # scheduler.init_scheduler(app)  # Commented out - module not available
-        health_monitor.init_health_monitor(app, db)
+        # Initialize daily automation scheduler to run at 1:00 AM every day
+        if sched:
+            daily_scheduler = sched.init_scheduler(app, run_time="01:00")
+            logger.info("Daily automation scheduler initialized - will run at 1:00 AM every day")
+        else:
+            logger.warning("Scheduler module not available - daily automation will not run automatically")
+            
+        if hm:
+            health_monitor.init_health_monitor(app, db)
         
         # Register scanner routes for ticket scanning functionality
         try:
@@ -2685,6 +2698,105 @@ def sync_single_screenshot(screenshot_id):
     return redirect(url_for('export_screenshots'))
 
 
+
+@app.route('/admin/scheduler-status')
+@login_required
+def scheduler_status():
+    """Admin route to check daily automation scheduler status"""
+    if not current_user.is_admin:
+        flash('You must be an admin to view scheduler status.', 'danger')
+        return redirect(url_for('index'))
+    
+    global daily_scheduler
+    status_info = {
+        'scheduler_available': daily_scheduler is not None,
+        'running': False,
+        'next_run': None,
+        'last_run': None,
+        'last_results': None,
+        'run_time': '01:00'
+    }
+    
+    if daily_scheduler:
+        scheduler_instance = daily_scheduler.get_scheduler() if hasattr(daily_scheduler, 'get_scheduler') else None
+        if scheduler_instance:
+            status = scheduler_instance.get_status()
+            status_info.update(status)
+    
+    return render_template('admin/scheduler_status.html', 
+                          title="Daily Automation Scheduler Status",
+                          status=status_info)
+
+@app.route('/admin/start-scheduler', methods=['POST'])
+@login_required
+def start_scheduler():
+    """Admin route to start the daily automation scheduler"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin privileges required'}), 403
+    
+    global daily_scheduler
+    try:
+        if not daily_scheduler:
+            import scheduler as sched
+            daily_scheduler = sched.init_scheduler(app, run_time="01:00")
+            message = "Daily automation scheduler started successfully - will run at 1:00 AM every day"
+        else:
+            scheduler_instance = daily_scheduler.get_scheduler() if hasattr(daily_scheduler, 'get_scheduler') else None
+            if scheduler_instance and not scheduler_instance.running:
+                scheduler_instance.start_scheduler()
+                message = "Daily automation scheduler restarted successfully"
+            else:
+                message = "Daily automation scheduler is already running"
+        
+        return jsonify({'success': True, 'message': message})
+    except Exception as e:
+        app.logger.error(f"Error starting scheduler: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/stop-scheduler', methods=['POST'])
+@login_required
+def stop_scheduler():
+    """Admin route to stop the daily automation scheduler"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin privileges required'}), 403
+    
+    global daily_scheduler
+    try:
+        if daily_scheduler:
+            scheduler_instance = daily_scheduler.get_scheduler() if hasattr(daily_scheduler, 'get_scheduler') else None
+            if scheduler_instance:
+                scheduler_instance.stop_scheduler()
+                message = "Daily automation scheduler stopped successfully"
+            else:
+                message = "Scheduler instance not found"
+        else:
+            message = "No scheduler to stop"
+        
+        return jsonify({'success': True, 'message': message})
+    except Exception as e:
+        app.logger.error(f"Error stopping scheduler: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/run-automation-now', methods=['POST'])
+@login_required
+def run_automation_now():
+    """Admin route to trigger daily automation immediately"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin privileges required'}), 403
+    
+    try:
+        from daily_automation import run_daily_automation
+        results = run_daily_automation(app)
+        
+        if results.get('overall_success', False):
+            message = f"Daily automation completed successfully: {results.get('summary', 'No details available')}"
+        else:
+            message = f"Daily automation completed with errors: {results.get('error', 'Unknown error')}"
+        
+        return jsonify({'success': True, 'message': message, 'results': results})
+    except Exception as e:
+        app.logger.error(f"Error running automation: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/cleanup-screenshots', methods=['POST'])
 @login_required

@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Admin</a></li>
+                    <li class="breadcrumb-item active">Daily Automation Scheduler</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>
+                        Daily Automation Scheduler Status
+                    </h4>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Scheduler Status Overview -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="status-card p-3 border rounded">
+                                <h6 class="text-muted mb-2">Scheduler Status</h6>
+                                {% if status.scheduler_available %}
+                                    {% if status.running %}
+                                        <span class="badge bg-success fs-6">
+                                            <i class="fas fa-play-circle me-1"></i>Running
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-warning fs-6">
+                                            <i class="fas fa-pause-circle me-1"></i>Stopped
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-danger fs-6">
+                                        <i class="fas fa-times-circle me-1"></i>Not Available
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="status-card p-3 border rounded">
+                                <h6 class="text-muted mb-2">Scheduled Time</h6>
+                                <div class="fs-5">
+                                    <i class="fas fa-clock me-2"></i>
+                                    {{ status.run_time }} (Daily)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Next Run Information -->
+                    {% if status.next_run %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <h6 class="alert-heading">
+                                    <i class="fas fa-calendar-alt me-2"></i>Next Scheduled Run
+                                </h6>
+                                <p class="mb-0">{{ status.next_run.strftime('%Y-%m-%d at %H:%M:%S') }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Last Run Information -->
+                    {% if status.last_run %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-history me-2"></i>Last Run
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Time:</strong> {{ status.last_run.strftime('%Y-%m-%d at %H:%M:%S') }}</p>
+                                    {% if status.last_results %}
+                                        {% if status.last_results.overall_success %}
+                                            <div class="alert alert-success">
+                                                <i class="fas fa-check-circle me-2"></i>
+                                                Automation completed successfully
+                                            </div>
+                                        {% else %}
+                                            <div class="alert alert-danger">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                Automation completed with errors: {{ status.last_results.get('error', 'Unknown error') }}
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Control Buttons -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="btn-group" role="group">
+                                {% if status.scheduler_available %}
+                                    {% if status.running %}
+                                        <button type="button" class="btn btn-warning" onclick="stopScheduler()">
+                                            <i class="fas fa-stop me-2"></i>Stop Scheduler
+                                        </button>
+                                    {% else %}
+                                        <button type="button" class="btn btn-success" onclick="startScheduler()">
+                                            <i class="fas fa-play me-2"></i>Start Scheduler
+                                        </button>
+                                    {% endif %}
+                                {% else %}
+                                    <button type="button" class="btn btn-success" onclick="startScheduler()">
+                                        <i class="fas fa-download me-2"></i>Initialize Scheduler
+                                    </button>
+                                {% endif %}
+                                
+                                <button type="button" class="btn btn-primary" onclick="runAutomationNow()">
+                                    <i class="fas fa-rocket me-2"></i>Run Automation Now
+                                </button>
+                                
+                                <a href="{{ url_for('admin_automation_control') }}" class="btn btn-secondary">
+                                    <i class="fas fa-cogs me-2"></i>Automation Control
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Information Panel -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert alert-light">
+                                <h6 class="alert-heading">
+                                    <i class="fas fa-info-circle me-2"></i>About Daily Automation
+                                </h6>
+                                <p class="mb-0">
+                                    The daily automation scheduler runs at 1:00 AM every day and performs the complete lottery data collection workflow:
+                                </p>
+                                <ul class="mt-2 mb-0">
+                                    <li>Clears old screenshot files</li>
+                                    <li>Captures fresh lottery result screenshots</li>
+                                    <li>Processes images using AI to extract data</li>
+                                    <li>Updates the database with new lottery results</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function startScheduler() {
+    fetch('/admin/start-scheduler', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showAlert('danger', 'Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Network error: ' + error.message);
+    });
+}
+
+function stopScheduler() {
+    fetch('/admin/stop-scheduler', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showAlert('danger', 'Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Network error: ' + error.message);
+    });
+}
+
+function runAutomationNow() {
+    showAlert('info', 'Starting automation process... This may take several minutes.');
+    
+    fetch('/admin/run-automation-now', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+        } else {
+            showAlert('danger', 'Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Network error: ' + error.message);
+    });
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.card-body');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}
