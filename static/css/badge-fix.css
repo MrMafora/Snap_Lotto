@@ -10,16 +10,16 @@
 }
 
 .game-type-lottery {
-    background-color: #67C6ED !important; /* Blue */
-    color: #333 !important;
-}
-
-.game-type-powerball {
-    background-color: #E03237 !important; /* Red */
+    background-color: #E03237 !important; /* Red for LOTTO group */
     color: white !important;
 }
 
+.game-type-powerball {
+    background-color: #FFE11D !important; /* Yellow for POWERBALL group */
+    color: #333 !important;
+}
+
 .game-type-daily {
-    background-color: #19A03A !important; /* Green */
+    background-color: #19A03A !important; /* Green for DAILY LOTTO */
     color: white !important;
 }
