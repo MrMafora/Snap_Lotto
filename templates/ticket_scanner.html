@@ -228,15 +228,19 @@ document.addEventListener('DOMContentLoaded', function() {
             return response.json();
         })
         .then(data => {
+            console.log('Received response data:', data);
+            
             // Hide loading
             loadingIndicator.style.display = 'none';
             scanButton.disabled = false;
             
-            if (!data.success) {
-                showError(data.error || 'Failed to process ticket. Please try again.');
+            if (!data || !data.success) {
+                console.error('Processing failed:', data);
+                showError(data?.error || 'Failed to process ticket. Please try again.');
                 return;
             }
             
+            console.log('Processing successful, calling displayResults');
             // Display results
             displayResults(data);
         })
@@ -244,7 +248,16 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error processing ticket:', error);
             loadingIndicator.style.display = 'none';
             scanButton.disabled = false;
-            showError('Error processing ticket: ' + error.message);
+            
+            // Better error handling for different error types
+            let errorMessage = 'Failed to process ticket. Please try again.';
+            if (error && error.message) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            }
+            
+            showError('Error processing ticket: ' + errorMessage);
         });
     });
 

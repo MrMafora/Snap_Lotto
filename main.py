@@ -564,6 +564,15 @@ For LOTTO tickets:
     "ticket_cost": "R15.00"
 }
 
+For Daily Lotto tickets:
+{
+    "lottery_type": "Daily Lotto",
+    "all_lines": [[5, 12, 18, 23, 31]],
+    "draw_date": "04/06/25",
+    "draw_number": "2274",
+    "ticket_cost": "R3.00"
+}
+
 CRITICAL INSTRUCTIONS:
 1. Check for YES/NO checkboxes or indicators for LOTTO Plus 1, LOTTO Plus 2, PowerBall Plus
 2. If you see a YES checkbox marked for any additional game, set it as "YES"
@@ -572,9 +581,15 @@ CRITICAL INSTRUCTIONS:
 5. Return only the JSON, no other text"""
             
             response = model.generate_content([image, prompt])
-            response_text = response.text.strip()
+            response_text = response.text.strip() if response and response.text else ""
             
             logger.info(f"Gemini response: {response_text}")
+            
+            if not response_text:
+                logger.error("Empty response from Gemini API")
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                return jsonify({'success': False, 'error': 'No response from AI service'})
             
             # Clean up response and extract JSON
             json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
@@ -864,8 +879,16 @@ CRITICAL INSTRUCTIONS:
             else:
                 return jsonify({'success': False, 'error': 'Could not parse ticket data from AI response'})
                 
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON parsing error: {e}")
+            logger.error(f"Raw response that failed to parse: {response_text}")
+            # Clean up file if it exists
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            return jsonify({'success': False, 'error': f'Could not parse AI response. Raw response: {response_text[:200]}...'})
         except Exception as e:
             logger.error(f"Error in ticket processing: {e}")
+            logger.error(f"Traceback: ", exc_info=True)
             # Clean up file if it exists
             if os.path.exists(file_path):
                 os.remove(file_path)
@@ -873,6 +896,7 @@ CRITICAL INSTRUCTIONS:
             
     except Exception as e:
         logger.error(f"Error in process_ticket route: {e}")
+        logger.error(f"Traceback: ", exc_info=True)
         return jsonify({'success': False, 'error': f'Server error: {str(e)}'})
 
 # Scan ticket functionality is now handled by the /process-ticket endpoint
