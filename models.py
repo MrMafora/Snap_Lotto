@@ -101,6 +101,7 @@ class LotteryResult(db.Model):
     next_jackpot = db.Column(db.String(50), nullable=True, comment="Next jackpot amount (e.g., R53,000,000.00)")
     draw_machine = db.Column(db.String(20), nullable=True, comment="Draw machine used (e.g., RNG2)")
     next_draw_date = db.Column(db.DateTime, nullable=True, comment="Next draw date")
+    next_draw_date_str = db.Column(db.String(20), nullable=True, comment="Next draw date as string")
     
     source_url = db.Column(db.String(255), nullable=False)
     screenshot_id = db.Column(db.Integer, db.ForeignKey('screenshot.id'), nullable=True)
