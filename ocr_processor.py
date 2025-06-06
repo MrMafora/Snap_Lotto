@@ -10,39 +10,39 @@ import importlib.util
 logger = logging.getLogger(__name__)
 
 # Initialize variables - actual client will be created on first use
-ANTHROPIC_API_KEY = None
-anthropic_client = None
+GOOGLE_API_KEY = None
+gemini_client = None
 
-def get_anthropic_client():
-    """Lazy load the Anthropic client when actually needed"""
-    global ANTHROPIC_API_KEY, anthropic_client
+def get_gemini_client():
+    """Lazy load the Google Gemini client when actually needed"""
+    global GOOGLE_API_KEY, gemini_client
     
     # Return existing client if already initialized
-    if anthropic_client is not None:
-        return anthropic_client
+    if gemini_client is not None:
+        return gemini_client
     
     # Initialize API key from environment variable
-    ANTHROPIC_API_KEY = os.environ.get("Lotto_scape_ANTHROPIC_KEY")
+    GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY_SNAP_LOTTERY")
     
     # Log if key is missing
-    if not ANTHROPIC_API_KEY:
-        logger.warning("Lotto_scape_ANTHROPIC_KEY environment variable not set.")
+    if not GOOGLE_API_KEY:
+        logger.warning("GOOGLE_API_KEY_SNAP_LOTTERY environment variable not set.")
         return None
     
-    # Initialize Anthropic client if ANTHROPIC_API_KEY is available
+    # Initialize Google Gemini client if API key is available
     try:
-        import anthropic
-        from anthropic import Anthropic
+        import google.generativeai as genai
         
-        # Initialize client
-        anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
-        logger.info("Anthropic client initialized successfully")
-        return anthropic_client
+        # Configure Gemini
+        genai.configure(api_key=GOOGLE_API_KEY)
+        gemini_client = genai.GenerativeModel('gemini-2.0-flash-exp')
+        logger.info("Google Gemini client initialized successfully")
+        return gemini_client
     except ImportError:
-        logger.error("Failed to import anthropic module. Please check if it's properly installed.")
+        logger.error("Failed to import google.generativeai module. Please check if it's properly installed.")
         return None
     except Exception as e:
-        logger.error(f"Error initializing Anthropic client: {str(e)}")
+        logger.error(f"Error initializing Google Gemini client: {str(e)}")
         return None
 
 def process_screenshot(screenshot_path, lottery_type):
@@ -50,59 +50,51 @@ def process_screenshot(screenshot_path, lottery_type):
     Process a screenshot to extract lottery data using AI-powered OCR.
     
     Args:
-        screenshot_path (str): Path to the PNG screenshot file
-        lottery_type (str): Type of lottery (e.g., 'Lotto', 'Powerball')
+        screenshot_path: Path to the screenshot file or Screenshot object
+        lottery_type (str): Type of lottery (e.g., 'lotto', 'powerball', etc.)
         
     Returns:
-        dict: Extracted lottery data
+        dict: Processed lottery data
     """
-    # Check file type
-    file_extension = os.path.splitext(screenshot_path)[1].lower()
-    is_image = file_extension in ['.png', '.jpg', '.jpeg']
     
-    # Verify we have a valid screenshot file
-    if not is_image:
-        logger.error(f"Invalid file type: {file_extension}. Expected a PNG/JPEG screenshot.")
-        return {
-            "lottery_type": lottery_type,
-            "results": [
-                {
-                    "draw_number": "Unknown",
-                    "draw_date": datetime.now().strftime("%Y-%m-%d"),
-                    "numbers": [0, 0, 0, 0, 0, 0] if "powerball" not in lottery_type.lower() and "daily lotto" not in lottery_type.lower() else [0, 0, 0, 0, 0],
-                    "bonus_numbers": [] if "daily lotto" in lottery_type.lower() else [0]
-                }
-            ],
-            "ocr_timestamp": datetime.utcnow().isoformat(),
-            "ocr_provider": "unknown",
-            "ocr_model": "unknown",
-            "error": f"Invalid file type: {file_extension}. Expected a PNG/JPEG screenshot."
-        }
+    # Handle both file paths and Screenshot objects
+    if hasattr(screenshot_path, 'path'):
+        # This is a Screenshot object from the database
+        file_path = screenshot_path.path
+        logger.info(f"Processing Screenshot object: {file_path}")
+    else:
+        # This is a direct file path
+        file_path = screenshot_path
+        logger.info(f"Processing file path: {file_path}")
     
-    # Read the screenshot file and convert to base64
+    # Check if file exists
+    if not os.path.exists(file_path):
+        logger.error(f"Screenshot file not found: {file_path}")
+        return None
+    
+    # Get file extension and size
+    file_extension = os.path.splitext(file_path)[1].lower()
+    file_size = os.path.getsize(file_path)
+    
+    logger.info(f"Processing {lottery_type} screenshot: {file_path}")
+    logger.info(f"File size: {file_size} bytes, Extension: {file_extension}")
+    
+    # Encode image as base64
     try:
-        with open(screenshot_path, "rb") as image_file:
-            base64_content = base64.b64encode(image_file.read()).decode("utf-8")
+        with open(file_path, 'rb') as image_file:
+            base64_content = base64.b64encode(image_file.read()).decode('utf-8')
     except Exception as e:
         logger.error(f"Error reading image file: {str(e)}")
-        return {
-            "lottery_type": lottery_type,
-            "results": [],
-            "ocr_timestamp": datetime.utcnow().isoformat(),
-            "ocr_provider": "unknown",
-            "ocr_model": "unknown",
-            "error": f"Error reading image file: {str(e)}"
-        }
+        return None
     
     # Create system prompt based on lottery type
     system_prompt = create_system_prompt(lottery_type)
     
-    # Use Anthropic Claude for OCR processing
-    # Lazy load the client only when needed
-    client = get_anthropic_client()
+    # Use Google Gemini for OCR processing
+    client = get_gemini_client()
     if client:
         try:
-            logger.info(f"Processing with Anthropic Claude for {lottery_type}")
+            logger.info(f"Processing with Google Gemini for {lottery_type}")
             
             # Determine the image format from file extension
             image_format = 'jpeg'  # Default to JPEG
@@ -116,16 +108,15 @@ def process_screenshot(screenshot_path, lottery_type):
             logger.info(f"Detected image format: {image_format}")
             
             # Process with appropriate image format
-            # Pass the screenshot ID if available for tracking in API logs
-            result = process_with_anthropic(base64_content, lottery_type, system_prompt, image_format, screenshot_id=getattr(screenshot_path, 'id', None))
+            result = process_with_gemini(base64_content, lottery_type, system_prompt, image_format, screenshot_id=getattr(screenshot_path, 'id', None))
             if result and "results" in result and result["results"]:
-                logger.info(f"Anthropic processing completed successfully for {lottery_type}")
+                logger.info(f"Google Gemini processing completed successfully for {lottery_type}")
                 return result
         except Exception as e:
-            logger.error(f"Error in Anthropic processing: {str(e)}")
+            logger.error(f"Error in Google Gemini processing: {str(e)}")
     
     # If no AI client is available or processing failed
-    if not get_anthropic_client():
+    if not get_gemini_client():
         logger.error("No AI client available. Cannot process without API key.")
     
     # Return default structure with empty data if processing failed
@@ -146,9 +137,9 @@ def process_screenshot(screenshot_path, lottery_type):
     logger.info(f"Using default result for {lottery_type}")
     return default_result
 
-def process_with_anthropic(base64_content, lottery_type, system_prompt, image_format='jpeg', screenshot_id=None):
+def process_with_gemini(base64_content, lottery_type, system_prompt, image_format='jpeg', screenshot_id=None):
     """
-    Process a screenshot using Anthropic's Claude AI for OCR.
+    Process a screenshot using Google Gemini for OCR.
     
     Args:
         base64_content (str): Base64-encoded image data
@@ -162,6 +153,7 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
     """
     # Import only when needed to avoid circular imports
     from models import APIRequestLog
+    import google.generativeai as genai
 
     start_time = datetime.utcnow()
     request_id = None
@@ -172,16 +164,16 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
     
     try:
         # Get the lazily loaded client
-        client = get_anthropic_client()
+        client = get_gemini_client()
         if not client:
-            error_message = "Cannot process with Anthropic: No client available"
+            error_message = "Cannot process with Google Gemini: No client available"
             logger.error(error_message)
             
             # Log the failed API request
             APIRequestLog.log_request(
-                service='anthropic',
-                endpoint='messages.create',
-                model='claude-3-5-sonnet-20241022',
+                service='google',
+                endpoint='generate_content',
+                model='gemini-2.0-flash-exp',
                 status='error',
                 error_message=error_message,
                 screenshot_id=screenshot_id,
@@ -189,106 +181,101 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
             )
             return None
             
-        # Set media type based on image format
-        media_type = f"image/{image_format.lower()}"
-        logger.info(f"Using media type: {media_type} for image processing")
+        # Process as image using Google Gemini
+        logger.info(f"Sending screenshot to Google Gemini for OCR processing: {lottery_type}")
         
-        # Process as image using Anthropic Claude
-        logger.info(f"Sending screenshot to Anthropic Claude for OCR processing: {lottery_type}")
-        response = client.messages.create(
-            model="claude-3-5-sonnet-20241022", # Latest Claude model
-            max_tokens=3000,  # Increased token limit to handle multiple draw results
-            system=system_prompt,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": f"Extract the lottery results from this {lottery_type} screenshot. Return the data in the specified JSON format."
-                        },
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": media_type,
-                                "data": base64_content
-                            }
-                        }
-                    ]
-                }
-            ]
-        )
+        # Prepare image for Gemini
+        import io
+        from PIL import Image
         
-        # Calculate duration
+        # Decode base64 image
+        image_data = base64.b64decode(base64_content)
+        image = Image.open(io.BytesIO(image_data))
+        
+        # Generate content with Gemini
+        response = client.generate_content([
+            system_prompt,
+            image
+        ])
+        
+        # Get response text
+        response_text = response.text
+        
+        # Record successful API call metrics
         end_time = datetime.utcnow()
         duration_ms = int((end_time - start_time).total_seconds() * 1000)
-        
-        # Get metrics from the response
-        if hasattr(response, 'usage'):
-            prompt_tokens = getattr(response.usage, 'input_tokens', None)
-            completion_tokens = getattr(response.usage, 'output_tokens', None)
-        
-        # Get request ID if available
-        if hasattr(response, 'id'):
-            request_id = response.id
-        
-        # Get the text content from the response
-        response_text = response.content[0].text
-        
-        # Keep this for logging/debugging purposes
-        logger.info(f"Received response from Claude 3 Sonnet for {lottery_type}")
-        
-        # The response should be directly parsable as JSON now
-        result_json = response_text
-        
-        # Change status to success since we got a response
         status = 'success'
         
         # Log the successful API request
         APIRequestLog.log_request(
-            service='anthropic',
-            endpoint='messages.create',
-            model='claude-3-5-sonnet-20241022',
+            service='google',
+            endpoint='generate_content',
+            model='gemini-2.0-flash-exp',
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
-            status=status,
+            status='success',
             duration_ms=duration_ms,
             request_id=request_id,
             screenshot_id=screenshot_id,
             lottery_type=lottery_type
         )
         
-        # Parse the response
+        logger.info(f"Google Gemini response received for {lottery_type}")
+        logger.debug(f"Raw response: {response_text}")
+        
+        # Parse the JSON response
         try:
-            result = json.loads(result_json)
+            parsed_response = json.loads(response_text)
             
-            # Add lottery type to result if not present
-            if 'lottery_type' not in result:
-                result['lottery_type'] = lottery_type
+            # Validate the response structure
+            if not isinstance(parsed_response, dict) or "results" not in parsed_response:
+                error_message = f"Invalid response structure from Google Gemini for {lottery_type}"
+                logger.error(error_message)
+                logger.error(f"Response content: {response_text}")
+                
+                # Update the API request log with the error
+                APIRequestLog.log_request(
+                    service='google',
+                    endpoint='generate_content.json_parse',
+                    model='gemini-2.0-flash-exp',
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    status='error',
+                    duration_ms=duration_ms,
+                    error_message=error_message,
+                    request_id=request_id,
+                    screenshot_id=screenshot_id,
+                    lottery_type=lottery_type
+                )
+                
+                # Still return the raw response for debugging
+                return {
+                    "lottery_type": lottery_type,
+                    "results": [],
+                    "ocr_timestamp": datetime.utcnow().isoformat(),
+                    "ocr_provider": "google",
+                    "ocr_model": "gemini-2.0-flash-exp",
+                    "raw_response": response_text,
+                    "error": error_message
+                }
+                
+            # Add metadata to the response
+            parsed_response["ocr_timestamp"] = datetime.utcnow().isoformat()
+            parsed_response["ocr_provider"] = "google"
+            parsed_response["ocr_model"] = "gemini-2.0-flash-exp"
             
-            # Add source information
-            result['ocr_timestamp'] = datetime.utcnow().isoformat()
-            
-            # Add OCR provider information
-            result['ocr_provider'] = "anthropic"
-            result['ocr_model'] = "claude-3-5-sonnet-20241022"
-            
-            # Save the full raw response for debugging
-            result['raw_response'] = response_text
-            
-            return result
+            return parsed_response
             
         except json.JSONDecodeError as e:
-            error_message = f"Error parsing JSON response: {str(e)}"
+            error_message = f"Failed to parse JSON response from Google Gemini for {lottery_type}: {str(e)}"
             logger.error(error_message)
             logger.error(f"Response content: {response_text}")
             
             # Update the API request log with the error
             APIRequestLog.log_request(
-                service='anthropic',
-                endpoint='messages.create.json_parse',
-                model='claude-3-5-sonnet-20241022',
+                service='google',
+                endpoint='generate_content.json_parse',
+                model='gemini-2.0-flash-exp',
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 status='error',
@@ -304,8 +291,8 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
                 "lottery_type": lottery_type,
                 "results": [],
                 "ocr_timestamp": datetime.utcnow().isoformat(),
-                "ocr_provider": "anthropic",
-                "ocr_model": "claude-3-5-sonnet-20241022",
+                "ocr_provider": "google",
+                "ocr_model": "gemini-2.0-flash-exp",
                 "raw_response": response_text,
                 "error": error_message
             }
@@ -313,297 +300,56 @@ def process_with_anthropic(base64_content, lottery_type, system_prompt, image_fo
     except Exception as e:
         end_time = datetime.utcnow()
         duration_ms = int((end_time - start_time).total_seconds() * 1000)
-        error_message = f"Error in Anthropic processing: {str(e)}"
+        error_message = f"Error in Google Gemini processing: {str(e)}"
         logger.error(error_message)
         
         # Log the failed API request
         APIRequestLog.log_request(
-            service='anthropic',
-            endpoint='messages.create',
-            model='claude-3-5-sonnet-20241022',
+            service='google',
+            endpoint='generate_content',
+            model='gemini-2.0-flash-exp',
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
             status='error',
             duration_ms=duration_ms,
             error_message=error_message,
+            request_id=request_id,
             screenshot_id=screenshot_id,
             lottery_type=lottery_type
         )
         
-        # Return error information
-        return {
-            "lottery_type": lottery_type,
-            "results": [],
-            "ocr_timestamp": datetime.utcnow().isoformat(),
-            "ocr_provider": "anthropic",
-            "ocr_model": "claude-3-5-sonnet-20241022",
-            "error": error_message
-        }
+        return None
 
 def create_system_prompt(lottery_type):
     """
-    Create appropriate system prompt based on lottery type
-    
-    Args:
-        lottery_type (str): Type of lottery
-        
-    Returns:
-        str: System prompt for AI
+    Create a system prompt tailored to the specific lottery type.
     """
-    # Base prompt with South African lottery context
-    base_prompt = """
-    You are a South African lottery data extraction specialist. Your task is to extract lottery results and related data from screenshots of the National Lottery website. 
-    
-    Important notes:
-    - South African lottery formats include Lottery (6 numbers + 1 bonus), Lottery Plus 1 (6 numbers + 1 bonus), Lottery Plus 2 (6 numbers + 1 bonus), Powerball (5 numbers + 1 bonus), Powerball Plus (5 numbers + 1 bonus), and Daily Lottery (5 numbers, no bonus).
-    - For history pages: Extract EACH DRAW shown in the image, not just the most recent one. There can be multiple draws shown on a single page.
-    - Draw numbers are sometimes shown as "Draw 1234" or "DRAW 1234" - extract only the number portion.
-    - Dates are in DD-MM-YYYY or DD/MM/YYYY format as typical in South Africa.
-    - 'Division' refers to prize categories. Division data includes the division number, match criteria, number of winners, and prize amount.
-    - Prize amounts are in South African Rand (R) format with commas, like "R5,000,000.00".
-    
-    Be very precise about:
-    1. Extracting ALL draws visible in the image
-    2. Correct lottery numbers, including bonus numbers
-    3. Draw dates in YYYY-MM-DD format
-    4. Prize divisions, winners and amounts where available
-    
-    For any unclear or partially visible information, use "Unknown" or omit the field rather than guessing.
+    base_prompt = """You are an expert OCR system specialized in extracting lottery data from South African National Lottery screenshots.
 
-    Return the data in this structured JSON format:
-    {
-        "lottery_type": "The type of lottery (e.g., Lottery, Powerball)",
-        "results": [
-            {
-                "draw_number": "Draw ID number",
-                "draw_date": "Draw date in YYYY-MM-DD format",
-                "numbers": [array of main winning numbers as integers],
-                "bonus_numbers": [array of bonus numbers as integers, empty for Daily Lotto],
-                "divisions": {
-                    "Division 1": {
-                        "match": "Description of match (e.g., '6 Correct Numbers')",
-                        "winners": "Number of winners",
-                        "prize": "Prize amount in R format"
-                    },
-                    "Division 2": {...},
-                    ... and so on for all visible divisions
-                }
-            },
-            ... additional draws if multiple are shown
-        ]
-    }
-    """
-    
-    # Add lottery-specific details
-    if ("lotto" in lottery_type.lower() or "lottery" in lottery_type.lower()) and "plus" not in lottery_type.lower() and "daily" not in lottery_type.lower():
-        base_prompt += """
-        For Lottery:
-        - Extract 6 main numbers and 1 bonus number
-        - Division 1 = six correct numbers
-        - Division 2 = five correct numbers + bonus number
-        - Division 3 = five correct numbers
-        - Division 4 = four correct numbers + bonus number
-        - Division 5 = four correct numbers
-        - Division 6 = three correct numbers + bonus number
-        - Division 7 = three correct numbers
-        - Division 8 = two correct numbers + bonus number
-        """
-    elif "lotto plus 1" in lottery_type.lower() or "lottery plus 1" in lottery_type.lower():
-        base_prompt += """
-        For Lottery Plus 1:
-        - Extract 6 main numbers and 1 bonus number
-        - Same division structure as Lottery
-        """
-    elif "lotto plus 2" in lottery_type.lower() or "lottery plus 2" in lottery_type.lower():
-        base_prompt += """
-        For Lottery Plus 2:
-        - Extract 6 main numbers and 1 bonus number
-        - Same division structure as Lottery
-        """
-    elif "powerball" in lottery_type.lower() and "plus" not in lottery_type.lower():
-        base_prompt += """
-        For Powerball:
-        - Extract 5 main numbers and 1 Powerball number (treat as the bonus number)
-        - Division 1 = five correct numbers + Powerball
-        - Division 2 = five correct numbers
-        - Division 3 = four correct numbers + Powerball
-        - Division 4 = four correct numbers
-        - Division 5 = three correct numbers + Powerball
-        - Division 6 = three correct numbers
-        - Division 7 = two correct numbers + Powerball
-        - Division 8 = one correct number + Powerball
-        - Division 9 = zero correct numbers + Powerball
-        """
-    elif "powerball plus" in lottery_type.lower():
-        base_prompt += """
-        For Powerball Plus:
-        - Extract 5 main numbers and 1 Powerball number (treat as the bonus number)
-        - Same division structure as Powerball
-        """
-    elif "daily lotto" in lottery_type.lower():
-        base_prompt += """
-        For Daily Lotto:
-        - Extract 5 main numbers (no bonus number)
-        - Division 1 = five correct numbers
-        - Division 2 = four correct numbers
-        - Division 3 = three correct numbers
-        - Division 4 = two correct numbers
-        """
-    
-    # If this is a results page (contains prize division info)
-    if "results" in lottery_type.lower():
-        base_prompt += """
-        Special Instructions for Results Pages:
-        - This is a results page which usually shows detailed prize division information
-        - Pay special attention to extracting division data including match criteria, winners, and prize amounts
-        - The page may show multiple divisions (Division 1 through Division 8/9)
-        - Division descriptions often show the matching criteria (e.g., "FIVE CORRECT NUMBERS + BONUS BALL")
-        - Carefully extract both the number of winners and the prize amount for each division
-        - Prize amounts include the currency symbol R (South African Rand), e.g., "R5,000,000.00"
-        """
-        
-    return base_prompt
+IMPORTANT: Respond ONLY with valid JSON in the exact format specified below. Do not include any explanatory text, markdown formatting, or code blocks.
 
-def extract_divisions_from_text(text, lottery_type):
-    """
-    Extract division information from OCR text.
-    
-    Args:
-        text (str): OCR extracted text
-        lottery_type (str): Type of lottery
-        
-    Returns:
-        dict: Dictionary of divisions
-    """
-    divisions = {}
-    
-    # Define regex patterns for different formats
-    patterns = [
-        # Pattern 1: Division X - XXX Winners - Prize: RXXX
-        r'(?:Division|DIV)[.\s]*(\d+)[.\s]*[-:]*[.\s]*(.*?)[.\s]*[-:]*[.\s]*(\d+)[.\s]*(?:Winner|Winners)[.\s]*[-:]*[.\s]*(?:Prize|PRIZE)?[.\s]*[-:]*[.\s]*(R[\d,.]+)',
-        # Pattern 2: Division X: XXX Winners - RXXX each
-        r'(?:Division|DIV)[.\s]*(\d+)[.\s]*[-:]*[.\s]*(\d+)[.\s]*(?:Winner|Winners)[.\s]*[-:]*[.\s]*(R[\d,.]+)[.\s]*(?:each|per person)?',
-        # Pattern 3: X CORRECT NUMBERS - XXX Winners - RXXX
-        r'((?:\w+\s+){2,4}NUMBERS(?:\s+\+\s+BONUS(?:\s+BALL)?)?)[.\s]*[-:]*[.\s]*(\d+)[.\s]*(?:Winner|Winners)[.\s]*[-:]*[.\s]*(R[\d,.]+)',
-        # Pattern 4: Div X (description) - XXX - RXXX
-        r'(?:Div|DIV)[.\s]*(\d+)[.\s]*\((.*?)\)[.\s]*[-:]*[.\s]*(\d+)[.\s]*[-:]*[.\s]*(R[\d,.]+)'
+Extract the following information and return it as JSON:
+
+{
+    "lottery_type": "exact lottery name from image",
+    "results": [
+        {
+            "draw_number": "draw/game number",
+            "draw_date": "YYYY-MM-DD format",
+            "numbers": [list of main numbers as integers],
+            "bonus_numbers": [list of bonus/powerball numbers as integers, empty array if none]
+        }
     ]
-    
-    # Try each pattern
-    for pattern in patterns:
-        matches = re.finditer(pattern, text, re.IGNORECASE)
-        for match in matches:
-            if len(match.groups()) == 4:  # Pattern 1 or 4
-                div_num, match_desc, winners, prize = match.groups()
-                divisions[f"Division {div_num}"] = {
-                    "match": match_desc.strip() if match_desc else "",
-                    "winners": winners.strip(),
-                    "prize": prize.strip()
-                }
-            elif len(match.groups()) == 3:  # Pattern 2 or 3
-                if match.groups()[0].isdigit():  # Pattern 2
-                    div_num, winners, prize = match.groups()
-                    divisions[f"Division {div_num}"] = {
-                        "match": "",
-                        "winners": winners.strip(),
-                        "prize": prize.strip()
-                    }
-                else:  # Pattern 3
-                    match_desc, winners, prize = match.groups()
-                    # Try to determine division number from match description
-                    div_num = determine_division_number(match_desc, lottery_type)
-                    divisions[f"Division {div_num}"] = {
-                        "match": match_desc.strip(),
-                        "winners": winners.strip(),
-                        "prize": prize.strip()
-                    }
-    
-    return divisions
+}
 
-def determine_division_number(match_description, lottery_type):
-    """
-    Determine division number from match description.
-    
-    Args:
-        match_description (str): Description of the match (e.g., 'SIX CORRECT NUMBERS')
-        lottery_type (str): Type of lottery
-        
-    Returns:
-        str: Division number as string
-    """
-    match_desc = match_description.lower()
-    
-    if "daily lotto" in lottery_type.lower():
-        if "five" in match_desc or "5" in match_desc:
-            return "1"
-        elif "four" in match_desc or "4" in match_desc:
-            return "2"
-        elif "three" in match_desc or "3" in match_desc:
-            return "3"
-        elif "two" in match_desc or "2" in match_desc:
-            return "4"
-    elif "powerball" in lottery_type.lower():
-        if "five" in match_desc or "5" in match_desc:
-            if "powerball" in match_desc or "bonus" in match_desc:
-                return "1"
-            else:
-                return "2"
-        elif "four" in match_desc or "4" in match_desc:
-            if "powerball" in match_desc or "bonus" in match_desc:
-                return "3"
-            else:
-                return "4"
-        elif "three" in match_desc or "3" in match_desc:
-            if "powerball" in match_desc or "bonus" in match_desc:
-                return "5"
-            else:
-                return "6"
-        elif "two" in match_desc or "2" in match_desc:
-            if "powerball" in match_desc or "bonus" in match_desc:
-                return "7"
-            else:
-                return "0"  # Not a valid division for powerball
-        elif "one" in match_desc or "1" in match_desc:
-            if "powerball" in match_desc or "bonus" in match_desc:
-                return "8"
-        elif "zero" in match_desc or "0" in match_desc:
-            if "powerball" in match_desc or "bonus" in match_desc:
-                return "9"
-    else:  # Lotto, Lotto Plus 1, Lotto Plus 2
-        if "six" in match_desc or "6" in match_desc:
-            return "1"
-        elif "five" in match_desc or "5" in match_desc:
-            if "bonus" in match_desc:
-                return "2"
-            else:
-                return "3"
-        elif "four" in match_desc or "4" in match_desc:
-            if "bonus" in match_desc:
-                return "4"
-            else:
-                return "5"
-        elif "three" in match_desc or "3" in match_desc:
-            if "bonus" in match_desc:
-                return "6"
-            else:
-                return "7"
-        elif "two" in match_desc or "2" in match_desc:
-            if "bonus" in match_desc:
-                return "8"
-    
-    # Default to X if we can't determine
-    return "X"
+Key requirements:
+- Extract ALL visible lottery results from the image
+- Use exact lottery names as shown (e.g., "LOTTO", "LOTTO PLUS 1", "PowerBall", "Daily Lotto")
+- Convert all numbers to integers
+- Use YYYY-MM-DD date format
+- For Daily Lotto, bonus_numbers should be an empty array []
+- Include draw numbers and dates exactly as shown
 
-if __name__ == "__main__":
-    # Simple command-line interface for testing
-    if len(sys.argv) < 3:
-        print("Usage: python ocr_processor.py <screenshot_path> <lottery_type>")
-        sys.exit(1)
-    
-    # Configure logging
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    
-    # Process the screenshot
-    screenshot_path = sys.argv[1]
-    lottery_type = sys.argv[2]
-    
-    result = process_screenshot(screenshot_path, lottery_type)
-    print(json.dumps(result, indent=2))
+Focus on accuracy and completeness. Extract every visible lottery result in the image."""
+
+    return base_prompt
