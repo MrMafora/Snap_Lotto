@@ -40,44 +40,48 @@ class GeminiLotteryExtractor:
     
     def create_comprehensive_prompt(self):
         """Create optimized prompt for Gemini 2.5 Pro lottery extraction"""
-        return """You are an expert lottery data extraction specialist. Extract comprehensive lottery results from this image with 100% accuracy.
+        return """You are an automated data extraction API. Your task is to analyze the provided image of a lottery result and return the data in a structured JSON format.
 
-## CRITICAL INSTRUCTIONS:
-1. **Row Alignment**: Use alternating grey/white row colors to ensure correct data alignment
-2. **Division Tracking**: Red DIV numbers help track which row you're reading
-3. **Column Precision**: Match each value to its exact column - no shifting between rows
-4. **Visual Verification**: Double-check using table borders and cell alignment
+Instructions:
+- Strictly adhere to the JSON schema defined below.
+- Extract all data points accurately from the image.
+- If a field is not present in the image (e.g., a bonus ball in Daily Lotto), use null as its value.
+- Parse numbers from strings where specified (e.g., Draw ID, Winners). Currency values should remain as strings to preserve formatting.
 
-## EXTRACT THIS DATA:
+JSON Output Schema:
+{
+  "lottery_type": "String",
+  "draw_number": "Number",
+  "draw_date": "String (YYYY-MM-DD)",
+  "main_numbers": ["Array of Numbers"],
+  "bonus_numbers": ["Array of Numbers or empty"],
+  "prize_divisions": [
+    {
+      "division": "Number",
+      "description": "String",
+      "winners": "Number",
+      "prize_amount": "String"
+    }
+  ],
+  "jackpot_info": {
+     "next_jackpot": "String",
+     "next_draw_date": "String (YYYY-MM-DD)"
+  },
+  "additional_info": {
+    "rollover_amount": "String | null",
+    "total_pool_size": "String | null",
+    "total_sales": "String | null"
+  }
+}
 
-### Header Information:
-- Lottery Type (LOTTO, LOTTO PLUS 1, LOTTO PLUS 2, POWERBALL, POWERBALL PLUS, DAILY LOTTO)
-- Draw ID number
-- Draw Date (format: YYYY-MM-DD)
+Example Extraction Guidelines:
+- lottery_type: Extract from the main title (e.g., "LOTTO PLUS 1").
+- draw_number: Extract the "DRAW ID" number.
+- bonus_numbers: This is the number after the + sign.
+- prize_divisions: Extract all visible prize tiers with winner counts and amounts.
+- jackpot_info: Find the estimated jackpot amount for the next draw.
 
-### Winning Numbers:
-- Main numbers (from numbered balls)
-- Bonus/Powerball number (marked with +)
-- Both display order and numerical order
-
-### Prize Division Table:
-For each division (DIV 1, DIV 2, etc.), extract:
-- Division number
-- Winners count (from WINNERS column)
-- Prize amount (from WINNINGS column)
-
-**CRITICAL**: Each division's winner count must come from the SAME ROW as that division number.
-
-### Additional Financial Data:
-- Rollover Amount
-- Rollover Number
-- Total Pool Size
-- Total Sales
-- Next Jackpot
-- Draw Machine
-- Next Draw Date
-
-## OUTPUT FORMAT:
+Process the attached image and return the JSON output.
 Return ONLY valid JSON in this exact structure:
 
 ```json
