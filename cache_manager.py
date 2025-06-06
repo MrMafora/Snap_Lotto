@@ -91,33 +91,38 @@ def cached_query(ttl=300):
 def get_optimized_latest_results(limit=10):
     """Optimized query for latest lottery results - loads fresh data from database"""
     from models import LotteryResult, db
-    from sqlalchemy import desc, func
+    from sqlalchemy import desc, func, text
     from datetime import datetime
     
     # Force fresh connection 
     db.session.close()
     
-    # Get the latest result for each lottery type using window function
-    subquery = db.session.query(
-        LotteryResult.id,
-        LotteryResult.lottery_type,
-        LotteryResult.draw_number,
-        LotteryResult.draw_date,
-        LotteryResult.main_numbers,
-        LotteryResult.bonus_numbers,
-        LotteryResult.created_at,
-        func.row_number().over(
-            partition_by=LotteryResult.lottery_type,
-            order_by=desc(LotteryResult.created_at)
-        ).label('rn')
-    ).subquery()
+    # Use raw SQL to get latest result for each lottery type
+    query = text("""
+        WITH ranked_results AS (
+            SELECT *,
+                   ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY created_at DESC) as rn
+            FROM lottery_results
+        )
+        SELECT * FROM ranked_results WHERE rn = 1
+        ORDER BY created_at DESC
+    """)
     
-    # Select only the most recent record for each lottery type
-    results = db.session.query(LotteryResult)\
-        .join(subquery, LotteryResult.id == subquery.c.id)\
-        .filter(subquery.c.rn == 1)\
-        .order_by(desc(LotteryResult.created_at))\
-        .all()
+    result = db.session.execute(query)
+    rows = result.fetchall()
+    
+    # Convert to LotteryResult objects manually
+    results = []
+    for row in rows:
+        lottery_result = LotteryResult()
+        lottery_result.id = row.id
+        lottery_result.lottery_type = row.lottery_type
+        lottery_result.draw_number = row.draw_number
+        lottery_result.draw_date = row.draw_date
+        lottery_result.main_numbers = row.main_numbers
+        lottery_result.bonus_numbers = row.bonus_numbers
+        lottery_result.created_at = row.created_at
+        results.append(lottery_result)
     
     return results
 

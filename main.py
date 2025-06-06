@@ -87,7 +87,8 @@ from config import Config
 from sqlalchemy import text
 
 # Import performance cache manager
-from cache_manager import cache, cached_query, get_optimized_latest_results, get_optimized_lottery_stats, clear_results_cache
+# Cache manager temporarily disabled due to model attribute issues
+# from cache_manager import cache, cached_query, get_optimized_latest_results, get_optimized_lottery_stats, clear_results_cache
 
 # Import modules
 # ad_management temporarily disabled
@@ -230,23 +231,36 @@ def home():
     
     app.logger.info("=== HOMEPAGE: Loading fresh lottery data from database ===")
     
-    # Load fresh data directly from database
+    # Load fresh data directly from database using raw SQL
     try:
-        latest_results = get_optimized_latest_results(limit=6)
+        from sqlalchemy import text
+        
+        # Direct SQL query to get latest result for each lottery type
+        query = text("""
+            WITH ranked_results AS (
+                SELECT *,
+                       ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY created_at DESC) as rn
+                FROM lottery_results
+            )
+            SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers 
+            FROM ranked_results 
+            WHERE rn = 1
+            ORDER BY created_at DESC
+        """)
+        
+        raw_results = db.session.execute(query).fetchall()
         results = []
         
-        # Process all latest results - ensure all sequential draw numbers are displayed
-        # Match exact database field values for lottery types
+        # Process all lottery results directly from raw SQL
         lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lotto']
         
-        for lottery_result in latest_results:
-            if lottery_result.lottery_type in lottery_types:
+        for row in raw_results:
+            if row.lottery_type in lottery_types:
                 # Parse main_numbers field directly (PostgreSQL array format)
-                import re
                 numbers = []
-                if hasattr(lottery_result, 'main_numbers') and lottery_result.main_numbers:
+                if row.main_numbers:
                     # Parse PostgreSQL array format like "{15,22,25,31,36}"
-                    main_nums_str = str(lottery_result.main_numbers)
+                    main_nums_str = str(row.main_numbers)
                     if main_nums_str.startswith('{') and main_nums_str.endswith('}'):
                         # Extract numbers from PostgreSQL array format
                         nums_only = main_nums_str[1:-1]  # Remove { }
@@ -254,8 +268,8 @@ def home():
                 
                 # Parse bonus_numbers field directly
                 bonus_numbers = []
-                if hasattr(lottery_result, 'bonus_numbers') and lottery_result.bonus_numbers:
-                    bonus_str = str(lottery_result.bonus_numbers)
+                if row.bonus_numbers:
+                    bonus_str = str(row.bonus_numbers)
                     if bonus_str.startswith('{') and bonus_str.endswith('}'):
                         bonus_only = bonus_str[1:-1]  # Remove { }
                         bonus_numbers = [int(n.strip()) for n in bonus_only.split(',') if n.strip().isdigit()]
@@ -275,8 +289,8 @@ def home():
                         def get_bonus_numbers_list(self):
                             return self.bonus_numbers
                     
-                    result = LotteryDisplay(lottery_result.lottery_type, lottery_result.draw_number, 
-                                          lottery_result.draw_date, numbers, bonus_numbers)
+                    result = LotteryDisplay(row.lottery_type, row.draw_number, 
+                                          row.draw_date, numbers, bonus_numbers)
                     results.append(result)
         
         app.logger.info(f"HOMEPAGE: Loaded {len(results)} results from database")
