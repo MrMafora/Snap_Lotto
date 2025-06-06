@@ -588,10 +588,11 @@ CRITICAL INSTRUCTIONS:
                 # Format response for frontend - handle both LOTTO and PowerBall
                 lottery_type = ticket_data.get('lottery_type', 'PowerBall')
                 
-                # Initialize comparison results
+                # Initialize comparison results and final result
                 main_game_results = {}
                 plus_1_results = {}
                 plus_2_results = {}
+                result = {}
                 
                 # Extract numbers and bonus/powerball based on lottery type
                 if 'LOTTO' in lottery_type.upper():
@@ -716,7 +717,7 @@ CRITICAL INSTRUCTIONS:
                             'plus_2_game': plus_2_results
                         }
                     }
-                else:
+                elif lottery_type == 'PowerBall':
                     # PowerBall ticket format
                     all_lines = ticket_data.get('all_lines', [])
                     all_powerball = ticket_data.get('all_powerball', [])
@@ -803,6 +804,9 @@ CRITICAL INSTRUCTIONS:
                     # Daily Lotto ticket format (5 numbers, no bonus/powerball)
                     all_lines = ticket_data.get('all_lines', [])
                     
+                    # Initialize variables
+                    main_game_results = {}
+                    
                     # Get player numbers for comparison
                     player_numbers = all_lines[0] if all_lines else []
                     
@@ -844,6 +848,15 @@ CRITICAL INSTRUCTIONS:
                             'enhanced_comparison': True,
                             'main_game': main_game_results
                         }
+                    }
+                
+                else:
+                    # Unsupported lottery type
+                    result = {
+                        'success': False,
+                        'error': f'Unsupported lottery type: {lottery_type}',
+                        'lottery_type': lottery_type,
+                        'raw_response': response_text
                     }
                 
                 logger.info(f"Successfully processed ticket: {result}")
