@@ -235,7 +235,7 @@ def home():
     try:
         from sqlalchemy import text
         
-        # Direct SQL query to get latest result for each lottery type
+        # Direct SQL query to get latest result for each lottery type in proper order
         query = text("""
             WITH ranked_results AS (
                 SELECT *,
@@ -245,7 +245,16 @@ def home():
             SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers 
             FROM ranked_results 
             WHERE rn = 1
-            ORDER BY created_at DESC
+            ORDER BY 
+                CASE lottery_type
+                    WHEN 'Lotto' THEN 1
+                    WHEN 'Lotto Plus 1' THEN 2
+                    WHEN 'Lotto Plus 2' THEN 3
+                    WHEN 'Powerball' THEN 4
+                    WHEN 'Powerball Plus' THEN 5
+                    WHEN 'Daily Lotto' THEN 6
+                    ELSE 7
+                END
         """)
         
         raw_results = db.session.execute(query).fetchall()
