@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ lottery_result.lottery_type }} Draw {{ lottery_result.draw_number }} - Detailed Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-table-fix.css') }}">
+    <style>
+        .lottery-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .winning-numbers {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .number-ball {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #007bff;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 0.25rem;
+            font-size: 1.1rem;
+        }
+        .bonus-ball {
+            background: #dc3545;
+        }
+        .prize-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .table-header {
+            background: #343a40;
+            color: white;
+        }
+        .financial-info {
+            background: #e9ecef;
+            border-radius: 10px;
+            padding: 1.5rem;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        .amount {
+            font-weight: bold;
+            color: #198754;
+        }
+        @media (max-width: 768px) {
+            .number-ball {
+                width: 40px;
+                height: 40px;
+                font-size: 0.9rem;
+            }
+            .lottery-header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="lottery-header text-center">
+        <div class="container">
+            <h1>{{ lottery_result.lottery_type }} RESULTS FOR DRAW ID {{ lottery_result.draw_number }}</h1>
+            <p class="mb-0">Draw Date: {{ lottery_result.draw_date.strftime('%Y-%m-%d') }}</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Winning Numbers Section -->
+        <div class="winning-numbers">
+            <h3 class="text-center mb-3">WINNING NUMBERS</h3>
+            <div class="text-center">
+                <div class="mb-3">
+                    <strong>Main Numbers:</strong>
+                    {% for number in main_numbers %}
+                        <span class="number-ball">{{ number }}</span>
+                    {% endfor %}
+                    {% if bonus_number %}
+                        + <span class="number-ball bonus-ball">{{ bonus_number }}</span>
+                    {% endif %}
+                </div>
+                {% if numerical_order %}
+                <div class="text-muted">
+                    <small>Numerical Order: {{ numerical_order | join(', ') }}{% if bonus_number %} + {{ bonus_number }}{% endif %}</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Prize Divisions Table -->
+        {% if divisions %}
+        <div class="prize-table mb-4">
+            <h3 class="text-center p-3 m-0 table-header">PRIZE DIVISIONS AND WINNERS</h3>
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Division</th>
+                            <th>Requirement</th>
+                            <th class="text-end">Winners</th>
+                            <th class="text-end">Prize Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for division in divisions %}
+                        <tr>
+                            <td><strong>{{ division.division }}</strong></td>
+                            <td>{{ division.requirement }}</td>
+                            <td class="text-end">{{ division.winners if division.winners is not none else '-' }}</td>
+                            <td class="text-end amount">{{ division.prize_amount }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Financial Information -->
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="financial-info">
+                    <h4 class="mb-3">MORE INFO</h4>
+                    {% if lottery_result.rollover_amount %}
+                    <div class="info-item">
+                        <span>Rollover Amount:</span>
+                        <span class="amount">{{ lottery_result.rollover_amount }}</span>
+                    </div>
+                    {% endif %}
+                    {% if lottery_result.rollover_number %}
+                    <div class="info-item">
+                        <span>Rollover No:</span>
+                        <span>{{ lottery_result.rollover_number }}</span>
+                    </div>
+                    {% endif %}
+                    {% if lottery_result.total_pool_size %}
+                    <div class="info-item">
+                        <span>Total Pool Size:</span>
+                        <span class="amount">{{ lottery_result.total_pool_size }}</span>
+                    </div>
+                    {% endif %}
+                    {% if lottery_result.total_sales %}
+                    <div class="info-item">
+                        <span>Total Sales:</span>
+                        <span class="amount">{{ lottery_result.total_sales }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="financial-info">
+                    <h4 class="mb-3">NEXT DRAW</h4>
+                    {% if lottery_result.next_jackpot %}
+                    <div class="info-item">
+                        <span>Next Jackpot:</span>
+                        <span class="amount">{{ lottery_result.next_jackpot }}</span>
+                    </div>
+                    {% endif %}
+                    {% if lottery_result.draw_machine %}
+                    <div class="info-item">
+                        <span>Draw Machine:</span>
+                        <span>{{ lottery_result.draw_machine }}</span>
+                    </div>
+                    {% endif %}
+                    {% if lottery_result.next_draw_date_str %}
+                    <div class="info-item">
+                        <span>Next Draw Date:</span>
+                        <span>{{ lottery_result.next_draw_date_str }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="text-center mb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Back to Latest Results</a>
+            <a href="#" class="btn btn-secondary" onclick="window.print()">Print Results</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

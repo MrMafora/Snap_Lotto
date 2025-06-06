@@ -89,7 +89,6 @@ class LotteryResult(db.Model):
     draw_number = db.Column(db.Integer, nullable=True, comment="Draw ID")
     draw_date = db.Column(db.DateTime, nullable=False, comment="Game Date")
     numbers = db.Column(db.String(255), nullable=True, comment="Winning Numbers (JSON string array)")  # Stored as JSON string
-    main_numbers = db.Column(db.String(255), nullable=True, comment="Main Numbers (PostgreSQL array format)")  # PostgreSQL array format
     bonus_numbers = db.Column(db.String(255), nullable=True, comment="Bonus Numbers (JSON string array)")  # Stored as JSON string
     divisions = db.Column(db.Text, nullable=True, comment="Prize Divisions Data (JSON string)")  # Stored as JSON string with division, winners, and prize amount
     

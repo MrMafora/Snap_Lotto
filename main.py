@@ -3593,6 +3593,60 @@ def system_metrics():
 # Register lottery analysis routes
 lottery_analysis.register_analysis_routes(app, db)
 
+@app.route('/lottery-details/<int:draw_number>')
+def lottery_details(draw_number):
+    """Show detailed lottery results with prize divisions and financial info"""
+    try:
+        # Get lottery result with comprehensive data
+        lottery_result = LotteryResult.query.filter_by(draw_number=draw_number).first()
+        
+        if not lottery_result:
+            flash(f"Draw {draw_number} not found", "warning")
+            return redirect(url_for('home'))
+        
+        # Parse main numbers
+        main_numbers = []
+        if lottery_result.numbers:
+            try:
+                main_numbers = json.loads(lottery_result.numbers)
+            except:
+                main_numbers = []
+        
+        # Parse bonus number
+        bonus_number = None
+        if lottery_result.bonus_numbers:
+            try:
+                bonus_data = json.loads(lottery_result.bonus_numbers)
+                if bonus_data and len(bonus_data) > 0:
+                    bonus_number = bonus_data[0]
+            except:
+                pass
+        
+        # Parse divisions data
+        divisions = []
+        if lottery_result.divisions:
+            try:
+                divisions = json.loads(lottery_result.divisions)
+            except:
+                divisions = []
+        
+        # Create numerical order (sorted)
+        numerical_order = sorted(main_numbers) if main_numbers else []
+        
+        return render_template(
+            'lottery_details.html',
+            lottery_result=lottery_result,
+            main_numbers=main_numbers,
+            bonus_number=bonus_number,
+            divisions=divisions,
+            numerical_order=numerical_order
+        )
+        
+    except Exception as e:
+        app.logger.error(f"Error showing lottery details: {e}")
+        flash("Error loading lottery details", "danger")
+        return redirect(url_for('home'))
+
 @app.route('/api/extract-lottery-data', methods=['POST'])
 @login_required
 def api_extract_lottery_data():
