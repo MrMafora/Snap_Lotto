@@ -2039,6 +2039,32 @@ def retake_screenshots():
     
     return redirect(url_for('admin'))
 
+@app.route('/gemini-automation')
+@login_required
+def gemini_automation():
+    """Run complete automation workflow using Google Gemini 2.5 Pro"""
+    if not current_user.is_admin:
+        flash('You must be an admin to run automation.', 'danger')
+        return redirect(url_for('index'))
+        
+    try:
+        from gemini_automation_controller import GeminiAutomationController
+        
+        # Create controller and run workflow
+        controller = GeminiAutomationController()
+        results = controller.run_complete_workflow()
+        
+        if results and results.get('overall_success'):
+            flash('Gemini automation completed successfully! Fresh lottery data extracted and saved.', 'success')
+        else:
+            error_steps = [step for step, success in results.items() if not success and step != 'overall_success']
+            flash(f'Automation completed with issues in: {", ".join(error_steps)}', 'warning')
+            
+    except Exception as e:
+        flash(f'Automation failed: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin'))
+
 @app.route('/purge-database')
 @login_required
 def purge_database():

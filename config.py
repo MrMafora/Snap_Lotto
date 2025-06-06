@@ -35,7 +35,7 @@ class Config:
         }
     
     # Anthropic API settings (Custom environment variable name as requested)
-    ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_SNAP_LOTTERY', '')
+    GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY', '')
     
     # Screenshot directory
     SCREENSHOT_DIR = os.path.join(os.getcwd(), 'screenshots')

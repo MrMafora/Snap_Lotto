@@ -1,0 +1,97 @@
+Of course. Here are two versions of a prompt, a simple one for general use and an advanced one that a developer would use for building a robust application.
+
+Simple & Direct Prompt
+
+This prompt is straightforward and effective for one-off extractions.
+
+Prompt:
+
+From the attached image of a lottery result, extract the following information:
+
+Game Name (e.g., LOTTO, POWERBALL)
+
+Draw ID
+
+Draw Date
+
+Winning Numbers (as drawn)
+
+Winning Numbers (in numerical order)
+
+Bonus Ball / PowerBall number
+
+The complete prize division table with Division, Winners, and Prize Amount.
+
+The Next Jackpot amount.
+
+The Next Draw Date.
+
+Present the output in a clean, structured format.
+
+Advanced / Developer-Focused Prompt (for API Integration)
+
+This is the kind of prompt you would build into an application's code. It's highly specific, defines the exact output structure (JSON), specifies data types, and instructs the model how to handle variations, making it ideal for automation.
+
+Prompt:
+
+You are an automated data extraction API. Your task is to analyze the provided image of a lottery result and return the data in a structured JSON format.
+
+Instructions:
+
+Strictly adhere to the JSON schema defined below.
+
+Extract all data points accurately from the image.
+
+If a field is not present in the image (e.g., a bonus ball in Daily Lotto), use null as its value.
+
+Parse numbers from strings where specified (e.g., Draw ID, Winners). Currency values should remain as strings to preserve formatting.
+
+JSON Output Schema:
+
+{
+  "gameName": "String",
+  "drawId": "Number",
+  "drawDate": "String (YYYY-MM-DD)",
+  "winningNumbers": {
+    "asDrawn": ["Array of Numbers"],
+    "numericalOrder": ["Array of Numbers"],
+    "bonusBall": "Number | null"
+  },
+  "prizeDivisions": [
+    {
+      "division": "Number",
+      "description": "String",
+      "winners": "Number",
+      "prizeAmount": "String"
+    }
+  ],
+  "jackpotInfo": {
+     "nextJackpot": "String",
+     "nextDrawDate": "String (YYYY-MM-DD)"
+  }
+}
+
+
+Example Extraction from Image:
+
+gameName: Extract from the main title (e.g., "LOTTO PLUS 1").
+
+drawId: Extract the "DRAW ID" number.
+
+winningNumbers.bonusBall: This is the number after the + sign.
+
+prizeDivisions.description: Extract the text description for each prize tier (e.g., "SIX CORRECT NUMBERS", "FIVE CORRECT NUMBERS + BONUS BALL").
+
+jackpotInfo.nextJackpot: Find the estimated jackpot amount for the next draw, often at the bottom of the page.
+
+Process the attached image and return the JSON output.
+
+Why the Advanced Prompt is Better for an API:
+
+Machine-Readable: Requesting JSON provides a structured, predictable output that any programming language can easily parse and use.
+
+Highly Specific: It defines the exact keys (gameName, drawId), data types (String, Number, Array), and structure, leaving no room for ambiguity.
+
+Robust: It tells the model how to handle missing data (null), which prevents application errors.
+
+Scalable: A developer can send any of the lottery images with this one prompt and expect the same consistent JSON structure back every time, making it easy to build a reliable system.
