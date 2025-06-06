@@ -178,13 +178,48 @@
                                 <tr>
                                     <td><strong>DIV {{ division.division }}</strong></td>
                                     <td>{{ division.description }}</td>
-                                    <td>{{ division.winners }}</td>
-                                    <td>{{ division.prize_per_winner }}</td>
+                                    <td>{{ "{:,}".format(division.winners) }}</td>
+                                    <td>R{{ "{:,.2f}".format(division.prize_amount) }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Financial Summary -->
+                {% if result.rollover_amount or result.next_jackpot or result.total_pool_size %}
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h6 class="mb-3">Financial Information</h6>
+                        <div class="row g-3">
+                            {% if result.rollover_amount %}
+                            <div class="col-md-4">
+                                <div class="financial-info-card">
+                                    <div class="financial-label">Rollover Amount</div>
+                                    <div class="financial-value">R{{ "{:,.2f}".format(result.rollover_amount) }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if result.next_jackpot %}
+                            <div class="col-md-4">
+                                <div class="financial-info-card">
+                                    <div class="financial-label">Next Estimated Jackpot</div>
+                                    <div class="financial-value">R{{ "{:,.2f}".format(result.next_jackpot) }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if result.total_pool_size %}
+                            <div class="col-md-4">
+                                <div class="financial-info-card">
+                                    <div class="financial-label">Total Prize Pool</div>
+                                    <div class="financial-value">R{{ "{:,.2f}".format(result.total_pool_size) }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             {% else %}
                 <div class="alert alert-info">
                     Division data is being processed. Please check back shortly for complete prize breakdown.

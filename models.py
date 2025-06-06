@@ -93,6 +93,13 @@ class LotteryResult(db.Model):
     bonus_numbers = db.Column(db.String(255), nullable=True, comment="Bonus Numbers (JSON string array)")  # Stored as JSON string
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Prize division information
+    divisions = db.Column(db.JSON, nullable=True, comment="Prize divisions with winners and amounts")
+    rollover_amount = db.Column(db.Numeric(15,2), nullable=True, comment="Rollover amount")
+    next_jackpot = db.Column(db.Numeric(15,2), nullable=True, comment="Next estimated jackpot")
+    total_pool_size = db.Column(db.Numeric(15,2), nullable=True, comment="Total prize pool")
+    total_sales = db.Column(db.Numeric(15,2), nullable=True, comment="Total ticket sales")
+    
     # Unique constraint to prevent duplicate entries
     __table_args__ = (
         db.UniqueConstraint('lottery_type', 'draw_number', name='uq_lottery_draw'),
