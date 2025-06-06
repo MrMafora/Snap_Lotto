@@ -10,8 +10,10 @@ IMPORTANT: This application includes built-in port forwarding capabilities
 to handle both the internal port 5000 (used by gunicorn) and the external
 port 8080 required by Replit for public access.
 """
+import json
 import logging
 import os
+import re
 import threading
 import traceback
 from datetime import datetime, timedelta
@@ -575,7 +577,6 @@ CRITICAL INSTRUCTIONS:
             logger.info(f"Gemini response: {response_text}")
             
             # Clean up response and extract JSON
-            import re
             json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if json_match:
                 json_text = json_match.group()
@@ -1082,7 +1083,6 @@ def results():
                                     return []
                                 if bonus_str.startswith('[') and bonus_str.endswith(']'):
                                     try:
-                                        import json
                                         return json.loads(bonus_str)
                                     except (json.JSONDecodeError, ValueError):
                                         # Fallback to comma-separated parsing
