@@ -502,549 +502,111 @@ def ticket_scanner():
 @app.route('/process-ticket', methods=['POST'])
 def process_ticket():
     """Process a lottery ticket image and return JSON results"""
-    if 'ticket_image' not in request.files:
-        return jsonify({'success': False, 'error': 'No file uploaded'})
-    
-    file = request.files['ticket_image']
-    
-    if file.filename == '':
-        return jsonify({'success': False, 'error': 'No file selected'})
-    
-    # Get the lottery type if specified (optional)
-    lottery_type = request.form.get('lottery_type', '')
-    
-    # Get draw number if specified (optional)
-    draw_number = request.form.get('draw_number', None)
-    
-    # Get file extension
-    file_extension = os.path.splitext(file.filename)[1].lower()
-    if not file_extension:
-        file_extension = '.jpeg'  # Default to JPEG if no extension
-    
     try:
-        # Read the file data
-        image_data = file.read()
+        if 'ticket_image' not in request.files:
+            return jsonify({'success': False, 'error': 'No file uploaded'})
         
-        # Save the image to a temporary directory
+        file = request.files['ticket_image']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'})
+        
+        # Save uploaded file temporarily
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{timestamp}_{secure_filename(file.filename)}"
+        filename = f"{timestamp}_{secure_filename(file.filename) if file.filename else 'ticket.jpg'}"
         upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, filename)
-        
-        # We need to seek back to start of file after reading
-        file.seek(0)
         file.save(file_path)
         
-        # Process the ticket using Google Gemini 2.5 Pro
         try:
-            import base64
-            import json
+            # Process with Google Gemini 2.5 Pro
             import google.generativeai as genai
+            import PIL.Image
             
-            # Initialize Gemini client
             genai.configure(api_key=os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY'))
             model = genai.GenerativeModel('gemini-1.5-pro')
             
-            # Read and encode the image
-            with open(file_path, 'rb') as image_file:
-                image_data = base64.b64encode(image_file.read()).decode('utf-8')
+            # Load image
+            image = PIL.Image.open(file_path)
             
-            # Create image data for Gemini
-            import PIL.Image
-            import io
-            
-            # Convert base64 to PIL Image for Gemini
-            image_bytes = base64.b64decode(image_data)
-            image = PIL.Image.open(io.BytesIO(image_bytes))
-            
-            # Generate content with Gemini
-            prompt = """Extract lottery ticket data from this South African PowerBall ticket. 
+            # Create comprehensive prompt
+            prompt = """Extract lottery ticket data from this South African lottery ticket.
 
-CRITICAL INSTRUCTIONS:
-1. Find ALL number rows (A1, B1, C1, D1, E1, F1, etc.) - each row has 5 main numbers
-2. Find the PowerBall number for EACH row (A2, B2, C2, D2, E2, F2, etc.) - each row has its own PowerBall
-3. The PowerBall numbers can be DIFFERENT for each row - extract the actual number shown for each line
-4. Return exactly this JSON format with ALL rows and their individual PowerBall numbers:
-
+Return ONLY valid JSON in this exact format:
 {
     "lottery_type": "PowerBall",
     "all_lines": [
-        [9, 15, 37, 39, 50],
-        [12, 26, 31, 32, 47]
+        [12, 17, 24, 26, 35],
+        [12, 17, 24, 34, 35],
+        [5, 15, 17, 24, 32]
     ],
-    "all_powerball": ["7", "12"],
+    "all_powerball": [12, 12, 12],
     "powerball_plus_included": "YES",
-    "draw_date": "21/03/25",
-    "draw_number": "1599",
-    "ticket_cost": "R30.00"
+    "draw_date": "18/04/25",
+    "draw_number": "1607",
+    "ticket_cost": "R37.50"
 }
 
-MUST FOLLOW:
-- "all_lines" must contain EVERY visible number row (A1, B1, C1, etc.)
-- "all_powerball" must contain the PowerBall number for EACH row (A2, B2, C2, etc.)
-- The arrays must be the same length - one PowerBall per row
-- Extract the ACTUAL PowerBall numbers from the ticket, don't assume they're all the same"""
+CRITICAL RULES:
+1. Extract ALL visible number lines from the ticket
+2. Find the PowerBall/bonus number for each line
+3. all_lines and all_powerball arrays must be same length
+4. powerball_plus_included: "YES" if PowerBall Plus is included, "NO" otherwise
+5. Return only the JSON, no other text"""
             
             response = model.generate_content([image, prompt])
+            response_text = response.text.strip()
             
-            # Parse the response
-            response_text = response.text
-            logger.info("=== FULL AI RESPONSE ===")
-            logger.info(response_text)
-            logger.info("========================")
+            logger.info(f"Gemini response: {response_text}")
             
-            # Try to extract JSON from the response
-            try:
-                # Look for JSON in the response
-                import re
-                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-                if json_match:
-                    json_text = json_match.group()
-                    # Fix leading zeros in JSON (05 -> "05")
-                    json_text = re.sub(r'(\[|\,)\s*0(\d)', r'\1"0\2"', json_text)
-                    ticket_data = json.loads(json_text)
-                    logger.info(f"Extracted JSON: {ticket_data}")
-                else:
-                    # Clean up the response text for direct parsing
-                    clean_text = re.sub(r'(\[|\,)\s*0(\d)', r'\1"0\2"', response_text)
-                    ticket_data = json.loads(clean_text)
-                    logger.info(f"Direct JSON parse: {ticket_data}")
+            # Clean up response and extract JSON
+            import re
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                json_text = json_match.group()
+                ticket_data = json.loads(json_text)
                 
-                # Check for PowerBall + PowerBall Plus combination and compare with both results
-                powerball_results = {}
-                powerball_plus_results = {}
+                # Clean up uploaded file
+                os.remove(file_path)
                 
-                # Initialize variables
-                all_ticket_lines = []
-                player_main_numbers = []
-                
-                # Handle both old format (main_numbers) and new format (all_lines)
-                if ticket_data.get('all_lines'):
-                    # New multi-row format - use all rows
-                    all_ticket_lines = ticket_data.get('all_lines', [])
-                    player_main_numbers = all_ticket_lines[0] if all_ticket_lines else []
-                elif ticket_data.get('main_numbers'):
-                    # Old single-row format - convert to multi-row format
-                    player_main_numbers = ticket_data.get('main_numbers', [])
-                    all_ticket_lines = [player_main_numbers] if player_main_numbers else []
-                
-                player_powerball = ticket_data.get('powerball_number')
-                
-                # Extract draw information from ticket data FIRST
-                actual_draw_number = ticket_data.get('draw_number')
-                actual_draw_date = ticket_data.get('draw_date')
-                
-                if all_ticket_lines or player_main_numbers:
-                    
-                    # Check which games to compare based on lottery type and YES indicators
-                    lottery_type = ticket_data.get('lottery_type', '').lower()
-                    powerball_plus_yes = ticket_data.get('powerball_plus_included', '').upper() == 'YES'
-                    lotto_plus_1_yes = ticket_data.get('lotto_plus_1_included', '').upper() == 'YES'
-                    lotto_plus_2_yes = ticket_data.get('lotto_plus_2_included', '').upper() == 'YES'
-                    
-                    # For PowerBall tickets
-                    if 'powerball' in lottery_type:
-                        # Always check PowerBall main game
-                        # Try to find the specific draw from the ticket first
-                        powerball_draw = None
-                        if actual_draw_number:
-                            powerball_draw = LotteryResult.query.filter_by(
-                                lottery_type='Powerball',
-                                draw_number=int(actual_draw_number)
-                            ).first()
-                        
-                        # If specific draw not found, try by date
-                        if not powerball_draw and actual_draw_date:
-                            try:
-                                # Convert date format from DD/MM/YY to proper date
-                                date_parts = actual_draw_date.split('/')
-                                if len(date_parts) == 3:
-                                    day, month, year = date_parts
-                                    if len(year) == 2:
-                                        year = '20' + year
-                                    target_date = datetime.strptime(f"{year}-{month.zfill(2)}-{day.zfill(2)}", '%Y-%m-%d').date()
-                                    
-                                    powerball_draw = LotteryResult.query.filter_by(
-                                        lottery_type='Powerball'
-                                    ).filter(
-                                        LotteryResult.draw_date == target_date
-                                    ).first()
-                            except Exception as e:
-                                logger.warning(f"Error parsing draw date {actual_draw_date}: {e}")
-                        
-                        # Fallback to latest draw if nothing found
-                        if not powerball_draw:
-                            powerball_draw = LotteryResult.query.filter_by(lottery_type='Powerball').order_by(LotteryResult.draw_date.desc()).first()
-                        if powerball_draw:
-                            powerball_numbers = powerball_draw.numbers if powerball_draw.numbers else []
-                            powerball_bonus = powerball_draw.bonus_numbers[0] if powerball_draw.bonus_numbers else None
-                            
-                            main_matches = len(set(player_main_numbers) & set(powerball_numbers))
-                            powerball_match = (player_powerball == powerball_bonus) if player_powerball and powerball_bonus else False
-                            
-                            powerball_results = {
-                                'lottery_type': 'PowerBall',
-                                'draw_number': powerball_draw.draw_number,
-                                'draw_date': powerball_draw.draw_date.strftime('%Y-%m-%d'),
-                                'winning_numbers': json.dumps(powerball_numbers) if powerball_numbers else "[]",
-                                'winning_powerball': str(powerball_bonus) if powerball_bonus else "",
-                                'main_matches': main_matches,
-                                'powerball_match': powerball_match,
-                                'total_matches': f"{main_matches} main + {'PowerBall' if powerball_match else '0 PowerBall'}"
-                            }
-                        
-                        # Check PowerBall Plus only if YES indicator found
-                        if powerball_plus_yes:
-                            # Try to find the specific PowerBall Plus draw from the ticket
-                            powerball_plus_draw = None
-                            if actual_draw_number:
-                                powerball_plus_draw = LotteryResult.query.filter_by(
-                                    lottery_type='Powerball Plus',
-                                    draw_number=int(actual_draw_number)
-                                ).first()
-                            
-                            # If specific draw not found, try by date
-                            if not powerball_plus_draw and actual_draw_date:
-                                try:
-                                    # Convert date format from DD/MM/YY to proper date
-                                    date_parts = actual_draw_date.split('/')
-                                    if len(date_parts) == 3:
-                                        day, month, year = date_parts
-                                        if len(year) == 2:
-                                            year = '20' + year
-                                        target_date = datetime.strptime(f"{year}-{month.zfill(2)}-{day.zfill(2)}", '%Y-%m-%d').date()
-                                        
-                                        powerball_plus_draw = LotteryResult.query.filter_by(
-                                            lottery_type='Powerball Plus'
-                                        ).filter(
-                                            LotteryResult.draw_date == target_date
-                                        ).first()
-                                except Exception as e:
-                                    logger.warning(f"Error parsing PowerBall Plus draw date {actual_draw_date}: {e}")
-                            
-                            # Fallback to latest draw if nothing found
-                            if not powerball_plus_draw:
-                                powerball_plus_draw = LotteryResult.query.filter_by(lottery_type='Powerball Plus').order_by(LotteryResult.draw_date.desc()).first()
-                            if powerball_plus_draw:
-                                plus_numbers = powerball_plus_draw.numbers if powerball_plus_draw.numbers else []
-                                plus_bonus = powerball_plus_draw.bonus_numbers[0] if powerball_plus_draw.bonus_numbers else None
-                                
-                                plus_main_matches = len(set(player_main_numbers) & set(plus_numbers))
-                                plus_powerball_match = (player_powerball == plus_bonus) if player_powerball and plus_bonus else False
-                                
-                                powerball_plus_results = {
-                                    'lottery_type': 'PowerBall Plus',
-                                    'draw_number': powerball_plus_draw.draw_number,
-                                    'draw_date': powerball_plus_draw.draw_date.strftime('%Y-%m-%d'),
-                                    'winning_numbers': json.dumps(plus_numbers) if plus_numbers else "[]",
-                                    'winning_powerball': str(plus_bonus) if plus_bonus else "",
-                                    'main_matches': plus_main_matches,
-                                    'powerball_match': plus_powerball_match,
-                                    'total_matches': f"{plus_main_matches} main + {'PowerBall' if plus_powerball_match else '0 PowerBall'}"
-                                }
-                    
-                    # For Lotto tickets
-                    elif 'lotto' in lottery_type:
-                        # Always check main Lotto game
-                        lotto_draw = LotteryResult.query.filter_by(lottery_type='Lotto').order_by(LotteryResult.draw_date.desc()).first()
-                        if lotto_draw:
-                            lotto_numbers = lotto_draw.numbers if lotto_draw.numbers else []
-                            lotto_bonus = lotto_draw.bonus_numbers[0] if lotto_draw.bonus_numbers else None
-                            
-                            main_matches = len(set(player_main_numbers) & set(lotto_numbers))
-                            bonus_match = lotto_bonus in player_main_numbers if lotto_bonus else False
-                            
-                            powerball_results = {  # Using same variable for consistency in frontend
-                                'lottery_type': 'Lotto',
-                                'draw_number': lotto_draw.draw_number,
-                                'draw_date': lotto_draw.draw_date.strftime('%Y-%m-%d'),
-                                'winning_numbers': lotto_numbers,
-                                'winning_bonus': lotto_bonus,
-                                'main_matches': main_matches,
-                                'bonus_match': bonus_match,
-                                'total_matches': f"{main_matches} main + {'Bonus' if bonus_match else '0 Bonus'}"
-                            }
-                        
-                        # Check Lotto Plus 1 if YES indicator found
-                        if lotto_plus_1_yes:
-                            lotto_plus_1_draw = LotteryResult.query.filter_by(lottery_type='Lotto Plus 1').order_by(LotteryResult.draw_date.desc()).first()
-                            if lotto_plus_1_draw:
-                                plus_1_numbers = lotto_plus_1_draw.numbers if lotto_plus_1_draw.numbers else []
-                                plus_1_bonus = lotto_plus_1_draw.bonus_numbers[0] if lotto_plus_1_draw.bonus_numbers else None
-                                
-                                plus_1_main_matches = len(set(player_main_numbers) & set(plus_1_numbers))
-                                plus_1_bonus_match = plus_1_bonus in player_main_numbers if plus_1_bonus else False
-                                
-                                powerball_plus_results = {  # Using same variable for consistency
-                                    'lottery_type': 'Lotto Plus 1',
-                                    'draw_number': lotto_plus_1_draw.draw_number,
-                                    'draw_date': lotto_plus_1_draw.draw_date.strftime('%Y-%m-%d'),
-                                    'winning_numbers': plus_1_numbers,
-                                    'winning_bonus': plus_1_bonus,
-                                    'main_matches': plus_1_main_matches,
-                                    'bonus_match': plus_1_bonus_match,
-                                    'total_matches': f"{plus_1_main_matches} main + {'Bonus' if plus_1_bonus_match else '0 Bonus'}"
-                                }
-                
-                # Extract and format the data properly for frontend display
-                # Handle both simple arrays and structured line objects
-                numbers = ticket_data.get('numbers', ticket_data.get('main_numbers', []))
-                powerball_numbers = ticket_data.get('powerball_or_bonus', ticket_data.get('powerball_number'))
-                
-                # Parse numbers - handle multiple formats including {"A1": [1,2,3], "B1": [4,5,6]}
-                all_lines = []
-                all_powerball = []
-                
-                if isinstance(numbers, dict):
-                    # New format: {"A1": [4,5,23,24,25], "B1": [15,17,18,23,42]}
-                    for key, value in numbers.items():
-                        if isinstance(value, list):
-                            all_lines.append({'line_name': key, 'numbers': value})
-                elif isinstance(numbers, list) and len(numbers) > 0:
-                    # Check if this is an array of arrays (most common current format)
-                    if isinstance(numbers[0], list):
-                        # Array of arrays: [[9,15,37,39,50], [12,26,31,32,47], ...]
-                        for i, line_numbers in enumerate(numbers):
-                            all_lines.append({'line_name': f'Line {i+1}', 'numbers': line_numbers})
-                    else:
-                        # Single array or other format
-                        for item in numbers:
-                            if isinstance(item, dict):
-                                # Structured format: {"line_A": [1,2,3], "powerball_A": 4}
-                                for key, value in item.items():
-                                    if 'line' in key.lower() and isinstance(value, list):
-                                        all_lines.append({'line_name': key, 'numbers': value})
-                                    elif 'powerball' in key.lower() and isinstance(value, (int, str)):
-                                        all_powerball.append(value)
-                            elif isinstance(item, list):
-                                # Simple array format: [1,2,3,4,5]
-                                all_lines.append({'line_name': f'Line {len(all_lines)+1}', 'numbers': item})
-                
-                # Handle PowerBall numbers - new format: {"A2": 2, "B2": 4}
-                if isinstance(powerball_numbers, dict):
-                    for key, value in powerball_numbers.items():
-                        if isinstance(value, (int, str)):
-                            all_powerball.append(value)
-                elif isinstance(powerball_numbers, list):
-                    all_powerball = powerball_numbers
-                elif powerball_numbers:
-                    all_powerball = [powerball_numbers]
-                
-                # Use extracted numbers directly from ticket_data for main display
-                ticket_numbers = numbers if numbers else []
-                powerball_number = str(all_powerball[0]) if all_powerball else 'Not detected'
-                
-                # DEBUG: Ensure we actually have the numbers
-                if not ticket_numbers and numbers:
-                    ticket_numbers = numbers
-                    logger.info(f"DEBUG: Forced ticket_numbers to {ticket_numbers}")
-                
-                # Normalize game type terminology and determine add-ons
-                raw_game_type = ticket_data.get('lottery_type', '').lower()
-                if 'powerball' in raw_game_type:
-                    game_type = 'PowerBall'
-                    powerball_plus_included = 'YES' if 'plus' in raw_game_type else 'NO'
-                elif 'lotto' in raw_game_type or 'lottery' in raw_game_type:
-                    game_type = 'Lottery'
-                    # Check for Plus 1 and Plus 2 mentions
-                    if 'plus' in raw_game_type:
-                        powerball_plus_included = 'YES'  # Lottery Plus games are included
-                    else:
-                        powerball_plus_included = 'NO'
-                else:
-                    game_type = ticket_data.get('lottery_type', 'Not detected')
-                    powerball_plus_included = 'NO'
-                
-                # Debug logging to see what we extracted
-                logger.info(f"DEBUG: ticket_data = {ticket_data}")
-                logger.info(f"DEBUG: ticket_data.get('lottery_type') = {ticket_data.get('lottery_type')}")
-                logger.info(f"DEBUG: raw_game_type = {raw_game_type}")
-                logger.info(f"DEBUG: game_type = {game_type}")
-                logger.info(f"DEBUG: numbers = {numbers}")
-                logger.info(f"DEBUG: powerball_numbers = {powerball_numbers}")
-                logger.info(f"DEBUG: ticket_numbers = {ticket_numbers}")
-                logger.info(f"DEBUG: powerball_number = {powerball_number}")
-                
-                # Extract the actual values from nested ticket_data or use the top-level game_type
-                actual_lottery_type = ticket_data.get('lottery_type') or game_type or 'Not detected'
-                actual_draw_date = ticket_data.get('draw_date', 'Not detected')
-                actual_draw_number = ticket_data.get('draw_number', 'Not detected')
-                
-                # Debug what we're about to send to frontend
-                logger.info(f"DEBUG: About to create result with:")
-                logger.info(f"DEBUG: - actual_lottery_type: {actual_lottery_type}")
-                logger.info(f"DEBUG: - actual_draw_date: {actual_draw_date}")
-                logger.info(f"DEBUG: - actual_draw_number: {actual_draw_number}")
-                
-                # FORCE MULTI-ROW: Always ensure we have proper all_lines format
-                if ticket_data.get('main_numbers'):
-                    # AI still using old format - force conversion
-                    main_nums = ticket_data.get('main_numbers', [])
-                    # For now, treat as single row but in proper format
-                    all_lines = [main_nums] if main_nums else []
-                    ticket_numbers = main_nums
-                    logger.info(f"FORCE CONVERTED: main_numbers={main_nums} to all_lines={all_lines}")
-                elif all_ticket_lines and len(all_ticket_lines) > 0:
-                    all_lines = all_ticket_lines
-                    ticket_numbers = all_ticket_lines[0] if all_ticket_lines else []
-                    logger.info(f"PROPER FORMAT: all_lines={all_lines}")
-                else:
-                    all_lines = []
-                    ticket_numbers = []
-                    logger.info(f"NO DATA: Setting empty arrays")
-
-                # Create a successful result matching frontend expectations
+                # Format response for frontend
                 result = {
                     'success': True,
-                    'lottery_type': actual_lottery_type,
-                    'draw_date': actual_draw_date,
-                    'draw_number': actual_draw_number,
-                    'ticket_numbers': ticket_numbers,
-                    'powerball_number': powerball_number,
-                    'powerball_plus_included': powerball_plus_included,
+                    'lottery_type': ticket_data.get('lottery_type', 'PowerBall'),
+                    'draw_date': ticket_data.get('draw_date', 'Not detected'),
+                    'draw_number': ticket_data.get('draw_number', 'Not detected'),
+                    'all_lines': ticket_data.get('all_lines', []),
+                    'all_powerball': ticket_data.get('all_powerball', []),
+                    'powerball_plus_included': ticket_data.get('powerball_plus_included', 'NO'),
                     'ticket_cost': ticket_data.get('ticket_cost', 'Not detected'),
-                    'all_lines': all_lines,
-                    'all_powerball': all_powerball,
-                    'is_winner': False,  # Will be determined by comparison
-                    'prize_amount': None,
-                    'has_matches': False,  # Required by frontend
-                    'matched_count': 0,    # Required by frontend
-                    'matched_bonus_count': 0,  # Required by frontend
-                    'winning_numbers': [],     # Required by frontend
-                    'bonus_numbers': [],       # Required by frontend
                     'ticket_data': ticket_data,
                     'raw_response': response_text,
-                    'powerball_results': powerball_results,
-                    'powerball_plus_results': powerball_plus_results,
+                    'powerball_results': {},
+                    'powerball_plus_results': {},
                     'comparison': {
-                        'message': 'PowerBall ticket analyzed! Checked against both PowerBall AND PowerBall Plus results.',
-                        'extracted_numbers': ticket_numbers if ticket_numbers else [],
-                        'powerball_number': powerball_number,
-                        'lottery_type': ticket_data.get('lottery_type', 'Unknown'),
-                        'both_games_checked': bool(powerball_results and powerball_plus_results)
+                        'message': 'Ticket successfully analyzed with Google Gemini 2.5 Pro',
+                        'extracted_numbers': ticket_data.get('all_lines', [[]])[0] if ticket_data.get('all_lines') else [],
+                        'powerball_number': str(ticket_data.get('all_powerball', [0])[0]) if ticket_data.get('all_powerball') else 'Not detected',
+                        'lottery_type': ticket_data.get('lottery_type', 'PowerBall'),
+                        'both_games_checked': False
                     }
                 }
                 
-                # Ensure we always return the extracted ticket data even if no draws match
-                logger.info(f"DEBUG: Final result created with lottery_type={result.get('lottery_type')}, draw_date={result.get('draw_date')}, draw_number={result.get('draw_number')}")
-                
-                # Log what the frontend will receive
-                logger.info(f"DEBUG: Frontend will receive: {json.dumps(result, indent=2, default=str)}")
-                logger.info(f"DEBUG: result all_lines = {result.get('all_lines')}")
-                logger.info(f"DEBUG: result all_powerball = {result.get('all_powerball')}")
-                
-            except json.JSONDecodeError as e:
-                # If JSON parsing fails, create a basic result that shows the response
-                logger.error(f"JSON parsing failed: {str(e)}")
-                logger.info(f"Creating fallback result with raw response")
-                
-                # Extract basic info from text if possible
-                lottery_type_from_text = 'PowerBall' if 'powerball' in response_text.lower() else 'PowerBall'
-                
-                # Try to extract numbers from the text using regex
-                import re
-                number_matches = re.findall(r'\b\d{1,2}\b', response_text)
-                extracted_numbers = [int(n) for n in number_matches[:5]] if len(number_matches) >= 5 else []
-                
-                result = {
-                    'success': True,
-                    'lottery_type': lottery_type_from_text,
-                    'draw_date': 'Please check the raw AI response below',
-                    'draw_number': 'Please check the raw AI response below', 
-                    'ticket_numbers': extracted_numbers,
-                    'powerball_number': number_matches[5] if len(number_matches) > 5 else 'Check raw response',
-                    'powerball_plus_included': 'YES' if 'yes' in response_text.lower() else 'NO',
-                    'ticket_cost': 'Check raw response',
-                    'is_winner': False,
-                    'prize_amount': None,
-                    'ticket_data': {
-                        'lottery_type': lottery_type_from_text,
-                        'raw_analysis': response_text,
-                        'parsing_error': str(e)
-                    },
-                    'raw_response': response_text,
-                    'comparison': {
-                        'message': 'Ticket processed - see extracted information above. Raw AI response available below.',
-                        'raw_response': response_text,
-                        'error': str(e)
-                    }
-                }
+                logger.info(f"Successfully processed ticket: {result}")
+                return jsonify(result)
+            else:
+                return jsonify({'success': False, 'error': 'Could not parse ticket data from AI response'})
                 
         except Exception as e:
-            logger.error(f"Error processing ticket with Anthropic: {str(e)}")
-            result = {
-                'success': False,
-                'error': f"Error analyzing ticket: {str(e)}",
-                'ticket_data': {
-                    'lottery_type': lottery_type or 'PowerBall'
-                }
-            }
-        
-        # Store result in session for results page
-        session['scan_result'] = result
-        
-        # Ensure all required fields are present for frontend - but preserve extracted data
-        if not result.get('lottery_type') or result.get('lottery_type') == 'Not detected':
-            # Only set default if we truly have no data
-            if not result.get('ticket_data', {}).get('lottery_type'):
-                result['lottery_type'] = 'PowerBall'
-        
-        if not result.get('ticket_numbers'):
-            result['ticket_numbers'] = []
+            logger.error(f"Error in ticket processing: {e}")
+            # Clean up file if it exists
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            return jsonify({'success': False, 'error': f'Processing error: {str(e)}'})
             
-        if not result.get('powerball_number') or result.get('powerball_number') == 'Not detected':
-            # Only set default if we truly have no data
-            if not result.get('ticket_data', {}).get('powerball_or_bonus'):
-                result['powerball_number'] = 'Not detected'
-            
-        if not result.get('draw_date') or result.get('draw_date') == 'Not detected':
-            # Only set default if we truly have no data
-            if not result.get('ticket_data', {}).get('draw_date'):
-                result['draw_date'] = 'Not detected'
-            
-        if not result.get('draw_number') or result.get('draw_number') == 'Not detected':
-            # Only set default if we truly have no data
-            if not result.get('ticket_data', {}).get('draw_number'):
-                result['draw_number'] = 'Not detected'
-            
-        if not result.get('powerball_plus_included'):
-            result['powerball_plus_included'] = 'NO'
-        
-        # Ensure we have the core display fields that frontend expects
-        if not result.get('lottery_type'):
-            result['lottery_type'] = result.get('ticket_data', {}).get('lottery_type', 'Not detected')
-        if not result.get('draw_date') or result.get('draw_date') == 'Not detected':
-            result['draw_date'] = result.get('ticket_data', {}).get('draw_date', 'Not detected')
-        if not result.get('draw_number') or result.get('draw_number') == 'Not detected':
-            result['draw_number'] = result.get('ticket_data', {}).get('draw_number', 'Not detected')
-        
-        # Standardize "Lotto" to "Lottery" terminology in the response
-        if result.get('lottery_type') and 'Lotto' in result['lottery_type']:
-            result['lottery_type'] = result['lottery_type'].replace('Lotto', 'Lottery')
-        
-        # Integrate extracted numbers properly into main display
-        if result.get('ticket_data') and result['ticket_data'].get('main_numbers'):
-            result['ticket_numbers'] = result['ticket_data']['main_numbers']
-            logger.info(f"FIXED: Set ticket_numbers to {result['ticket_numbers']}")
-        
-        # CRITICAL FIX: Force ticket numbers if they're still empty but we have them in ticket_data
-        if (not result.get('ticket_numbers') or len(result.get('ticket_numbers', [])) == 0) and result.get('ticket_data', {}).get('main_numbers'):
-            result['ticket_numbers'] = result['ticket_data']['main_numbers']
-            logger.info(f"FORCED FIX: ticket_numbers = {result['ticket_numbers']}")
-            
-        # Add PowerBall number if detected
-        if result.get('ticket_data') and result['ticket_data'].get('powerball_number'):
-            result['powerball_number'] = result['ticket_data']['powerball_number']
-        
-        # Ensure we show PowerBall Plus inclusion status
-        if result.get('ticket_data') and result['ticket_data'].get('powerball_plus_included'):
-            result['powerball_plus_included'] = result['ticket_data']['powerball_plus_included']
-        
-        return jsonify(result)
     except Exception as e:
-        logger.error(f"Error processing ticket: {str(e)}")
-        return jsonify({'success': False, 'error': f"Error processing ticket: {str(e)}"})
+        logger.error(f"Error in process_ticket route: {e}")
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'})
 
 # Scan ticket functionality is now handled by the /process-ticket endpoint
 
