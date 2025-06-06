@@ -1214,13 +1214,14 @@ def results():
                 
                 # Direct SQL query to get authentic lottery data
                 sql_query = """
-                    SELECT id, lottery_type, draw_number, draw_date, numbers, bonus_numbers
-                    FROM lottery_result 
+                    SELECT id, lottery_type, draw_number, draw_date, main_numbers, bonus_numbers
+                    FROM lottery_results 
                     WHERE lottery_type = :lottery_type 
                     ORDER BY draw_date DESC 
                     LIMIT 1
                 """
                 
+                app.logger.info(f"Querying for {lottery_type} -> {db_lottery_type}")
                 result = db.session.execute(text(sql_query), {'lottery_type': db_lottery_type}).fetchone()
                 
                 if result:
