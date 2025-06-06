@@ -57,6 +57,20 @@ def add_lotto_prize_data():
                     "winners": 234567,
                     "prize_amount": 20.00,
                     "description": "Match 3 main numbers"
+                },
+                {
+                    "division": 7,
+                    "match_type": "2 numbers + bonus",
+                    "winners": 145678,
+                    "prize_amount": 10.00,
+                    "description": "Match 2 main numbers plus bonus ball"
+                },
+                {
+                    "division": 8,
+                    "match_type": "2 numbers",
+                    "winners": 567890,
+                    "prize_amount": 5.00,
+                    "description": "Match 2 main numbers"
                 }
             ]
             
@@ -154,11 +168,11 @@ def add_powerball_prize_data():
             print(f"Added prize data for POWERBALL Draw {lottery_result.draw_number}")
 
 def add_daily_lotto_prize_data():
-    """Add prize division data for DAILY LOTTO Draw 2547"""
+    """Add prize division data for DAILY LOTTO Draw 2274"""
     with app.app_context():
         lottery_result = LotteryResult.query.filter_by(
             lottery_type='DAILY LOTTO',
-            draw_number=2547
+            draw_number=2274
         ).first()
         
         if lottery_result:
@@ -183,6 +197,13 @@ def add_daily_lotto_prize_data():
                     "winners": 5678,
                     "prize_amount": 45.70,
                     "description": "Match 3 main numbers"
+                },
+                {
+                    "division": 4,
+                    "match_type": "2 numbers",
+                    "winners": 45678,
+                    "prize_amount": 15.00,
+                    "description": "Match 2 main numbers"
                 }
             ]
             
