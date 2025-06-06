@@ -68,14 +68,14 @@ class LotteryAnalyzer:
         self.lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 
                              'Powerball', 'Powerball Plus', 'Daily Lotto']
         
-        # Required number count by lottery type
+        # Required number count by lottery type - match authentic data
         self.required_numbers = {
-            'Lottery': 6,
-            'Lottery Plus 1': 6,
-            'Lottery Plus 2': 6,
+            'Lotto': 5,
+            'Lotto Plus 1': 5,
+            'Lotto Plus 2': 5,
             'Powerball': 5,  # Plus 1 bonus ball
             'Powerball Plus': 5,  # Plus 1 bonus ball
-            'Daily Lottery': 5
+            'Daily Lotto': 5
         }
         
         # Store analysis results - force clear cache on initialization
@@ -225,7 +225,7 @@ class LotteryAnalyzer:
             
             logger.info(f"Retrieved {len(results)} lottery results for analysis")
             
-            # Convert to dataframe
+            # Convert to simplified dataframe for authentic lottery data
             data = []
             for result in results:
                 try:
@@ -233,40 +233,24 @@ class LotteryAnalyzer:
                     numbers = result.get_main_numbers_list()
                     bonus_numbers = result.get_bonus_numbers_list()
                     
-                    # Create row dictionary - ensure draw_number is an integer
-                    try:
-                        draw_number = int(result.draw_number) if result.draw_number else 0
-                    except (ValueError, TypeError):
-                        draw_number = 0
-                        
+                    # Create simple row dictionary
                     row = {
                         'id': result.id,
                         'lottery_type': result.lottery_type,
-                        'draw_number': draw_number,
+                        'draw_number': result.draw_number,
                         'draw_date': result.draw_date,
+                        'numbers': numbers,
+                        'bonus_numbers': bonus_numbers
                     }
                     
-                    # Add individual numbers as separate columns - ensure they're integers
-                    max_numbers = self.required_numbers.get(result.lottery_type, 6)
-                    for i in range(max_numbers):
-                        if i < len(numbers):
-                            # Ensure all numbers are stored as integers
-                            try:
-                                row[f'number_{i+1}'] = int(numbers[i])
-                            except (ValueError, TypeError):
-                                row[f'number_{i+1}'] = None
-                        else:
-                            row[f'number_{i+1}'] = None
+                    # Add individual numbers as separate columns for analysis
+                    for i, num in enumerate(numbers):
+                        if i < 5:  # Maximum 5 main numbers
+                            row[f'number_{i+1}'] = int(num)
                     
-                    # Add bonus number if applicable - ensure it's an integer
-                    if result.lottery_type in ['Powerball', 'Powerball Plus'] and bonus_numbers:
-                        try:
-                            row['bonus_number'] = int(bonus_numbers[0]) if len(bonus_numbers) > 0 else None
-                        except (ValueError, TypeError):
-                            row['bonus_number'] = None
-                    
-                    # Skip division data for simplified lottery_results table
-                    # (divisions are not available in the authentic data table)
+                    # Add bonus number if available
+                    if bonus_numbers:
+                        row['bonus_number'] = int(bonus_numbers[0])
                     
                     data.append(row)
                 except Exception as e:
