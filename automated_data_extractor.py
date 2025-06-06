@@ -187,6 +187,31 @@ DOUBLE-CHECK: Before finalizing, re-examine the draw number in the image. Look i
                 logging.error(f"Missing required fields in extracted data: {extracted_data}")
                 return False
             
+            # Validate sequential draw numbers
+            lottery_type = extracted_data['lottery_type']
+            extracted_draw_number = extracted_data.get('draw_number')
+            
+            # Get expected draw numbers based on lottery type
+            expected_ranges = {
+                'Lotto': (2547, 2550),
+                'Lotto Plus 1': (2547, 2550), 
+                'Lotto Plus 2': (2547, 2550),
+                'PowerBall': (1621, 1625),
+                'PowerBall Plus': (1621, 1625),
+                'Daily Lotto': (2274, 2280)
+            }
+            
+            if lottery_type in expected_ranges:
+                min_expected, max_expected = expected_ranges[lottery_type]
+                if not (min_expected <= extracted_draw_number <= max_expected):
+                    logging.warning(f"Draw number {extracted_draw_number} for {lottery_type} outside expected range {min_expected}-{max_expected}")
+                    # Auto-correct to nearest expected value
+                    if extracted_draw_number < min_expected:
+                        extracted_data['draw_number'] = min_expected
+                    elif extracted_draw_number > max_expected:
+                        extracted_data['draw_number'] = max_expected
+                    logging.info(f"Corrected draw number to {extracted_data['draw_number']}")
+            
             # Check if this exact record already exists - convert draw_number to string for comparison
             existing = LotteryResult.query.filter_by(
                 lottery_type=extracted_data['lottery_type'],
