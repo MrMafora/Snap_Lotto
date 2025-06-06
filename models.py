@@ -91,23 +91,6 @@ class LotteryResult(db.Model):
     draw_date = db.Column(db.DateTime, nullable=False, comment="Game Date")
     main_numbers = db.Column(db.String(255), nullable=True, comment="Winning Numbers (JSON string array)")  # Stored as JSON string
     bonus_numbers = db.Column(db.String(255), nullable=True, comment="Bonus Numbers (JSON string array)")  # Stored as JSON string
-    divisions = db.Column(db.Text, nullable=True, comment="Prize Divisions Data (JSON string)")  # Stored as JSON string with division, winners, and prize amount
-    
-    # Additional comprehensive lottery data fields
-    rollover_amount = db.Column(db.String(50), nullable=True, comment="Rollover amount (e.g., R50,728,897.73)")
-    rollover_number = db.Column(db.Integer, nullable=True, comment="Rollover number count")
-    total_pool_size = db.Column(db.String(50), nullable=True, comment="Total pool size (e.g., R55,746,106.63)")
-    total_sales = db.Column(db.String(50), nullable=True, comment="Total sales amount (e.g., R19,544,815.00)")
-    next_jackpot = db.Column(db.String(50), nullable=True, comment="Next jackpot amount (e.g., R53,000,000.00)")
-    draw_machine = db.Column(db.String(20), nullable=True, comment="Draw machine used (e.g., RNG2)")
-    next_draw_date = db.Column(db.DateTime, nullable=True, comment="Next draw date")
-    next_draw_date_str = db.Column(db.String(20), nullable=True, comment="Next draw date as string")
-    
-    source_url = db.Column(db.String(255), nullable=False)
-    screenshot_id = db.Column(db.Integer, db.ForeignKey('screenshot.id'), nullable=True)
-    ocr_provider = db.Column(db.String(50), nullable=True, comment="OCR Provider (anthropic)")
-    ocr_model = db.Column(db.String(100), nullable=True, comment="OCR Model used")
-    ocr_timestamp = db.Column(db.DateTime, nullable=True, comment="When OCR was performed")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Unique constraint to prevent duplicate entries
