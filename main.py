@@ -638,7 +638,7 @@ CRITICAL INSTRUCTIONS:
                     if lotto_plus_1_included.upper() == 'YES' and player_numbers:
                         lotto_plus_1_draw = LotteryResult.query.filter_by(lottery_type='LOTTO PLUS 1').order_by(LotteryResult.draw_date.desc()).first()
                         if lotto_plus_1_draw:
-                            plus_1_numbers = lotto_plus_1_draw.numbers if lotto_plus_1_draw.numbers else []
+                            plus_1_numbers = json.loads(lotto_plus_1_draw.main_numbers) if lotto_plus_1_draw.main_numbers else []
                             plus_1_bonus = lotto_plus_1_draw.bonus_numbers[0] if lotto_plus_1_draw.bonus_numbers else None
                             
                             plus_1_main_matches = len(set(player_numbers) & set(plus_1_numbers))
@@ -659,7 +659,7 @@ CRITICAL INSTRUCTIONS:
                     if lotto_plus_2_included.upper() == 'YES' and player_numbers:
                         lotto_plus_2_draw = LotteryResult.query.filter_by(lottery_type='LOTTO PLUS 2').order_by(LotteryResult.draw_date.desc()).first()
                         if lotto_plus_2_draw:
-                            plus_2_numbers = lotto_plus_2_draw.numbers if lotto_plus_2_draw.numbers else []
+                            plus_2_numbers = json.loads(lotto_plus_2_draw.main_numbers) if lotto_plus_2_draw.main_numbers else []
                             plus_2_bonus = lotto_plus_2_draw.bonus_numbers[0] if lotto_plus_2_draw.bonus_numbers else None
                             
                             plus_2_main_matches = len(set(player_numbers) & set(plus_2_numbers))
@@ -730,7 +730,7 @@ CRITICAL INSTRUCTIONS:
                     if player_numbers:
                         powerball_draw = LotteryResult.query.filter_by(lottery_type='Powerball').order_by(LotteryResult.draw_date.desc()).first()
                         if powerball_draw:
-                            winning_numbers = powerball_draw.numbers if powerball_draw.numbers else []
+                            winning_numbers = json.loads(powerball_draw.main_numbers) if powerball_draw.main_numbers else []
                             winning_powerball = powerball_draw.bonus_numbers[0] if powerball_draw.bonus_numbers else None
                             
                             main_matches = len(set(player_numbers) & set(winning_numbers))
@@ -1074,6 +1074,7 @@ def results():
                             return []
                         
                         def get_bonus_numbers_list(self):
+                            import json
                             if self.bonus_numbers is None:
                                 return []
                             if isinstance(self.bonus_numbers, str):
