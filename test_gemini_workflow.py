@@ -22,7 +22,9 @@ def get_existing_lottery_data():
         
         logger.info(f"Found {len(results)} existing lottery results in database:")
         for result in results:
-            logger.info(f"  {result.lottery_type}: Draw {result.draw_number} - {result.main_numbers} + {result.bonus_numbers}")
+            numbers = result.get_numbers_list() if hasattr(result, 'get_numbers_list') else result.numbers
+            bonus = result.get_bonus_numbers_list() if hasattr(result, 'get_bonus_numbers_list') else result.bonus_numbers
+            logger.info(f"  {result.lottery_type}: Draw {result.draw_number} - {numbers} + {bonus}")
         
         return results
 
@@ -64,7 +66,9 @@ def test_gemini_extraction():
         
         logger.info(f"Latest {len(new_results)} results after Gemini processing:")
         for result in new_results:
-            logger.info(f"  {result.lottery_type}: Draw {result.draw_number} - {result.main_numbers} + {result.bonus_numbers}")
+            numbers = result.get_numbers_list() if hasattr(result, 'get_numbers_list') else result.numbers
+            bonus = result.get_bonus_numbers_list() if hasattr(result, 'get_bonus_numbers_list') else result.bonus_numbers
+            logger.info(f"  {result.lottery_type}: Draw {result.draw_number} - {numbers} + {bonus}")
             logger.info(f"    Date: {result.draw_date}, Source: {result.source_url}")
 
 def compare_extraction_accuracy():
@@ -75,17 +79,17 @@ def compare_extraction_accuracy():
     authentic_data = {
         "LOTTO": {
             "draw_number": "2547",
-            "main_numbers": [12, 34, 8, 52, 36, 24],
+            "numbers": [12, 34, 8, 52, 36, 24],
             "bonus_numbers": [26]
         },
         "PowerBall": {
             "draw_number": "1621", 
-            "main_numbers": [50, 5, 47, 40, 26],
+            "numbers": [50, 5, 47, 40, 26],
             "bonus_numbers": [20]
         },
         "Daily Lotto": {
             "draw_number": "2574",
-            "main_numbers": [7, 27, 35, 22, 15],
+            "numbers": [7, 27, 35, 22, 15],
             "bonus_numbers": []
         }
     }
@@ -99,16 +103,20 @@ def compare_extraction_accuracy():
             ).first()
             
             if result:
+                # Get numbers from database result
+                db_numbers = result.get_numbers_list() if hasattr(result, 'get_numbers_list') else result.numbers
+                db_bonus = result.get_bonus_numbers_list() if hasattr(result, 'get_bonus_numbers_list') else result.bonus_numbers
+                
                 # Compare numbers
-                main_match = result.main_numbers == expected["main_numbers"]
-                bonus_match = result.bonus_numbers == expected["bonus_numbers"]
+                numbers_match = db_numbers == expected["numbers"]
+                bonus_match = db_bonus == expected["bonus_numbers"]
                 
                 logger.info(f"{lottery_type} Draw {expected['draw_number']}:")
-                logger.info(f"  Expected: {expected['main_numbers']} + {expected['bonus_numbers']}")
-                logger.info(f"  Database: {result.main_numbers} + {result.bonus_numbers}")
-                logger.info(f"  Accuracy: Main={main_match}, Bonus={bonus_match}")
+                logger.info(f"  Expected: {expected['numbers']} + {expected['bonus_numbers']}")
+                logger.info(f"  Database: {db_numbers} + {db_bonus}")
+                logger.info(f"  Accuracy: Numbers={numbers_match}, Bonus={bonus_match}")
                 
-                if main_match and bonus_match:
+                if numbers_match and bonus_match:
                     logger.info(f"  ✓ PERFECT MATCH for {lottery_type}")
                 else:
                     logger.warning(f"  ✗ MISMATCH for {lottery_type}")
