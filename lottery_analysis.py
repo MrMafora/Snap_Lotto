@@ -58,14 +58,15 @@ class LotteryAnalyzer:
     def __init__(self, db):
         """Initialize analyzer with database connection"""
         self.db = db
-        from models import LotteryResult, Screenshot, ImportedRecord  # Import here to avoid circular imports
+        from models import LotteryResult, LotteryResults, Screenshot, ImportedRecord  # Import here to avoid circular imports
         self.LotteryResult = LotteryResult
+        self.LotteryResults = LotteryResults  # Use this for authentic lottery data
         self.Screenshot = Screenshot
         self.ImportedRecord = ImportedRecord
         
-        # Supported lottery types
-        self.lottery_types = ['Lottery', 'Lottery Plus 1', 'Lottery Plus 2', 
-                             'Powerball', 'Powerball Plus', 'Daily Lottery']
+        # Supported lottery types - match exact names from authentic data
+        self.lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 
+                             'Powerball', 'Powerball Plus', 'Daily Lotto']
         
         # Required number count by lottery type
         self.required_numbers = {
@@ -203,23 +204,23 @@ class LotteryAnalyzer:
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days)
             
-            # Query lottery results - using explicit conversion to datetime with safe type handling
+            # Query authentic lottery results from the correct table
             try:
-                query = self.db.session.query(self.LotteryResult).filter(
-                    self.LotteryResult.draw_date >= start_date
+                query = self.db.session.query(self.LotteryResults).filter(
+                    self.LotteryResults.draw_date >= start_date.date()
                 )
             except Exception as date_error:
-                # Handle mixed date types by converting to string and back to datetime
+                # Handle date comparison issues
                 logger.warning(f"Date comparison error: {date_error}, using alternative query")
-                query = self.db.session.query(self.LotteryResult)
+                query = self.db.session.query(self.LotteryResults)
             
             if lottery_type:
-                query = query.filter(self.LotteryResult.lottery_type == lottery_type)
+                query = query.filter(self.LotteryResults.lottery_type == lottery_type)
                 
             # Order by lottery type and draw date
             results = query.order_by(
-                self.LotteryResult.lottery_type,
-                self.LotteryResult.draw_date.desc()
+                self.LotteryResults.lottery_type,
+                self.LotteryResults.draw_date.desc()
             ).all()
             
             logger.info(f"Retrieved {len(results)} lottery results for analysis")
@@ -228,32 +229,9 @@ class LotteryAnalyzer:
             data = []
             for result in results:
                 try:
-                    # Extract the numbers as a list - handle JSON strings
-                    if isinstance(result.numbers, str):
-                        if result.numbers.startswith('[') and result.numbers.endswith(']'):
-                            # JSON format
-                            try:
-                                numbers = json.loads(result.numbers)
-                            except json.JSONDecodeError:
-                                # Try handling as comma-separated values
-                                numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
-                        else:
-                            # Comma-separated values
-                            numbers = [int(n.strip()) for n in result.numbers.split(',') if n.strip().isdigit()]
-                    else:
-                        # Already in list form
-                        numbers = result.numbers
-                    
-                    # Get bonus numbers if available
-                    bonus_numbers = []
-                    if result.bonus_numbers:
-                        if isinstance(result.bonus_numbers, str):
-                            try:
-                                bonus_numbers = json.loads(result.bonus_numbers)
-                            except json.JSONDecodeError:
-                                bonus_numbers = [int(n.strip()) for n in result.bonus_numbers.split(',') if n.strip().isdigit()]
-                        else:
-                            bonus_numbers = result.bonus_numbers
+                    # Use model methods to parse PostgreSQL array format {32,34,8,52,36}
+                    numbers = result.get_main_numbers_list()
+                    bonus_numbers = result.get_bonus_numbers_list()
                     
                     # Create row dictionary - ensure draw_number is an integer
                     try:
@@ -287,25 +265,8 @@ class LotteryAnalyzer:
                         except (ValueError, TypeError):
                             row['bonus_number'] = None
                     
-                    # Add division data if available
-                    if result.divisions:
-                        try:
-                            divisions = result.divisions
-                            if isinstance(divisions, str):
-                                divisions = json.loads(divisions)
-                                
-                            # Add key division metrics
-                            if isinstance(divisions, dict):
-                                for div_num, div_data in divisions.items():
-                                    winners = div_data.get('winners', 0)
-                                    if isinstance(winners, str):
-                                        if winners.isdigit():
-                                            winners = int(winners)
-                                        else:
-                                            winners = 0
-                                    row[f'div_{div_num}_winners'] = winners
-                        except Exception as e:
-                            logger.error(f"Error parsing divisions: {e}")
+                    # Skip division data for simplified lottery_results table
+                    # (divisions are not available in the authentic data table)
                     
                     data.append(row)
                 except Exception as e:
