@@ -532,9 +532,10 @@ def process_ticket():
             # Create comprehensive prompt
             prompt = """Extract lottery ticket data from this South African lottery ticket.
 
-Identify the lottery type first:
-- If it's a PowerBall ticket: Extract all lines with 5 numbers each + PowerBall numbers
-- If it's a LOTTO ticket: Extract all lines with 6 numbers each + bonus numbers
+Look carefully for:
+1. Main lottery type (PowerBall or LOTTO)
+2. All number lines/selections on the ticket
+3. Whether additional games are included (look for YES/NO checkboxes)
 
 Return ONLY valid JSON in this format:
 
@@ -555,16 +556,18 @@ For LOTTO tickets:
     "all_lines": [[8, 24, 32, 34, 36, 52]],
     "bonus_numbers": [26],
     "lotto_plus_1_included": "YES",
-    "lotto_plus_2_included": "NO",
+    "lotto_plus_2_included": "YES",
     "draw_date": "04/06/25",
     "draw_number": "2547",
     "ticket_cost": "R15.00"
 }
 
-CRITICAL RULES:
-1. Identify lottery type correctly (PowerBall vs LOTTO)
-2. Extract ALL visible number lines from the ticket
-3. Return only the JSON, no other text"""
+CRITICAL INSTRUCTIONS:
+1. Check for YES/NO checkboxes or indicators for LOTTO Plus 1, LOTTO Plus 2, PowerBall Plus
+2. If you see a YES checkbox marked for any additional game, set it as "YES"
+3. If you see a NO checkbox marked or no checkbox, set it as "NO"
+4. Extract ALL number lines - each line represents one game entry
+5. Return only the JSON, no other text"""
             
             response = model.generate_content([image, prompt])
             response_text = response.text.strip()
@@ -584,11 +587,101 @@ CRITICAL RULES:
                 # Format response for frontend - handle both LOTTO and PowerBall
                 lottery_type = ticket_data.get('lottery_type', 'PowerBall')
                 
+                # Initialize comparison results
+                main_game_results = {}
+                plus_1_results = {}
+                plus_2_results = {}
+                
                 # Extract numbers and bonus/powerball based on lottery type
                 if 'LOTTO' in lottery_type.upper():
                     # LOTTO ticket format
                     all_lines = ticket_data.get('all_lines', [])
                     bonus_numbers = ticket_data.get('bonus_numbers', [])
+                    lotto_plus_1_included = ticket_data.get('lotto_plus_1_included', 'NO')
+                    lotto_plus_2_included = ticket_data.get('lotto_plus_2_included', 'NO')
+                    
+                    # Get player numbers for comparison
+                    player_numbers = all_lines[0] if all_lines else []
+                    player_bonus = bonus_numbers[0] if bonus_numbers else None
+                    
+                    logger.info(f"Processing LOTTO ticket: numbers={player_numbers}, bonus={player_bonus}")
+                    logger.info(f"Plus game flags: Plus1={lotto_plus_1_included}, Plus2={lotto_plus_2_included}")
+                    
+                    # Always compare against main LOTTO results
+                    if player_numbers:
+                        lotto_draw = LotteryResult.query.filter_by(lottery_type='Lotto').order_by(LotteryResult.draw_date.desc()).first()
+                        if lotto_draw:
+                            winning_numbers = lotto_draw.numbers if lotto_draw.numbers else []
+                            winning_bonus = lotto_draw.bonus_numbers[0] if lotto_draw.bonus_numbers else None
+                            
+                            main_matches = len(set(player_numbers) & set(winning_numbers))
+                            bonus_match = (player_bonus == winning_bonus) if player_bonus and winning_bonus else False
+                            
+                            main_game_results = {
+                                'lottery_type': 'LOTTO',
+                                'draw_number': lotto_draw.draw_number,
+                                'draw_date': lotto_draw.draw_date.strftime('%Y-%m-%d'),
+                                'winning_numbers': winning_numbers,
+                                'winning_bonus': winning_bonus,
+                                'main_matches': main_matches,
+                                'bonus_match': bonus_match,
+                                'total_matches': f"{main_matches} main + {'Bonus' if bonus_match else '0 Bonus'}"
+                            }
+                            
+                            logger.info(f"LOTTO comparison: {main_matches} matches, bonus={bonus_match}")
+                    
+                    # Compare against LOTTO Plus 1 if selected
+                    if lotto_plus_1_included.upper() == 'YES' and player_numbers:
+                        lotto_plus_1_draw = LotteryResult.query.filter_by(lottery_type='Lotto Plus 1').order_by(LotteryResult.draw_date.desc()).first()
+                        if lotto_plus_1_draw:
+                            plus_1_numbers = lotto_plus_1_draw.numbers if lotto_plus_1_draw.numbers else []
+                            plus_1_bonus = lotto_plus_1_draw.bonus_numbers[0] if lotto_plus_1_draw.bonus_numbers else None
+                            
+                            plus_1_main_matches = len(set(player_numbers) & set(plus_1_numbers))
+                            plus_1_bonus_match = (player_bonus == plus_1_bonus) if player_bonus and plus_1_bonus else False
+                            
+                            plus_1_results = {
+                                'lottery_type': 'LOTTO Plus 1',
+                                'draw_number': lotto_plus_1_draw.draw_number,
+                                'draw_date': lotto_plus_1_draw.draw_date.strftime('%Y-%m-%d'),
+                                'winning_numbers': plus_1_numbers,
+                                'winning_bonus': plus_1_bonus,
+                                'main_matches': plus_1_main_matches,
+                                'bonus_match': plus_1_bonus_match,
+                                'total_matches': f"{plus_1_main_matches} main + {'Bonus' if plus_1_bonus_match else '0 Bonus'}"
+                            }
+                    
+                    # Compare against LOTTO Plus 2 if selected
+                    if lotto_plus_2_included.upper() == 'YES' and player_numbers:
+                        lotto_plus_2_draw = LotteryResult.query.filter_by(lottery_type='Lotto Plus 2').order_by(LotteryResult.draw_date.desc()).first()
+                        if lotto_plus_2_draw:
+                            plus_2_numbers = lotto_plus_2_draw.numbers if lotto_plus_2_draw.numbers else []
+                            plus_2_bonus = lotto_plus_2_draw.bonus_numbers[0] if lotto_plus_2_draw.bonus_numbers else None
+                            
+                            plus_2_main_matches = len(set(player_numbers) & set(plus_2_numbers))
+                            plus_2_bonus_match = (player_bonus == plus_2_bonus) if player_bonus and plus_2_bonus else False
+                            
+                            plus_2_results = {
+                                'lottery_type': 'LOTTO Plus 2',
+                                'draw_number': lotto_plus_2_draw.draw_number,
+                                'draw_date': lotto_plus_2_draw.draw_date.strftime('%Y-%m-%d'),
+                                'winning_numbers': plus_2_numbers,
+                                'winning_bonus': plus_2_bonus,
+                                'main_matches': plus_2_main_matches,
+                                'bonus_match': plus_2_bonus_match,
+                                'total_matches': f"{plus_2_main_matches} main + {'Bonus' if plus_2_bonus_match else '0 Bonus'}"
+                            }
+                    
+                    # Create message based on which games were checked
+                    games_checked = []
+                    if main_game_results:
+                        games_checked.append('LOTTO')
+                    if plus_1_results:
+                        games_checked.append('LOTTO Plus 1')
+                    if plus_2_results:
+                        games_checked.append('LOTTO Plus 2')
+                    
+                    comparison_message = f"LOTTO ticket analyzed and compared against: {', '.join(games_checked)}"
                     
                     result = {
                         'success': True,
@@ -597,25 +690,88 @@ CRITICAL RULES:
                         'draw_number': ticket_data.get('draw_number', 'Not detected'),
                         'all_lines': all_lines,
                         'bonus_numbers': bonus_numbers,
-                        'lotto_plus_1_included': ticket_data.get('lotto_plus_1_included', 'NO'),
-                        'lotto_plus_2_included': ticket_data.get('lotto_plus_2_included', 'NO'),
+                        'lotto_plus_1_included': lotto_plus_1_included,
+                        'lotto_plus_2_included': lotto_plus_2_included,
                         'ticket_cost': ticket_data.get('ticket_cost', 'Not detected'),
                         'ticket_data': ticket_data,
                         'raw_response': response_text,
-                        'powerball_results': {},
-                        'powerball_plus_results': {},
+                        'main_game_results': main_game_results,
+                        'lotto_plus_1_results': plus_1_results,
+                        'lotto_plus_2_results': plus_2_results,
+                        'powerball_results': {},  # Empty for LOTTO tickets
+                        'powerball_plus_results': {},  # Empty for LOTTO tickets
                         'comparison': {
-                            'message': 'LOTTO ticket successfully analyzed with Google Gemini 2.5 Pro',
+                            'message': comparison_message,
                             'extracted_numbers': all_lines[0] if all_lines else [],
                             'bonus_number': str(bonus_numbers[0]) if bonus_numbers else 'Not detected',
                             'lottery_type': lottery_type,
-                            'both_games_checked': False
+                            'games_checked': len(games_checked),
+                            'enhanced_comparison': True,
+                            'main_game': main_game_results,
+                            'plus_1_game': plus_1_results,
+                            'plus_2_game': plus_2_results
                         }
                     }
                 else:
                     # PowerBall ticket format
                     all_lines = ticket_data.get('all_lines', [])
                     all_powerball = ticket_data.get('all_powerball', [])
+                    powerball_plus_included = ticket_data.get('powerball_plus_included', 'NO')
+                    
+                    # Get player numbers for comparison
+                    player_numbers = all_lines[0] if all_lines else []
+                    player_powerball = all_powerball[0] if all_powerball else None
+                    
+                    # Compare against main PowerBall results
+                    if player_numbers:
+                        powerball_draw = LotteryResult.query.filter_by(lottery_type='Powerball').order_by(LotteryResult.draw_date.desc()).first()
+                        if powerball_draw:
+                            winning_numbers = powerball_draw.numbers if powerball_draw.numbers else []
+                            winning_powerball = powerball_draw.bonus_numbers[0] if powerball_draw.bonus_numbers else None
+                            
+                            main_matches = len(set(player_numbers) & set(winning_numbers))
+                            powerball_match = (player_powerball == winning_powerball) if player_powerball and winning_powerball else False
+                            
+                            main_game_results = {
+                                'lottery_type': 'PowerBall',
+                                'draw_number': powerball_draw.draw_number,
+                                'draw_date': powerball_draw.draw_date.strftime('%Y-%m-%d'),
+                                'winning_numbers': winning_numbers,
+                                'winning_powerball': winning_powerball,
+                                'main_matches': main_matches,
+                                'powerball_match': powerball_match,
+                                'total_matches': f"{main_matches} main + {'PowerBall' if powerball_match else '0 PowerBall'}"
+                            }
+                    
+                    # Compare against PowerBall Plus if selected
+                    if powerball_plus_included.upper() == 'YES' and player_numbers:
+                        powerball_plus_draw = LotteryResult.query.filter_by(lottery_type='Powerball Plus').order_by(LotteryResult.draw_date.desc()).first()
+                        if powerball_plus_draw:
+                            plus_numbers = powerball_plus_draw.numbers if powerball_plus_draw.numbers else []
+                            plus_powerball = powerball_plus_draw.bonus_numbers[0] if powerball_plus_draw.bonus_numbers else None
+                            
+                            plus_main_matches = len(set(player_numbers) & set(plus_numbers))
+                            plus_powerball_match = (player_powerball == plus_powerball) if player_powerball and plus_powerball else False
+                            
+                            plus_1_results = {
+                                'lottery_type': 'PowerBall Plus',
+                                'draw_number': powerball_plus_draw.draw_number,
+                                'draw_date': powerball_plus_draw.draw_date.strftime('%Y-%m-%d'),
+                                'winning_numbers': plus_numbers,
+                                'winning_powerball': plus_powerball,
+                                'main_matches': plus_main_matches,
+                                'powerball_match': plus_powerball_match,
+                                'total_matches': f"{plus_main_matches} main + {'PowerBall' if plus_powerball_match else '0 PowerBall'}"
+                            }
+                    
+                    # Create message based on which games were checked
+                    games_checked = []
+                    if main_game_results:
+                        games_checked.append('PowerBall')
+                    if plus_1_results:
+                        games_checked.append('PowerBall Plus')
+                    
+                    comparison_message = f"PowerBall ticket analyzed and compared against: {', '.join(games_checked)}"
                     
                     result = {
                         'success': True,
@@ -624,18 +780,18 @@ CRITICAL RULES:
                         'draw_number': ticket_data.get('draw_number', 'Not detected'),
                         'all_lines': all_lines,
                         'all_powerball': all_powerball,
-                        'powerball_plus_included': ticket_data.get('powerball_plus_included', 'NO'),
+                        'powerball_plus_included': powerball_plus_included,
                         'ticket_cost': ticket_data.get('ticket_cost', 'Not detected'),
                         'ticket_data': ticket_data,
                         'raw_response': response_text,
-                        'powerball_results': {},
-                        'powerball_plus_results': {},
+                        'main_game_results': main_game_results,
+                        'powerball_plus_results': plus_1_results,
                         'comparison': {
-                            'message': 'PowerBall ticket successfully analyzed with Google Gemini 2.5 Pro',
+                            'message': comparison_message,
                             'extracted_numbers': all_lines[0] if all_lines else [],
                             'powerball_number': str(all_powerball[0]) if all_powerball else 'Not detected',
                             'lottery_type': lottery_type,
-                            'both_games_checked': False
+                            'games_checked': len(games_checked)
                         }
                     }
                 
