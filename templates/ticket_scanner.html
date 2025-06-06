@@ -327,17 +327,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 const ballsContainer = document.createElement('div');
                 ballsContainer.className = 'd-flex flex-wrap gap-2 mb-2';
                 
-                // Get winning numbers for comparison
+                // Initialize winning numbers arrays - ensure they're always defined
                 let winningNumbers = [];
                 let winningPowerball = '';
                 let winningPlusNumbers = [];
                 let winningPlusPowerball = '';
                 
-                if (data.powerball_results) {
+                // Get PowerBall winning numbers for comparison
+                if (data.powerball_results && data.powerball_results.winning_numbers) {
                     try {
                         winningNumbers = JSON.parse(data.powerball_results.winning_numbers || '[]').map(n => parseInt(n));
                     } catch (e) {
-                        console.log('Could not parse winning numbers for comparison');
+                        console.log('Could not parse PowerBall winning numbers for comparison');
+                        winningNumbers = [];
                     }
                     let pbNumber = data.powerball_results.winning_powerball ? 
                         data.powerball_results.winning_powerball.toString().replace(/[\[\]"]/g, '') : '';
@@ -348,11 +350,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Get PowerBall Plus winning numbers if ticket includes it
-                if (data.powerball_plus_results && (data.powerball_plus_included === "YES" || data.ticket_data?.powerball_plus_included === "YES")) {
+                if (data.powerball_plus_results && data.powerball_plus_results.winning_numbers && (data.powerball_plus_included === "YES" || data.ticket_data?.powerball_plus_included === "YES")) {
                     try {
                         winningPlusNumbers = JSON.parse(data.powerball_plus_results.winning_numbers || '[]').map(n => parseInt(n));
                     } catch (e) {
                         console.log('Could not parse PowerBall Plus winning numbers for comparison');
+                        winningPlusNumbers = [];
                     }
                     let pbPlusNumber = data.powerball_plus_results.winning_powerball ? 
                         data.powerball_plus_results.winning_powerball.toString().replace(/[\[\]"]/g, '') : '';
