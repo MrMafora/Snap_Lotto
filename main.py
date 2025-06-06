@@ -1199,8 +1199,34 @@ def results():
                             return self.bonus_numbers
                         return [str(self.bonus_numbers)] if self.bonus_numbers else []
                 
+                # Parse LOTTO numbers before creating ResultObj
+                import json
+                lotto_numbers = lotto_result[4]  # main_numbers
+                lotto_bonus = lotto_result[5]    # bonus_numbers
+                
+                # Parse main numbers
+                if isinstance(lotto_numbers, str) and lotto_numbers.startswith('['):
+                    try:
+                        lotto_numbers = json.loads(lotto_numbers)
+                    except:
+                        lotto_numbers = []
+                
+                # Parse bonus numbers  
+                if isinstance(lotto_bonus, str):
+                    if lotto_bonus.startswith('['):
+                        try:
+                            lotto_bonus = json.loads(lotto_bonus)
+                        except:
+                            lotto_bonus = []
+                    elif lotto_bonus.startswith('{'):
+                        try:
+                            clean_str = lotto_bonus.strip('{}')
+                            lotto_bonus = [int(n.strip()) for n in clean_str.split(',') if n.strip()] if clean_str else []
+                        except:
+                            lotto_bonus = []
+                
                 latest_results['Lottery'] = ResultObj(
-                    lotto_result[1], lotto_result[2], lotto_result[3], lotto_result[4], lotto_result[5]
+                    lotto_result[1], lotto_result[2], lotto_result[3], lotto_numbers, lotto_bonus
                 )
                 app.logger.info(f"✓ Successfully mapped Lotto data to Lottery display")
             
@@ -1255,8 +1281,8 @@ def results():
                             elif isinstance(self.numbers, list):
                                 app.logger.info(f"Numbers is already a list: {self.numbers}")
                                 return [int(num) for num in self.numbers]
-                            app.logger.info(f"Returning original numbers: {self.numbers}")
-                            return self.numbers if self.numbers else []
+                            app.logger.error(f"Unable to parse numbers: {self.numbers}, type: {type(self.numbers)}")
+                            return []
                         
                         def get_bonus_numbers_list(self):
                             if self.bonus_numbers is None:
