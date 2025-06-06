@@ -58,9 +58,8 @@ class LotteryAnalyzer:
     def __init__(self, db):
         """Initialize analyzer with database connection"""
         self.db = db
-        from models import LotteryResult, LotteryResults, Screenshot, ImportedRecord  # Import here to avoid circular imports
+        from models import LotteryResult, Screenshot, ImportedRecord  # Import here to avoid circular imports
         self.LotteryResult = LotteryResult
-        self.LotteryResults = LotteryResults  # Use this for authentic lottery data
         self.Screenshot = Screenshot
         self.ImportedRecord = ImportedRecord
         
@@ -206,13 +205,13 @@ class LotteryAnalyzer:
             
             # Query authentic lottery results from the correct table
             try:
-                query = self.db.session.query(self.LotteryResults).filter(
-                    self.LotteryResults.draw_date >= start_date.date()
+                query = self.db.session.query(self.LotteryResult).filter(
+                    self.LotteryResult.draw_date >= start_date.date()
                 )
             except Exception as date_error:
                 # Handle date comparison issues
                 logger.warning(f"Date comparison error: {date_error}, using alternative query")
-                query = self.db.session.query(self.LotteryResults)
+                query = self.db.session.query(self.LotteryResult)
             
             if lottery_type:
                 query = query.filter(self.LotteryResults.lottery_type == lottery_type)

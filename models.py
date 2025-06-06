@@ -591,7 +591,7 @@ class ImportedRecord(db.Model):
     draw_number = db.Column(db.String(20), nullable=True)
     draw_date = db.Column(db.DateTime, nullable=True)
     is_new = db.Column(db.Boolean, default=True, comment="Whether this was a new record or an update")
-    lottery_result_id = db.Column(db.Integer, db.ForeignKey('lottery_result.id'), nullable=False)
+    lottery_result_id = db.Column(db.Integer, db.ForeignKey('lottery_results.id'), nullable=False)
     
     # Relationship to the actual lottery result
     lottery_result = db.relationship('LotteryResult', backref='import_entries')
@@ -816,39 +816,4 @@ class APIRequestLog(db.Model):
 # APIRequestLog is already defined elsewhere in this file
 # Keeping the model here would cause a duplicate table definition error
 
-class LotteryResults(db.Model):
-    """Model for authentic lottery results - simplified table structure"""
-    __tablename__ = 'lottery_results'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    lottery_type = db.Column(db.String(50), nullable=False)
-    draw_date = db.Column(db.Date, nullable=False)
-    draw_number = db.Column(db.Integer, nullable=False)
-    main_numbers = db.Column(db.Text, nullable=False)  # PostgreSQL array format like {32,34,8,52,36}
-    bonus_numbers = db.Column(db.Text, nullable=True)  # PostgreSQL array format like {24,26}
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def __repr__(self):
-        return f"<LotteryResults {self.lottery_type} - {self.draw_number}>"
-    
-    def get_main_numbers_list(self):
-        """Parse PostgreSQL array format to Python list"""
-        if not self.main_numbers:
-            return []
-        
-        # Handle PostgreSQL array format {32,34,8,52,36}
-        numbers_str = self.main_numbers.strip('{}')
-        if numbers_str:
-            return [int(n.strip()) for n in numbers_str.split(',') if n.strip().isdigit()]
-        return []
-    
-    def get_bonus_numbers_list(self):
-        """Parse PostgreSQL array format to Python list"""
-        if not self.bonus_numbers:
-            return []
-        
-        # Handle PostgreSQL array format {24,26} or empty {}
-        bonus_str = self.bonus_numbers.strip('{}')
-        if bonus_str:
-            return [int(n.strip()) for n in bonus_str.split(',') if n.strip().isdigit()]
-        return []
+# Removed duplicate LotteryResults model - using LotteryResult model above with __tablename__ = 'lottery_results'
