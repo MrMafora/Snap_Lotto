@@ -89,26 +89,35 @@ class LotteryDataExtractor:
             Be extremely precise - this data will be used for authentic lottery results and must include ALL visible division and financial data.
             """
             
-            # First pass - detailed extraction
+            # Enhanced deep scan extraction with sequential draw number validation
             message = self.client.messages.create(
-                model="claude-opus-4-20250514",
-                max_tokens=2000,
+                model="claude-3-5-sonnet-20241022", # the newest Anthropic model is "claude-3-5-sonnet-20241022" which was released October 22, 2024
+                max_tokens=3000,
                 messages=[
                     {
                         "role": "user",
                         "content": [
                             {
                                 "type": "text",
-                                "text": prompt + """
-                                
-VERIFICATION STEP: After extracting data, perform these accuracy checks:
-1. Count each lottery number carefully - examine every digit twice
-2. Verify number sequences are logical and in range
-3. Cross-check division counts with visible prize table data
-4. Confirm all monetary amounts match the visible currency formatting
-5. Double-check draw dates and numbers against page headers
+                                "text": f"""DEEP SCAN ANALYSIS: Perform extremely detailed OCR extraction from this South African lottery screenshot.
 
-Return the verified JSON data only after these checks."""
+CRITICAL VALIDATION RULES:
+1. Draw numbers are SEQUENTIAL - they increment by 1 from previous draws
+2. Examine EVERY visible digit carefully - double-check all numbers 
+3. Look for draw numbers in multiple locations (header, info boxes, fine print)
+4. Cross-reference dates with expected draw schedules
+5. Verify lottery type matches the URL source
+
+ENHANCED EXTRACTION REQUIREMENTS:
+- Zoom into number circles and read each digit precisely
+- Check for partial occlusion or overlapping elements
+- Validate draw sequence: PowerBall draws are weekly, increment by 1
+- Scan entire image for draw ID references (not just main header)
+- Look for confirmation numbers, reference IDs, or verification codes
+
+{prompt}
+
+DOUBLE-CHECK: Before finalizing, re-examine the draw number in the image. Look in headers, footers, and info sections. PowerBall draws should follow sequential pattern (1620, 1621, 1622, etc.)."""
                             },
                             {
                                 "type": "image",
