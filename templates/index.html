@@ -215,6 +215,7 @@
                                 <th class="py-1">DRAW</th>
                                 <th class="py-1">DATE</th>
                                 <th class="py-1">NUMBERS</th>
+                                <th class="py-1">DETAILS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -278,6 +279,15 @@
                                             {% endfor %}
                                         {% endif %}
                                     </div>
+                                </td>
+                                <td class="py-1">
+                                    {% if result.divisions %}
+                                        <a href="{{ url_for('lottery_details', draw_number=result.draw_number) }}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>View
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted small">Basic</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
