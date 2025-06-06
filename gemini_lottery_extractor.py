@@ -163,36 +163,39 @@ Extract all visible lottery data with absolute precision. Focus on table row ali
     def save_to_database(self, extracted_data):
         """Save extracted lottery data to database"""
         try:
-            # Convert date string to datetime object
-            draw_date = datetime.strptime(extracted_data['draw_date'], '%Y-%m-%d')
+            from main import app
             
-            # Handle next_draw_date if present
-            next_draw_date = None
-            if extracted_data.get('next_draw_date'):
-                next_draw_date = datetime.strptime(extracted_data['next_draw_date'], '%Y-%m-%d')
-            
-            # Create new lottery result record
-            new_result = LotteryResult(
-                lottery_type=extracted_data['lottery_type'],
-                draw_number=extracted_data['draw_number'],
-                draw_date=draw_date,
-                numbers=json.dumps(extracted_data['main_numbers']),
-                bonus_numbers=json.dumps(extracted_data.get('bonus_numbers', [])),
-                divisions=json.dumps(extracted_data.get('divisions', [])),
-                rollover_amount=extracted_data.get('rollover_amount'),
-                rollover_number=extracted_data.get('rollover_number'),
-                total_pool_size=extracted_data.get('total_pool_size'),
-                total_sales=extracted_data.get('total_sales'),
-                next_jackpot=extracted_data.get('next_jackpot'),
-                draw_machine=extracted_data.get('draw_machine'),
-                next_draw_date=next_draw_date,
-                source_url=f"https://www.nationallottery.co.za/results/{extracted_data['lottery_type'].lower().replace(' ', '-')}",
-                ocr_provider="google_gemini_2_5_pro",
-                ocr_model="gemini-2.0-flash-exp"
-            )
-            
-            db.session.add(new_result)
-            db.session.commit()
+            with app.app_context():
+                # Convert date string to datetime object
+                draw_date = datetime.strptime(extracted_data['draw_date'], '%Y-%m-%d')
+                
+                # Handle next_draw_date if present
+                next_draw_date = None
+                if extracted_data.get('next_draw_date'):
+                    next_draw_date = datetime.strptime(extracted_data['next_draw_date'], '%Y-%m-%d')
+                
+                # Create new lottery result record
+                new_result = LotteryResult(
+                    lottery_type=extracted_data['lottery_type'],
+                    draw_number=extracted_data['draw_number'],
+                    draw_date=draw_date,
+                    numbers=json.dumps(extracted_data['main_numbers']),
+                    bonus_numbers=json.dumps(extracted_data.get('bonus_numbers', [])),
+                    divisions=json.dumps(extracted_data.get('divisions', [])),
+                    rollover_amount=extracted_data.get('rollover_amount'),
+                    rollover_number=extracted_data.get('rollover_number'),
+                    total_pool_size=extracted_data.get('total_pool_size'),
+                    total_sales=extracted_data.get('total_sales'),
+                    next_jackpot=extracted_data.get('next_jackpot'),
+                    draw_machine=extracted_data.get('draw_machine'),
+                    next_draw_date=next_draw_date,
+                    source_url=f"https://www.nationallottery.co.za/results/{extracted_data['lottery_type'].lower().replace(' ', '-')}",
+                    ocr_provider="gemini-2.5-pro",
+                    ocr_model="gemini-2.0-flash-exp"
+                )
+                
+                db.session.add(new_result)
+                db.session.commit()
             
             logger.info(f"Successfully saved {extracted_data['lottery_type']} Draw {extracted_data['draw_number']} to database")
             return True
