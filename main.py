@@ -239,12 +239,18 @@ def home():
         query = text("""
             WITH ranked_results AS (
                 SELECT *,
-                       ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY draw_date DESC, created_at DESC) as rn
+                       ROW_NUMBER() OVER (
+                           PARTITION BY lottery_type 
+                           ORDER BY 
+                               CASE WHEN divisions IS NOT NULL AND divisions != '[]' THEN 0 ELSE 1 END,
+                               draw_date DESC, 
+                               created_at DESC
+                       ) as rn
                 FROM lottery_result
             )
             SELECT lottery_type, draw_number, draw_date, numbers as main_numbers, bonus_numbers, divisions 
             FROM ranked_results 
-            WHERE rn = 1
+            WHERE rn = 1 AND lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2')
             ORDER BY 
                 CASE lottery_type
                     WHEN 'Lotto' THEN 1
