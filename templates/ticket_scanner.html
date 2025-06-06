@@ -305,8 +305,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('detected-draw-date').textContent = data.draw_date || 'Not detected';
         document.getElementById('detected-draw-number').textContent = data.draw_number || 'Not detected';
         
-        // Display winning numbers first
-        displayWinningNumbers(data);
+        // Display enhanced results with prize analysis
+        displayEnhancedResults(data);
         
         // Display ticket numbers - show all lines if available
         const numbersContainer = document.getElementById('ticket-numbers');

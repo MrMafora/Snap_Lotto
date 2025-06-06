@@ -728,7 +728,7 @@ CRITICAL INSTRUCTIONS:
                     
                     # Compare against main PowerBall results
                     if player_numbers:
-                        powerball_draw = LotteryResult.query.filter_by(lottery_type='Powerball').order_by(LotteryResult.draw_date.desc()).first()
+                        powerball_draw = LotteryResult.query.filter_by(lottery_type='POWERBALL').order_by(LotteryResult.draw_date.desc()).first()
                         if powerball_draw:
                             winning_numbers = json.loads(powerball_draw.main_numbers) if powerball_draw.main_numbers else []
                             winning_powerball = powerball_draw.bonus_numbers[0] if powerball_draw.bonus_numbers else None
@@ -749,7 +749,7 @@ CRITICAL INSTRUCTIONS:
                     
                     # Compare against PowerBall Plus if selected
                     if powerball_plus_included.upper() == 'YES' and player_numbers:
-                        powerball_plus_draw = LotteryResult.query.filter_by(lottery_type='Powerball Plus').order_by(LotteryResult.draw_date.desc()).first()
+                        powerball_plus_draw = LotteryResult.query.filter_by(lottery_type='POWERBALL PLUS').order_by(LotteryResult.draw_date.desc()).first()
                         if powerball_plus_draw:
                             plus_numbers = json.loads(powerball_plus_draw.main_numbers) if powerball_plus_draw.main_numbers else []
                             plus_powerball = powerball_plus_draw.bonus_numbers[0] if powerball_plus_draw.bonus_numbers else None
@@ -796,6 +796,53 @@ CRITICAL INSTRUCTIONS:
                             'powerball_number': str(all_powerball[0]) if all_powerball else 'Not detected',
                             'lottery_type': lottery_type,
                             'games_checked': len(games_checked)
+                        }
+                    }
+                
+                elif lottery_type == 'Daily Lotto':
+                    # Daily Lotto ticket format (5 numbers, no bonus/powerball)
+                    all_lines = ticket_data.get('all_lines', [])
+                    
+                    # Get player numbers for comparison
+                    player_numbers = all_lines[0] if all_lines else []
+                    
+                    # Compare against Daily Lotto results
+                    if player_numbers:
+                        daily_lotto_draw = LotteryResult.query.filter_by(lottery_type='DAILY LOTTO').order_by(LotteryResult.draw_date.desc()).first()
+                        if daily_lotto_draw:
+                            winning_numbers = json.loads(daily_lotto_draw.main_numbers) if daily_lotto_draw.main_numbers else []
+                            
+                            main_matches = len(set(player_numbers) & set(winning_numbers))
+                            
+                            main_game_results = {
+                                'lottery_type': 'Daily Lotto',
+                                'draw_number': daily_lotto_draw.draw_number,
+                                'draw_date': daily_lotto_draw.draw_date.strftime('%Y-%m-%d'),
+                                'winning_numbers': winning_numbers,
+                                'main_matches': main_matches,
+                                'total_matches': f"{main_matches} main numbers"
+                            }
+                    
+                    # Create comparison message
+                    comparison_message = f"Daily Lotto ticket analyzed and compared against: Daily Lotto"
+                    
+                    result = {
+                        'success': True,
+                        'lottery_type': lottery_type,
+                        'draw_date': ticket_data.get('draw_date', 'Not detected'),
+                        'draw_number': ticket_data.get('draw_number', 'Not detected'),
+                        'all_lines': all_lines,
+                        'ticket_cost': ticket_data.get('ticket_cost', 'Not detected'),
+                        'ticket_data': ticket_data,
+                        'raw_response': response_text,
+                        'main_game_results': main_game_results,
+                        'comparison': {
+                            'message': comparison_message,
+                            'extracted_numbers': player_numbers,
+                            'lottery_type': lottery_type,
+                            'games_checked': 1 if main_game_results else 0,
+                            'enhanced_comparison': True,
+                            'main_game': main_game_results
                         }
                     }
                 
