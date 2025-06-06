@@ -28,6 +28,73 @@ Snap Scan and Win = Phanda Phusha Play. Search and filter historical results fro
 {% endblock %}
 
 {% block content %}
+
+<!-- Latest Results Overview Cards -->
+{% if latest_results %}
+<div class="container mt-4 mb-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="text-center mb-4">Latest Lottery Results</h2>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% for lottery_type in lottery_types %}
+            {% if lottery_type in latest_results %}
+                {% set result = latest_results[lottery_type] %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-lottery">
+                            <h5 class="card-title mb-0">{{ lottery_type }}</h5>
+                        </div>
+                        <div class="card-body">
+                            
+                            <div class="text-center mb-3">
+                                <p class="fw-bold">Latest Draw #{{ result.draw_number }}</p>
+                                <p class="text-muted">{{ result.draw_date.strftime('%d %b %Y') if result.draw_date else 'No Date' }}</p>
+                            </div>
+                            
+                            <div class="lottery-balls-container text-center mb-3">
+                                {% for num in result.get_numbers_list() %}
+                                    {% set ball_class = 'lottery-ball ' %}
+                                    
+                                    {% if 'POWERBALL' in lottery_type %}
+                                        {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                    {% elif 'DAILY' in lottery_type %}
+                                        {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                    {% else %}
+                                        {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                    {% endif %}
+                                    
+                                    <span class="{{ ball_class }}">{{ num }}</span>
+                                {% endfor %}
+                                
+                                {% if result.get_bonus_numbers_list() %}
+                                    <div class="mt-2">
+                                        <small class="text-muted">Bonus:</small>
+                                        {% for bonus in result.get_bonus_numbers_list() %}
+                                            <span class="lottery-ball lottery-ball-sm lottery-ball-blue">{{ bonus }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                        </div>
+                        <div class="card-footer bg-white border-top-0">
+                            <a href="/results/{{ lottery_type }}" class="btn btn-lottery-primary btn-sm w-100">
+                                View All {{ lottery_type }} Results
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+<hr class="my-5">
+{% endif %}
+
 <div class="card">
     <div class="card-header lottery-header">
         <div class="d-flex justify-content-between align-items-center flex-wrap">

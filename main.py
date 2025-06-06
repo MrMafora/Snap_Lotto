@@ -1235,22 +1235,44 @@ def results():
                             self.bonus_numbers = bonus_numbers
                         
                         def get_numbers_list(self):
+                            import json
                             if isinstance(self.numbers, str):
-                                # Handle comma-separated format like "1,2,3,18,29,32"
-                                return [num.strip() for num in self.numbers.split(',') if num.strip()]
+                                # Handle JSON array format like "[8, 24, 32, 34, 36, 52]"
+                                if self.numbers.startswith('[') and self.numbers.endswith(']'):
+                                    try:
+                                        parsed_numbers = json.loads(self.numbers)
+                                        return [int(num) for num in parsed_numbers]
+                                    except (json.JSONDecodeError, ValueError, TypeError):
+                                        # Fallback to comma-separated parsing
+                                        clean_str = self.numbers.strip('[]')
+                                        return [int(num.strip()) for num in clean_str.split(',') if num.strip()]
+                                else:
+                                    # Handle comma-separated format like "1,2,3,18,29,32"
+                                    return [int(num.strip()) for num in self.numbers.split(',') if num.strip()]
+                            elif isinstance(self.numbers, list):
+                                return [int(num) for num in self.numbers]
                             return self.numbers if self.numbers else []
                         
                         def get_bonus_numbers_list(self):
                             if self.bonus_numbers is None:
                                 return []
                             if isinstance(self.bonus_numbers, str):
-                                # Handle simple string like "03"
+                                # Handle JSON array format like "[26]" or simple string like "03"
                                 bonus_str = self.bonus_numbers.strip()
-                                if bonus_str:
-                                    return [bonus_str]
-                                return []
+                                if not bonus_str or bonus_str == '{}':
+                                    return []
+                                if bonus_str.startswith('[') and bonus_str.endswith(']'):
+                                    try:
+                                        import json
+                                        return json.loads(bonus_str)
+                                    except (json.JSONDecodeError, ValueError):
+                                        # Fallback to comma-separated parsing
+                                        clean_str = bonus_str.strip('[]')
+                                        return [int(num.strip()) for num in clean_str.split(',') if num.strip()]
+                                else:
+                                    return [int(bonus_str)] if bonus_str.isdigit() else [bonus_str]
                             elif isinstance(self.bonus_numbers, (int, float)):
-                                return [str(self.bonus_numbers)]
+                                return [int(self.bonus_numbers)]
                             elif isinstance(self.bonus_numbers, list):
                                 return self.bonus_numbers
                             return [str(self.bonus_numbers)] if self.bonus_numbers else []
