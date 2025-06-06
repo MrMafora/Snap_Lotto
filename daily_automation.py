@@ -28,9 +28,9 @@ class DailyLotteryAutomation:
                 'name': 'Lottery Group',
                 'lotteries': ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2'],
                 'urls': [
-                    'https://www.nationallottery.co.za/results/lotto',
-                    'https://www.nationallottery.co.za/results/lotto-plus-1-results',
-                    'https://www.nationallottery.co.za/results/lotto-plus-2-results'
+                    {'url': 'https://www.nationallottery.co.za/results/lotto', 'lottery_type': 'Lotto'},
+                    {'url': 'https://www.nationallottery.co.za/results/lotto-plus-1-results', 'lottery_type': 'Lotto Plus 1'},
+                    {'url': 'https://www.nationallottery.co.za/results/lotto-plus-2-results', 'lottery_type': 'Lotto Plus 2'}
                 ],
                 'draw_days': ['Wednesday', 'Saturday']  # Wednesday=2, Saturday=5
             },
@@ -38,8 +38,8 @@ class DailyLotteryAutomation:
                 'name': 'PowerBall Group', 
                 'lotteries': ['Powerball', 'Powerball Plus'],
                 'urls': [
-                    'https://www.nationallottery.co.za/results/powerball',
-                    'https://www.nationallottery.co.za/results/powerball-plus'
+                    {'url': 'https://www.nationallottery.co.za/results/powerball', 'lottery_type': 'Powerball'},
+                    {'url': 'https://www.nationallottery.co.za/results/powerball-plus', 'lottery_type': 'Powerball Plus'}
                 ],
                 'draw_days': ['Tuesday', 'Friday']  # Tuesday=1, Friday=4
             },
@@ -47,7 +47,7 @@ class DailyLotteryAutomation:
                 'name': 'Daily Lottery',
                 'lotteries': ['Daily Lotto'],
                 'urls': [
-                    'https://www.nationallottery.co.za/results/daily-lotto'
+                    {'url': 'https://www.nationallottery.co.za/results/daily-lotto', 'lottery_type': 'Daily Lotto'}
                 ],
                 'draw_days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']  # Every day
             }
