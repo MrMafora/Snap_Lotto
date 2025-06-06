@@ -235,12 +235,11 @@ def home():
         latest_results = get_optimized_latest_results(limit=6)
         results = []
         
-        # Process latest results by lottery type
+        # Process all latest results - ensure all sequential draw numbers are displayed
         lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'PowerBall', 'PowerBall Plus', 'Daily Lotto']
-        processed_types = set()
         
         for lottery_result in latest_results:
-            if lottery_result.lottery_type in lottery_types and lottery_result.lottery_type not in processed_types:
+            if lottery_result.lottery_type in lottery_types:
                 # Get numbers from either main_numbers or numbers field
                 numbers_data = getattr(lottery_result, 'main_numbers', None) or getattr(lottery_result, 'numbers', None)
                 if numbers_data:
@@ -287,7 +286,6 @@ def home():
                         result = LotteryDisplay(lottery_result.lottery_type, lottery_result.draw_number, 
                                               lottery_result.draw_date, numbers, bonus_numbers)
                         results.append(result)
-                        processed_types.add(lottery_result.lottery_type)
         
         # Create optimized display mapping
         sorted_types = {}
