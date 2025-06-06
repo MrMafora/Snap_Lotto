@@ -324,12 +324,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const drawDateEl = document.getElementById('detected-draw-date');
         const drawNumberEl = document.getElementById('detected-draw-number');
         
-        if (lotteryTypeEl) lotteryTypeEl.textContent = data.lottery_type || 'Not detected';
+        if (lotteryTypeEl) {
+            let lotteryText = data.lottery_type || 'Not detected';
+            
+            // Add Plus indicator if Plus games are included
+            if (data.powerball_plus_included === 'YES' || 
+                data.lotto_plus_1_included === 'YES' || 
+                data.lotto_plus_2_included === 'YES') {
+                lotteryText += ' <span class="badge bg-success ms-2"><i class="fa fa-check me-1"></i>Plus</span>';
+            }
+            
+            lotteryTypeEl.innerHTML = lotteryText;
+        }
         if (drawDateEl) drawDateEl.textContent = data.draw_date || 'Not detected';
         if (drawNumberEl) drawNumberEl.textContent = data.draw_number || 'Not detected';
         
-        // Display enhanced results with prize analysis
-        displayEnhancedResults(data);
+        // Display comprehensive match analysis results
+        displayMatchAnalysis(data);
         
         // Display ticket numbers - show all lines if available
         const numbersContainer = document.getElementById('ticket-numbers');
@@ -551,6 +562,71 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('success-content').classList.remove('d-none');
         document.getElementById('error-message').classList.add('d-none');
         resultsContainer.classList.remove('d-none');
+    }
+    
+    function displayMatchAnalysis(data) {
+        console.log('Displaying match analysis for:', data);
+        
+        const winningInfo = document.getElementById('winning-info');
+        const prizeInfo = document.getElementById('prize-info');
+        
+        if (!winningInfo || !prizeInfo) return;
+        
+        // Clear previous content
+        winningInfo.innerHTML = '';
+        prizeInfo.innerHTML = '';
+        
+        // Display match results
+        let hasMatches = false;
+        let matchSummary = [];
+        
+        // Check main game results
+        if (data.main_game_results && data.main_game_results.main_matches > 0) {
+            hasMatches = true;
+            matchSummary.push(`${data.main_game_results.lottery_type}: ${data.main_game_results.total_matches}`);
+        }
+        
+        // Check Plus game results
+        if (data.powerball_plus_results && data.powerball_plus_results.main_matches > 0) {
+            hasMatches = true;
+            matchSummary.push(`${data.powerball_plus_results.lottery_type}: ${data.powerball_plus_results.total_matches}`);
+        }
+        
+        if (data.lotto_plus_1_results && data.lotto_plus_1_results.main_matches > 0) {
+            hasMatches = true;
+            matchSummary.push(`${data.lotto_plus_1_results.lottery_type}: ${data.lotto_plus_1_results.total_matches}`);
+        }
+        
+        if (data.lotto_plus_2_results && data.lotto_plus_2_results.main_matches > 0) {
+            hasMatches = true;
+            matchSummary.push(`${data.lotto_plus_2_results.lottery_type}: ${data.lotto_plus_2_results.total_matches}`);
+        }
+        
+        // Display results
+        if (hasMatches) {
+            winningInfo.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fa fa-trophy me-2"></i>
+                    <strong>Congratulations! You have matching numbers!</strong>
+                    <ul class="mt-2 mb-0">
+                        ${matchSummary.map(match => `<li>${match}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            prizeInfo.innerHTML = '<p class="text-info"><i class="fa fa-info-circle me-1"></i>Check with lottery office for prize details</p>';
+        } else {
+            winningInfo.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle me-2"></i>
+                    No winning combinations found on this ticket for the latest draws.
+                </div>
+            `;
+        }
+        
+        // Display comparison info if available
+        if (data.comparison && data.comparison.message) {
+            prizeInfo.innerHTML += `<p class="small text-muted mt-2">${data.comparison.message}</p>`;
+        }
     }
 
     // Function to display winning numbers from the draw
