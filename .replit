@@ -2,7 +2,7 @@ modules = ["python-3.11", "python3"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "gitFull", "glibcLocales", "gobject-introspection", "gtk3", "libxcrypt", "pkg-config", "playwright-driver", "qhull", "tcl", "tk", "xsimd"]
+packages = ["cairo", "ffmpeg-full", "freetype", "geckodriver", "ghostscript", "gitFull", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "playwright-driver", "qhull", "tcl", "tk", "xsimd", "zlib"]
 
 [deployment]
 deploymentTarget = "cloudrun"

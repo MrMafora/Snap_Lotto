@@ -200,7 +200,8 @@ def init_lazy_modules():
         hm = None
     
     try:
-        import scheduler as sched
+        from scheduler import LotteryScheduler
+        sched = LotteryScheduler
     except ImportError:
         sched = None
     
@@ -217,13 +218,14 @@ def init_lazy_modules():
     with app.app_context():
         # Initialize daily automation scheduler to run at 1:00 AM every day
         if sched:
-            daily_scheduler = sched.init_scheduler(app, run_time="01:00")
+            daily_scheduler = sched(app, "01:00")
+            daily_scheduler.start_scheduler()
             logger.info("Daily automation scheduler initialized - will run at 1:00 AM every day")
         else:
             logger.warning("Scheduler module not available - daily automation will not run automatically")
             
         if hm:
-            health_monitor.init_health_monitor(app, db)
+            hm.init_health_monitor(app, db)
         
         # Register scanner routes for ticket scanning functionality
         try:
@@ -562,9 +564,7 @@ def process_ticket():
             image = PIL.Image.open(io.BytesIO(image_bytes))
             
             # Generate content with Gemini
-            response = model.generate_content([
-                image,
-                """Extract lottery ticket data from this South African PowerBall ticket. 
+            prompt = """Extract lottery ticket data from this South African PowerBall ticket. 
 
 CRITICAL INSTRUCTIONS:
 1. Find ALL number rows (A1, B1, C1, D1, E1, F1, etc.) - each row has 5 main numbers
@@ -590,10 +590,8 @@ MUST FOLLOW:
 - "all_powerball" must contain the PowerBall number for EACH row (A2, B2, C2, etc.)
 - The arrays must be the same length - one PowerBall per row
 - Extract the ACTUAL PowerBall numbers from the ticket, don't assume they're all the same"""
-                        }
-                    ]
-                }]
-            ])
+            
+            response = model.generate_content([image, prompt])
             
             # Parse the response
             response_text = response.text
