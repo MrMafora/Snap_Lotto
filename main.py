@@ -1237,12 +1237,15 @@ def results():
                         def get_numbers_list(self):
                             import json
                             if isinstance(self.numbers, str):
+                                app.logger.info(f"Parsing numbers string: {self.numbers}")
                                 # Handle JSON array format like "[8, 24, 32, 34, 36, 52]"
                                 if self.numbers.startswith('[') and self.numbers.endswith(']'):
                                     try:
                                         parsed_numbers = json.loads(self.numbers)
+                                        app.logger.info(f"JSON parsed successfully: {parsed_numbers}")
                                         return [int(num) for num in parsed_numbers]
-                                    except (json.JSONDecodeError, ValueError, TypeError):
+                                    except (json.JSONDecodeError, ValueError, TypeError) as e:
+                                        app.logger.error(f"JSON parsing failed: {e}")
                                         # Fallback to comma-separated parsing
                                         clean_str = self.numbers.strip('[]')
                                         return [int(num.strip()) for num in clean_str.split(',') if num.strip()]
@@ -1250,7 +1253,9 @@ def results():
                                     # Handle comma-separated format like "1,2,3,18,29,32"
                                     return [int(num.strip()) for num in self.numbers.split(',') if num.strip()]
                             elif isinstance(self.numbers, list):
+                                app.logger.info(f"Numbers is already a list: {self.numbers}")
                                 return [int(num) for num in self.numbers]
+                            app.logger.info(f"Returning original numbers: {self.numbers}")
                             return self.numbers if self.numbers else []
                         
                         def get_bonus_numbers_list(self):
@@ -1277,8 +1282,45 @@ def results():
                                 return self.bonus_numbers
                             return [str(self.bonus_numbers)] if self.bonus_numbers else []
                     
+                    # Parse the numbers immediately to ensure proper format
+                    import json
+                    numbers = result[4]  # main_numbers
+                    bonus_numbers = result[5]  # bonus_numbers
+                    
+                    # Parse main numbers if they're a JSON string
+                    if isinstance(numbers, str):
+                        if numbers.startswith('[') and numbers.endswith(']'):
+                            try:
+                                numbers = json.loads(numbers)
+                                app.logger.info(f"Parsed main numbers for {lottery_type}: {numbers}")
+                            except Exception as e:
+                                app.logger.error(f"Failed to parse main numbers {numbers}: {e}")
+                        else:
+                            # Handle comma-separated format
+                            numbers = [int(n.strip()) for n in numbers.split(',') if n.strip()]
+                    
+                    # Parse bonus numbers if they're a JSON string  
+                    if isinstance(bonus_numbers, str):
+                        if bonus_numbers.startswith('[') and bonus_numbers.endswith(']'):
+                            try:
+                                bonus_numbers = json.loads(bonus_numbers)
+                                app.logger.info(f"Parsed bonus numbers for {lottery_type}: {bonus_numbers}")
+                            except Exception as e:
+                                app.logger.error(f"Failed to parse bonus numbers {bonus_numbers}: {e}")
+                        elif bonus_numbers.startswith('{') and bonus_numbers.endswith('}'):
+                            # Handle PostgreSQL array format like '{14}'
+                            try:
+                                clean_str = bonus_numbers.strip('{}')
+                                bonus_numbers = [int(n.strip()) for n in clean_str.split(',') if n.strip()]
+                                app.logger.info(f"Parsed PostgreSQL bonus numbers for {lottery_type}: {bonus_numbers}")
+                            except Exception as e:
+                                app.logger.error(f"Failed to parse PostgreSQL bonus numbers {bonus_numbers}: {e}")
+                        else:
+                            # Handle comma-separated format
+                            bonus_numbers = [int(n.strip()) for n in bonus_numbers.split(',') if n.strip()]
+                    
                     latest_results[lottery_type] = ResultObj(
-                        result[1], result[2], result[3], result[4], result[5]
+                        result[1], result[2], result[3], numbers, bonus_numbers
                     )
                     logger.info(f"✓ Direct SQL: {lottery_type} - Draw {result[2]}")
                 else:
