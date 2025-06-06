@@ -92,29 +92,23 @@ def get_optimized_latest_results(limit=10):
     """Optimized query for latest lottery results - loads fresh data from database"""
     from models import LotteryResult, db
     from sqlalchemy import func, and_, desc
-    from datetime import datetime, timedelta
+    from datetime import datetime
     
-    # Force query to get the absolute latest records by created_at timestamp
+    # Get the most recent record for each lottery type based on created_at timestamp
+    # This ensures we get the latest sequential draw numbers from June 6th
+    subquery = db.session.query(
+        LotteryResult.lottery_type,
+        func.max(LotteryResult.created_at).label('max_created')
+    ).group_by(LotteryResult.lottery_type).subquery()
+    
+    # Join to get the full records for the most recently created draws
     results = db.session.query(LotteryResult)\
-        .filter(LotteryResult.created_at >= '2025-06-06')\
-        .order_by(desc(LotteryResult.created_at))\
-        .limit(10)\
+        .join(subquery, and_(
+            LotteryResult.lottery_type == subquery.c.lottery_type,
+            LotteryResult.created_at == subquery.c.max_created
+        ))\
+        .order_by(LotteryResult.lottery_type)\
         .all()
-    
-    # If no June 6th records, fall back to most recent by created_at
-    if not results:
-        subquery = db.session.query(
-            LotteryResult.lottery_type,
-            func.max(LotteryResult.created_at).label('max_created')
-        ).group_by(LotteryResult.lottery_type).subquery()
-        
-        results = db.session.query(LotteryResult)\
-            .join(subquery, and_(
-                LotteryResult.lottery_type == subquery.c.lottery_type,
-                LotteryResult.created_at == subquery.c.max_created
-            ))\
-            .order_by(LotteryResult.lottery_type)\
-            .all()
     
     return results
 
