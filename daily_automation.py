@@ -159,7 +159,7 @@ class DailyLotteryAutomation:
             return False, 0
     
     def process_screenshots_with_ai(self):
-        """Step 3: Process screenshots one by one with Claude Opus 4 - Independent operation"""
+        """Step 3: Process screenshots one by one with Google Gemini 2.5 Pro - Independent operation"""
         try:
             logger.info("Starting AI processing of fresh screenshots...")
             
@@ -219,8 +219,8 @@ class DailyLotteryAutomation:
                 logger.info(f"  - {screenshot}")
             
             # Process each screenshot individually to prevent timeouts
-            from automated_data_extractor import LotteryDataExtractor
-            extractor = LotteryDataExtractor()
+            from gemini_lottery_extractor import GeminiLotteryExtractor
+            extractor = GeminiLotteryExtractor()
             
             successful_extractions = 0
             
@@ -229,7 +229,7 @@ class DailyLotteryAutomation:
                 logger.info(f"Processing: {screenshot_file}")
                 
                 # Process one image at a time
-                success = extractor.process_single_image_safe(screenshot_path)
+                success = extractor.process_single_image(screenshot_path)
                 if success:
                     successful_extractions += 1
                     logger.info(f"Successfully processed {screenshot_file}")

@@ -539,37 +539,32 @@ def process_ticket():
         file.seek(0)
         file.save(file_path)
         
-        # Process the ticket using Anthropic AI with the new API key
+        # Process the ticket using Google Gemini 2.5 Pro
         try:
             import base64
             import json
-            import anthropic
+            import google.generativeai as genai
             
-            # Initialize Anthropic client with the new API key
-            client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_SNAP_LOTTERY'))
+            # Initialize Gemini client
+            genai.configure(api_key=os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY'))
+            model = genai.GenerativeModel('gemini-2.0-flash-exp')
             
             # Read and encode the image
             with open(file_path, 'rb') as image_file:
                 image_data = base64.b64encode(image_file.read()).decode('utf-8')
             
-            # Create the message for Anthropic
-            message = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=1000,
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "image/jpeg",
-                                "data": image_data
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": """Extract lottery ticket data from this South African PowerBall ticket. 
+            # Create image data for Gemini
+            import PIL.Image
+            import io
+            
+            # Convert base64 to PIL Image for Gemini
+            image_bytes = base64.b64decode(image_data)
+            image = PIL.Image.open(io.BytesIO(image_bytes))
+            
+            # Generate content with Gemini
+            response = model.generate_content([
+                image,
+                """Extract lottery ticket data from this South African PowerBall ticket. 
 
 CRITICAL INSTRUCTIONS:
 1. Find ALL number rows (A1, B1, C1, D1, E1, F1, etc.) - each row has 5 main numbers
@@ -598,10 +593,10 @@ MUST FOLLOW:
                         }
                     ]
                 }]
-            )
+            ])
             
             # Parse the response
-            response_text = message.content[0].text
+            response_text = response.text
             logger.info("=== FULL AI RESPONSE ===")
             logger.info(response_text)
             logger.info("========================")

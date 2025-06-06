@@ -197,6 +197,10 @@ class LotteryResult(db.Model):
         except (json.JSONDecodeError, TypeError):
             return None
         
+    def get_main_numbers_list(self):
+        """Return main numbers as a list for analysis"""
+        return self.get_numbers_list()
+    
     def get_formatted_date(self):
         """Return properly formatted date string (YYYY-MM-DD)"""
         if self.draw_date:
