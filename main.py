@@ -605,10 +605,15 @@ MUST FOLLOW:
                 import re
                 json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
                 if json_match:
-                    ticket_data = json.loads(json_match.group())
+                    json_text = json_match.group()
+                    # Fix leading zeros in JSON (05 -> "05")
+                    json_text = re.sub(r'(\[|\,)\s*0(\d)', r'\1"0\2"', json_text)
+                    ticket_data = json.loads(json_text)
                     logger.info(f"Extracted JSON: {ticket_data}")
                 else:
-                    ticket_data = json.loads(response_text)
+                    # Clean up the response text for direct parsing
+                    clean_text = re.sub(r'(\[|\,)\s*0(\d)', r'\1"0\2"', response_text)
+                    ticket_data = json.loads(clean_text)
                     logger.info(f"Direct JSON parse: {ticket_data}")
                 
                 # Check for PowerBall + PowerBall Plus combination and compare with both results
