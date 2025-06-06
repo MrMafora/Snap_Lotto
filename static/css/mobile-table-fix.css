@@ -45,18 +45,20 @@
         text-overflow: ellipsis !important;
     }
     
-    /* Game type column - more space for readability */
+    /* Game type column - increased width for POWERBALL PLUS */
     .table-lottery th:first-child,
     .table-lottery td:first-child {
-        width: 85px !important;
-        min-width: 85px !important;
-        max-width: 85px !important;
+        width: 95px !important;
+        min-width: 95px !important;
+        max-width: 95px !important;
         font-size: 10px !important;
-        line-height: 1.2 !important;
+        line-height: 1.1 !important;
         white-space: normal !important;
         word-wrap: break-word !important;
-        padding: 6px 4px !important;
+        padding: 6px 3px !important;
         vertical-align: middle !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
     }
     
     /* Draw number column */
@@ -91,10 +93,10 @@
     
     /* Lottery number balls - optimized for mobile readability */
     .lottery-number {
-        width: 24px !important;
-        height: 24px !important;
-        font-size: 10px !important;
-        line-height: 24px !important;
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 11px !important;
+        line-height: 26px !important;
         margin: 2px 1px !important;
         border-radius: 50% !important;
         display: inline-block !important;
@@ -105,31 +107,39 @@
         box-sizing: border-box !important;
         padding: 0 !important;
         border: none !important;
+        min-width: 26px !important;
+        min-height: 26px !important;
     }
     
     /* Bonus number styling */
     .bonus-number {
-        width: 20px !important;
-        height: 20px !important;
-        font-size: 9px !important;
-        line-height: 20px !important;
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 10px !important;
+        line-height: 22px !important;
         margin: 2px 1px !important;
         box-sizing: border-box !important;
         padding: 0 !important;
         border: none !important;
+        min-width: 22px !important;
+        min-height: 22px !important;
     }
     
     /* Badge improvements for game types */
     .badge {
         font-size: 9px !important;
-        padding: 2px 4px !important;
-        line-height: 1.2 !important;
+        padding: 3px 4px !important;
+        line-height: 1.1 !important;
         word-wrap: break-word !important;
         white-space: normal !important;
         display: inline-block !important;
-        max-width: 80px !important;
+        max-width: 90px !important;
+        width: 90px !important;
         text-align: center !important;
         vertical-align: middle !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        border-radius: 4px !important;
     }
     
     /* Header improvements */
@@ -188,11 +198,20 @@
     
     .table-lottery th:first-child,
     .table-lottery td:first-child {
-        width: 75px !important;
-        min-width: 75px !important;
-        max-width: 75px !important;
+        width: 90px !important;
+        min-width: 90px !important;
+        max-width: 90px !important;
         font-size: 9px !important;
-        padding: 4px 3px !important;
+        padding: 4px 2px !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+    
+    .badge {
+        font-size: 8px !important;
+        padding: 2px 3px !important;
+        max-width: 85px !important;
+        width: 85px !important;
     }
     
     /* Adjust numbers column to give more space */
