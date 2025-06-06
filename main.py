@@ -532,27 +532,39 @@ def process_ticket():
             # Create comprehensive prompt
             prompt = """Extract lottery ticket data from this South African lottery ticket.
 
-Return ONLY valid JSON in this exact format:
+Identify the lottery type first:
+- If it's a PowerBall ticket: Extract all lines with 5 numbers each + PowerBall numbers
+- If it's a LOTTO ticket: Extract all lines with 6 numbers each + bonus numbers
+
+Return ONLY valid JSON in this format:
+
+For PowerBall tickets:
 {
     "lottery_type": "PowerBall",
-    "all_lines": [
-        [12, 17, 24, 26, 35],
-        [12, 17, 24, 34, 35],
-        [5, 15, 17, 24, 32]
-    ],
-    "all_powerball": [12, 12, 12],
+    "all_lines": [[12, 17, 24, 26, 35], [5, 15, 17, 24, 32]],
+    "all_powerball": [12, 12],
     "powerball_plus_included": "YES",
     "draw_date": "18/04/25",
     "draw_number": "1607",
     "ticket_cost": "R37.50"
 }
 
+For LOTTO tickets:
+{
+    "lottery_type": "LOTTO",
+    "all_lines": [[8, 24, 32, 34, 36, 52]],
+    "bonus_numbers": [26],
+    "lotto_plus_1_included": "YES",
+    "lotto_plus_2_included": "NO",
+    "draw_date": "04/06/25",
+    "draw_number": "2547",
+    "ticket_cost": "R15.00"
+}
+
 CRITICAL RULES:
-1. Extract ALL visible number lines from the ticket
-2. Find the PowerBall/bonus number for each line
-3. all_lines and all_powerball arrays must be same length
-4. powerball_plus_included: "YES" if PowerBall Plus is included, "NO" otherwise
-5. Return only the JSON, no other text"""
+1. Identify lottery type correctly (PowerBall vs LOTTO)
+2. Extract ALL visible number lines from the ticket
+3. Return only the JSON, no other text"""
             
             response = model.generate_content([image, prompt])
             response_text = response.text.strip()
@@ -569,28 +581,63 @@ CRITICAL RULES:
                 # Clean up uploaded file
                 os.remove(file_path)
                 
-                # Format response for frontend
-                result = {
-                    'success': True,
-                    'lottery_type': ticket_data.get('lottery_type', 'PowerBall'),
-                    'draw_date': ticket_data.get('draw_date', 'Not detected'),
-                    'draw_number': ticket_data.get('draw_number', 'Not detected'),
-                    'all_lines': ticket_data.get('all_lines', []),
-                    'all_powerball': ticket_data.get('all_powerball', []),
-                    'powerball_plus_included': ticket_data.get('powerball_plus_included', 'NO'),
-                    'ticket_cost': ticket_data.get('ticket_cost', 'Not detected'),
-                    'ticket_data': ticket_data,
-                    'raw_response': response_text,
-                    'powerball_results': {},
-                    'powerball_plus_results': {},
-                    'comparison': {
-                        'message': 'Ticket successfully analyzed with Google Gemini 2.5 Pro',
-                        'extracted_numbers': ticket_data.get('all_lines', [[]])[0] if ticket_data.get('all_lines') else [],
-                        'powerball_number': str(ticket_data.get('all_powerball', [0])[0]) if ticket_data.get('all_powerball') else 'Not detected',
-                        'lottery_type': ticket_data.get('lottery_type', 'PowerBall'),
-                        'both_games_checked': False
+                # Format response for frontend - handle both LOTTO and PowerBall
+                lottery_type = ticket_data.get('lottery_type', 'PowerBall')
+                
+                # Extract numbers and bonus/powerball based on lottery type
+                if 'LOTTO' in lottery_type.upper():
+                    # LOTTO ticket format
+                    all_lines = ticket_data.get('all_lines', [])
+                    bonus_numbers = ticket_data.get('bonus_numbers', [])
+                    
+                    result = {
+                        'success': True,
+                        'lottery_type': lottery_type,
+                        'draw_date': ticket_data.get('draw_date', 'Not detected'),
+                        'draw_number': ticket_data.get('draw_number', 'Not detected'),
+                        'all_lines': all_lines,
+                        'bonus_numbers': bonus_numbers,
+                        'lotto_plus_1_included': ticket_data.get('lotto_plus_1_included', 'NO'),
+                        'lotto_plus_2_included': ticket_data.get('lotto_plus_2_included', 'NO'),
+                        'ticket_cost': ticket_data.get('ticket_cost', 'Not detected'),
+                        'ticket_data': ticket_data,
+                        'raw_response': response_text,
+                        'powerball_results': {},
+                        'powerball_plus_results': {},
+                        'comparison': {
+                            'message': 'LOTTO ticket successfully analyzed with Google Gemini 2.5 Pro',
+                            'extracted_numbers': all_lines[0] if all_lines else [],
+                            'bonus_number': str(bonus_numbers[0]) if bonus_numbers else 'Not detected',
+                            'lottery_type': lottery_type,
+                            'both_games_checked': False
+                        }
                     }
-                }
+                else:
+                    # PowerBall ticket format
+                    all_lines = ticket_data.get('all_lines', [])
+                    all_powerball = ticket_data.get('all_powerball', [])
+                    
+                    result = {
+                        'success': True,
+                        'lottery_type': lottery_type,
+                        'draw_date': ticket_data.get('draw_date', 'Not detected'),
+                        'draw_number': ticket_data.get('draw_number', 'Not detected'),
+                        'all_lines': all_lines,
+                        'all_powerball': all_powerball,
+                        'powerball_plus_included': ticket_data.get('powerball_plus_included', 'NO'),
+                        'ticket_cost': ticket_data.get('ticket_cost', 'Not detected'),
+                        'ticket_data': ticket_data,
+                        'raw_response': response_text,
+                        'powerball_results': {},
+                        'powerball_plus_results': {},
+                        'comparison': {
+                            'message': 'PowerBall ticket successfully analyzed with Google Gemini 2.5 Pro',
+                            'extracted_numbers': all_lines[0] if all_lines else [],
+                            'powerball_number': str(all_powerball[0]) if all_powerball else 'Not detected',
+                            'lottery_type': lottery_type,
+                            'both_games_checked': False
+                        }
+                    }
                 
                 logger.info(f"Successfully processed ticket: {result}")
                 return jsonify(result)
