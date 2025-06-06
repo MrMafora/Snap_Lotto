@@ -236,37 +236,15 @@ def home():
         results = []
         
         # Process all latest results - ensure all sequential draw numbers are displayed
-        lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'PowerBall', 'PowerBall Plus', 'Daily Lotto']
+        # Match exact database field values for lottery types
+        lottery_types = ['Lotto', 'Lotto Plus 1', 'Lotto Plus 2', 'Powerball', 'Powerball Plus', 'Daily Lotto']
         
         for lottery_result in latest_results:
             if lottery_result.lottery_type in lottery_types:
-                # Get numbers from either main_numbers or numbers field
-                numbers_data = getattr(lottery_result, 'main_numbers', None) or getattr(lottery_result, 'numbers', None)
-                if numbers_data:
-                    # Process authentic numbers efficiently
-                    if hasattr(lottery_result, 'get_numbers_list'):
-                        numbers = lottery_result.get_numbers_list()
-                    else:
-                        # Parse JSON string directly
-                        import json
-                        try:
-                            numbers = json.loads(numbers_data) if isinstance(numbers_data, str) else numbers_data
-                        except:
-                            numbers = []
-                    numbers = [int(str(n).strip()) for n in numbers if str(n).strip()]
-                    
-                    # Process authentic bonus numbers efficiently
-                    bonus_data = getattr(lottery_result, 'bonus_numbers', None)
-                    if bonus_data and hasattr(lottery_result, 'get_bonus_numbers_list'):
-                        bonus_numbers = lottery_result.get_bonus_numbers_list()
-                    elif bonus_data:
-                        try:
-                            bonus_numbers = json.loads(bonus_data) if isinstance(bonus_data, str) else bonus_data
-                        except:
-                            bonus_numbers = []
-                    else:
-                        bonus_numbers = []
-                    bonus_numbers = [int(str(b).strip()) for b in bonus_numbers if str(b).strip()]
+                # Use the model's built-in methods for parsing numbers
+                try:
+                    numbers = lottery_result.get_numbers_list() if hasattr(lottery_result, 'get_numbers_list') else []
+                    bonus_numbers = lottery_result.get_bonus_numbers_list() if hasattr(lottery_result, 'get_bonus_numbers_list') else []
                     
                     if numbers:
                         class LotteryDisplay:
@@ -287,22 +265,8 @@ def home():
                                               lottery_result.draw_date, numbers, bonus_numbers)
                         results.append(result)
         
-        # Create optimized display mapping
-        sorted_types = {}
-        for result in results:
-            display_name = result.lottery_type
-            if result.lottery_type == 'Lotto':
-                display_name = 'Lottery'
-            elif result.lottery_type == 'PowerBall':
-                display_name = 'Powerball'
-            elif result.lottery_type == 'PowerBall Plus':
-                display_name = 'Powerball Plus'
-            elif result.lottery_type == 'Daily Lotto':
-                display_name = 'Daily Lottery'
-            sorted_types[display_name] = result
-        
         app.logger.info(f"HOMEPAGE: Loaded {len(results)} results from database")
-        return render_template('index.html', results=results, sorted_types=sorted_types)
+        return render_template('index.html', results=results)
         
     except Exception as e:
         app.logger.error(f"Error in optimized homepage: {str(e)}")
