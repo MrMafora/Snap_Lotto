@@ -89,7 +89,7 @@ class LotteryResult(db.Model):
     lottery_type = db.Column(db.String(50), nullable=False, comment="Game Type")
     draw_number = db.Column(db.Integer, nullable=True, comment="Draw ID")
     draw_date = db.Column(db.DateTime, nullable=False, comment="Game Date")
-    numbers = db.Column(db.String(255), nullable=True, comment="Winning Numbers (JSON string array)")  # Stored as JSON string
+    main_numbers = db.Column(db.String(255), nullable=True, comment="Winning Numbers (JSON string array)")  # Stored as JSON string
     bonus_numbers = db.Column(db.String(255), nullable=True, comment="Bonus Numbers (JSON string array)")  # Stored as JSON string
     divisions = db.Column(db.Text, nullable=True, comment="Prize Divisions Data (JSON string)")  # Stored as JSON string with division, winners, and prize amount
     
@@ -120,20 +120,20 @@ class LotteryResult(db.Model):
     
     def get_numbers_list(self):
         """Return numbers as a Python list, handling both JSON and text formats"""
-        if not self.numbers:
+        if not self.main_numbers:
             return []
             
         # If it's already JSON formatted (starts with [ )
-        if isinstance(self.numbers, str) and self.numbers.strip().startswith('['):
+        if isinstance(self.main_numbers, str) and self.main_numbers.strip().startswith('['):
             try:
-                return json.loads(self.numbers)
+                return json.loads(self.main_numbers)
             except json.JSONDecodeError:
                 pass
                 
         # Handle comma-separated or space-separated numbers format
-        if isinstance(self.numbers, str):
+        if isinstance(self.main_numbers, str):
             # Remove any bonus number indicator
-            cleaned = self.numbers.split('+')[0].strip()
+            cleaned = self.main_numbers.split('+')[0].strip()
             
             # Check if comma-separated (like "1,2,3,18,29,32")
             if ',' in cleaned:
@@ -143,8 +143,8 @@ class LotteryResult(db.Model):
                 return [num.strip() for num in cleaned.split() if num.strip()]
             
         # If somehow numbers is already a list
-        if isinstance(self.numbers, list):
-            return self.numbers
+        if isinstance(self.main_numbers, list):
+            return self.main_numbers
             
         # Last resort
         return []
@@ -153,9 +153,9 @@ class LotteryResult(db.Model):
         """Return bonus numbers as a Python list, handling both JSON and text formats"""
         # If there's no bonus numbers
         if not self.bonus_numbers:
-            # Check if bonus is in the numbers string (for text format like "09 18 19 30 31 40 + 28")
-            if isinstance(self.numbers, str) and '+' in self.numbers:
-                parts = self.numbers.split('+')
+            # Check if bonus is in the main_numbers string (for text format like "09 18 19 30 31 40 + 28")
+            if isinstance(self.main_numbers, str) and '+' in self.main_numbers:
+                parts = self.main_numbers.split('+')
                 if len(parts) > 1 and parts[1].strip():
                     return [parts[1].strip()]
             return []
@@ -654,7 +654,7 @@ class PredictionResult(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     prediction_id = db.Column(db.Integer, db.ForeignKey('lottery_prediction.id'), nullable=False)
-    actual_draw_id = db.Column(db.Integer, db.ForeignKey('lottery_result.id'), nullable=True)
+    actual_draw_id = db.Column(db.Integer, db.ForeignKey('lottery_results.id'), nullable=True)
     draw_date = db.Column(db.DateTime, nullable=True)
     matched_numbers = db.Column(db.Integer, default=0)  # Number of correctly predicted main numbers
     matched_bonus = db.Column(db.Boolean, default=False)  # Whether bonus number was correctly predicted
