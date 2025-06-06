@@ -347,7 +347,7 @@ def debug_data():
             debug_info['sample_data'].append({
                 'lottery_type': row.lottery_type,
                 'draw_number': str(row.draw_number),
-                'numbers': row.numbers
+                'numbers': row.main_numbers
             })
         
         return debug_info
@@ -751,7 +751,7 @@ CRITICAL INSTRUCTIONS:
                     if powerball_plus_included.upper() == 'YES' and player_numbers:
                         powerball_plus_draw = LotteryResult.query.filter_by(lottery_type='Powerball Plus').order_by(LotteryResult.draw_date.desc()).first()
                         if powerball_plus_draw:
-                            plus_numbers = powerball_plus_draw.numbers if powerball_plus_draw.numbers else []
+                            plus_numbers = json.loads(powerball_plus_draw.main_numbers) if powerball_plus_draw.main_numbers else []
                             plus_powerball = powerball_plus_draw.bonus_numbers[0] if powerball_plus_draw.bonus_numbers else None
                             
                             plus_main_matches = len(set(player_numbers) & set(plus_numbers))
@@ -1184,7 +1184,7 @@ def results():
         for lt in lottery_types:
             if lt in latest_results:
                 result = latest_results[lt]
-                logger.info(f"✓ {lt}: Draw {result.draw_number}, Numbers: {result.numbers}")
+                logger.info(f"✓ {lt}: Draw {result.draw_number}, Numbers: {result.main_numbers}")
             else:
                 logger.error(f"✗ MISSING: {lt} not in latest_results")
         
@@ -3631,9 +3631,9 @@ def lottery_details(draw_number):
         
         # Parse main numbers
         main_numbers = []
-        if lottery_result.numbers:
+        if lottery_result.main_numbers:
             try:
-                main_numbers = json.loads(lottery_result.numbers)
+                main_numbers = json.loads(lottery_result.main_numbers)
             except:
                 main_numbers = []
         
