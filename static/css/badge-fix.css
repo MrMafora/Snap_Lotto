@@ -1,0 +1,25 @@
+/* Badge Color Fix - Override any conflicting styles */
+.game-type-badge {
+    display: inline-block !important;
+    padding: 3px 8px !important;
+    border-radius: 3px !important;
+    font-weight: bold !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    margin-right: 5px !important;
+}
+
+.game-type-lottery {
+    background-color: #67C6ED !important; /* Blue */
+    color: #333 !important;
+}
+
+.game-type-powerball {
+    background-color: #E03237 !important; /* Red */
+    color: white !important;
+}
+
+.game-type-daily {
+    background-color: #19A03A !important; /* Green */
+    color: white !important;
+}

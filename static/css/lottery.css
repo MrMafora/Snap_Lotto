@@ -463,28 +463,7 @@
     }
 }
 
-/* Game Type Badges */
-.game-type-badge {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    color: white;
-}
-
-.game-type-lottery {
-    background-color: var(--lottery-red);
-}
-
-.game-type-powerball {
-    background-color: var(--lottery-yellow);
-    color: var(--lottery-dark);
-}
-
-.game-type-daily {
-    background-color: var(--lottery-green);
-}
+/* Game Type Badges - removed conflicting definitions to use custom.css */
 
 /* Table Styles */
 .table-lottery {

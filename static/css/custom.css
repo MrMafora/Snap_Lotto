@@ -660,18 +660,18 @@ canvas {
 }
 
 .game-type-lottery {
-    background-color: var(--sa-lottery-blue);
-    color: #333;
+    background-color: var(--sa-lottery-blue) !important;
+    color: #333 !important;
 }
 
 .game-type-powerball {
-    background-color: var(--sa-lottery-red);
-    color: white;
+    background-color: var(--sa-lottery-red) !important;
+    color: white !important;
 }
 
 .game-type-daily {
-    background-color: var(--sa-lottery-green);
-    color: white;
+    background-color: var(--sa-lottery-green) !important;
+    color: white !important;
 }
 
 /* Spinning animation for sync icon */
