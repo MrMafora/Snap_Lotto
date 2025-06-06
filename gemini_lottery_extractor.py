@@ -74,12 +74,17 @@ JSON Output Schema:
   }
 }
 
+CRITICAL: Extract winning numbers in their EXACT DISPLAY ORDER as shown on the lottery results page.
+
 Example Extraction Guidelines:
 - lottery_type: Extract from the main title (e.g., "LOTTO PLUS 1").
 - draw_number: Extract the "DRAW ID" number.
+- main_numbers: Extract numbers in the EXACT order they appear in the "WINNING NUMBERS" section (left to right). DO NOT sort them.
 - bonus_numbers: This is the number after the + sign.
 - prize_divisions: Extract all visible prize tiers with winner counts and amounts.
 - jackpot_info: Find the estimated jackpot amount for the next draw.
+
+IMPORTANT: Preserve the exact sequence of winning numbers as displayed on the screen. For example, if numbers show as "08 24 32 34 36 52", return [8, 24, 32, 34, 36, 52] - not sorted.
 
 Process the attached image and return the JSON output.
 Return ONLY valid JSON in this exact structure:
