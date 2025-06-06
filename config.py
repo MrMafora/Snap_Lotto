@@ -34,7 +34,7 @@ class Config:
             "options": "-c statement_timeout=30000"  # 30 second timeout
         }
     
-    # Anthropic API settings (Custom environment variable name as requested)
+    # Google API settings for Gemini 2.5 Pro
     GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY', '')
     
     # Screenshot directory
@@ -75,5 +75,5 @@ class Config:
         os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
         
         # Validate required environment variables
-        if not Config.ANTHROPIC_API_KEY:
-            app.logger.warning("Lotto_scape_ANTHROPIC_KEY environment variable not set. OCR functionality will not work.")
+        if not Config.GOOGLE_API_KEY:
+            app.logger.warning("GOOGLE_API_KEY_SNAP_LOTTERY environment variable not set. AI extraction functionality will not work.")

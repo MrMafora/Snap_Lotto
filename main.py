@@ -250,7 +250,7 @@ def home():
             )
             SELECT lottery_type, draw_number, draw_date, numbers as main_numbers, bonus_numbers, divisions 
             FROM ranked_results 
-            WHERE rn = 1 AND lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2')
+            WHERE rn = 1
             ORDER BY 
                 CASE lottery_type
                     WHEN 'Lotto' THEN 1
