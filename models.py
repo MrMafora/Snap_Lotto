@@ -84,6 +84,7 @@ class Screenshot(db.Model):
 
 class LotteryResult(db.Model):
     """Model for storing lottery results extracted from screenshots"""
+    __tablename__ = 'lottery_results'  # Use the plural table name with current data
     id = db.Column(db.Integer, primary_key=True)
     lottery_type = db.Column(db.String(50), nullable=False, comment="Game Type")
     draw_number = db.Column(db.Integer, nullable=True, comment="Draw ID")

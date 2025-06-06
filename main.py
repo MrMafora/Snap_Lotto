@@ -1448,14 +1448,14 @@ def lottery_results(lottery_type):
     #     data_aggregator = da
     #     logger.info("Loaded data_aggregator module on demand")
     
-    # Map display names to database names for authentic lottery data
+    # Map display names to database names for authentic lottery data - matching main results page
     lottery_type_mapping = {
-        'Lottery': 'Lotto',
-        'Lottery Plus 1': 'Lotto Plus 1', 
-        'Lottery Plus 2': 'Lotto Plus 2',
-        'Powerball': 'PowerBall',
-        'Powerball Plus': 'PowerBall Plus',
-        'Daily Lottery': 'Daily Lotto'
+        'Lottery': 'LOTTO',
+        'Lottery Plus 1': 'LOTTO PLUS 1', 
+        'Lottery Plus 2': 'LOTTO PLUS 2',
+        'Powerball': 'POWERBALL',
+        'Powerball Plus': 'POWERBALL PLUS',
+        'Daily Lottery': 'DAILY LOTTO'
     }
     
     # Get the actual database lottery type name
