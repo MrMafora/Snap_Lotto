@@ -227,13 +227,8 @@ def init_lazy_modules():
         if hm:
             hm.init_health_monitor(app, db)
         
-        # Register scanner routes for ticket scanning functionality
-        try:
-            from scanner_routes import register_scanner_routes
-            register_scanner_routes(app)
-            logger.info("Scanner routes registered")
-        except Exception as e:
-            logger.error(f"Failed to register scanner routes: {e}")
+        # Scanner routes are handled in main.py directly
+        # Ticket scanner functionality integrated in existing routes
     
     logger.info("All modules lazy-loaded successfully")
 

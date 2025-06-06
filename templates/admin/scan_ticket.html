@@ -1,0 +1,242 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Scan Lottery Ticket{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-search"></i> Lottery Ticket Scanner
+                    </h3>
+                    <p class="text-muted mb-0">Upload lottery tickets to extract numbers with Google Gemini 2.5 Pro</p>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="upload-zone" id="uploadZone">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                                <h5>Click to upload or drag and drop</h5>
+                                <p class="text-muted">Supports JPG, PNG, JPEG formats</p>
+                                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                            </div>
+                            
+                            <div class="mt-3" id="imagePreview" style="display: none;">
+                                <h6>Uploaded Image:</h6>
+                                <img id="previewImg" class="img-fluid border rounded" style="max-height: 300px;">
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-6">
+                            <div class="loading" id="loading" style="display: none;">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Processing...</span>
+                                    </div>
+                                    <p class="mt-2">Analyzing ticket with Google Gemini 2.5 Pro...</p>
+                                </div>
+                            </div>
+                            
+                            <div class="results-container" id="results" style="display: none;">
+                                <h5><i class="fas fa-ticket-alt"></i> Extraction Results</h5>
+                                <div id="ticketData"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.upload-zone {
+    border: 3px dashed #007bff;
+    border-radius: 10px;
+    padding: 3rem;
+    text-align: center;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.upload-zone:hover {
+    background: #e9ecef;
+    border-color: #0056b3;
+}
+.upload-zone.dragover {
+    background: #cce7ff;
+    border-color: #0056b3;
+}
+.results-container {
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+.ticket-line {
+    background: white;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+.number-circle {
+    display: inline-block;
+    width: 35px;
+    height: 35px;
+    line-height: 35px;
+    text-align: center;
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+    margin: 2px;
+    font-weight: bold;
+}
+.powerball-circle {
+    background: #dc3545;
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    const uploadZone = $('#uploadZone');
+    const fileInput = $('#fileInput');
+    const loading = $('#loading');
+    const results = $('#results');
+    const ticketData = $('#ticketData');
+    const imagePreview = $('#imagePreview');
+    const previewImg = $('#previewImg');
+
+    // Upload zone click handler
+    uploadZone.on('click', function() {
+        fileInput.click();
+    });
+
+    // Drag and drop handlers
+    uploadZone.on('dragover', function(e) {
+        e.preventDefault();
+        uploadZone.addClass('dragover');
+    });
+
+    uploadZone.on('dragleave', function() {
+        uploadZone.removeClass('dragover');
+    });
+
+    uploadZone.on('drop', function(e) {
+        e.preventDefault();
+        uploadZone.removeClass('dragover');
+        const files = e.originalEvent.dataTransfer.files;
+        if (files.length > 0) {
+            processFile(files[0]);
+        }
+    });
+
+    // File input change handler
+    fileInput.on('change', function(e) {
+        if (e.target.files.length > 0) {
+            processFile(e.target.files[0]);
+        }
+    });
+
+    function processFile(file) {
+        if (!file.type.startsWith('image/')) {
+            showAlert('Please select an image file', 'warning');
+            return;
+        }
+
+        // Show image preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.attr('src', e.target.result);
+            imagePreview.show();
+        };
+        reader.readAsDataURL(file);
+
+        const formData = new FormData();
+        formData.append('ticket_image', file);
+
+        loading.show();
+        results.hide();
+
+        $.ajax({
+            url: '/api/scan-ticket',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(data) {
+                loading.hide();
+                if (data.success) {
+                    displayResults(data.data);
+                    showAlert('Ticket processed successfully!', 'success');
+                } else {
+                    showAlert('Error: ' + data.error, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                loading.hide();
+                showAlert('Error processing ticket: ' + error, 'danger');
+            }
+        });
+    }
+
+    function displayResults(data) {
+        let html = `
+            <div class="row">
+                <div class="col-12">
+                    <div class="info-card mb-3">
+                        <h6><i class="fas fa-info-circle"></i> Ticket Information</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Lottery Type:</strong></td><td>${data.lottery_type}</td></tr>
+                            ${data.draw_date ? `<tr><td><strong>Draw Date:</strong></td><td>${data.draw_date}</td></tr>` : ''}
+                            ${data.draw_number ? `<tr><td><strong>Draw Number:</strong></td><td>${data.draw_number}</td></tr>` : ''}
+                            ${data.ticket_cost ? `<tr><td><strong>Ticket Cost:</strong></td><td>${data.ticket_cost}</td></tr>` : ''}
+                            ${data.powerball_plus_included ? `<tr><td><strong>PowerBall Plus:</strong></td><td>${data.powerball_plus_included}</td></tr>` : ''}
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h6><i class="fas fa-list-ol"></i> Extracted Numbers</h6>
+        `;
+
+        if (data.all_lines && data.all_lines.length > 0) {
+            data.all_lines.forEach((line, index) => {
+                html += `<div class="ticket-line">
+                    <strong>Line ${index + 1}:</strong> `;
+                
+                line.forEach(num => {
+                    html += `<span class="number-circle">${num}</span>`;
+                });
+
+                if (data.all_powerball && data.all_powerball[index]) {
+                    html += ` <strong>PowerBall:</strong> <span class="number-circle powerball-circle">${data.all_powerball[index]}</span>`;
+                }
+                
+                html += `</div>`;
+            });
+        }
+
+        html += '</div>';
+        ticketData.html(html);
+        results.show();
+    }
+
+    function showAlert(message, type) {
+        const alert = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        $('.card-body').prepend(alert);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(function() {
+            $('.alert').fadeOut();
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}
