@@ -92,9 +92,9 @@ def get_optimized_latest_results(limit=10):
     """Optimized query for latest lottery results - loads fresh data from database"""
     from models import LotteryResult, db
     
-    # Always load fresh data from database
+    # Always load fresh data from database - prioritize most recent entries
     results = db.session.query(LotteryResult)\
-        .order_by(LotteryResult.draw_date.desc(), LotteryResult.created_at.desc())\
+        .order_by(LotteryResult.created_at.desc(), LotteryResult.draw_date.desc())\
         .limit(limit)\
         .all()
     

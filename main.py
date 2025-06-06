@@ -241,13 +241,32 @@ def home():
         
         for lottery_result in latest_results:
             if lottery_result.lottery_type in lottery_types and lottery_result.lottery_type not in processed_types:
-                if lottery_result.numbers:
+                # Get numbers from either main_numbers or numbers field
+                numbers_data = getattr(lottery_result, 'main_numbers', None) or getattr(lottery_result, 'numbers', None)
+                if numbers_data:
                     # Process authentic numbers efficiently
-                    numbers = lottery_result.get_numbers_list()
+                    if hasattr(lottery_result, 'get_numbers_list'):
+                        numbers = lottery_result.get_numbers_list()
+                    else:
+                        # Parse JSON string directly
+                        import json
+                        try:
+                            numbers = json.loads(numbers_data) if isinstance(numbers_data, str) else numbers_data
+                        except:
+                            numbers = []
                     numbers = [int(str(n).strip()) for n in numbers if str(n).strip()]
                     
                     # Process authentic bonus numbers efficiently
-                    bonus_numbers = lottery_result.get_bonus_numbers_list()
+                    bonus_data = getattr(lottery_result, 'bonus_numbers', None)
+                    if bonus_data and hasattr(lottery_result, 'get_bonus_numbers_list'):
+                        bonus_numbers = lottery_result.get_bonus_numbers_list()
+                    elif bonus_data:
+                        try:
+                            bonus_numbers = json.loads(bonus_data) if isinstance(bonus_data, str) else bonus_data
+                        except:
+                            bonus_numbers = []
+                    else:
+                        bonus_numbers = []
                     bonus_numbers = [int(str(b).strip()) for b in bonus_numbers if str(b).strip()]
                     
                     if numbers:
