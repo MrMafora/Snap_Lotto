@@ -549,7 +549,7 @@ def process_ticket():
             
             # Initialize Gemini client
             genai.configure(api_key=os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY'))
-            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            model = genai.GenerativeModel('gemini-1.5-pro')
             
             # Read and encode the image
             with open(file_path, 'rb') as image_file:
