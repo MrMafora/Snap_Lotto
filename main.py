@@ -242,9 +242,8 @@ def home():
                        ROW_NUMBER() OVER (
                            PARTITION BY lottery_type 
                            ORDER BY 
-                               CASE WHEN divisions IS NOT NULL AND divisions != '[]' THEN 0 ELSE 1 END,
-                               draw_date DESC, 
-                               created_at DESC
+                               created_at DESC, 
+                               draw_date DESC
                        ) as rn
                 FROM lottery_result
             )
