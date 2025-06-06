@@ -1262,7 +1262,7 @@ def results():
                             if self.bonus_numbers is None:
                                 return []
                             if isinstance(self.bonus_numbers, str):
-                                # Handle JSON array format like "[26]" or simple string like "03"
+                                # Handle JSON array format like "[26]" or PostgreSQL array like "{14}" or simple string like "03"
                                 bonus_str = self.bonus_numbers.strip()
                                 if not bonus_str or bonus_str == '{}':
                                     return []
@@ -1274,13 +1274,26 @@ def results():
                                         # Fallback to comma-separated parsing
                                         clean_str = bonus_str.strip('[]')
                                         return [int(num.strip()) for num in clean_str.split(',') if num.strip()]
+                                elif bonus_str.startswith('{') and bonus_str.endswith('}'):
+                                    # Handle PostgreSQL array format like '{14}' or '{14,25}'
+                                    try:
+                                        clean_str = bonus_str.strip('{}')
+                                        if clean_str:
+                                            return [int(num.strip()) for num in clean_str.split(',') if num.strip()]
+                                        else:
+                                            return []
+                                    except (ValueError, TypeError):
+                                        return []
                                 else:
-                                    return [int(bonus_str)] if bonus_str.isdigit() else [bonus_str]
+                                    try:
+                                        return [int(bonus_str)] if bonus_str.isdigit() else []
+                                    except:
+                                        return []
                             elif isinstance(self.bonus_numbers, (int, float)):
                                 return [int(self.bonus_numbers)]
                             elif isinstance(self.bonus_numbers, list):
                                 return self.bonus_numbers
-                            return [str(self.bonus_numbers)] if self.bonus_numbers else []
+                            return []
                     
                     # Parse the numbers immediately to ensure proper format
                     import json
@@ -1311,13 +1324,20 @@ def results():
                             # Handle PostgreSQL array format like '{14}'
                             try:
                                 clean_str = bonus_numbers.strip('{}')
-                                bonus_numbers = [int(n.strip()) for n in clean_str.split(',') if n.strip()]
+                                if clean_str:
+                                    bonus_numbers = [int(n.strip()) for n in clean_str.split(',') if n.strip()]
+                                else:
+                                    bonus_numbers = []
                                 app.logger.info(f"Parsed PostgreSQL bonus numbers for {lottery_type}: {bonus_numbers}")
                             except Exception as e:
                                 app.logger.error(f"Failed to parse PostgreSQL bonus numbers {bonus_numbers}: {e}")
+                                bonus_numbers = []
                         else:
                             # Handle comma-separated format
-                            bonus_numbers = [int(n.strip()) for n in bonus_numbers.split(',') if n.strip()]
+                            try:
+                                bonus_numbers = [int(n.strip()) for n in bonus_numbers.split(',') if n.strip()]
+                            except:
+                                bonus_numbers = []
                     
                     latest_results[lottery_type] = ResultObj(
                         result[1], result[2], result[3], numbers, bonus_numbers
