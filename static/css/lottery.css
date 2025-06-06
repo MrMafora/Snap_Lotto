@@ -179,11 +179,27 @@
     white-space: nowrap;
 }
 
+.lottery-ball-sm .number {
+    font-size: 11px;
+}
+
+.lottery-ball-lg {
+    width: 50px;
+    height: 50px;
+    font-size: 14px;
+    /* Prevent text wrapping */
+    white-space: nowrap;
+}
+
 @media (max-width: 576px) {
     .lottery-ball-sm {
         width: 23px;
         height: 23px;
         font-size: 0.75rem;
+    }
+    
+    .lottery-ball-sm .number {
+        font-size: 9px;
     }
 }
 
@@ -192,6 +208,10 @@
         width: 20px;
         height: 20px;
         font-size: 0.7rem;
+    }
+    
+    .lottery-ball-sm .number {
+        font-size: 8px;
     }
 }
 
