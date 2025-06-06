@@ -119,6 +119,10 @@
         font-size: 0.9rem;
         margin: 0 4px 8px 0;
     }
+    
+    .lottery-ball .number {
+        font-size: 12px;
+    }
 }
 
 /* Even smaller screens */
@@ -129,6 +133,10 @@
         font-size: 0.85rem;
         margin: 0 3px 6px 0;
     }
+    
+    .lottery-ball .number {
+        font-size: 10px;
+    }
 }
 
 .lottery-ball .number {
@@ -136,7 +144,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
     text-align: center;
     line-height: 1;
