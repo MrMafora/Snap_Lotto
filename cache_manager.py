@@ -91,16 +91,32 @@ def cached_query(ttl=300):
 def get_optimized_latest_results(limit=10):
     """Optimized query for latest lottery results - loads fresh data from database"""
     from models import LotteryResult, db
-    from sqlalchemy import desc
+    from sqlalchemy import desc, func
     from datetime import datetime
     
-    # Force fresh connection and query all records by created_at desc to get most recent
-    # This ensures we bypass any connection pooling issues
-    db.session.close()  # Force fresh connection
+    # Force fresh connection 
+    db.session.close()
     
+    # Get the latest result for each lottery type using window function
+    subquery = db.session.query(
+        LotteryResult.id,
+        LotteryResult.lottery_type,
+        LotteryResult.draw_number,
+        LotteryResult.draw_date,
+        LotteryResult.main_numbers,
+        LotteryResult.bonus_numbers,
+        LotteryResult.created_at,
+        func.row_number().over(
+            partition_by=LotteryResult.lottery_type,
+            order_by=desc(LotteryResult.created_at)
+        ).label('rn')
+    ).subquery()
+    
+    # Select only the most recent record for each lottery type
     results = db.session.query(LotteryResult)\
+        .join(subquery, LotteryResult.id == subquery.c.id)\
+        .filter(subquery.c.rn == 1)\
         .order_by(desc(LotteryResult.created_at))\
-        .limit(limit)\
         .all()
     
     return results

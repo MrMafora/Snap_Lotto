@@ -241,29 +241,43 @@ def home():
         
         for lottery_result in latest_results:
             if lottery_result.lottery_type in lottery_types:
-                # Use the model's built-in methods for parsing numbers
-                try:
-                    numbers = lottery_result.get_numbers_list() if hasattr(lottery_result, 'get_numbers_list') else []
-                    bonus_numbers = lottery_result.get_bonus_numbers_list() if hasattr(lottery_result, 'get_bonus_numbers_list') else []
-                    
-                    if numbers:
-                        class LotteryDisplay:
-                            def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
-                                self.lottery_type = lottery_type
-                                self.draw_number = str(draw_number)
-                                self.draw_date = draw_date
-                                self.numbers = numbers
-                                self.bonus_numbers = bonus_numbers
-                            
-                            def get_numbers_list(self):
-                                return self.numbers
-                            
-                            def get_bonus_numbers_list(self):
-                                return self.bonus_numbers
+                # Parse main_numbers field directly (PostgreSQL array format)
+                import re
+                numbers = []
+                if hasattr(lottery_result, 'main_numbers') and lottery_result.main_numbers:
+                    # Parse PostgreSQL array format like "{15,22,25,31,36}"
+                    main_nums_str = str(lottery_result.main_numbers)
+                    if main_nums_str.startswith('{') and main_nums_str.endswith('}'):
+                        # Extract numbers from PostgreSQL array format
+                        nums_only = main_nums_str[1:-1]  # Remove { }
+                        numbers = [int(n.strip()) for n in nums_only.split(',') if n.strip().isdigit()]
+                
+                # Parse bonus_numbers field directly
+                bonus_numbers = []
+                if hasattr(lottery_result, 'bonus_numbers') and lottery_result.bonus_numbers:
+                    bonus_str = str(lottery_result.bonus_numbers)
+                    if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                        bonus_only = bonus_str[1:-1]  # Remove { }
+                        bonus_numbers = [int(n.strip()) for n in bonus_only.split(',') if n.strip().isdigit()]
+                
+                if numbers:
+                    class LotteryDisplay:
+                        def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
+                            self.lottery_type = lottery_type
+                            self.draw_number = str(draw_number)
+                            self.draw_date = draw_date
+                            self.numbers = numbers
+                            self.bonus_numbers = bonus_numbers
                         
-                        result = LotteryDisplay(lottery_result.lottery_type, lottery_result.draw_number, 
-                                              lottery_result.draw_date, numbers, bonus_numbers)
-                        results.append(result)
+                        def get_numbers_list(self):
+                            return self.numbers
+                        
+                        def get_bonus_numbers_list(self):
+                            return self.bonus_numbers
+                    
+                    result = LotteryDisplay(lottery_result.lottery_type, lottery_result.draw_number, 
+                                          lottery_result.draw_date, numbers, bonus_numbers)
+                    results.append(result)
         
         app.logger.info(f"HOMEPAGE: Loaded {len(results)} results from database")
         return render_template('index.html', results=results)
