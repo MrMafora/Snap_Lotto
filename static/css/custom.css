@@ -660,17 +660,17 @@ canvas {
 }
 
 .game-type-lottery {
-    background-color: var(--sa-lottery-blue) !important;
-    color: #333 !important;
-}
-
-.game-type-powerball {
-    background-color: var(--sa-lottery-red) !important;
+    background-color: #E03237 !important; /* Red for LOTTO group */
     color: white !important;
 }
 
+.game-type-powerball {
+    background-color: #FFE11D !important; /* Yellow for POWERBALL group */
+    color: #333 !important;
+}
+
 .game-type-daily {
-    background-color: var(--sa-lottery-green) !important;
+    background-color: #19A03A !important; /* Green for DAILY LOTTO */
     color: white !important;
 }
 
