@@ -131,6 +131,33 @@ function renderFrequencyChart(frequencyData) {
                 }
             });
             
+            // Add click event listener for interactive functionality
+            bar.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Chart bar clicked for number:', number);
+                
+                // Call the global highlight function if available
+                if (typeof window.highlightNumber === 'function') {
+                    window.highlightNumber(number, frequency);
+                } else {
+                    console.error('highlightNumber function not available');
+                }
+            });
+            
+            // Make bar column clickable too
+            barColumn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Chart column clicked for number:', number);
+                
+                if (typeof window.highlightNumber === 'function') {
+                    window.highlightNumber(number, frequency);
+                } else {
+                    console.error('highlightNumber function not available');
+                }
+            });
+            
             // Assemble the components
             barContainer.appendChild(bar);
             barColumn.appendChild(barContainer);
