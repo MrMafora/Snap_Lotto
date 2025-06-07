@@ -86,8 +86,12 @@
                                 <p class="lead">You've won: <strong>{{ result.comparison.prize_tier }}</strong></p>
                                 <p>{{ result.comparison.description }}</p>
                                 <p>Matching Numbers: {{ result.comparison.matching_numbers|length }}</p>
-                                {% if result.comparison.bonus_match and (result.ticket_data.lottery_type == 'PowerBall' or 'POWERBALL' in result.ticket_data.lottery_type.upper()) %}
-                                    <p>Bonus Number Matched: Yes</p>
+                                {% if result.comparison.bonus_match %}
+                                    {% if 'POWERBALL' in result.ticket_data.lottery_type.upper() %}
+                                        <p>PowerBall Matched: Yes</p>
+                                    {% elif 'LOTTO' in result.ticket_data.lottery_type.upper() %}
+                                        <p>Bonus Ball Match: One of your numbers matched the bonus ball</p>
+                                    {% endif %}
                                 {% endif %}
                             {% else %}
                                 <h4 class="text-secondary mb-3">Sorry, your ticket did not win.</h4>

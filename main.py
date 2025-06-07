@@ -735,12 +735,12 @@ CRITICAL INSTRUCTIONS:
                 
                 # Define lottery type configurations for South African lotteries
                 LOTTERY_CONFIGS = {
-                    'LOTTO': {'has_bonus': False, 'main_numbers': 6, 'bonus_name': None},
-                    'LOTTO PLUS 1': {'has_bonus': False, 'main_numbers': 6, 'bonus_name': None},
-                    'LOTTO PLUS 2': {'has_bonus': False, 'main_numbers': 6, 'bonus_name': None},
-                    'POWERBALL': {'has_bonus': True, 'main_numbers': 5, 'bonus_name': 'PowerBall'},
-                    'POWERBALL PLUS': {'has_bonus': True, 'main_numbers': 5, 'bonus_name': 'PowerBall Plus'},
-                    'DAILY LOTTO': {'has_bonus': False, 'main_numbers': 5, 'bonus_name': None}
+                    'LOTTO': {'ticket_has_bonus': False, 'draw_has_bonus': True, 'main_numbers': 6, 'bonus_name': 'Bonus Ball'},
+                    'LOTTO PLUS 1': {'ticket_has_bonus': False, 'draw_has_bonus': True, 'main_numbers': 6, 'bonus_name': 'Bonus Ball'},
+                    'LOTTO PLUS 2': {'ticket_has_bonus': False, 'draw_has_bonus': True, 'main_numbers': 6, 'bonus_name': 'Bonus Ball'},
+                    'POWERBALL': {'ticket_has_bonus': True, 'draw_has_bonus': True, 'main_numbers': 5, 'bonus_name': 'PowerBall'},
+                    'POWERBALL PLUS': {'ticket_has_bonus': True, 'draw_has_bonus': True, 'main_numbers': 5, 'bonus_name': 'PowerBall Plus'},
+                    'DAILY LOTTO': {'ticket_has_bonus': False, 'draw_has_bonus': False, 'main_numbers': 5, 'bonus_name': None}
                 }
                 
                 # Format response for frontend - handle all lottery types
@@ -761,9 +761,9 @@ CRITICAL INSTRUCTIONS:
                     lotto_plus_1_included = ticket_data.get('lotto_plus_1_included', 'NO')
                     lotto_plus_2_included = ticket_data.get('lotto_plus_2_included', 'NO')
                     
-                    # Get player numbers for comparison - use config to determine bonus ball handling
+                    # Get player numbers for comparison - LOTTO tickets don't have bonus numbers
                     player_numbers = all_lines[0] if all_lines else []
-                    player_bonus = bonus_numbers[0] if bonus_numbers and lottery_config['has_bonus'] else None
+                    player_bonus = None  # LOTTO tickets never have bonus numbers on the ticket itself
                     
                     logger.info(f"Processing LOTTO ticket: numbers={player_numbers}")
                     logger.info(f"Plus game flags: Plus1={lotto_plus_1_included}, Plus2={lotto_plus_2_included}")
@@ -779,11 +779,13 @@ CRITICAL INSTRUCTIONS:
                             
                             main_matches = len(set(player_numbers) & set(winning_numbers))
                             
-                            # Handle bonus ball comparison based on lottery configuration
+                            # Handle bonus ball comparison - LOTTO draws have bonus balls but tickets don't
                             bonus_match = False
-                            if lottery_config['has_bonus'] and player_bonus:
-                                winning_bonus = lotto_draw.bonus_numbers[0] if lotto_draw.bonus_numbers else None
-                                bonus_match = (player_bonus == winning_bonus) if winning_bonus else False
+                            winning_bonus = None
+                            if lottery_config['draw_has_bonus'] and lotto_draw.bonus_numbers:
+                                winning_bonus = json.loads(lotto_draw.bonus_numbers)[0] if isinstance(lotto_draw.bonus_numbers, str) else lotto_draw.bonus_numbers[0]
+                                # For LOTTO: Check if any of the player's main numbers match the drawn bonus
+                                bonus_match = winning_bonus in player_numbers
                             
                             main_game_results = {
                                 'lottery_type': 'LOTTO',
@@ -806,11 +808,13 @@ CRITICAL INSTRUCTIONS:
                             
                             plus_1_main_matches = len(set(player_numbers) & set(plus_1_numbers))
                             
-                            # Handle bonus ball for LOTTO Plus 1 based on configuration
+                            # Handle bonus ball for LOTTO Plus 1 - draw has bonus but ticket doesn't
                             plus_1_bonus_match = False
-                            if plus_1_config['has_bonus'] and player_bonus:
-                                plus_1_winning_bonus = lotto_plus_1_draw.bonus_numbers[0] if lotto_plus_1_draw.bonus_numbers else None
-                                plus_1_bonus_match = (player_bonus == plus_1_winning_bonus) if plus_1_winning_bonus else False
+                            plus_1_winning_bonus = None
+                            if plus_1_config['draw_has_bonus'] and lotto_plus_1_draw.bonus_numbers:
+                                plus_1_winning_bonus = json.loads(lotto_plus_1_draw.bonus_numbers)[0] if isinstance(lotto_plus_1_draw.bonus_numbers, str) else lotto_plus_1_draw.bonus_numbers[0]
+                                # Check if any of the player's main numbers match the drawn bonus
+                                plus_1_bonus_match = plus_1_winning_bonus in player_numbers
                             
                             plus_1_results = {
                                 'lottery_type': 'LOTTO Plus 1',
@@ -831,11 +835,13 @@ CRITICAL INSTRUCTIONS:
                             
                             plus_2_main_matches = len(set(player_numbers) & set(plus_2_numbers))
                             
-                            # Handle bonus ball for LOTTO Plus 2 based on configuration
+                            # Handle bonus ball for LOTTO Plus 2 - draw has bonus but ticket doesn't
                             plus_2_bonus_match = False
-                            if plus_2_config['has_bonus'] and player_bonus:
-                                plus_2_winning_bonus = lotto_plus_2_draw.bonus_numbers[0] if lotto_plus_2_draw.bonus_numbers else None
-                                plus_2_bonus_match = (player_bonus == plus_2_winning_bonus) if plus_2_winning_bonus else False
+                            plus_2_winning_bonus = None
+                            if plus_2_config['draw_has_bonus'] and lotto_plus_2_draw.bonus_numbers:
+                                plus_2_winning_bonus = json.loads(lotto_plus_2_draw.bonus_numbers)[0] if isinstance(lotto_plus_2_draw.bonus_numbers, str) else lotto_plus_2_draw.bonus_numbers[0]
+                                # Check if any of the player's main numbers match the drawn bonus
+                                plus_2_bonus_match = plus_2_winning_bonus in player_numbers
                             
                             plus_2_results = {
                                 'lottery_type': 'LOTTO Plus 2',
@@ -912,6 +918,7 @@ CRITICAL INSTRUCTIONS:
                                 'draw_date': powerball_draw.draw_date.strftime('%Y-%m-%d'),
                                 'winning_numbers': winning_numbers,
                                 'winning_powerball': winning_powerball,
+                                'bonus_match': powerball_match,
                                 'main_matches': main_matches,
                                 'powerball_match': powerball_match,
                                 'total_matches': f"{main_matches} main + {'PowerBall' if powerball_match else '0 PowerBall'}"
