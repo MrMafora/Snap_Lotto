@@ -94,6 +94,81 @@
     .bg-success { background-color: #19a03a !important; }
     .bg-info { background-color: #67c6ed !important; }
     
+    /* Interactive chart elements */
+    .interactive-bar-column {
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .interactive-bar-column:hover {
+        transform: scale(1.05);
+        z-index: 10;
+    }
+    
+    .interactive-bar-column:hover .interactive-bar {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        filter: brightness(1.1);
+    }
+    
+    .interactive-number {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+    }
+    
+    .interactive-number:hover {
+        transform: scale(1.1);
+        z-index: 10;
+    }
+    
+    .interactive-number:hover .lottery-ball {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        filter: brightness(1.1);
+    }
+    
+    .highlighted-number {
+        animation: highlightPulse 1.5s ease-in-out infinite;
+        transform: scale(1.1);
+        z-index: 15 !important;
+    }
+    
+    .highlighted-number .interactive-bar {
+        box-shadow: 0 0 20px rgba(255, 193, 7, 0.8) !important;
+        border: 2px solid #ffc107 !important;
+    }
+    
+    .highlighted-number .lottery-ball {
+        box-shadow: 0 0 20px rgba(255, 193, 7, 0.8);
+        border: 2px solid #ffc107;
+    }
+    
+    @keyframes highlightPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.8; }
+    }
+    
+    /* Mobile touch feedback */
+    .interactive-bar-column:active,
+    .interactive-number:active {
+        transform: scale(0.95);
+    }
+    
+    /* Improve mobile touch targets */
+    @media (max-width: 768px) {
+        .interactive-bar-column {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        .interactive-number {
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    }
+
     /* Bar chart styling */
     .chart-container {
         border-bottom: 1px solid #ddd;
@@ -408,13 +483,16 @@
                                         {% set color_index = loop.index0 % 4 %}
                                         
                                         <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;" 
-                                            class="bar-column" 
+                                            class="bar-column interactive-bar-column" 
                                             data-bs-toggle="tooltip"
                                             data-bs-placement="top"
-                                            data-bs-title="Number {{ number }} appeared {{ frequency }} times">
+                                            data-bs-title="Number {{ number }} appeared {{ frequency }} times"
+                                            data-number="{{ number }}"
+                                            data-frequency="{{ frequency }}"
+                                            onclick="highlightNumber({{ number }}, {{ frequency }})">
                                             <!-- Frequency at top of bar -->
                                             <div style="position: relative; width: 80%; height: {{ bar_height }}%;" class="interactive-bar-container">
-                                                <div class="interactive-bar" style="position: absolute; bottom: 0; left: 0; right: 0; height: 100%; background-color: {{ colors[color_index] }}; border-top-left-radius: 3px; border-top-right-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                                <div class="interactive-bar" style="position: absolute; bottom: 0; left: 0; right: 0; height: 100%; background-color: {{ colors[color_index] }}; border-top-left-radius: 3px; border-top-right-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.3s ease; cursor: pointer;">
                                                 </div>
                                                 <span style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 9px; color: #666; white-space: nowrap;">{{ frequency }}</span>
                                             </div>
@@ -461,7 +539,13 @@
                                 {% if frequent_numbers and frequent_numbers|length > 0 %}
                                     {% for number, frequency in frequent_numbers[:5] %}
                                         {% set colors = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'] %}
-                                        <div class="hot-number-item me-2 mb-2">
+                                        <div class="hot-number-item me-2 mb-2 interactive-number" 
+                                            data-number="{{ number }}" 
+                                            data-frequency="{{ frequency }}"
+                                            onclick="highlightNumber({{ number }}, {{ frequency }})"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            data-bs-title="Number {{ number }} appeared {{ frequency }} times">
                                             <span class="lottery-ball lottery-ball-sm {{ colors[loop.index0] }}">
                                                 <span class="number">{{ number }}</span>
                                             </span>
@@ -1290,6 +1374,76 @@ document.addEventListener('DOMContentLoaded', function() {
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     })
+    
+    // Interactive data analytics functions
+    window.highlightNumber = function(number, frequency) {
+        // Clear any previous highlights
+        document.querySelectorAll('.highlighted-number').forEach(el => {
+            el.classList.remove('highlighted-number');
+        });
+        
+        // Highlight all instances of this number
+        document.querySelectorAll(`[data-number="${number}"]`).forEach(el => {
+            el.classList.add('highlighted-number');
+        });
+        
+        // Show detailed information
+        showNumberDetails(number, frequency);
+        
+        // Add vibration feedback on mobile
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+    };
+    
+    function showNumberDetails(number, frequency) {
+        // Create or update details modal/toast
+        let detailsContainer = document.getElementById('numberDetailsContainer');
+        if (!detailsContainer) {
+            detailsContainer = document.createElement('div');
+            detailsContainer.id = 'numberDetailsContainer';
+            detailsContainer.className = 'position-fixed top-50 start-50 translate-middle';
+            detailsContainer.style.zIndex = '9999';
+            document.body.appendChild(detailsContainer);
+        }
+        
+        detailsContainer.innerHTML = `
+            <div class="alert alert-info alert-dismissible fade show shadow-lg" role="alert" style="min-width: 250px;">
+                <h6 class="mb-2"><i class="fas fa-chart-bar me-2"></i>Number Analysis</h6>
+                <p class="mb-1"><strong>Number:</strong> ${number}</p>
+                <p class="mb-1"><strong>Frequency:</strong> ${frequency} times</p>
+                <p class="mb-0 text-muted small">Click outside to close</p>
+                <button type="button" class="btn-close" onclick="closeNumberDetails()"></button>
+            </div>
+        `;
+        
+        // Auto-close after 4 seconds
+        setTimeout(() => {
+            closeNumberDetails();
+        }, 4000);
+    }
+    
+    window.closeNumberDetails = function() {
+        const detailsContainer = document.getElementById('numberDetailsContainer');
+        if (detailsContainer) {
+            detailsContainer.remove();
+        }
+        
+        // Clear highlights
+        document.querySelectorAll('.highlighted-number').forEach(el => {
+            el.classList.remove('highlighted-number');
+        });
+    };
+    
+    // Close details when clicking outside
+    document.addEventListener('click', function(event) {
+        const detailsContainer = document.getElementById('numberDetailsContainer');
+        if (detailsContainer && !detailsContainer.contains(event.target) && 
+            !event.target.closest('.interactive-bar-column') && 
+            !event.target.closest('.interactive-number')) {
+            closeNumberDetails();
+        }
+    });
     
     // Load initial chart data
     fetchChartData('all', 'all');
