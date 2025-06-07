@@ -55,7 +55,7 @@
                                     <h5 class="mb-2 d-none d-sm-block">Drag and drop your ticket image here</h5>
                                     <h5 class="mb-2 d-block d-sm-none">Take or Upload Ticket Photo</h5>
                                     <p class="mb-2 small text-muted d-none d-sm-block">or</p>
-                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
+                                    <input type="file" id="ticket-image" name="ticket_image" accept="image/*" capture="environment" class="d-none">
                                     <button type="button" id="file-select-btn" class="btn btn-primary btn-lg w-100 w-sm-auto">
                                         <i class="fa fa-camera me-2 d-block d-sm-none"></i>
                                         <i class="fa fa-folder-open me-2 d-none d-sm-block"></i>
@@ -165,13 +165,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const scanAnotherBtn = document.getElementById('scan-another');
 
     // File selection
-    fileSelectBtn.addEventListener('click', function() {
+    fileSelectBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log('File select button clicked');
         fileInput.click();
     });
 
     // Handle file selection
     fileInput.addEventListener('change', function() {
-        handleFileSelection(this.files[0]);
+        console.log('File input changed, files:', this.files.length);
+        if (this.files.length > 0) {
+            console.log('File selected:', this.files[0].name, this.files[0].type);
+            handleFileSelection(this.files[0]);
+        }
     });
 
     // Handle drag and drop
