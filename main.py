@@ -733,8 +733,19 @@ CRITICAL INSTRUCTIONS:
                 # Clean up uploaded file
                 os.remove(file_path)
                 
-                # Format response for frontend - handle both LOTTO and PowerBall
+                # Define lottery type configurations for South African lotteries
+                LOTTERY_CONFIGS = {
+                    'LOTTO': {'has_bonus': False, 'main_numbers': 6, 'bonus_name': None},
+                    'LOTTO PLUS 1': {'has_bonus': False, 'main_numbers': 6, 'bonus_name': None},
+                    'LOTTO PLUS 2': {'has_bonus': False, 'main_numbers': 6, 'bonus_name': None},
+                    'POWERBALL': {'has_bonus': True, 'main_numbers': 5, 'bonus_name': 'PowerBall'},
+                    'POWERBALL PLUS': {'has_bonus': True, 'main_numbers': 5, 'bonus_name': 'PowerBall Plus'},
+                    'DAILY LOTTO': {'has_bonus': False, 'main_numbers': 5, 'bonus_name': None}
+                }
+                
+                # Format response for frontend - handle all lottery types
                 lottery_type = ticket_data.get('lottery_type', 'PowerBall')
+                lottery_config = LOTTERY_CONFIGS.get(lottery_type.upper(), LOTTERY_CONFIGS['POWERBALL'])
                 
                 # Initialize comparison results and final result
                 main_game_results = {}
@@ -742,7 +753,7 @@ CRITICAL INSTRUCTIONS:
                 plus_2_results = {}
                 result = {}
                 
-                # Extract numbers and bonus/powerball based on lottery type
+                # Extract numbers and bonus/powerball based on lottery type configuration
                 if 'LOTTO' in lottery_type.upper():
                     # LOTTO ticket format
                     all_lines = ticket_data.get('all_lines', [])
@@ -750,8 +761,9 @@ CRITICAL INSTRUCTIONS:
                     lotto_plus_1_included = ticket_data.get('lotto_plus_1_included', 'NO')
                     lotto_plus_2_included = ticket_data.get('lotto_plus_2_included', 'NO')
                     
-                    # Get player numbers for comparison - LOTTO has no bonus balls
+                    # Get player numbers for comparison - use config to determine bonus ball handling
                     player_numbers = all_lines[0] if all_lines else []
+                    player_bonus = bonus_numbers[0] if bonus_numbers and lottery_config['has_bonus'] else None
                     
                     logger.info(f"Processing LOTTO ticket: numbers={player_numbers}")
                     logger.info(f"Plus game flags: Plus1={lotto_plus_1_included}, Plus2={lotto_plus_2_included}")
@@ -767,24 +779,38 @@ CRITICAL INSTRUCTIONS:
                             
                             main_matches = len(set(player_numbers) & set(winning_numbers))
                             
+                            # Handle bonus ball comparison based on lottery configuration
+                            bonus_match = False
+                            if lottery_config['has_bonus'] and player_bonus:
+                                winning_bonus = lotto_draw.bonus_numbers[0] if lotto_draw.bonus_numbers else None
+                                bonus_match = (player_bonus == winning_bonus) if winning_bonus else False
+                            
                             main_game_results = {
                                 'lottery_type': 'LOTTO',
                                 'draw_number': lotto_draw.draw_number,
                                 'draw_date': lotto_draw.draw_date.strftime('%Y-%m-%d'),
                                 'winning_numbers': winning_numbers,
                                 'main_matches': main_matches,
-                                'total_matches': f"{main_matches} numbers matched"
+                                'bonus_match': bonus_match,
+                                'total_matches': f"{main_matches} numbers matched" + (f" + bonus" if bonus_match else "")
                             }
                             
-                            logger.info(f"LOTTO comparison: {main_matches} matches")
+                            logger.info(f"LOTTO comparison: {main_matches} matches, bonus: {bonus_match}")
                     
                     # Compare against LOTTO Plus 1 if selected
                     if lotto_plus_1_included.upper() == 'YES' and player_numbers:
                         lotto_plus_1_draw = LotteryResult.query.filter_by(lottery_type='LOTTO PLUS 1').order_by(LotteryResult.draw_date.desc()).first()
                         if lotto_plus_1_draw:
                             plus_1_numbers = json.loads(lotto_plus_1_draw.main_numbers) if lotto_plus_1_draw.main_numbers else []
+                            plus_1_config = LOTTERY_CONFIGS.get('LOTTO PLUS 1', {'has_bonus': False})
                             
                             plus_1_main_matches = len(set(player_numbers) & set(plus_1_numbers))
+                            
+                            # Handle bonus ball for LOTTO Plus 1 based on configuration
+                            plus_1_bonus_match = False
+                            if plus_1_config['has_bonus'] and player_bonus:
+                                plus_1_winning_bonus = lotto_plus_1_draw.bonus_numbers[0] if lotto_plus_1_draw.bonus_numbers else None
+                                plus_1_bonus_match = (player_bonus == plus_1_winning_bonus) if plus_1_winning_bonus else False
                             
                             plus_1_results = {
                                 'lottery_type': 'LOTTO Plus 1',
@@ -792,7 +818,8 @@ CRITICAL INSTRUCTIONS:
                                 'draw_date': lotto_plus_1_draw.draw_date.strftime('%Y-%m-%d'),
                                 'winning_numbers': plus_1_numbers,
                                 'main_matches': plus_1_main_matches,
-                                'total_matches': f"{plus_1_main_matches} numbers matched"
+                                'bonus_match': plus_1_bonus_match,
+                                'total_matches': f"{plus_1_main_matches} numbers matched" + (f" + bonus" if plus_1_bonus_match else "")
                             }
                     
                     # Compare against LOTTO Plus 2 if selected
@@ -800,8 +827,15 @@ CRITICAL INSTRUCTIONS:
                         lotto_plus_2_draw = LotteryResult.query.filter_by(lottery_type='LOTTO PLUS 2').order_by(LotteryResult.draw_date.desc()).first()
                         if lotto_plus_2_draw:
                             plus_2_numbers = json.loads(lotto_plus_2_draw.main_numbers) if lotto_plus_2_draw.main_numbers else []
+                            plus_2_config = LOTTERY_CONFIGS.get('LOTTO PLUS 2', {'has_bonus': False})
                             
                             plus_2_main_matches = len(set(player_numbers) & set(plus_2_numbers))
+                            
+                            # Handle bonus ball for LOTTO Plus 2 based on configuration
+                            plus_2_bonus_match = False
+                            if plus_2_config['has_bonus'] and player_bonus:
+                                plus_2_winning_bonus = lotto_plus_2_draw.bonus_numbers[0] if lotto_plus_2_draw.bonus_numbers else None
+                                plus_2_bonus_match = (player_bonus == plus_2_winning_bonus) if plus_2_winning_bonus else False
                             
                             plus_2_results = {
                                 'lottery_type': 'LOTTO Plus 2',
@@ -809,7 +843,8 @@ CRITICAL INSTRUCTIONS:
                                 'draw_date': lotto_plus_2_draw.draw_date.strftime('%Y-%m-%d'),
                                 'winning_numbers': plus_2_numbers,
                                 'main_matches': plus_2_main_matches,
-                                'total_matches': f"{plus_2_main_matches} numbers matched"
+                                'bonus_match': plus_2_bonus_match,
+                                'total_matches': f"{plus_2_main_matches} numbers matched" + (f" + bonus" if plus_2_bonus_match else "")
                             }
                     
                     # Create message based on which games were checked

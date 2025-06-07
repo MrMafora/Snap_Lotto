@@ -32,7 +32,7 @@
                                             <div class="lottery-ball me-2 mb-2">{{ number }}</div>
                                         {% endfor %}
                                         
-                                        {% if result.ticket_data.bonus_numbers and result.ticket_data.lottery_type == 'PowerBall' %}
+                                        {% if result.ticket_data.bonus_numbers and (result.ticket_data.lottery_type == 'PowerBall' or 'POWERBALL' in result.ticket_data.lottery_type.upper()) %}
                                             {% for bonus in result.ticket_data.bonus_numbers %}
                                                 <div class="lottery-ball bonus-ball me-2 mb-2">{{ bonus }}</div>
                                             {% endfor %}
@@ -58,7 +58,7 @@
                                             </div>
                                         {% endfor %}
                                         
-                                        {% if result.draw_data.bonus_numbers and result.ticket_data.lottery_type == 'PowerBall' %}
+                                        {% if result.draw_data.bonus_numbers and (result.ticket_data.lottery_type == 'PowerBall' or 'POWERBALL' in result.ticket_data.lottery_type.upper()) %}
                                             {% for bonus in result.draw_data.bonus_numbers %}
                                                 <div class="lottery-ball bonus-ball me-2 mb-2 {% if result.comparison.bonus_match %}matched{% endif %}">
                                                     {{ bonus }}
@@ -86,7 +86,7 @@
                                 <p class="lead">You've won: <strong>{{ result.comparison.prize_tier }}</strong></p>
                                 <p>{{ result.comparison.description }}</p>
                                 <p>Matching Numbers: {{ result.comparison.matching_numbers|length }}</p>
-                                {% if result.comparison.bonus_match and result.ticket_data.lottery_type == 'PowerBall' %}
+                                {% if result.comparison.bonus_match and (result.ticket_data.lottery_type == 'PowerBall' or 'POWERBALL' in result.ticket_data.lottery_type.upper()) %}
                                     <p>Bonus Number Matched: Yes</p>
                                 {% endif %}
                             {% else %}
