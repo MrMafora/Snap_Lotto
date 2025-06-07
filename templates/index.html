@@ -1375,8 +1375,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     })
     
-    // Interactive data analytics functions
-    window.highlightNumber = function(number, frequency) {
+    // Global interactive data analytics functions
+    function highlightNumber(number, frequency) {
         // Clear any previous highlights
         document.querySelectorAll('.highlighted-number').forEach(el => {
             el.classList.remove('highlighted-number');
@@ -1394,7 +1394,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (navigator.vibrate) {
             navigator.vibrate(50);
         }
-    };
+    }
+    
+    // Make function globally accessible
+    window.highlightNumber = highlightNumber;
     
     function showNumberDetails(number, frequency) {
         // Create or update details modal/toast
@@ -1423,7 +1426,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 4000);
     }
     
-    window.closeNumberDetails = function() {
+    function closeNumberDetails() {
         const detailsContainer = document.getElementById('numberDetailsContainer');
         if (detailsContainer) {
             detailsContainer.remove();
@@ -1433,7 +1436,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.highlighted-number').forEach(el => {
             el.classList.remove('highlighted-number');
         });
-    };
+    }
+    
+    // Make function globally accessible
+    window.closeNumberDetails = closeNumberDetails;
     
     // Close details when clicking outside
     document.addEventListener('click', function(event) {
