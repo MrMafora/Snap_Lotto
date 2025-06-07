@@ -109,35 +109,40 @@ class LotteryResult(db.Model):
         return f"<LotteryResult {self.lottery_type} - {self.draw_number}>"
     
     def get_numbers_list(self):
-        """Return numbers as a Python list, handling both JSON and text formats"""
+        """Return numbers as a sorted Python list, handling both JSON and text formats"""
         if not self.main_numbers:
             return []
             
+        numbers = []
+        
         # If it's already JSON formatted (starts with [ )
         if isinstance(self.main_numbers, str) and self.main_numbers.strip().startswith('['):
             try:
-                return json.loads(self.main_numbers)
+                numbers = json.loads(self.main_numbers)
             except json.JSONDecodeError:
                 pass
-                
+        
         # Handle comma-separated or space-separated numbers format
-        if isinstance(self.main_numbers, str):
+        elif isinstance(self.main_numbers, str):
             # Remove any bonus number indicator
             cleaned = self.main_numbers.split('+')[0].strip()
             
             # Check if comma-separated (like "1,2,3,18,29,32")
             if ',' in cleaned:
-                return [num.strip() for num in cleaned.split(',') if num.strip()]
+                numbers = [num.strip() for num in cleaned.split(',') if num.strip()]
             # Otherwise space-separated (like "09 18 19 30 31 40")
             else:
-                return [num.strip() for num in cleaned.split() if num.strip()]
+                numbers = [num.strip() for num in cleaned.split() if num.strip()]
             
         # If somehow numbers is already a list
-        if isinstance(self.main_numbers, list):
-            return self.main_numbers
+        elif isinstance(self.main_numbers, list):
+            numbers = self.main_numbers
             
-        # Last resort
-        return []
+        # Convert to integers and sort
+        try:
+            return sorted([int(num) for num in numbers if str(num).isdigit()])
+        except (ValueError, TypeError):
+            return numbers
     
     def get_bonus_numbers_list(self):
         """Return bonus numbers as a Python list, handling both JSON and text formats"""
