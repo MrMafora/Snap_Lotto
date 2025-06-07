@@ -681,26 +681,44 @@ document.addEventListener('DOMContentLoaded', function() {
         let hasMatches = false;
         let matchSummary = [];
         
-        // Check main game results
-        if (data.main_game_results && data.main_game_results.main_matches > 0) {
-            hasMatches = true;
-            matchSummary.push(`${data.main_game_results.lottery_type}: ${data.main_game_results.total_matches}`);
-        }
-        
-        // Check Plus game results
-        if (data.powerball_plus_results && data.powerball_plus_results.main_matches > 0) {
-            hasMatches = true;
-            matchSummary.push(`${data.powerball_plus_results.lottery_type}: ${data.powerball_plus_results.total_matches}`);
-        }
-        
-        if (data.lotto_plus_1_results && data.lotto_plus_1_results.main_matches > 0) {
-            hasMatches = true;
-            matchSummary.push(`${data.lotto_plus_1_results.lottery_type}: ${data.lotto_plus_1_results.total_matches}`);
-        }
-        
-        if (data.lotto_plus_2_results && data.lotto_plus_2_results.main_matches > 0) {
-            hasMatches = true;
-            matchSummary.push(`${data.lotto_plus_2_results.lottery_type}: ${data.lotto_plus_2_results.total_matches}`);
+        // Check comprehensive comparison results first (preferred)
+        if (data.comparison && data.comparison.enhanced_comparison) {
+            // Use enhanced comparison data for more accurate results
+            if (data.comparison.main_game && (data.comparison.main_game.main_matches > 0 || data.comparison.main_game.bonus_match)) {
+                hasMatches = true;
+                matchSummary.push(`${data.comparison.main_game.lottery_type}: ${data.comparison.main_game.total_matches}`);
+            }
+            
+            if (data.comparison.plus_1_game && (data.comparison.plus_1_game.main_matches > 0 || data.comparison.plus_1_game.bonus_match)) {
+                hasMatches = true;
+                matchSummary.push(`${data.comparison.plus_1_game.lottery_type}: ${data.comparison.plus_1_game.total_matches}`);
+            }
+            
+            if (data.comparison.plus_2_game && (data.comparison.plus_2_game.main_matches > 0 || data.comparison.plus_2_game.bonus_match)) {
+                hasMatches = true;
+                matchSummary.push(`${data.comparison.plus_2_game.lottery_type}: ${data.comparison.plus_2_game.total_matches}`);
+            }
+        } else {
+            // Fallback to individual game results
+            if (data.main_game_results && (data.main_game_results.main_matches > 0 || data.main_game_results.bonus_match)) {
+                hasMatches = true;
+                matchSummary.push(`${data.main_game_results.lottery_type}: ${data.main_game_results.total_matches}`);
+            }
+            
+            if (data.powerball_plus_results && data.powerball_plus_results.main_matches > 0) {
+                hasMatches = true;
+                matchSummary.push(`${data.powerball_plus_results.lottery_type}: ${data.powerball_plus_results.total_matches}`);
+            }
+            
+            if (data.lotto_plus_1_results && (data.lotto_plus_1_results.main_matches > 0 || data.lotto_plus_1_results.bonus_match)) {
+                hasMatches = true;
+                matchSummary.push(`${data.lotto_plus_1_results.lottery_type}: ${data.lotto_plus_1_results.total_matches}`);
+            }
+            
+            if (data.lotto_plus_2_results && (data.lotto_plus_2_results.main_matches > 0 || data.lotto_plus_2_results.bonus_match)) {
+                hasMatches = true;
+                matchSummary.push(`${data.lotto_plus_2_results.lottery_type}: ${data.lotto_plus_2_results.total_matches}`);
+            }
         }
         
         // Display results
