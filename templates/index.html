@@ -1377,13 +1377,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Global interactive data analytics functions
     function highlightNumber(number, frequency) {
+        console.log('highlightNumber called with:', number, frequency);
+        
         // Clear any previous highlights
         document.querySelectorAll('.highlighted-number').forEach(el => {
             el.classList.remove('highlighted-number');
         });
         
         // Highlight all instances of this number
-        document.querySelectorAll(`[data-number="${number}"]`).forEach(el => {
+        const elements = document.querySelectorAll(`[data-number="${number}"]`);
+        console.log('Found elements to highlight:', elements.length);
+        elements.forEach(el => {
             el.classList.add('highlighted-number');
         });
         
@@ -1400,6 +1404,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.highlightNumber = highlightNumber;
     
     function showNumberDetails(number, frequency) {
+        console.log('showNumberDetails called for number:', number);
+        
         // Create or update details modal/toast
         let detailsContainer = document.getElementById('numberDetailsContainer');
         if (!detailsContainer) {
@@ -1411,11 +1417,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         detailsContainer.innerHTML = `
-            <div class="alert alert-info alert-dismissible fade show shadow-lg" role="alert" style="min-width: 250px;">
+            <div class="alert alert-success alert-dismissible fade show shadow-lg" role="alert" style="min-width: 280px;">
                 <h6 class="mb-2"><i class="fas fa-chart-bar me-2"></i>Number Analysis</h6>
-                <p class="mb-1"><strong>Number:</strong> ${number}</p>
+                <p class="mb-1"><strong>Number:</strong> <span class="badge bg-primary">${number}</span></p>
                 <p class="mb-1"><strong>Frequency:</strong> ${frequency} times</p>
-                <p class="mb-0 text-muted small">Click outside to close</p>
+                <p class="mb-0 text-muted small">Tap outside or wait to close</p>
                 <button type="button" class="btn-close" onclick="closeNumberDetails()"></button>
             </div>
         `;
@@ -1453,6 +1459,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load initial chart data
     fetchChartData('all', 'all');
+    
+    // Test interactive functionality after page loads
+    setTimeout(function() {
+        console.log('Testing highlightNumber function availability:', typeof window.highlightNumber);
+        if (typeof window.highlightNumber === 'function') {
+            console.log('Interactive analytics functions are ready');
+        } else {
+            console.error('highlightNumber function not available');
+        }
+    }, 2000);
     
     // Filter functionality
     const lotteryTypeFilters = document.querySelectorAll('a[data-lottery-type]');
