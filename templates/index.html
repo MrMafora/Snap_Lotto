@@ -147,6 +147,66 @@
         50% { opacity: 0.8; }
     }
     
+    /* Mobile optimized numbers display */
+    .mobile-numbers {
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
+    .numbers-row {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .mobile-number {
+        color: #e03237;
+        font-weight: bold;
+        margin-right: 2px;
+    }
+    
+    .mobile-bonus {
+        color: #ffe11d;
+        background-color: #333;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 5px;
+    }
+    
+    /* Ensure table fits on mobile */
+    @media (max-width: 767px) {
+        .table-responsive {
+            border: none;
+        }
+        
+        .table th, .table td {
+            padding: 0.3rem 0.2rem;
+            font-size: 12px;
+            border-width: 1px;
+        }
+        
+        .table th:first-child,
+        .table td:first-child {
+            padding-left: 0.4rem;
+        }
+        
+        .game-type-badge {
+            font-size: 10px;
+            padding: 2px 4px;
+            white-space: nowrap;
+        }
+        
+        .mobile-numbers {
+            max-width: 120px;
+        }
+        
+        .numbers-row {
+            line-height: 1.2;
+        }
+    }
+    
     /* Mobile touch feedback */
     .interactive-bar-column:active,
     .interactive-number:active {
@@ -320,7 +380,8 @@
                                     {% endif %}
                                 </td>
                                 <td class="py-1">
-                                    <div class="numbers-container">
+                                    <!-- Desktop view with balls -->
+                                    <div class="numbers-container d-none d-md-flex">
                                         {% for num in result.get_numbers_list() %}
                                             {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
                                             
@@ -350,6 +411,20 @@
                                                 </div>
                                             {% endfor %}
                                         {% endif %}
+                                    </div>
+                                    
+                                    <!-- Mobile view with compact numbers -->
+                                    <div class="d-md-none mobile-numbers">
+                                        <div class="numbers-row">
+                                            {% for num in result.get_numbers_list() %}
+                                                <span class="mobile-number">{{ num }}</span>{% if not loop.last %},{% endif %}
+                                            {% endfor %}
+                                            {% if result.bonus_numbers %}
+                                                {% for num in result.get_bonus_numbers_list() %}
+                                                    <span class="mobile-bonus">+{{ num }}</span>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
