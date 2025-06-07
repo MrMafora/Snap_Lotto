@@ -234,6 +234,37 @@ def init_lazy_modules():
     
     logger.info("All modules lazy-loaded successfully")
 
+def calculate_frequency_analysis(results):
+    """Calculate frequency analysis from lottery results for homepage charts"""
+    try:
+        number_counts = {}
+        
+        # Count frequency of all numbers across all lottery types
+        for result in results:
+            numbers = result.get_numbers_list()
+            for num in numbers:
+                if isinstance(num, (int, str)) and str(num).isdigit():
+                    num_int = int(num)
+                    number_counts[num_int] = number_counts.get(num_int, 0) + 1
+        
+        # Get top 10 most frequent numbers
+        sorted_numbers = sorted(number_counts.items(), key=lambda x: x[1], reverse=True)
+        most_frequent = sorted_numbers[:10] if len(sorted_numbers) >= 10 else sorted_numbers
+        
+        app.logger.info(f"Frequency analysis: Found {len(number_counts)} unique numbers, top 10: {most_frequent}")
+        
+        return {
+            'most_frequent': most_frequent,
+            'total_numbers': len(number_counts)
+        }
+        
+    except Exception as e:
+        app.logger.error(f"Error calculating frequency analysis: {str(e)}")
+        return {
+            'most_frequent': [],
+            'total_numbers': 0
+        }
+
 # HOMEPAGE ROUTE - Must be first to ensure authentic lottery data displays
 @app.route('/')
 def home():
@@ -271,11 +302,13 @@ def home():
                 
             # Parse main_numbers field (JSON format)
             numbers = []
+            bonus_numbers = []
+            
             if row.main_numbers:
+                main_nums_str = str(row.main_numbers)
+                app.logger.info(f"Processing {row.lottery_type} main_numbers: {main_nums_str}")
                 try:
                     # Parse JSON string format like "[15,22,25,31,36]"
-                    main_nums_str = str(row.main_numbers)
-                    app.logger.info(f"Processing {row.lottery_type} main_numbers: {main_nums_str}")
                     numbers = json.loads(main_nums_str)
                     app.logger.info(f"Parsed {row.lottery_type} numbers: {numbers}")
                 except (json.JSONDecodeError, ValueError):
@@ -285,19 +318,19 @@ def home():
                         if nums_only.strip():
                             numbers = [int(n.strip()) for n in nums_only.split(',') if n.strip().isdigit()]
                 
-                # Parse bonus_numbers field (JSON format)
-                bonus_numbers = []
-                if row.bonus_numbers:
-                    try:
-                        bonus_str = str(row.bonus_numbers)
-                        bonus_numbers = json.loads(bonus_str)
-                    except (json.JSONDecodeError, ValueError):
-                        # Fallback for PostgreSQL array format
-                        if bonus_str.startswith('{') and bonus_str.endswith('}'):
-                            bonus_only = bonus_str[1:-1]  # Remove { }
+            # Parse bonus_numbers field (JSON format)
+            if row.bonus_numbers:
+                bonus_str = str(row.bonus_numbers)
+                try:
+                    bonus_numbers = json.loads(bonus_str)
+                except (json.JSONDecodeError, ValueError):
+                    # Fallback for PostgreSQL array format
+                    if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                        bonus_only = bonus_str[1:-1]  # Remove { }
+                        if bonus_only.strip():
                             bonus_numbers = [int(n.strip()) for n in bonus_only.split(',') if n.strip().isdigit()]
                 
-                if numbers:
+            if numbers:
                     class LotteryDisplay:
                         def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
                             self.lottery_type = lottery_type
@@ -318,12 +351,17 @@ def home():
                     seen_types.add(row.lottery_type)
         
         app.logger.info(f"HOMEPAGE: Loaded {len(results)} results from database")
-        return render_template('index.html', results=results)
+        
+        # Calculate frequency analysis for homepage charts
+        frequency_data = calculate_frequency_analysis(results)
+        frequent_numbers = frequency_data.get('most_frequent', [])
+        
+        return render_template('index.html', results=results, frequent_numbers=frequent_numbers)
         
     except Exception as e:
         app.logger.error(f"Error in optimized homepage: {str(e)}")
         # Fallback to basic empty results if cache fails
-        return render_template('index.html', results=[], sorted_types={})
+        return render_template('index.html', results=[], frequent_numbers=[])
 
 # Start lazy loading in background thread AFTER homepage route is registered
 threading.Thread(target=init_lazy_modules, daemon=True).start()
