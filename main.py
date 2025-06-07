@@ -1328,20 +1328,20 @@ def results():
                 if lottery_type == 'Lottery':
                     continue  # Already handled above
                     
-                # Use database name mapping for authentic lottery data
-                db_lottery_type = db_name_mapping.get(lottery_type, lottery_type)
+                # Use database name mapping for authentic lottery data - handle multiple variations
+                db_lottery_types = db_name_mapping.get(lottery_type, [lottery_type])
                 
-                # Direct SQL query to get authentic lottery data
+                # Direct SQL query to get authentic lottery data using IN clause for multiple variations
                 sql_query = """
                     SELECT id, lottery_type, draw_number, draw_date, main_numbers, bonus_numbers
                     FROM lottery_results 
-                    WHERE lottery_type = :lottery_type 
+                    WHERE lottery_type = ANY(:lottery_types)
                     ORDER BY draw_date DESC 
                     LIMIT 1
                 """
                 
-                app.logger.info(f"Querying for {lottery_type} -> {db_lottery_type}")
-                result = db.session.execute(text(sql_query), {'lottery_type': db_lottery_type}).fetchone()
+                app.logger.info(f"Querying for {lottery_type} -> {db_lottery_types}")
+                result = db.session.execute(text(sql_query), {'lottery_types': db_lottery_types}).fetchone()
                 
                 if result:
                     # Create a simple object to hold the data
