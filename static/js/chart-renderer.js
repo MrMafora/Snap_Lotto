@@ -64,7 +64,9 @@ function renderFrequencyChart(frequencyData) {
             
             // Create column for this number
             const barColumn = document.createElement('div');
-            barColumn.className = 'bar-column text-center position-relative';
+            barColumn.className = 'bar-column interactive-bar-column text-center position-relative';
+            barColumn.setAttribute('data-number', number);
+            barColumn.setAttribute('data-frequency', frequency);
             barColumn.setAttribute('data-bs-title', `Number ${number} appeared ${frequency} times`);
             barColumn.setAttribute('data-bs-toggle', 'tooltip');
             barColumn.setAttribute('data-bs-placement', 'top');
@@ -218,7 +220,7 @@ function renderHotColdNumbers(frequencyData) {
             
             hotNumbers.forEach((item, index) => {
                 hotHTML += `
-                    <div class="hot-number-item me-2 mb-2">
+                    <div class="hot-number-item interactive-number me-2 mb-2" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer;">
                         <span class="lottery-ball lottery-ball-sm ${colors[index]}">
                             <span class="number">${item.number}</span>
                         </span>
@@ -237,7 +239,7 @@ function renderHotColdNumbers(frequencyData) {
             
             coldNumbers.forEach((item, index) => {
                 coldHTML += `
-                    <div class="cold-number-item me-2 mb-2">
+                    <div class="cold-number-item interactive-number me-2 mb-2" data-number="${item.number}" data-frequency="${item.frequency}" style="cursor: pointer;">
                         <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
                             <span class="number">${item.number}</span>
                         </span>
