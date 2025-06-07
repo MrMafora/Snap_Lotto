@@ -110,11 +110,27 @@ class CompletePrizeExtractor:
             print(f"❌ Error extracting from {image_path}: {e}")
             return None
     
+    def clean_currency_value(self, value):
+        """Clean currency values for database storage"""
+        if not value or value == "null":
+            return None
+        # Remove 'R' prefix and commas, keep only numbers and decimal point
+        cleaned = str(value).replace('R', '').replace(',', '').strip()
+        try:
+            return float(cleaned) if cleaned else None
+        except ValueError:
+            return None
+    
     def save_complete_data(self, extracted_data):
         """Save complete lottery data with prize divisions to database"""
         try:
             lottery_type = extracted_data['lottery_type']
             draw_number = extracted_data['draw_number']
+            
+            # Clean currency values for database storage
+            next_jackpot = self.clean_currency_value(extracted_data.get('next_jackpot'))
+            rollover_amount = self.clean_currency_value(extracted_data.get('rollover_amount'))
+            total_pool_size = self.clean_currency_value(extracted_data.get('total_pool_size'))
             
             # Check if record exists
             existing = LotteryResult.query.filter_by(
@@ -128,9 +144,9 @@ class CompletePrizeExtractor:
                 existing.numbers = json.dumps(extracted_data['main_numbers'])
                 existing.bonus_numbers = json.dumps(extracted_data['bonus_numbers'])
                 existing.divisions = json.dumps(extracted_data['divisions'])
-                existing.next_jackpot = extracted_data.get('next_jackpot')
-                existing.rollover_amount = extracted_data.get('rollover_amount')
-                existing.total_pool_size = extracted_data.get('total_pool_size')
+                existing.next_jackpot = extracted_data.get('next_jackpot')  # Keep as string for display
+                existing.rollover_amount = extracted_data.get('rollover_amount')  # Keep as string for display
+                existing.total_pool_size = extracted_data.get('total_pool_size')  # Keep as string for display
                 existing.draw_machine = extracted_data.get('draw_machine')
                 existing.next_draw_date_str = extracted_data.get('next_draw_date')
                 existing.ocr_provider = 'google_gemini_2.0_flash'
@@ -152,6 +168,7 @@ class CompletePrizeExtractor:
                     draw_machine=extracted_data.get('draw_machine'),
                     next_draw_date_str=extracted_data.get('next_draw_date'),
                     ocr_provider='google_gemini_2.0_flash',
+                    ocr_model='gemini-2.0-flash-exp',
                     ocr_timestamp=datetime.now(),
                     created_at=datetime.now()
                 )
