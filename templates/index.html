@@ -198,7 +198,7 @@
     
     /* Mobile card layout */
     .mobile-results-container {
-        max-height: 400px;
+        max-height: 600px;
         overflow-y: auto;
     }
     
@@ -206,23 +206,24 @@
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 8px;
-        padding: 12px;
+        padding: 16px;
+        min-height: 100px;
     }
     
     .mobile-result-header {
-        margin-bottom: 8px;
+        margin-bottom: 12px;
     }
     
     .mobile-badge {
-        font-size: 10px;
-        padding: 2px 6px;
+        font-size: 11px;
+        padding: 3px 8px;
         border-radius: 12px;
         font-weight: 600;
     }
     
     .mobile-draw-info {
-        font-size: 11px;
-        text-align: right;
+        font-size: 12px;
+        color: #666;
     }
     
     .mobile-numbers-container {
@@ -489,8 +490,8 @@
                 <div class="d-md-none mobile-results-container flex-grow-1">
                     {% for result in results %}
                     <div class="mobile-result-card mb-3">
-                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
-                            <div>
+                        <div class="mobile-result-header d-flex justify-content-center align-items-center flex-column">
+                            <div class="mb-1">
                                 {% set display_type = result.lottery_type %}
                                 {# Always normalize any legacy Lotto references to Lottery for display #}
                                 {% if 'LOTTO' in display_type %}
@@ -505,7 +506,7 @@
                                     <span class="game-type-badge game-type-lottery mobile-badge">{{ display_type }}</span>
                                 {% endif %}
                             </div>
-                            <div class="mobile-draw-info">
+                            <div class="mobile-draw-info text-center">
                                 <small class="text-muted">Draw {{ result.draw_number }}</small>
                                 {% if result.draw_date %}
                                     <small class="text-muted ms-2">{{ result.draw_date.strftime('%m/%d') }}</small>
