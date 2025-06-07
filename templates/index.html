@@ -196,73 +196,81 @@
         justify-content: center;
     }
     
-    /* Ensure table fits on mobile */
+    /* Mobile card layout */
+    .mobile-results-container {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .mobile-result-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 12px;
+    }
+    
+    .mobile-result-header {
+        margin-bottom: 8px;
+    }
+    
+    .mobile-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+    
+    .mobile-draw-info {
+        font-size: 11px;
+        text-align: right;
+    }
+    
+    .mobile-numbers-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+    }
+    
+    .lottery-ball-mobile {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 11px;
+        color: white;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        margin: 2px;
+    }
+    
+    .mobile-numbers-container .bonus-separator {
+        font-weight: bold;
+        color: #666;
+        font-size: 14px;
+        margin: 0 4px;
+    }
+    
+    /* Ensure mobile layout is contained */
     @media (max-width: 767px) {
-        .table-responsive {
-            border: none;
+        .results-body {
+            padding: 0.75rem !important;
+        }
+        
+        .mobile-results-container {
+            width: 100%;
             overflow-x: hidden;
         }
         
-        .table {
-            margin-bottom: 0 !important;
-            width: 100% !important;
-            table-layout: fixed;
+        .mobile-result-card {
+            margin-bottom: 12px;
         }
         
-        .table th, .table td {
-            padding: 0.2rem 0.1rem;
-            font-size: 11px;
-            border-width: 1px;
-            word-wrap: break-word;
-        }
-        
-        .table th:first-child,
-        .table td:first-child {
-            padding-left: 0.3rem;
-        }
-        
-        .table th:last-child,
-        .table td:last-child {
-            padding-right: 0.3rem;
-        }
-        
-        .game-type-badge {
-            font-size: 9px;
-            padding: 1px 3px;
-            white-space: nowrap;
-            display: inline-block;
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .numbers-row-container td {
-            padding: 0.1rem 0.2rem 0.3rem 0.2rem !important;
-        }
-        
-        .lottery-ball-container {
-            margin-right: 0.15rem !important;
-            margin-bottom: 0.15rem !important;
-        }
-        
-        .lottery-ball-sm {
-            width: 24px !important;
-            height: 24px !important;
-            font-size: 10px !important;
-        }
-        
-        .bonus-separator {
-            margin: 0 0.3rem !important;
-            font-size: 12px;
-        }
-        
-        /* Force table to use full width without overflow */
         .latest-results-card {
             overflow: hidden;
-        }
-        
-        .results-body {
-            padding: 0.5rem !important;
         }
     }
     
@@ -401,17 +409,18 @@
                 <h5 class="card-title mb-0">LATEST LOTTERY RESULTS</h5>
             </div>
             <div class="card-body results-body">
-                <div class="table-responsive flex-grow-1">
+                <!-- Desktop table view -->
+                <div class="table-responsive flex-grow-1 d-none d-md-block">
                     <table class="table table-lottery table-striped mb-0">
                         <thead>
                             <tr>
-                                <th class="ps-2 py-1" style="width: 50%;">GAME TYPE</th>
-                                <th class="py-1 text-center" style="width: 20%;">DRAW</th>
-                                <th class="py-1 text-center" style="width: 30%;">DATE</th>
+                                <th class="ps-2 py-1">GAME TYPE</th>
+                                <th class="py-1">DRAW</th>
+                                <th class="py-1">DATE</th>
+                                <th class="py-1">NUMBERS</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {# Display all lottery results from database without filtering #}
                             {% for result in results %}
                             <tr>
                                 <td class="ps-2 py-1">
@@ -429,19 +438,16 @@
                                         <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
                                     {% endif %}
                                 </td>
-                                <td class="py-1 text-center"><strong>{{ result.draw_number }}</strong></td>
-                                <td class="py-1 text-center text-nowrap">
+                                <td class="py-1"><strong>{{ result.draw_number }}</strong></td>
+                                <td class="py-1 text-nowrap">
                                     {% if result.draw_date %}
-                                        {{ result.draw_date.strftime('%m-%d') }}
+                                        {{ result.draw_date.strftime('%Y-%m-%d') }}
                                     {% else %}
                                         N/A
                                     {% endif %}
                                 </td>
-                            </tr>
-                            <!-- Numbers row underneath each game type -->
-                            <tr class="numbers-row-container">
-                                <td colspan="3" class="px-2 pb-2 pt-0">
-                                    <div class="numbers-container d-flex flex-wrap align-items-center justify-content-start">
+                                <td class="py-1">
+                                    <div class="numbers-container d-flex">
                                         {% for num in result.get_numbers_list() %}
                                             {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
                                             
@@ -455,16 +461,16 @@
                                                 {% set ball_class = ball_class + 'lottery-ball-blue' %}
                                             {% endif %}
                                             
-                                            <div class="lottery-ball-container me-1 mb-1">
+                                            <div class="lottery-ball-container me-1">
                                                 <span class="{{ ball_class }}">
                                                     <span class="number">{{ num }}</span>
                                                 </span>
                                             </div>
                                         {% endfor %}
                                         {% if result.bonus_numbers %}
-                                            <div class="mx-2 d-flex align-items-center bonus-separator">+</div>
+                                            <div class="mx-1 d-flex align-items-center">+</div>
                                             {% for num in result.get_bonus_numbers_list() %}
-                                                <div class="lottery-ball-container me-1 mb-1">
+                                                <div class="lottery-ball-container">
                                                     <span class="lottery-ball lottery-ball-sm lottery-ball-yellow lottery-ball-bonus">
                                                         <span class="number">{{ num }}</span>
                                                     </span>
@@ -477,6 +483,64 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Mobile card view -->
+                <div class="d-md-none mobile-results-container flex-grow-1">
+                    {% for result in results %}
+                    <div class="mobile-result-card mb-3">
+                        <div class="mobile-result-header d-flex justify-content-between align-items-center">
+                            <div>
+                                {% set display_type = result.lottery_type %}
+                                {# Always normalize any legacy Lotto references to Lottery for display #}
+                                {% if 'LOTTO' in display_type %}
+                                    {% set display_type = display_type.replace('LOTTO', 'LOTTERY') %}
+                                {% endif %}
+                                
+                                {% if 'POWERBALL' in display_type %}
+                                    <span class="game-type-badge game-type-powerball mobile-badge">{{ display_type }}</span>
+                                {% elif 'DAILY' in display_type %}
+                                    <span class="game-type-badge game-type-daily mobile-badge">{{ display_type }}</span>
+                                {% else %}
+                                    <span class="game-type-badge game-type-lottery mobile-badge">{{ display_type }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="mobile-draw-info">
+                                <small class="text-muted">Draw {{ result.draw_number }}</small>
+                                {% if result.draw_date %}
+                                    <small class="text-muted ms-2">{{ result.draw_date.strftime('%m/%d') }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mobile-numbers-container mt-2">
+                            {% for num in result.get_numbers_list() %}
+                                {% set ball_class = 'lottery-ball lottery-ball-mobile ' %}
+                                
+                                {% if loop.index0 % 4 == 0 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-red' %}
+                                {% elif loop.index0 % 4 == 1 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-yellow' %}
+                                {% elif loop.index0 % 4 == 2 %}
+                                    {% set ball_class = ball_class + 'lottery-ball-green' %}
+                                {% else %}
+                                    {% set ball_class = ball_class + 'lottery-ball-blue' %}
+                                {% endif %}
+                                
+                                <span class="{{ ball_class }}">
+                                    <span class="number">{{ num }}</span>
+                                </span>
+                            {% endfor %}
+                            {% if result.bonus_numbers %}
+                                <span class="bonus-separator">+</span>
+                                {% for num in result.get_bonus_numbers_list() %}
+                                    <span class="lottery-ball lottery-ball-mobile lottery-ball-yellow lottery-ball-bonus">
+                                        <span class="number">{{ num }}</span>
+                                    </span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
                 <div class="text-center py-2 border-top mt-auto">
                     <a href="{{ url_for('results') }}" class="btn btn-lottery-primary btn-sm">
