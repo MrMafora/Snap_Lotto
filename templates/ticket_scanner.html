@@ -15,11 +15,14 @@
     </div>
 
     <div class="row">
-        <div class="col-12">
-            <div class="card">
+        <div class="col-lg-4 col-md-5 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fa fa-upload me-2"></i>Upload Ticket</h5>
+                </div>
                 <div class="card-body">
                     <div class="ticket-scanner-container">
-                        <div class="alert alert-info py-2 small d-flex align-items-center">
+                        <div class="alert alert-info py-2 small d-flex align-items-center mb-3">
                             <i class="fa fa-info-circle me-2 flex-shrink-0"></i> 
                             <span>Take a clear photo of your lottery ticket, making sure all numbers are visible.</span>
                         </div>
@@ -46,12 +49,22 @@
                             </div>
 
                             <div class="ticket-drop-area" id="drop-area">
-                                <div class="mb-2">
-                                    <i class="fa fa-upload fa-2x mb-2"></i>
-                                    <h5 class="mb-2">Drag and drop your ticket image here</h5>
-                                    <p class="mb-2">or</p>
+                                <div class="mb-2 text-center">
+                                    <i class="fa fa-camera fa-2x mb-2 text-primary d-block d-sm-none"></i>
+                                    <i class="fa fa-upload fa-2x mb-2 text-primary d-none d-sm-block"></i>
+                                    <h5 class="mb-2 d-none d-sm-block">Drag and drop your ticket image here</h5>
+                                    <h5 class="mb-2 d-block d-sm-none">Take or Upload Ticket Photo</h5>
+                                    <p class="mb-2 small text-muted d-none d-sm-block">or</p>
                                     <input type="file" id="ticket-image" name="ticket_image" accept="image/*" class="d-none">
-                                    <button type="button" id="file-select-btn" class="btn btn-primary">Select Image</button>
+                                    <button type="button" id="file-select-btn" class="btn btn-primary btn-lg w-100 w-sm-auto">
+                                        <i class="fa fa-camera me-2 d-block d-sm-none"></i>
+                                        <i class="fa fa-folder-open me-2 d-none d-sm-block"></i>
+                                        <span class="d-block d-sm-none">Take or Upload Photo</span>
+                                        <span class="d-none d-sm-block">Select Image</span>
+                                    </button>
+                                    <div class="mt-2 small text-muted">
+                                        Supports: JPG, PNG, WEBP • Max: 10MB
+                                    </div>
                                 </div>
                             </div>
 
@@ -83,7 +96,7 @@
             </div>
         </div>
         
-        <div class="col-md-8">
+        <div class="col-lg-8 col-md-7">
             <div id="results-container" class="results-container d-none">
                 <div class="card">
                     <div class="card-header">
@@ -951,6 +964,84 @@ document.addEventListener('DOMContentLoaded', function() {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Mobile and Desktop Responsive Optimizations */
+@media (max-width: 767.98px) {
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    .ticket-drop-area {
+        padding: 20px 15px;
+        min-height: 180px;
+    }
+    
+    .lottery-ball {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+        margin: 1px;
+    }
+    
+    .ticket-preview {
+        max-height: 250px;
+    }
+    
+    .numbers-display {
+        gap: 8px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    .lead {
+        font-size: 1rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .ticket-drop-area {
+        min-height: 200px;
+        padding: 30px;
+    }
+    
+    .lottery-ball {
+        width: 40px;
+        height: 40px;
+        font-size: 14px;
+    }
+}
+
+@media (min-width: 992px) {
+    .lottery-ball {
+        width: 45px;
+        height: 45px;
+        font-size: 16px;
+    }
+}
+
+/* Touch-friendly improvements for mobile */
+@media (pointer: coarse) {
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .lottery-ball {
+        min-width: 36px;
+        min-height: 36px;
+    }
+    
+    .form-control, .form-select {
+        min-height: 44px;
+    }
 }
 </style>
 {% endblock %}
