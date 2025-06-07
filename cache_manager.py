@@ -2,11 +2,11 @@
 Performance Cache Manager for Snap Lotto
 Implements smart caching to dramatically improve page load speeds
 """
-
 import time
 import logging
-from datetime import datetime, timedelta
 from functools import wraps
+from models import db, LotteryResult
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -16,32 +16,27 @@ class CacheManager:
     def __init__(self):
         self.cache = {}
         self.cache_timestamps = {}
-        self.default_ttl = 300  # 5 minutes default cache
-        
+        self.default_ttl = 300  # 5 minutes default
+    
     def get(self, key):
         """Get cached value if not expired"""
         if key in self.cache:
             timestamp = self.cache_timestamps.get(key, 0)
             if time.time() - timestamp < self.default_ttl:
-                logger.debug(f"Cache HIT for key: {key}")
                 return self.cache[key]
             else:
                 # Expired, remove from cache
-                del self.cache[key]
-                del self.cache_timestamps[key]
-                logger.debug(f"Cache EXPIRED for key: {key}")
-        
-        logger.debug(f"Cache MISS for key: {key}")
+                self.cache.pop(key, None)
+                self.cache_timestamps.pop(key, None)
         return None
     
     def set(self, key, value, ttl=None):
         """Set cached value with TTL"""
-        if ttl is None:
-            ttl = self.default_ttl
-            
         self.cache[key] = value
         self.cache_timestamps[key] = time.time()
-        logger.debug(f"Cache SET for key: {key} (TTL: {ttl}s)")
+        if ttl:
+            # Custom TTL handling could be added here
+            pass
     
     def clear(self):
         """Clear all cached data"""
@@ -51,22 +46,13 @@ class CacheManager:
     
     def get_stats(self):
         """Get cache statistics"""
-        total_keys = len(self.cache)
-        expired_keys = 0
-        current_time = time.time()
-        
-        for key, timestamp in self.cache_timestamps.items():
-            if current_time - timestamp >= self.default_ttl:
-                expired_keys += 1
-        
         return {
-            'total_keys': total_keys,
-            'active_keys': total_keys - expired_keys,
-            'expired_keys': expired_keys
+            'entries': len(self.cache),
+            'memory_usage': sum(len(str(v)) for v in self.cache.values())
         }
 
 # Global cache instance
-cache = CacheManager()
+cache_manager = CacheManager()
 
 def cached_query(ttl=300):
     """Decorator for caching database query results"""
@@ -74,84 +60,59 @@ def cached_query(ttl=300):
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Create cache key from function name and arguments
-            cache_key = f"{func.__name__}_{hash(str(args) + str(sorted(kwargs.items())))}"
+            cache_key = f"{func.__name__}_{str(args)}_{str(kwargs)}"
             
             # Try to get from cache first
-            result = cache.get(cache_key)
-            if result is not None:
-                return result
+            cached_result = cache_manager.get(cache_key)
+            if cached_result is not None:
+                return cached_result
             
             # Execute function and cache result
             result = func(*args, **kwargs)
-            cache.set(cache_key, result, ttl)
+            cache_manager.set(cache_key, result, ttl)
+            
             return result
         return wrapper
     return decorator
 
 def get_optimized_latest_results(limit=10):
     """Optimized query for latest lottery results - loads fresh data from database"""
-    from models import LotteryResult, db
-    from sqlalchemy import desc, func, text
-    from datetime import datetime
-    
-    # Force fresh connection 
-    db.session.close()
-    
-    # Use raw SQL to get latest result for each lottery type
-    query = text("""
-        WITH ranked_results AS (
-            SELECT *,
-                   ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY created_at DESC) as rn
-            FROM lottery_results
-        )
-        SELECT * FROM ranked_results WHERE rn = 1
-        ORDER BY created_at DESC
-    """)
-    
-    result = db.session.execute(query)
-    rows = result.fetchall()
-    
-    # Convert to LotteryResult objects manually
-    results = []
-    for row in rows:
-        lottery_result = LotteryResult()
-        lottery_result.id = row.id
-        lottery_result.lottery_type = row.lottery_type
-        lottery_result.draw_number = row.draw_number
-        lottery_result.draw_date = row.draw_date
-        lottery_result.main_numbers = row.main_numbers
-        lottery_result.bonus_numbers = row.bonus_numbers
-        lottery_result.created_at = row.created_at
-        results.append(lottery_result)
-    
-    return results
+    try:
+        results = LotteryResult.query.order_by(
+            LotteryResult.draw_date.desc()
+        ).limit(limit).all()
+        
+        return [{
+            'id': r.id,
+            'lottery_type': r.lottery_type,
+            'draw_number': r.draw_number,
+            'draw_date': r.draw_date.strftime('%Y-%m-%d') if r.draw_date else None,
+            'numbers': json.loads(r.numbers) if isinstance(r.numbers, str) else r.numbers,
+            'bonus_numbers': json.loads(r.bonus_numbers) if isinstance(r.bonus_numbers, str) else r.bonus_numbers,
+            'divisions': json.loads(r.divisions) if isinstance(r.divisions, str) else r.divisions
+        } for r in results]
+        
+    except Exception as e:
+        logger.error(f"Error getting latest results: {e}")
+        return []
 
+@cached_query(ttl=600)
 def get_optimized_lottery_stats():
     """Get lottery statistics with caching"""
-    from models import LotteryResult, db
-    
-    cache_key = "lottery_stats"
-    cached_stats = cache.get(cache_key)
-    
-    if cached_stats is not None:
-        return cached_stats
-    
-    # Get counts efficiently
-    stats = {
-        'total_draws': db.session.query(LotteryResult).count(),
-        'lottery_types': db.session.query(LotteryResult.lottery_type).distinct().count(),
-        'latest_update': db.session.query(db.func.max(LotteryResult.created_at)).scalar()
-    }
-    
-    # Cache for 10 minutes
-    cache.set(cache_key, stats, 600)
-    return stats
+    try:
+        total_results = LotteryResult.query.count()
+        latest_result = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).first()
+        
+        return {
+            'total_draws': total_results,
+            'latest_draw_date': latest_result.draw_date.strftime('%Y-%m-%d') if latest_result and latest_result.draw_date else None,
+            'lottery_types': len(set([r.lottery_type for r in LotteryResult.query.all()]))
+        }
+    except Exception as e:
+        logger.error(f"Error getting lottery stats: {e}")
+        return {}
 
 def clear_results_cache():
     """Clear results-related cache when new data is added"""
-    keys_to_clear = [key for key in cache.cache.keys() if 'results' in key or 'stats' in key]
-    for key in keys_to_clear:
-        if key in cache.cache:
-            del cache.cache[key]
-            del cache.cache_timestamps[key]
-    logger.info(f"Cleared {len(keys_to_clear)} result cache entries")
+    cache_manager.clear()
+    logger.info("Results cache cleared")
