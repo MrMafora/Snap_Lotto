@@ -296,8 +296,84 @@ document.addEventListener('DOMContentLoaded', function() {
             ticketPreview.src = e.target.result;
             previewContainer.classList.remove('d-none');
             clearResults();
+            
+            // Auto-trigger scan after image is loaded and previewed
+            setTimeout(() => {
+                console.log('Auto-triggering scan after file selection');
+                triggerScan();
+            }, 500);
         };
         reader.readAsDataURL(file);
+    }
+
+    function triggerScan() {
+        // Check if file is selected
+        if (!fileInput.files.length) {
+            showError('Please select a ticket image first.');
+            return;
+        }
+
+        console.log('Starting ticket scan process...');
+
+        // Show loading
+        loadingIndicator.style.display = 'block';
+        scanButton.disabled = true;
+        
+        // Clear previous results
+        clearResults();
+        
+        // Submit form
+        const formData = new FormData(ticketForm);
+        
+        fetch('/process-ticket', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            console.log('Received response status:', response.status);
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error('Server error: ' + response.status + ' - ' + text);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Received response data:', data);
+            
+            // Hide loading
+            loadingIndicator.style.display = 'none';
+            scanButton.disabled = false;
+            
+            if (!data || !data.success) {
+                console.error('Processing failed:', data);
+                showError(data?.error || 'Failed to process ticket. Please try again.');
+                return;
+            }
+            
+            console.log('Processing successful, calling displayResults');
+            // Extract data from nested response structure
+            const ticketData = data.data || data;
+            displayResults(ticketData);
+        })
+        .catch(error => {
+            console.error('Error processing ticket:', error);
+            loadingIndicator.style.display = 'none';
+            scanButton.disabled = false;
+            
+            // Better error handling for different error types
+            let errorMessage = 'Failed to process ticket. Please try again.';
+            if (error && error.message) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            }
+            
+            showError('Error processing ticket: ' + errorMessage);
+        });
     }
 
     function resetForm() {
