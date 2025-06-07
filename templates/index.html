@@ -200,37 +200,69 @@
     @media (max-width: 767px) {
         .table-responsive {
             border: none;
+            overflow-x: hidden;
+        }
+        
+        .table {
+            margin-bottom: 0 !important;
+            width: 100% !important;
+            table-layout: fixed;
         }
         
         .table th, .table td {
-            padding: 0.3rem 0.2rem;
-            font-size: 12px;
+            padding: 0.2rem 0.1rem;
+            font-size: 11px;
             border-width: 1px;
+            word-wrap: break-word;
         }
         
         .table th:first-child,
         .table td:first-child {
-            padding-left: 0.4rem;
+            padding-left: 0.3rem;
+        }
+        
+        .table th:last-child,
+        .table td:last-child {
+            padding-right: 0.3rem;
         }
         
         .game-type-badge {
-            font-size: 10px;
-            padding: 2px 4px;
+            font-size: 9px;
+            padding: 1px 3px;
             white-space: nowrap;
+            display: inline-block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .numbers-row-container td {
-            padding: 0.2rem 0.2rem 0.4rem 0.2rem !important;
+            padding: 0.1rem 0.2rem 0.3rem 0.2rem !important;
         }
         
         .lottery-ball-container {
-            margin-right: 0.2rem !important;
-            margin-bottom: 0.2rem !important;
+            margin-right: 0.15rem !important;
+            margin-bottom: 0.15rem !important;
+        }
+        
+        .lottery-ball-sm {
+            width: 24px !important;
+            height: 24px !important;
+            font-size: 10px !important;
         }
         
         .bonus-separator {
-            margin: 0 0.5rem !important;
-            font-size: 14px;
+            margin: 0 0.3rem !important;
+            font-size: 12px;
+        }
+        
+        /* Force table to use full width without overflow */
+        .latest-results-card {
+            overflow: hidden;
+        }
+        
+        .results-body {
+            padding: 0.5rem !important;
         }
     }
     
@@ -373,9 +405,9 @@
                     <table class="table table-lottery table-striped mb-0">
                         <thead>
                             <tr>
-                                <th class="ps-2 py-1">GAME TYPE</th>
-                                <th class="py-1">DRAW</th>
-                                <th class="py-1">DATE</th>
+                                <th class="ps-2 py-1" style="width: 50%;">GAME TYPE</th>
+                                <th class="py-1 text-center" style="width: 20%;">DRAW</th>
+                                <th class="py-1 text-center" style="width: 30%;">DATE</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -397,10 +429,10 @@
                                         <span class="game-type-badge game-type-lottery">{{ display_type }}</span>
                                     {% endif %}
                                 </td>
-                                <td class="py-1"><strong>{{ result.draw_number }}</strong></td>
-                                <td class="py-1 text-nowrap">
+                                <td class="py-1 text-center"><strong>{{ result.draw_number }}</strong></td>
+                                <td class="py-1 text-center text-nowrap">
                                     {% if result.draw_date %}
-                                        {{ result.draw_date.strftime('%Y-%m-%d') }}
+                                        {{ result.draw_date.strftime('%m-%d') }}
                                     {% else %}
                                         N/A
                                     {% endif %}
