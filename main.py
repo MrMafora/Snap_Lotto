@@ -657,13 +657,20 @@ Extract ALL visible data accurately."""
 @app.route('/process-ticket', methods=['POST'])
 def process_ticket():
     """Process a lottery ticket image and return JSON results"""
+    file_path = None
     try:
+        logger.info("=== TICKET PROCESSING STARTED ===")
+        
         if 'ticket_image' not in request.files:
+            logger.error("No ticket_image in request.files")
             return jsonify({'success': False, 'error': 'No file uploaded'})
         
         file = request.files['ticket_image']
         if file.filename == '':
+            logger.error("Empty filename in uploaded file")
             return jsonify({'success': False, 'error': 'No file selected'})
+        
+        logger.info(f"Processing file: {file.filename}, content type: {file.content_type}")
         
         # Save uploaded file temporarily
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -671,13 +678,23 @@ def process_ticket():
         upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, filename)
+        
+        logger.info(f"Saving file to: {file_path}")
         file.save(file_path)
+        
+        if not os.path.exists(file_path):
+            logger.error(f"File was not saved successfully: {file_path}")
+            return jsonify({'success': False, 'error': 'File save failed'})
+        
+        logger.info(f"File saved successfully, size: {os.path.getsize(file_path)} bytes")
         
         try:
             # Import Google AI safely to avoid urllib3 conflicts
             try:
+                logger.info("Importing Google AI modules...")
                 import google.generativeai as genai
                 import PIL.Image
+                logger.info("Google AI modules imported successfully")
             except ImportError as ie:
                 logger.error(f"Import error: {ie}")
                 return jsonify({'success': False, 'error': 'AI processing service unavailable'})
@@ -685,10 +702,17 @@ def process_ticket():
             # Configure API key
             api_key = os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY')
             if not api_key:
+                logger.error("No Google API key found in environment")
                 return jsonify({'success': False, 'error': 'AI service not configured'})
-                
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-pro')
+            
+            logger.info("Configuring Google AI with API key...")
+            try:
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel('gemini-1.5-pro')
+                logger.info("Google AI configured successfully")
+            except Exception as config_error:
+                logger.error(f"Error configuring Google AI: {config_error}")
+                return jsonify({'success': False, 'error': f'AI configuration failed: {str(config_error)}'})
             
             # Load image
             image = PIL.Image.open(file_path)
