@@ -1210,13 +1210,14 @@ def results():
                      'Powerball', 'Powerball Plus', 'Daily Lottery']
     
     # Database mapping for authentic lottery data (from official screenshots)
+    # Handle multiple case variations found in actual database
     db_name_mapping = {
-        'Lottery': 'LOTTO',
-        'Lottery Plus 1': 'LOTTO PLUS 1', 
-        'Lottery Plus 2': 'LOTTO PLUS 2',
-        'Powerball': 'POWERBALL',
-        'Powerball Plus': 'POWERBALL PLUS',
-        'Daily Lottery': 'DAILY LOTTO'
+        'Lottery': ['LOTTO', 'Lotto'],
+        'Lottery Plus 1': ['LOTTO PLUS 1', 'Lotto Plus 1'], 
+        'Lottery Plus 2': ['LOTTO PLUS 2', 'Lotto Plus 2'],
+        'Powerball': ['POWERBALL', 'PowerBall', 'Powerball'],
+        'Powerball Plus': ['POWERBALL PLUS', 'PowerBall Plus', 'Powerball Plus'],
+        'Daily Lottery': ['DAILY LOTTO', 'Daily Lotto']
     }
     
     try:
@@ -1532,22 +1533,23 @@ def lottery_results(lottery_type):
     #     logger.info("Loaded data_aggregator module on demand")
     
     # Map display names to database names for authentic lottery data - matching main results page
+    # Handle multiple case variations found in actual database
     lottery_type_mapping = {
-        'Lottery': 'LOTTO',
-        'Lottery Plus 1': 'LOTTO PLUS 1', 
-        'Lottery Plus 2': 'LOTTO PLUS 2',
-        'Powerball': 'POWERBALL',
-        'Powerball Plus': 'POWERBALL PLUS',
-        'Daily Lottery': 'DAILY LOTTO'
+        'Lottery': ['LOTTO', 'Lotto'],
+        'Lottery Plus 1': ['LOTTO PLUS 1', 'Lotto Plus 1'], 
+        'Lottery Plus 2': ['LOTTO PLUS 2', 'Lotto Plus 2'],
+        'Powerball': ['POWERBALL', 'PowerBall', 'Powerball'],
+        'Powerball Plus': ['POWERBALL PLUS', 'PowerBall Plus', 'Powerball Plus'],
+        'Daily Lottery': ['DAILY LOTTO', 'Daily Lotto']
     }
     
-    # Get the actual database lottery type name
-    db_lottery_type = lottery_type_mapping.get(lottery_type, lottery_type)
+    # Get the actual database lottery type names (multiple variations)
+    db_lottery_types = lottery_type_mapping.get(lottery_type, [lottery_type])
     
-    # Get all results for this lottery type directly from database
-    all_results = LotteryResult.query.filter_by(lottery_type=db_lottery_type).order_by(LotteryResult.draw_date.desc()).all()
+    # Get all results for this lottery type directly from database using OR query for all variations
+    all_results = LotteryResult.query.filter(LotteryResult.lottery_type.in_(db_lottery_types)).order_by(LotteryResult.draw_date.desc()).all()
     
-    logger.info(f"Looking for lottery type '{lottery_type}' mapped to DB type '{db_lottery_type}', found {len(all_results)} results")
+    logger.info(f"Looking for lottery type '{lottery_type}' mapped to DB types '{db_lottery_types}', found {len(all_results)} results")
     
     # Create a paginated result from the raw list
     # This mimics SQLAlchemy's pagination object with the properties the template expects
