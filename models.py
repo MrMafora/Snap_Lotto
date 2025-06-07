@@ -593,6 +593,69 @@ class ImportedRecord(db.Model):
     def __repr__(self):
         return f"<ImportedRecord {self.id}: {self.lottery_type} {self.draw_number}>"
         
+class ScannedTicket(db.Model):
+    """Model for storing scanned lottery ticket data and results"""
+    __tablename__ = 'scanned_ticket'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Ticket information
+    lottery_type = db.Column(db.String(50), nullable=False)
+    ticket_lines = db.Column(db.JSON, nullable=False, comment="Array of number arrays for each ticket line")
+    powerball_numbers = db.Column(db.JSON, nullable=True, comment="PowerBall numbers if applicable")
+    draw_date = db.Column(db.String(20), nullable=True)
+    draw_number = db.Column(db.String(20), nullable=True)
+    ticket_cost = db.Column(db.String(20), nullable=True)
+    powerball_plus_included = db.Column(db.String(10), nullable=True)
+    
+    # Scan metadata
+    scan_timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    original_filename = db.Column(db.String(255), nullable=True)
+    file_size = db.Column(db.Integer, nullable=True)
+    
+    # Match results
+    match_results = db.Column(db.JSON, nullable=True, comment="Complete match analysis results")
+    has_matches = db.Column(db.Boolean, default=False)
+    total_matches = db.Column(db.Integer, default=0)
+    
+    # Processing info
+    gemini_response = db.Column(db.Text, nullable=True, comment="Raw Gemini API response")
+    processing_time = db.Column(db.Float, nullable=True, comment="Processing time in seconds")
+    
+    def __repr__(self):
+        return f"<ScannedTicket {self.id}: {self.lottery_type}>"
+    
+    def get_ticket_lines_list(self):
+        """Return ticket lines as list"""
+        if self.ticket_lines:
+            return json.loads(self.ticket_lines) if isinstance(self.ticket_lines, str) else self.ticket_lines
+        return []
+    
+    def get_powerball_numbers_list(self):
+        """Return powerball numbers as list"""
+        if self.powerball_numbers:
+            return json.loads(self.powerball_numbers) if isinstance(self.powerball_numbers, str) else self.powerball_numbers
+        return []
+    
+    def to_dict(self):
+        """Convert model to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'lottery_type': self.lottery_type,
+            'ticket_lines': self.get_ticket_lines_list(),
+            'powerball_numbers': self.get_powerball_numbers_list(),
+            'draw_date': self.draw_date,
+            'draw_number': self.draw_number,
+            'ticket_cost': self.ticket_cost,
+            'powerball_plus_included': self.powerball_plus_included,
+            'scan_timestamp': self.scan_timestamp.isoformat() if self.scan_timestamp else None,
+            'original_filename': self.original_filename,
+            'has_matches': self.has_matches,
+            'total_matches': self.total_matches,
+            'match_results': json.loads(self.match_results) if isinstance(self.match_results, str) else self.match_results,
+            'processing_time': self.processing_time
+        }
+
 class LotteryPrediction(db.Model):
     """Model for storing lottery number predictions"""
     __tablename__ = 'lottery_prediction'
