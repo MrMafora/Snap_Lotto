@@ -272,18 +272,18 @@ tbody, td, th {
 /* Mobile lottery ball optimization - smaller for single row display */
 @media (max-width: 768px) {
     .lottery-ball {
-        width: 22px !important;
-        height: 22px !important;
-        font-size: 10px !important;
-        margin: 0 1px !important;
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+        margin: 0 0.5px !important;
         border: 1px solid #fff !important;
     }
     
     .lottery-ball-mobile {
-        width: 22px !important;
-        height: 22px !important;
-        font-size: 10px !important;
-        margin: 1px !important;
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+        margin: 0.5px !important;
     }
 }
 
