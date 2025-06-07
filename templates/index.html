@@ -1465,6 +1465,49 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Testing highlightNumber function availability:', typeof window.highlightNumber);
         if (typeof window.highlightNumber === 'function') {
             console.log('Interactive analytics functions are ready');
+            
+            // Add click event listeners to all interactive elements
+            const barColumns = document.querySelectorAll('.interactive-bar-column');
+            console.log('Found bar columns for click events:', barColumns.length);
+            
+            barColumns.forEach(function(column) {
+                const number = column.getAttribute('data-number');
+                const frequency = column.getAttribute('data-frequency');
+                
+                column.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Bar clicked for number:', number);
+                    window.highlightNumber(parseInt(number), parseInt(frequency));
+                });
+                
+                // Also add click handlers to child elements
+                const barElements = column.querySelectorAll('.interactive-bar, .interactive-bar-container');
+                barElements.forEach(function(bar) {
+                    bar.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Bar element clicked for number:', number);
+                        window.highlightNumber(parseInt(number), parseInt(frequency));
+                    });
+                });
+            });
+            
+            // Add click event listeners to hot numbers
+            const hotNumbers = document.querySelectorAll('.interactive-number');
+            console.log('Found hot numbers for click events:', hotNumbers.length);
+            
+            hotNumbers.forEach(function(hotNumber) {
+                const number = hotNumber.getAttribute('data-number');
+                const frequency = hotNumber.getAttribute('data-frequency');
+                
+                hotNumber.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Hot number clicked for number:', number);
+                    window.highlightNumber(parseInt(number), parseInt(frequency));
+                });
+            });
         } else {
             console.error('highlightNumber function not available');
         }
