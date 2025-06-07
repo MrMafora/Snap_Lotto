@@ -645,11 +645,20 @@ def process_ticket():
         file.save(file_path)
         
         try:
-            # Process with Google Gemini 2.5 Pro
-            import google.generativeai as genai
-            import PIL.Image
+            # Import Google AI safely to avoid urllib3 conflicts
+            try:
+                import google.generativeai as genai
+                import PIL.Image
+            except ImportError as ie:
+                logger.error(f"Import error: {ie}")
+                return jsonify({'success': False, 'error': 'AI processing service unavailable'})
             
-            genai.configure(api_key=os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY'))
+            # Configure API key
+            api_key = os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY')
+            if not api_key:
+                return jsonify({'success': False, 'error': 'AI service not configured'})
+                
+            genai.configure(api_key=api_key)
             model = genai.GenerativeModel('gemini-1.5-pro')
             
             # Load image
