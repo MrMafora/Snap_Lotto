@@ -1647,6 +1647,86 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Add event handlers for filter dropdown
+    function setupFilterDropdown() {
+        const dropdownItems = document.querySelectorAll('#dataFilterDropdown + .dropdown-menu .dropdown-item');
+        
+        dropdownItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const lotteryType = this.getAttribute('data-lottery-type');
+                const timePeriod = this.getAttribute('data-time-period');
+                
+                if (lotteryType) {
+                    // Update lottery type filter
+                    document.querySelectorAll('[data-lottery-type]').forEach(el => el.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update display badge
+                    const badge = document.querySelector('.current-lottery-type');
+                    if (badge) {
+                        badge.textContent = lotteryType === 'all' ? 'All Lottery Types' : lotteryType;
+                    }
+                    
+                    // Fetch new data
+                    const currentTimePeriod = document.querySelector('[data-time-period].active')?.getAttribute('data-time-period') || 'all';
+                    fetchChartData(lotteryType, currentTimePeriod);
+                }
+                
+                if (timePeriod) {
+                    // Update time period filter
+                    document.querySelectorAll('[data-time-period]').forEach(el => el.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update display badge
+                    const badge = document.querySelector('.current-time-period');
+                    if (badge) {
+                        const periodText = {
+                            'all': 'All Time',
+                            '30': 'Last 30 Days',
+                            '90': 'Last 90 Days',
+                            '365': 'Last Year'
+                        };
+                        badge.textContent = periodText[timePeriod] || 'All Time';
+                    }
+                    
+                    // Fetch new data
+                    const currentLotteryType = document.querySelector('[data-lottery-type].active')?.getAttribute('data-lottery-type') || 'all';
+                    fetchChartData(currentLotteryType, timePeriod);
+                }
+            });
+        });
+        
+        // Reset filters button
+        const resetButton = document.querySelector('.reset-filters');
+        if (resetButton) {
+            resetButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Reset all filters to default
+                document.querySelectorAll('[data-lottery-type]').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('[data-time-period]').forEach(el => el.classList.remove('active'));
+                
+                document.querySelector('[data-lottery-type="all"]')?.classList.add('active');
+                document.querySelector('[data-time-period="all"]')?.classList.add('active');
+                
+                // Reset display badges
+                const lotteryBadge = document.querySelector('.current-lottery-type');
+                const timeBadge = document.querySelector('.current-time-period');
+                
+                if (lotteryBadge) lotteryBadge.textContent = 'All Lottery Types';
+                if (timeBadge) timeBadge.textContent = 'All Time';
+                
+                // Fetch default data
+                fetchChartData('all', 'all');
+            });
+        }
+    }
+    
+    // Setup filter dropdown
+    setupFilterDropdown();
+    
     // Load initial chart data
     fetchChartData('all', 'all');
     

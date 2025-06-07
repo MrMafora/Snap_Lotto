@@ -180,6 +180,45 @@ function renderFrequencyChart(frequencyData) {
         `;
         barChartContainer.appendChild(legend);
         
+        // Add click event listeners to all bar elements after a short delay
+        setTimeout(() => {
+            const barColumns = document.querySelectorAll('.interactive-bar-column');
+            console.log('Chart renderer: Adding click handlers to', barColumns.length, 'bar columns');
+            
+            barColumns.forEach(column => {
+                const number = column.getAttribute('data-number');
+                const frequency = column.getAttribute('data-frequency');
+                
+                if (number && frequency) {
+                    column.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Bar column clicked:', number, frequency);
+                        
+                        if (typeof window.highlightNumber === 'function') {
+                            window.highlightNumber(parseInt(number), parseInt(frequency));
+                        } else {
+                            console.error('highlightNumber function not available');
+                        }
+                    });
+                    
+                    // Also add click handlers to child bar elements
+                    const bars = column.querySelectorAll('.interactive-bar');
+                    bars.forEach(bar => {
+                        bar.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('Bar element clicked:', number, frequency);
+                            
+                            if (typeof window.highlightNumber === 'function') {
+                                window.highlightNumber(parseInt(number), parseInt(frequency));
+                            }
+                        });
+                    });
+                }
+            });
+        }, 200);
+        
     } catch (error) {
         console.error('Error rendering frequency chart:', error);
         // Show error in container
@@ -230,6 +269,22 @@ function renderHotColdNumbers(frequencyData) {
             });
             
             hotNumbersContainer.innerHTML = hotHTML;
+            
+            // Add click event listeners to hot numbers
+            setTimeout(() => {
+                hotNumbersContainer.querySelectorAll('.interactive-number').forEach(element => {
+                    element.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const number = parseInt(this.getAttribute('data-number'));
+                        const frequency = parseInt(this.getAttribute('data-frequency'));
+                        console.log('Hot number clicked:', number, frequency);
+                        if (typeof window.highlightNumber === 'function') {
+                            window.highlightNumber(number, frequency);
+                        }
+                    });
+                });
+            }, 100);
         }
         
         // Update Cold Numbers section
@@ -249,6 +304,22 @@ function renderHotColdNumbers(frequencyData) {
             });
             
             coldNumbersContainer.innerHTML = coldHTML;
+            
+            // Add click event listeners to cold numbers
+            setTimeout(() => {
+                coldNumbersContainer.querySelectorAll('.interactive-number').forEach(element => {
+                    element.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const number = parseInt(this.getAttribute('data-number'));
+                        const frequency = parseInt(this.getAttribute('data-frequency'));
+                        console.log('Cold number clicked:', number, frequency);
+                        if (typeof window.highlightNumber === 'function') {
+                            window.highlightNumber(number, frequency);
+                        }
+                    });
+                });
+            }, 100);
         }
         
         // Update Numbers Not Drawn Recently section
