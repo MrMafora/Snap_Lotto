@@ -1162,6 +1162,11 @@ def results():
                         self.numbers = numbers
                         self.bonus_numbers = bonus_numbers
                     
+                    @property
+                    def main_numbers(self):
+                        """Alias for numbers to maintain compatibility"""
+                        return self.numbers
+                    
                     def get_numbers_list(self):
                         if isinstance(self.numbers, str):
                             # Handle comma-separated format like "1,2,3,18,29,32"
@@ -1256,6 +1261,11 @@ def results():
                             self.draw_date = draw_date
                             self.numbers = numbers
                             self.bonus_numbers = bonus_numbers
+                        
+                        @property
+                        def main_numbers(self):
+                            """Alias for numbers to maintain compatibility"""
+                            return self.numbers
                         
                         def get_numbers_list(self):
                             import json
