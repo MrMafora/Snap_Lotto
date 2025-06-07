@@ -100,7 +100,7 @@
                                 <div class="mb-3 p-3 bg-light rounded">
                                     <div class="row">
                                         <div class="col-md-12">
-                                            <h5 class="mb-2">🎫 <span id="detected-lottery-type"></span> Ticket</h5>
+                                            <h5 class="mb-2">🎫 <span id="detected-lottery-type"></span> Ticket <span id="plus-indicator"></span></h5>
                                             <p class="mb-0"><strong>Draw:</strong> <span id="detected-draw-number"></span> • <strong>Date:</strong> <span id="detected-draw-date"></span></p>
                                         </div>
                                     </div>
@@ -325,16 +325,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const drawNumberEl = document.getElementById('detected-draw-number');
         
         if (lotteryTypeEl) {
-            let lotteryText = data.lottery_type || 'Not detected';
-            
-            // Add Plus indicator if Plus games are included
+            lotteryTypeEl.textContent = data.lottery_type || 'Not detected';
+        }
+        
+        // Handle Plus indicator separately
+        const plusIndicatorEl = document.getElementById('plus-indicator');
+        if (plusIndicatorEl) {
             if (data.powerball_plus_included === 'YES' || 
                 data.lotto_plus_1_included === 'YES' || 
                 data.lotto_plus_2_included === 'YES') {
-                lotteryText += ' <span class="badge bg-success ms-2"><i class="fa fa-check me-1"></i>Plus</span>';
+                plusIndicatorEl.innerHTML = '<span class="badge bg-success ms-2"><i class="fa fa-check me-1"></i>Plus</span>';
+            } else {
+                plusIndicatorEl.innerHTML = '';
             }
-            
-            lotteryTypeEl.innerHTML = lotteryText;
         }
         if (drawDateEl) drawDateEl.textContent = data.draw_date || 'Not detected';
         if (drawNumberEl) drawNumberEl.textContent = data.draw_number || 'Not detected';
@@ -487,9 +490,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     plusSign.textContent = '+';
                     ballsContainer.appendChild(plusSign);
                     
-                    const powerballContainer = document.createElement('div');
-                    powerballContainer.className = 'd-flex gap-2';
-                    
                     const powerballWrapper = document.createElement('div');
                     powerballWrapper.className = 'position-relative d-inline-block';
                     
@@ -519,8 +519,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     powerballWrapper.appendChild(powerballBall);
-                    powerballContainer.appendChild(powerballWrapper);
-                    lineDiv.appendChild(powerballContainer);
+                    ballsContainer.appendChild(powerballWrapper);
                     
                     // No summary box - checkmarks on numbers will show matches instead
                 }
