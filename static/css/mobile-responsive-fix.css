@@ -115,14 +115,14 @@
         overflow: visible !important;
     }
     
-    /* Lottery ball styling - optimized sizes */
+    /* Lottery ball styling - optimized sizes for single row display */
     .lottery-ball,
     .lottery-ball-sm {
-        width: 28px !important;
-        height: 28px !important;
-        font-size: 12px !important;
-        line-height: 28px !important;
-        margin: 2px 1px !important;
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 10px !important;
+        line-height: 22px !important;
+        margin: 1px !important;
         border-radius: 50% !important;
         display: inline-block !important;
         text-align: center !important;
@@ -131,19 +131,19 @@
         vertical-align: middle !important;
         box-sizing: border-box !important;
         border: none !important;
-        min-width: 28px !important;
-        min-height: 28px !important;
+        min-width: 22px !important;
+        min-height: 22px !important;
     }
     
     /* Bonus ball styling */
     .lottery-ball-bonus {
-        width: 24px !important;
-        height: 24px !important;
-        font-size: 11px !important;
-        line-height: 24px !important;
-        margin: 2px 1px !important;
-        min-width: 24px !important;
-        min-height: 24px !important;
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+        line-height: 20px !important;
+        margin: 1px !important;
+        min-width: 20px !important;
+        min-height: 20px !important;
     }
     
     /* Numbers container */

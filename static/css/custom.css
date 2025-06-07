@@ -269,6 +269,47 @@ tbody, td, th {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* Mobile lottery ball optimization - smaller for single row display */
+@media (max-width: 768px) {
+    .lottery-ball {
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 10px !important;
+        margin: 0 1px !important;
+        border: 1px solid #fff !important;
+    }
+    
+    .lottery-ball-mobile {
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 10px !important;
+        margin: 1px !important;
+    }
+}
+
+/* Extra small mobile screens - ensure single row display */
+@media (max-width: 400px) {
+    .lottery-ball {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+        margin: 0 0.5px !important;
+    }
+    
+    .lottery-ball-mobile {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+        margin: 0.5px !important;
+    }
+    
+    .lottery-ball-bonus {
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 8px !important;
+    }
+}
+
 /* Matched ball styling */
 .ball-matched {
     position: relative;
