@@ -272,41 +272,41 @@ tbody, td, th {
 /* Mobile lottery ball optimization - smaller for single row display */
 @media (max-width: 768px) {
     .lottery-ball {
-        width: 20px !important;
-        height: 20px !important;
-        font-size: 9px !important;
-        margin: 0 0.5px !important;
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 8px !important;
+        margin: 0 0.3px !important;
         border: 1px solid #fff !important;
     }
     
     .lottery-ball-mobile {
-        width: 20px !important;
-        height: 20px !important;
-        font-size: 9px !important;
-        margin: 0.5px !important;
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 8px !important;
+        margin: 0.3px !important;
     }
 }
 
 /* Extra small mobile screens - ensure single row display */
 @media (max-width: 400px) {
     .lottery-ball {
-        width: 20px !important;
-        height: 20px !important;
-        font-size: 9px !important;
-        margin: 0 0.5px !important;
+        width: 16px !important;
+        height: 16px !important;
+        font-size: 7px !important;
+        margin: 0 0.2px !important;
     }
     
     .lottery-ball-mobile {
-        width: 20px !important;
-        height: 20px !important;
-        font-size: 9px !important;
-        margin: 0.5px !important;
+        width: 16px !important;
+        height: 16px !important;
+        font-size: 7px !important;
+        margin: 0.2px !important;
     }
     
     .lottery-ball-bonus {
-        width: 18px !important;
-        height: 18px !important;
-        font-size: 8px !important;
+        width: 16px !important;
+        height: 16px !important;
+        font-size: 7px !important;
     }
 }
 
