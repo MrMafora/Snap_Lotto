@@ -175,6 +175,27 @@
         margin-left: 5px;
     }
     
+    /* Numbers row styling */
+    .numbers-row-container {
+        background-color: #f8f9fa;
+    }
+    
+    .numbers-row-container td {
+        border-top: none !important;
+    }
+    
+    .bonus-separator {
+        font-weight: bold;
+        color: #666;
+        font-size: 16px;
+    }
+    
+    .lottery-ball-container {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
     /* Ensure table fits on mobile */
     @media (max-width: 767px) {
         .table-responsive {
@@ -198,12 +219,18 @@
             white-space: nowrap;
         }
         
-        .mobile-numbers {
-            max-width: 120px;
+        .numbers-row-container td {
+            padding: 0.2rem 0.2rem 0.4rem 0.2rem !important;
         }
         
-        .numbers-row {
-            line-height: 1.2;
+        .lottery-ball-container {
+            margin-right: 0.2rem !important;
+            margin-bottom: 0.2rem !important;
+        }
+        
+        .bonus-separator {
+            margin: 0 0.5rem !important;
+            font-size: 14px;
         }
     }
     
@@ -349,7 +376,6 @@
                                 <th class="ps-2 py-1">GAME TYPE</th>
                                 <th class="py-1">DRAW</th>
                                 <th class="py-1">DATE</th>
-                                <th class="py-1">NUMBERS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -379,9 +405,11 @@
                                         N/A
                                     {% endif %}
                                 </td>
-                                <td class="py-1">
-                                    <!-- Desktop view with balls -->
-                                    <div class="numbers-container d-none d-md-flex">
+                            </tr>
+                            <!-- Numbers row underneath each game type -->
+                            <tr class="numbers-row-container">
+                                <td colspan="3" class="px-2 pb-2 pt-0">
+                                    <div class="numbers-container d-flex flex-wrap align-items-center justify-content-start">
                                         {% for num in result.get_numbers_list() %}
                                             {% set ball_class = 'lottery-ball lottery-ball-sm ' %}
                                             
@@ -395,36 +423,22 @@
                                                 {% set ball_class = ball_class + 'lottery-ball-blue' %}
                                             {% endif %}
                                             
-                                            <div class="lottery-ball-container">
+                                            <div class="lottery-ball-container me-1 mb-1">
                                                 <span class="{{ ball_class }}">
                                                     <span class="number">{{ num }}</span>
                                                 </span>
                                             </div>
                                         {% endfor %}
                                         {% if result.bonus_numbers %}
-                                            <div class="mx-1 d-flex align-items-center">+</div>
+                                            <div class="mx-2 d-flex align-items-center bonus-separator">+</div>
                                             {% for num in result.get_bonus_numbers_list() %}
-                                                <div class="lottery-ball-container">
+                                                <div class="lottery-ball-container me-1 mb-1">
                                                     <span class="lottery-ball lottery-ball-sm lottery-ball-yellow lottery-ball-bonus">
                                                         <span class="number">{{ num }}</span>
                                                     </span>
                                                 </div>
                                             {% endfor %}
                                         {% endif %}
-                                    </div>
-                                    
-                                    <!-- Mobile view with compact numbers -->
-                                    <div class="d-md-none mobile-numbers">
-                                        <div class="numbers-row">
-                                            {% for num in result.get_numbers_list() %}
-                                                <span class="mobile-number">{{ num }}</span>{% if not loop.last %},{% endif %}
-                                            {% endfor %}
-                                            {% if result.bonus_numbers %}
-                                                {% for num in result.get_bonus_numbers_list() %}
-                                                    <span class="mobile-bonus">+{{ num }}</span>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </div>
                                     </div>
                                 </td>
                             </tr>
