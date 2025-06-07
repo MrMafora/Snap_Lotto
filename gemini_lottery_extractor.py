@@ -183,24 +183,18 @@ Extract all visible lottery data with absolute precision. Focus on table row ali
                 if extracted_data.get('next_draw_date'):
                     next_draw_date = datetime.strptime(extracted_data['next_draw_date'], '%Y-%m-%d')
                 
-                # Create new lottery result record
+                # Create new lottery result record using only existing fields
                 new_result = LotteryResult(
                     lottery_type=extracted_data['lottery_type'],
                     draw_number=extracted_data['draw_number'],
                     draw_date=draw_date,
-                    numbers=json.dumps(extracted_data['main_numbers']),
+                    main_numbers=json.dumps(extracted_data['main_numbers']),
                     bonus_numbers=json.dumps(extracted_data.get('bonus_numbers', [])),
-                    divisions=json.dumps(extracted_data.get('divisions', [])),
+                    divisions=extracted_data.get('divisions', []),
                     rollover_amount=extracted_data.get('rollover_amount'),
-                    rollover_number=extracted_data.get('rollover_number'),
                     total_pool_size=extracted_data.get('total_pool_size'),
                     total_sales=extracted_data.get('total_sales'),
-                    next_jackpot=extracted_data.get('next_jackpot'),
-                    draw_machine=extracted_data.get('draw_machine'),
-                    next_draw_date=next_draw_date,
-                    source_url=f"https://www.nationallottery.co.za/results/{extracted_data['lottery_type'].lower().replace(' ', '-')}",
-                    ocr_provider="gemini-2.5-pro",
-                    ocr_model="gemini-2.0-flash-exp"
+                    next_jackpot=extracted_data.get('next_jackpot')
                 )
                 
                 db.session.add(new_result)
