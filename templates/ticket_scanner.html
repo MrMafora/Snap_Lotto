@@ -241,8 +241,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             console.log('Processing successful, calling displayResults');
-            // Display results
-            displayResults(data);
+            // Extract data from nested response structure
+            const ticketData = data.data || data;
+            displayResults(ticketData);
         })
         .catch(error => {
             console.error('Error processing ticket:', error);
