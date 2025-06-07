@@ -560,17 +560,25 @@ def api_scan_ticket():
         os.makedirs('uploads', exist_ok=True)
         file.save(file_path)
         
-        # Process with Google Gemini 2.5 Pro
-        import google.generativeai as genai
-        genai.configure(api_key=os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY'))
-        model = genai.GenerativeModel('gemini-1.5-pro')
-        
-        # Load and prepare image
-        import PIL.Image
-        image = PIL.Image.open(file_path)
-        
-        # Enhanced prompt for comprehensive ticket analysis
-        prompt = """Analyze this South African lottery ticket image and extract ALL visible information in JSON format.
+        try:
+            # Process with Google Gemini 2.5 Pro
+            import google.generativeai as genai
+            
+            api_key = os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY')
+            if not api_key:
+                logger.error("No Google API key found")
+                return jsonify({'error': 'Google API key not configured'}), 500
+            
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-1.5-pro')
+            
+            # Load and prepare image
+            import PIL.Image
+            image = PIL.Image.open(file_path)
+            logger.info(f"Image loaded successfully: {image.size}")
+            
+            # Enhanced prompt for comprehensive ticket analysis
+            prompt = """Analyze this South African lottery ticket image and extract ALL visible information in JSON format.
 
 IMPORTANT: Extract EXACTLY what you see on the ticket. Do not make assumptions.
 
@@ -592,20 +600,36 @@ Return JSON with this structure:
 }
 
 Extract ALL visible data accurately."""
+            
+            logger.info("Sending request to Gemini API...")
+            response = model.generate_content([image, prompt])
+            response_text = response.text
+            
+            logger.info(f"Gemini response received: {response_text}")
+            
+        except Exception as e:
+            logger.error(f"Error with Gemini API: {str(e)}")
+            return jsonify({'error': f'AI processing failed: {str(e)}'}), 500
         
-        response = model.generate_content([image, prompt])
-        response_text = response.text
-        
-        logger.info(f"Gemini response: {response_text}")
-        
-        # Extract and clean JSON
-        import re
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        if json_match:
+        try:
+            # Extract and clean JSON
+            import re
+            logger.info("Extracting JSON from Gemini response...")
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            
+            if not json_match:
+                logger.error(f"No JSON found in response: {response_text}")
+                return jsonify({'error': 'Could not extract valid JSON from AI response'}), 400
+            
             json_text = json_match.group()
+            logger.info(f"Extracted JSON text: {json_text}")
+            
             # Fix leading zeros in JSON (05 -> "05")
             json_text = re.sub(r'(\[|\,)\s*0(\d)', r'\1"0\2"', json_text)
+            logger.info(f"Cleaned JSON text: {json_text}")
+            
             ticket_data = json.loads(json_text)
+            logger.info(f"Successfully parsed ticket data: {ticket_data}")
             
             # Clean up the file
             os.remove(file_path)
@@ -615,8 +639,13 @@ Extract ALL visible data accurately."""
                 'data': ticket_data,
                 'message': 'Ticket processed successfully'
             })
-        else:
-            return jsonify({'error': 'Could not extract ticket data'}), 400
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {str(e)}")
+            return jsonify({'error': f'Invalid JSON format: {str(e)}'}), 400
+        except Exception as e:
+            logger.error(f"Error processing JSON: {str(e)}")
+            return jsonify({'error': f'Processing error: {str(e)}'}), 500
             
     except Exception as e:
         logger.error(f"Error processing ticket: {e}")
