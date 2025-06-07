@@ -625,85 +625,13 @@
                         <span>Most Frequent Numbers</span>
                         <span class="chart-loading d-none"><i class="fas fa-spinner fa-spin"></i></span>
                     </h6>
-                        <!-- SVG bar chart with perfect alignment between bars and numbers -->
-                        <div class="bar-chart-container" style="position: relative; width: 100%; height: 170px;">
-                            <!-- Y-axis labels with dynamic values based on data range -->
-                            <div class="y-axis-labels" style="position: absolute; left: 0; top: 5px; bottom: 40px; width: 30px;">
-                            {% if frequent_numbers %}
-                                {% set max_frequency = frequent_numbers[0][1] if frequent_numbers|length > 0 else 1 %}
-                                {% set step = (max_frequency / 5)|round(0, 'ceil')|int %}
-                                {% if step < 1 %}{% set step = 1 %}{% endif %}
-                                
-                                <div style="position: absolute; top: 0%; right: 5px; font-size: 11px; color: #666;">{{ max_frequency }}</div>
-                                <div style="position: absolute; top: 20%; right: 5px; font-size: 11px; color: #666;">{{ (max_frequency - step)|int }}</div>
-                                <div style="position: absolute; top: 40%; right: 5px; font-size: 11px; color: #666;">{{ (max_frequency - (step*2))|int }}</div>
-                                <div style="position: absolute; top: 60%; right: 5px; font-size: 11px; color: #666;">{{ (max_frequency - (step*3))|int }}</div>
-                                <div style="position: absolute; top: 80%; right: 5px; font-size: 11px; color: #666;">{{ (max_frequency - (step*4))|int }}</div>
-                                <div style="position: absolute; bottom: 0; right: 5px; font-size: 11px; color: #666;">0</div>
-                            {% else %}
-                                <div style="position: absolute; top: 0%; right: 5px; font-size: 11px; color: #666;">16</div>
-                                <div style="position: absolute; top: 20%; right: 5px; font-size: 11px; color: #666;">12</div>
-                                <div style="position: absolute; top: 40%; right: 5px; font-size: 11px; color: #666;">9</div>
-                                <div style="position: absolute; top: 60%; right: 5px; font-size: 11px; color: #666;">6</div>
-                                <div style="position: absolute; top: 80%; right: 5px; font-size: 11px; color: #666;">3</div>
-                                <div style="position: absolute; bottom: 0; right: 5px; font-size: 11px; color: #666;">0</div>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- Chart area with grid lines -->
-                        <div class="chart-grid" style="position: absolute; left: 30px; right: 0; top: 5px; bottom: 40px; border-bottom: 1px solid #ddd; border-left: 1px solid #ddd;">
-                            <!-- Horizontal grid lines -->
-                            <div style="position: absolute; left: 0; right: 0; top: 20%; height: 1px; background-color: rgba(0,0,0,0.05);"></div>
-                            <div style="position: absolute; left: 0; right: 0; top: 40%; height: 1px; background-color: rgba(0,0,0,0.05);"></div>
-                            <div style="position: absolute; left: 0; right: 0; top: 60%; height: 1px; background-color: rgba(0,0,0,0.05);"></div>
-                            <div style="position: absolute; left: 0; right: 0; top: 80%; height: 1px; background-color: rgba(0,0,0,0.05);"></div>
-                            
-                            <!-- Bar chart with exact positioning using dynamic data -->
-                            <div class="frequency-bars" style="display: flex; justify-content: space-around; height: 100%; width: 100%;">
-                                {% if frequent_numbers %}
-                                    {% set max_height = 90 %}
-                                    {% set max_frequency = frequent_numbers[0][1] if frequent_numbers|length > 0 else 1 %}
-                                    {% for number, frequency in frequent_numbers %}
-                                        <!-- Calculate height based on frequency relative to max -->
-                                        {% set bar_height = (frequency / max_frequency * max_height)|int %}
-                                        {% if bar_height < 5 %}{% set bar_height = 5 %}{% endif %}
-                                        
-                                        <!-- Assign color based on position -->
-                                        {% set colors = ['#e03237', '#ffe11d', '#19a03a', '#67c6ed'] %}
-                                        {% set color_index = loop.index0 % 4 %}
-                                        
-                                        <div style="display: flex; flex-direction: column-reverse; align-items: center; width: 9%; height: 100%;" 
-                                            class="bar-column interactive-bar-column" 
-                                            data-bs-toggle="tooltip"
-                                            data-bs-placement="top"
-                                            data-bs-title="Number {{ number }} appeared {{ frequency }} times"
-                                            data-number="{{ number }}"
-                                            data-frequency="{{ frequency }}"
-                                            onclick="highlightNumber({{ number }}, {{ frequency }})">
-                                            <!-- Frequency at top of bar -->
-                                            <div style="position: relative; width: 80%; height: {{ bar_height }}%;" class="interactive-bar-container">
-                                                <div class="interactive-bar" style="position: absolute; bottom: 0; left: 0; right: 0; height: 100%; background-color: {{ colors[color_index] }}; border-top-left-radius: 3px; border-top-right-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.3s ease; cursor: pointer;">
-                                                </div>
-                                                <span style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 9px; color: #666; white-space: nowrap;">{{ frequency }}</span>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <!-- Fallback if no data available -->
-                                    <div class="text-center w-100 d-flex align-items-center justify-content-center">
-                                        <p class="text-muted mb-0">No frequency data available</p>
-                                    </div>
-                                {% endif %}
+                    <!-- Interactive bar chart container - will be populated by JavaScript -->
+                    <div class="bar-chart-container" style="width: 100%; height: 200px;">
+                        <div class="d-flex justify-content-center align-items-center h-100">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading chart...</span>
                             </div>
-                        </div>
-                        
-                        <!-- X-axis labels in separate section below the chart -->
-                        <div style="position: absolute; left: 30px; right: 0; bottom: 0; height: 30px; display: flex; justify-content: space-around; padding: 5px 0;">
-                            {% if frequent_numbers %}
-                                {% for number, frequency in frequent_numbers %}
-                                    <div style="font-size: 11px; text-align: center; width: 9%; font-weight: bold; color: #333;">{{ number }}</div>
-                                {% endfor %}
-                            {% endif %}
+                            <span class="ms-2">Loading interactive chart...</span>
                         </div>
                     </div>
                 </div>
@@ -717,7 +645,7 @@
                         <span class="chart-loading d-none" id="hotColdLoading"><i class="fas fa-spinner fa-spin"></i></span>
                     </h6>
                     
-                    <!-- Hot & Cold Numbers Display -->
+                    <!-- Interactive Hot & Cold Numbers Display -->
                     <div class="hot-cold-container">
                         <!-- Hot Numbers (Most Frequent) -->
                         <div class="hot-numbers mb-4">
@@ -726,69 +654,44 @@
                                 <small class="text-muted">(Most Frequent)</small>
                             </h6>
                             <div class="d-flex flex-wrap" id="hotNumbersContainer">
-                                {% if frequent_numbers and frequent_numbers|length > 0 %}
-                                    {% for number, frequency in frequent_numbers[:5] %}
-                                        {% set colors = ['lottery-ball-red', 'lottery-ball-yellow', 'lottery-ball-green', 'lottery-ball-blue', 'lottery-ball-red'] %}
-                                        <div class="hot-number-item me-2 mb-2 interactive-number" 
-                                            data-number="{{ number }}" 
-                                            data-frequency="{{ frequency }}"
-                                            onclick="highlightNumber({{ number }}, {{ frequency }})"
-                                            data-bs-toggle="tooltip"
-                                            data-bs-placement="top"
-                                            data-bs-title="Number {{ number }} appeared {{ frequency }} times">
-                                            <span class="lottery-ball lottery-ball-sm {{ colors[loop.index0] }}">
-                                                <span class="number">{{ number }}</span>
-                                            </span>
-                                            <small class="frequency-label d-block text-center mt-1">{{ frequency }}x</small>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="text-muted">No hot numbers data available</div>
-                                {% endif %}
+                                <div class="d-flex justify-content-center align-items-center w-100">
+                                    <div class="spinner-border spinner-border-sm text-danger" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <span class="ms-2 text-muted">Loading hot numbers...</span>
+                                </div>
                             </div>
                         </div>
                         
                         <!-- Cold Numbers (Least Frequent) -->
-                        <div class="cold-numbers">
+                        <div class="cold-numbers mb-4">
                             <h6 class="fw-bold text-primary mb-2">
                                 <i class="fas fa-snowflake me-1"></i> Cold Numbers
                                 <small class="text-muted">(Least Frequent)</small>
                             </h6>
                             <div class="d-flex flex-wrap" id="coldNumbersContainer">
-                                {% if cold_numbers and cold_numbers|length > 0 %}
-                                    {% for number, frequency in cold_numbers[:5] %}
-                                        <div class="cold-number-item me-2 mb-2">
-                                            <span class="lottery-ball lottery-ball-sm lottery-ball-blue">
-                                                <span class="number">{{ number }}</span>
-                                            </span>
-                                            <small class="frequency-label d-block text-center mt-1">{{ frequency }}x</small>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="text-muted">No cold numbers data available</div>
-                                {% endif %}
+                                <div class="d-flex justify-content-center align-items-center w-100">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <span class="ms-2 text-muted">Loading cold numbers...</span>
+                                </div>
                             </div>
                         </div>
                         
-                        <!-- Number Not Drawn Recently -->
-                        <div class="absent-numbers mt-4">
+                        <!-- Numbers Not Drawn Recently -->
+                        <div class="absent-numbers">
                             <h6 class="fw-bold text-success mb-2">
                                 <i class="fas fa-clock me-1"></i> Numbers Not Drawn Recently
                                 <small class="text-muted">(Due Numbers)</small>
                             </h6>
                             <div class="d-flex flex-wrap" id="absentNumbersContainer">
-                                {% if absent_numbers and absent_numbers|length > 0 %}
-                                    {% for number, days in absent_numbers[:5] %}
-                                        <div class="absent-number-item me-2 mb-2">
-                                            <span class="lottery-ball lottery-ball-sm lottery-ball-green">
-                                                <span class="number">{{ number }}</span>
-                                            </span>
-                                            <small class="frequency-label d-block text-center mt-1">{{ days }} days</small>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="text-muted">No absent numbers data available</div>
-                                {% endif %}
+                                <div class="d-flex justify-content-center align-items-center w-100">
+                                    <div class="spinner-border spinner-border-sm text-success" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <span class="ms-2 text-muted">Loading absent numbers...</span>
+                                </div>
                             </div>
                         </div>
                     </div>
