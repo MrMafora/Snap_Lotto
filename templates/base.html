@@ -295,6 +295,19 @@
     }
     </style>
     
+    <!-- Temporary simple navigation for immediate use -->
+    <div class="d-lg-none text-center p-3 bg-light border-top border-bottom" style="position: sticky; top: 0; z-index: 1000;">
+        <div class="row">
+            <div class="col">
+                <a href="/" class="btn btn-sm btn-outline-primary">Home</a>
+                <a href="/results" class="btn btn-sm btn-outline-primary">Results</a>
+                <a href="/guides" class="btn btn-sm btn-outline-primary">Guides</a>
+                <a href="/scanner-landing" class="btn btn-sm btn-outline-primary">Scanner</a>
+                <a href="/visualizations" class="btn btn-sm btn-outline-primary">Analytics</a>
+            </div>
+        </div>
+    </div>
+
     <nav id="mobile-nav" class="d-lg-none" style="position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; z-index: 9999 !important; display: flex !important; width: 100% !important; height: 60px !important; background: white !important; border-top: 1px solid #ddd !important;">
         <a href="/" class="{% if request.path == '/' %}active{% endif %}">
             <i class="fas fa-home"></i>

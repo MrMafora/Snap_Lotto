@@ -58,7 +58,20 @@ function forceMobileNavPosition() {
         document.body.style.setProperty('padding-bottom', '70px', 'important');
         document.body.style.setProperty('margin-bottom', '0px', 'important');
         
-        console.log('Mobile navigation v6.0 - Simplified positioning, navigation should be visible');
+        // Debug navigation visibility
+        const computedStyle = window.getComputedStyle(mobileNav);
+        console.log('Mobile navigation v7.0 - Debug info:', {
+            display: computedStyle.display,
+            position: computedStyle.position,
+            bottom: computedStyle.bottom,
+            visibility: computedStyle.visibility,
+            opacity: computedStyle.opacity,
+            zIndex: computedStyle.zIndex,
+            height: computedStyle.height,
+            width: computedStyle.width
+        });
+        
+        console.log('Navigation element found:', mobileNav ? 'YES' : 'NO');
     }
 }
 
