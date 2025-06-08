@@ -238,91 +238,51 @@
         </div>
     </footer>
     
-    <!-- Mobile bottom navigation -->
+    <!-- Simple mobile navigation -->
     <style>
-    /* Ultra-specific mobile navigation CSS - maximum priority */
-    html body nav#mobile-bottom-nav {
-        position: fixed !important;
-        bottom: 0px !important;
-        left: 0px !important;
-        right: 0px !important;
-        width: 100vw !important;
-        height: 60px !important;
-        background-color: white !important;
-        border-top: 1px solid #e0e0e0 !important;
-        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
-        z-index: 2147483647 !important;
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: space-around !important;
-        margin: 0 !important;
-        padding: 8px 0 !important;
-        top: auto !important;
-        transform: none !important;
+    /* Clean mobile navigation without performance issues */
+    #mobile-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 60px;
+        background: white;
+        border-top: 1px solid #ddd;
+        box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+        z-index: 1000;
+        display: flex;
     }
     
-    /* Body spacing for navigation */
-    @media (max-width: 991px) {
-        body {
-            padding-bottom: 70px !important;
-            margin-bottom: 0 !important;
-        }
-    }
-    
-    /* Hide on desktop */
-    @media (min-width: 992px) {
-        html body nav#mobile-bottom-nav {
-            display: none !important;
-        }
-        
-        body {
-            padding-bottom: 0 !important;
-        }
-    }
-    
-    /* Navigation link styles - ensure proper flex layout */
     #mobile-bottom-nav .mobile-nav-link {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        color: #333 !important;
-        text-decoration: none !important;
-        font-size: 0.7rem !important;
-        padding: 4px 8px !important;
-        min-width: 50px !important;
-        max-width: 80px !important;
-        height: 50px !important;
-        transition: color 0.2s ease !important;
-        text-align: center !important;
-        flex: 1 !important;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        text-decoration: none;
+        font-size: 11px;
+        padding: 6px;
     }
     
     #mobile-bottom-nav .mobile-nav-link i {
-        font-size: 1.2rem !important;
-        margin-bottom: 2px !important;
-        display: block !important;
-        line-height: 1 !important;
-    }
-    
-    #mobile-bottom-nav .mobile-nav-link span {
-        font-size: 0.65rem !important;
-        line-height: 1 !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        max-width: 100% !important;
+        font-size: 18px;
+        margin-bottom: 2px;
     }
     
     #mobile-bottom-nav .mobile-nav-link.active {
-        color: #dc3545 !important;
-        font-weight: bold !important;
+        color: #dc3545;
     }
     
-    #mobile-bottom-nav .mobile-nav-link:hover {
-        color: #dc3545 !important;
-        text-decoration: none !important;
+    @media (max-width: 991px) {
+        body { padding-bottom: 70px; }
+    }
+    
+    @media (min-width: 992px) {
+        #mobile-bottom-nav { display: none; }
+        body { padding-bottom: 0; }
     }
     </style>
     <nav id="mobile-bottom-nav">
@@ -351,32 +311,7 @@
     <!-- Bootstrap JavaScript Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Simple mobile navigation position enforcer -->
-    <script>
-    if (window.innerWidth <= 991) {
-        document.addEventListener('DOMContentLoaded', function() {
-            const nav = document.getElementById('mobile-bottom-nav');
-            if (nav) {
-                // Apply positioning without breaking flex layout
-                nav.style.position = 'fixed';
-                nav.style.bottom = '0px';
-                nav.style.left = '0px';
-                nav.style.right = '0px';
-                nav.style.width = '100vw';
-                nav.style.height = '60px';
-                nav.style.zIndex = '2147483647';
-                nav.style.display = 'flex';
-                nav.style.alignItems = 'center';
-                nav.style.justifyContent = 'space-around';
-                nav.style.backgroundColor = 'white';
-                nav.style.borderTop = '1px solid #e0e0e0';
-                nav.style.boxShadow = '0 -2px 8px rgba(0,0,0,0.1)';
-                nav.style.margin = '0';
-                nav.style.padding = '0';
-            }
-        });
-    }
-    </script>
+
 
     {% block scripts %}{% endblock %}
     {% block additional_scripts %}{% endblock %}

@@ -1,51 +1,6 @@
 /* Custom styles for Snap Lotto - SA National Lottery Theme */
 
-/* CRITICAL: Mobile navigation viewport positioning - highest priority */
-#mobile-bottom-nav {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    width: 100vw !important;
-    height: 60px !important;
-    background-color: white !important;
-    border-top: 1px solid #e0e0e0 !important;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
-    z-index: 99999 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-around !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-/* Force mobile nav positioning on all screen sizes */
-@media screen {
-    #mobile-bottom-nav {
-        position: fixed !important;
-        bottom: 0px !important;
-        z-index: 99999 !important;
-    }
-}
-
-/* Body padding for mobile nav space */
-@media (max-width: 991px) {
-    body {
-        padding-bottom: 70px !important;
-        margin-bottom: 0 !important;
-    }
-}
-
-/* Hide on desktop */
-@media (min-width: 992px) {
-    #mobile-bottom-nav {
-        display: none !important;
-    }
-    
-    body {
-        padding-bottom: 0 !important;
-    }
-}
+/* Removed mobile navigation overrides - using simplified CSS */
 
 /* Draw details page width constraint - override Bootstrap container-fluid */
 .draw-details-page .container-fluid.px-2.px-sm-3,

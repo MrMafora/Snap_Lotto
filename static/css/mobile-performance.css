@@ -272,47 +272,7 @@ html {
     width: 100%;
 }
 
-/* CRITICAL: Force mobile navigation to viewport bottom - target correct ID */
-#mobile-bottom-nav {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    width: 100vw !important;
-    height: 60px !important;
-    background-color: white !important;
-    border-top: 1px solid #e0e0e0 !important;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
-    z-index: 999999 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-around !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-/* Ultra-specific override for mobile devices */
-@media screen and (max-width: 991.98px) {
-    nav#mobile-bottom-nav {
-        position: fixed !important;
-        bottom: 0px !important;
-        left: 0px !important;
-        right: 0px !important;
-        width: 100vw !important;
-        height: 60px !important;
-        z-index: 999999 !important;
-        display: flex !important;
-    }
-}
-
-/* Fallback for any mobile nav class */
-.mobile-nav, [id*="mobile"], [class*="mobile-nav"] {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    z-index: 999999 !important;
-}
+/* Removed complex mobile navigation overrides - using simpler CSS in base template */
 
 /* Webkit-specific override for iOS Safari */
 @supports (-webkit-appearance: none) {
