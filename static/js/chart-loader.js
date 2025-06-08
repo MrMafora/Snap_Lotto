@@ -72,8 +72,10 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchChartData('all', 'all');
     });
 
-    // Initial load data
-    fetchChartData('all', 'all');
+    // Initial load data - only if we're on the visualizations page
+    if (window.location.pathname === '/visualizations') {
+        fetchChartData('all', 'all');
+    }
 });
 
 // Function to fetch chart data via AJAX

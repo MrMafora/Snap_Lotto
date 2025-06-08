@@ -1890,6 +1890,5 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- Enhanced Chart Visualization Scripts -->
-<script src="{{ url_for('static', filename='js/chart-loader.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart-renderer.js') }}"></script>
+<!-- Chart scripts only loaded on visualizations page to improve homepage performance -->
 {% endblock %}
