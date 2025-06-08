@@ -279,6 +279,47 @@
     <!-- Bootstrap JavaScript Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     
+    <!-- Mobile Navigation Fix Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function fixMobileNavigation() {
+            const mobileNav = document.querySelector('[data-mobile-nav="true"]');
+            if (mobileNav && window.innerWidth <= 991) {
+                // Force position styles with JavaScript
+                mobileNav.style.position = 'fixed';
+                mobileNav.style.bottom = '0px';
+                mobileNav.style.left = '0px';
+                mobileNav.style.right = '0px';
+                mobileNav.style.width = '100vw';
+                mobileNav.style.zIndex = '999999';
+                mobileNav.style.backgroundColor = 'white';
+                mobileNav.style.display = 'block';
+                mobileNav.style.visibility = 'visible';
+                mobileNav.style.borderTop = '1px solid #e0e0e0';
+                mobileNav.style.boxShadow = '0 -2px 8px rgba(0, 0, 0, 0.1)';
+                mobileNav.style.padding = '8px 0';
+                mobileNav.style.margin = '0';
+                
+                // Add body padding to prevent content overlap
+                document.body.style.paddingBottom = '70px';
+                
+                console.log('Mobile navigation fixed to viewport bottom');
+            }
+        }
+        
+        // Apply fix on load
+        fixMobileNavigation();
+        
+        // Reapply on window resize
+        window.addEventListener('resize', fixMobileNavigation);
+        
+        // Reapply on orientation change
+        window.addEventListener('orientationchange', function() {
+            setTimeout(fixMobileNavigation, 100);
+        });
+    });
+    </script>
+    
     {% block scripts %}{% endblock %}
     {% block additional_scripts %}{% endblock %}
     <!-- Ad scripts have been replaced with stubs that maintain compatibility but don't show ads -->
