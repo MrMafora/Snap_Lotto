@@ -243,13 +243,21 @@
     .mobile-numbers-container-grid {
         display: flex;
         flex-wrap: nowrap;
-        gap: 0.5px;
         align-items: center;
+        justify-content: space-evenly;
         width: 100%;
-        overflow-x: scroll;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-        white-space: nowrap;
+        min-height: 20px;
+        padding: 2px;
+    }
+    
+    .mobile-numbers-container-grid .lottery-ball-mobile {
+        flex: 0 0 auto;
+        margin: 0 2px;
+    }
+    
+    .mobile-numbers-container-grid .bonus-separator {
+        flex: 0 0 auto;
+        margin: 0 3px;
     }
     
     .mobile-numbers-container-grid::-webkit-scrollbar {
@@ -257,29 +265,29 @@
     }
     
     .lottery-ball-mobile {
-        width: 12px;
-        height: 12px;
+        width: 16px;
+        height: 16px;
         border-radius: 50%;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        font-size: 8px;
+        font-size: 10px;
         color: white;
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         margin: 0;
-        line-height: 12px;
+        line-height: 16px;
         flex-shrink: 0;
-        min-width: 12px;
+        min-width: 16px;
     }
     
     .mobile-numbers-container .bonus-separator,
     .mobile-numbers-container-grid .bonus-separator {
         font-weight: bold;
         color: #666;
-        font-size: 8px;
-        margin: 0 1px;
+        font-size: 12px;
+        margin: 0 4px;
         flex-shrink: 0;
     }
     
