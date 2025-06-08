@@ -118,11 +118,11 @@
     /* Lottery ball styling - optimized sizes for single row display */
     .lottery-ball,
     .lottery-ball-sm {
-        width: 14px !important;
-        height: 14px !important;
-        font-size: 9px !important;
-        line-height: 14px !important;
-        margin: 0.1px !important;
+        width: 12px !important;
+        height: 12px !important;
+        font-size: 8px !important;
+        line-height: 12px !important;
+        margin: 0.05px !important;
         border-radius: 50% !important;
         display: inline-block !important;
         text-align: center !important;
@@ -131,33 +131,38 @@
         vertical-align: middle !important;
         box-sizing: border-box !important;
         border: none !important;
-        min-width: 14px !important;
-        min-height: 14px !important;
+        min-width: 12px !important;
+        min-height: 12px !important;
     }
     
     /* Bonus ball styling */
     .lottery-ball-bonus {
-        width: 14px !important;
-        height: 14px !important;
-        font-size: 9px !important;
-        line-height: 14px !important;
-        margin: 0.1px !important;
-        min-width: 14px !important;
-        min-height: 14px !important;
+        width: 12px !important;
+        height: 12px !important;
+        font-size: 8px !important;
+        line-height: 12px !important;
+        margin: 0.05px !important;
+        min-width: 12px !important;
+        min-height: 12px !important;
     }
     
     /* Numbers container */
     .numbers-container {
         display: flex !important;
-        flex-wrap: wrap !important;
+        flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: flex-start !important;
-        gap: 2px !important;
+        gap: 1px !important;
+        overflow-x: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
     }
     
     .lottery-ball-container {
         display: inline-block !important;
         margin: 1px !important;
+        flex-shrink: 0 !important;
+        min-width: auto !important;
     }
     
     /* Button improvements */
