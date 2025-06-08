@@ -441,9 +441,27 @@ def admin():
     try:
         import health_monitor
         import sqlite3
-        conn = sqlite3.connect(health_monitor.health_db_path)
+        import os
+        
+        # Use a safe health database path
+        health_db_path = os.path.join(os.getcwd(), 'instance', 'health_checks.db')
+        os.makedirs(os.path.dirname(health_db_path), exist_ok=True)
+        
+        conn = sqlite3.connect(health_db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
+        
+        # Create table if it doesn't exist
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS health_checks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                check_type TEXT NOT NULL,
+                status TEXT NOT NULL,
+                details TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         cursor.execute("SELECT * FROM health_checks ORDER BY timestamp DESC LIMIT 5")
         recent_health_checks = [dict(row) for row in cursor.fetchall()]
         conn.close()
