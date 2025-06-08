@@ -20,7 +20,7 @@ function forceMobileNavPosition() {
             background: white !important;
             border-top: 1px solid #ddd !important;
             box-shadow: 0 -2px 4px rgba(0,0,0,0.1) !important;
-            z-index: 99999 !important;
+            z-index: 1050 !important;
             display: flex !important;
             margin: 0px !important;
             padding: 0px !important;
@@ -29,6 +29,7 @@ function forceMobileNavPosition() {
             flex-direction: row !important;
             align-items: center !important;
             justify-content: space-around !important;
+            pointer-events: auto !important;
         `;
         
         // Force styling on navigation links
@@ -61,7 +62,7 @@ function forceMobileNavPosition() {
         document.body.style.setProperty('padding-bottom', '70px', 'important');
         document.body.style.setProperty('margin-bottom', '0px', 'important');
         
-        console.log('Mobile navigation positioning forced with aggressive CSS override v2.0');
+        console.log('Mobile navigation positioning forced v4.0 - Hamburger menu removed, clean bottom nav');
     }
 }
 
@@ -84,7 +85,10 @@ document.addEventListener('visibilitychange', function() {
 // Check and reapply positioning every 5 seconds as fallback
 setInterval(function() {
     const mobileNav = document.getElementById('mobile-nav');
-    if (mobileNav && mobileNav.style.position !== 'fixed') {
-        forceMobileNavPosition();
+    if (mobileNav && window.innerWidth <= 991) {
+        const computedStyle = window.getComputedStyle(mobileNav);
+        if (computedStyle.position !== 'fixed' || computedStyle.bottom !== '0px') {
+            forceMobileNavPosition();
+        }
     }
 }, 5000);
