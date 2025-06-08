@@ -541,6 +541,8 @@ tbody, td, th {
     display: block !important;
 }
 
+
+
 @media (max-width: 991.98px) {
     .mobile-nav {
         display: block !important;

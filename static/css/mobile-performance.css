@@ -272,8 +272,18 @@ html {
     width: 100%;
 }
 
-/* Optimized mobile navigation */
+/* Optimized mobile navigation - Fixed to bottom of viewport */
 .mobile-nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    background-color: white !important;
+    border-top: 1px solid #e0e0e0 !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
+    z-index: 9999 !important;
+    padding: 8px 0 !important;
     transform: translateZ(0);
     will-change: transform;
     backdrop-filter: blur(10px);
