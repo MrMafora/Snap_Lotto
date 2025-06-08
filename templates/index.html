@@ -206,12 +206,12 @@
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 8px;
-        padding: 12px 16px 8px 16px;
-        min-height: 80px;
+        padding: 8px 12px 6px 12px;
+        min-height: 70px;
     }
     
     .mobile-result-header {
-        margin-bottom: 6px;
+        margin-bottom: 4px;
     }
     
     .mobile-badge {
@@ -244,15 +244,17 @@
         display: flex;
         flex-wrap: nowrap;
         align-items: center;
-        justify-content: space-evenly;
+        justify-content: space-between;
         width: 100%;
         min-height: 20px;
-        padding: 2px;
+        padding: 2px 8px;
     }
     
     .mobile-numbers-container-grid .lottery-ball-mobile {
-        flex: 0 0 auto;
-        margin: 0 2px;
+        flex: 0 0 22px;
+        margin: 0 1px;
+        width: 22px !important;
+        height: 22px !important;
     }
     
     .mobile-numbers-container-grid .bonus-separator {
@@ -265,21 +267,25 @@
     }
     
     .lottery-ball-mobile {
-        width: 16px;
-        height: 16px;
+        width: 22px;
+        height: 22px;
         border-radius: 50%;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        font-size: 10px;
+        font-size: 12px;
         color: white;
         text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         margin: 0;
-        line-height: 16px;
+        line-height: 22px;
         flex-shrink: 0;
-        min-width: 16px;
+        flex-grow: 0;
+        min-width: 22px;
+        max-width: 22px;
+        min-height: 22px;
+        max-height: 22px;
     }
     
     .mobile-numbers-container .bonus-separator,
@@ -525,7 +531,7 @@
                 <!-- Mobile card view -->
                 <div class="d-md-none mobile-results-container flex-grow-1">
                     {% for result in results %}
-                    <div class="mobile-result-card mb-2">
+                    <div class="mobile-result-card mb-1">
                         <div class="mobile-result-header d-flex justify-content-between align-items-center">
                             <div>
                                 {% set display_type = result.lottery_type %}
