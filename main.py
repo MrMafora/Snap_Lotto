@@ -1138,7 +1138,6 @@ def guides_index():
     """Display index of lottery guides"""
     # Define breadcrumbs for SEO
     breadcrumbs = [
-        {"name": "Home", "url": url_for('home')},
         {"name": "Lottery Guides", "url": url_for('guides_index')}
     ]
     
@@ -1155,7 +1154,6 @@ def how_to_play_lotto():
     """Display guide on how to play Lottery"""
     # Define breadcrumbs for SEO
     breadcrumbs = [
-        {"name": "Home", "url": url_for('home')},
         {"name": "Lottery Guides", "url": url_for('guides_index')},
         {"name": "How to Play Lottery", "url": url_for('how_to_play_lotto')}
     ]
@@ -1173,7 +1171,6 @@ def how_to_play_powerball():
     """Display guide on how to play PowerBall"""
     # Define breadcrumbs for SEO
     breadcrumbs = [
-        {"name": "Home", "url": url_for('home')},
         {"name": "Lottery Guides", "url": url_for('guides_index')},
         {"name": "How to Play PowerBall", "url": url_for('how_to_play_powerball')}
     ]
@@ -1190,7 +1187,6 @@ def how_to_play_daily_lotto():
     """Display guide on how to play Daily Lottery"""
     # Define breadcrumbs for SEO
     breadcrumbs = [
-        {"name": "Home", "url": url_for('home')},
         {"name": "Lottery Guides", "url": url_for('guides_index')},
         {"name": "How to Play Daily Lottery", "url": url_for('how_to_play_daily_lotto')}
     ]
