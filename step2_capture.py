@@ -8,49 +8,43 @@ import os
 import time
 import logging
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from playwright.sync_api import sync_playwright
 from config import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def setup_driver():
-    """Set up Chrome WebDriver with optimized options"""
+def setup_browser():
+    """Set up Playwright browser with optimized options"""
     try:
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--window-size=1920,1080')
-        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        playwright = sync_playwright().start()
+        browser = playwright.chromium.launch(
+            headless=True,
+            args=[
+                '--no-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu'
+            ]
+        )
         
-        driver = webdriver.Chrome(options=chrome_options)
-        return driver
+        context = browser.new_context(
+            viewport={'width': 1920, 'height': 1080},
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        )
+        
+        return playwright, browser, context
     except Exception as e:
-        logger.error(f"Failed to setup Chrome driver: {str(e)}")
-        return None
+        logger.error(f"Failed to setup Playwright browser: {str(e)}")
+        return None, None, None
 
-def capture_lottery_screenshot(url, lottery_type, driver):
-    """Capture a screenshot from a lottery URL"""
+def capture_lottery_screenshot(url, lottery_type, page):
+    """Capture a screenshot from a lottery URL using Playwright"""
     try:
         logger.info(f"Capturing {lottery_type} from {url}")
         
-        driver.get(url)
-        time.sleep(3)  # Wait for page to load
-        
-        # Wait for main content to load
-        try:
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
-            )
-        except:
-            logger.warning(f"Body element not found for {lottery_type}")
+        page.goto(url, wait_until='networkidle')
+        page.wait_for_timeout(3000)  # Wait for page to stabilize
         
         # Generate filename
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -63,7 +57,7 @@ def capture_lottery_screenshot(url, lottery_type, driver):
         
         # Save screenshot
         filepath = os.path.join(screenshot_dir, filename)
-        driver.save_screenshot(filepath)
+        page.screenshot(path=filepath, full_page=True)
         
         logger.info(f"Screenshot saved: {filename}")
         return filepath
@@ -73,23 +67,25 @@ def capture_lottery_screenshot(url, lottery_type, driver):
         return None
 
 def capture_all_lottery_screenshots():
-    """Capture screenshots from all lottery URLs"""
+    """Capture screenshots from all lottery URLs using Playwright"""
     logger.info("=== STEP 2: SCREENSHOT CAPTURE STARTED ===")
     
-    driver = setup_driver()
-    if not driver:
-        logger.error("Failed to setup web driver")
+    playwright, browser, context = setup_browser()
+    if not playwright or not browser or not context:
+        logger.error("Failed to setup Playwright browser")
         return False
     
     captured_count = 0
     total_urls = len(Config.RESULTS_URLS)
     
     try:
+        page = context.new_page()
+        
         for url_config in Config.RESULTS_URLS:
             url = url_config['url']
             lottery_type = url_config['lottery_type']
             
-            filepath = capture_lottery_screenshot(url, lottery_type, driver)
+            filepath = capture_lottery_screenshot(url, lottery_type, page)
             if filepath:
                 captured_count += 1
             
@@ -98,7 +94,10 @@ def capture_all_lottery_screenshots():
     except Exception as e:
         logger.error(f"Error during screenshot capture: {str(e)}")
     finally:
-        driver.quit()
+        if browser:
+            browser.close()
+        if playwright:
+            playwright.stop()
     
     success = captured_count > 0
     
