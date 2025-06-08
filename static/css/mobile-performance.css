@@ -272,60 +272,46 @@ html {
     width: 100%;
 }
 
-/* CRITICAL: Force mobile navigation to viewport bottom on ALL mobile devices */
-@media (max-width: 991.98px) {
-    .mobile-nav.d-lg-none,
-    div.mobile-nav.d-lg-none,
-    [data-mobile-nav="true"] {
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        width: 100vw !important;
-        background-color: white !important;
-        border-top: 1px solid #e0e0e0 !important;
-        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
-        z-index: 99999 !important;
-        padding: 8px 0 !important;
-        margin: 0 !important;
-        display: block !important;
-        transform: translateZ(0) !important;
-        will-change: transform !important;
-        backdrop-filter: blur(10px) !important;
-    }
+/* CRITICAL: Force mobile navigation to viewport bottom - target correct ID */
+#mobile-bottom-nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    height: 60px !important;
+    background-color: white !important;
+    border-top: 1px solid #e0e0e0 !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
+    z-index: 999999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
-/* Extra specific override for iOS and mobile browsers */
+/* Ultra-specific override for mobile devices */
 @media screen and (max-width: 991.98px) {
-    div[data-mobile-nav="true"] {
+    nav#mobile-bottom-nav {
         position: fixed !important;
         bottom: 0px !important;
         left: 0px !important;
         right: 0px !important;
         width: 100vw !important;
-        height: auto !important;
-        background-color: #ffffff !important;
+        height: 60px !important;
         z-index: 999999 !important;
-        display: block !important;
-        visibility: visible !important;
+        display: flex !important;
     }
 }
 
-/* Backup rule for all screen sizes */
-.mobile-nav {
+/* Fallback for any mobile nav class */
+.mobile-nav, [id*="mobile"], [class*="mobile-nav"] {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    width: 100% !important;
-    background-color: white !important;
-    border-top: 1px solid #e0e0e0 !important;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
-    z-index: 9999 !important;
-    padding: 8px 0 !important;
-    transform: translateZ(0);
-    will-change: transform;
-    backdrop-filter: blur(10px);
+    z-index: 999999 !important;
 }
 
 /* Webkit-specific override for iOS Safari */
