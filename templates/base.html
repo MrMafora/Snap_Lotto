@@ -240,29 +240,46 @@
     
     <!-- Mobile bottom navigation -->
     <style>
+    /* Force mobile navigation to stay at viewport bottom */
+    #mobile-bottom-nav {
+        position: fixed !important;
+        bottom: 0px !important;
+        left: 0px !important;
+        right: 0px !important;
+        width: 100vw !important;
+        height: 60px !important;
+        background-color: white !important;
+        border-top: 1px solid #e0e0e0 !important;
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
+        z-index: 2147483647 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-around !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        transform: translate3d(0, 0, 0) !important;
+        -webkit-transform: translate3d(0, 0, 0) !important;
+        will-change: transform !important;
+        -webkit-backface-visibility: hidden !important;
+        backface-visibility: hidden !important;
+    }
+    
     @media (max-width: 991px) {
-        #mobile-bottom-nav {
-            position: fixed !important;
-            bottom: 0vh !important;
-            left: 0vw !important;
-            right: 0vw !important;
-            width: 100vw !important;
-            height: 60px !important;
-            background-color: white !important;
-            border-top: 1px solid #e0e0e0 !important;
-            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
-            z-index: 2147483647 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-around !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            transform: translateZ(0) !important;
-            will-change: transform !important;
-        }
-        
         body {
             padding-bottom: 70px !important;
+        }
+        
+        /* Ensure navigation stays on top of everything */
+        #mobile-bottom-nav {
+            position: fixed !important;
+            bottom: 0 !important;
+            z-index: 2147483647 !important;
+        }
+    }
+    
+    @media (min-width: 992px) {
+        #mobile-bottom-nav {
+            display: none !important;
         }
     }
     </style>
@@ -294,42 +311,78 @@
     
     <!-- Mobile Navigation Fix Script -->
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        function ensureMobileNavigation() {
+    (function() {
+        function lockMobileNavigation() {
             const mobileNav = document.getElementById('mobile-bottom-nav');
             if (mobileNav && window.innerWidth <= 991) {
-                // Force position styles with JavaScript as backup
-                mobileNav.style.setProperty('position', 'fixed', 'important');
-                mobileNav.style.setProperty('bottom', '0', 'important');
-                mobileNav.style.setProperty('left', '0', 'important'); 
-                mobileNav.style.setProperty('right', '0', 'important');
-                mobileNav.style.setProperty('width', '100vw', 'important');
-                mobileNav.style.setProperty('z-index', '999999', 'important');
-                mobileNav.style.setProperty('display', 'flex', 'important');
+                // Aggressive positioning override
+                mobileNav.style.cssText = `
+                    position: fixed !important;
+                    bottom: 0px !important;
+                    left: 0px !important;
+                    right: 0px !important;
+                    width: 100vw !important;
+                    height: 60px !important;
+                    z-index: 2147483647 !important;
+                    background-color: white !important;
+                    border-top: 1px solid #e0e0e0 !important;
+                    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: space-around !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    transform: translate3d(0, 0, 0) !important;
+                `;
                 
-                // Add body padding to prevent content overlap
+                // Lock body padding
                 document.body.style.setProperty('padding-bottom', '70px', 'important');
                 
-                console.log('Mobile navigation positioned at viewport bottom');
+                console.log('Mobile navigation locked to viewport bottom');
             }
         }
         
-        // Apply immediately
-        ensureMobileNavigation();
+        // Apply immediately and repeatedly
+        lockMobileNavigation();
         
-        // Reapply on events
-        window.addEventListener('resize', ensureMobileNavigation);
+        // Apply after DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', lockMobileNavigation);
+        }
+        
+        // Apply after window loads
+        window.addEventListener('load', function() {
+            setTimeout(lockMobileNavigation, 100);
+            setTimeout(lockMobileNavigation, 500);
+            setTimeout(lockMobileNavigation, 1000);
+        });
+        
+        // Apply on any layout changes
+        window.addEventListener('resize', lockMobileNavigation);
         window.addEventListener('orientationchange', function() {
-            setTimeout(ensureMobileNavigation, 100);
+            setTimeout(lockMobileNavigation, 100);
+            setTimeout(lockMobileNavigation, 500);
         });
         
-        // Force on scroll to ensure it stays in place
-        let scrollTimeout;
-        window.addEventListener('scroll', function() {
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(ensureMobileNavigation, 50);
+        // Monitor for any positioning changes
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && 
+                    mutation.attributeName === 'style' && 
+                    mutation.target.id === 'mobile-bottom-nav') {
+                    lockMobileNavigation();
+                }
+            });
         });
-    });
+        
+        // Start observing when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileNav = document.getElementById('mobile-bottom-nav');
+            if (mobileNav) {
+                observer.observe(mobileNav, { attributes: true, attributeFilter: ['style'] });
+            }
+        });
+    })();
     </script>
     
     {% block scripts %}{% endblock %}
