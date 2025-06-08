@@ -58,9 +58,11 @@ def frequency_analysis():
         
         logger.info(f"Performing optimized analysis for: lottery_type={lottery_type}, days={days}")
         
-        # Clear cache to force fresh data
-        analysis_cache.clear()
-        logger.info("Cleared all cached analysis results to force fresh integer-safe processing")
+        # Check cache first
+        cache_key = f"frequency_{lottery_type}_{days}"
+        if cache_key in analysis_cache:
+            logger.info(f"Returning cached frequency analysis for {cache_key}")
+            return jsonify(analysis_cache[cache_key])
         
         # Get lottery results
         cutoff_date = datetime.now() - timedelta(days=days)
@@ -76,8 +78,8 @@ def frequency_analysis():
         all_numbers = []
         for result in results:
             try:
-                if result.numbers:
-                    numbers = json.loads(result.numbers) if isinstance(result.numbers, str) else result.numbers
+                if result.main_numbers:
+                    numbers = json.loads(result.main_numbers) if isinstance(result.main_numbers, str) else result.main_numbers
                     if isinstance(numbers, list):
                         all_numbers.extend([int(n) for n in numbers if isinstance(n, (int, str)) and str(n).isdigit()])
             except Exception as e:
@@ -119,6 +121,10 @@ def frequency_analysis():
                 "chart_base64": chart_base64
             }
         }
+        
+        # Cache the result for future requests
+        analysis_cache[cache_key] = result
+        logger.info(f"Cached frequency analysis result for {cache_key}")
         
         return jsonify(result)
         
