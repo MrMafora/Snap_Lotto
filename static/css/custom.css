@@ -272,41 +272,46 @@ tbody, td, th {
 /* Mobile lottery ball optimization - smaller for single row display */
 @media (max-width: 768px) {
     .lottery-ball {
-        width: 18px !important;
-        height: 18px !important;
-        font-size: 8px !important;
-        margin: 0 0.3px !important;
+        width: 16px !important;
+        height: 16px !important;
+        font-size: 9px !important;
+        margin: 0 0.2px !important;
         border: 1px solid #fff !important;
+        line-height: 16px !important;
     }
     
     .lottery-ball-mobile {
-        width: 18px !important;
-        height: 18px !important;
-        font-size: 8px !important;
-        margin: 0.3px !important;
+        width: 16px !important;
+        height: 16px !important;
+        font-size: 9px !important;
+        margin: 0.2px !important;
+        line-height: 16px !important;
     }
 }
 
 /* Extra small mobile screens - ensure single row display */
 @media (max-width: 400px) {
     .lottery-ball {
-        width: 16px !important;
-        height: 16px !important;
-        font-size: 7px !important;
-        margin: 0 0.2px !important;
+        width: 14px !important;
+        height: 14px !important;
+        font-size: 8px !important;
+        margin: 0 0.1px !important;
+        line-height: 14px !important;
     }
     
     .lottery-ball-mobile {
-        width: 16px !important;
-        height: 16px !important;
-        font-size: 7px !important;
-        margin: 0.2px !important;
+        width: 14px !important;
+        height: 14px !important;
+        font-size: 8px !important;
+        margin: 0.1px !important;
+        line-height: 14px !important;
     }
     
     .lottery-ball-bonus {
-        width: 16px !important;
-        height: 16px !important;
-        font-size: 7px !important;
+        width: 14px !important;
+        height: 14px !important;
+        font-size: 8px !important;
+        line-height: 14px !important;
     }
 }
 
