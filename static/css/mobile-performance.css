@@ -272,7 +272,46 @@ html {
     width: 100%;
 }
 
-/* Optimized mobile navigation - Fixed to bottom of viewport */
+/* CRITICAL: Force mobile navigation to viewport bottom on ALL mobile devices */
+@media (max-width: 991.98px) {
+    .mobile-nav.d-lg-none,
+    div.mobile-nav.d-lg-none,
+    [data-mobile-nav="true"] {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100vw !important;
+        background-color: white !important;
+        border-top: 1px solid #e0e0e0 !important;
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
+        z-index: 99999 !important;
+        padding: 8px 0 !important;
+        margin: 0 !important;
+        display: block !important;
+        transform: translateZ(0) !important;
+        will-change: transform !important;
+        backdrop-filter: blur(10px) !important;
+    }
+}
+
+/* Extra specific override for iOS and mobile browsers */
+@media screen and (max-width: 991.98px) {
+    div[data-mobile-nav="true"] {
+        position: fixed !important;
+        bottom: 0px !important;
+        left: 0px !important;
+        right: 0px !important;
+        width: 100vw !important;
+        height: auto !important;
+        background-color: #ffffff !important;
+        z-index: 999999 !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+}
+
+/* Backup rule for all screen sizes */
 .mobile-nav {
     position: fixed !important;
     bottom: 0 !important;
@@ -289,10 +328,67 @@ html {
     backdrop-filter: blur(10px);
 }
 
+/* Webkit-specific override for iOS Safari */
+@supports (-webkit-appearance: none) {
+    @media (max-width: 991.98px) {
+        .mobile-nav {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100vw !important;
+            height: auto !important;
+            background-color: white !important;
+            z-index: 99999 !important;
+            transform: translate3d(0, 0, 0) !important;
+            -webkit-transform: translate3d(0, 0, 0) !important;
+            will-change: transform !important;
+        }
+    }
+}
+
 .mobile-nav-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #333;
+    text-decoration: none;
+    font-size: 0.75rem;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     transition: color 0.15s ease;
+}
+
+.mobile-nav-link i {
+    font-size: 1.4rem;
+    margin-bottom: 3px;
+}
+
+.mobile-nav-link:hover, .mobile-nav-link:focus {
+    color: var(--sa-lottery-red);
+}
+
+.mobile-nav-link.active {
+    color: var(--sa-lottery-red);
+    font-weight: bold;
+}
+
+.mobile-nav-link.active i {
+    color: var(--sa-lottery-red);
+}
+
+/* Hide mobile nav on desktop */
+@media (min-width: 992px) {
+    .mobile-nav {
+        display: none !important;
+    }
+}
+
+/* Add padding to body for mobile nav so content isn't hidden */
+@media (max-width: 991.98px) {
+    body {
+        padding-bottom: 70px !important;
+    }
 }
 
 /* Performance-optimized animations */
