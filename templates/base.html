@@ -238,71 +238,69 @@
         </div>
     </footer>
     
-    <!-- Simple mobile navigation -->
+    <!-- Mobile navigation (only on mobile) -->
     <style>
-    /* Clean mobile navigation without performance issues */
-    #mobile-bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        width: 100%;
-        height: 60px;
-        background: white;
-        border-top: 1px solid #ddd;
-        box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
-        z-index: 1000;
-        display: flex;
-    }
-    
-    #mobile-bottom-nav .mobile-nav-link {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: #666;
-        text-decoration: none;
-        font-size: 11px;
-        padding: 6px;
-    }
-    
-    #mobile-bottom-nav .mobile-nav-link i {
-        font-size: 18px;
-        margin-bottom: 2px;
-    }
-    
-    #mobile-bottom-nav .mobile-nav-link.active {
-        color: #dc3545;
-    }
-    
     @media (max-width: 991px) {
+        #mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: white;
+            border-top: 1px solid #ddd;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+        }
+        
+        #mobile-nav a {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            text-decoration: none;
+            font-size: 10px;
+            padding: 4px;
+        }
+        
+        #mobile-nav a i {
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+        
+        #mobile-nav a.active {
+            color: #dc3545;
+        }
+        
         body { padding-bottom: 70px; }
     }
     
     @media (min-width: 992px) {
-        #mobile-bottom-nav { display: none; }
-        body { padding-bottom: 0; }
+        #mobile-nav { display: none; }
     }
     </style>
-    <nav id="mobile-bottom-nav">
-        <a href="/" class="mobile-nav-link {% if request.path == '/' %}active{% endif %}">
+    
+    <nav id="mobile-nav" class="d-lg-none">
+        <a href="/" class="{% if request.path == '/' %}active{% endif %}">
             <i class="fas fa-home"></i>
             <span>Home</span>
         </a>
-        <a href="/results" class="mobile-nav-link {% if request.path == '/results' %}active{% endif %}">
+        <a href="/results" class="{% if request.path == '/results' %}active{% endif %}">
             <i class="fas fa-list-ol"></i>
             <span>Results</span>
         </a>
-        <a href="/guides" class="mobile-nav-link {% if request.path.startswith('/guides') %}active{% endif %}">
+        <a href="/guides" class="{% if request.path.startswith('/guides') %}active{% endif %}">
             <i class="fas fa-book"></i>
             <span>Guides</span>
         </a>
-        <a href="/scanner-landing" class="mobile-nav-link {% if request.path == '/ticket-scanner' or request.path == '/scan-lottery-ticket-south-africa' or request.path == '/scanner-landing' %}active{% endif %}">
+        <a href="/scanner-landing" class="{% if request.path == '/ticket-scanner' or request.path == '/scan-lottery-ticket-south-africa' or request.path == '/scanner-landing' %}active{% endif %}">
             <i class="fas fa-ticket-alt"></i>
             <span>Scanner</span>
         </a>
-        <a href="/visualizations" class="mobile-nav-link {% if request.path == '/visualizations' %}active{% endif %}">
+        <a href="/visualizations" class="{% if request.path == '/visualizations' %}active{% endif %}">
             <i class="fas fa-chart-bar"></i>
             <span>Analytics</span>
         </a>

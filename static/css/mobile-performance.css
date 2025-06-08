@@ -274,68 +274,7 @@ html {
 
 /* Removed complex mobile navigation overrides - using simpler CSS in base template */
 
-/* Webkit-specific override for iOS Safari */
-@supports (-webkit-appearance: none) {
-    @media (max-width: 991.98px) {
-        .mobile-nav {
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            width: 100vw !important;
-            height: auto !important;
-            background-color: white !important;
-            z-index: 99999 !important;
-            transform: translate3d(0, 0, 0) !important;
-            -webkit-transform: translate3d(0, 0, 0) !important;
-            will-change: transform !important;
-        }
-    }
-}
-
-.mobile-nav-link {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: #333;
-    text-decoration: none;
-    font-size: 0.75rem;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    transition: color 0.15s ease;
-}
-
-.mobile-nav-link i {
-    font-size: 1.4rem;
-    margin-bottom: 3px;
-}
-
-.mobile-nav-link:hover, .mobile-nav-link:focus {
-    color: var(--sa-lottery-red);
-}
-
-.mobile-nav-link.active {
-    color: var(--sa-lottery-red);
-    font-weight: bold;
-}
-
-.mobile-nav-link.active i {
-    color: var(--sa-lottery-red);
-}
-
-/* Hide mobile nav on desktop */
-@media (min-width: 992px) {
-    .mobile-nav {
-        display: none !important;
-    }
-}
-
-/* Add padding to body for mobile nav so content isn't hidden */
-@media (max-width: 991.98px) {
-    body {
-        padding-bottom: 70px !important;
-    }
-}
+/* Mobile navigation styles removed - handled in base template */
 
 /* Performance-optimized animations */
 .pulse-btn {
