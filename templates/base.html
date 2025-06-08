@@ -239,7 +239,34 @@
     </footer>
     
     <!-- Mobile bottom navigation -->
-    <nav id="mobile-bottom-nav" style="position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100vw !important; height: 60px !important; background-color: white !important; border-top: 1px solid #e0e0e0 !important; box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important; z-index: 999999 !important; display: flex !important; align-items: center !important; justify-content: space-around !important; margin: 0 !important; padding: 0 !important;">
+    <style>
+    @media (max-width: 991px) {
+        #mobile-bottom-nav {
+            position: fixed !important;
+            bottom: 0vh !important;
+            left: 0vw !important;
+            right: 0vw !important;
+            width: 100vw !important;
+            height: 60px !important;
+            background-color: white !important;
+            border-top: 1px solid #e0e0e0 !important;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
+            z-index: 2147483647 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-around !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            transform: translateZ(0) !important;
+            will-change: transform !important;
+        }
+        
+        body {
+            padding-bottom: 70px !important;
+        }
+    }
+    </style>
+    <nav id="mobile-bottom-nav">
         <a href="/" class="mobile-nav-link {% if request.path == '/' %}active{% endif %}" style="display: flex !important; flex-direction: column !important; align-items: center !important; color: #333 !important; text-decoration: none !important; font-size: 0.75rem !important; padding: 8px !important;">
             <i class="fas fa-home" style="font-size: 1.4rem !important; margin-bottom: 3px !important;"></i>
             <span>Home</span>
