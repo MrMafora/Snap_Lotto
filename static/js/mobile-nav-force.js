@@ -6,31 +6,27 @@
 function forceMobileNavPosition() {
     const mobileNav = document.getElementById('mobile-nav');
     if (mobileNav && window.innerWidth <= 991) {
-        // Remove any existing positioning classes
+        // Clear any conflicting styles first
+        mobileNav.removeAttribute('style');
         mobileNav.className = 'd-lg-none';
         
-        // Force fixed positioning with CSS text override
-        mobileNav.style.cssText = `
-            position: fixed !important;
-            bottom: 0px !important;
-            left: 0px !important;
-            right: 0px !important;
-            width: 100vw !important;
-            height: 60px !important;
-            background: white !important;
-            border-top: 1px solid #ddd !important;
-            box-shadow: 0 -2px 4px rgba(0,0,0,0.1) !important;
-            z-index: 1050 !important;
-            display: flex !important;
-            margin: 0px !important;
-            padding: 0px !important;
-            transform: none !important;
-            top: auto !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            justify-content: space-around !important;
-            pointer-events: auto !important;
-        `;
+        // Apply simple, reliable fixed positioning
+        mobileNav.style.setProperty('position', 'fixed', 'important');
+        mobileNav.style.setProperty('bottom', '0px', 'important');
+        mobileNav.style.setProperty('left', '0px', 'important');
+        mobileNav.style.setProperty('right', '0px', 'important');
+        mobileNav.style.setProperty('width', '100%', 'important');
+        mobileNav.style.setProperty('height', '60px', 'important');
+        mobileNav.style.setProperty('background', 'white', 'important');
+        mobileNav.style.setProperty('border-top', '1px solid #ddd', 'important');
+        mobileNav.style.setProperty('box-shadow', '0 -2px 4px rgba(0,0,0,0.1)', 'important');
+        mobileNav.style.setProperty('z-index', '9999', 'important');
+        mobileNav.style.setProperty('display', 'flex', 'important');
+        mobileNav.style.setProperty('flex-direction', 'row', 'important');
+        mobileNav.style.setProperty('align-items', 'center', 'important');
+        mobileNav.style.setProperty('justify-content', 'space-around', 'important');
+        mobileNav.style.setProperty('visibility', 'visible', 'important');
+        mobileNav.style.setProperty('opacity', '1', 'important');
         
         // Force styling on navigation links
         const navLinks = mobileNav.querySelectorAll('a');
@@ -62,7 +58,7 @@ function forceMobileNavPosition() {
         document.body.style.setProperty('padding-bottom', '70px', 'important');
         document.body.style.setProperty('margin-bottom', '0px', 'important');
         
-        console.log('Mobile navigation positioning forced v4.0 - Hamburger menu removed, clean bottom nav');
+        console.log('Mobile navigation v6.0 - Simplified positioning, navigation should be visible');
     }
 }
 
