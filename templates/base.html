@@ -65,7 +65,7 @@
     <link rel="preload" href="{{ url_for('static', filename='css/mobile-performance.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="preload" href="{{ url_for('static', filename='css/mobile-table-fix.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="preload" href="{{ url_for('static', filename='css/badge-fix.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="{{ url_for('static', filename='css/mobile-nav-fix.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     
     <!-- Fallback for no-JS -->
@@ -295,8 +295,8 @@
     }
     </style>
     
-    <!-- Mobile Top Navigation - Fixed to Screen Top -->
-    <nav class="d-lg-none bg-white border-bottom" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 60px !important; z-index: 1050 !important; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <!-- Mobile Bottom Navigation - Fixed to Screen Bottom -->
+    <nav id="snap-mobile-nav" class="d-lg-none bg-white border-top">
         <div class="d-flex h-100">
             <a href="/" class="flex-fill d-flex flex-column align-items-center justify-content-center text-decoration-none {% if request.path == '/' %}text-danger{% else %}text-muted{% endif %}">
                 <i class="fas fa-home"></i>
@@ -321,10 +321,44 @@
         </div>
     </nav>
     
-    <!-- Add padding to prevent content overlap -->
+    <!-- Mobile Navigation Styling -->
     <style>
+    /* Force fixed positioning for mobile navigation */
+    #snap-mobile-nav {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100vw !important;
+        height: 60px !important;
+        z-index: 9999 !important;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+        transform: translateZ(0) !important; /* Force hardware acceleration */
+        -webkit-transform: translateZ(0) !important;
+    }
+    
+    /* Ensure navigation links work properly */
+    #snap-mobile-nav a {
+        pointer-events: auto !important;
+        touch-action: manipulation !important;
+    }
+    
+    /* Add padding to prevent content overlap */
     @media (max-width: 991px) {
-        body { padding-top: 70px !important; }
+        body { 
+            padding-bottom: 70px !important; 
+            margin-bottom: 0 !important;
+        }
+    }
+    
+    /* Hide on desktop */
+    @media (min-width: 992px) {
+        #snap-mobile-nav {
+            display: none !important;
+        }
+        body {
+            padding-bottom: 0 !important;
+        }
     }
     </style>
 
