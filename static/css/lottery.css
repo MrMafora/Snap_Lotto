@@ -94,7 +94,6 @@
 
 /* Lottery Ball Styles */
 .lottery-ball {
-    position: relative;
     width: 50px;
     height: 50px;
     min-width: 50px;
@@ -129,12 +128,8 @@
         min-height: 40px;
         max-width: 40px;
         max-height: 40px;
-        font-size: 0.9rem;
-        margin: 0 4px 8px 0;
-    }
-    
-    .lottery-ball .number {
         font-size: 12px;
+        margin: 0 4px 8px 0;
     }
 }
 
@@ -147,30 +142,12 @@
         min-height: 34px;
         max-width: 34px;
         max-height: 34px;
-        font-size: 0.85rem;
-        margin: 0 3px 6px 0;
-    }
-    
-    .lottery-ball .number {
         font-size: 10px;
+        margin: 0 3px 6px 0;
     }
 }
 
-.lottery-ball .number {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 14px;
-    font-weight: bold;
-    text-align: center;
-    line-height: 1;
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    /* Prevent text wrapping inside lottery balls */
-    white-space: nowrap;
-}
+
 
 .lottery-ball .frequency {
     position: absolute;
@@ -191,13 +168,17 @@
 .lottery-ball-sm {
     width: 26px;
     height: 26px;
-    font-size: 0.85rem;
+    min-width: 26px;
+    min-height: 26px;
+    max-width: 26px;
+    max-height: 26px;
+    font-size: 11px;
+    margin: 0 2px 2px 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     /* Prevent text wrapping */
     white-space: nowrap;
-}
-
-.lottery-ball-sm .number {
-    font-size: 11px;
 }
 
 .lottery-ball-lg {
@@ -206,6 +187,18 @@
     font-size: 14px;
     /* Prevent text wrapping */
     white-space: nowrap;
+}
+
+/* Bonus indicator styling */
+.bonus-indicator {
+    font-size: 18px;
+    font-weight: bold;
+    color: #666;
+    margin: 0 8px 0 8px;
+    vertical-align: middle;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 @media (max-width: 576px) {
