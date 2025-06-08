@@ -76,7 +76,7 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-performance.css') }}">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-table-fix.css') }}">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/badge-fix.css') }}">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-nav-fix.css') }}">
+    
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     </noscript>
     
@@ -295,41 +295,38 @@
     }
     </style>
     
-    <!-- Temporary simple navigation for immediate use -->
-    <div class="d-lg-none text-center p-3 bg-light border-top border-bottom" style="position: sticky; top: 0; z-index: 1000;">
-        <div class="row">
-            <div class="col">
-                <a href="/" class="btn btn-sm btn-outline-primary">Home</a>
-                <a href="/results" class="btn btn-sm btn-outline-primary">Results</a>
-                <a href="/guides" class="btn btn-sm btn-outline-primary">Guides</a>
-                <a href="/scanner-landing" class="btn btn-sm btn-outline-primary">Scanner</a>
-                <a href="/visualizations" class="btn btn-sm btn-outline-primary">Analytics</a>
-            </div>
+    <!-- Mobile Top Navigation - Fixed to Screen Top -->
+    <nav class="d-lg-none bg-white border-bottom" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; height: 60px !important; z-index: 1050 !important; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div class="d-flex h-100">
+            <a href="/" class="flex-fill d-flex flex-column align-items-center justify-content-center text-decoration-none {% if request.path == '/' %}text-danger{% else %}text-muted{% endif %}">
+                <i class="fas fa-home"></i>
+                <small>Home</small>
+            </a>
+            <a href="/results" class="flex-fill d-flex flex-column align-items-center justify-content-center text-decoration-none {% if request.path == '/results' %}text-danger{% else %}text-muted{% endif %}">
+                <i class="fas fa-list-ol"></i>
+                <small>Results</small>
+            </a>
+            <a href="/guides" class="flex-fill d-flex flex-column align-items-center justify-content-center text-decoration-none {% if request.path.startswith('/guides') %}text-danger{% else %}text-muted{% endif %}">
+                <i class="fas fa-book"></i>
+                <small>Guides</small>
+            </a>
+            <a href="/scanner-landing" class="flex-fill d-flex flex-column align-items-center justify-content-center text-decoration-none {% if request.path in ['/ticket-scanner', '/scan-lottery-ticket-south-africa', '/scanner-landing'] %}text-danger{% else %}text-muted{% endif %}">
+                <i class="fas fa-ticket-alt"></i>
+                <small>Scanner</small>
+            </a>
+            <a href="/visualizations" class="flex-fill d-flex flex-column align-items-center justify-content-center text-decoration-none {% if request.path == '/visualizations' %}text-danger{% else %}text-muted{% endif %}">
+                <i class="fas fa-chart-bar"></i>
+                <small>Analytics</small>
+            </a>
         </div>
-    </div>
-
-    <nav id="mobile-nav" class="d-lg-none" style="position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; z-index: 9999 !important; display: flex !important; width: 100% !important; height: 60px !important; background: white !important; border-top: 1px solid #ddd !important;">
-        <a href="/" class="{% if request.path == '/' %}active{% endif %}">
-            <i class="fas fa-home"></i>
-            <span>Home</span>
-        </a>
-        <a href="/results" class="{% if request.path == '/results' %}active{% endif %}">
-            <i class="fas fa-list-ol"></i>
-            <span>Results</span>
-        </a>
-        <a href="/guides" class="{% if request.path.startswith('/guides') %}active{% endif %}">
-            <i class="fas fa-book"></i>
-            <span>Guides</span>
-        </a>
-        <a href="/scanner-landing" class="{% if request.path == '/ticket-scanner' or request.path == '/scan-lottery-ticket-south-africa' or request.path == '/scanner-landing' %}active{% endif %}">
-            <i class="fas fa-ticket-alt"></i>
-            <span>Scanner</span>
-        </a>
-        <a href="/visualizations" class="{% if request.path == '/visualizations' %}active{% endif %}">
-            <i class="fas fa-chart-bar"></i>
-            <span>Analytics</span>
-        </a>
     </nav>
+    
+    <!-- Add padding to prevent content overlap -->
+    <style>
+    @media (max-width: 991px) {
+        body { padding-top: 70px !important; }
+    }
+    </style>
 
     <!-- Bootstrap JavaScript Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -340,8 +337,7 @@
     {% block additional_scripts %}{% endblock %}
     <!-- Ad scripts have been replaced with stubs that maintain compatibility but don't show ads -->
     <script src="{{ url_for('static', filename='js/ads.js') }}"></script>
-    <!-- Force mobile navigation positioning -->
-    <script src="{{ url_for('static', filename='js/mobile-nav-force.js') }}?v={{ range(1, 99999) | random }}"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Force light theme on all tables and rows
