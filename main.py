@@ -2830,8 +2830,8 @@ def run_automation_now():
         return jsonify({'success': False, 'error': 'Admin privileges required'}), 403
     
     try:
-        from daily_automation import run_daily_automation
-        results = run_daily_automation(app)
+        from daily_automation import run_complete_automation
+        results = run_complete_automation()
         
         if results.get('overall_success', False):
             message = f"Daily automation completed successfully: {results.get('summary', 'No details available')}"
@@ -4164,24 +4164,24 @@ def run_automation_step():
     
     try:
         if step == 'cleanup':
-            from step1_cleanup import cleanup_screenshots
-            success, count = cleanup_screenshots()
-            message = f"Successfully cleared {count} old screenshots" if success else "Cleanup failed"
+            from step1_cleanup import run_cleanup
+            success = run_cleanup()
+            message = "Cleanup completed successfully" if success else "Cleanup failed"
             
         elif step == 'capture':
-            from step2_capture import capture_lottery_screenshots
-            success, count = capture_lottery_screenshots()
-            message = f"Successfully captured {count} fresh screenshots" if success else "Screenshot capture failed"
+            from step2_capture import run_capture
+            success = run_capture()
+            message = "Screenshot capture completed successfully" if success else "Screenshot capture failed"
             
         elif step == 'ai_process':
-            from step3_ai_process import process_screenshots_with_ai
-            success, count = process_screenshots_with_ai()
-            message = f"Successfully processed {count} screenshots with AI" if success else "AI processing failed"
+            from step3_ai_process import run_ai_process
+            success = run_ai_process()
+            message = "AI processing completed successfully" if success else "AI processing failed"
             
         elif step == 'database_update':
-            from step4_database import update_database
-            success, count = update_database()
-            message = f"Successfully updated database with {count} lottery results" if success else "Database update failed"
+            from step4_database import run_database_update
+            success = run_database_update()
+            message = "Database update completed successfully" if success else "Database update failed"
             
         else:
             return jsonify({'error': f'Unknown step: {step}'}), 400
