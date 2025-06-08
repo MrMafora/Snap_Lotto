@@ -19,47 +19,17 @@ def run_complete_automation():
     try:
         logger.info("Starting complete lottery automation workflow...")
         
-        # Step 1: Clear old screenshots
-        logger.info("Step 1: Clearing old screenshots...")
-        try:
-            from daily_automation import DailyLotteryAutomation
-            from main import app
+        # Use the modular daily automation system
+        from daily_automation import run_complete_automation
+        result = run_complete_automation()
+        
+        if result.get('overall_success'):
+            logger.info("Complete automation workflow completed successfully")
+        else:
+            logger.warning("Complete automation workflow completed with some errors")
+            logger.info(f"Step results: {result}")
             
-            automation = DailyLotteryAutomation(app)
-            success, count = automation.cleanup_old_screenshots()
-            logger.info(f"Cleanup result: Success={success}, Files removed={count}")
-        except Exception as e:
-            logger.warning(f"Step 1 cleanup failed: {e}")
-        
-        # Step 2: Capture fresh screenshots
-        logger.info("Step 2: Capturing fresh lottery screenshots...")
-        try:
-            from step2_capture import capture_lottery_screenshots
-            success, count = capture_lottery_screenshots()
-            logger.info(f"Screenshot capture: Success={success}, Screenshots={count}")
-        except Exception as e:
-            logger.warning(f"Step 2 capture failed: {e}")
-        
-        # Step 3: Process with AI
-        logger.info("Step 3: Processing screenshots with Gemini AI...")
-        try:
-            from step3_ai_process import process_screenshots_with_ai
-            success, count = process_screenshots_with_ai()
-            logger.info(f"AI processing: Success={success}, Processed={count}")
-        except Exception as e:
-            logger.warning(f"Step 3 AI processing failed: {e}")
-        
-        # Step 4: Update database
-        logger.info("Step 4: Updating database with extracted results...")
-        try:
-            from step4_database import update_database
-            success, count = update_database()
-            logger.info(f"Database update: Success={success}, Records={count}")
-        except Exception as e:
-            logger.warning(f"Step 4 database update failed: {e}")
-        
-        logger.info("Complete automation workflow finished.")
-        return True
+        return result.get('overall_success', False)
         
     except Exception as e:
         logger.error(f"Complete automation failed: {e}")

@@ -271,49 +271,54 @@ tbody, td, th {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Mobile lottery ball optimization - smaller for single row display */
+/* Mobile lottery ball optimization - readable sizing */
 @media (max-width: 768px) {
     .lottery-ball {
-        width: 12px !important;
-        height: 12px !important;
-        font-size: 8px !important;
-        margin: 0 0.05px !important;
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 12px !important;
+        margin: 0 2px !important;
         border: 1px solid #fff !important;
-        line-height: 12px !important;
+        line-height: 28px !important;
+        font-weight: bold !important;
     }
     
     .lottery-ball-mobile {
-        width: 12px !important;
-        height: 12px !important;
-        font-size: 8px !important;
-        margin: 0.05px !important;
-        line-height: 12px !important;
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 12px !important;
+        margin: 2px !important;
+        line-height: 28px !important;
+        font-weight: bold !important;
     }
 }
 
-/* Extra small mobile screens - ensure single row display */
+/* Extra small mobile screens - maintain readability */
 @media (max-width: 400px) {
     .lottery-ball {
-        width: 10px !important;
-        height: 10px !important;
-        font-size: 7px !important;
-        margin: 0 0.02px !important;
-        line-height: 10px !important;
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 11px !important;
+        margin: 0 1px !important;
+        line-height: 24px !important;
+        font-weight: bold !important;
     }
     
     .lottery-ball-mobile {
-        width: 10px !important;
-        height: 10px !important;
-        font-size: 7px !important;
-        margin: 0.02px !important;
-        line-height: 10px !important;
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 11px !important;
+        margin: 1px !important;
+        line-height: 24px !important;
+        font-weight: bold !important;
     }
     
     .lottery-ball-bonus {
-        width: 10px !important;
-        height: 10px !important;
-        font-size: 7px !important;
-        line-height: 10px !important;
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 11px !important;
+        line-height: 24px !important;
+        font-weight: bold !important;
     }
 }
 

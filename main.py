@@ -4145,10 +4145,9 @@ def automation_control():
 def test_cleanup():
     """Test route for Step 1 cleanup without authentication"""
     try:
-        from daily_automation import DailyLotteryAutomation
-        automation = DailyLotteryAutomation(app)
-        success, count = automation.cleanup_old_screenshots()
-        return f"SUCCESS: Removed {count} files"
+        from step1_cleanup import run_cleanup
+        success = run_cleanup()
+        return f"SUCCESS: Cleanup completed" if success else "ERROR: Cleanup failed"
     except Exception as e:
         return f"ERROR: {str(e)}"
 
@@ -4186,7 +4185,7 @@ def run_automation_step():
         else:
             return jsonify({'error': f'Unknown step: {step}'}), 400
         
-        app.logger.info(f"Step {step} completed: success={success}, count={count}")
+        app.logger.info(f"Step {step} completed: success={success}")
         
         if success:
             flash(message, 'success')
