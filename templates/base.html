@@ -62,8 +62,7 @@
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="preload" href="{{ url_for('static', filename='css/custom.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="preload" href="{{ url_for('static', filename='css/lottery.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="{{ url_for('static', filename='css/mobile-performance.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="{{ url_for('static', filename='css/mobile-table-fix.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+
     <link rel="preload" href="{{ url_for('static', filename='css/badge-fix.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
 
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -73,8 +72,7 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/lottery.css') }}">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-performance.css') }}">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-table-fix.css') }}">
+
         <link rel="stylesheet" href="{{ url_for('static', filename='css/badge-fix.css') }}">
     
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -295,107 +293,33 @@
     }
     </style>
     
-    <!-- Mobile Bottom Navigation - Fixed to Screen Bottom -->
-    <nav id="snap-mobile-nav" class="d-lg-none bg-white border-top">
-        <div class="d-flex h-100">
-            <a href="/" class="flex-fill d-flex flex-column align-items-center justify-content-center text-decoration-none {% if request.path == '/' %}text-danger{% else %}text-muted{% endif %}">
-                <i class="fas fa-home"></i>
-                <small>Home</small>
-            </a>
-            <a href="/results" class="flex-fill d-flex flex-column align-items-center justify-content-center text-decoration-none {% if request.path == '/results' %}text-danger{% else %}text-muted{% endif %}">
-                <i class="fas fa-list-ol"></i>
-                <small>Results</small>
-            </a>
-            <a href="/guides" class="flex-fill d-flex flex-column align-items-center justify-content-center text-decoration-none {% if request.path.startswith('/guides') %}text-danger{% else %}text-muted{% endif %}">
-                <i class="fas fa-book"></i>
-                <small>Guides</small>
-            </a>
-            <a href="/scanner-landing" class="flex-fill d-flex flex-column align-items-center justify-content-center text-decoration-none {% if request.path in ['/ticket-scanner', '/scan-lottery-ticket-south-africa', '/scanner-landing'] %}text-danger{% else %}text-muted{% endif %}">
-                <i class="fas fa-ticket-alt"></i>
-                <small>Scanner</small>
-            </a>
-            <a href="/visualizations" class="flex-fill d-flex flex-column align-items-center justify-content-center text-decoration-none {% if request.path == '/visualizations' %}text-danger{% else %}text-muted{% endif %}">
-                <i class="fas fa-chart-bar"></i>
-                <small>Analytics</small>
-            </a>
-        </div>
-    </nav>
+    <!-- Simple Mobile Navigation -->
+    <div style="position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: white; border-top: 1px solid #ddd; z-index: 999999; display: flex;" class="d-lg-none">
+        <a href="/" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: {% if request.path == '/' %}#dc3545{% else %}#666{% endif %};">
+            <i class="fas fa-home" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Home</small>
+        </a>
+        <a href="/results" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: {% if request.path == '/results' %}#dc3545{% else %}#666{% endif %};">
+            <i class="fas fa-list-ol" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Results</small>
+        </a>
+        <a href="/guides" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: {% if request.path.startswith('/guides') %}#dc3545{% else %}#666{% endif %};">
+            <i class="fas fa-book" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Guides</small>
+        </a>
+        <a href="/scanner-landing" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: {% if request.path in ['/ticket-scanner', '/scan-lottery-ticket-south-africa', '/scanner-landing'] %}#dc3545{% else %}#666{% endif %};">
+            <i class="fas fa-ticket-alt" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Scanner</small>
+        </a>
+        <a href="/visualizations" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; color: {% if request.path == '/visualizations' %}#dc3545{% else %}#666{% endif %};">
+            <i class="fas fa-chart-bar" style="font-size: 16px; margin-bottom: 2px;"></i>
+            <small>Analytics</small>
+        </a>
+    </div>
     
-    <!-- Mobile Navigation Styling -->
     <style>
-    /* Force fixed positioning for mobile navigation with maximum specificity */
-    nav#snap-mobile-nav.d-lg-none {
-        position: fixed !important;
-        bottom: 0px !important;
-        left: 0px !important;
-        right: 0px !important;
-        top: auto !important;
-        width: 100vw !important;
-        max-width: 100vw !important;
-        height: 60px !important;
-        min-height: 60px !important;
-        max-height: 60px !important;
-        z-index: 99999 !important;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
-        transform: translateZ(0) translate3d(0,0,0) !important;
-        -webkit-transform: translateZ(0) translate3d(0,0,0) !important;
-        will-change: transform !important;
-        backface-visibility: hidden !important;
-        -webkit-backface-visibility: hidden !important;
-        background: white !important;
-        border-top: 1px solid #ddd !important;
-        display: flex !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important;
-    }
-    
-    /* Override any conflicting styles */
-    body nav#snap-mobile-nav,
-    html nav#snap-mobile-nav,
-    .container nav#snap-mobile-nav,
-    .container-fluid nav#snap-mobile-nav {
-        position: fixed !important;
-        bottom: 0 !important;
-    }
-    
-    /* Ensure navigation links work properly */
-    #snap-mobile-nav a {
-        pointer-events: auto !important;
-        touch-action: manipulation !important;
-        flex: 1 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        text-decoration: none !important;
-        color: #666 !important;
-        font-size: 10px !important;
-        padding: 4px !important;
-        height: 100% !important;
-    }
-    
-    #snap-mobile-nav a i {
-        font-size: 16px !important;
-        margin-bottom: 2px !important;
-    }
-    
-    /* Add padding to prevent content overlap */
     @media (max-width: 991px) {
-        body { 
-            padding-bottom: 70px !important; 
-            margin-bottom: 0 !important;
-        }
-    }
-    
-    /* Hide on desktop */
-    @media (min-width: 992px) {
-        #snap-mobile-nav {
-            display: none !important;
-        }
-        body {
-            padding-bottom: 0 !important;
-        }
+        body { padding-bottom: 70px; }
     }
     </style>
 
