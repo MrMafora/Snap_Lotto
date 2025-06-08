@@ -239,42 +239,28 @@
     </footer>
     
     <!-- Mobile bottom navigation -->
-    <div class="mobile-nav d-lg-none" style="position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100vw !important; background-color: white !important; border-top: 1px solid #e0e0e0 !important; box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important; z-index: 99999 !important; padding: 8px 0 !important; display: block !important; margin: 0 !important; transform: translate3d(0, 0, 0) !important;" data-mobile-nav="true">
-        <div class="container-fluid">
-            <div class="row text-center">
-                <div class="col">
-                    <a href="/" class="mobile-nav-link {% if request.path == '/' %}active{% endif %}">
-                        <i class="fas fa-home" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i>
-                        <span>Home</span>
-                    </a>
-                </div>
-                <div class="col">
-                    <a href="/results" class="mobile-nav-link {% if request.path == '/results' %}active{% endif %}">
-                        <i class="fas fa-list-ol" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i>
-                        <span>Results</span>
-                    </a>
-                </div>
-                <div class="col">
-                    <a href="/guides" class="mobile-nav-link {% if request.path.startswith('/guides') %}active{% endif %}">
-                        <i class="fas fa-book" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i>
-                        <span>Guides</span>
-                    </a>
-                </div>
-                <div class="col">
-                    <a href="/scanner-landing" class="mobile-nav-link {% if request.path == '/ticket-scanner' or request.path == '/scan-lottery-ticket-south-africa' or request.path == '/scanner-landing' %}active{% endif %}">
-                        <i class="fas fa-ticket-alt" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i>
-                        <span>Scanner</span>
-                    </a>
-                </div>
-                <div class="col">
-                    <a href="/visualizations" class="mobile-nav-link {% if request.path == '/visualizations' %}active{% endif %}">
-                        <i class="fas fa-chart-bar" style="font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', FontAwesome !important; font-weight: 900 !important; visibility: visible !important; display: inline-block !important; opacity: 1 !important;"></i>
-                        <span>Analytics</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
+    <nav id="mobile-bottom-nav" style="position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100vw !important; height: 60px !important; background-color: white !important; border-top: 1px solid #e0e0e0 !important; box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important; z-index: 999999 !important; display: flex !important; align-items: center !important; justify-content: space-around !important; margin: 0 !important; padding: 0 !important;">
+        <a href="/" class="mobile-nav-link {% if request.path == '/' %}active{% endif %}" style="display: flex !important; flex-direction: column !important; align-items: center !important; color: #333 !important; text-decoration: none !important; font-size: 0.75rem !important; padding: 8px !important;">
+            <i class="fas fa-home" style="font-size: 1.4rem !important; margin-bottom: 3px !important;"></i>
+            <span>Home</span>
+        </a>
+        <a href="/results" class="mobile-nav-link {% if request.path == '/results' %}active{% endif %}" style="display: flex !important; flex-direction: column !important; align-items: center !important; color: #333 !important; text-decoration: none !important; font-size: 0.75rem !important; padding: 8px !important;">
+            <i class="fas fa-list-ol" style="font-size: 1.4rem !important; margin-bottom: 3px !important;"></i>
+            <span>Results</span>
+        </a>
+        <a href="/guides" class="mobile-nav-link {% if request.path.startswith('/guides') %}active{% endif %}" style="display: flex !important; flex-direction: column !important; align-items: center !important; color: #333 !important; text-decoration: none !important; font-size: 0.75rem !important; padding: 8px !important;">
+            <i class="fas fa-book" style="font-size: 1.4rem !important; margin-bottom: 3px !important;"></i>
+            <span>Guides</span>
+        </a>
+        <a href="/scanner-landing" class="mobile-nav-link {% if request.path == '/ticket-scanner' or request.path == '/scan-lottery-ticket-south-africa' or request.path == '/scanner-landing' %}active{% endif %}" style="display: flex !important; flex-direction: column !important; align-items: center !important; color: #333 !important; text-decoration: none !important; font-size: 0.75rem !important; padding: 8px !important;">
+            <i class="fas fa-ticket-alt" style="font-size: 1.4rem !important; margin-bottom: 3px !important;"></i>
+            <span>Scanner</span>
+        </a>
+        <a href="/visualizations" class="mobile-nav-link {% if request.path == '/visualizations' %}active{% endif %}" style="display: flex !important; flex-direction: column !important; align-items: center !important; color: #333 !important; text-decoration: none !important; font-size: 0.75rem !important; padding: 8px !important;">
+            <i class="fas fa-chart-bar" style="font-size: 1.4rem !important; margin-bottom: 3px !important;"></i>
+            <span>Analytics</span>
+        </a>
+    </nav>
 
     <!-- Bootstrap JavaScript Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -282,40 +268,39 @@
     <!-- Mobile Navigation Fix Script -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        function fixMobileNavigation() {
-            const mobileNav = document.querySelector('[data-mobile-nav="true"]');
+        function ensureMobileNavigation() {
+            const mobileNav = document.getElementById('mobile-bottom-nav');
             if (mobileNav && window.innerWidth <= 991) {
-                // Force position styles with JavaScript
-                mobileNav.style.position = 'fixed';
-                mobileNav.style.bottom = '0px';
-                mobileNav.style.left = '0px';
-                mobileNav.style.right = '0px';
-                mobileNav.style.width = '100vw';
-                mobileNav.style.zIndex = '999999';
-                mobileNav.style.backgroundColor = 'white';
-                mobileNav.style.display = 'block';
-                mobileNav.style.visibility = 'visible';
-                mobileNav.style.borderTop = '1px solid #e0e0e0';
-                mobileNav.style.boxShadow = '0 -2px 8px rgba(0, 0, 0, 0.1)';
-                mobileNav.style.padding = '8px 0';
-                mobileNav.style.margin = '0';
+                // Force position styles with JavaScript as backup
+                mobileNav.style.setProperty('position', 'fixed', 'important');
+                mobileNav.style.setProperty('bottom', '0', 'important');
+                mobileNav.style.setProperty('left', '0', 'important'); 
+                mobileNav.style.setProperty('right', '0', 'important');
+                mobileNav.style.setProperty('width', '100vw', 'important');
+                mobileNav.style.setProperty('z-index', '999999', 'important');
+                mobileNav.style.setProperty('display', 'flex', 'important');
                 
                 // Add body padding to prevent content overlap
-                document.body.style.paddingBottom = '70px';
+                document.body.style.setProperty('padding-bottom', '70px', 'important');
                 
-                console.log('Mobile navigation fixed to viewport bottom');
+                console.log('Mobile navigation positioned at viewport bottom');
             }
         }
         
-        // Apply fix on load
-        fixMobileNavigation();
+        // Apply immediately
+        ensureMobileNavigation();
         
-        // Reapply on window resize
-        window.addEventListener('resize', fixMobileNavigation);
-        
-        // Reapply on orientation change
+        // Reapply on events
+        window.addEventListener('resize', ensureMobileNavigation);
         window.addEventListener('orientationchange', function() {
-            setTimeout(fixMobileNavigation, 100);
+            setTimeout(ensureMobileNavigation, 100);
+        });
+        
+        // Force on scroll to ensure it stays in place
+        let scrollTimeout;
+        window.addEventListener('scroll', function() {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(ensureMobileNavigation, 50);
         });
     });
     </script>
