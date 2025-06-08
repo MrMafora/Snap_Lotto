@@ -399,83 +399,42 @@ def admin():
     """Admin dashboard for system administration"""
     if not current_user.is_admin:
         flash('You must be an admin to access this page.', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('home'))
     
-    # Get system statistics
+    # Get basic system statistics
+    system_stats = {
+        'cpu_usage': 'Available',
+        'memory_usage': 'Available', 
+        'disk_usage': 'Available'
+    }
+    
+    # Get lottery data count
     try:
-        import psutil
-        memory = psutil.virtual_memory()
-        disk = psutil.disk_usage('/')
-        cpu_percent = psutil.cpu_percent(interval=0.5)
+        from models import LotteryResult
+        total_results = LotteryResult.query.count()
+        latest_result = LotteryResult.query.order_by(LotteryResult.id.desc()).first()
         
-        system_stats = {
-            'cpu_usage': f"{cpu_percent}%",
-            'memory_usage': f"{memory.percent}%",
-            'disk_usage': f"{disk.percent}%"
+        data_stats = {
+            'total_results': total_results,
+            'latest_draw': latest_result.draw_number if latest_result else 'None',
+            'latest_date': latest_result.draw_date.strftime('%Y-%m-%d') if latest_result else 'None'
         }
     except Exception as e:
-        app.logger.error(f"Error getting system stats: {str(e)}")
-        system_stats = {
-            'cpu_usage': 'N/A',
-            'memory_usage': 'N/A',
-            'disk_usage': 'N/A'
+        app.logger.error(f"Error getting lottery data stats: {str(e)}")
+        data_stats = {
+            'total_results': 0,
+            'latest_draw': 'Error',
+            'latest_date': 'Error'
         }
-    
-    # Get recent API logs
-    try:
-        from models import APIRequestLog
-        recent_api_logs = APIRequestLog.query.order_by(APIRequestLog.created_at.desc()).limit(10).all()
-    except Exception as e:
-        app.logger.error(f"Error getting API logs: {str(e)}")
-        recent_api_logs = []
-    
-    # Get recent imports
-    try:
-        from models import ImportHistory
-        recent_imports = ImportHistory.query.order_by(ImportHistory.import_date.desc()).limit(5).all()
-    except Exception as e:
-        app.logger.error(f"Error getting import history: {str(e)}")
-        recent_imports = []
-    
-    # Get recent health checks
-    try:
-        import health_monitor
-        import sqlite3
-        import os
-        
-        # Use a safe health database path
-        health_db_path = os.path.join(os.getcwd(), 'instance', 'health_checks.db')
-        os.makedirs(os.path.dirname(health_db_path), exist_ok=True)
-        
-        conn = sqlite3.connect(health_db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        # Create table if it doesn't exist
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS health_checks (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                check_type TEXT NOT NULL,
-                status TEXT NOT NULL,
-                details TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        cursor.execute("SELECT * FROM health_checks ORDER BY timestamp DESC LIMIT 5")
-        recent_health_checks = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-    except Exception as e:
-        app.logger.error(f"Error getting health checks: {str(e)}")
-        recent_health_checks = []
     
     return render_template(
         'admin/dashboard.html',
         title="Admin Dashboard",
         system_stats=system_stats,
-        recent_api_logs=recent_api_logs,
-        recent_imports=recent_imports,
-        recent_health_checks=recent_health_checks
+        data_stats=data_stats,
+        recent_api_logs=[],
+        recent_imports=[],
+        recent_health_checks=[]
     )
 
 # Removed duplicate api-tracking route - functionality moved to api_tracking_view() function
