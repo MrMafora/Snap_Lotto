@@ -4208,8 +4208,8 @@ def run_daily_automation():
         return redirect(url_for('index'))
     
     try:
-        from daily_automation import run_daily_automation
-        result = run_daily_automation(app)
+        from daily_automation import run_complete_automation
+        result = run_complete_automation()
         
         session['automation_status'] = {
             'success': True,
