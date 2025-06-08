@@ -329,6 +329,8 @@
     {% block additional_scripts %}{% endblock %}
     <!-- Ad scripts have been replaced with stubs that maintain compatibility but don't show ads -->
     <script src="{{ url_for('static', filename='js/ads.js') }}"></script>
+    <!-- Force mobile navigation positioning -->
+    <script src="{{ url_for('static', filename='js/mobile-nav-force.js') }}?v={{ range(1, 99999) | random }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Force light theme on all tables and rows
