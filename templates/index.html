@@ -605,9 +605,18 @@
                         <h4 class="mb-2">Scan Your Lottery Ticket</h4>
                         <p class="mb-1">Have a lottery ticket? Check if you've won instantly!</p>
                         <p class="small mb-3">Simply upload a photo of your ticket and our system will check it against the latest results.</p>
-                        <div style="background-color: #fdd835; padding: 15px 25px; border-radius: 25px; box-shadow: 0 4px 8px rgba(0,0,0,0.15); margin: 15px 0; text-align: center; font-weight: bold; color: #333; transform: skewX(-3deg); -webkit-transform: skewX(-3deg); -moz-transform: skewX(-3deg); -ms-transform: skewX(-3deg); transition: transform 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='skewX(0deg)'" onmouseout="this.style.transform='skewX(-3deg)'">
-                            The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play
+                        <div class="promotional-skew-container" style="margin: 15px 0; perspective: 1000px;">
+                            <div class="promotional-banner-skewed" style="background: linear-gradient(135deg, #fdd835 0%, #f9c74f 100%); padding: 15px 25px; border-radius: 25px; box-shadow: 0 6px 12px rgba(253, 216, 53, 0.3); text-align: center; font-weight: bold; color: #333; transform: perspective(600px) rotateX(2deg) skewX(3deg); -webkit-transform: perspective(600px) rotateX(2deg) skewX(3deg); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; position: relative; overflow: hidden;" onmouseover="this.style.transform='perspective(600px) rotateX(0deg) skewX(0deg) scale(1.02)'; this.style.boxShadow='0 8px 16px rgba(253, 216, 53, 0.4)'" onmouseout="this.style.transform='perspective(600px) rotateX(2deg) skewX(3deg) scale(1)'; this.style.boxShadow='0 6px 12px rgba(253, 216, 53, 0.3)'">
+                                <div style="position: absolute; top: 0; left: -100%; width: 200%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); animation: shimmer 3s infinite;"></div>
+                                <span style="position: relative; z-index: 1;">The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play</span>
+                            </div>
                         </div>
+                        <style>
+                        @keyframes shimmer {
+                            0% { transform: translateX(-100%); }
+                            100% { transform: translateX(100%); }
+                        }
+                        </style>
                         <a href="{{ url_for('ticket_scanner') }}" class="btn btn-lottery-primary">
                             <i class="fas fa-qrcode me-2"></i> Scan Your Ticket Now
                         </a>
