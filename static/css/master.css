@@ -25,7 +25,7 @@ body {
 
 /* Navigation */
 .navbar {
-    background: linear-gradient(135deg, #FFE11D 0%, #FFA500 100%);
+    background: white !important;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -44,17 +44,17 @@ body {
     min-height: 50px;
 }
 
-/* Desktop Lottery Balls - 40px diameter, 18px font */
+/* Desktop Lottery Balls - Match live deployment sizing */
 .lottery-ball, .number-ball {
-    width: 40px !important;
-    height: 40px !important;
+    width: 50px !important;
+    height: 50px !important;
     border-radius: 50% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     font-weight: bold !important;
     color: white !important;
-    font-size: 18px !important;
+    font-size: 24px !important;
     text-align: center !important;
     line-height: 1 !important;
     border: 2px solid rgba(255,255,255,0.3) !important;
@@ -117,8 +117,8 @@ body {
 }
 
 .card-header {
-    background: linear-gradient(135deg, #6c757d, #495057);
-    color: white;
+    background: var(--sa-lottery-yellow) !important;
+    color: var(--sa-lottery-header-text) !important;
     font-weight: bold;
     border-radius: 12px 12px 0 0;
 }
