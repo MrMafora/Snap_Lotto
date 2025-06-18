@@ -1,25 +1,23 @@
 #!/usr/bin/env python3
 """
 Step 2: Screenshot Capture Module for Daily Automation
-Captures actual screenshot images from official South African lottery websites
+Captures actual screenshot images from official South African lottery websites using Playwright
 """
 
 import os
 import time
 import logging
-import requests
+import asyncio
 from datetime import datetime
-from PIL import Image, ImageDraw, ImageFont
-from io import BytesIO
-import base64
+from playwright.async_api import async_playwright
 from config import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def create_page_screenshot(url, lottery_type):
-    """Create a visual screenshot of the lottery page"""
+async def capture_lottery_screenshot(url, lottery_type):
+    """Capture actual screenshot image from lottery website using Playwright with human-like behavior"""
     try:
         logger.info(f"Capturing screenshot of {lottery_type} from {url}")
         
@@ -33,91 +31,144 @@ def create_page_screenshot(url, lottery_type):
         os.makedirs(screenshot_dir, exist_ok=True)
         filepath = os.path.join(screenshot_dir, filename)
         
-        # Create a session with proper headers
-        session = requests.Session()
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'identity',  # Disable compression
-            'Connection': 'keep-alive',
-            'Cache-Control': 'no-cache'
-        }
-        session.headers.update(headers)
-        
-        # Fetch the page content with error handling
-        try:
-            response = session.get(url, timeout=30, stream=False)
-            response.raise_for_status()
-            content_size = len(response.content)
-        except Exception as e:
-            logger.warning(f"Failed to fetch content from {url}: {str(e)}")
-            content_size = 0
-        
-        # Create a visual representation of the page
-        img_width, img_height = 1200, 800
-        img = Image.new('RGB', (img_width, img_height), color='white')
-        draw = ImageDraw.Draw(img)
-        
-        # Try to load a font
-        try:
-            font_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
-            font_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16)
-            font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12)
-        except:
-            font_large = ImageFont.load_default()
-            font_medium = ImageFont.load_default()
-            font_small = ImageFont.load_default()
-        
-        # Draw header
-        draw.rectangle([0, 0, img_width, 60], fill='#1e3a8a')
-        draw.text((20, 20), f"South African National Lottery - {lottery_type}", fill='white', font=font_large)
-        
-        # Draw URL
-        draw.text((20, 80), f"Source: {url}", fill='#666666', font=font_small)
-        
-        # Draw timestamp
-        draw.text((20, 100), f"Captured: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", fill='#666666', font=font_small)
-        
-        # Add content area
-        draw.rectangle([20, 140, img_width-20, img_height-40], outline='#cccccc', width=2)
-        draw.text((40, 160), "Lottery Results Page Content", fill='#333333', font=font_medium)
-        draw.text((40, 190), f"Page successfully loaded from {lottery_type} results", fill='#666666', font=font_small)
-        draw.text((40, 210), f"Content size: {content_size} bytes", fill='#666666', font=font_small)
-        draw.text((40, 230), f"Status: Page captured successfully", fill='#008000', font=font_small)
-        
-        # Add visual elements to make it look like a real screenshot
-        for i in range(5):
-            y_pos = 270 + (i * 40)
-            draw.rectangle([40, y_pos, img_width-40, y_pos+30], outline='#e0e0e0', fill='#f8f9fa')
-            draw.text((50, y_pos+8), f"Lottery data element {i+1}", fill='#333333', font=font_small)
-        
-        # Save the image
-        img.save(filepath, 'PNG', quality=85)
-        
-        file_size = os.path.getsize(filepath)
-        logger.info(f"Screenshot created and saved: {filename} ({file_size} bytes)")
-        
-        return filepath
-        
+        async with async_playwright() as p:
+            # Launch browser with human-like settings
+            browser = await p.chromium.launch(
+                headless=True,
+                args=[
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-blink-features=AutomationControlled',
+                    '--disable-extensions',
+                    '--no-first-run',
+                    '--disable-default-apps',
+                    '--disable-background-timer-throttling',
+                    '--disable-backgrounding-occluded-windows',
+                    '--disable-renderer-backgrounding'
+                ]
+            )
+            
+            # Create browser context with realistic settings
+            context = await browser.new_context(
+                viewport={'width': 1920, 'height': 1080},
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                locale='en-ZA',
+                timezone_id='Africa/Johannesburg',
+                extra_http_headers={
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+                    'Accept-Language': 'en-ZA,en;q=0.9,en-US;q=0.8',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Cache-Control': 'no-cache',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-User': '?1',
+                    'Upgrade-Insecure-Requests': '1'
+                }
+            )
+            
+            # Create new page
+            page = await context.new_page()
+            
+            # Set additional human-like behavior
+            await page.add_init_script("""
+                // Remove webdriver property
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined,
+                });
+                
+                // Mock plugins
+                Object.defineProperty(navigator, 'plugins', {
+                    get: () => [1, 2, 3, 4, 5],
+                });
+                
+                // Mock languages
+                Object.defineProperty(navigator, 'languages', {
+                    get: () => ['en-ZA', 'en'],
+                });
+            """)
+            
+            try:
+                # Navigate to lottery page with human-like timing
+                logger.info(f"Navigating to {url}")
+                await page.goto(url, wait_until='networkidle', timeout=60000)
+                
+                # Wait for page to stabilize (human-like behavior)
+                await page.wait_for_timeout(2000)
+                
+                # Try to wait for lottery results content to load
+                try:
+                    # Look for common lottery result elements
+                    await page.wait_for_selector('body', timeout=10000)
+                    
+                    # Additional wait for dynamic content
+                    await page.wait_for_timeout(3000)
+                    
+                    # Scroll down slightly to trigger any lazy loading
+                    await page.evaluate('window.scrollTo(0, 300)')
+                    await page.wait_for_timeout(1000)
+                    
+                    # Scroll back to top for clean screenshot
+                    await page.evaluate('window.scrollTo(0, 0)')
+                    await page.wait_for_timeout(1000)
+                    
+                except Exception as wait_error:
+                    logger.warning(f"Content wait timeout for {lottery_type}: {str(wait_error)}")
+                
+                # Take full page screenshot
+                logger.info(f"Taking screenshot for {lottery_type}")
+                await page.screenshot(
+                    path=filepath,
+                    full_page=True,
+                    quality=90
+                )
+                
+                # Verify file was created
+                if os.path.exists(filepath):
+                    file_size = os.path.getsize(filepath)
+                    logger.info(f"Screenshot captured and saved: {filename} ({file_size} bytes)")
+                    
+                    # Close browser resources
+                    await context.close()
+                    await browser.close()
+                    
+                    return filepath
+                else:
+                    logger.error(f"Screenshot file was not created for {lottery_type}")
+                    await context.close()
+                    await browser.close()
+                    return None
+                
+            except Exception as page_error:
+                logger.error(f"Page error for {lottery_type}: {str(page_error)}")
+                await context.close()
+                await browser.close()
+                return None
+                
     except Exception as e:
         logger.error(f"Failed to capture screenshot for {lottery_type}: {str(e)}")
         return None
 
-def capture_all_lottery_screenshots():
-    """Capture screenshots from all lottery result URLs"""
+async def capture_all_lottery_screenshots():
+    """Capture screenshots from all lottery result URLs with human-like behavior"""
     try:
         logger.info("=== STEP 2: SCREENSHOT CAPTURE STARTED ===")
         
         results = []
         
-        # Capture screenshots from all result URLs
-        for lottery_config in Config.RESULTS_URLS:
+        # Capture screenshots from all result URLs with delays between requests
+        for i, lottery_config in enumerate(Config.RESULTS_URLS):
             url = lottery_config['url']
             lottery_type = lottery_config['lottery_type']
             
+            # Human-like delay between requests (2-5 seconds)
+            if i > 0:
+                delay = 3 + (i * 1)  # Increasing delay
+                logger.info(f"Waiting {delay} seconds before next capture...")
+                await asyncio.sleep(delay)
+            
             # Capture screenshot
-            filepath = create_page_screenshot(url, lottery_type)
+            filepath = await capture_lottery_screenshot(url, lottery_type)
             
             if filepath:
                 results.append({
@@ -133,9 +184,6 @@ def capture_all_lottery_screenshots():
                     'filepath': None,
                     'status': 'failed'
                 })
-            
-            # Small delay between captures
-            time.sleep(1)
         
         # Log summary
         successful_captures = len([r for r in results if r['status'] == 'success'])
@@ -151,9 +199,9 @@ def capture_all_lottery_screenshots():
         return []
 
 def run_capture():
-    """Synchronous wrapper to run the capture function"""
+    """Synchronous wrapper to run the async capture function"""
     try:
-        return capture_all_lottery_screenshots()
+        return asyncio.run(capture_all_lottery_screenshots())
     except Exception as e:
         logger.error(f"Error running screenshot capture: {str(e)}")
         return []
