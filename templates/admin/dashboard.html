@@ -37,11 +37,13 @@
             </div>
             <div class="card-body">
                 <div class="list-group">
-                    <a href="{{ url_for('automation_control') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-magic me-2"></i> Automation Control Center
+                    <a href="{{ url_for('automation_control') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-magic me-2"></i> Automation Control Center</span>
+                        <span class="badge bg-success" id="capture-status">Active</span>
                     </a>
-                    <a href="{{ url_for('scheduler_status') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-clock me-2"></i> Daily Automation Scheduler
+                    <a href="{{ url_for('scheduler_status') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-clock me-2"></i> Daily Automation Scheduler</span>
+                        <span class="badge bg-info" id="scheduler-status">Running</span>
                     </a>
                     <a href="{{ url_for('import_data') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-file-excel me-2"></i> Import Spreadsheet
@@ -49,8 +51,9 @@
                     <a href="{{ url_for('import_history') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-history me-2"></i> Import History
                     </a>
-                    <a href="{{ url_for('results') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-search me-2"></i> View All Results
+                    <a href="{{ url_for('results') }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-search me-2"></i> View All Results</span>
+                        <span class="badge bg-primary" id="total-results">Loading...</span>
                     </a>
                     <a href="{{ url_for('visualizations') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-chart-bar me-2"></i> Data Analytics
