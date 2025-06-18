@@ -230,14 +230,17 @@ html body.draw-details-page .container-fluid.px-2.px-sm-3 {
 }
 
 .slogan-banner {
-    background-color: var(--sa-lottery-yellow);
-    padding: 10px 20px;
-    border-radius: 8px;
-    display: inline-block;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-    border: 1px solid rgba(0,0,0,0.1);
+    background-color: #fdd835;
+    padding: 15px 25px;
+    border-radius: 25px;
+    display: block;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    border: none;
     transform: skewX(-3deg);
     transition: transform 0.3s ease;
+    margin: 15px 0;
+    width: 100%;
+    text-align: center;
 }
 
 .slogan-banner:hover {
