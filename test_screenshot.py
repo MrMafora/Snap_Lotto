@@ -1,67 +1,81 @@
 #!/usr/bin/env python3
 """
-Test script to capture a single screenshot and verify PNG output
+Test Screenshot Capture for South African National Lottery
+Simple approach using requests and saving HTML for AI processing
 """
 
 import os
 import time
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+import requests
 from datetime import datetime
+from config import Config
 
-def test_single_screenshot():
-    """Test capturing a single screenshot"""
-    driver = None
+def capture_lottery_html(url, lottery_type):
+    """Capture HTML content from lottery URL"""
     try:
-        print("Setting up Chrome driver...")
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--window-size=1200,800")
+        print(f"Capturing {lottery_type} from {url}")
         
-        driver = webdriver.Chrome(options=chrome_options)
+        # Create session with realistic headers
+        session = requests.Session()
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-ZA,en;q=0.9',
+            'Accept-Encoding': 'identity',  # Disable compression to avoid issues
+            'Connection': 'keep-alive'
+        })
         
-        # Test URL
-        url = "https://www.nationallottery.co.za/results/lotto"
-        print(f"Navigating to: {url}")
-        
-        driver.get(url)
-        time.sleep(5)
+        # Make request with timeout
+        response = session.get(url, timeout=15)
+        response.raise_for_status()
         
         # Generate filename
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"test_{timestamp}_lotto_screenshot.png"
-        filepath = os.path.join("screenshots", filename)
+        safe_type = lottery_type.lower().replace(' ', '_').replace('+', '_plus_')
+        filename = f"{timestamp}_{safe_type}.html"
         
-        # Ensure directory exists
-        os.makedirs("screenshots", exist_ok=True)
+        # Save HTML content
+        os.makedirs('screenshots', exist_ok=True)
+        filepath = os.path.join('screenshots', filename)
         
-        # Take screenshot
-        print(f"Taking screenshot: {filename}")
-        driver.save_screenshot(filepath)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(response.text)
         
-        # Check if file was created and get size
-        if os.path.exists(filepath):
-            file_size = os.path.getsize(filepath)
-            print(f"✓ Screenshot saved successfully: {filename}")
-            print(f"✓ File size: {file_size} bytes")
-            return filepath
-        else:
-            print("✗ Screenshot file was not created")
-            return None
-            
+        file_size = os.path.getsize(filepath)
+        print(f"✓ Saved {filename} ({file_size} bytes)")
+        
+        return True
+        
     except Exception as e:
-        print(f"✗ Error: {str(e)}")
-        return None
-    finally:
-        if driver:
-            driver.quit()
+        print(f"✗ Error capturing {lottery_type}: {str(e)}")
+        return False
+
+def main():
+    """Test capturing all 6 lottery URLs"""
+    print("=== TESTING LOTTERY URL CAPTURE ===\n")
+    
+    results = []
+    
+    for i, config in enumerate(Config.RESULTS_URLS):
+        url = config['url']
+        lottery_type = config['lottery_type']
+        
+        # Human-like delay between requests
+        if i > 0:
+            delay = 2 + i
+            print(f"Waiting {delay} seconds...")
+            time.sleep(delay)
+        
+        success = capture_lottery_html(url, lottery_type)
+        results.append(success)
+        print()
+    
+    # Summary
+    successful = sum(results)
+    total = len(results)
+    print(f"=== RESULTS: {successful}/{total} URLs captured successfully ===")
+    
+    return successful == total
 
 if __name__ == "__main__":
-    result = test_single_screenshot()
-    if result:
-        print(f"\nSuccess! Screenshot saved to: {result}")
-    else:
-        print("\nFailed to capture screenshot")
+    main()
