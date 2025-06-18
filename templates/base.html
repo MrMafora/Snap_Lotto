@@ -60,21 +60,14 @@
     
     <!-- Preload critical resources -->
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="{{ url_for('static', filename='css/custom.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="{{ url_for('static', filename='css/lottery.css') }}?v=20250608" as="style" onload="this.onload=null;this.rel='stylesheet'">
-
-    <link rel="preload" href="{{ url_for('static', filename='css/badge-fix.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="{{ url_for('static', filename='css/master.css') }}?v=20250618" as="style" onload="this.onload=null;this.rel='stylesheet'">
 
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     
     <!-- Fallback for no-JS -->
     <noscript>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/lottery.css') }}?v=20250608">
-
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/badge-fix.css') }}">
-    
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/master.css') }}?v=20250618">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     </noscript>
     

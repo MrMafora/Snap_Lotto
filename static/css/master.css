@@ -1,0 +1,279 @@
+/* 
+ * MASTER CSS - Snap Lotto Unified Styles
+ * Single consolidated file for all app styling
+ */
+
+/* CSS Variables */
+:root {
+    --sa-lottery-yellow: #FFE11D;
+    --sa-lottery-red: #E03237;
+    --sa-lottery-green: #19A03A;
+    --sa-lottery-blue: #67C6ED;
+    --sa-lottery-dark-blue: #285896;
+    --sa-lottery-header-bg: #FFE11D;
+    --sa-lottery-header-text: #333333;
+    --sa-lottery-border: #E0E0E0;
+}
+
+/* Base Typography */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+}
+
+/* Navigation */
+.navbar {
+    background: linear-gradient(135deg, #FFE11D 0%, #FFA500 100%);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+    font-weight: bold;
+    color: #000 !important;
+}
+
+/* LOTTERY BALLS - CRITICAL SECTION */
+.lottery-numbers {
+    display: flex;
+    gap: 8px;
+    margin: 10px 0;
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 50px;
+}
+
+/* Desktop Lottery Balls - 40px diameter, 18px font */
+.lottery-ball, .number-ball {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: bold !important;
+    color: white !important;
+    font-size: 18px !important;
+    text-align: center !important;
+    line-height: 1 !important;
+    border: 2px solid rgba(255,255,255,0.3) !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+    background: linear-gradient(135deg, #007bff, #0056b3) !important;
+    flex-shrink: 0 !important;
+}
+
+/* Bonus Ball Styling */
+.bonus-ball {
+    background: linear-gradient(135deg, #dc3545, #a71e2a) !important;
+}
+
+/* Powerball specific */
+.powerball-number {
+    background: linear-gradient(135deg, #ffc107, #e0a800) !important;
+    color: #000 !important;
+}
+
+/* Mobile Responsive - 32px diameter, 16px font */
+@media (max-width: 768px) {
+    .lottery-ball, .number-ball {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 16px !important;
+    }
+    
+    .lottery-numbers {
+        gap: 6px;
+        min-height: 40px;
+    }
+}
+
+/* Small screens - 28px diameter, 14px font */
+@media (max-width: 480px) {
+    .lottery-ball, .number-ball {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 14px !important;
+    }
+    
+    .lottery-numbers {
+        gap: 4px;
+        min-height: 35px;
+    }
+}
+
+/* Cards */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    color: white;
+    font-weight: bold;
+    border-radius: 12px 12px 0 0;
+}
+
+/* Layout */
+.container, .container-fluid {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* Draw details page width constraint */
+.draw-details-page .container-fluid.px-2.px-sm-3,
+body.draw-details-page .container-fluid.px-2.px-sm-3,
+html body.draw-details-page .container-fluid.px-2.px-sm-3 {
+    max-width: 1200px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100% !important;
+}
+
+/* Slogan */
+.slogan-text {
+    font-weight: bold;
+    color: #333;
+    font-size: 1.1rem;
+    line-height: 1.4;
+}
+
+.slogan-banner {
+    background-color: var(--sa-lottery-yellow);
+    padding: 10px 20px;
+    border-radius: 8px;
+    display: inline-block;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+/* Tables */
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+    background-color: #f8f9fa;
+}
+
+/* Results header */
+.results-header {
+    background: linear-gradient(135deg, var(--sa-lottery-yellow) 0%, #FFA500 100%);
+    color: var(--sa-lottery-header-text);
+    padding: 20px;
+    border-radius: 12px 12px 0 0;
+    font-weight: bold;
+    font-size: 1.5rem;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Lottery type badges */
+.lottery-type-badge {
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    min-width: 120px;
+    text-align: center;
+}
+
+/* Game type specific colors */
+.badge-lotto {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-lotto-plus-1 {
+    background-color: #fd7e14;
+    color: white;
+}
+
+.badge-lotto-plus-2 {
+    background-color: #e83e8c;
+    color: white;
+}
+
+.badge-powerball {
+    background-color: #6610f2;
+    color: white;
+}
+
+.badge-powerball-plus {
+    background-color: #6f42c1;
+    color: white;
+}
+
+.badge-daily-lotto {
+    background-color: #28a745;
+    color: white;
+}
+
+/* Plus symbol styling */
+.plus-symbol {
+    font-size: 1.2em;
+    margin: 0 8px;
+    color: #666;
+    font-weight: bold;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 10px;
+    }
+    
+    .results-header {
+        font-size: 1.2rem;
+        padding: 15px;
+    }
+    
+    .lottery-type-badge {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+        min-width: 100px;
+    }
+}
+
+/* Performance optimizations */
+.lottery-numbers {
+    contain: layout;
+}
+
+.card-body {
+    min-height: auto;
+}
+
+/* Accessibility */
+.lottery-ball:focus {
+    outline: 3px solid #007bff;
+    outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+    .navbar, .btn, .card:hover {
+        box-shadow: none !important;
+    }
+    
+    .lottery-ball {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
