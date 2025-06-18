@@ -359,4 +359,345 @@
         </div>
     </div>
 </div>
+
+<!-- Real-time Data Capture Status -->
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header lottery-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">LIVE SYSTEM STATUS</h5>
+                    <div>
+                        <button id="refresh-dashboard" class="btn btn-outline-primary btn-sm me-2">
+                            <i class="fas fa-sync-alt" id="refresh-icon"></i> Refresh
+                        </button>
+                        <span class="badge bg-success" id="system-status">Online</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Data Capture Status -->
+                    <div class="col-md-3 mb-3">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0"><i class="fas fa-download me-2"></i>Data Capture</h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="display-6 mb-2" id="capture-count">-</div>
+                                <small class="text-muted">Files Captured Today</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-success" id="last-capture-time">Never</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Database Status -->
+                    <div class="col-md-3 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="fas fa-database me-2"></i>Database</h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="display-6 mb-2" id="db-records">-</div>
+                                <small class="text-muted">Total Records</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-primary" id="db-status">Connected</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Processing Status -->
+                    <div class="col-md-3 mb-3">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-white">
+                                <h6 class="mb-0"><i class="fas fa-cogs me-2"></i>AI Processing</h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="display-6 mb-2" id="processing-count">-</div>
+                                <small class="text-muted">Processed Today</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-warning" id="ai-status">Ready</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- System Performance -->
+                    <div class="col-md-3 mb-3">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>Performance</h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="display-6 mb-2" id="response-time">-</div>
+                                <small class="text-muted">Avg Response (ms)</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-info" id="performance-status">Good</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-success btn-sm" onclick="runCapture()">
+                                <i class="fas fa-play me-1"></i> Run Capture Now
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="runAIProcessing()">
+                                <i class="fas fa-brain me-1"></i> Process Latest Data
+                            </button>
+                            <button class="btn btn-warning btn-sm" onclick="cleanupOldFiles()">
+                                <i class="fas fa-trash me-1"></i> Cleanup Old Files
+                            </button>
+                            <button class="btn btn-info btn-sm" onclick="testConnections()">
+                                <i class="fas fa-network-wired me-1"></i> Test Connections
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Real-time dashboard functionality
+let dashboardInterval;
+
+function initializeDashboard() {
+    updateDashboardStats();
+    // Update every 30 seconds
+    dashboardInterval = setInterval(updateDashboardStats, 30000);
+}
+
+function updateDashboardStats() {
+    const refreshIcon = document.getElementById('refresh-icon');
+    if (refreshIcon) {
+        refreshIcon.classList.add('fa-spin');
+    }
+    
+    // Update system metrics
+    fetch('/api/system-metrics')
+        .then(response => response.json())
+        .then(data => {
+            // Update capture stats
+            document.getElementById('capture-count').textContent = data.captures_today || 0;
+            document.getElementById('last-capture-time').textContent = data.last_capture || 'Never';
+            
+            // Update database stats  
+            document.getElementById('db-records').textContent = data.total_records || 0;
+            document.getElementById('total-results').textContent = data.total_records || 0;
+            
+            // Update processing stats
+            document.getElementById('processing-count').textContent = data.processed_today || 0;
+            
+            // Update performance
+            document.getElementById('response-time').textContent = data.avg_response_time || '-';
+            
+            // Update CPU, Memory, Disk
+            if (data.system_info) {
+                document.getElementById('cpu-usage').textContent = data.system_info.cpu + '%';
+                document.getElementById('memory-usage').textContent = data.system_info.memory + '%';
+                document.getElementById('disk-usage').textContent = data.system_info.disk + '%';
+            }
+            
+            // Update status badges
+            updateStatusBadges(data);
+        })
+        .catch(error => {
+            console.error('Failed to update dashboard:', error);
+            document.getElementById('system-status').textContent = 'Error';
+            document.getElementById('system-status').className = 'badge bg-danger';
+        })
+        .finally(() => {
+            if (refreshIcon) {
+                refreshIcon.classList.remove('fa-spin');
+            }
+        });
+}
+
+function updateStatusBadges(data) {
+    // Capture status
+    const captureStatus = document.getElementById('capture-status');
+    if (data.capture_working) {
+        captureStatus.textContent = 'Active';
+        captureStatus.className = 'badge bg-success';
+    } else {
+        captureStatus.textContent = 'Inactive';
+        captureStatus.className = 'badge bg-danger';
+    }
+    
+    // Database status
+    const dbStatus = document.getElementById('db-status');
+    if (data.database_connected) {
+        dbStatus.textContent = 'Connected';
+        dbStatus.className = 'badge bg-primary';
+    } else {
+        dbStatus.textContent = 'Disconnected';
+        dbStatus.className = 'badge bg-danger';
+    }
+    
+    // AI Processing status
+    const aiStatus = document.getElementById('ai-status');
+    if (data.ai_available) {
+        aiStatus.textContent = 'Ready';
+        aiStatus.className = 'badge bg-warning';
+    } else {
+        aiStatus.textContent = 'Unavailable';
+        aiStatus.className = 'badge bg-danger';
+    }
+}
+
+// Quick action functions
+function runCapture() {
+    showProgress('Running data capture...');
+    fetch('/admin/run-automation-step', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ step: 'capture' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess('Data capture completed successfully!');
+            updateDashboardStats();
+        } else {
+            showError('Data capture failed: ' + data.message);
+        }
+    })
+    .catch(error => {
+        showError('Failed to run capture: ' + error.message);
+    });
+}
+
+function runAIProcessing() {
+    showProgress('Processing latest data with AI...');
+    fetch('/admin/run-automation-step', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ step: 'ai_process' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess('AI processing completed successfully!');
+            updateDashboardStats();
+        } else {
+            showError('AI processing failed: ' + data.message);
+        }
+    })
+    .catch(error => {
+        showError('Failed to run AI processing: ' + error.message);
+    });
+}
+
+function cleanupOldFiles() {
+    if (confirm('Are you sure you want to cleanup old files? This action cannot be undone.')) {
+        showProgress('Cleaning up old files...');
+        fetch('/admin/cleanup-screenshots', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccess('Cleanup completed successfully!');
+                updateDashboardStats();
+            } else {
+                showError('Cleanup failed: ' + data.message);
+            }
+        })
+        .catch(error => {
+            showError('Failed to cleanup files: ' + error.message);
+        });
+    }
+}
+
+function testConnections() {
+    showProgress('Testing system connections...');
+    fetch('/admin/run-health-checks', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess('All connections tested successfully!');
+            updateDashboardStats();
+        } else {
+            showError('Connection test failed: ' + data.message);
+        }
+    })
+    .catch(error => {
+        showError('Failed to test connections: ' + error.message);
+    });
+}
+
+// Notification functions
+function showProgress(message) {
+    // Create or update progress notification
+    let notification = document.getElementById('progress-notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'progress-notification';
+        notification.className = 'alert alert-info position-fixed';
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; width: 300px;';
+        document.body.appendChild(notification);
+    }
+    notification.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>${message}`;
+    notification.className = 'alert alert-info position-fixed';
+}
+
+function showSuccess(message) {
+    updateNotification(message, 'success', 'check');
+}
+
+function showError(message) {
+    updateNotification(message, 'danger', 'exclamation-triangle');
+}
+
+function updateNotification(message, type, icon) {
+    let notification = document.getElementById('progress-notification');
+    if (notification) {
+        notification.innerHTML = `<i class="fas fa-${icon} me-2"></i>${message}`;
+        notification.className = `alert alert-${type} position-fixed`;
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
+    }
+}
+
+// Manual refresh button
+document.getElementById('refresh-dashboard').addEventListener('click', function() {
+    updateDashboardStats();
+});
+
+// Refresh system stats button
+document.getElementById('refresh-stats').addEventListener('click', function() {
+    updateDashboardStats();
+});
+
+// Initialize dashboard when page loads
+document.addEventListener('DOMContentLoaded', initializeDashboard);
+
+// Cleanup interval when page unloads
+window.addEventListener('beforeunload', function() {
+    if (dashboardInterval) {
+        clearInterval(dashboardInterval);
+    }
+});
+</script>
+
 {% endblock %}
