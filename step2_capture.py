@@ -1,23 +1,44 @@
 #!/usr/bin/env python3
 """
 Step 2: Screenshot Capture Module for Daily Automation
-Captures actual screenshot images from official South African lottery websites using Playwright
+Captures actual screenshot images from official South African lottery websites using selenium
 """
 
 import os
 import time
 import logging
-import asyncio
 from datetime import datetime
-from playwright.async_api import async_playwright
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from config import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def capture_lottery_screenshot(url, lottery_type):
-    """Capture actual screenshot image from lottery website using Playwright"""
+def setup_chrome_driver():
+    """Set up Chrome driver with headless options"""
+    try:
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--window-size=1200,800")
+        chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        
+        driver = webdriver.Chrome(options=chrome_options)
+        return driver
+    except Exception as e:
+        logger.error(f"Failed to setup Chrome driver: {str(e)}")
+        return None
+
+def capture_lottery_screenshot(url, lottery_type):
+    """Capture actual screenshot image from lottery website using Selenium"""
+    driver = None
     try:
         logger.info(f"Capturing screenshot of {lottery_type} from {url}")
         
@@ -31,63 +52,40 @@ async def capture_lottery_screenshot(url, lottery_type):
         os.makedirs(screenshot_dir, exist_ok=True)
         filepath = os.path.join(screenshot_dir, filename)
         
-        async with async_playwright() as p:
-            # Launch browser with optimized settings
-            browser = await p.chromium.launch(
-                headless=True,
-                args=[
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
-                    '--no-first-run',
-                    '--no-zygote',
-                    '--disable-gpu'
-                ]
+        # Setup Chrome driver
+        driver = setup_chrome_driver()
+        if not driver:
+            return None
+        
+        # Navigate to lottery page
+        driver.get(url)
+        
+        # Wait for page to load
+        time.sleep(5)
+        
+        # Wait for lottery results to be visible
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
-            
-            # Create browser context with mobile viewport
-            context = await browser.new_context(
-                viewport={'width': 1200, 'height': 800},
-                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            )
-            
-            # Create new page
-            page = await context.new_page()
-            
-            try:
-                # Navigate to lottery page with timeout
-                await page.goto(url, wait_until='networkidle', timeout=60000)
-                
-                # Wait for page to fully load
-                await page.wait_for_timeout(3000)
-                
-                # Take full page screenshot
-                await page.screenshot(
-                    path=filepath,
-                    full_page=True,
-                    quality=85
-                )
-                
-                logger.info(f"Screenshot captured and saved: {filename}")
-                
-                # Close browser resources
-                await context.close()
-                await browser.close()
-                
-                return filepath
-                
-            except Exception as page_error:
-                logger.error(f"Page error for {lottery_type}: {str(page_error)}")
-                await context.close()
-                await browser.close()
-                return None
-                
+        except:
+            logger.warning(f"Timeout waiting for page elements on {lottery_type}")
+        
+        # Take screenshot
+        driver.save_screenshot(filepath)
+        
+        logger.info(f"Screenshot captured and saved: {filename}")
+        
+        return filepath
+        
     except Exception as e:
         logger.error(f"Failed to capture screenshot for {lottery_type}: {str(e)}")
         return None
+    finally:
+        if driver:
+            driver.quit()
 
-async def capture_all_lottery_screenshots():
+def capture_all_lottery_screenshots():
     """Capture screenshots from all lottery result URLs"""
     try:
         logger.info("=== STEP 2: SCREENSHOT CAPTURE STARTED ===")
@@ -100,7 +98,7 @@ async def capture_all_lottery_screenshots():
             lottery_type = lottery_config['lottery_type']
             
             # Capture screenshot
-            filepath = await capture_lottery_screenshot(url, lottery_type)
+            filepath = capture_lottery_screenshot(url, lottery_type)
             
             if filepath:
                 results.append({
@@ -118,7 +116,7 @@ async def capture_all_lottery_screenshots():
                 })
             
             # Small delay between captures
-            await asyncio.sleep(2)
+            time.sleep(2)
         
         # Log summary
         successful_captures = len([r for r in results if r['status'] == 'success'])
@@ -134,9 +132,9 @@ async def capture_all_lottery_screenshots():
         return []
 
 def run_capture():
-    """Synchronous wrapper to run the async capture function"""
+    """Synchronous wrapper to run the capture function"""
     try:
-        return asyncio.run(capture_all_lottery_screenshots())
+        return capture_all_lottery_screenshots()
     except Exception as e:
         logger.error(f"Error running screenshot capture: {str(e)}")
         return []
