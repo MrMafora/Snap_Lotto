@@ -45,7 +45,7 @@ body {
 }
 
 /* Desktop Lottery Balls - 40px diameter, 18px font */
-.lottery-ball, .number-ball {
+.lottery-ball, .number-ball, .lottery-ball-mobile {
     width: 40px !important;
     height: 40px !important;
     border-radius: 50% !important;
@@ -76,7 +76,7 @@ body {
 
 /* Mobile Responsive - 32px diameter, 16px font */
 @media (max-width: 768px) {
-    .lottery-ball, .number-ball {
+    .lottery-ball, .number-ball, .lottery-ball-mobile {
         width: 32px !important;
         height: 32px !important;
         font-size: 16px !important;
@@ -90,7 +90,7 @@ body {
 
 /* Small screens - 28px diameter, 14px font */
 @media (max-width: 480px) {
-    .lottery-ball, .number-ball {
+    .lottery-ball, .number-ball, .lottery-ball-mobile {
         width: 28px !important;
         height: 28px !important;
         font-size: 14px !important;
