@@ -229,12 +229,14 @@ html body.draw-details-page .container-fluid.px-2.px-sm-3 {
     line-height: 1.4;
 }
 
-/* Promotional banner with slanted effect */
+/* Promotional banner with slanted effect - Maximum specificity */
 .slogan-banner,
 div.slogan-banner,
 .card .slogan-banner,
 .slogan-banner.mb-3,
-div.slogan-banner.mb-3 {
+div.slogan-banner.mb-3,
+.col-md-6 .slogan-banner.mb-3,
+.col-md-6 div.slogan-banner.mb-3 {
     background-color: #fdd835 !important;
     padding: 15px 25px !important;
     border-radius: 25px !important;
@@ -245,23 +247,28 @@ div.slogan-banner.mb-3 {
     -webkit-transform: skewX(-3deg) !important;
     -moz-transform: skewX(-3deg) !important;
     -ms-transform: skewX(-3deg) !important;
-    transition: transform 0.3s ease, -webkit-transform 0.3s ease !important;
+    -o-transform: skewX(-3deg) !important;
+    transition: all 0.3s ease !important;
     margin: 15px 0 !important;
     width: 100% !important;
     text-align: center !important;
     overflow: visible !important;
     position: relative !important;
+    z-index: 1 !important;
 }
 
 .slogan-banner:hover,
 div.slogan-banner:hover,
 .card .slogan-banner:hover,
 .slogan-banner.mb-3:hover,
-div.slogan-banner.mb-3:hover {
+div.slogan-banner.mb-3:hover,
+.col-md-6 .slogan-banner.mb-3:hover,
+.col-md-6 div.slogan-banner.mb-3:hover {
     transform: skewX(0deg) !important;
     -webkit-transform: skewX(0deg) !important;
     -moz-transform: skewX(0deg) !important;
     -ms-transform: skewX(0deg) !important;
+    -o-transform: skewX(0deg) !important;
 }
 
 /* Tables */
