@@ -88,6 +88,37 @@ body {
     color: #000 !important;
 }
 
+/* Specific color classes for lottery balls (these override nth-of-type selectors) */
+.lottery-ball-red {
+    background: linear-gradient(135deg, #dc3545, #b02a37) !important;
+    color: white !important;
+}
+
+.lottery-ball-yellow {
+    background: linear-gradient(135deg, #ffc107, #e0a800) !important;
+    color: #000 !important;
+}
+
+.lottery-ball-green {
+    background: linear-gradient(135deg, #28a745, #1e7e34) !important;
+    color: white !important;
+}
+
+.lottery-ball-blue {
+    background: linear-gradient(135deg, #007bff, #0056b3) !important;
+    color: white !important;
+}
+
+.lottery-ball-orange {
+    background: linear-gradient(135deg, #fd7e14, #e55a00) !important;
+    color: white !important;
+}
+
+.lottery-ball-purple {
+    background: linear-gradient(135deg, #6f42c1, #5a32a3) !important;
+    color: white !important;
+}
+
 /* Mobile Responsive - 24px diameter, 12px font */
 @media (max-width: 768px) {
     .lottery-ball, .number-ball {
