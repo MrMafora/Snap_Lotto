@@ -111,7 +111,7 @@ body {
 }
 
 .card-header.lottery-header {
-    background-color: #f4d03f !important;
+    background-color: #fdd835 !important;
     border-bottom: 2px solid #e0a800 !important;
     padding: 12px 20px !important;
     font-weight: bold !important;
@@ -236,6 +236,12 @@ html body.draw-details-page .container-fluid.px-2.px-sm-3 {
     display: inline-block;
     box-shadow: 0 3px 6px rgba(0,0,0,0.15);
     border: 1px solid rgba(0,0,0,0.1);
+    transform: skewX(-3deg);
+    transition: transform 0.3s ease;
+}
+
+.slogan-banner:hover {
+    transform: skewX(0deg);
 }
 
 /* Tables */
