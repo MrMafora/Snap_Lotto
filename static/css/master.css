@@ -44,24 +44,38 @@ body {
     min-height: 50px;
 }
 
-/* Desktop Lottery Balls - Match live deployment sizing */
+/* Desktop Lottery Balls - Smaller with multi-colors */
 .lottery-ball, .number-ball {
-    width: 50px !important;
-    height: 50px !important;
+    width: 30px !important;
+    height: 30px !important;
     border-radius: 50% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     font-weight: bold !important;
     color: white !important;
-    font-size: 24px !important;
+    font-size: 14px !important;
     text-align: center !important;
     line-height: 1 !important;
     border: 2px solid rgba(255,255,255,0.3) !important;
     box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
-    background: linear-gradient(135deg, #007bff, #0056b3) !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
     flex-shrink: 0 !important;
+    margin: 2px !important;
 }
+
+/* Multi-colored lottery balls - override default blue */
+.lottery-ball, .number-ball {
+    background: linear-gradient(135deg, #e03237, #c02328) !important; /* Default red */
+}
+
+/* Specific colors for each position */
+.lottery-ball:nth-of-type(1), .number-ball:nth-of-type(1) { background: linear-gradient(135deg, #e03237, #c02328) !important; } /* Red */
+.lottery-ball:nth-of-type(2), .number-ball:nth-of-type(2) { background: linear-gradient(135deg, #ffc107, #e0a800) !important; color: #000 !important; } /* Yellow */
+.lottery-ball:nth-of-type(3), .number-ball:nth-of-type(3) { background: linear-gradient(135deg, #19a03a, #138a2f) !important; } /* Green */
+.lottery-ball:nth-of-type(4), .number-ball:nth-of-type(4) { background: linear-gradient(135deg, #67c6ed, #4db3e0) !important; } /* Light Blue */
+.lottery-ball:nth-of-type(5), .number-ball:nth-of-type(5) { background: linear-gradient(135deg, #e03237, #c02328) !important; } /* Red */
+.lottery-ball:nth-of-type(6), .number-ball:nth-of-type(6) { background: linear-gradient(135deg, #ffc107, #e0a800) !important; color: #000 !important; } /* Yellow */
 
 /* Bonus Ball Styling */
 .bonus-ball {
@@ -74,12 +88,13 @@ body {
     color: #000 !important;
 }
 
-/* Mobile Responsive - 32px diameter, 16px font */
+/* Mobile Responsive - 24px diameter, 12px font */
 @media (max-width: 768px) {
     .lottery-ball, .number-ball {
-        width: 32px !important;
-        height: 32px !important;
-        font-size: 16px !important;
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 12px !important;
+        margin: 1px !important;
     }
     
     .lottery-numbers {
