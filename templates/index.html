@@ -605,7 +605,7 @@
                         <h4 class="mb-2">Scan Your Lottery Ticket</h4>
                         <p class="mb-1">Have a lottery ticket? Check if you've won instantly!</p>
                         <p class="small mb-3">Simply upload a photo of your ticket and our system will check it against the latest results.</p>
-                        <div class="slogan-banner mb-3">
+                        <div class="slogan-banner mb-3" style="transform: skewX(-3deg) !important; -webkit-transform: skewX(-3deg) !important; transition: all 0.3s ease !important;" onmouseover="this.style.transform='skewX(0deg)'; this.style.webkitTransform='skewX(0deg)';" onmouseout="this.style.transform='skewX(-3deg)'; this.style.webkitTransform='skewX(-3deg)';">
                             <span class="slogan-text">The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play</span>
                         </div>
                         <a href="{{ url_for('ticket_scanner') }}" class="btn btn-lottery-primary">
