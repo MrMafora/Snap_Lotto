@@ -17,8 +17,11 @@ async def test_single_capture():
     
     try:
         async with async_playwright() as p:
-            # Launch browser
-            browser = await p.chromium.launch(headless=True)
+            # Launch browser with explicit executable path
+            browser = await p.chromium.launch(
+                headless=True,
+                executable_path="/home/runner/workspace/.cache/ms-playwright/chromium-1161/chrome-linux/chrome"
+            )
             
             # Create context with South African settings
             context = await browser.new_context(
