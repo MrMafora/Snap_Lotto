@@ -103,6 +103,44 @@ body {
 
 /* Removed nth-of-type fallback colors to prevent conflicts with specific color classes */
 
+/* Ticket Scanner Card Styling - Restore Original Design */
+.card {
+    border: 2px solid #dee2e6 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.card-header.lottery-header {
+    background-color: #f8d347 !important;
+    border-bottom: 2px solid #e0a800 !important;
+    padding: 12px 20px !important;
+    font-weight: bold !important;
+    color: #000 !important;
+}
+
+.card-body.scanner-body {
+    padding: 20px !important;
+    background-color: #fff !important;
+}
+
+/* Red button styling for ticket scanner */
+.btn-lottery-primary {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: white !important;
+    font-weight: bold !important;
+    padding: 10px 20px !important;
+    border-radius: 6px !important;
+}
+
+.btn-lottery-primary:hover,
+.btn-lottery-primary:focus,
+.btn-lottery-primary:active {
+    background-color: #c82333 !important;
+    border-color: #bd2130 !important;
+    color: white !important;
+}
+
 /* Bonus Ball Styling */
 .bonus-ball {
     background: linear-gradient(135deg, #dc3545, #a71e2a) !important;
