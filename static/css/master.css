@@ -64,44 +64,44 @@ body {
     margin: 2px !important;
 }
 
-/* HIGH PRIORITY: Specific color classes for lottery balls (must come first) */
+/* ULTRA HIGH PRIORITY: Specific color classes for lottery balls with maximum specificity */
+.lottery-ball.lottery-ball-sm.lottery-ball-red,
 .lottery-ball.lottery-ball-red {
     background: linear-gradient(135deg, #dc3545, #b02a37) !important;
     color: white !important;
 }
 
+.lottery-ball.lottery-ball-sm.lottery-ball-yellow,
 .lottery-ball.lottery-ball-yellow {
     background: linear-gradient(135deg, #ffc107, #e0a800) !important;
     color: #000 !important;
 }
 
+.lottery-ball.lottery-ball-sm.lottery-ball-green,
 .lottery-ball.lottery-ball-green {
     background: linear-gradient(135deg, #28a745, #1e7e34) !important;
     color: white !important;
 }
 
+.lottery-ball.lottery-ball-sm.lottery-ball-blue,
 .lottery-ball.lottery-ball-blue {
     background: linear-gradient(135deg, #007bff, #0056b3) !important;
     color: white !important;
 }
 
+.lottery-ball.lottery-ball-sm.lottery-ball-orange,
 .lottery-ball.lottery-ball-orange {
     background: linear-gradient(135deg, #fd7e14, #e55a00) !important;
     color: white !important;
 }
 
+.lottery-ball.lottery-ball-sm.lottery-ball-purple,
 .lottery-ball.lottery-ball-purple {
     background: linear-gradient(135deg, #6f42c1, #5a32a3) !important;
     color: white !important;
 }
 
-/* Fallback colors for nth-of-type (when color classes aren't available) */
-.lottery-ball:nth-of-type(1), .number-ball:nth-of-type(1) { background: linear-gradient(135deg, #e03237, #c02328) !important; } /* Red */
-.lottery-ball:nth-of-type(2), .number-ball:nth-of-type(2) { background: linear-gradient(135deg, #ffc107, #e0a800) !important; color: #000 !important; } /* Yellow */
-.lottery-ball:nth-of-type(3), .number-ball:nth-of-type(3) { background: linear-gradient(135deg, #19a03a, #138a2f) !important; } /* Green */
-.lottery-ball:nth-of-type(4), .number-ball:nth-of-type(4) { background: linear-gradient(135deg, #67c6ed, #4db3e0) !important; } /* Light Blue */
-.lottery-ball:nth-of-type(5), .number-ball:nth-of-type(5) { background: linear-gradient(135deg, #e03237, #c02328) !important; } /* Red */
-.lottery-ball:nth-of-type(6), .number-ball:nth-of-type(6) { background: linear-gradient(135deg, #ffc107, #e0a800) !important; color: #000 !important; } /* Yellow */
+/* Removed nth-of-type fallback colors to prevent conflicts with specific color classes */
 
 /* Bonus Ball Styling */
 .bonus-ball {
