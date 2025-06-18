@@ -123,11 +123,11 @@ def run_capture():
         return []
 
 if __name__ == "__main__":
-    # Run screenshot capture when executed directly
+    # Run content capture when executed directly
     results = run_capture()
     
     # Print results summary
-    print("\n=== SCREENSHOT CAPTURE RESULTS ===")
+    print("\n=== CONTENT CAPTURE RESULTS ===")
     for result in results:
         status_symbol = "✓" if result['status'] == 'success' else "✗"
         print(f"{status_symbol} {result['lottery_type']}: {result['status']}")
@@ -136,4 +136,4 @@ if __name__ == "__main__":
     
     successful = len([r for r in results if r['status'] == 'success'])
     total = len(results)
-    print(f"\nTotal: {successful}/{total} screenshots captured successfully")
+    print(f"\nTotal: {successful}/{total} content files captured successfully")
