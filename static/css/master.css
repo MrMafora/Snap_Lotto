@@ -229,22 +229,26 @@ html body.draw-details-page .container-fluid.px-2.px-sm-3 {
     line-height: 1.4;
 }
 
-.slogan-banner {
-    background-color: #fdd835;
-    padding: 15px 25px;
-    border-radius: 25px;
-    display: block;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    border: none;
-    transform: skewX(-3deg);
-    transition: transform 0.3s ease;
-    margin: 15px 0;
-    width: 100%;
-    text-align: center;
+.slogan-banner,
+div.slogan-banner,
+.card .slogan-banner {
+    background-color: #fdd835 !important;
+    padding: 15px 25px !important;
+    border-radius: 25px !important;
+    display: block !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    border: none !important;
+    transform: skewX(-3deg) !important;
+    transition: transform 0.3s ease !important;
+    margin: 15px 0 !important;
+    width: 100% !important;
+    text-align: center !important;
 }
 
-.slogan-banner:hover {
-    transform: skewX(0deg);
+.slogan-banner:hover,
+div.slogan-banner:hover,
+.card .slogan-banner:hover {
+    transform: skewX(0deg) !important;
 }
 
 /* Tables */
