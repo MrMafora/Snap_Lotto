@@ -1,179 +1,158 @@
 #!/usr/bin/env python3
 """
-Step 2: Data Capture Module for Daily Automation
-Captures fresh lottery data from official South African lottery websites using requests and BeautifulSoup
+Step 2: Screenshot Capture Module for Daily Automation
+Captures actual screenshot images from official South African lottery websites using Playwright
 """
 
 import os
 import time
 import logging
-import requests
+import asyncio
 from datetime import datetime
-from bs4 import BeautifulSoup
+from playwright.async_api import async_playwright
 from config import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def setup_session():
-    """Set up requests session with proper headers"""
+async def capture_lottery_screenshot(url, lottery_type):
+    """Capture actual screenshot image from lottery website using Playwright"""
     try:
-        session = requests.Session()
-        session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'identity',  # Disable compression to avoid encoding issues
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-        })
+        logger.info(f"Capturing screenshot of {lottery_type} from {url}")
         
-        # Configure session settings
-        session.max_redirects = 5
-        
-        return session
-    except Exception as e:
-        logger.error(f"Failed to setup requests session: {str(e)}")
-        return None
-
-def capture_lottery_data(url, lottery_type, session):
-    """Capture lottery data from a URL using requests"""
-    try:
-        logger.info(f"Capturing {lottery_type} from {url}")
-        
-        # Make request with retries
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                response = session.get(url, timeout=45, stream=False)
-                response.raise_for_status()
-                break
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    raise e
-                logger.warning(f"Attempt {attempt + 1} failed for {lottery_type}: {str(e)}")
-                time.sleep(5)
-        
-        # Ensure we have content
-        if not response.content:
-            logger.error(f"No content received for {lottery_type}")
-            return None
-        
-        # Parse HTML content using response.text to handle encoding properly
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Generate filename for raw HTML data
+        # Generate filename for screenshot
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         safe_lottery_type = lottery_type.lower().replace(' ', '_').replace('+', '_plus_')
-        filename = f"{timestamp}_{safe_lottery_type}_data.html"
+        filename = f"{timestamp}_{safe_lottery_type}_screenshot.png"
         
         # Ensure screenshots directory exists
         screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
         os.makedirs(screenshot_dir, exist_ok=True)
-        
-        # Save HTML data for AI processing
         filepath = os.path.join(screenshot_dir, filename)
-        try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(soup.prettify())
-        except Exception as write_error:
-            logger.warning(f"Failed to write prettified HTML, saving raw content: {write_error}")
-            with open(filepath, 'w', encoding='utf-8', errors='ignore') as f:
-                f.write(response.text)
         
-        logger.info(f"Data captured and saved: {filename}")
-        
-        # Try to extract lottery numbers directly
-        lottery_numbers = extract_lottery_numbers(soup, lottery_type)
-        if lottery_numbers:
-            logger.info(f"Found {lottery_type} numbers: {lottery_numbers}")
-        
-        return filepath
-        
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Network error capturing {lottery_type}: {str(e)}")
-        return None
+        async with async_playwright() as p:
+            # Launch browser with optimized settings
+            browser = await p.chromium.launch(
+                headless=True,
+                args=[
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--no-first-run',
+                    '--no-zygote',
+                    '--disable-gpu'
+                ]
+            )
+            
+            # Create browser context with mobile viewport
+            context = await browser.new_context(
+                viewport={'width': 1200, 'height': 800},
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            )
+            
+            # Create new page
+            page = await context.new_page()
+            
+            try:
+                # Navigate to lottery page with timeout
+                await page.goto(url, wait_until='networkidle', timeout=60000)
+                
+                # Wait for page to fully load
+                await page.wait_for_timeout(3000)
+                
+                # Take full page screenshot
+                await page.screenshot(
+                    path=filepath,
+                    full_page=True,
+                    quality=85
+                )
+                
+                logger.info(f"Screenshot captured and saved: {filename}")
+                
+                # Close browser resources
+                await context.close()
+                await browser.close()
+                
+                return filepath
+                
+            except Exception as page_error:
+                logger.error(f"Page error for {lottery_type}: {str(page_error)}")
+                await context.close()
+                await browser.close()
+                return None
+                
     except Exception as e:
-        logger.error(f"Failed to capture {lottery_type}: {str(e)}")
+        logger.error(f"Failed to capture screenshot for {lottery_type}: {str(e)}")
         return None
 
-def extract_lottery_numbers(soup, lottery_type):
-    """Extract lottery numbers from HTML content"""
+async def capture_all_lottery_screenshots():
+    """Capture screenshots from all lottery result URLs"""
     try:
-        # Look for common patterns in lottery result pages
-        numbers = []
+        logger.info("=== STEP 2: SCREENSHOT CAPTURE STARTED ===")
         
-        # Search for number patterns in various formats
-        number_patterns = [
-            '.number', '.ball', '.result-number', '.winning-number',
-            '[class*="number"]', '[class*="ball"]', '[class*="result"]'
-        ]
+        results = []
         
-        for pattern in number_patterns:
-            elements = soup.select(pattern)
-            for element in elements:
-                text = element.get_text(strip=True)
-                if text.isdigit() and 1 <= int(text) <= 50:
-                    numbers.append(int(text))
-        
-        # Remove duplicates and sort
-        numbers = sorted(list(set(numbers)))
-        
-        # Basic validation based on lottery type
-        expected_count = 6 if 'lotto' in lottery_type.lower() else 5
-        if len(numbers) >= expected_count:
-            return numbers[:expected_count]
+        # Capture screenshots from all result URLs
+        for lottery_config in Config.RESULTS_URLS:
+            url = lottery_config['url']
+            lottery_type = lottery_config['lottery_type']
             
-        return numbers if numbers else None
-        
-    except Exception as e:
-        logger.error(f"Error extracting numbers from {lottery_type}: {str(e)}")
-        return None
-
-def capture_all_lottery_screenshots():
-    """Capture data from all lottery URLs using requests"""
-    logger.info("=== STEP 2: DATA CAPTURE STARTED ===")
-    
-    session = setup_session()
-    if not session:
-        logger.error("Failed to setup requests session")
-        return False
-    
-    captured_count = 0
-    total_urls = len(Config.RESULTS_URLS)
-    
-    try:
-        for url_config in Config.RESULTS_URLS:
-            url = url_config['url']
-            lottery_type = url_config['lottery_type']
+            # Capture screenshot
+            filepath = await capture_lottery_screenshot(url, lottery_type)
             
-            filepath = capture_lottery_data(url, lottery_type, session)
             if filepath:
-                captured_count += 1
+                results.append({
+                    'lottery_type': lottery_type,
+                    'url': url,
+                    'filepath': filepath,
+                    'status': 'success'
+                })
+            else:
+                results.append({
+                    'lottery_type': lottery_type,
+                    'url': url,
+                    'filepath': None,
+                    'status': 'failed'
+                })
             
-            time.sleep(2)  # Respectful delay between requests
-            
-    except Exception as e:
-        logger.error(f"Error during data capture: {str(e)}")
-    finally:
-        if session:
-            session.close()
-    
-    success = captured_count > 0
-    
-    if success:
-        logger.info(f"=== STEP 2: CAPTURE COMPLETED - {captured_count}/{total_urls} data files captured ===")
-    else:
-        logger.error("=== STEP 2: CAPTURE FAILED - No data captured ===")
+            # Small delay between captures
+            await asyncio.sleep(2)
         
-    return success
+        # Log summary
+        successful_captures = len([r for r in results if r['status'] == 'success'])
+        total_captures = len(results)
+        
+        logger.info(f"=== STEP 2: SCREENSHOT CAPTURE COMPLETED ===")
+        logger.info(f"Successfully captured {successful_captures}/{total_captures} screenshots")
+        
+        return results
+        
+    except Exception as e:
+        logger.error(f"Failed to capture lottery screenshots: {str(e)}")
+        return []
 
 def run_capture():
-    """Run the screenshot capture process"""
-    return capture_all_lottery_screenshots()
+    """Synchronous wrapper to run the async capture function"""
+    try:
+        return asyncio.run(capture_all_lottery_screenshots())
+    except Exception as e:
+        logger.error(f"Error running screenshot capture: {str(e)}")
+        return []
 
 if __name__ == "__main__":
-    run_capture()
+    # Run screenshot capture when executed directly
+    results = run_capture()
+    
+    # Print results summary
+    print("\n=== SCREENSHOT CAPTURE RESULTS ===")
+    for result in results:
+        status_symbol = "✓" if result['status'] == 'success' else "✗"
+        print(f"{status_symbol} {result['lottery_type']}: {result['status']}")
+        if result['filepath']:
+            print(f"  File: {os.path.basename(result['filepath'])}")
+    
+    successful = len([r for r in results if r['status'] == 'success'])
+    total = len(results)
+    print(f"\nTotal: {successful}/{total} screenshots captured successfully")
