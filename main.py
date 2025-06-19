@@ -112,7 +112,7 @@ def home():
 
 @app.route('/admin')
 @login_required
-def admin_dashboard():
+def admin():
     if not current_user.is_admin:
         flash('Access denied', 'danger')
         return redirect(url_for('home'))
