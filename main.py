@@ -211,6 +211,52 @@ def results():
         logger.error(f"Results page error: {e}")
         return render_template('results.html', title="Lottery Results", results=[])
 
+@app.route('/ticket-scanner')
+@app.route('/scanner')
+def ticket_scanner():
+    """Ticket scanner page"""
+    return render_template('scanner.html', title="Lottery Ticket Scanner")
+
+@app.route('/frequency-analysis')
+def frequency_analysis():
+    """Frequency analysis page"""
+    return render_template('frequency.html', title="Frequency Analysis")
+
+@app.route('/about')
+def about():
+    """About page"""
+    return render_template('about.html', title="About")
+
+@app.route('/contact')
+def contact():
+    """Contact page"""
+    return render_template('contact.html', title="Contact")
+
+@app.route('/visualizations')
+def visualizations():
+    """Data visualizations page"""
+    return render_template('visualizations.html', title="Data Visualizations")
+
+@app.route('/statistics')
+def statistics():
+    """Statistics page"""
+    return render_template('statistics.html', title="Statistics")
+
+@app.route('/predictions')
+def predictions():
+    """Predictions page"""
+    return render_template('predictions.html', title="Predictions")
+
+@app.route('/history')
+def history():
+    """Historical results page"""
+    try:
+        results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).limit(100).all()
+        return render_template('history.html', title="Historical Results", results=results)
+    except Exception as e:
+        logger.error(f"History page error: {e}")
+        return render_template('history.html', title="Historical Results", results=[])
+
 # API routes for frequency analysis
 @app.route('/api/lottery-analysis/frequency')
 def frequency_api():
