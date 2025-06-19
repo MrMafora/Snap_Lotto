@@ -160,11 +160,11 @@ def run_automation_step():
             flash('Screenshot capture completed', 'success')
         elif step == 'ai_process':
             import step3_ai_process
-            step3_ai_process.run_ai_processing()
+            step3_ai_process.run_ai_process()
             flash('AI processing completed', 'success')
         elif step == 'database':
             import step4_database
-            step4_database.run_database_save()
+            step4_database.run_database_update()
             flash('Database update completed', 'success')
         else:
             flash('Invalid step', 'error')
@@ -200,6 +200,16 @@ def logout():
     session.clear()
     flash('Logged out', 'info')
     return redirect('/')
+
+@app.route('/results')
+def results():
+    """Results page with all lottery results"""
+    try:
+        results = LotteryResult.query.order_by(LotteryResult.id.desc()).limit(50).all()
+        return render_template('results.html', title="Lottery Results", results=results)
+    except Exception as e:
+        logger.error(f"Results page error: {e}")
+        return render_template('results.html', title="Lottery Results", results=[])
 
 # API routes for frequency analysis
 @app.route('/api/lottery-analysis/frequency')
