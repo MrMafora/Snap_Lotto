@@ -43,32 +43,79 @@ def capture_url_screenshot(url, lottery_type):
         os.makedirs(screenshot_dir, exist_ok=True)
         filepath = os.path.join(screenshot_dir, filename)
         
-        # Configure Chrome options
+        # Configure Chrome options for full page capture
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--start-maximized')
+        chrome_options.add_argument('--disable-web-security')
+        chrome_options.add_argument('--disable-features=VizDisplayCompositor')
         chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         
         # Create driver
         driver = webdriver.Chrome(options=chrome_options)
         
         try:
+            # Set window size for full page capture
+            driver.set_window_size(1920, 1080)
+            
             # Navigate to URL
             driver.get(url)
             
             # Wait for page to load
-            WebDriverWait(driver, 10).until(
+            WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.TAG_NAME, 'body'))
             )
             
-            # Additional wait for dynamic content
-            time.sleep(3)
+            # Additional wait for dynamic content and page rendering
+            time.sleep(5)
             
-            # Take PNG screenshot
-            driver.save_screenshot(filepath)
+            # Try to capture full page using Chrome's built-in capabilities
+            try:
+                # Method 1: Use Chrome DevTools Protocol for full page screenshot
+                result = driver.execute_cdp_cmd('Page.captureScreenshot', {
+                    'format': 'png',
+                    'captureBeyondViewport': True
+                })
+                
+                # Decode base64 image and save
+                import base64
+                screenshot_data = base64.b64decode(result['data'])
+                with open(filepath, 'wb') as f:
+                    f.write(screenshot_data)
+                
+                logger.info("Full page screenshot captured using CDP")
+                
+            except Exception as e:
+                logger.warning(f"CDP method failed: {e}, trying standard approach")
+                
+                # Method 2: Fallback to scrolling and resizing approach
+                # Scroll to ensure all content is loaded
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2)
+                driver.execute_script("window.scrollTo(0, 0);")
+                time.sleep(1)
+                
+                # Get accurate page dimensions
+                page_width = driver.execute_script("return document.body.scrollWidth")
+                page_height = driver.execute_script("return Math.max(document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight)")
+                
+                logger.info(f"Page dimensions: {page_width}x{page_height}")
+                
+                # Set window size to capture full page
+                driver.set_window_size(max(page_width, 1920), page_height)
+                
+                # Wait for resize and final render
+                time.sleep(3)
+                
+                # Take standard screenshot
+                success = driver.save_screenshot(filepath)
+                
+                if not success:
+                    raise Exception("Failed to save screenshot")
             
         finally:
             driver.quit()

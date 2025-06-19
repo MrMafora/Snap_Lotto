@@ -1,171 +1,164 @@
 #!/usr/bin/env python3
 """
-PNG Screenshot Capture from Database URLs
-Captures PNG screenshots from URLs configured in ScheduleConfig database
+PNG Screenshot Capture using Playwright for SA National Lottery Results Pages
+Captures full-page PNG screenshots with improved reliability
 """
 
 import os
-import time
+import asyncio
 import logging
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from playwright.async_api import async_playwright
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def capture_png_screenshot(url, lottery_type):
-    """Capture PNG screenshot from lottery URL using Selenium"""
-    try:
-        logger.info(f"Capturing PNG screenshot for {lottery_type} from {url}")
+async def capture_full_page_screenshot(url, lottery_type, retries=3):
+    """
+    Capture full-page PNG screenshot using Playwright
+    
+    Args:
+        url: Lottery results URL
+        lottery_type: Type of lottery (e.g., 'Lotto', 'Powerball')
+        retries: Number of retry attempts
         
-        # Generate PNG filename
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        safe_lottery_type = lottery_type.lower().replace(' ', '_').replace('+', '_plus_')
-        filename = f"{timestamp}_{safe_lottery_type}.png"
-        
-        # Ensure screenshots directory exists
-        screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
-        os.makedirs(screenshot_dir, exist_ok=True)
-        filepath = os.path.join(screenshot_dir, filename)
-        
-        # Configure Chrome options for headless mode
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--window-size=1920,1080')
-        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-        
-        # Create driver
-        driver = webdriver.Chrome(options=chrome_options)
-        
+    Returns:
+        Dictionary with capture result information
+    """
+    
+    # Generate filename
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    safe_type = lottery_type.lower().replace(' ', '_').replace('+', '_plus')
+    filename = f"{timestamp}_{safe_type}_fullpage.png"
+    
+    # Create screenshots directory
+    screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
+    os.makedirs(screenshot_dir, exist_ok=True)
+    filepath = os.path.join(screenshot_dir, filename)
+    
+    logger.info(f"Capturing full-page PNG for {lottery_type} from {url}")
+    
+    for attempt in range(retries):
         try:
-            # Navigate to URL
-            driver.get(url)
-            
-            # Wait for page to load
-            WebDriverWait(driver, 15).until(
-                EC.presence_of_element_located((By.TAG_NAME, 'body'))
-            )
-            
-            # Additional wait for dynamic content to load
-            time.sleep(5)
-            
-            # Take PNG screenshot
-            driver.save_screenshot(filepath)
-            
-        finally:
-            driver.quit()
-        
-        # Verify PNG file was created
-        if os.path.exists(filepath):
-            file_size = os.path.getsize(filepath)
-            logger.info(f"PNG screenshot captured: {filename} ({file_size} bytes)")
-            return {
-                'lottery_type': lottery_type,
-                'url': url,
-                'filepath': filepath,
-                'filename': filename,
-                'file_size': file_size,
-                'status': 'success'
-            }
-        else:
-            logger.error(f"Failed to create PNG screenshot for {lottery_type}")
-            return {
-                'lottery_type': lottery_type,
-                'url': url,
-                'filepath': None,
-                'filename': None,
-                'status': 'failed'
-            }
-            
-    except Exception as e:
-        logger.error(f"Error capturing PNG screenshot for {lottery_type}: {str(e)}")
-        return {
-            'lottery_type': lottery_type,
-            'url': url,
-            'filepath': None,
-            'filename': None,
-            'status': 'error',
-            'error': str(e)
-        }
+            async with async_playwright() as p:
+                # Launch browser with optimized settings
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=[
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-accelerated-2d-canvas',
+                        '--no-first-run',
+                        '--no-zygote',
+                        '--single-process',
+                        '--disable-gpu'
+                    ]
+                )
+                
+                # Create new page with mobile viewport initially
+                page = await browser.new_page(
+                    viewport={'width': 1920, 'height': 1080},
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                )
+                
+                # Set longer timeout for slow websites
+                page.set_default_timeout(30000)
+                
+                # Navigate to URL
+                logger.info(f"Loading page: {url}")
+                await page.goto(url, wait_until='networkidle', timeout=30000)
+                
+                # Wait for content to load
+                await page.wait_for_load_state('domcontentloaded')
+                await asyncio.sleep(3)
+                
+                # Take full page screenshot
+                logger.info("Taking full-page screenshot...")
+                await page.screenshot(
+                    path=filepath,
+                    full_page=True,
+                    type='png'
+                )
+                
+                await browser.close()
+                
+                # Verify file was created
+                if os.path.exists(filepath):
+                    file_size = os.path.getsize(filepath)
+                    logger.info(f"✓ Screenshot saved: {filename} ({file_size} bytes)")
+                    
+                    return {
+                        'status': 'success',
+                        'filename': filename,
+                        'filepath': filepath,
+                        'file_size': file_size,
+                        'lottery_type': lottery_type,
+                        'url': url,
+                        'timestamp': timestamp
+                    }
+                else:
+                    raise Exception("Screenshot file was not created")
+                    
+        except Exception as e:
+            logger.warning(f"Attempt {attempt + 1}/{retries} failed for {lottery_type}: {str(e)}")
+            if attempt == retries - 1:
+                logger.error(f"Failed to capture {lottery_type} after {retries} attempts")
+                return {
+                    'status': 'failed',
+                    'lottery_type': lottery_type,
+                    'url': url,
+                    'error': str(e),
+                    'attempts': retries
+                }
+            await asyncio.sleep(2)  # Wait before retry
 
-def get_active_urls_from_database():
-    """Get active URLs from ScheduleConfig database"""
-    try:
-        from models import ScheduleConfig
-        from main import app
-        
-        with app.app_context():
-            # Get all active URL configurations
-            configs = ScheduleConfig.query.filter_by(active=True).all()
-            
-            url_list = []
-            for config in configs:
-                url_list.append({
-                    'url': config.url,
-                    'lottery_type': config.lottery_type
-                })
-            
-            logger.info(f"Retrieved {len(url_list)} active URLs from database")
-            return url_list
-            
-    except Exception as e:
-        logger.error(f"Error retrieving URLs from database: {str(e)}")
-        return []
-
-def run_png_capture_from_database():
-    """Run PNG screenshot capture for all active URLs from database"""
-    logger.info("=== PNG SCREENSHOT CAPTURE FROM DATABASE STARTED ===")
+async def capture_all_results_screenshots():
+    """Capture screenshots from all SA National Lottery results pages"""
     
-    # Get URLs from database
-    url_configs = get_active_urls_from_database()
+    # Results page URLs (excluding history pages)
+    results_urls = [
+        {'url': 'https://www.nationallottery.co.za/results/lotto', 'lottery_type': 'Lotto'},
+        {'url': 'https://www.nationallottery.co.za/results/lotto-plus-1-results', 'lottery_type': 'Lotto Plus 1'},
+        {'url': 'https://www.nationallottery.co.za/results/lotto-plus-2-results', 'lottery_type': 'Lotto Plus 2'},
+        {'url': 'https://www.nationallottery.co.za/results/powerball', 'lottery_type': 'Powerball'},
+        {'url': 'https://www.nationallottery.co.za/results/powerball-plus', 'lottery_type': 'Powerball Plus'},
+        {'url': 'https://www.nationallottery.co.za/results/daily-lotto', 'lottery_type': 'Daily Lotto'}
+    ]
     
-    if not url_configs:
-        logger.warning("No active URLs found in database")
-        return []
+    logger.info(f"Starting full-page PNG capture for {len(results_urls)} results pages")
     
     results = []
-    successful_captures = 0
     
-    for i, url_config in enumerate(url_configs):
-        # Add delay between captures
-        if i > 0:
-            delay = 3 + (i % 3)  # Variable delay
-            logger.info(f"Waiting {delay} seconds before next capture...")
-            time.sleep(delay)
-        
-        # Capture PNG screenshot from URL
-        result = capture_png_screenshot(url_config['url'], url_config['lottery_type'])
+    for url_config in results_urls:
+        result = await capture_full_page_screenshot(
+            url_config['url'], 
+            url_config['lottery_type']
+        )
         results.append(result)
         
-        if result and result['status'] == 'success':
-            successful_captures += 1
+        # Brief pause between captures
+        await asyncio.sleep(1)
     
-    logger.info("=== PNG SCREENSHOT CAPTURE FROM DATABASE COMPLETED ===")
-    logger.info(f"Successfully captured {successful_captures}/{len(url_configs)} PNG screenshots")
+    # Summary
+    successful = len([r for r in results if r['status'] == 'success'])
+    failed = len([r for r in results if r['status'] == 'failed'])
     
-    # Display summary
-    print(f"\nPNG SCREENSHOT CAPTURE SUMMARY:")
-    print(f"Total URLs processed: {len(url_configs)}")
-    print(f"Successful captures: {successful_captures}")
-    print(f"Failed captures: {len(url_configs) - successful_captures}")
+    logger.info(f"PNG capture completed: {successful} successful, {failed} failed")
     
+    return results
+
+def run_png_capture():
+    """Synchronous wrapper for PNG capture"""
+    return asyncio.run(capture_all_results_screenshots())
+
+if __name__ == "__main__":
+    results = run_png_capture()
+    
+    print("\n=== PNG CAPTURE RESULTS ===")
     for result in results:
         if result['status'] == 'success':
             print(f"✓ {result['lottery_type']}: {result['filename']} ({result['file_size']} bytes)")
         else:
-            print(f"✗ {result['lottery_type']}: {result['status']}")
-    
-    return results
-
-if __name__ == "__main__":
-    results = run_png_capture_from_database()
-    successful = len([r for r in results if r and r['status'] == 'success'])
-    print(f"\nCaptured {successful} PNG screenshots from database URLs")
+            print(f"✗ {result['lottery_type']}: {result['error']}")
