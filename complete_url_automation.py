@@ -18,57 +18,61 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def run_complete_url_automation():
-    """Run the complete URL-based lottery automation workflow"""
-    logger.info("=== COMPLETE URL LOTTERY AUTOMATION STARTED ===")
+    """Run the complete PNG screenshot automation workflow for results pages only"""
+    logger.info("=== COMPLETE PNG SCREENSHOT AUTOMATION STARTED ===")
     start_time = datetime.now()
     
     try:
-        # Step 1: Capture authentic lottery content from URLs
-        logger.info("Step 1: Capturing authentic lottery content from SA National Lottery URLs...")
+        # Step 1: Capture PNG screenshots from results pages only
+        logger.info("Step 1: Capturing PNG screenshots from SA National Lottery results pages...")
         capture_results = run_screenshot_capture()
         
         successful_captures = len([r for r in capture_results if r and r['status'] == 'success'])
-        logger.info(f"Captured content from {successful_captures} lottery URLs")
+        logger.info(f"Captured PNG screenshots from {successful_captures} lottery results pages")
         
         if successful_captures == 0:
-            logger.error("No lottery content was captured successfully")
+            logger.error("No PNG screenshots were captured successfully")
             return {
                 'status': 'failed',
-                'message': 'No authentic lottery content captured',
+                'message': 'No PNG screenshots captured from results pages',
                 'capture_results': capture_results,
                 'extraction_results': []
             }
         
-        # Step 2: Extract lottery data from captured content
-        logger.info("Step 2: Extracting lottery data from captured content...")
-        extraction_results = process_captured_content()
+        # Step 2: Process PNG screenshots for data extraction
+        logger.info("Step 2: Processing PNG screenshots for lottery data extraction...")
         
-        logger.info(f"Extracted lottery data from {len(extraction_results)} files")
+        # Count PNG files created
+        import os
+        screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
+        png_files = [f for f in os.listdir(screenshot_dir) if f.endswith('.png')] if os.path.exists(screenshot_dir) else []
+        
+        logger.info(f"Found {len(png_files)} PNG screenshot files ready for processing")
         
         # Step 3: Summary of results
         end_time = datetime.now()
         duration = end_time - start_time
         
-        logger.info("=== COMPLETE URL LOTTERY AUTOMATION COMPLETED ===")
+        logger.info("=== COMPLETE PNG SCREENSHOT AUTOMATION COMPLETED ===")
         logger.info(f"Total processing time: {duration.total_seconds():.2f} seconds")
-        logger.info(f"Successfully processed {successful_captures} lottery URLs")
+        logger.info(f"Successfully processed {successful_captures} lottery results pages")
         
         return {
             'status': 'success',
-            'message': f'Successfully processed {successful_captures} lottery URLs',
+            'message': f'Successfully captured PNG screenshots from {successful_captures} results pages',
             'capture_results': capture_results,
-            'extraction_results': extraction_results,
+            'png_files_count': len(png_files),
             'processing_time': duration.total_seconds(),
             'timestamp': end_time.isoformat()
         }
         
     except Exception as e:
-        logger.error(f"Error in complete automation workflow: {str(e)}")
+        logger.error(f"Error in PNG screenshot automation workflow: {str(e)}")
         return {
             'status': 'error',
-            'message': f'Automation failed: {str(e)}',
+            'message': f'PNG screenshot automation failed: {str(e)}',
             'capture_results': [],
-            'extraction_results': []
+            'png_files_count': 0
         }
 
 def display_automation_summary(results):
