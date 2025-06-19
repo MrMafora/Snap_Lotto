@@ -4,7 +4,6 @@ Database models for the application
 from datetime import datetime
 import json
 import os
-import numpy as np
 import logging
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
