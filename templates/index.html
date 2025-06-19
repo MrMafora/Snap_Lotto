@@ -858,7 +858,7 @@ function fetchChartData(lotteryType, timePeriod) {
     
     console.log("Fetching data from: " + apiUrl);
     
-    // Fetch data from the API
+    // Fetch data from the API with proper error handling
     fetch(apiUrl)
         .then(response => {
             if (!response.ok) {
