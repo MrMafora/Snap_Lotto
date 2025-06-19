@@ -12,26 +12,32 @@ logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('gunicorn.conf')
 
-# Bind to port 5000 (matches workflow configuration)
+# Bind to port 5000 with proper reuse settings
 bind = "0.0.0.0:5000"
+reuse_port = True
 
-# SECURITY FIX: Limit workers to prevent resource exhaustion attacks
-workers = 2  # Fixed to safe number instead of multiplying CPU count
+# Single worker to prevent conflicts during startup
+workers = 1
 worker_class = "sync"
-threads = 4
-worker_connections = 1000
-timeout = 120
+timeout = 60
 keepalive = 2
 
 # Performance settings
-max_requests = 1000
-max_requests_jitter = 50
-graceful_timeout = 30
+max_requests = 500
+max_requests_jitter = 25
+graceful_timeout = 15
 
 # Logging
 accesslog = "-"
 errorlog = "-"
 loglevel = "info"
 
-# Pre-load application to improve startup time
-preload_app = True
+# Disable preload to avoid conflicts
+preload_app = False
+
+# Daemon settings
+daemon = False
+pidfile = None
+user = None
+group = None
+tmp_upload_dir = None
