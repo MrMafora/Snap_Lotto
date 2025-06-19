@@ -250,7 +250,7 @@
                                         <small class="text-muted">Clearing old screenshots...</small>
                                     </div>
                                     
-                                    <form action="/admin/run-automation-step" method="POST" onsubmit="showStepProgress('cleanup'); return true;">
+                                    <form action="/automation/run-step" method="POST" onsubmit="showStepProgress('cleanup'); return true;">
                                         <input type="hidden" name="step" value="cleanup">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                                         <button type="submit" class="btn btn-warning w-100" id="cleanup-btn">
@@ -281,7 +281,7 @@
                                         <small class="text-muted">Capturing screenshots from lottery websites...</small>
                                     </div>
                                     
-                                    <form action="/admin/run-automation-step" method="POST" onsubmit="showStepProgress('capture'); return true;">
+                                    <form action="/automation/run-step" method="POST" onsubmit="showStepProgress('capture'); return true;">
                                         <input type="hidden" name="step" value="capture">
                                         <input type="hidden" name="groups" id="capture-groups" value="">
                                         <button type="submit" class="btn btn-info w-100" id="capture-btn">
@@ -318,7 +318,7 @@
                                         <strong>Prerequisites:</strong> This step requires fresh screenshots from steps 1 & 2
                                     </div>
                                     
-                                    <form action="/admin/run-automation-step" method="POST" onsubmit="showStepProgress('ai_process'); return true;">
+                                    <form action="/automation/run-step" method="POST" onsubmit="showStepProgress('ai_process'); return true;">
                                         <input type="hidden" name="step" value="process">
                                         <button type="submit" class="btn btn-success w-100" id="ai_process-btn">
                                             <i class="fas fa-robot me-2"></i> Process with AI
@@ -354,7 +354,7 @@
                                         <strong>Prerequisites:</strong> This step requires completed AI processing from step 3
                                     </div>
                                     
-                                    <form action="/admin/run-automation-step" method="POST" onsubmit="showStepProgress('database_update'); return true;">
+                                    <form action="/automation/run-step" method="POST" onsubmit="showStepProgress('database_update'); return true;">
                                         <input type="hidden" name="step" value="update">
                                         <button type="submit" class="btn btn-primary w-100" id="database_update-btn">
                                             <i class="fas fa-database me-2"></i> Update Database
@@ -688,10 +688,10 @@ async function runCompleteAutomation() {
     
     // Include selected group in automation steps
     const steps = [
-        { name: 'Clearing old screenshots', endpoint: '/admin/run-automation-step', data: {step: 'cleanup'}, progress: 25 },
-        { name: 'Capturing fresh screenshots', endpoint: '/admin/run-automation-step', data: {step: 'capture', groups: selectedGroup || ''}, progress: 50 },
-        { name: 'Processing with AI', endpoint: '/admin/run-automation-step', data: {step: 'ai_process'}, progress: 75 },
-        { name: 'Updating database', endpoint: '/admin/run-automation-step', data: {step: 'database_update'}, progress: 100 }
+        { name: 'Clearing old screenshots', endpoint: '/automation/run-step', data: {step: 'cleanup'}, progress: 25 },
+        { name: 'Capturing fresh screenshots', endpoint: '/automation/run-step', data: {step: 'capture', groups: selectedGroup || ''}, progress: 50 },
+        { name: 'Processing with AI', endpoint: '/automation/run-step', data: {step: 'ai_process'}, progress: 75 },
+        { name: 'Updating database', endpoint: '/automation/run-step', data: {step: 'database_update'}, progress: 100 }
     ];
     
     try {
@@ -787,7 +787,7 @@ function addStepButtonProgress(button, stepName) {
 // Initialize step button progress on page load - DISABLED to prevent conflicts
 // document.addEventListener('DOMContentLoaded', function() {
 //     // Add progress to individual step buttons
-//     const stepButtons = document.querySelectorAll('form[action*="run-automation-step"] button');
+//     const stepButtons = document.querySelectorAll('form[action*="automation/run-step"] button');
 //     stepButtons.forEach(button => {
 //         const stepName = button.textContent.trim();
 //         addStepButtonProgress(button, stepName);
