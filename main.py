@@ -2993,7 +2993,7 @@ def export_combined_zip():
         
         if not screenshot_files:
             flash('No screenshot files available to export.', 'warning')
-            return redirect(url_for('admin_automation_control'))
+            return redirect(url_for('automation_control'))
         
         # Create a temporary directory for the template
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -3046,7 +3046,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     except Exception as e:
         app.logger.error(f"Error creating combined ZIP file: {str(e)}")
         flash(f'Error creating combined ZIP file: {str(e)}', 'danger')
-        return redirect(url_for('admin_automation_control'))
+        return redirect(url_for('automation_control'))
 
 @app.route('/port_check')
 def port_check():
@@ -4338,7 +4338,7 @@ def run_automation_step():
         flash(f"Failed to run {step}: {str(e)}", 'danger')
         return redirect(url_for('automation_control'))
 
-@app.route('/admin/run-daily-automation', methods=['POST'])
+@app.route('/automation/run-daily', methods=['POST'])
 @login_required
 def run_daily_automation():
     """Run the complete daily automation workflow"""
@@ -4368,7 +4368,7 @@ def run_daily_automation():
     
     return redirect(url_for('automation_control'))
 
-@app.route('/admin/test-ai-extraction', methods=['POST'])
+@app.route('/automation/test-ai', methods=['POST'])
 @login_required
 def test_ai_extraction():
     """Test AI extraction on a sample image"""
@@ -4394,7 +4394,7 @@ def test_ai_extraction():
     
     return redirect(url_for('automation_control'))
 
-@app.route('/admin/daily-automation')
+@app.route('/automation/dashboard')
 @login_required
 def daily_automation_dashboard():
     """Admin dashboard for daily automation system"""
@@ -4421,7 +4421,7 @@ def daily_automation_dashboard():
     return render_template('admin/daily_automation.html', 
                          scheduler_status=scheduler_status)
 
-@app.route('/admin/run-daily-automation', methods=['POST'])
+@app.route('/automation/run-daily-manual', methods=['POST'])
 @login_required
 def run_daily_automation_manual():
     """Manually trigger the daily automation workflow"""
@@ -4447,7 +4447,7 @@ def run_daily_automation_manual():
     
     return redirect(url_for('daily_automation_dashboard'))
 
-@app.route('/admin/scheduler-control/<action>', methods=['POST'])
+@app.route('/automation/scheduler/<action>', methods=['POST'])
 @login_required
 def scheduler_control(action):
     """Control the automated scheduler (start/stop)"""
