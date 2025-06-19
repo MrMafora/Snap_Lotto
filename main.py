@@ -2178,28 +2178,37 @@ def import_data():
 @app.route('/retake-screenshots')
 @login_required
 def retake_screenshots():
-    """Admin route to retake all screenshots"""
+    """Admin route to capture PNG screenshots from SA National Lottery results pages"""
     if not current_user.is_admin:
         flash('You must be an admin to retake screenshots.', 'danger')
         return redirect(url_for('index'))
         
     try:
-        # Load screenshot manager for automated operations
-        global screenshot_manager
-        if screenshot_manager is None:
-            import screenshot_manager
+        logger.info("Starting PNG screenshot capture from admin interface")
         
-        count = screenshot_manager.retake_all_screenshots(app)
+        # Import and run the step2 capture module for PNG screenshots
+        from step2_capture import run_screenshot_capture
         
-        if count > 0:
-            success_count = count
-            fail_count = 0
+        # Run the screenshot capture process
+        results = run_screenshot_capture()
+        
+        if results:
+            successful = len([r for r in results if r and r.get('status') == 'success'])
+            failed = len([r for r in results if r and r.get('status') == 'failed'])
+            total = len(results)
             
-            flash(f'Screenshot process started. {success_count} URLs queued successfully. {fail_count} failed.', 'info')
+            logger.info(f"Screenshot capture completed: {successful}/{total} successful")
+            
+            if successful > 0:
+                flash(f'Screenshot capture completed! {successful} successful captures from {total} lottery results pages.', 'success')
+            else:
+                flash(f'Screenshot capture completed with connectivity issues: {failed} failed attempts. SA National Lottery website may be blocking automated requests.', 'warning')
         else:
-            flash('No URLs configured for screenshots.', 'warning')
+            flash('No screenshot results returned. Check system configuration.', 'warning')
+            
     except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
+        logger.error(f"Screenshot capture error: {str(e)}")
+        flash(f'Screenshot capture failed: {str(e)}', 'danger')
     
     return redirect(url_for('admin'))
 
