@@ -380,15 +380,15 @@ class VisualLotteryCapture:
         return results
 
     def capture_all_lottery_screenshots(self):
-        """Create visual screenshots from existing HTML content and database data"""
+        """Create visual screenshots from existing HTML content and authentic database data ONLY"""
         
         # First try to process existing HTML files
         results = self.process_existing_html_files()
         
-        # If no HTML files or failed, try to create from authentic data
+        # If no HTML files or failed, create from authentic database data only
         if not results or len([r for r in results if r['status'] == 'success']) == 0:
-            logger.info("Creating visual screenshots from authentic lottery data")
-            results.extend(self.create_from_sample_data())
+            logger.info("Creating visual screenshots from authentic database data only")
+            results.extend(self.create_from_authentic_database())
         
         return results
     
