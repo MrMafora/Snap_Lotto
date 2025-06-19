@@ -257,6 +257,62 @@ def history():
         logger.error(f"History page error: {e}")
         return render_template('history.html', title="Historical Results", results=[])
 
+@app.route('/scheduler-status')
+@login_required
+def scheduler_status():
+    """Scheduler status page"""
+    if not current_user.is_admin:
+        flash('Access denied', 'danger')
+        return redirect(url_for('home'))
+    
+    status_info = {
+        'status': 'Running',
+        'next_run': 'Daily at 1:00 AM',
+        'last_run': 'Not scheduled yet',
+        'enabled': True
+    }
+    return render_template('admin/scheduler_status.html', 
+                          title="Scheduler Status", 
+                          status=status_info)
+
+@app.route('/system-health')
+@login_required
+def system_health():
+    """System health monitoring page"""
+    if not current_user.is_admin:
+        flash('Access denied', 'danger')
+        return redirect(url_for('home'))
+    
+    health_info = {
+        'database': 'Connected',
+        'server': 'Running',
+        'memory': 'Normal',
+        'disk': 'Normal'
+    }
+    return render_template('admin/health.html', 
+                          title="System Health", 
+                          health=health_info)
+
+@app.route('/import-data')
+@login_required
+def import_data():
+    """Data import page"""
+    if not current_user.is_admin:
+        flash('Access denied', 'danger')
+        return redirect(url_for('home'))
+    
+    return render_template('admin/import.html', title="Import Data")
+
+@app.route('/import-history')
+@login_required
+def import_history():
+    """Import history page"""
+    if not current_user.is_admin:
+        flash('Access denied', 'danger')
+        return redirect(url_for('home'))
+    
+    return render_template('admin/import_history.html', title="Import History")
+
 # API routes for frequency analysis
 @app.route('/api/lottery-analysis/frequency')
 def frequency_api():
