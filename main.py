@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 from flask import Flask, render_template, flash, redirect, url_for, request, jsonify, session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Import models and config
 from models import LotteryResult, User, db
@@ -51,7 +52,7 @@ db.init_app(app)
 # Login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'login'  # type: ignore
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -312,6 +313,60 @@ def import_history():
         return redirect(url_for('home'))
     
     return render_template('admin/import_history.html', title="Import History")
+
+@app.route('/settings')
+@login_required
+def settings():
+    """Application settings page"""
+    if not current_user.is_admin:
+        flash('Access denied', 'danger')
+        return redirect(url_for('home'))
+    
+    return render_template('settings.html', title="Settings")
+
+@app.route('/register', methods=['GET', 'POST'])
+@login_required
+def register():
+    """Admin user registration page"""
+    if not current_user.is_admin:
+        flash('Access denied', 'danger')
+        return redirect(url_for('home'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        if username and email and password:
+            new_user = User()
+            new_user.username = username
+            new_user.email = email
+            new_user.set_password(password)
+            new_user.is_admin = True
+            db.session.add(new_user)
+            db.session.commit()
+            flash(f'Admin user {username} created successfully', 'success')
+            return redirect(url_for('admin'))
+        else:
+            flash('All fields are required', 'danger')
+    
+    return render_template('register.html', title="Add Admin User")
+
+@app.route('/api-tracking')
+@login_required
+def api_tracking_view():
+    """API usage tracking page"""
+    if not current_user.is_admin:
+        flash('Access denied', 'danger')
+        return redirect(url_for('home'))
+    
+    tracking_data = {
+        'total_requests': 0,
+        'successful_requests': 0,
+        'failed_requests': 0,
+        'average_response_time': 0
+    }
+    return render_template('admin/api_tracking.html', title="API Tracking", data=tracking_data)
 
 # API routes for frequency analysis
 @app.route('/api/lottery-analysis/frequency')

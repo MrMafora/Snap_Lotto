@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header lottery-header">
+                    <h4 class="card-title mb-0">{{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h3>{{ data.total_requests }}</h3>
+                                <p>Total Requests</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h3>{{ data.successful_requests }}</h3>
+                                <p>Successful</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h3>{{ data.failed_requests }}</h3>
+                                <p>Failed</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h3>{{ data.average_response_time }}ms</h3>
+                                <p>Avg Response Time</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-muted">API tracking data will be implemented in future updates.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
