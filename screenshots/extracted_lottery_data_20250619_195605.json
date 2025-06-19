@@ -1,0 +1,29 @@
+[
+  {
+    "lottery_type": "Lotto",
+    "main_numbers": [],
+    "bonus_numbers": [],
+    "draw_date": "2025-06-21",
+    "draw_number": null,
+    "jackpot_amount": "R3 Million",
+    "next_draw_date": null
+  },
+  {
+    "lottery_type": "Lotto Plus 1",
+    "main_numbers": [],
+    "bonus_numbers": [],
+    "draw_date": "2025-06-21",
+    "draw_number": null,
+    "jackpot_amount": "R20 Million",
+    "next_draw_date": null
+  },
+  {
+    "lottery_type": "Lotto",
+    "main_numbers": [],
+    "bonus_numbers": [],
+    "draw_date": "2025-06-21",
+    "draw_number": null,
+    "jackpot_amount": "R3 Million",
+    "next_draw_date": null
+  }
+]
