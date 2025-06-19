@@ -2852,10 +2852,52 @@ def capture_visual_screenshots():
         return redirect(url_for('index'))
         
     try:
-        from visual_lottery_capture import run_visual_capture
+        from visual_lottery_capture import VisualLotteryCapture
+        from models import LotteryResult
         
-        app.logger.info("Starting visual lottery screenshot capture")
-        results = run_visual_capture()
+        app.logger.info("Starting visual lottery screenshot capture from authentic database data")
+        
+        # Get authentic lottery results from database
+        recent_results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).limit(6).all()
+        
+        if not recent_results:
+            flash('No authentic lottery data found in database to create screenshots.', 'warning')
+            return redirect(url_for('admin'))
+        
+        capture = VisualLotteryCapture()
+        results = []
+        
+        for lottery_result in recent_results:
+            try:
+                # Prepare authentic lottery data using proper methods
+                lottery_data = {
+                    'lottery_type': lottery_result.lottery_type,
+                    'main_numbers': lottery_result.get_numbers_list(),
+                    'bonus_numbers': lottery_result.get_bonus_numbers_list(),
+                    'draw_date': lottery_result.draw_date.strftime('%Y-%m-%d') if lottery_result.draw_date else None,
+                    'draw_number': str(lottery_result.draw_number) if lottery_result.draw_number else None
+                }
+                
+                # Generate filename
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                safe_lottery_type = lottery_data['lottery_type'].lower().replace(' ', '_').replace('+', '_plus_')
+                filename = f"{timestamp}_{safe_lottery_type}_authentic.png"
+                filepath = os.path.join(capture.screenshot_dir, filename)
+                
+                # Create visual screenshot from authentic data
+                visual_result = capture.create_lottery_visual(lottery_data['lottery_type'], lottery_data, filepath)
+                
+                if visual_result:
+                    results.append({
+                        'lottery_type': lottery_data['lottery_type'],
+                        'filepath': filepath,
+                        'status': 'success'
+                    })
+                    app.logger.info(f"Created authentic visual screenshot for {lottery_data['lottery_type']}: {filename}")
+                
+            except Exception as e:
+                app.logger.error(f"Failed to create visual from authentic data: {str(e)}")
+        
         success = len([r for r in results if r['status'] == 'success']) > 0
         
         if success:

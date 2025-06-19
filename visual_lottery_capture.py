@@ -392,88 +392,74 @@ class VisualLotteryCapture:
         
         return results
     
-    def create_from_sample_data(self):
-        """Create visual screenshots from sample lottery data based on recent authentic results"""
+    def create_from_authentic_database(self):
+        """Create visual screenshots ONLY from authentic lottery data in database - NO fake data"""
         results = []
         
-        # Use the authentic lottery numbers from the application logs we can see
-        sample_lottery_data = [
-            {
-                'lottery_type': 'LOTTO',
-                'main_numbers': [1, 16, 36, 40, 42, 50],
-                'bonus_numbers': [],
-                'draw_date': '2025-06-19',
-                'draw_number': '2487'
-            },
-            {
-                'lottery_type': 'LOTTO PLUS 1',
-                'main_numbers': [8, 12, 18, 20, 30, 51],
-                'bonus_numbers': [],
-                'draw_date': '2025-06-19',
-                'draw_number': '2487'
-            },
-            {
-                'lottery_type': 'LOTTO PLUS 2',
-                'main_numbers': [14, 19, 22, 35, 50, 51],
-                'bonus_numbers': [],
-                'draw_date': '2025-06-19',
-                'draw_number': '2487'
-            },
-            {
-                'lottery_type': 'PowerBall',
-                'main_numbers': [9, 24, 34, 41, 44],
-                'bonus_numbers': [15],
-                'draw_date': '2025-06-19',
-                'draw_number': '1432'
-            },
-            {
-                'lottery_type': 'POWERBALL PLUS',
-                'main_numbers': [27, 29, 30, 43, 46],
-                'bonus_numbers': [8],
-                'draw_date': '2025-06-19',
-                'draw_number': '1432'
-            },
-            {
-                'lottery_type': 'DAILY LOTTO',
-                'main_numbers': [2, 7, 13, 26, 33],
-                'bonus_numbers': [],
-                'draw_date': '2025-06-19',
-                'draw_number': '5421'
-            }
-        ]
-        
-        logger.info(f"Creating visual screenshots from authentic lottery data")
-        
-        for lottery_data in sample_lottery_data:
-            try:
-                # Generate filename
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                safe_lottery_type = lottery_data['lottery_type'].lower().replace(' ', '_').replace('+', '_plus_')
-                filename = f"{timestamp}_{safe_lottery_type}.png"
-                filepath = os.path.join(self.screenshot_dir, filename)
+        # Import here to avoid circular imports
+        try:
+            from models import LotteryResult
+            from main import app
+            
+            with app.app_context():
+                # Get authentic lottery results from database
+                authentic_results = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).limit(6).all()
                 
-                # Create visual screenshot
-                visual_result = self.create_lottery_visual(lottery_data['lottery_type'], lottery_data, filepath)
+                if not authentic_results:
+                    logger.error("NO AUTHENTIC LOTTERY DATA FOUND IN DATABASE - Cannot create screenshots without real data")
+                    return results
                 
-                if visual_result:
-                    results.append({
-                        'lottery_type': lottery_data['lottery_type'],
-                        'source': 'authentic_data',
-                        'filepath': filepath,
-                        'status': 'success'
-                    })
-                    logger.info(f"Created visual screenshot for {lottery_data['lottery_type']}: {filename}")
-                else:
-                    results.append({
-                        'lottery_type': lottery_data['lottery_type'],
-                        'source': 'authentic_data',
-                        'filepath': None,
-                        'status': 'failed'
-                    })
-                    
-            except Exception as e:
-                logger.error(f"Failed to create visual from authentic data: {str(e)}")
+                logger.info(f"Creating visual screenshots from {len(authentic_results)} authentic database records")
                 
+                for lottery_result in authentic_results:
+                    try:
+                        # Extract authentic data using proper methods
+                        authentic_data = {
+                            'lottery_type': lottery_result.lottery_type,
+                            'main_numbers': lottery_result.get_numbers_list(),
+                            'bonus_numbers': lottery_result.get_bonus_numbers_list(),
+                            'draw_date': lottery_result.draw_date.strftime('%Y-%m-%d') if lottery_result.draw_date else None,
+                            'draw_number': str(lottery_result.draw_number) if lottery_result.draw_number else None
+                        }
+                        
+                        # Validate we have real numbers
+                        if not authentic_data['main_numbers']:
+                            logger.warning(f"Skipping {lottery_result.lottery_type} - no authentic numbers found")
+                            continue
+                            
+                        logger.info(f"Processing authentic {lottery_result.lottery_type}: {authentic_data['main_numbers']} + {authentic_data['bonus_numbers']}")
+                        
+                        # Generate filename
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        safe_lottery_type = authentic_data['lottery_type'].lower().replace(' ', '_').replace('+', '_plus_')
+                        filename = f"{timestamp}_{safe_lottery_type}_authentic.png"
+                        filepath = os.path.join(self.screenshot_dir, filename)
+                        
+                        # Create visual screenshot from authentic data
+                        visual_result = self.create_lottery_visual(authentic_data['lottery_type'], authentic_data, filepath)
+                        
+                        if visual_result:
+                            results.append({
+                                'lottery_type': authentic_data['lottery_type'],
+                                'source': 'authentic_database',
+                                'filepath': filepath,
+                                'status': 'success'
+                            })
+                            logger.info(f"Created authentic visual screenshot for {authentic_data['lottery_type']}: {filename}")
+                        else:
+                            results.append({
+                                'lottery_type': authentic_data['lottery_type'],
+                                'source': 'authentic_database',
+                                'filepath': None,
+                                'status': 'failed'
+                            })
+                            
+                    except Exception as e:
+                        logger.error(f"Failed to create visual from authentic database data: {str(e)}")
+                        
+        except ImportError as e:
+            logger.error(f"Could not import required modules for database access: {str(e)}")
+            
         return results
 
 def run_visual_capture():
