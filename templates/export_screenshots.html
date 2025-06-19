@@ -149,6 +149,16 @@
                                 {% endif %}
                                 
                                 <hr>
+                                <h6>Visual Screenshot Capture</h6>
+                                <p class="small text-muted">Capture high-quality PNG screenshots of all lottery results pages.</p>
+                                <form action="{{ url_for('capture_visual_screenshots') }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                                    <button type="submit" class="btn btn-sm btn-primary mb-2">
+                                        <i class="fas fa-camera me-1"></i> Capture Visual Screenshots
+                                    </button>
+                                </form>
+                                
+                                <hr>
                                 <h6>Manage Gallery</h6>
                                 <p class="small text-muted">If you have too many screenshots, click below to keep only the latest one for each URL.</p>
                                 <form action="{{ url_for('cleanup_screenshots') }}" method="POST">

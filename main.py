@@ -2843,6 +2843,41 @@ def run_automation_now():
         app.logger.error(f"Error running automation: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/capture-visual-screenshots', methods=['POST'])
+@login_required
+def capture_visual_screenshots():
+    """Route to capture high-quality visual screenshots"""
+    if not current_user.is_admin:
+        flash('You must be an admin to capture screenshots.', 'danger')
+        return redirect(url_for('index'))
+        
+    try:
+        from selenium_screenshot_capture import run_visual_capture
+        
+        app.logger.info("Starting visual screenshot capture process")
+        success = run_visual_capture()
+        
+        if success:
+            session['sync_status'] = {
+                'status': 'success',
+                'message': 'Successfully captured high-quality visual screenshots for all lottery types.'
+            }
+        else:
+            session['sync_status'] = {
+                'status': 'warning',
+                'message': 'Screenshot capture completed but some captures may have failed. Check logs for details.'
+            }
+    except Exception as e:
+        app.logger.error(f"Error capturing visual screenshots: {str(e)}")
+        traceback.print_exc()
+        
+        session['sync_status'] = {
+            'status': 'danger',
+            'message': f'Error capturing visual screenshots: {str(e)}'
+        }
+    
+    return redirect(url_for('export_screenshots'))
+
 @app.route('/cleanup-screenshots', methods=['POST'])
 @login_required
 def cleanup_screenshots():
