@@ -4295,9 +4295,12 @@ def run_automation_step():
             message = "Cleanup completed successfully" if success else "Cleanup failed"
             
         elif step == 'capture':
-            from step2_capture import run_capture
-            success = run_capture()
-            message = "Screenshot capture completed successfully" if success else "Screenshot capture failed"
+            from step2_capture import run_screenshot_capture
+            results = run_screenshot_capture()
+            success = results and len([r for r in results if r and r['status'] == 'success']) > 0
+            successful_count = len([r for r in results if r and r['status'] == 'success']) if results else 0
+            total_count = len(results) if results else 0
+            message = f"PNG screenshot capture completed: {successful_count}/{total_count} successful" if success else "PNG screenshot capture failed"
             
         elif step == 'ai_process':
             from step3_ai_process import run_ai_process
