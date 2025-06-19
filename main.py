@@ -4257,7 +4257,7 @@ def api_tracking_view():
         service_tokens=service_tokens
     )
 
-@app.route('/admin/automation-control')
+@app.route('/automation')
 @login_required
 def automation_control():
     """Unified automation control center"""
@@ -4287,7 +4287,7 @@ def test_cleanup():
     except Exception as e:
         return f"ERROR: {str(e)}"
 
-@app.route('/admin/run-automation-step', methods=['POST'])
+@app.route('/automation/run-step', methods=['POST'])
 @login_required
 def run_automation_step():
     """Run individual automation steps"""
