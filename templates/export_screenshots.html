@@ -152,7 +152,7 @@
                                 <h6>Manage Gallery</h6>
                                 <p class="small text-muted">If you have too many screenshots, click below to keep only the latest one for each URL.</p>
                                 <form action="{{ url_for('cleanup_screenshots') }}" method="POST">
-                                    <input type="hidden" name="csrf_token" value="">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                                     <button type="submit" class="btn btn-sm btn-outline-danger">
                                         <i class="fas fa-broom me-1"></i> Cleanup Old Screenshots
                                     </button>

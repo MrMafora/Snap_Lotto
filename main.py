@@ -2852,18 +2852,22 @@ def cleanup_screenshots():
         return redirect(url_for('index'))
         
     try:
-        # Run the cleanup function from screenshot manager
-        global screenshot_manager
-        if screenshot_manager is None:
-            import screenshot_manager
+        # Run the cleanup function from step1_cleanup module
+        from step1_cleanup import cleanup_old_screenshots
         
-        deleted_count = screenshot_manager.cleanup_old_screenshots()
+        success = cleanup_old_screenshots(days_to_keep=7)
         
-        # Store success message in session
-        session['sync_status'] = {
-            'status': 'success',
-            'message': 'Successfully cleaned up old screenshots. Only the latest screenshot for each URL is kept.'
-        }
+        if success:
+            # Store success message in session
+            session['sync_status'] = {
+                'status': 'success',
+                'message': 'Successfully cleaned up old screenshots older than 7 days.'
+            }
+        else:
+            session['sync_status'] = {
+                'status': 'warning',
+                'message': 'Cleanup completed but some files could not be removed.'
+            }
     except Exception as e:
         app.logger.error(f"Error cleaning up screenshots: {str(e)}")
         traceback.print_exc()
