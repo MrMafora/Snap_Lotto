@@ -43,7 +43,7 @@ def capture_url_screenshot(url, lottery_type):
         os.makedirs(screenshot_dir, exist_ok=True)
         filepath = os.path.join(screenshot_dir, filename)
         
-        # Configure Chrome options for full page capture
+        # Configure Chrome options for enhanced full page capture
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
@@ -53,25 +53,49 @@ def capture_url_screenshot(url, lottery_type):
         chrome_options.add_argument('--start-maximized')
         chrome_options.add_argument('--disable-web-security')
         chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+        chrome_options.add_argument('--ignore-certificate-errors')
+        chrome_options.add_argument('--ignore-ssl-errors')
+        chrome_options.add_argument('--allow-running-insecure-content')
         chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         
-        # Create driver
+        # Create driver with enhanced timeouts
         driver = webdriver.Chrome(options=chrome_options)
+        driver.set_page_load_timeout(90)  # Extended timeout for slow connections
+        driver.implicitly_wait(20)
         
         try:
-            # Set window size for full page capture
+            # Set initial window size
             driver.set_window_size(1920, 1080)
             
-            # Navigate to URL
-            driver.get(url)
+            logger.info(f"Loading URL: {url}")
+            # Navigate to URL with retry logic
+            max_load_attempts = 2
+            page_loaded = False
             
-            # Wait for page to load
-            WebDriverWait(driver, 15).until(
-                EC.presence_of_element_located((By.TAG_NAME, 'body'))
-            )
+            for load_attempt in range(max_load_attempts):
+                try:
+                    driver.get(url)
+                    page_loaded = True
+                    break
+                except Exception as load_e:
+                    logger.warning(f"Load attempt {load_attempt + 1} failed: {str(load_e)}")
+                    if load_attempt < max_load_attempts - 1:
+                        time.sleep(15)
             
-            # Additional wait for dynamic content and page rendering
-            time.sleep(5)
+            if not page_loaded:
+                raise Exception("Failed to load page after multiple attempts")
+            
+            # Wait for page to load with extended timeout
+            try:
+                WebDriverWait(driver, 30).until(
+                    EC.presence_of_element_located((By.TAG_NAME, 'body'))
+                )
+                logger.info("Page body loaded successfully")
+            except TimeoutException:
+                logger.warning("Body load timeout - proceeding with capture")
+            
+            # Extended wait for dynamic content and page rendering
+            time.sleep(8)
             
             # Try to capture full page using Chrome's built-in capabilities
             try:
