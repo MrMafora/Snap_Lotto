@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Step 2: URL Content Capture Module for Daily Automation
-Captures authentic lottery content directly from SA National Lottery URLs
+Direct URL to PNG Screenshot Capture
+Captures PNG screenshots from provided SA National Lottery URLs
 """
 
 import os
 import time
 import logging
-import subprocess
 from datetime import datetime
+from playwright.sync_api import sync_playwright
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -25,36 +25,44 @@ LOTTERY_URLS = [
 ]
 
 def capture_url_screenshot(url, lottery_type):
-    """Capture authentic lottery content from URL using curl"""
+    """Capture PNG screenshot from lottery URL using Playwright"""
     try:
-        logger.info(f"Capturing content for {lottery_type} from {url}")
+        logger.info(f"Capturing PNG screenshot for {lottery_type} from {url}")
         
         # Generate filename
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         safe_lottery_type = lottery_type.lower().replace(' ', '_').replace('+', '_plus_')
-        filename = f"{timestamp}_{safe_lottery_type}_content.html"
+        filename = f"{timestamp}_{safe_lottery_type}_url.png"
         
         # Ensure screenshots directory exists
         screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
         os.makedirs(screenshot_dir, exist_ok=True)
         filepath = os.path.join(screenshot_dir, filename)
         
-        # Use curl to fetch authentic lottery content
-        cmd = [
-            'curl',
-            '-L',
-            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            '--connect-timeout', '30',
-            '--max-time', '60',
-            '-o', filepath,
-            url
-        ]
+        with sync_playwright() as p:
+            # Launch browser
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context(
+                viewport={'width': 1920, 'height': 1080},
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            )
+            page = context.new_page()
+            
+            # Navigate to URL
+            page.goto(url, wait_until='networkidle', timeout=60000)
+            
+            # Wait for content to load
+            page.wait_for_timeout(3000)
+            
+            # Take screenshot
+            page.screenshot(path=filepath, full_page=True)
+            
+            browser.close()
         
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        
-        if result.returncode == 0 and os.path.exists(filepath):
+        # Check if file was created
+        if os.path.exists(filepath):
             file_size = os.path.getsize(filepath)
-            logger.info(f"Authentic content captured: {filename} ({file_size} bytes)")
+            logger.info(f"PNG screenshot captured: {filename} ({file_size} bytes)")
             return {
                 'lottery_type': lottery_type,
                 'url': url,
@@ -63,18 +71,17 @@ def capture_url_screenshot(url, lottery_type):
                 'status': 'success'
             }
         else:
-            logger.error(f"Failed to capture content for {lottery_type}: {result.stderr}")
+            logger.error(f"Failed to create PNG screenshot for {lottery_type}")
             return {
                 'lottery_type': lottery_type,
                 'url': url,
                 'filepath': None,
                 'filename': None,
-                'status': 'failed',
-                'error': result.stderr
+                'status': 'failed'
             }
             
     except Exception as e:
-        logger.error(f"Error capturing content for {lottery_type}: {str(e)}")
+        logger.error(f"Error capturing PNG screenshot for {lottery_type}: {str(e)}")
         return {
             'lottery_type': lottery_type,
             'url': url,
@@ -84,9 +91,9 @@ def capture_url_screenshot(url, lottery_type):
             'error': str(e)
         }
 
-def run_screenshot_capture():
+def run_url_screenshot_capture():
     """Run PNG screenshot capture for all lottery URLs"""
-    logger.info("=== STEP 2: URL PNG SCREENSHOT CAPTURE STARTED ===")
+    logger.info("=== URL PNG SCREENSHOT CAPTURE STARTED ===")
     
     results = []
     successful_captures = 0
@@ -105,11 +112,11 @@ def run_screenshot_capture():
         if result and result['status'] == 'success':
             successful_captures += 1
     
-    logger.info("=== STEP 2: URL PNG SCREENSHOT CAPTURE COMPLETED ===")
+    logger.info("=== URL PNG SCREENSHOT CAPTURE COMPLETED ===")
     logger.info(f"Successfully captured {successful_captures}/{len(LOTTERY_URLS)} PNG screenshots")
     
     return results
 
 if __name__ == "__main__":
-    results = run_screenshot_capture()
+    results = run_url_screenshot_capture()
     print(f"Captured {len([r for r in results if r and r['status'] == 'success'])} PNG screenshots")
