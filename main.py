@@ -2852,10 +2852,11 @@ def capture_visual_screenshots():
         return redirect(url_for('index'))
         
     try:
-        from selenium_screenshot_capture import run_visual_capture
+        from step2_capture import capture_all_lottery_content
         
-        app.logger.info("Starting visual screenshot capture process")
-        success = run_visual_capture()
+        app.logger.info("Starting lottery content capture process")
+        results = capture_all_lottery_content()
+        success = len([r for r in results if r['status'] == 'success']) > 0
         
         if success:
             session['sync_status'] = {
