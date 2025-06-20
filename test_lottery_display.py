@@ -23,12 +23,20 @@ def display_lottery_result(lottery_type, draw_number):
         bonus_numbers = result.get_bonus_numbers_list()
         bonus_number = bonus_numbers[0] if bonus_numbers else None
         
-        # Parse divisions
+        # Parse divisions - debug the exact content
         divisions = {}
+        print(f"DEBUG: divisions field type: {type(result.divisions)}")
+        print(f"DEBUG: divisions field content: {repr(result.divisions)}")
+        
         if result.divisions:
             try:
-                divisions = json.loads(result.divisions)
-            except:
+                if isinstance(result.divisions, str):
+                    divisions = json.loads(result.divisions)
+                else:
+                    divisions = result.divisions
+                print(f"DEBUG: parsed divisions: {divisions}")
+            except Exception as e:
+                print(f"Error parsing divisions: {e}")
                 divisions = {}
         
         # Display header
@@ -50,8 +58,8 @@ def display_lottery_result(lottery_type, draw_number):
         
         # Display prize divisions
         print("Prize Divisions:")
-        for div_key in ['div1', 'div2', 'div3', 'div4', 'div5', 'div6', 'div7', 'div8', 'div9']:
-            if div_key in divisions:
+        if divisions:
+            for div_key in sorted(divisions.keys()):
                 div = divisions[div_key]
                 div_num = div_key[3:]  # Extract number from 'div1', 'div2', etc.
                 winners = div.get('winners', '0')
@@ -60,6 +68,8 @@ def display_lottery_result(lottery_type, draw_number):
                 
                 winner_text = f"{winners} winner{'s' if int(winners) != 1 else ''}" if winners != '0' else '0 winners'
                 print(f"Div {div_num} ({description}): {winner_text}, {prize}")
+        else:
+            print("No prize division data available")
         
         # Display more info
         print("More Info:")
@@ -76,7 +86,10 @@ def display_lottery_result(lottery_type, draw_number):
         if result.draw_machine:
             print(f"Draw Machine: {result.draw_machine}")
         if result.next_draw_date:
-            print(f"Next Draw Date: {result.next_draw_date.strftime('%Y-%m-%d')}")
+            if hasattr(result.next_draw_date, 'strftime'):
+                print(f"Next Draw Date: {result.next_draw_date.strftime('%Y-%m-%d')}")
+            else:
+                print(f"Next Draw Date: {result.next_draw_date}")
 
 if __name__ == "__main__":
     # Test LOTTO PLUS 1 format
