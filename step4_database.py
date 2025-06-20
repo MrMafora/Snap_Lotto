@@ -68,13 +68,21 @@ def save_lottery_result(session, data):
             logger.info(f"Result already exists: {lottery_type} Draw {data['draw_number']}")
             return False
             
-        # Create new lottery result
+        # Create new lottery result with expanded data
         result = LotteryResult(
             lottery_type=lottery_type,
             draw_number=data['draw_number'],
             draw_date=draw_date,
             main_numbers=json.dumps(data['main_numbers']),
-            bonus_numbers=json.dumps(data.get('bonus_numbers', []))
+            bonus_numbers=json.dumps(data.get('bonus_numbers', [])),
+            # Section 2 - Prize divisions
+            prize_divisions=data.get('prize_divisions'),
+            total_prize_pool=data.get('total_prize_pool'),
+            rollover_amount=data.get('rollover_amount'),
+            # Section 3 - Additional information
+            next_draw_date=data.get('next_draw_date'),
+            estimated_jackpot=data.get('estimated_jackpot'),
+            additional_info=data.get('additional_info')
         )
         
         session.add(result)

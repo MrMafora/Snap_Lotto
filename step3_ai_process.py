@@ -67,14 +67,23 @@ def extract_lottery_data_from_image(model, image_path):
             image_data = f.read()
             
         prompt = """
-        Analyze this South African National Lottery screenshot and extract the lottery results.
+        Analyze this South African National Lottery screenshot and extract ALL lottery information including:
 
-        Look for:
+        SECTION 1 - Basic Results:
         - Lottery type: Lotto, Lotto Plus 1, Lotto Plus 2, Powerball, Powerball Plus, or Daily Lotto
         - Draw date (in YYYY-MM-DD format)
         - Draw number 
         - Main winning numbers (6 numbers for Lotto types, 5 for Powerball types, 5 for Daily Lotto)
         - Bonus ball/Powerball number (if applicable)
+
+        SECTION 2 - Prize Divisions (from "Divisions, Winner and Winnings" box):
+        - All prize divisions with number of winners and prize amounts
+        - Total prize pool and rollover information
+
+        SECTION 3 - Additional Information (from "more information" box):
+        - Next draw date
+        - Estimated jackpot for next draw
+        - Any special promotions or notes
 
         IMPORTANT: Return ONLY valid JSON in this exact format with no additional text:
 
@@ -83,11 +92,21 @@ def extract_lottery_data_from_image(model, image_path):
             "draw_date": "2025-06-20", 
             "draw_number": "2456",
             "main_numbers": [1, 16, 36, 40, 42, 50],
-            "bonus_numbers": [7]
+            "bonus_numbers": [7],
+            "prize_divisions": [
+                {"division": "Division 1", "winners": 0, "prize_amount": "R0.00"},
+                {"division": "Division 2", "winners": 5, "prize_amount": "R15,234.50"}
+            ],
+            "total_prize_pool": "R25,000,000.00",
+            "rollover_amount": "R15,000,000.00",
+            "next_draw_date": "2025-06-23",
+            "estimated_jackpot": "R40,000,000.00",
+            "additional_info": "Special promotion details or other notes"
         }
 
         For Powerball types, the bonus number goes in bonus_numbers array.
         For Daily Lotto, leave bonus_numbers as empty array [].
+        If any section has no data, use empty arrays or null values.
         If no valid lottery data is found, return: {"error": "No lottery data found"}
         """
         
