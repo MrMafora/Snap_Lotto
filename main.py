@@ -281,9 +281,9 @@ def home():
         # Direct SQL query to get latest result for each lottery type based on draw_date and draw_number
         query = text("""
             WITH ranked_results AS (
-              SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers,
+              SELECT lottery_type, draw_number, draw_date, numbers as main_numbers, bonus_numbers,
                 ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY draw_date DESC, draw_number DESC) as rn
-              FROM lottery_results 
+              FROM lottery_result 
               WHERE lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'PowerBall', 'POWERBALL PLUS', 'DAILY LOTTO')
             )
             SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers
@@ -292,6 +292,7 @@ def home():
         """)
         
         raw_results = db.session.execute(query).fetchall()
+        app.logger.info(f"Raw database results: {[(r.lottery_type, r.draw_number, r.draw_date) for r in raw_results]}")
         results = []
         
         # Define the desired display order
@@ -362,6 +363,7 @@ def home():
                     
                     result = LotteryDisplay(row.lottery_type, row.draw_number, 
                                           row.draw_date, numbers, bonus_numbers)
+                    app.logger.info(f"Created display object: {row.lottery_type} - Draw {row.draw_number}")
                     results.append(result)
         
         app.logger.info(f"HOMEPAGE: Loaded {len(results)} results from database")
