@@ -686,47 +686,58 @@ async function runCompleteAutomation() {
     button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Running...';
     progressDiv.classList.remove('d-none');
     
-    // Include selected group in automation steps
+    // Simulate step-by-step progress for better UX
     const steps = [
-        { name: 'Clearing old screenshots', endpoint: '/admin/run-automation-step', data: {step: 'cleanup'}, progress: 25 },
-        { name: 'Capturing fresh screenshots', endpoint: '/admin/run-automation-step', data: {step: 'capture', groups: selectedGroup || ''}, progress: 50 },
-        { name: 'Processing with AI', endpoint: '/admin/run-automation-step', data: {step: 'ai_process'}, progress: 75 },
-        { name: 'Updating database', endpoint: '/admin/run-automation-step', data: {step: 'database_update'}, progress: 100 }
+        { name: 'Clearing old screenshots', progress: 25 },
+        { name: 'Capturing fresh screenshots', progress: 50 },
+        { name: 'Processing with AI', progress: 75 },
+        { name: 'Updating database', progress: 100 }
     ];
     
     try {
+        // Start the complete workflow
+        currentStep.textContent = 'Starting complete automation workflow...';
+        stepDetails.textContent = 'Initializing...';
+        progressBar.style.width = '10%';
+        
+        const response = await fetch('/admin/run-complete-workflow', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Workflow failed');
+        }
+        
+        const result = await response.json();
+        
+        // Simulate progress updates for better UX
         for (let i = 0; i < steps.length; i++) {
             const step = steps[i];
             currentStep.textContent = `Step ${i + 1}/4: ${step.name}`;
             stepDetails.textContent = 'Processing...';
             progressBar.style.width = `${step.progress}%`;
-            
-            const formData = new FormData();
-            formData.append('step', step.data.step);
-            
-            const response = await fetch(step.endpoint, {
-                method: 'POST',
-                body: formData
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Step failed: ${step.name}`);
-            }
-            
+            await new Promise(resolve => setTimeout(resolve, 800));
             stepDetails.textContent = 'Completed successfully';
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause between steps
         }
         
-        // Success
-        currentStep.textContent = 'Automation completed successfully!';
-        stepDetails.textContent = 'All lottery data has been updated';
-        progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
-        progressBar.classList.add('bg-success');
-        
-        // Reload page after 3 seconds to show results
-        setTimeout(() => {
-            window.location.reload();
-        }, 3000);
+        if (result.success) {
+            // Success
+            currentStep.textContent = 'Automation completed successfully!';
+            stepDetails.textContent = 'All lottery data has been updated. Redirecting to homepage...';
+            progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+            progressBar.classList.add('bg-success');
+            
+            // Redirect to homepage to show updated results
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        } else {
+            throw new Error(result.message || 'Workflow completed with errors');
+        }
         
     } catch (error) {
         // Error handling

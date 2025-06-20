@@ -4360,6 +4360,43 @@ def run_daily_automation_manual():
     
     return redirect(url_for('daily_automation_dashboard'))
 
+@app.route('/admin/run-complete-workflow', methods=['POST'])
+@login_required
+def run_complete_workflow():
+    """Run the complete 4-step automation workflow and return JSON response"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from daily_automation import run_complete_automation
+        
+        app.logger.info("Complete automation workflow triggered by admin")
+        results = run_complete_automation()
+        
+        if results['overall_success']:
+            # Clear cache to ensure fresh data on homepage
+            from cache_manager import clear_results_cache
+            clear_results_cache()
+            
+            return jsonify({
+                'success': True, 
+                'message': 'Complete automation workflow finished successfully',
+                'results': results
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'message': 'Automation workflow completed with errors',
+                'results': results
+            })
+            
+    except Exception as e:
+        app.logger.error(f"Error running complete workflow: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'error': str(e)
+        }), 500
+
 @app.route('/admin/scheduler-control/<action>', methods=['POST'])
 @login_required
 def scheduler_control(action):
