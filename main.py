@@ -4408,23 +4408,3 @@ if __name__ == "__main__":
     # Start Flask app
     print(f"Starting Flask application on 0.0.0.0:{port}...")
     app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)
-
-# Password reset route for admin testing
-@app.route('/reset-admin')
-def reset_admin():
-    """Reset admin password for testing - accessible without login"""
-    try:
-        admin_user = User.query.filter_by(username='admin').first()
-        if admin_user:
-            admin_user.set_password('admin123')
-            db.session.commit()
-            return "Admin password reset to 'admin123'. <a href='/login'>Login here</a>"
-        else:
-            new_admin = User(username='admin')
-            new_admin.set_password('admin123')
-            new_admin.is_admin = True
-            db.session.add(new_admin)
-            db.session.commit()
-            return "Admin user created with password 'admin123'. <a href='/login'>Login here</a>"
-    except Exception as e:
-        return f"Error: {str(e)}"
