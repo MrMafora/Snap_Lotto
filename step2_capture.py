@@ -84,8 +84,20 @@ def capture_lottery_screenshot(url, lottery_type, page):
     try:
         logger.info(f"Capturing {lottery_type} from {url}")
         
-        page.goto(url, wait_until='networkidle')
-        page.wait_for_timeout(3000)  # Wait for page to stabilize
+        # Navigate with more robust timeout strategy
+        try:
+            page.goto(url, wait_until='domcontentloaded', timeout=10000)
+            logger.info(f"Successfully navigated to {lottery_type}")
+        except Exception as nav_error:
+            logger.warning(f"Navigation issue for {lottery_type}: {str(nav_error)}")
+            try:
+                page.goto(url, wait_until='networkidle', timeout=15000)
+            except Exception as final_error:
+                logger.error(f"Final navigation failed for {lottery_type}: {str(final_error)}")
+                raise
+        
+        # Wait for page content to stabilize
+        page.wait_for_timeout(2000)
         
         # Generate filename
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
