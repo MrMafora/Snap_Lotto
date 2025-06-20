@@ -288,49 +288,58 @@ def home():
         raw_results = db.session.execute(query).fetchall()
         results = []
         
-        # Process all lottery results directly from raw SQL - include both formats
-        lottery_types = ['Lotto', 'LOTTO', 'Lotto Plus 1', 'LOTTO PLUS 1', 'Lotto Plus 2', 'LOTTO PLUS 2', 
-                        'Powerball', 'PowerBall', 'Powerball Plus', 'PowerBall Plus', 'Daily Lotto']
+        # Define the desired display order
+        lottery_order = [
+            'LOTTO',           # Lottery  
+            'LOTTO PLUS 1',    # Lottery Plus 1
+            'LOTTO PLUS 2',    # Lottery Plus 2
+            'PowerBall',       # Powerball
+            'POWERBALL PLUS',  # Powerball Plus
+            'DAILY LOTTO'      # Daily Lottery
+        ]
         
-        # Track unique lottery types to avoid duplicates
-        seen_types = set()
-        
+        # Create lookup dictionary for all lottery results
+        lottery_lookup = {}
         for row in raw_results:
-            # Skip if we already have this lottery type
-            if row.lottery_type in seen_types:
-                continue
+            if row.lottery_type not in lottery_lookup:
+                lottery_lookup[row.lottery_type] = row
+        
+        # Process results in the specified order
+        for lottery_type in lottery_order:
+            if lottery_type in lottery_lookup:
+                row = lottery_lookup[lottery_type]
                 
-            # Parse main_numbers field (JSON format)
-            numbers = []
-            bonus_numbers = []
-            
-            if row.main_numbers:
-                main_nums_str = str(row.main_numbers)
-                app.logger.info(f"Processing {row.lottery_type} main_numbers: {main_nums_str}")
-                try:
-                    # Parse JSON string format like "[15,22,25,31,36]"
-                    numbers = json.loads(main_nums_str)
-                    app.logger.info(f"Parsed {row.lottery_type} numbers: {numbers}")
-                except (json.JSONDecodeError, ValueError):
-                    # Fallback for PostgreSQL array format like "{15,22,25,31,36}"
-                    if main_nums_str.startswith('{') and main_nums_str.endswith('}'):
-                        nums_only = main_nums_str[1:-1]  # Remove { }
-                        if nums_only.strip():
-                            numbers = [int(n.strip()) for n in nums_only.split(',') if n.strip().isdigit()]
+                # Parse main_numbers field (JSON format)
+                numbers = []
+                bonus_numbers = []
                 
-            # Parse bonus_numbers field (JSON format)
-            if row.bonus_numbers:
-                bonus_str = str(row.bonus_numbers)
-                try:
-                    bonus_numbers = json.loads(bonus_str)
-                except (json.JSONDecodeError, ValueError):
-                    # Fallback for PostgreSQL array format
-                    if bonus_str.startswith('{') and bonus_str.endswith('}'):
-                        bonus_only = bonus_str[1:-1]  # Remove { }
-                        if bonus_only.strip():
-                            bonus_numbers = [int(n.strip()) for n in bonus_only.split(',') if n.strip().isdigit()]
-                
-            if numbers:
+                if row.main_numbers:
+                    main_nums_str = str(row.main_numbers)
+                    app.logger.info(f"Processing {row.lottery_type} main_numbers: {main_nums_str}")
+                    try:
+                        # Parse JSON string format like "[15,22,25,31,36]"
+                        numbers = json.loads(main_nums_str)
+                        app.logger.info(f"Parsed {row.lottery_type} numbers: {numbers}")
+                    except (json.JSONDecodeError, ValueError):
+                        # Fallback for PostgreSQL array format like "{15,22,25,31,36}"
+                        if main_nums_str.startswith('{') and main_nums_str.endswith('}'):
+                            nums_only = main_nums_str[1:-1]  # Remove { }
+                            if nums_only.strip():
+                                numbers = [int(n.strip()) for n in nums_only.split(',') if n.strip().isdigit()]
+                    
+                # Parse bonus_numbers field (JSON format)
+                if row.bonus_numbers:
+                    bonus_str = str(row.bonus_numbers)
+                    try:
+                        bonus_numbers = json.loads(bonus_str)
+                    except (json.JSONDecodeError, ValueError):
+                        # Fallback for PostgreSQL array format
+                        if bonus_str.startswith('{') and bonus_str.endswith('}'):
+                            bonus_only = bonus_str[1:-1]  # Remove { }
+                            if bonus_only.strip():
+                                bonus_numbers = [int(n.strip()) for n in bonus_only.split(',') if n.strip().isdigit()]
+                    
+                if numbers:
                     class LotteryDisplay:
                         def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
                             self.lottery_type = lottery_type
@@ -348,7 +357,6 @@ def home():
                     result = LotteryDisplay(row.lottery_type, row.draw_number, 
                                           row.draw_date, numbers, bonus_numbers)
                     results.append(result)
-                    seen_types.add(row.lottery_type)
         
         app.logger.info(f"HOMEPAGE: Loaded {len(results)} results from database")
         
