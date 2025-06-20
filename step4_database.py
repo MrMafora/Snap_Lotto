@@ -69,21 +69,30 @@ def save_lottery_result(session, data):
             return False
             
         # Create new lottery result with expanded data
-        result = LotteryResult(
-            lottery_type=lottery_type,
-            draw_number=data['draw_number'],
-            draw_date=draw_date,
-            main_numbers=json.dumps(data['main_numbers']),
-            bonus_numbers=json.dumps(data.get('bonus_numbers', [])),
-            # Section 2 - Prize divisions
-            prize_divisions=data.get('prize_divisions'),
-            total_prize_pool=data.get('total_prize_pool'),
-            rollover_amount=data.get('rollover_amount'),
-            # Section 3 - Additional information
-            next_draw_date=data.get('next_draw_date'),
-            estimated_jackpot=data.get('estimated_jackpot'),
-            additional_info=data.get('additional_info')
-        )
+        result = LotteryResult()
+        result.lottery_type = lottery_type
+        result.draw_number = data['draw_number']
+        result.draw_date = draw_date
+        result.main_numbers = json.dumps(data['main_numbers'])
+        result.bonus_numbers = json.dumps(data.get('bonus_numbers', []))
+        
+        # Section 2 - Prize divisions
+        result.prize_divisions = data.get('prize_divisions')
+        result.total_prize_pool = data.get('total_prize_pool')
+        result.rollover_amount = data.get('rollover_amount')
+        
+        # Section 3 - More Info fields (different for each lottery type)
+        result.next_draw_date = data.get('next_draw_date')
+        result.estimated_jackpot = data.get('estimated_jackpot')
+        result.rollover_number = data.get('rollover_number')
+        result.total_pool_size = data.get('total_pool_size')
+        result.total_sales = data.get('total_sales')
+        result.draw_machine = data.get('draw_machine')
+        result.additional_info = data.get('additional_info')
+        
+        # Legacy fields for compatibility
+        result.next_jackpot = data.get('next_jackpot')
+        result.divisions = data.get('divisions')
         
         session.add(result)
         session.commit()

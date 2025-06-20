@@ -243,12 +243,16 @@ class LotteryResult(db.Model):
             'winning_numbers': self.get_numbers_list(),  # Updated field name for API
             'bonus_numbers': self.get_bonus_numbers_list(),
             'divisions': self.get_divisions(),
-            'source_url': self.source_url,
-            'ocr_info': {
-                'provider': self.ocr_provider,
-                'model': self.ocr_model,
-                'timestamp': self.ocr_timestamp.isoformat() if self.ocr_timestamp else None
-            }
+            'prize_divisions': json.loads(self.prize_divisions) if self.prize_divisions else None,
+            'total_prize_pool': self.total_prize_pool,
+            'rollover_amount': self.rollover_amount,
+            'rollover_number': self.rollover_number,
+            'total_pool_size': self.total_pool_size,
+            'total_sales': self.total_sales,
+            'draw_machine': self.draw_machine,
+            'next_draw_date': self.next_draw_date,
+            'estimated_jackpot': self.estimated_jackpot,
+            'additional_info': self.additional_info
         }
 
 class ScheduleConfig(db.Model):
