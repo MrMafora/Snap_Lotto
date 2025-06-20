@@ -1,5 +1,35 @@
 /* Custom styles for Snap Lotto - SA National Lottery Theme */
 
+/* Navigation fixes for single-row layout */
+@media (min-width: 992px) {
+    .navbar-nav .nav-link {
+        white-space: nowrap;
+        font-size: 0.9rem;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+    
+    .navbar-brand {
+        flex-shrink: 0;
+        margin-right: 1rem;
+    }
+    
+    #navbarNav {
+        flex-wrap: nowrap !important;
+        overflow: hidden;
+    }
+    
+    #navbarNav ul.navbar-nav {
+        flex-wrap: nowrap !important;
+    }
+    
+    /* Ensure admin dropdown stays on right */
+    .navbar-nav.flex-shrink-0 {
+        min-width: auto;
+        flex-shrink: 0 !important;
+    }
+}
+
 /* Removed mobile navigation overrides - using simplified CSS */
 
 /* Draw details page width constraint - override Bootstrap container-fluid */
