@@ -346,31 +346,37 @@ def home():
                             if bonus_only.strip():
                                 bonus_numbers = [int(n.strip()) for n in bonus_only.split(',') if n.strip().isdigit()]
                     
-                if numbers:
-                    class LotteryDisplay:
-                        def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
-                            self.lottery_type = lottery_type
-                            self.draw_number = str(draw_number)
-                            self.draw_date = draw_date
-                            self.numbers = numbers
-                            self.bonus_numbers = bonus_numbers
-                        
-                        def get_numbers_list(self):
-                            return self.numbers
-                        
-                        def get_bonus_numbers_list(self):
-                            return self.bonus_numbers
+                app.logger.info(f"Numbers parsed for {lottery_type}: {numbers}")
+                
+                # Always create display object - even if numbers is empty, we still need draw info
+                class LotteryDisplay:
+                    def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
+                        self.lottery_type = lottery_type
+                        self.draw_number = str(draw_number)
+                        self.draw_date = draw_date
+                        self.numbers = numbers if numbers else []
+                        self.bonus_numbers = bonus_numbers if bonus_numbers else []
                     
-                    result = LotteryDisplay(row.lottery_type, row.draw_number, 
-                                          row.draw_date, numbers, bonus_numbers)
-                    app.logger.info(f"Created display object: {row.lottery_type} - Draw {row.draw_number}")
-                    results.append(result)
+                    def get_numbers_list(self):
+                        return self.numbers
+                    
+                    def get_bonus_numbers_list(self):
+                        return self.bonus_numbers
+                
+                result = LotteryDisplay(row.lottery_type, row.draw_number, 
+                                      row.draw_date, numbers, bonus_numbers)
+                app.logger.info(f"Created display object: {row.lottery_type} - Draw {row.draw_number}")
+                results.append(result)
         
         app.logger.info(f"HOMEPAGE: Loaded {len(results)} results from database")
         
         # Calculate frequency analysis for homepage charts
         frequency_data = calculate_frequency_analysis(results)
         frequent_numbers = frequency_data.get('most_frequent', [])
+        
+        # Debug: Log what's being passed to template
+        for result in results:
+            app.logger.info(f"Template data: {result.lottery_type} - Draw {result.draw_number}")
         
         return render_template('index.html', results=results, frequent_numbers=frequent_numbers)
         
