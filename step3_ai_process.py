@@ -77,7 +77,10 @@ def extract_lottery_data_from_image(model, image_path):
         - Bonus ball/Powerball number (if applicable)
 
         SECTION 2 - Prize Divisions (from "Divisions, Winner and Winnings" box):
-        - All prize divisions with number of winners and prize amounts
+        - Extract ALL prize divisions with exact winner counts and prize amounts
+        - Lotto, Lotto Plus 1, Lotto Plus 2: Extract all 8 divisions (Division 1-8)
+        - Powerball, Powerball Plus: Extract all 9 divisions (Division 1-9) 
+        - Daily Lotto: Extract all 4 divisions (Division 1-4)
         - Total prize pool and rollover information
 
         SECTION 3 - Additional Information (from "More Info" section):
@@ -98,6 +101,7 @@ def extract_lottery_data_from_image(model, image_path):
 
         IMPORTANT: Return ONLY valid JSON in this exact format with no additional text:
 
+        For Lotto/Lotto Plus (8 divisions):
         {
             "lottery_type": "Lotto",
             "draw_date": "2025-06-20", 
@@ -106,7 +110,13 @@ def extract_lottery_data_from_image(model, image_path):
             "bonus_numbers": [7],
             "prize_divisions": [
                 {"division": "Division 1", "winners": 0, "prize_amount": "R0.00"},
-                {"division": "Division 2", "winners": 5, "prize_amount": "R15,234.50"}
+                {"division": "Division 2", "winners": 5, "prize_amount": "R15,234.50"},
+                {"division": "Division 3", "winners": 45, "prize_amount": "R5,500.00"},
+                {"division": "Division 4", "winners": 120, "prize_amount": "R1,800.00"},
+                {"division": "Division 5", "winners": 2500, "prize_amount": "R120.00"},
+                {"division": "Division 6", "winners": 3800, "prize_amount": "R75.00"},
+                {"division": "Division 7", "winners": 48000, "prize_amount": "R45.00"},
+                {"division": "Division 8", "winners": 38500, "prize_amount": "R25.00"}
             ],
             "total_prize_pool": "R25,000,000.00",
             "rollover_amount": "R15,000,000.00",
@@ -118,6 +128,41 @@ def extract_lottery_data_from_image(model, image_path):
             "next_draw_date": "2025-06-23",
             "estimated_jackpot": "R40,000,000.00",
             "additional_info": "Special promotion details or other notes"
+        }
+
+        For Powerball/Powerball Plus (9 divisions):
+        {
+            "lottery_type": "Powerball",
+            "draw_date": "2025-06-20",
+            "draw_number": "1234",
+            "main_numbers": [5, 15, 25, 35, 45],
+            "bonus_numbers": [12],
+            "prize_divisions": [
+                {"division": "Division 1", "winners": 0, "prize_amount": "R0.00"},
+                {"division": "Division 2", "winners": 2, "prize_amount": "R500,000.00"},
+                {"division": "Division 3", "winners": 8, "prize_amount": "R25,000.00"},
+                {"division": "Division 4", "winners": 45, "prize_amount": "R5,000.00"},
+                {"division": "Division 5", "winners": 180, "prize_amount": "R500.00"},
+                {"division": "Division 6", "winners": 850, "prize_amount": "R150.00"},
+                {"division": "Division 7", "winners": 2400, "prize_amount": "R75.00"},
+                {"division": "Division 8", "winners": 12000, "prize_amount": "R25.00"},
+                {"division": "Division 9", "winners": 25000, "prize_amount": "R15.00"}
+            ]
+        }
+
+        For Daily Lotto (4 divisions):
+        {
+            "lottery_type": "Daily Lotto",
+            "draw_date": "2025-06-20",
+            "draw_number": "4567",
+            "main_numbers": [8, 15, 22, 29, 36],
+            "bonus_numbers": [],
+            "prize_divisions": [
+                {"division": "Division 1", "winners": 0, "prize_amount": "R0.00"},
+                {"division": "Division 2", "winners": 12, "prize_amount": "R2,500.00"},
+                {"division": "Division 3", "winners": 180, "prize_amount": "R150.00"},
+                {"division": "Division 4", "winners": 2800, "prize_amount": "R25.00"}
+            ]
         }
 
         For Daily Lotto, omit rollover_amount, rollover_number, next_jackpot fields.
