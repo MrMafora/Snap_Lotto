@@ -278,7 +278,11 @@ def home():
     try:
         from sqlalchemy import text
         
-        # Direct SQL query to get latest result for each lottery type based on draw_date and draw_number
+        # Direct SQL query to get latest result for each lottery type
+        # Note: Lottery games that draw together share the same draw_date and draw_number:
+        # - LOTTO, LOTTO PLUS 1, LOTTO PLUS 2 all draw on the same day (same draw_number)
+        # - PowerBall and POWERBALL PLUS draw on the same day (same draw_number)
+        # - DAILY LOTTO draws independently
         query = text("""
             WITH ranked_results AS (
               SELECT lottery_type, draw_number, draw_date, numbers as main_numbers, bonus_numbers,
@@ -1224,6 +1228,10 @@ def results():
             from sqlalchemy import text
             
             # Get latest result for each lottery type - same as homepage
+            # Note: Lottery games that draw together share the same draw_date and draw_number:
+            # - LOTTO, LOTTO PLUS 1, LOTTO PLUS 2 all draw on the same day (same draw_number)
+            # - PowerBall and POWERBALL PLUS draw on the same day (same draw_number) 
+            # - DAILY LOTTO draws independently
             query = text("""
                 WITH ranked_results AS (
                   SELECT lottery_type, draw_number, draw_date, numbers as main_numbers, bonus_numbers,
