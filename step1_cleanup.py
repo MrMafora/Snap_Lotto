@@ -108,13 +108,13 @@ def cleanup_temp_files():
         return False
 
 def run_cleanup():
-    """Run the complete cleanup process"""
+    """Run the complete cleanup process - removes ALL screenshots"""
     logger.info("=== STEP 1: CLEANUP STARTED ===")
     
     success = True
     
-    # Clean old screenshots
-    if not cleanup_old_screenshots():
+    # Clean ALL screenshots (no age preservation)
+    if not cleanup_all_screenshots():
         success = False
         
     # Clean temp files
