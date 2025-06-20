@@ -129,7 +129,8 @@ def process_all_screenshots():
     processed_count = 0
     extracted_data = []
     
-    for screenshot_path in screenshots[:6]:  # Process up to 6 most recent
+    # Process all screenshots to ensure we get all lottery types
+    for screenshot_path in screenshots:
         logger.info(f"Processing: {os.path.basename(screenshot_path)}")
         
         result = extract_lottery_data_from_image(model, screenshot_path)
