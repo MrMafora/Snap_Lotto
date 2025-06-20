@@ -64,7 +64,7 @@ def extract_lottery_data_with_gemini(client, image_path, lottery_type):
         CRITICAL: Extract ONLY the exact numbers visible in the image. Do not modify or generate any numbers.
         """
         
-        # Generate content with Gemini 2.5 Pro
+        # Generate content with Gemini 2.5 Pro with timeout handling
         response = client.models.generate_content(
             model="gemini-2.5-pro",
             contents=[
@@ -74,6 +74,11 @@ def extract_lottery_data_with_gemini(client, image_path, lottery_type):
                 ),
                 prompt
             ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.1,
+                max_output_tokens=1000,
+            ),
         )
         
         if response and response.text:
