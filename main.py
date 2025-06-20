@@ -322,11 +322,9 @@ def home():
                 
                 if row.main_numbers:
                     main_nums_str = str(row.main_numbers)
-                    app.logger.info(f"Processing {row.lottery_type} main_numbers: {main_nums_str}")
                     try:
                         # Parse JSON string format like "[15,22,25,31,36]"
                         numbers = json.loads(main_nums_str)
-                        app.logger.info(f"Parsed {row.lottery_type} numbers: {numbers}")
                     except (json.JSONDecodeError, ValueError):
                         # Fallback for PostgreSQL array format like "{15,22,25,31,36}"
                         if main_nums_str.startswith('{') and main_nums_str.endswith('}'):
@@ -346,8 +344,6 @@ def home():
                             if bonus_only.strip():
                                 bonus_numbers = [int(n.strip()) for n in bonus_only.split(',') if n.strip().isdigit()]
                     
-                app.logger.info(f"Numbers parsed for {lottery_type}: {numbers}")
-                
                 # Always create display object - even if numbers is empty, we still need draw info
                 class LotteryDisplay:
                     def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
@@ -365,7 +361,6 @@ def home():
                 
                 result = LotteryDisplay(row.lottery_type, row.draw_number, 
                                       row.draw_date, numbers, bonus_numbers)
-                app.logger.info(f"Created display object: {row.lottery_type} - Draw {row.draw_number}")
                 results.append(result)
         
         app.logger.info(f"HOMEPAGE: Loaded {len(results)} results from database")
@@ -373,10 +368,6 @@ def home():
         # Calculate frequency analysis for homepage charts
         frequency_data = calculate_frequency_analysis(results)
         frequent_numbers = frequency_data.get('most_frequent', [])
-        
-        # Debug: Log what's being passed to template
-        for result in results:
-            app.logger.info(f"Template data: {result.lottery_type} - Draw {result.draw_number}")
         
         return render_template('index.html', results=results, frequent_numbers=frequent_numbers)
         
