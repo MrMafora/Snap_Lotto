@@ -75,22 +75,17 @@ def cached_query(ttl=300):
         return wrapper
     return decorator
 
+@cached_query(ttl=180)  # Cache for 3 minutes
 def get_optimized_latest_results(limit=10):
-    """Optimized query for latest lottery results - loads fresh data from database"""
+    """Optimized query for latest lottery results with proper caching"""
     try:
+        # Return actual LotteryResult objects for template compatibility
         results = LotteryResult.query.order_by(
-            LotteryResult.draw_date.desc()
+            LotteryResult.draw_date.desc(),
+            LotteryResult.id.desc()
         ).limit(limit).all()
         
-        return [{
-            'id': r.id,
-            'lottery_type': r.lottery_type,
-            'draw_number': r.draw_number,
-            'draw_date': r.draw_date.strftime('%Y-%m-%d') if r.draw_date else None,
-            'numbers': json.loads(r.numbers) if isinstance(r.numbers, str) else r.numbers,
-            'bonus_numbers': json.loads(r.bonus_numbers) if isinstance(r.bonus_numbers, str) else r.bonus_numbers,
-            'divisions': json.loads(r.divisions) if isinstance(r.divisions, str) else r.divisions
-        } for r in results]
+        return results
         
     except Exception as e:
         logger.error(f"Error getting latest results: {e}")
@@ -98,19 +93,24 @@ def get_optimized_latest_results(limit=10):
 
 @cached_query(ttl=600)
 def get_optimized_lottery_stats():
-    """Get lottery statistics with caching"""
+    """Get lottery statistics with caching and optimized queries"""
     try:
-        total_results = LotteryResult.query.count()
+        # Use more efficient queries
+        total_results = db.session.query(db.func.count(LotteryResult.id)).scalar()
         latest_result = LotteryResult.query.order_by(LotteryResult.draw_date.desc()).first()
         
+        # Count distinct lottery types efficiently
+        lottery_types_count = db.session.query(db.func.count(db.distinct(LotteryResult.lottery_type))).scalar()
+        
         return {
-            'total_draws': total_results,
-            'latest_draw_date': latest_result.draw_date.strftime('%Y-%m-%d') if latest_result and latest_result.draw_date else None,
-            'lottery_types': len(set([r.lottery_type for r in LotteryResult.query.all()]))
+            'total_results': total_results,
+            'latest_draw': latest_result.draw_number if latest_result else 'None',
+            'latest_date': latest_result.draw_date.strftime('%Y-%m-%d') if latest_result and latest_result.draw_date else 'None',
+            'lottery_types': lottery_types_count
         }
     except Exception as e:
         logger.error(f"Error getting lottery stats: {e}")
-        return {}
+        return {'total_results': 0, 'latest_draw': 'Error', 'latest_date': 'Error'}
 
 def clear_results_cache():
     """Clear results-related cache when new data is added"""

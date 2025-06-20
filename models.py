@@ -99,9 +99,13 @@ class LotteryResult(db.Model):
     total_pool_size = db.Column(db.Numeric(15,2), nullable=True, comment="Total prize pool")
     total_sales = db.Column(db.Numeric(15,2), nullable=True, comment="Total ticket sales")
     
-    # Unique constraint to prevent duplicate entries
+    # Indexes for performance optimization
     __table_args__ = (
         db.UniqueConstraint('lottery_type', 'draw_number', name='uq_lottery_draw'),
+        db.Index('idx_draw_date', 'draw_date'),
+        db.Index('idx_lottery_type', 'lottery_type'),
+        db.Index('idx_draw_date_desc', 'draw_date', postgresql_using='btree', postgresql_ops={'draw_date': 'DESC'}),
+        db.Index('idx_created_at', 'created_at'),
     )
     
     def __repr__(self):

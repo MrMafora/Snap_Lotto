@@ -84,11 +84,12 @@ def init_db():
 # Routes
 @app.route('/')
 def home():
+    from cache_manager import get_optimized_latest_results
     try:
-        # Get recent lottery results
-        results = LotteryResult.query.order_by(LotteryResult.id.desc()).limit(6).all()
+        # Use optimized cached query for better performance
+        results = get_optimized_latest_results(limit=6)
         
-        # Calculate frequency data
+        # Calculate frequency data efficiently
         number_counts = {}
         for result in results:
             numbers = result.get_numbers_list()
@@ -118,15 +119,9 @@ def admin():
         flash('Access denied', 'danger')
         return redirect(url_for('home'))
     
+    from cache_manager import get_optimized_lottery_stats
     try:
-        total_results = LotteryResult.query.count()
-        latest_result = LotteryResult.query.order_by(LotteryResult.id.desc()).first()
-        
-        data_stats = {
-            'total_results': total_results,
-            'latest_draw': latest_result.draw_number if latest_result else 'None',
-            'latest_date': latest_result.draw_date.strftime('%Y-%m-%d') if latest_result else 'None'
-        }
+        data_stats = get_optimized_lottery_stats()
     except Exception as e:
         logger.error(f"Admin stats error: {e}")
         data_stats = {'total_results': 0, 'latest_draw': 'Error', 'latest_date': 'Error'}
