@@ -67,30 +67,50 @@ def extract_lottery_data_from_image(model, image_path):
             image_data = f.read()
             
         prompt = """
-        Extract lottery results from this South African lottery screenshot. Look for:
-        1. Draw date (format YYYY-MM-DD)
-        2. Draw number
-        3. Lottery type (Lotto, Lotto Plus 1, Lotto Plus 2, Powerball, Powerball Plus, Daily Lotto)
-        4. Winning numbers (main numbers and bonus ball if applicable)
-        
-        Return data in this exact JSON format:
+        Analyze this South African National Lottery screenshot and extract the lottery results.
+
+        Look for:
+        - Lottery type: Lotto, Lotto Plus 1, Lotto Plus 2, Powerball, Powerball Plus, or Daily Lotto
+        - Draw date (in YYYY-MM-DD format)
+        - Draw number 
+        - Main winning numbers (6 numbers for Lotto types, 5 for Powerball types, 5 for Daily Lotto)
+        - Bonus ball/Powerball number (if applicable)
+
+        IMPORTANT: Return ONLY valid JSON in this exact format with no additional text:
+
         {
-            "lottery_type": "exact type name",
-            "draw_date": "YYYY-MM-DD",
-            "draw_number": "number",
-            "main_numbers": [1, 2, 3, 4, 5, 6],
+            "lottery_type": "Lotto",
+            "draw_date": "2025-06-20", 
+            "draw_number": "2456",
+            "main_numbers": [1, 16, 36, 40, 42, 50],
             "bonus_numbers": [7]
         }
-        
-        If no lottery data is found, return: {"error": "No lottery data found"}
+
+        For Powerball types, the bonus number goes in bonus_numbers array.
+        For Daily Lotto, leave bonus_numbers as empty array [].
+        If no valid lottery data is found, return: {"error": "No lottery data found"}
         """
         
         response = model.generate_content([prompt, {"mime_type": "image/png", "data": image_data}])
-        return response.text.strip()
+        raw_response = response.text.strip()
+        
+        # Log the raw response for debugging
+        logger.debug(f"Raw Gemini response: {raw_response[:200]}...")
+        
+        # Extract JSON from response that might contain extra text
+        import re
+        json_match = re.search(r'\{.*\}', raw_response, re.DOTALL)
+        if json_match:
+            json_text = json_match.group(0)
+            logger.debug(f"Extracted JSON: {json_text}")
+            return json_text
+        else:
+            logger.warning(f"No JSON found in response: {raw_response}")
+            return '{"error": "No valid JSON in response"}'
         
     except Exception as e:
         logger.error(f"Error processing image {image_path}: {str(e)}")
-        return None
+        return '{"error": "Processing failed"}'
 
 def process_all_screenshots():
     """Process all recent screenshots with AI"""
@@ -117,14 +137,26 @@ def process_all_screenshots():
             try:
                 import json
                 data = json.loads(result)
-                if 'error' not in data:
-                    extracted_data.append(data)
-                    processed_count += 1
-                    logger.info(f"Extracted: {data.get('lottery_type', 'Unknown')} - {data.get('draw_date', 'No date')}")
+                if 'error' not in data and 'lottery_type' in data:
+                    # Validate required fields
+                    required_fields = ['lottery_type', 'draw_date', 'main_numbers']
+                    if all(field in data for field in required_fields):
+                        extracted_data.append(data)
+                        processed_count += 1
+                        numbers_str = ', '.join(map(str, data.get('main_numbers', [])))
+                        bonus_str = ', '.join(map(str, data.get('bonus_numbers', [])))
+                        logger.info(f"✓ {data['lottery_type']} ({data['draw_date']}): {numbers_str}" + 
+                                  (f" + {bonus_str}" if bonus_str else ""))
+                    else:
+                        logger.warning(f"Missing required fields in {os.path.basename(screenshot_path)}")
                 else:
-                    logger.warning(f"No data in {os.path.basename(screenshot_path)}")
-            except json.JSONDecodeError:
-                logger.warning(f"Invalid JSON response for {os.path.basename(screenshot_path)}")
+                    logger.warning(f"No valid lottery data in {os.path.basename(screenshot_path)}: {data.get('error', 'Unknown error')}")
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON decode error for {os.path.basename(screenshot_path)}: {str(e)}")
+                logger.debug(f"Raw response was: {result}")
+                continue
+            except Exception as e:
+                logger.error(f"Unexpected error processing {os.path.basename(screenshot_path)}: {str(e)}")
                 continue
     
     # Store extracted data for step 4
