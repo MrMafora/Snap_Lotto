@@ -157,11 +157,21 @@ def extract_all_lottery_data():
     except Exception as e:
         logger.error(f"Failed to clear existing data: {str(e)}")
     
-    # Extract and save each lottery type
+    # Extract and save each lottery type - ONE IMAGE AT A TIME for better accuracy
     for image_path, lottery_type in lottery_files:
+        logger.info(f"=== PROCESSING SINGLE IMAGE: {lottery_type} ===")
+        logger.info(f"Image: {os.path.basename(image_path)}")
+        
         data = extract_lottery_data_with_gemini(client, image_path, lottery_type)
         if data and save_extracted_data(data):
             success_count += 1
+            logger.info(f"✓ Successfully processed {lottery_type}")
+        else:
+            logger.error(f"✗ Failed to process {lottery_type}")
+        
+        # Brief pause between single image processing
+        import time
+        time.sleep(0.5)
     
     logger.info(f"Successfully extracted and saved {success_count}/6 authentic lottery results")
     return success_count == 6

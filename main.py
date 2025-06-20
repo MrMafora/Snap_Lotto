@@ -563,18 +563,20 @@ def api_scan_ticket():
                 logger.error("No Google API key found")
                 return jsonify({'error': 'Google API key not configured'}), 500
             
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-pro')
+            from google import genai
+            from google.genai import types
             
-            # Load and prepare image
-            import PIL.Image
-            image = PIL.Image.open(file_path)
-            logger.info(f"Image loaded successfully: {image.size}")
+            client = genai.Client(api_key=api_key)
             
-            # Enhanced prompt for comprehensive ticket analysis
-            prompt = """Analyze this South African lottery ticket image and extract ALL visible information in JSON format.
+            # Load and prepare image bytes for Gemini 2.5 Pro
+            with open(file_path, 'rb') as f:
+                image_bytes = f.read()
+            logger.info(f"Image loaded successfully: {os.path.getsize(file_path)} bytes")
+            
+            # Enhanced prompt for comprehensive ticket analysis - ONE IMAGE ONLY
+            prompt = """Analyze this single South African lottery ticket image and extract ALL visible information in JSON format.
 
-IMPORTANT: Extract EXACTLY what you see on the ticket. Do not make assumptions.
+CRITICAL: Process ONLY this one image. Extract EXACTLY what you see on the ticket. Do not make assumptions.
 
 Return JSON with this structure:
 {
@@ -593,10 +595,24 @@ Return JSON with this structure:
     "powerball_plus_included": "YES|NO|NOT_VISIBLE"
 }
 
-Extract ALL visible data accurately."""
+Extract ALL visible data accurately from this single image."""
             
-            logger.info("Sending request to Gemini API...")
-            response = model.generate_content([image, prompt])
+            logger.info("Sending single image to Gemini 2.5 Pro API...")
+            response = client.models.generate_content(
+                model="gemini-2.5-pro",
+                contents=[
+                    types.Part.from_bytes(
+                        data=image_bytes,
+                        mime_type="image/png" if file_path.lower().endswith('.png') else "image/jpeg",
+                    ),
+                    prompt
+                ],
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.1,
+                    max_output_tokens=1000,
+                ),
+            )
             response_text = response.text
             
             logger.info(f"Gemini response received: {response_text}")
