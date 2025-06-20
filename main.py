@@ -1401,11 +1401,22 @@ def lottery_details(draw_number):
         bonus_numbers = lottery_result.get_bonus_numbers_list()
         bonus_number = bonus_numbers[0] if bonus_numbers else None
         
-        # Parse divisions data
+        # Parse divisions data from both possible fields
         divisions = {}
         if lottery_result.divisions:
             try:
-                divisions = json.loads(lottery_result.divisions)
+                if isinstance(lottery_result.divisions, str):
+                    divisions = json.loads(lottery_result.divisions)
+                else:
+                    divisions = lottery_result.divisions
+            except:
+                divisions = {}
+        elif lottery_result.prize_divisions:
+            try:
+                if isinstance(lottery_result.prize_divisions, str):
+                    divisions = json.loads(lottery_result.prize_divisions)
+                else:
+                    divisions = lottery_result.prize_divisions
             except:
                 divisions = {}
         
