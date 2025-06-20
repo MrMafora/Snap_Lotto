@@ -19,14 +19,33 @@ def setup_browser():
     """Set up Playwright browser with optimized options"""
     try:
         playwright = sync_playwright().start()
-        browser = playwright.chromium.launch(
-            headless=True,
-            args=[
-                '--no-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu'
-            ]
-        )
+        
+        # Try using system Chromium first
+        try:
+            browser = playwright.chromium.launch(
+                executable_path='/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
+                headless=True,
+                args=[
+                    '--no-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--disable-setuid-sandbox',
+                    '--no-first-run',
+                    '--disable-background-timer-throttling',
+                    '--disable-backgrounding-occluded-windows',
+                    '--disable-renderer-backgrounding'
+                ]
+            )
+        except:
+            # Fallback to default Playwright browser
+            browser = playwright.chromium.launch(
+                headless=True,
+                args=[
+                    '--no-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu'
+                ]
+            )
         
         context = browser.new_context(
             viewport={'width': 1920, 'height': 1080},
@@ -36,6 +55,28 @@ def setup_browser():
         return playwright, browser, context
     except Exception as e:
         logger.error(f"Failed to setup Playwright browser: {str(e)}")
+        
+        # Try to install browsers automatically
+        try:
+            import subprocess
+            import sys
+            logger.info("Attempting to install Playwright browsers...")
+            result = subprocess.run([sys.executable, '-m', 'playwright', 'install', 'chromium'], 
+                                  capture_output=True, text=True, timeout=60)
+            if result.returncode == 0:
+                logger.info("Playwright browsers installed successfully, retrying setup...")
+                playwright = sync_playwright().start()
+                browser = playwright.chromium.launch(
+                    headless=True, 
+                    args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+                )
+                context = browser.new_context(viewport={'width': 1920, 'height': 1080})
+                return playwright, browser, context
+            else:
+                logger.error(f"Browser installation failed: {result.stderr}")
+        except Exception as install_error:
+            logger.error(f"Failed to install browsers: {str(install_error)}")
+        
         return None, None, None
 
 def capture_lottery_screenshot(url, lottery_type, page):
