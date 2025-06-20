@@ -80,10 +80,21 @@ def extract_lottery_data_from_image(model, image_path):
         - All prize divisions with number of winners and prize amounts
         - Total prize pool and rollover information
 
-        SECTION 3 - Additional Information (from "more information" box):
+        SECTION 3 - Additional Information (from "More Info" section):
+        For Lotto, Lotto Plus 1, Lotto Plus 2, Powerball, Powerball Plus extract:
+        - Rollover amount
+        - Rollover number  
+        - Total pool size
+        - Total sales
+        - Next jackpot
+        - Draw machine
         - Next draw date
-        - Estimated jackpot for next draw
-        - Any special promotions or notes
+
+        For Daily Lotto extract only:
+        - Total pool size
+        - Total sales  
+        - Draw machine
+        - Next draw date
 
         IMPORTANT: Return ONLY valid JSON in this exact format with no additional text:
 
@@ -99,11 +110,17 @@ def extract_lottery_data_from_image(model, image_path):
             ],
             "total_prize_pool": "R25,000,000.00",
             "rollover_amount": "R15,000,000.00",
+            "rollover_number": "3",
+            "total_pool_size": "R30,000,000.00",
+            "total_sales": "R45,000,000.00", 
+            "next_jackpot": "R40,000,000.00",
+            "draw_machine": "Machine 1",
             "next_draw_date": "2025-06-23",
             "estimated_jackpot": "R40,000,000.00",
             "additional_info": "Special promotion details or other notes"
         }
 
+        For Daily Lotto, omit rollover_amount, rollover_number, next_jackpot fields.
         For Powerball types, the bonus number goes in bonus_numbers array.
         For Daily Lotto, leave bonus_numbers as empty array [].
         If any section has no data, use empty arrays or null values.

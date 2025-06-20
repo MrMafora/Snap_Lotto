@@ -98,16 +98,20 @@ class LotteryResult(db.Model):
     total_prize_pool = db.Column(db.String(100), nullable=True, comment="Total prize pool")
     rollover_amount = db.Column(db.String(100), nullable=True, comment="Rollover amount")
     
-    # Additional information (Section 3)
+    # Additional information (Section 3) - More Info fields
     next_draw_date = db.Column(db.String(50), nullable=True, comment="Next draw date")
     estimated_jackpot = db.Column(db.String(100), nullable=True, comment="Estimated next jackpot")
     additional_info = db.Column(db.Text, nullable=True, comment="Additional lottery information")
     
+    # Extended More Info fields (for Lotto, Lotto Plus 1, Lotto Plus 2, Powerball, Powerball Plus)
+    rollover_number = db.Column(db.String(50), nullable=True, comment="Rollover number")
+    total_pool_size = db.Column(db.String(100), nullable=True, comment="Total pool size")
+    total_sales = db.Column(db.String(100), nullable=True, comment="Total sales")
+    draw_machine = db.Column(db.String(50), nullable=True, comment="Draw machine")
+    
     # Legacy fields (keeping for compatibility)
     divisions = db.Column(db.JSON, nullable=True, comment="Legacy prize divisions")
-    next_jackpot = db.Column(db.Numeric(15,2), nullable=True, comment="Legacy next jackpot")
-    total_pool_size = db.Column(db.Numeric(15,2), nullable=True, comment="Legacy total pool")
-    total_sales = db.Column(db.Numeric(15,2), nullable=True, comment="Legacy total sales")
+    next_jackpot = db.Column(db.String(100), nullable=True, comment="Legacy next jackpot")
     
     # Unique constraint to prevent duplicate entries
     __table_args__ = (
