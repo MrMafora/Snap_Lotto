@@ -19,6 +19,14 @@
     color: #333 !important;
 }
 
+/* Additional specificity for Powerball styling */
+span.game-type-badge.game-type-powerball,
+.game-type-badge.game-type-powerball {
+    background-color: #FFE11D !important; /* Bright yellow for POWERBALL */
+    color: #333 !important;
+    border: 1px solid #E6CC00 !important;
+}
+
 .game-type-daily {
     background-color: #19A03A !important; /* Green for DAILY LOTTO */
     color: white !important;
