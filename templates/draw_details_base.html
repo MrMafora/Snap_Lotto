@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>{% block title %}Snap Lotto{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/lottery.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <style>
+        /* Desktop-optimized layout matching homepage */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .container, .container-fluid {
+            max-width: 1200px !important;
+            margin: 0 auto !important;
+            padding: 0 15px !important;
+        }
+        
+        /* Card styling to match homepage */
+        .card {
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* Table styling to match homepage */
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table th {
+            background-color: #f8f9fa;
+            border-top: none;
+            font-weight: 600;
+            padding: 12px 15px;
+        }
+        
+        .table td {
+            padding: 12px 15px;
+            vertical-align: middle;
+        }
+        
+        /* Lottery ball styling */
+        .lottery-ball {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin: 2px;
+            color: white;
+        }
+        
+        /* Quick stats styling */
+        .text-center h3 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .text-muted {
+            color: #6c757d !important;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Match homepage container styling exactly */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .container, .container-fluid {
+            max-width: 1200px !important;
+            margin: 0 auto !important;
+            padding-left: 15px !important;
+            padding-right: 15px !important;
+        }
+        
+        /* Override Bootstrap responsive behavior to maintain desktop layout */
+        @media (min-width: 992px) {
+            .col-lg-5 {
+                flex: 0 0 41.666667% !important;
+                max-width: 41.666667% !important;
+            }
+            
+            .col-lg-4 {
+                flex: 0 0 33.333333% !important;
+                max-width: 33.333333% !important;
+            }
+            
+            .col-lg-3 {
+                flex: 0 0 25% !important;
+                max-width: 25% !important;
+            }
+        }
+        
+        /* Ensure row stays horizontal on desktop */
+        @media (min-width: 992px) {
+            .row {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .row {
+                flex-wrap: wrap !important;
+                flex-direction: column !important;
+            }
+            
+            .col-lg-5, .col-lg-4, .col-lg-3 {
+                flex: 1 1 100% !important;
+            }
+            
+            .container, .container-fluid {
+                max-width: 100% !important;
+                padding: 0 10px !important;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .lottery-ball {
+                width: 35px;
+                height: 35px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg mb-2 sticky-top">
+        <div class="container-fluid px-2">
+            <a class="navbar-brand" href="/">
+                <div class="lottery-logo">
+                    <i class="fas fa-bolt"></i>
+                    <span class="d-none d-sm-inline">SNAP LOTTO</span>
+                    <span class="d-inline d-sm-none">SL</span>
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2" href="/"><i class="fas fa-home me-2"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2" href="/results"><i class="fas fa-list-ol me-2"></i> Results</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2" href="/guides"><i class="fas fa-book me-2"></i> Guides</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2" href="/visualizations"><i class="fas fa-chart-bar me-2"></i> Analytics</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center py-2" href="/scanner-landing"><i class="fas fa-ticket-alt me-2"></i> Scanner</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Container matching homepage styling -->
+    <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 15px; box-sizing: border-box;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show mb-2">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js Library -->
+    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/ads.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mobile-optimized.js') }}"></script>
+</body>
+</html>

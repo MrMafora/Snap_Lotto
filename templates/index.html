@@ -605,15 +605,9 @@
                         <h4 class="mb-2">Scan Your Lottery Ticket</h4>
                         <p class="mb-1">Have a lottery ticket? Check if you've won instantly!</p>
                         <p class="small mb-3">Simply upload a photo of your ticket and our system will check it against the latest results.</p>
-                        <div style="background: #fdd835; padding: 15px 25px; border-radius: 25px; box-shadow: 0 4px 8px rgba(0,0,0,0.15); margin: 15px 0; text-align: center; font-weight: bold; color: #333; transform: rotate(-2deg); transition: transform 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='rotate(0deg)'" onmouseout="this.style.transform='rotate(-2deg)'">
-                            The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play
+                        <div class="slogan-banner mb-3">
+                            <span class="slogan-text">The ONLY app with official Ithuba Lottery, PowerBall & Daily Lottery data, Snap Scan and Win = Phanda Phusha Play</span>
                         </div>
-                        <style>
-                        @keyframes shimmer {
-                            0% { transform: translateX(-100%); }
-                            100% { transform: translateX(100%); }
-                        }
-                        </style>
                         <a href="{{ url_for('ticket_scanner') }}" class="btn btn-lottery-primary">
                             <i class="fas fa-qrcode me-2"></i> Scan Your Ticket Now
                         </a>
@@ -858,7 +852,7 @@ function fetchChartData(lotteryType, timePeriod) {
     
     console.log("Fetching data from: " + apiUrl);
     
-    // Fetch data from the API with proper error handling
+    // Fetch data from the API
     fetch(apiUrl)
         .then(response => {
             if (!response.ok) {

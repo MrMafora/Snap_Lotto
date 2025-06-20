@@ -4,10 +4,15 @@ Provides comprehensive lottery data analysis and visualization
 """
 import logging
 import json
-from collections import Counter
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
 from flask import Blueprint, jsonify, request
 from models import db, LotteryResult
 from datetime import datetime, timedelta
+import base64
 import io
 import os
 
@@ -105,8 +110,8 @@ def frequency_analysis():
         
         top_numbers = sorted(number_counts.items(), key=lambda x: x[1], reverse=True)[:10]
         
-        # Chart generation disabled to avoid numpy dependency
-        chart_base64 = ""
+        # Generate chart
+        chart_base64 = generate_frequency_chart(frequency, lottery_type or "All Lottery Types")
         
         result = {
             (lottery_type or "All Lottery Types"): {
@@ -128,9 +133,38 @@ def frequency_analysis():
         return jsonify({"error": str(e)}), 500
 
 def generate_frequency_chart(frequency, lottery_type):
-    """Placeholder chart generation function"""
-    # Chart generation disabled to avoid numpy/matplotlib dependencies
-    return ""
+    """Generate frequency chart and return base64 encoded image"""
+    try:
+        plt.figure(figsize=(16, 8))
+        
+        numbers = list(range(1, 51))
+        bars = plt.bar(numbers, frequency, alpha=0.7, color='steelblue')
+        
+        # Highlight top numbers
+        max_freq = max(frequency) if frequency else 0
+        for i, freq in enumerate(frequency):
+            if freq == max_freq and freq > 0:
+                bars[i].set_color('red')
+                bars[i].set_alpha(0.8)
+        
+        plt.xlabel('Lottery Numbers')
+        plt.ylabel('Frequency')
+        plt.title(f'Number Frequency Analysis - {lottery_type}')
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        
+        # Convert to base64
+        img_buffer = io.BytesIO()
+        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight')
+        img_buffer.seek(0)
+        img_base64 = base64.b64encode(img_buffer.getvalue()).decode()
+        plt.close()
+        
+        return img_base64
+        
+    except Exception as e:
+        logger.error(f"Error generating chart: {e}")
+        return ""
 
 # Register blueprint
 def init_lottery_analysis():

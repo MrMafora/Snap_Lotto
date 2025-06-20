@@ -4,6 +4,7 @@ Database models for the application
 from datetime import datetime
 import json
 import os
+import numpy as np
 import logging
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
@@ -99,13 +100,9 @@ class LotteryResult(db.Model):
     total_pool_size = db.Column(db.Numeric(15,2), nullable=True, comment="Total prize pool")
     total_sales = db.Column(db.Numeric(15,2), nullable=True, comment="Total ticket sales")
     
-    # Indexes for performance optimization
+    # Unique constraint to prevent duplicate entries
     __table_args__ = (
         db.UniqueConstraint('lottery_type', 'draw_number', name='uq_lottery_draw'),
-        db.Index('idx_draw_date', 'draw_date'),
-        db.Index('idx_lottery_type', 'lottery_type'),
-        db.Index('idx_draw_date_desc', 'draw_date', postgresql_using='btree', postgresql_ops={'draw_date': 'DESC'}),
-        db.Index('idx_created_at', 'created_at'),
     )
     
     def __repr__(self):

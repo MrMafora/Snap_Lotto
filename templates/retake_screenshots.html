@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Retake Screenshots{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <div class="card lottery-card">
+                <div class="card-header lottery-header">
+                    <h4 class="card-title mb-0">Retake All Screenshots</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> This action will retake all screenshots for all configured URLs.
+                        It may take several minutes to complete. Please be patient.
+                    </div>
+                    <p>
+                        If you've noticed that some screenshots have display errors or are not clear,
+                        this feature will retake all the screenshots and automatically delete the old ones.
+                    </p>
+                    <p>
+                        The process will:
+                    </p>
+                    <ul>
+                        <li>Take new screenshots for all configured lottery URLs (up to 12 URLs)</li>
+                        <li>Delete old screenshots to save disk space</li>
+                        <li>Use a separate browser for each screenshot</li>
+                        <li>Run in the background so you can continue using the application</li>
+                    </ul>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('manage_screenshots') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Screenshot Management
+                        </a>
+                        <form method="POST" action="{{ url_for('retake_screenshots') }}">
+                            <button type="submit" class="btn btn-lottery-primary">
+                                <i class="fas fa-sync-alt me-2"></i> Retake All Screenshots
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,44 +1,335 @@
 {% extends "base.html" %}
 
+{% block title %}API Request Tracking | Snap Lotto{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header lottery-header">
-                    <h4 class="card-title mb-0">{{ title }}</h4>
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header lottery-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">API REQUEST TRACKING</h4>
+                    <a href="{{ url_for('admin') }}" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                    </a>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <h3>{{ data.total_requests }}</h3>
-                                <p>Total Requests</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <h3>{{ data.successful_requests }}</h3>
-                                <p>Successful</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <h3>{{ data.failed_requests }}</h3>
-                                <p>Failed</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <h3>{{ data.average_response_time }}ms</h3>
-                                <p>Avg Response Time</p>
-                            </div>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    Monitor API requests to external services like Anthropic Claude for OCR processing.
+                </p>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> This dashboard shows API usage metrics for external services. Use this to monitor costs and optimize usage.
                         </div>
                     </div>
-                    <p class="mt-4 text-muted">API tracking data will be implemented in future updates.</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Summary Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card h-100 bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Today</h5>
+                <h2 class="display-4">{{ today_stats.total_requests }}</h2>
+                <p class="card-text">Requests</p>
+                <p class="card-text">
+                    <i class="fas fa-key me-1"></i> {{ today_stats.total_tokens|default(0)|int }} tokens
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100 bg-secondary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Yesterday</h5>
+                <h2 class="display-4">{{ yesterday_stats.total_requests }}</h2>
+                <p class="card-text">Requests</p>
+                <p class="card-text">
+                    <i class="fas fa-key me-1"></i> {{ yesterday_stats.total_tokens|default(0)|int }} tokens
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100 bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">This Week</h5>
+                <h2 class="display-4">{{ this_week_stats.total_requests }}</h2>
+                <p class="card-text">Requests</p>
+                <p class="card-text">
+                    <i class="fas fa-key me-1"></i> {{ this_week_stats.total_tokens|default(0)|int }} tokens
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100 bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">This Month</h5>
+                <h2 class="display-4">{{ this_month_stats.total_requests }}</h2>
+                <p class="card-text">Requests</p>
+                <p class="card-text">
+                    <i class="fas fa-key me-1"></i> {{ this_month_stats.total_tokens|default(0)|int }} tokens
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">API REQUESTS OVER TIME</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="requests-chart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">SERVICE BREAKDOWN</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="service-chart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Breakdown -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">MODEL BREAKDOWN</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th class="text-end">Requests</th>
+                            <th class="text-end">Tokens</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for model in model_breakdown %}
+                        <tr>
+                            <td>{{ model.model }}</td>
+                            <td class="text-end">{{ model.count }}</td>
+                            <td class="text-end">{{ model.tokens|default(0)|int }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center">No model data available</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">USAGE STATISTICS</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3 bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Requests</h5>
+                                <h3 class="display-6">{{ overall_stats.total_requests }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-3 bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Tokens</h5>
+                                <h3 class="display-6">{{ overall_stats.total_tokens|default(0)|int }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title">Average Response Time</h5>
+                                <h3 class="display-6">{{ overall_stats.avg_duration|default(0) }} ms</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Requests Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header lottery-header">
+                <h5 class="card-title mb-0">RECENT REQUESTS</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Service</th>
+                                <th>Model</th>
+                                <th>Endpoint</th>
+                                <th>Status</th>
+                                <th class="text-end">Tokens</th>
+                                <th class="text-end">Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for request in recent_requests %}
+                            <tr>
+                                <td>{{ request.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>{{ request.service }}</td>
+                                <td>{{ request.model or 'N/A' }}</td>
+                                <td>{{ request.endpoint }}</td>
+                                <td>
+                                    {% if request.status == 'success' %}
+                                    <span class="badge bg-success">Success</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Error</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">{{ request.total_tokens or 'N/A' }}</td>
+                                <td class="text-end">{{ request.duration_ms or 'N/A' }} ms</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center">No API requests logged yet</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Data for requests over time chart
+        const timeLabels = {{ daily_labels|tojson }};
+        const requestData = {{ daily_requests|tojson }};
+        const tokenData = {{ daily_tokens|tojson }};
+        
+        // Create requests chart
+        const requestsChart = new Chart(
+            document.getElementById('requests-chart'),
+            {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [
+                        {
+                            label: 'API Requests',
+                            data: requestData,
+                            borderColor: '#0d6efd',
+                            backgroundColor: 'rgba(13, 110, 253, 0.2)',
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Tokens Used',
+                            data: tokenData,
+                            borderColor: '#198754',
+                            backgroundColor: 'rgba(25, 135, 84, 0.2)',
+                            tension: 0.1,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'API Requests'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Tokens'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            }
+        );
+        
+        // Service breakdown pie chart
+        const serviceLabels = {{ service_labels|tojson }};
+        const serviceCounts = {{ service_counts|tojson }};
+        
+        // Create service breakdown chart
+        const serviceChart = new Chart(
+            document.getElementById('service-chart'),
+            {
+                type: 'pie',
+                data: {
+                    labels: serviceLabels,
+                    datasets: [
+                        {
+                            data: serviceCounts,
+                            backgroundColor: [
+                                '#0d6efd',
+                                '#6f42c1',
+                                '#d63384',
+                                '#fd7e14',
+                                '#198754',
+                                '#20c997'
+                            ]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            }
+        );
+    });
+</script>
 {% endblock %}
