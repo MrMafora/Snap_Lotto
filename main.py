@@ -1220,117 +1220,70 @@ def results():
             # Use direct SQL approach to ensure we get authentic data
             latest_results = {}
             
-            # Direct approach: Get the authentic Lotto data and map it to Lottery display
-            lotto_result = db.session.execute(text("""
-                SELECT id, lottery_type, draw_number, draw_date, main_numbers, bonus_numbers
-                FROM lottery_results 
-                WHERE lottery_type = 'LOTTO'
-                ORDER BY draw_date DESC 
-                LIMIT 1
-            """)).fetchone()
+            # Use same SQL query as homepage for authentic Gemini-extracted data
+            from sqlalchemy import text
             
-            if lotto_result:
-                # Create result object for Lottery (mapped from Lotto)
-                class ResultObj:
-                    def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
-                        self.lottery_type = lottery_type
-                        self.draw_number = draw_number
-                        self.draw_date = draw_date
-                        self.numbers = numbers
-                        self.bonus_numbers = bonus_numbers
-                    
-                    @property
-                    def main_numbers(self):
-                        """Alias for numbers to maintain compatibility"""
-                        return self.numbers
-                    
-                    def get_numbers_list(self):
-                        if isinstance(self.numbers, str):
-                            # Handle comma-separated format like "1,2,3,18,29,32"
-                            return [num.strip() for num in self.numbers.split(',') if num.strip()]
-                        return self.numbers if self.numbers else []
-                    
-                    def get_bonus_numbers_list(self):
-                        if self.bonus_numbers is None:
-                            return []
-                        if isinstance(self.bonus_numbers, str):
-                            bonus_str = self.bonus_numbers.strip()
-                            if bonus_str:
-                                return [bonus_str]
-                            return []
-                        elif isinstance(self.bonus_numbers, (int, float)):
-                            return [str(self.bonus_numbers)]
-                        elif isinstance(self.bonus_numbers, list):
-                            return self.bonus_numbers
-                        return [str(self.bonus_numbers)] if self.bonus_numbers else []
-                
-                # Parse LOTTO numbers before creating ResultObj - ensure lists not strings
-                import json
-                lotto_numbers = lotto_result[4]  # main_numbers
-                lotto_bonus = lotto_result[5]    # bonus_numbers
-                
-                # Parse main numbers - handle JSON string format
-                if isinstance(lotto_numbers, str) and lotto_numbers.startswith('['):
-                    try:
-                        lotto_numbers = json.loads(lotto_numbers)
-                        app.logger.info(f"Parsed LOTTO main numbers: {lotto_numbers}")
-                    except:
-                        lotto_numbers = []
-                elif isinstance(lotto_numbers, list):
-                    app.logger.info(f"LOTTO main numbers already parsed: {lotto_numbers}")
-                else:
-                    lotto_numbers = []
-                
-                # Parse bonus numbers - handle PostgreSQL array or JSON format
-                if isinstance(lotto_bonus, str):
-                    if lotto_bonus.startswith('['):
-                        try:
-                            lotto_bonus = json.loads(lotto_bonus)
-                        except:
-                            lotto_bonus = []
-                    elif lotto_bonus.startswith('{'):
-                        try:
-                            clean_str = lotto_bonus.strip('{}')
-                            lotto_bonus = [int(n.strip()) for n in clean_str.split(',') if n.strip()] if clean_str else []
-                        except:
-                            lotto_bonus = []
-                    else:
-                        lotto_bonus = []
-                elif isinstance(lotto_bonus, list):
-                    # Already a list from database
-                    pass
-                else:
-                    lotto_bonus = []
-                    
-                app.logger.info(f"Creating LOTTO ResultObj with numbers: {lotto_numbers}, bonus: {lotto_bonus}")
-                
-                latest_results['Lottery'] = ResultObj(
-                    lotto_result[1], lotto_result[2], lotto_result[3], lotto_numbers, lotto_bonus
+            # Get latest result for each lottery type - same as homepage
+            query = text("""
+                WITH ranked_results AS (
+                  SELECT lottery_type, draw_number, draw_date, numbers as main_numbers, bonus_numbers,
+                    ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY draw_date DESC, draw_number DESC) as rn
+                  FROM lottery_result 
+                  WHERE lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'PowerBall', 'POWERBALL PLUS', 'DAILY LOTTO')
                 )
-                app.logger.info(f"✓ Successfully mapped Lotto data to Lottery display")
+                SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers
+                FROM ranked_results 
+                WHERE rn = 1
+            """)
             
-            # Keep the original loop for other lottery types when we have more data
-            for lottery_type in lottery_types:
-                if lottery_type == 'Lottery':
-                    continue  # Already handled above
+            raw_results = db.session.execute(query).fetchall()
+            app.logger.info(f"✓ Results page using same authentic data as homepage: {[(r.lottery_type, r.draw_number) for r in raw_results]}")
+            
+            # Process each lottery type to match homepage data exactly
+            lottery_lookup = {}
+            for row in raw_results:
+                lottery_lookup[row.lottery_type] = row
+            
+            # Create results in display order mapping database names to display names
+            type_mappings = {
+                'LOTTO': 'Lottery',
+                'LOTTO PLUS 1': 'Lottery Plus 1', 
+                'LOTTO PLUS 2': 'Lottery Plus 2',
+                'PowerBall': 'Powerball',
+                'POWERBALL PLUS': 'Powerball Plus',
+                'DAILY LOTTO': 'Daily Lottery'
+            }
+            
+            for db_type, display_type in type_mappings.items():
+                if db_type in lottery_lookup:
+                    row = lottery_lookup[db_type]
                     
-                # Use database name mapping for authentic lottery data - handle multiple variations
-                db_lottery_types = db_name_mapping.get(lottery_type, [lottery_type])
-                
-                # Direct SQL query to get authentic lottery data using IN clause for multiple variations
-                sql_query = """
-                    SELECT id, lottery_type, draw_number, draw_date, main_numbers, bonus_numbers
-                    FROM lottery_results 
-                    WHERE lottery_type = ANY(:lottery_types)
-                    ORDER BY draw_date DESC 
-                    LIMIT 1
-                """
-                
-                app.logger.info(f"Querying for {lottery_type} -> {db_lottery_types}")
-                result = db.session.execute(text(sql_query), {'lottery_types': db_lottery_types}).fetchone()
-                
-                if result:
-                    # Create a simple object to hold the data
+                    # Parse numbers using same logic as homepage
+                    numbers = []
+                    bonus_numbers = []
+                    
+                    if row.main_numbers:
+                        try:
+                            numbers = json.loads(str(row.main_numbers))
+                            app.logger.info(f"Parsed main numbers for {display_type}: {numbers}")
+                        except (json.JSONDecodeError, ValueError):
+                            if str(row.main_numbers).startswith('{') and str(row.main_numbers).endswith('}'):
+                                nums_str = str(row.main_numbers)[1:-1]
+                                if nums_str.strip():
+                                    numbers = [int(n.strip()) for n in nums_str.split(',') if n.strip().isdigit()]
+                    
+                    if row.bonus_numbers:
+                        try:
+                            bonus_numbers = json.loads(str(row.bonus_numbers))
+                            app.logger.info(f"Parsed bonus numbers for {display_type}: {bonus_numbers}")
+                        except (json.JSONDecodeError, ValueError):
+                            if str(row.bonus_numbers).startswith('{') and str(row.bonus_numbers).endswith('}'):
+                                bonus_str = str(row.bonus_numbers)[1:-1]
+                                if bonus_str.strip():
+                                    bonus_numbers = [int(n.strip()) for n in bonus_str.split(',') if n.strip().isdigit()]
+                    
+                    app.logger.info(f"✓ Direct SQL: {display_type} - Draw {row.draw_number}")
+                    
                     class ResultObj:
                         def __init__(self, lottery_type, draw_number, draw_date, numbers, bonus_numbers):
                             self.lottery_type = lottery_type
@@ -1341,125 +1294,28 @@ def results():
                         
                         @property
                         def main_numbers(self):
-                            """Alias for numbers to maintain compatibility"""
                             return self.numbers
                         
                         def get_numbers_list(self):
-                            import json
-                            if isinstance(self.numbers, str):
-                                app.logger.info(f"Parsing numbers string: {self.numbers}")
-                                # Handle JSON array format like "[8, 24, 32, 34, 36, 52]"
-                                if self.numbers.startswith('[') and self.numbers.endswith(']'):
-                                    try:
-                                        parsed_numbers = json.loads(self.numbers)
-                                        app.logger.info(f"JSON parsed successfully: {parsed_numbers}")
-                                        return [int(num) for num in parsed_numbers]
-                                    except (json.JSONDecodeError, ValueError, TypeError) as e:
-                                        app.logger.error(f"JSON parsing failed: {e}")
-                                        # Fallback to comma-separated parsing
-                                        clean_str = self.numbers.strip('[]')
-                                        return [int(num.strip()) for num in clean_str.split(',') if num.strip()]
-                                else:
-                                    # Handle comma-separated format like "1,2,3,18,29,32"
-                                    return [int(num.strip()) for num in self.numbers.split(',') if num.strip()]
-                            elif isinstance(self.numbers, list):
-                                app.logger.info(f"Numbers is already a list: {self.numbers}")
-                                return [int(num) for num in self.numbers]
-                            app.logger.error(f"Unable to parse numbers: {self.numbers}, type: {type(self.numbers)}")
-                            return []
+                            return self.numbers if self.numbers else []
                         
                         def get_bonus_numbers_list(self):
-                            import json
-                            if self.bonus_numbers is None:
-                                return []
-                            if isinstance(self.bonus_numbers, str):
-                                # Handle JSON array format like "[26]" or PostgreSQL array like "{14}" or simple string like "03"
-                                bonus_str = self.bonus_numbers.strip()
-                                if not bonus_str or bonus_str == '{}':
-                                    return []
-                                if bonus_str.startswith('[') and bonus_str.endswith(']'):
-                                    try:
-                                        return json.loads(bonus_str)
-                                    except (json.JSONDecodeError, ValueError):
-                                        # Fallback to comma-separated parsing
-                                        clean_str = bonus_str.strip('[]')
-                                        return [int(num.strip()) for num in clean_str.split(',') if num.strip()]
-                                elif bonus_str.startswith('{') and bonus_str.endswith('}'):
-                                    # Handle PostgreSQL array format like '{14}' or '{14,25}'
-                                    try:
-                                        clean_str = bonus_str.strip('{}')
-                                        if clean_str:
-                                            return [int(num.strip()) for num in clean_str.split(',') if num.strip()]
-                                        else:
-                                            return []
-                                    except (ValueError, TypeError):
-                                        return []
-                                else:
-                                    try:
-                                        return [int(bonus_str)] if bonus_str.isdigit() else []
-                                    except:
-                                        return []
-                            elif isinstance(self.bonus_numbers, (int, float)):
-                                return [int(self.bonus_numbers)]
-                            elif isinstance(self.bonus_numbers, list):
-                                return self.bonus_numbers
-                            return []
+                            return self.bonus_numbers if self.bonus_numbers else []
                     
-                    # Parse the numbers immediately to ensure proper format
-                    import json
-                    numbers = result[4]  # main_numbers
-                    bonus_numbers = result[5]  # bonus_numbers
-                    
-                    # Parse main numbers if they're a JSON string
-                    if isinstance(numbers, str):
-                        if numbers.startswith('[') and numbers.endswith(']'):
-                            try:
-                                numbers = json.loads(numbers)
-                                app.logger.info(f"Parsed main numbers for {lottery_type}: {numbers}")
-                            except Exception as e:
-                                app.logger.error(f"Failed to parse main numbers {numbers}: {e}")
-                        else:
-                            # Handle comma-separated format
-                            numbers = [int(n.strip()) for n in numbers.split(',') if n.strip()]
-                    
-                    # Parse bonus numbers if they're a JSON string  
-                    if isinstance(bonus_numbers, str):
-                        if bonus_numbers.startswith('[') and bonus_numbers.endswith(']'):
-                            try:
-                                bonus_numbers = json.loads(bonus_numbers)
-                                app.logger.info(f"Parsed bonus numbers for {lottery_type}: {bonus_numbers}")
-                            except Exception as e:
-                                app.logger.error(f"Failed to parse bonus numbers {bonus_numbers}: {e}")
-                        elif bonus_numbers.startswith('{') and bonus_numbers.endswith('}'):
-                            # Handle PostgreSQL array format like '{14}'
-                            try:
-                                clean_str = bonus_numbers.strip('{}')
-                                if clean_str:
-                                    bonus_numbers = [int(n.strip()) for n in clean_str.split(',') if n.strip()]
-                                else:
-                                    bonus_numbers = []
-                                app.logger.info(f"Parsed PostgreSQL bonus numbers for {lottery_type}: {bonus_numbers}")
-                            except Exception as e:
-                                app.logger.error(f"Failed to parse PostgreSQL bonus numbers {bonus_numbers}: {e}")
-                                bonus_numbers = []
-                        else:
-                            # Handle comma-separated format
-                            try:
-                                bonus_numbers = [int(n.strip()) for n in bonus_numbers.split(',') if n.strip()]
-                            except:
-                                bonus_numbers = []
-                    
-                    latest_results[lottery_type] = ResultObj(
-                        result[1], result[2], result[3], numbers, bonus_numbers
+                    latest_results[display_type] = ResultObj(
+                        display_type,
+                        row.draw_number,
+                        row.draw_date,
+                        numbers,
+                        bonus_numbers
                     )
-                    logger.info(f"✓ Direct SQL: {lottery_type} - Draw {result[2]}")
-                else:
-                    logger.warning(f"✗ Direct SQL: No data for {lottery_type}")
             
-            logger.info(f"Direct SQL retrieved: {len(latest_results)} authentic lottery results")
+            app.logger.info(f"Direct SQL retrieved: {len(latest_results)} authentic lottery results")
+            
+            # All data processed above using same source as homepage
             
         except Exception as e:
-            logger.error(f"Direct SQL error: {str(e)}")
+            app.logger.error(f"Direct SQL error: {str(e)}")
             latest_results = {}
         
         # Define breadcrumbs for SEO
@@ -1472,16 +1328,16 @@ def results():
         cache_buster = int(time.time())
         
         # Debug template data before rendering
-        logger.info(f"Template data - lottery_types: {lottery_types}")
-        logger.info(f"Template data - latest_results: {latest_results}")
+        app.logger.info(f"Template data - lottery_types: {lottery_types}")
+        app.logger.info(f"Template data - latest_results: {latest_results}")
         
         # Test each lottery type specifically
         for lt in lottery_types:
             if lt in latest_results:
                 result = latest_results[lt]
-                logger.info(f"✓ {lt}: Draw {result.draw_number}, Numbers: {result.main_numbers}")
+                app.logger.info(f"✓ {lt}: Draw {result.draw_number}, Numbers: {result.main_numbers}")
             else:
-                logger.error(f"✗ MISSING: {lt} not in latest_results")
+                app.logger.error(f"✗ MISSING: {lt} not in latest_results")
         
         return render_template('results_overview.html',
                             lottery_types=lottery_types,
@@ -1491,7 +1347,7 @@ def results():
                             cache_buster=cache_buster)
                             
     except Exception as e:
-        logger.error(f"Critical error in results route: {str(e)}", exc_info=True)
+        app.logger.error(f"Critical error in results route: {str(e)}", exc_info=True)
         # Define breadcrumbs for SEO even in error case
         breadcrumbs = [
             {"name": "Results", "url": url_for('results')}
