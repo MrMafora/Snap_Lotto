@@ -278,11 +278,17 @@ def home():
     try:
         from sqlalchemy import text
         
-        # Direct SQL query to get latest result for each lottery type in proper order
+        # Direct SQL query to get latest result for each lottery type based on draw_date and draw_number
         query = text("""
+            WITH ranked_results AS (
+              SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers,
+                ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY draw_date DESC, draw_number DESC) as rn
+              FROM lottery_results 
+              WHERE lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'PowerBall', 'POWERBALL PLUS', 'DAILY LOTTO')
+            )
             SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers
-            FROM lottery_results 
-            ORDER BY created_at DESC
+            FROM ranked_results 
+            WHERE rn = 1
         """)
         
         raw_results = db.session.execute(query).fetchall()
@@ -2886,7 +2892,7 @@ def cleanup_screenshots():
     
     return redirect(url_for('export_screenshots'))
 
-@app.route('/cleanup-all-screenshots')
+@app.route('/cleanup-all-screenshots', methods=['GET', 'POST'])
 @login_required
 def cleanup_all_screenshots_route():
     """Admin route to clean up ALL screenshots regardless of age"""

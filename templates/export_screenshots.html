@@ -155,7 +155,7 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-2">
                                         <form action="{{ url_for('cleanup_screenshots') }}" method="POST">
-                                            <input type="hidden" name="csrf_token" value="">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                                             <button type="submit" class="btn btn-sm btn-outline-warning w-100">
                                                 <i class="fas fa-broom me-1"></i> Clean Old Screenshots
                                                 <small class="d-block">Removes files older than 7 days</small>
@@ -165,7 +165,7 @@
                                     <div class="col-md-6 mb-2">
                                         <form action="{{ url_for('cleanup_all_screenshots_route') }}" method="POST" 
                                               onsubmit="return confirm('Are you sure you want to remove ALL screenshots? This cannot be undone.')">
-                                            <input type="hidden" name="csrf_token" value="">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
                                             <button type="submit" class="btn btn-sm btn-outline-danger w-100">
                                                 <i class="fas fa-trash-alt me-1"></i> Remove All Screenshots
                                                 <small class="d-block">Removes all screenshot files</small>
