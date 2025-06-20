@@ -2852,18 +2852,21 @@ def cleanup_screenshots():
         return redirect(url_for('index'))
         
     try:
-        # Run the cleanup function from screenshot manager
-        global screenshot_manager
-        if screenshot_manager is None:
-            import screenshot_manager
+        # Run the cleanup function from step1_cleanup
+        from step1_cleanup import cleanup_old_screenshots
         
-        deleted_count = screenshot_manager.cleanup_old_screenshots()
+        cleanup_success = cleanup_old_screenshots(days_to_keep=7)
         
-        # Store success message in session
-        session['sync_status'] = {
-            'status': 'success',
-            'message': 'Successfully cleaned up old screenshots. Only the latest screenshot for each URL is kept.'
-        }
+        if cleanup_success:
+            session['sync_status'] = {
+                'status': 'success',
+                'message': 'Cleanup completed successfully. Screenshots older than 7 days have been removed.'
+            }
+        else:
+            session['sync_status'] = {
+                'status': 'warning',
+                'message': 'Cleanup completed with some issues. Check logs for details.'
+            }
     except Exception as e:
         app.logger.error(f"Error cleaning up screenshots: {str(e)}")
         traceback.print_exc()
@@ -2871,6 +2874,41 @@ def cleanup_screenshots():
         session['sync_status'] = {
             'status': 'danger',
             'message': f'Error cleaning up screenshots: {str(e)}'
+        }
+    
+    return redirect(url_for('export_screenshots'))
+
+@app.route('/cleanup-all-screenshots')
+@login_required
+def cleanup_all_screenshots_route():
+    """Admin route to clean up ALL screenshots regardless of age"""
+    if not current_user.is_admin:
+        flash('You must be an admin to clean up screenshots.', 'danger')
+        return redirect(url_for('index'))
+        
+    try:
+        # Run the complete cleanup function
+        from step1_cleanup import cleanup_all_screenshots
+        
+        cleanup_success = cleanup_all_screenshots()
+        
+        if cleanup_success:
+            session['sync_status'] = {
+                'status': 'success',
+                'message': 'All screenshots have been successfully removed from the screenshots folder.'
+            }
+        else:
+            session['sync_status'] = {
+                'status': 'warning',
+                'message': 'Complete cleanup completed with some issues. Check logs for details.'
+            }
+    except Exception as e:
+        app.logger.error(f"Error cleaning up all screenshots: {str(e)}")
+        traceback.print_exc()
+        
+        session['sync_status'] = {
+            'status': 'danger',
+            'message': f'Error cleaning up all screenshots: {str(e)}'
         }
     
     return redirect(url_for('export_screenshots'))

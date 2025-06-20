@@ -23,10 +23,12 @@ def cleanup_old_screenshots(days_to_keep=7):
             
         cutoff_date = datetime.now() - timedelta(days=days_to_keep)
         cleaned_count = 0
+        total_files = 0
         
         # Find all screenshot files
         pattern = os.path.join(screenshot_dir, '*.png')
         screenshot_files = glob.glob(pattern)
+        total_files = len(screenshot_files)
         
         for file_path in screenshot_files:
             try:
@@ -39,11 +41,42 @@ def cleanup_old_screenshots(days_to_keep=7):
                 logger.warning(f"Failed to remove {file_path}: {str(e)}")
                 continue
                 
-        logger.info(f"Cleanup completed: {cleaned_count} old screenshots removed")
+        logger.info(f"Cleanup completed: {cleaned_count} old screenshots removed out of {total_files} total files")
+        logger.info(f"Keeping files newer than {days_to_keep} days (cutoff: {cutoff_date.strftime('%Y-%m-%d %H:%M:%S')})")
         return True
         
     except Exception as e:
         logger.error(f"Cleanup failed: {str(e)}")
+        return False
+
+def cleanup_all_screenshots():
+    """Clean up ALL screenshots regardless of age"""
+    try:
+        screenshot_dir = os.path.join(os.getcwd(), 'screenshots')
+        if not os.path.exists(screenshot_dir):
+            logger.info("Screenshots directory does not exist, nothing to clean")
+            return True
+            
+        cleaned_count = 0
+        
+        # Find all screenshot files
+        pattern = os.path.join(screenshot_dir, '*.png')
+        screenshot_files = glob.glob(pattern)
+        
+        for file_path in screenshot_files:
+            try:
+                os.remove(file_path)
+                cleaned_count += 1
+                logger.info(f"Removed screenshot: {os.path.basename(file_path)}")
+            except Exception as e:
+                logger.warning(f"Failed to remove {file_path}: {str(e)}")
+                continue
+                
+        logger.info(f"Complete cleanup: {cleaned_count} screenshots removed")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Complete cleanup failed: {str(e)}")
         return False
 
 def cleanup_temp_files():
