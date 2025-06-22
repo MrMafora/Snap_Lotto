@@ -118,29 +118,56 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for div_key in ['div1', 'div2', 'div3', 'div4', 'div5', 'div6', 'div7', 'div8', 'div9'] %}
-                                    {% if divisions[div_key] %}
-                                        {% set div = divisions[div_key] %}
-                                        <tr>
-                                            <td><strong>Div {{ loop.index }} ({{ div.description }})</strong></td>
-                                            <td>{{ div.description }}</td>
-                                            <td>
-                                                {% if div.winners == "0" %}
-                                                    <span class="text-muted">0 winners</span>
-                                                {% else %}
-                                                    <span class="text-success">{{ div.winners }} winner{{ 's' if div.winners|int != 1 else '' }}</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if div.prize == "R0.00" %}
-                                                    <span class="text-muted">{{ div.prize }}</span>
-                                                {% else %}
-                                                    <span class="text-primary"><strong>{{ div.prize }}</strong></span>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
+                                {% if divisions %}
+                                    {% if divisions is mapping %}
+                                        <!-- Handle dictionary format (div1, div2, etc.) -->
+                                        {% for div_key in ['div1', 'div2', 'div3', 'div4', 'div5', 'div6', 'div7', 'div8', 'div9'] %}
+                                            {% if divisions[div_key] %}
+                                                {% set div = divisions[div_key] %}
+                                                <tr>
+                                                    <td><strong>Div {{ loop.index }}</strong></td>
+                                                    <td>{{ div.description }}</td>
+                                                    <td>
+                                                        {% if div.winners == "0" or div.winners == 0 %}
+                                                            <span class="text-muted">0 winners</span>
+                                                        {% else %}
+                                                            <span class="text-success">{{ div.winners }} winner{{ 's' if div.winners|int != 1 else '' }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% if div.prize == "R0.00" %}
+                                                            <span class="text-muted">{{ div.prize }}</span>
+                                                        {% else %}
+                                                            <span class="text-primary"><strong>{{ div.prize }}</strong></span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <!-- Handle list format -->
+                                        {% for div in divisions %}
+                                            <tr>
+                                                <td><strong>{{ div.division }}</strong></td>
+                                                <td>{{ div.get('description', div.division) }}</td>
+                                                <td>
+                                                    {% if div.winners == 0 %}
+                                                        <span class="text-muted">0 winners</span>
+                                                    {% else %}
+                                                        <span class="text-success">{{ div.winners }} winner{{ 's' if div.winners != 1 else '' }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if div.prize_amount == "R0.00" %}
+                                                        <span class="text-muted">{{ div.prize_amount }}</span>
+                                                    {% else %}
+                                                        <span class="text-primary"><strong>{{ div.prize_amount }}</strong></span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
                                     {% endif %}
-                                {% endfor %}
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>

@@ -1403,22 +1403,34 @@ def lottery_details(draw_number):
         
         # Parse divisions data from both possible fields
         divisions = {}
+        app.logger.info(f"DEBUG: lottery_result.divisions type: {type(lottery_result.divisions)}")
+        app.logger.info(f"DEBUG: lottery_result.divisions content: {repr(lottery_result.divisions)}")
+        
         if lottery_result.divisions:
             try:
                 if isinstance(lottery_result.divisions, str):
                     divisions = json.loads(lottery_result.divisions)
+                    app.logger.info(f"DEBUG: Parsed divisions from string: {divisions}")
                 else:
                     divisions = lottery_result.divisions
-            except:
+                    app.logger.info(f"DEBUG: Used divisions directly: {divisions}")
+            except Exception as e:
+                app.logger.error(f"DEBUG: Error parsing divisions: {e}")
                 divisions = {}
-        elif lottery_result.prize_divisions:
+        
+        # Check for prize_divisions field if it exists
+        if hasattr(lottery_result, 'prize_divisions') and lottery_result.prize_divisions and not divisions:
             try:
                 if isinstance(lottery_result.prize_divisions, str):
                     divisions = json.loads(lottery_result.prize_divisions)
                 else:
                     divisions = lottery_result.prize_divisions
-            except:
+            except Exception as e:
+                app.logger.error(f"DEBUG: Error parsing prize_divisions: {e}")
                 divisions = {}
+        
+        app.logger.info(f"DEBUG: Final divisions data: {divisions}")
+        app.logger.info(f"DEBUG: Number of divisions: {len(divisions) if divisions else 0}")
         
         # Create numerical order (sorted)
         numerical_order = sorted(main_numbers) if main_numbers else []
