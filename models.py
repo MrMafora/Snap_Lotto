@@ -270,6 +270,126 @@ class ScheduleConfig(db.Model):
     def __repr__(self):
         return f"<ScheduleConfig {self.lottery_type}: {self.frequency} at {self.hour}:{self.minute}>"
 
+class ExtractionReview(DuplicateCheckMixin, db.Model):
+    """Model for tracking lottery data extraction reviews and approvals"""
+    id = db.Column(db.Integer, primary_key=True)
+    image_filename = db.Column(db.String(255), nullable=False)
+    image_path = db.Column(db.String(500), nullable=False)
+    lottery_type = db.Column(db.String(50), nullable=False)
+    
+    # Extracted data fields
+    extracted_numbers = db.Column(db.Text, nullable=True)  # JSON string
+    extracted_bonus_numbers = db.Column(db.Text, nullable=True)  # JSON string
+    extracted_draw_number = db.Column(db.Integer, nullable=True)
+    extracted_draw_date = db.Column(db.Date, nullable=True)
+    extracted_divisions = db.Column(db.Text, nullable=True)  # JSON string
+    extracted_financial_info = db.Column(db.Text, nullable=True)  # JSON string
+    
+    # Review status
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected, reprocessing
+    reviewed_by = db.Column(db.String(100), nullable=True)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    review_notes = db.Column(db.Text, nullable=True)
+    
+    # Processing information
+    extraction_method = db.Column(db.String(50), default='gemini_2.5_pro')
+    extraction_attempts = db.Column(db.Integer, default=1)
+    confidence_score = db.Column(db.Float, nullable=True)
+    processing_time = db.Column(db.Float, nullable=True)  # seconds
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<ExtractionReview {self.image_filename}: {self.status}>"
+    
+    def get_extracted_numbers_list(self):
+        """Return extracted numbers as a list"""
+        if self.extracted_numbers:
+            try:
+                return json.loads(self.extracted_numbers)
+            except json.JSONDecodeError:
+                return []
+        return []
+    
+    def get_extracted_bonus_numbers_list(self):
+        """Return extracted bonus numbers as a list"""
+        if self.extracted_bonus_numbers:
+            try:
+                return json.loads(self.extracted_bonus_numbers)
+            except json.JSONDecodeError:
+                return []
+        return []
+    
+    def get_extracted_divisions(self):
+        """Return extracted divisions data"""
+        if self.extracted_divisions:
+            try:
+                return json.loads(self.extracted_divisions)
+            except json.JSONDecodeError:
+                return {}
+        return {}
+    
+    def get_extracted_financial_info(self):
+        """Return extracted financial information"""
+        if self.extracted_financial_info:
+            try:
+                return json.loads(self.extracted_financial_info)
+            except json.JSONDecodeError:
+                return {}
+        return {}
+    
+    def approve(self, reviewed_by_name, notes=None):
+        """Approve the extraction and save to main lottery_result table"""
+        self.status = 'approved'
+        self.reviewed_by = reviewed_by_name
+        self.reviewed_at = datetime.utcnow()
+        if notes:
+            self.review_notes = notes
+        
+        # Create lottery result from approved data
+        lottery_result = LotteryResult(
+            lottery_type=self.lottery_type,
+            draw_number=self.extracted_draw_number,
+            draw_date=self.extracted_draw_date,
+            numbers=self.extracted_numbers,
+            bonus_numbers=self.extracted_bonus_numbers,
+            divisions=self.extracted_divisions,
+            total_prize_pool=self.get_extracted_financial_info().get('total_prize_pool'),
+            rollover_amount=self.get_extracted_financial_info().get('rollover_amount'),
+            rollover_number=self.get_extracted_financial_info().get('rollover_number'),
+            total_pool_size=self.get_extracted_financial_info().get('total_pool_size'),
+            total_sales=self.get_extracted_financial_info().get('total_sales'),
+            draw_machine=self.get_extracted_financial_info().get('draw_machine'),
+            next_draw_date=self.get_extracted_financial_info().get('next_draw_date'),
+            estimated_jackpot=self.get_extracted_financial_info().get('estimated_jackpot'),
+            additional_info=self.get_extracted_financial_info().get('additional_info')
+        )
+        
+        db.session.add(lottery_result)
+        db.session.commit()
+        return lottery_result
+    
+    def reject(self, reviewed_by_name, notes=None):
+        """Reject the extraction for reprocessing"""
+        self.status = 'rejected'
+        self.reviewed_by = reviewed_by_name
+        self.reviewed_at = datetime.utcnow()
+        if notes:
+            self.review_notes = notes
+        db.session.commit()
+    
+    def request_deeper_extraction(self, reviewed_by_name, notes=None):
+        """Request deeper extraction processing"""
+        self.status = 'reprocessing'
+        self.reviewed_by = reviewed_by_name
+        self.reviewed_at = datetime.utcnow()
+        self.extraction_attempts += 1
+        if notes:
+            self.review_notes = notes
+        db.session.commit()
+
 class Campaign(DuplicateCheckMixin, db.Model):
     """Model for grouping advertisements into campaigns"""
     id = db.Column(db.Integer, primary_key=True)
@@ -292,7 +412,7 @@ class Campaign(DuplicateCheckMixin, db.Model):
         return f"<Campaign {self.name}>"
     
     def get_spent_budget(self):
-        """Calculate spent budget based on impressions and clicks"""
+        """Calculate spent budget based on impressions and kicks"""
         # Since we've removed the ad system, we always return 0
         return 0
     

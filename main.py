@@ -84,7 +84,7 @@ from flask_wtf.csrf import CSRFProtect
 import json
 
 # Import models only (lightweight)
-from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, db
+from models import LotteryResult, ScheduleConfig, Screenshot, User, Advertisement, AdImpression, Campaign, AdVariation, ImportHistory, ImportedRecord, ExtractionReview, db
 from config import Config
 from sqlalchemy import text
 
@@ -4315,6 +4315,376 @@ def scheduler_control(action):
     return redirect(url_for('daily_automation_dashboard'))
 
 # When running directly, not through gunicorn
+
+# Data Preview and Approval System Routes
+
+@app.route('/data_preview')
+@login_required
+def data_preview():
+    """Display all pending extractions for review"""
+    page = request.args.get('page', 1, type=int)
+    status_filter = request.args.get('status', 'pending')
+    
+    # Get extractions with pagination
+    extractions_query = ExtractionReview.query
+    
+    if status_filter != 'all':
+        extractions_query = extractions_query.filter_by(status=status_filter)
+    
+    extractions_query = extractions_query.order_by(ExtractionReview.created_at.desc())
+    extractions = extractions_query.paginate(
+        page=page, per_page=10, error_out=False
+    )
+    
+    # Get status counts for filter buttons
+    status_counts = {
+        'pending': ExtractionReview.query.filter_by(status='pending').count(),
+        'approved': ExtractionReview.query.filter_by(status='approved').count(),
+        'rejected': ExtractionReview.query.filter_by(status='rejected').count(),
+        'reprocessing': ExtractionReview.query.filter_by(status='reprocessing').count(),
+        'all': ExtractionReview.query.count()
+    }
+    
+    return render_template('data_preview.html', 
+                         extractions=extractions, 
+                         status_filter=status_filter,
+                         status_counts=status_counts)
+
+@app.route('/extraction_review/<int:extraction_id>')
+@login_required
+def extraction_review(extraction_id):
+    """Display detailed review page for a specific extraction"""
+    extraction = ExtractionReview.query.get_or_404(extraction_id)
+    
+    # Check if image file exists
+    image_exists = os.path.exists(extraction.image_path)
+    
+    return render_template('extraction_review.html', 
+                         extraction=extraction,
+                         image_exists=image_exists)
+
+@app.route('/api/extraction_action', methods=['POST'])
+@login_required
+def api_extraction_action():
+    """API endpoint to approve, reject, or request deeper extraction"""
+    try:
+        data = request.get_json()
+        extraction_id = data.get('extraction_id')
+        action = data.get('action')  # 'approve', 'reject', 'deeper_extraction'
+        notes = data.get('notes', '')
+        
+        extraction = ExtractionReview.query.get_or_404(extraction_id)
+        reviewer_name = current_user.username if current_user.is_authenticated else 'Admin'
+        
+        if action == 'approve':
+            lottery_result = extraction.approve(reviewer_name, notes)
+            return jsonify({
+                'success': True,
+                'message': f'Extraction approved and saved as Draw {lottery_result.draw_number}',
+                'lottery_result_id': lottery_result.id
+            })
+            
+        elif action == 'reject':
+            extraction.reject(reviewer_name, notes)
+            return jsonify({
+                'success': True,
+                'message': 'Extraction rejected'
+            })
+            
+        elif action == 'deeper_extraction':
+            extraction.request_deeper_extraction(reviewer_name, notes)
+            # Trigger deeper extraction here
+            deeper_result = perform_deeper_extraction(extraction)
+            return jsonify({
+                'success': True,
+                'message': 'Deeper extraction requested and processing started',
+                'new_data': deeper_result
+            })
+        
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid action specified'
+            })
+            
+    except Exception as e:
+        app.logger.error(f"Extraction action error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/process_image_for_review', methods=['POST'])
+@login_required 
+def api_process_image_for_review():
+    """Process uploaded image and create extraction review entry"""
+    try:
+        if 'image' not in request.files:
+            return jsonify({'success': False, 'error': 'No image uploaded'})
+        
+        file = request.files['image']
+        lottery_type = request.form.get('lottery_type', 'Unknown')
+        
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'})
+        
+        # Save uploaded file
+        filename = secure_filename(file.filename)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_filename = f"{timestamp}_{filename}"
+        
+        upload_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        file.save(upload_path)
+        
+        # Process with Gemini 2.5 Pro
+        extracted_data = extract_with_gemini_for_review(upload_path, lottery_type)
+        
+        # Create extraction review record
+        extraction_review = ExtractionReview(
+            image_filename=unique_filename,
+            image_path=upload_path,
+            lottery_type=lottery_type,
+            extracted_numbers=json.dumps(extracted_data.get('numbers', [])),
+            extracted_bonus_numbers=json.dumps(extracted_data.get('bonus_numbers', [])),
+            extracted_draw_number=extracted_data.get('draw_number'),
+            extracted_draw_date=extracted_data.get('draw_date'),
+            extracted_divisions=json.dumps(extracted_data.get('divisions', {})),
+            extracted_financial_info=json.dumps(extracted_data.get('financial_info', {})),
+            confidence_score=extracted_data.get('confidence_score', 0.0),
+            processing_time=extracted_data.get('processing_time', 0.0)
+        )
+        
+        db.session.add(extraction_review)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Image processed successfully and ready for review',
+            'extraction_id': extraction_review.id,
+            'redirect_url': url_for('extraction_review', extraction_id=extraction_review.id)
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Image processing error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+def extract_with_gemini_for_review(image_path, lottery_type):
+    """Extract lottery data using Gemini 2.5 Pro for review"""
+    import time
+    start_time = time.time()
+    
+    try:
+        # Use Google Gemini API key
+        api_key = os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY')
+        if not api_key:
+            raise ValueError("Google API key not configured")
+        
+        # Import Gemini client
+        from google import genai
+        from google.genai import types
+        
+        client = genai.Client(api_key=api_key)
+        
+        # Read image file
+        with open(image_path, 'rb') as f:
+            image_data = f.read()
+        
+        # Create comprehensive extraction prompt
+        prompt = f"""
+        Extract complete South African {lottery_type} lottery data from this image with maximum accuracy.
+        
+        Please extract ALL available information including:
+        
+        1. WINNING NUMBERS: All main numbers in order
+        2. BONUS/POWERBALL: Any bonus or PowerBall numbers
+        3. DRAW DETAILS: Draw number and date
+        4. PRIZE DIVISIONS: All divisions with winners and amounts
+        5. FINANCIAL INFO: Rollover amounts, total sales, jackpot estimates
+        
+        Return data in this exact JSON format:
+        {{
+            "numbers": [list of main numbers],
+            "bonus_numbers": [list of bonus numbers],
+            "draw_number": number,
+            "draw_date": "YYYY-MM-DD",
+            "divisions": {{
+                "div1": {{"winners": "X", "prize": "RX.XX", "description": "match description"}},
+                "div2": {{"winners": "X", "prize": "RX.XX", "description": "match description"}},
+                ...
+            }},
+            "financial_info": {{
+                "rollover_amount": "amount",
+                "total_sales": "amount", 
+                "next_jackpot": "amount",
+                "draw_machine": "machine name"
+            }},
+            "confidence_score": 0.95
+        }}
+        
+        Be extremely precise with numbers and amounts. Extract ALL visible prize divisions.
+        """
+        
+        # Generate content with Gemini 2.5 Pro
+        response = client.models.generate_content(
+            model="gemini-2.5-pro",
+            contents=[
+                types.Part.from_bytes(data=image_data, mime_type="image/jpeg"),
+                prompt
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+        )
+        
+        # Parse response
+        if response.text:
+            extracted_data = json.loads(response.text)
+            processing_time = time.time() - start_time
+            extracted_data['processing_time'] = processing_time
+            return extracted_data
+        else:
+            raise ValueError("No response from Gemini")
+            
+    except Exception as e:
+        app.logger.error(f"Gemini extraction error: {e}")
+        return {
+            'numbers': [],
+            'bonus_numbers': [],
+            'draw_number': None,
+            'draw_date': None,
+            'divisions': {},
+            'financial_info': {},
+            'confidence_score': 0.0,
+            'processing_time': time.time() - start_time,
+            'error': str(e)
+        }
+
+def perform_deeper_extraction(extraction_review):
+    """Perform deeper extraction with enhanced prompting"""
+    try:
+        # Use more detailed prompting for deeper extraction
+        enhanced_data = extract_with_gemini_deeper(extraction_review.image_path, extraction_review.lottery_type)
+        
+        # Update extraction review with new data
+        extraction_review.extracted_numbers = json.dumps(enhanced_data.get('numbers', []))
+        extraction_review.extracted_bonus_numbers = json.dumps(enhanced_data.get('bonus_numbers', []))
+        extraction_review.extracted_draw_number = enhanced_data.get('draw_number')
+        extraction_review.extracted_draw_date = enhanced_data.get('draw_date')
+        extraction_review.extracted_divisions = json.dumps(enhanced_data.get('divisions', {}))
+        extraction_review.extracted_financial_info = json.dumps(enhanced_data.get('financial_info', {}))
+        extraction_review.confidence_score = enhanced_data.get('confidence_score', 0.0)
+        extraction_review.status = 'pending'  # Reset to pending for re-review
+        
+        db.session.commit()
+        return enhanced_data
+        
+    except Exception as e:
+        app.logger.error(f"Deeper extraction error: {e}")
+        return None
+
+def extract_with_gemini_deeper(image_path, lottery_type):
+    """Enhanced extraction with more detailed prompting"""
+    import time
+    start_time = time.time()
+    
+    try:
+        api_key = os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY')
+        if not api_key:
+            raise ValueError("Google API key not configured")
+        
+        from google import genai
+        from google.genai import types
+        
+        client = genai.Client(api_key=api_key)
+        
+        with open(image_path, 'rb') as f:
+            image_data = f.read()
+        
+        # Enhanced detailed prompt for deeper extraction
+        enhanced_prompt = f"""
+        DEEP ANALYSIS: Extract complete South African {lottery_type} lottery data with maximum precision.
+        
+        STEP-BY-STEP EXTRACTION:
+        
+        1. SCAN THE ENTIRE IMAGE carefully for all lottery information
+        2. IDENTIFY the lottery type and verify it matches {lottery_type}
+        3. LOCATE winning numbers section - extract ALL main numbers
+        4. FIND bonus/PowerBall section - extract bonus numbers
+        5. READ draw information - extract draw number and date
+        6. ANALYZE prize breakdown table - extract ALL divisions (typically 8-9 divisions)
+        7. CAPTURE financial details - rollover, sales, jackpots
+        
+        QUALITY CHECKS:
+        - Verify number count matches lottery type requirements
+        - Ensure all prize divisions are captured
+        - Double-check date format and draw number
+        - Validate prize amounts format
+        
+        Return comprehensive JSON with ALL extracted data:
+        {{
+            "numbers": [all main winning numbers],
+            "bonus_numbers": [bonus/PowerBall numbers],
+            "draw_number": actual_draw_number,
+            "draw_date": "YYYY-MM-DD",
+            "divisions": {{
+                "div1": {{"winners": "exact_count", "prize": "R0.00", "description": "6 Correct Numbers"}},
+                "div2": {{"winners": "exact_count", "prize": "RX,XXX.XX", "description": "5 Correct + Bonus"}},
+                "div3": {{"winners": "exact_count", "prize": "RX,XXX.XX", "description": "5 Correct"}},
+                "div4": {{"winners": "exact_count", "prize": "RX,XXX.XX", "description": "4 Correct + Bonus"}},
+                "div5": {{"winners": "exact_count", "prize": "RX,XXX.XX", "description": "4 Correct"}},
+                "div6": {{"winners": "exact_count", "prize": "RX,XXX.XX", "description": "3 Correct + Bonus"}},
+                "div7": {{"winners": "exact_count", "prize": "RX,XXX.XX", "description": "3 Correct"}},
+                "div8": {{"winners": "exact_count", "prize": "RX,XXX.XX", "description": "2 Correct + Bonus"}}
+            }},
+            "financial_info": {{
+                "rollover_amount": "complete_amount",
+                "total_sales": "complete_amount",
+                "next_jackpot": "estimated_amount",
+                "draw_machine": "machine_name_if_visible",
+                "total_prize_pool": "pool_amount"
+            }},
+            "confidence_score": 0.98
+        }}
+        
+        CRITICAL: Extract every visible piece of lottery data. Be extremely thorough.
+        """
+        
+        response = client.models.generate_content(
+            model="gemini-2.5-pro",
+            contents=[
+                types.Part.from_bytes(data=image_data, mime_type="image/jpeg"),
+                enhanced_prompt
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.1  # Lower temperature for more consistent extraction
+            )
+        )
+        
+        if response.text:
+            extracted_data = json.loads(response.text)
+            processing_time = time.time() - start_time
+            extracted_data['processing_time'] = processing_time
+            return extracted_data
+        else:
+            raise ValueError("No response from enhanced Gemini extraction")
+            
+    except Exception as e:
+        app.logger.error(f"Enhanced Gemini extraction error: {e}")
+        return {
+            'numbers': [],
+            'bonus_numbers': [],
+            'draw_number': None,
+            'draw_date': None,
+            'divisions': {},
+            'financial_info': {},
+            'confidence_score': 0.0,
+            'processing_time': time.time() - start_time,
+            'error': str(e)
+        }
 
 if __name__ == "__main__":
     # Extra logging to help diagnose startup issues
