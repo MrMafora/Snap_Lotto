@@ -20,13 +20,22 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
 - Successfully implemented complete lottery data display with all 8 prize divisions
 - Fixed JSON data parsing for proper database prize division rendering
 - Updated lottery details template to display complete prize division tables
+- **COMPLETED: Data Preview and Approval System (June 23, 2025)**
+  - Added ExtractionReview database model for tracking image processing
+  - Created comprehensive review dashboard with status filtering
+  - Built detailed extraction review interface with full data display
+  - Implemented three-action workflow: Approve, Request Deeper Extraction, Reject
+  - Integrated Google Gemini 2.5 Pro for both standard and enhanced extraction
+  - Added sample data for testing the approval workflow
 
-## Active Request
-User wants a data preview and approval system that allows:
-- Preview extracted data from each image
-- Approve correct data
-- Send incorrect data back for deeper extraction
-- Process each image individually
+## Active Features
+Data preview and approval system now allows:
+- Upload lottery images with automatic AI processing
+- Review extracted numbers, prize divisions, and financial data
+- Approve accurate extractions to save to main database
+- Request deeper extraction with enhanced AI analysis for better accuracy
+- Reject incorrect extractions
+- Track processing confidence scores and review history
 
 ## Architecture
 - Python Flask backend with PostgreSQL database

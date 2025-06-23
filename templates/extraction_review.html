@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block title %}Review Extraction - Snap Lotto{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">
+                    <i class="fas fa-magnifying-glass text-primary"></i>
+                    Review Extraction
+                </h1>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('data_preview') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Preview
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Image Preview Column -->
+                <div class="col-lg-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-image"></i> 
+                                Source Image
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if image_exists %}
+                                <div class="text-center">
+                                    <img src="{{ url_for('static', filename='uploads/' + extraction.image_filename) }}" 
+                                         alt="Lottery Image" 
+                                         class="img-fluid rounded shadow-sm"
+                                         style="max-height: 400px; cursor: pointer;"
+                                         data-bs-toggle="modal" 
+                                         data-bs-target="#imageModal">
+                                    <div class="mt-2">
+                                        <small class="text-muted">{{ extraction.image_filename }}</small>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="text-center text-muted py-5">
+                                    <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                                    <h6>Image file not found</h6>
+                                    <p>{{ extraction.image_filename }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Processing Information -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Processing Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Method:</strong><br>
+                                    <span class="badge bg-info">{{ extraction.extraction_method }}</span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Attempts:</strong><br>
+                                    <span class="badge bg-secondary">{{ extraction.extraction_attempts }}</span>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-6">
+                                    <strong>Confidence:</strong><br>
+                                    {% if extraction.confidence_score %}
+                                        {% set confidence_class = 'success' if extraction.confidence_score >= 0.8 else 'warning' if extraction.confidence_score >= 0.6 else 'danger' %}
+                                        <span class="badge bg-{{ confidence_class }}">
+                                            {{ "%.1f"|format(extraction.confidence_score * 100) }}%
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </div>
+                                <div class="col-6">
+                                    <strong>Process Time:</strong><br>
+                                    {% if extraction.processing_time %}
+                                        <span class="text-muted">{{ "%.2f"|format(extraction.processing_time) }}s</span>
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <strong>Created:</strong> {{ extraction.created_at.strftime('%Y-%m-%d %H:%M:%S') }}<br>
+                                {% if extraction.reviewed_at %}
+                                    <strong>Reviewed:</strong> {{ extraction.reviewed_at.strftime('%Y-%m-%d %H:%M:%S') }} by {{ extraction.reviewed_by }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Extracted Data Column -->
+                <div class="col-lg-6">
+                    <!-- Basic Information -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle"></i>
+                                Extracted Information
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Lottery Type</h6>
+                                    <span class="badge bg-secondary fs-6">{{ extraction.lottery_type }}</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Draw Number</h6>
+                                    {% if extraction.extracted_draw_number %}
+                                        <strong class="text-primary">{{ extraction.extracted_draw_number }}</strong>
+                                    {% else %}
+                                        <span class="text-muted">Not extracted</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <h6>Draw Date</h6>
+                                    {% if extraction.extracted_draw_date %}
+                                        <strong>{{ extraction.extracted_draw_date }}</strong>
+                                    {% else %}
+                                        <span class="text-muted">Not extracted</span>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Status</h6>
+                                    {% if extraction.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending Review</span>
+                                    {% elif extraction.status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                    {% elif extraction.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                    {% elif extraction.status == 'reprocessing' %}
+                                        <span class="badge bg-info">Reprocessing</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Winning Numbers -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-dice"></i>
+                                Winning Numbers
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <strong>Main Numbers:</strong><br>
+                                {% set main_numbers = extraction.get_extracted_numbers_list() %}
+                                {% if main_numbers %}
+                                    <div class="mt-2">
+                                        {% for number in main_numbers %}
+                                            <span class="badge bg-primary me-2 mb-1" style="font-size: 1.1em; padding: 8px 12px;">{{ number }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">No numbers extracted</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% set bonus_numbers = extraction.get_extracted_bonus_numbers_list() %}
+                            {% if bonus_numbers %}
+                                <div>
+                                    <strong>Bonus/PowerBall:</strong><br>
+                                    <div class="mt-2">
+                                        {% for number in bonus_numbers %}
+                                            <span class="badge bg-warning me-2 mb-1" style="font-size: 1.1em; padding: 8px 12px;">{{ number }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Prize Divisions -->
+                    {% set divisions = extraction.get_extracted_divisions() %}
+                    {% if divisions %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-trophy"></i>
+                                Prize Divisions
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Division</th>
+                                            <th>Winners</th>
+                                            <th>Prize</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for div_key, div_data in divisions.items() %}
+                                        <tr>
+                                            <td><strong>{{ div_key.upper() }}</strong></td>
+                                            <td>{{ div_data.get('winners', 'N/A') }}</td>
+                                            <td>{{ div_data.get('prize', 'N/A') }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Financial Information -->
+                    {% set financial = extraction.get_extracted_financial_info() %}
+                    {% if financial %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-money-bill-wave"></i>
+                                Financial Information
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% if financial.get('rollover_amount') %}
+                                <div class="col-md-6 mb-2">
+                                    <strong>Rollover:</strong><br>
+                                    <span class="text-primary">{{ financial.rollover_amount }}</span>
+                                </div>
+                                {% endif %}
+                                {% if financial.get('total_sales') %}
+                                <div class="col-md-6 mb-2">
+                                    <strong>Total Sales:</strong><br>
+                                    <span class="text-success">{{ financial.total_sales }}</span>
+                                </div>
+                                {% endif %}
+                                {% if financial.get('next_jackpot') %}
+                                <div class="col-md-6 mb-2">
+                                    <strong>Next Jackpot:</strong><br>
+                                    <span class="text-warning">{{ financial.next_jackpot }}</span>
+                                </div>
+                                {% endif %}
+                                {% if financial.get('draw_machine') %}
+                                <div class="col-md-6 mb-2">
+                                    <strong>Draw Machine:</strong><br>
+                                    <span class="text-muted">{{ financial.draw_machine }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            {% if extraction.status == 'pending' or extraction.status == 'reprocessing' %}
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Review Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <button class="btn btn-success w-100" id="approveBtn">
+                                <i class="fas fa-check"></i> Approve Extraction
+                            </button>
+                            <small class="text-muted">Save this data to the main database</small>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-info w-100" id="deeperBtn">
+                                <i class="fas fa-search-plus"></i> Request Deeper Extraction
+                            </button>
+                            <small class="text-muted">Re-process with enhanced AI analysis</small>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-danger w-100" id="rejectBtn">
+                                <i class="fas fa-times"></i> Reject Extraction
+                            </button>
+                            <small class="text-muted">Mark as incorrect and discard</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label for="reviewNotes" class="form-label">Review Notes (Optional)</label>
+                        <textarea class="form-control" id="reviewNotes" rows="3" 
+                                  placeholder="Add any notes about your decision..."></textarea>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Previous Review Information -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Review History</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Status:</strong> {{ extraction.status|title }}<br>
+                        <strong>Reviewed by:</strong> {{ extraction.reviewed_by }}<br>
+                        <strong>Date:</strong> {{ extraction.reviewed_at.strftime('%Y-%m-%d %H:%M:%S') }}<br>
+                        {% if extraction.review_notes %}
+                            <strong>Notes:</strong> {{ extraction.review_notes }}
+                        {% endif %}
+                    </div>
+                    {% if extraction.status == 'approved' %}
+                        <a href="{{ url_for('results') }}" class="btn btn-primary">
+                            <i class="fas fa-eye"></i> View in Results
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ extraction.image_filename }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                {% if image_exists %}
+                    <img src="{{ url_for('static', filename='uploads/' + extraction.image_filename) }}" 
+                         alt="Lottery Image" 
+                         class="img-fluid">
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const extractionId = {{ extraction.id }};
+    const reviewNotes = document.getElementById('reviewNotes');
+
+    // Action button handlers
+    document.getElementById('approveBtn')?.addEventListener('click', function() {
+        if (confirm('Are you sure you want to approve this extraction? It will be added to the main database.')) {
+            performAction('approve');
+        }
+    });
+
+    document.getElementById('deeperBtn')?.addEventListener('click', function() {
+        if (confirm('Request deeper extraction? This will re-process the image with enhanced AI analysis.')) {
+            performAction('deeper_extraction');
+        }
+    });
+
+    document.getElementById('rejectBtn')?.addEventListener('click', function() {
+        if (confirm('Are you sure you want to reject this extraction? This action cannot be undone.')) {
+            performAction('reject');
+        }
+    });
+
+    function performAction(action) {
+        const actionData = {
+            extraction_id: extractionId,
+            action: action,
+            notes: reviewNotes.value
+        };
+
+        // Disable all buttons during processing
+        const buttons = document.querySelectorAll('#approveBtn, #deeperBtn, #rejectBtn');
+        buttons.forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        });
+
+        fetch('/api/extraction_action', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content
+            },
+            body: JSON.stringify(actionData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <strong>Success!</strong> ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.row'));
+                
+                // Redirect after a delay
+                setTimeout(() => {
+                    window.location.href = '/data_preview';
+                }, 2000);
+            } else {
+                alert('Error: ' + data.error);
+                // Re-enable buttons
+                buttons.forEach((btn, index) => {
+                    btn.disabled = false;
+                    const actions = ['Approve Extraction', 'Request Deeper Extraction', 'Reject Extraction'];
+                    const icons = ['check', 'search-plus', 'times'];
+                    btn.innerHTML = `<i class="fas fa-${icons[index]}"></i> ${actions[index]}`;
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Action error:', error);
+            alert('Action failed. Please try again.');
+            // Re-enable buttons
+            buttons.forEach((btn, index) => {
+                btn.disabled = false;
+                const actions = ['Approve Extraction', 'Request Deeper Extraction', 'Reject Extraction'];
+                const icons = ['check', 'search-plus', 'times'];
+                btn.innerHTML = `<i class="fas fa-${icons[index]}"></i> ${actions[index]}`;
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
