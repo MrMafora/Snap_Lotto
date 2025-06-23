@@ -128,7 +128,11 @@
                                     </td>
                                     <td>
                                         <small class="text-muted">
-                                            {{ extraction.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                            {% if extraction.created_at %}
+                                                {{ extraction.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
                                         </small>
                                     </td>
                                     <td>
