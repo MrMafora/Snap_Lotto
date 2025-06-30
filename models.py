@@ -348,9 +348,29 @@ class ExtractionReview(DuplicateCheckMixin, db.Model):
         if notes:
             self.review_notes = notes
         
+        # Normalize lottery type to match existing database format
+        lottery_type_mapping = {
+            'Lotto': 'LOTTO',
+            'LOTTO': 'LOTTO',
+            'Lotto Plus 1': 'LOTTO PLUS 1',
+            'LOTTO PLUS 1': 'LOTTO PLUS 1',
+            'Lotto Plus 2': 'LOTTO PLUS 2', 
+            'LOTTO PLUS 2': 'LOTTO PLUS 2',
+            'PowerBall': 'PowerBall',
+            'Powerball': 'PowerBall',
+            'POWERBALL': 'PowerBall',
+            'PowerBall Plus': 'POWERBALL PLUS',
+            'Powerball Plus': 'POWERBALL PLUS',
+            'POWERBALL PLUS': 'POWERBALL PLUS',
+            'Daily Lotto': 'DAILY LOTTO',
+            'DAILY LOTTO': 'DAILY LOTTO'
+        }
+        
+        normalized_lottery_type = lottery_type_mapping.get(self.lottery_type, self.lottery_type)
+        
         # Create lottery result from approved data
         lottery_result = LotteryResult(
-            lottery_type=self.lottery_type,
+            lottery_type=normalized_lottery_type,
             draw_number=self.extracted_draw_number,
             draw_date=self.extracted_draw_date,
             main_numbers=self.extracted_numbers,
