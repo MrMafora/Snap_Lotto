@@ -27,6 +27,12 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
   - Implemented three-action workflow: Approve, Request Deeper Extraction, Reject
   - Integrated Google Gemini 2.5 Pro for both standard and enhanced extraction
   - Added sample data for testing the approval workflow
+- **FIXED: Approval System Freeze Issue (June 30, 2025)**
+  - Resolved "Save this data to the main database" button freeze
+  - Fixed API endpoint routing from /api/extraction_action to /api/review_action format
+  - Corrected database field mapping (main_numbers vs numbers) in approval workflow
+  - Successfully tested complete end-to-end approval process
+  - Verified data saves correctly to main lottery results database
 
 ## Active Features
 Data preview and approval system now allows:
