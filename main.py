@@ -4805,6 +4805,14 @@ def api_review_action(action, extraction_id):
         reviewer_name = current_user.username
         
         if action == 'approve':
+            # Check if already approved
+            if extraction.status == 'approved':
+                return jsonify({
+                    'success': False,
+                    'error': 'This extraction has already been approved',
+                    'message': 'Cannot approve an extraction that has already been processed'
+                })
+            
             # Approve and save to main lottery_result table
             lottery_result = extraction.approve(reviewer_name, review_notes)
             return jsonify({

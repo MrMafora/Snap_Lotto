@@ -404,7 +404,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.location.href = '/data_preview';
                 }, 2000);
             } else {
-                alert('Error: ' + data.error);
+                // Show specific error message
+                const errorMessage = data.error || data.message || 'Action failed. Please try again.';
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-warning alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <strong>Notice:</strong> ${errorMessage}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.row'));
+                
                 // Re-enable buttons
                 buttons.forEach((btn, index) => {
                     btn.disabled = false;
@@ -416,7 +425,16 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Action error:', error);
-            alert('Action failed. Please try again.');
+            
+            // Show specific error message
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <strong>Network Error!</strong> Unable to connect to server. Please check your connection and try again.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.row'));
+            
             // Re-enable buttons
             buttons.forEach((btn, index) => {
                 btn.disabled = false;
