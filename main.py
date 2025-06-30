@@ -285,9 +285,9 @@ def home():
         # - DAILY LOTTO draws independently
         query = text("""
             WITH ranked_results AS (
-              SELECT lottery_type, draw_number, draw_date, numbers as main_numbers, bonus_numbers,
+              SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers,
                 ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY draw_date DESC, draw_number DESC) as rn
-              FROM lottery_result 
+              FROM lottery_results 
               WHERE lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'PowerBall', 'POWERBALL PLUS', 'DAILY LOTTO')
             )
             SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers
@@ -1250,9 +1250,9 @@ def results():
             # - DAILY LOTTO draws independently
             query = text("""
                 WITH ranked_results AS (
-                  SELECT lottery_type, draw_number, draw_date, numbers as main_numbers, bonus_numbers,
+                  SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers,
                     ROW_NUMBER() OVER (PARTITION BY lottery_type ORDER BY draw_date DESC, draw_number DESC) as rn
-                  FROM lottery_result 
+                  FROM lottery_results 
                   WHERE lottery_type IN ('LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'PowerBall', 'POWERBALL PLUS', 'DAILY LOTTO')
                 )
                 SELECT lottery_type, draw_number, draw_date, main_numbers, bonus_numbers
