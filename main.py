@@ -4686,6 +4686,73 @@ def extract_with_gemini_deeper(image_path, lottery_type):
             'error': str(e)
         }
 
+@app.route('/api/review_action/<action>/<int:extraction_id>', methods=['POST'])
+@login_required
+def api_review_action(action, extraction_id):
+    """API endpoint for review actions (approve, reject, request_deeper)"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        extraction = ExtractionReview.query.get_or_404(extraction_id)
+        review_notes = request.json.get('notes', '') if request.is_json else request.form.get('notes', '')
+        reviewer_name = current_user.username
+        
+        if action == 'approve':
+            # Approve and save to main lottery_result table
+            lottery_result = extraction.approve(reviewer_name, review_notes)
+            return jsonify({
+                'success': True,
+                'message': 'Extraction approved and saved to main database',
+                'lottery_result_id': lottery_result.id
+            })
+            
+        elif action == 'reject':
+            # Reject the extraction
+            extraction.reject(reviewer_name, review_notes)
+            return jsonify({
+                'success': True,
+                'message': 'Extraction rejected'
+            })
+            
+        elif action == 'request_deeper':
+            # Request deeper extraction
+            extraction.request_deeper_extraction(reviewer_name, review_notes)
+            
+            # Trigger enhanced extraction with Gemini
+            if extraction.image_path and os.path.exists(extraction.image_path):
+                enhanced_data = extract_with_enhanced_gemini(extraction.image_path, extraction.lottery_type)
+                
+                # Update extraction with enhanced data
+                extraction.extracted_numbers = json.dumps(enhanced_data.get('numbers', []))
+                extraction.extracted_bonus_numbers = json.dumps(enhanced_data.get('bonus_numbers', []))
+                extraction.extracted_draw_number = enhanced_data.get('draw_number')
+                extraction.extracted_draw_date = enhanced_data.get('draw_date')
+                extraction.extracted_divisions = json.dumps(enhanced_data.get('divisions', {}))
+                extraction.extracted_financial_info = json.dumps(enhanced_data.get('financial_info', {}))
+                extraction.confidence_score = enhanced_data.get('confidence_score', 0.0)
+                extraction.processing_time = enhanced_data.get('processing_time', 0.0)
+                extraction.status = 'pending'  # Reset to pending for re-review
+                
+                db.session.commit()
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Enhanced extraction completed',
+                    'confidence_score': extraction.confidence_score
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Image file not found for enhanced processing'
+                })
+        else:
+            return jsonify({'success': False, 'error': 'Invalid action'}), 400
+            
+    except Exception as e:
+        app.logger.error(f"Review action error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 if __name__ == "__main__":
     # Extra logging to help diagnose startup issues
     import logging
