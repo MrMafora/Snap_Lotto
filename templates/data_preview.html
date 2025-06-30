@@ -274,12 +274,20 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('/api/process_image_for_review', {
             method: 'POST',
             body: formData,
-            headers: {
-                'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content
-            }
+            credentials: 'same-origin'  // Include session cookies
         })
-        .then(response => response.json())
+        .then(response => {
+            if (response.redirected && response.url.includes('/login')) {
+                // User was redirected to login - session expired
+                uploadStatus.innerHTML = '<div class="alert alert-warning">Session expired. Please <a href="/login">login again</a>.</div>';
+                submitBtn.disabled = false;
+                return;
+            }
+            return response.json();
+        })
         .then(data => {
+            if (!data) return; // Handle case where we returned early due to login redirect
+            
             progressBar.style.width = '100%';
             
             if (data.success) {
@@ -296,6 +304,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Upload error:', error);
             uploadStatus.innerHTML = '<div class="alert alert-danger">Upload failed. Please try again.</div>';
             submitBtn.disabled = false;
+            progressBar.style.width = '0%';
+            uploadProgress.classList.add('d-none');
         });
     });
 

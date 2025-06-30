@@ -4686,6 +4686,112 @@ def extract_with_gemini_deeper(image_path, lottery_type):
             'error': str(e)
         }
 
+def extract_with_enhanced_gemini_for_review(image_path, lottery_type):
+    """Enhanced extraction using Gemini 2.5 Pro for deeper analysis"""
+    import time
+    start_time = time.time()
+    
+    try:
+        # Use Google Gemini API key
+        api_key = os.environ.get('GOOGLE_API_KEY_SNAP_LOTTERY')
+        if not api_key:
+            raise ValueError("Google API key not configured")
+        
+        # Import Gemini client
+        from google import genai
+        from google.genai import types
+        
+        client = genai.Client(api_key=api_key)
+        
+        # Read image file
+        with open(image_path, 'rb') as f:
+            image_data = f.read()
+        
+        # Enhanced extraction prompt with more specific instructions
+        enhanced_prompt = f"""
+        ENHANCED DEEP ANALYSIS: Extract complete South African {lottery_type} lottery data from this image with MAXIMUM precision.
+        
+        You are an expert lottery data extraction system. Analyze this image with extreme care and extract:
+        
+        1. WINNING NUMBERS: All main numbers in exact order shown
+        2. BONUS/POWERBALL NUMBERS: Any additional numbers (bonus balls, powerballs)
+        3. DRAW INFORMATION:
+           - Draw number (e.g., 2551, 1625, 2268)
+           - Draw date (format: YYYY-MM-DD)
+        
+        4. COMPLETE PRIZE DIVISIONS: Extract ALL divisions shown with:
+           - Division name/number (e.g., "Division 1", "Match 6", etc.)
+           - Number of winners
+           - Prize amount per winner
+        
+        5. FINANCIAL INFORMATION:
+           - Total prize pool
+           - Rollover amount (if any)
+           - Next estimated jackpot
+           - Total sales figures
+           - Any additional financial data
+        
+        Return data in this EXACT JSON structure:
+        {{
+            "numbers": [list of main winning numbers],
+            "bonus_numbers": [list of bonus/powerball numbers],
+            "draw_number": integer draw number,
+            "draw_date": "YYYY-MM-DD",
+            "divisions": {{
+                "Division 1": {{"winners": number, "payout": amount}},
+                "Division 2": {{"winners": number, "payout": amount}}
+                // ... continue for all divisions found
+            }},
+            "financial_info": {{
+                "total_prize_pool": amount,
+                "rollover_amount": amount,
+                "estimated_jackpot": amount,
+                "total_sales": amount,
+                "next_draw_date": "YYYY-MM-DD"
+            }},
+            "confidence_score": 0.95
+        }}
+        
+        CRITICAL: Be extremely thorough. Double-check all numbers and amounts. This is for financial record-keeping.
+        """
+        
+        response = client.models.generate_content(
+            model="gemini-2.5-pro",
+            contents=[
+                types.Part.from_bytes(data=image_data, mime_type="image/jpeg"),
+                enhanced_prompt
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.05  # Very low temperature for maximum consistency
+            )
+        )
+        
+        if response.text:
+            extracted_data = json.loads(response.text)
+            processing_time = time.time() - start_time
+            extracted_data['processing_time'] = processing_time
+            # Boost confidence for enhanced extraction
+            if 'confidence_score' in extracted_data:
+                extracted_data['confidence_score'] = min(extracted_data['confidence_score'] + 0.1, 1.0)
+            return extracted_data
+        else:
+            raise ValueError("No response from enhanced Gemini extraction")
+            
+    except Exception as e:
+        app.logger.error(f"Enhanced Gemini extraction error: {e}")
+        return {
+            'numbers': [],
+            'bonus_numbers': [],
+            'draw_number': None,
+            'draw_date': None,
+            'divisions': {},
+            'financial_info': {},
+            'confidence_score': 0.0,
+            'processing_time': time.time() - start_time,
+            'error': str(e)
+        }
+
 @app.route('/api/review_action/<action>/<int:extraction_id>', methods=['POST'])
 @login_required
 def api_review_action(action, extraction_id):
@@ -4721,7 +4827,7 @@ def api_review_action(action, extraction_id):
             
             # Trigger enhanced extraction with Gemini
             if extraction.image_path and os.path.exists(extraction.image_path):
-                enhanced_data = extract_with_enhanced_gemini(extraction.image_path, extraction.lottery_type)
+                enhanced_data = extract_with_enhanced_gemini_for_review(extraction.image_path, extraction.lottery_type)
                 
                 # Update extraction with enhanced data
                 extraction.extracted_numbers = json.dumps(enhanced_data.get('numbers', []))
