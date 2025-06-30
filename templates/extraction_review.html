@@ -358,7 +358,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('deeperBtn')?.addEventListener('click', function() {
         if (confirm('Request deeper extraction? This will re-process the image with enhanced AI analysis.')) {
-            performAction('deeper_extraction');
+            performAction('request_deeper');
         }
     });
 
@@ -369,12 +369,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function performAction(action) {
-        const actionData = {
-            extraction_id: extractionId,
-            action: action,
-            notes: reviewNotes.value
-        };
-
         // Disable all buttons during processing
         const buttons = document.querySelectorAll('#approveBtn, #deeperBtn, #rejectBtn');
         buttons.forEach(btn => {
@@ -382,13 +376,16 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         });
 
-        fetch('/api/extraction_action', {
+        // Use the correct API endpoint format
+        fetch(`/api/review_action/${action}/${extractionId}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(actionData)
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                notes: reviewNotes.value
+            })
         })
         .then(response => response.json())
         .then(data => {
