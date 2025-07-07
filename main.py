@@ -111,6 +111,11 @@ app = Flask(__name__)
 app.config.from_object(Config)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+# CRITICAL: Ensure secret key is properly set for sessions and CSRF
+if not app.config.get('SECRET_KEY'):
+    app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET', 'lottery-scraper-default-secret')
+    logger.info("Secret key configured for sessions")
+
 # PHASE 1 SECURITY: Secure session configuration
 app.config['SESSION_COOKIE_SECURE'] = False  # False for development, True for production
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -161,6 +166,7 @@ login_manager.login_view = 'login'
 # PHASE 1 SECURITY: Enable CSRF Protection
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour CSRF token timeout
+app.config['WTF_CSRF_SSL_STRICT'] = False  # Allow CSRF over HTTP in development
 
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
