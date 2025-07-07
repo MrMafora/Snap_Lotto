@@ -201,6 +201,7 @@ from security_utils import rate_limit, validate_lottery_type, validate_draw_numb
 from database_utils import get_database_stats, cleanup_old_health_checks, optimize_lottery_tables
 from lottery_utils import calculate_frequency_analysis, get_optimized_latest_results, LotteryDisplay
 from admin_utils import get_admin_dashboard_data, check_system_health
+from monitoring_dashboard import init_monitoring
 
 # PHASE 1 SECURITY: Centralized Error Handling
 @app.errorhandler(429)
@@ -319,6 +320,10 @@ def init_lazy_modules():
             
         if hm:
             hm.init_health_monitor(app, db)
+        
+        # PHASE 3: Initialize monitoring system
+        init_monitoring(app)
+        logger.info("Phase 3 monitoring system initialized")
         
         # Scanner routes are handled in main.py directly
         # Ticket scanner functionality integrated in existing routes

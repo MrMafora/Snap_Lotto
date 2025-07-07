@@ -7,7 +7,7 @@ Contains lottery-specific data processing and analysis functions
 import json
 import logging
 from datetime import datetime
-from models import db, LotteryResults
+from models import db, LotteryResult
 
 logger = logging.getLogger(__name__)
 
@@ -89,8 +89,8 @@ def calculate_frequency_analysis(results):
 def get_optimized_latest_results(limit=10):
     """Get latest lottery results optimized for display"""
     try:
-        results = db.session.query(LotteryResults)\
-            .order_by(LotteryResults.draw_date.desc())\
+        results = db.session.query(LotteryResult)\
+            .order_by(LotteryResult.draw_date.desc())\
             .limit(limit)\
             .all()
         
@@ -155,7 +155,7 @@ def get_lottery_statistics_summary():
                 MAX(draw_number) as latest_draw,
                 MAX(draw_date) as latest_date,
                 MIN(draw_date) as earliest_date
-            FROM lottery_results 
+            FROM lottery_result 
             GROUP BY lottery_type 
             ORDER BY lottery_type
         """)
