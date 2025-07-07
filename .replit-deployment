@@ -1,1 +1,10 @@
-run = ["gunicorn", "--bind", "0.0.0.0:8080", "main:app"]
+# Replit Deployment Configuration
+# This file helps configure the deployment settings
+
+# Use port 5000 for the web application
+PORT=5000
+
+# Ensure gunicorn is configured properly
+WORKERS=2
+THREADS=2
+TIMEOUT=60
