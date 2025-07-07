@@ -194,84 +194,13 @@ class RegisterForm(FlaskForm):
 class FileUploadForm(FlaskForm):
     file = FileField('File', [DataRequired(message="Please select a file")])
     
-# Input validation helper functions
-def validate_lottery_type(lottery_type):
-    """Validate lottery type input"""
-    valid_types = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'PowerBall', 'POWERBALL PLUS', 'DAILY LOTTO']
-    if lottery_type not in valid_types:
-        raise ValueError(f"Invalid lottery type: {lottery_type}")
-    return lottery_type
+# PHASE 2: Validation functions moved to security_utils.py
 
-def validate_draw_number(draw_number):
-    """Validate draw number input"""
-    try:
-        num = int(draw_number)
-        if num < 1 or num > 99999:
-            raise ValueError("Draw number must be between 1 and 99999")
-        return num
-    except (ValueError, TypeError):
-        raise ValueError("Draw number must be a valid integer")
-
-def sanitize_input(input_str, max_length=255):
-    """Sanitize string input to prevent XSS"""
-    if not input_str:
-        return ""
-    # Remove potentially dangerous characters
-    import re
-    sanitized = re.sub(r'[<>&"\']', '', str(input_str))
-    return sanitized[:max_length]
-
-# PHASE 1 SECURITY: Rate Limiting Implementation
-class RateLimiter:
-    """In-memory rate limiter for API endpoints"""
-    def __init__(self):
-        self.requests = defaultdict(deque)
-        self.blocked_ips = defaultdict(float)
-    
-    def is_allowed(self, identifier, max_requests=10, window=60):
-        """Check if request is allowed under rate limit"""
-        now = time.time()
-        
-        # Check if IP is temporarily blocked
-        if identifier in self.blocked_ips:
-            if now < self.blocked_ips[identifier]:
-                return False
-            else:
-                del self.blocked_ips[identifier]
-        
-        # Clean old requests
-        while self.requests[identifier] and self.requests[identifier][0] < now - window:
-            self.requests[identifier].popleft()
-        
-        # Check rate limit
-        if len(self.requests[identifier]) >= max_requests:
-            # Block IP for 5 minutes
-            self.blocked_ips[identifier] = now + 300
-            return False
-        
-        # Add current request
-        self.requests[identifier].append(now)
-        return True
-
-# Initialize rate limiter
-rate_limiter = RateLimiter()
-
-def rate_limit(max_requests=10, window=60):
-    """Decorator for rate limiting endpoints"""
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            identifier = request.remote_addr
-            
-            if not rate_limiter.is_allowed(identifier, max_requests, window):
-                return jsonify({
-                    'error': 'Rate limit exceeded',
-                    'message': 'Too many requests. Please try again later.'
-                }), 429
-                
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
+# PHASE 2 REFACTORING: Import modular utilities
+from security_utils import rate_limit, validate_lottery_type, validate_draw_number, sanitize_input
+from database_utils import get_database_stats, cleanup_old_health_checks, optimize_lottery_tables
+from lottery_utils import calculate_frequency_analysis, get_optimized_latest_results, LotteryDisplay
+from admin_utils import get_admin_dashboard_data, check_system_health
 
 # PHASE 1 SECURITY: Centralized Error Handling
 @app.errorhandler(429)
