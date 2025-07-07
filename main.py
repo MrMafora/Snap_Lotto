@@ -18,6 +18,7 @@ import threading
 import traceback
 from datetime import datetime, timedelta
 from functools import wraps
+from collections import defaultdict, deque
 
 # Set up logging first
 logging.basicConfig(level=logging.DEBUG)
@@ -81,6 +82,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 # Use standard CSRF protection
 from flask_wtf.csrf import CSRFProtect
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, TextAreaField, SelectField, FileField, validators
+from wtforms.validators import DataRequired, Length, Email, Optional
 import json
 
 # Import models only (lightweight)
@@ -106,6 +110,12 @@ import lottery_analysis
 app = Flask(__name__)
 app.config.from_object(Config)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# PHASE 1 SECURITY: Secure session configuration
+app.config['SESSION_COOKIE_SECURE'] = False  # False for development, True for production
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # 2-hour session timeout
 
 # Add custom Jinja2 filters for math functions needed by charts
 import math
@@ -148,10 +158,162 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# CSRF Protection completely disabled for Replit environment
-app.config['WTF_CSRF_ENABLED'] = False  # Completely disable CSRF for Replit environment
+# PHASE 1 SECURITY: Enable CSRF Protection
+app.config['WTF_CSRF_ENABLED'] = True
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour CSRF token timeout
 
-# All endpoints are now exempt from CSRF protection
+# Initialize CSRF protection
+csrf = CSRFProtect(app)
+
+# PHASE 1 SECURITY: Form validation classes
+class LoginForm(FlaskForm):
+    username = StringField('Username', [
+        DataRequired(message="Username is required"),
+        Length(min=3, max=64, message="Username must be 3-64 characters")
+    ])
+    password = PasswordField('Password', [
+        DataRequired(message="Password is required"),
+        Length(min=6, message="Password must be at least 6 characters")
+    ])
+
+class RegisterForm(FlaskForm):
+    username = StringField('Username', [
+        DataRequired(message="Username is required"),
+        Length(min=3, max=64, message="Username must be 3-64 characters")
+    ])
+    email = StringField('Email', [
+        DataRequired(message="Email is required"),
+        Email(message="Valid email address required"),
+        Length(max=120, message="Email must be less than 120 characters")
+    ])
+    password = PasswordField('Password', [
+        DataRequired(message="Password is required"),
+        Length(min=8, message="Password must be at least 8 characters")
+    ])
+
+class FileUploadForm(FlaskForm):
+    file = FileField('File', [DataRequired(message="Please select a file")])
+    
+# Input validation helper functions
+def validate_lottery_type(lottery_type):
+    """Validate lottery type input"""
+    valid_types = ['LOTTO', 'LOTTO PLUS 1', 'LOTTO PLUS 2', 'PowerBall', 'POWERBALL PLUS', 'DAILY LOTTO']
+    if lottery_type not in valid_types:
+        raise ValueError(f"Invalid lottery type: {lottery_type}")
+    return lottery_type
+
+def validate_draw_number(draw_number):
+    """Validate draw number input"""
+    try:
+        num = int(draw_number)
+        if num < 1 or num > 99999:
+            raise ValueError("Draw number must be between 1 and 99999")
+        return num
+    except (ValueError, TypeError):
+        raise ValueError("Draw number must be a valid integer")
+
+def sanitize_input(input_str, max_length=255):
+    """Sanitize string input to prevent XSS"""
+    if not input_str:
+        return ""
+    # Remove potentially dangerous characters
+    import re
+    sanitized = re.sub(r'[<>&"\']', '', str(input_str))
+    return sanitized[:max_length]
+
+# PHASE 1 SECURITY: Rate Limiting Implementation
+class RateLimiter:
+    """In-memory rate limiter for API endpoints"""
+    def __init__(self):
+        self.requests = defaultdict(deque)
+        self.blocked_ips = defaultdict(float)
+    
+    def is_allowed(self, identifier, max_requests=10, window=60):
+        """Check if request is allowed under rate limit"""
+        now = time.time()
+        
+        # Check if IP is temporarily blocked
+        if identifier in self.blocked_ips:
+            if now < self.blocked_ips[identifier]:
+                return False
+            else:
+                del self.blocked_ips[identifier]
+        
+        # Clean old requests
+        while self.requests[identifier] and self.requests[identifier][0] < now - window:
+            self.requests[identifier].popleft()
+        
+        # Check rate limit
+        if len(self.requests[identifier]) >= max_requests:
+            # Block IP for 5 minutes
+            self.blocked_ips[identifier] = now + 300
+            return False
+        
+        # Add current request
+        self.requests[identifier].append(now)
+        return True
+
+# Initialize rate limiter
+rate_limiter = RateLimiter()
+
+def rate_limit(max_requests=10, window=60):
+    """Decorator for rate limiting endpoints"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            identifier = request.remote_addr
+            
+            if not rate_limiter.is_allowed(identifier, max_requests, window):
+                return jsonify({
+                    'error': 'Rate limit exceeded',
+                    'message': 'Too many requests. Please try again later.'
+                }), 429
+                
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+# PHASE 1 SECURITY: Centralized Error Handling
+@app.errorhandler(429)
+def rate_limit_handler(e):
+    """Handle rate limit exceeded errors"""
+    return render_template('error.html', 
+                         error_code=429,
+                         error_message="Too many requests. Please try again later.",
+                         title="Rate Limited"), 429
+
+@app.errorhandler(400)
+def bad_request(e):
+    """Handle bad request errors"""
+    return render_template('error.html', 
+                         error_code=400,
+                         error_message="Bad request. Please check your input.",
+                         title="Bad Request"), 400
+
+@app.errorhandler(403)
+def forbidden(e):
+    """Handle forbidden errors"""
+    return render_template('error.html', 
+                         error_code=403,
+                         error_message="Access forbidden. You don't have permission to access this resource.",
+                         title="Forbidden"), 403
+
+@app.errorhandler(404)
+def not_found(e):
+    """Handle page not found errors"""
+    return render_template('error.html', 
+                         error_code=404,
+                         error_message="The page you're looking for doesn't exist.",
+                         title="Page Not Found"), 404
+
+@app.errorhandler(500)
+def internal_error(e):
+    """Handle internal server errors"""
+    logger.error(f"Internal server error: {str(e)}")
+    return render_template('error.html', 
+                         error_code=500,
+                         error_message="Internal server error. Please try again later.",
+                         title="Server Error"), 500
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -458,17 +620,20 @@ def admin():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login page"""
+    """Login page with PHASE 1 security improvements"""
     if current_user.is_authenticated:
         return redirect('/')
     
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+    form = LoginForm()
+    
+    if form.validate_on_submit():
+        # PHASE 1 SECURITY: Input validation and sanitization
+        username = sanitize_input(form.username.data, 64)
+        password = form.password.data
         
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
-            login_user(user)
+            login_user(user, duration=timedelta(hours=2))  # Session timeout
             flash('Login successful!', 'success')
             next_page = request.args.get('next')
             # Redirect admin users to admin dashboard by default
@@ -477,6 +642,11 @@ def login():
             return redirect(next_page or '/')
         else:
             flash('Invalid username or password', 'danger')
+    elif request.method == 'POST':
+        # Form validation failed
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'danger')
     
     # Define SEO metadata
     meta_description = "Secure login for administration of the South African lottery results system. Access administrative features to manage lottery data and system settings."
@@ -487,6 +657,7 @@ def login():
     ]
     
     return render_template('login.html', 
+                          form=form,
                           title="Admin Login | Lottery Results Management",
                           meta_description=meta_description,
                           breadcrumbs=breadcrumbs)
@@ -2352,10 +2523,13 @@ def register():
     # Define SEO metadata
     meta_description = "Administrative user registration for South African lottery results system. Create secure admin accounts to manage lottery data and system configurations."
     
-    if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
+    form = RegisterForm()
+    
+    if form.validate_on_submit():
+        # PHASE 1 SECURITY: Input validation and sanitization
+        username = sanitize_input(form.username.data, 64)
+        email = sanitize_input(form.email.data, 120)
+        password = form.password.data
         
         if User.query.filter_by(username=username).first():
             flash('Username already exists', 'danger')
@@ -2373,8 +2547,14 @@ def register():
         
         flash(f'Admin user {username} registered successfully!', 'success')
         return redirect(url_for('admin'))
+    elif request.method == 'POST':
+        # Form validation failed
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'danger')
     
     return render_template('register.html', 
+                          form=form,
                           title="Register Admin User | Lottery Management System", 
                           breadcrumbs=breadcrumbs,
                           meta_description=meta_description)

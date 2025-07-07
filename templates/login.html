@@ -11,15 +11,26 @@
             </div>
             <div class="card-body p-4">
                 <form method="POST" action="{{ url_for('login') }}" autocomplete="off">
+                    {{ form.hidden_tag() }}
                     
                     <div class="mb-3">
-                        <label for="username" class="form-label fw-bold">Username</label>
-                        <input type="text" name="username" id="username" class="form-control" placeholder="Enter username" autocomplete="username" required>
+                        {{ form.username.label(class="form-label fw-bold") }}
+                        {{ form.username(class="form-control", placeholder="Enter username", autocomplete="username") }}
+                        {% if form.username.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.username.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                     
                     <div class="mb-3">
-                        <label for="password" class="form-label fw-bold">Password</label>
-                        <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" autocomplete="current-password" required>
+                        {{ form.password.label(class="form-label fw-bold") }}
+                        {{ form.password(class="form-control", placeholder="Enter password", autocomplete="current-password") }}
+                        {% if form.password.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.password.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                     
                     <div class="mb-4 form-check">
