@@ -203,6 +203,12 @@ from lottery_utils import calculate_frequency_analysis, get_optimized_latest_res
 from admin_utils import get_admin_dashboard_data, check_system_health
 from monitoring_dashboard import init_monitoring
 
+# PHASE 4: Import advanced features
+from predictive_analytics import get_lottery_predictions, setup_default_alerts
+from advanced_reporting import reporting_bp
+from internationalization import init_localization
+from api_integration import init_api_integration
+
 # PHASE 1 SECURITY: Centralized Error Handling
 @app.errorhandler(429)
 def rate_limit_handler(e):
@@ -324,6 +330,13 @@ def init_lazy_modules():
         # PHASE 3: Initialize monitoring system
         init_monitoring(app)
         logger.info("Phase 3 monitoring system initialized")
+        
+        # PHASE 4: Initialize advanced features
+        init_localization(app)
+        init_api_integration(app)
+        app.register_blueprint(reporting_bp)
+        setup_default_alerts()
+        logger.info("Phase 4 advanced features initialized")
         
         # Scanner routes are handled in main.py directly
         # Ticket scanner functionality integrated in existing routes
@@ -551,6 +564,17 @@ def admin():
     )
 
 # Removed duplicate api-tracking route - functionality moved to api_tracking_view() function
+
+@app.route('/api-dashboard')
+@login_required
+def api_dashboard():
+    """API Integration Dashboard"""
+    return render_template('api/dashboard.html')
+
+@app.route('/advanced-predictions')
+def advanced_predictions():
+    """Advanced predictions dashboard"""
+    return render_template('predictions/dashboard.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

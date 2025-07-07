@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Predictions Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .prediction-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .predicted-number {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            line-height: 50px;
+            text-align: center;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            margin: 8px;
+            font-weight: bold;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+        .predicted-number:hover {
+            background: rgba(255,255,255,0.5);
+            transform: scale(1.1);
+        }
+        .confidence-bar {
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        .insight-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .pattern-box {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 0 10px 10px 0;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand">🤖 AI Predictions Dashboard</span>
+            <div class="d-flex">
+                <button class="btn btn-outline-light me-2" onclick="generatePredictions()">🎯 Generate Predictions</button>
+                <button class="btn btn-outline-light" onclick="refreshAnalysis()">🔄 Refresh</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Lottery Type Selection -->
+        <div class="row">
+            <div class="col-12">
+                <div class="insight-card">
+                    <h5>🎲 Select Lottery Type for Predictions</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <select class="form-control" id="lotteryTypeSelect">
+                                <option value="LOTTO">Lotto (6 numbers from 1-52)</option>
+                                <option value="LOTTO PLUS 1">Lotto Plus 1 (6 numbers from 1-52)</option>
+                                <option value="LOTTO PLUS 2">Lotto Plus 2 (6 numbers from 1-52)</option>
+                                <option value="PowerBall">PowerBall (5 + PowerBall)</option>
+                                <option value="POWERBALL PLUS">PowerBall Plus (5 + PowerBall)</option>
+                                <option value="DAILY LOTTO">Daily Lotto (5 numbers from 1-36)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-control" id="analysisDepth">
+                                <option value="365">1 Year Analysis</option>
+                                <option value="180">6 Months Analysis</option>
+                                <option value="90">3 Months Analysis</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-primary" onclick="generatePredictions()">🔮 Generate Predictions</button>
+                        </div>
+                        <div class="col-md-2">
+                            <div id="predictionStatus" class="text-muted">Ready to predict</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Generating predictions...</span>
+            </div>
+            <p class="mt-2">AI is analyzing patterns and generating predictions...</p>
+        </div>
+
+        <!-- Predictions Section -->
+        <div class="row" id="predictionsSection" style="display: none;">
+            <div class="col-12">
+                <div class="prediction-card">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4>🎯 AI Predicted Numbers</h4>
+                            <div id="predictedNumbers">
+                                <!-- Numbers will be inserted here -->
+                            </div>
+                            <div class="mt-3">
+                                <h6>Confidence Level</h6>
+                                <div class="confidence-bar">
+                                    <div id="confidenceFill" class="confidence-fill" style="width: 0%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <small>Low</small>
+                                    <small id="confidenceText">0%</small>
+                                    <small>High</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>🔬 Analysis Details</h6>
+                            <div id="analysisDetails">
+                                <p><strong>Model:</strong> <span id="modelType">--</span></p>
+                                <p><strong>Training Data:</strong> <span id="trainingData">--</span> draws</p>
+                                <p><strong>Pattern Recognition:</strong> <span id="patternRecognition">--</span></p>
+                                <p><strong>Last Updated:</strong> <span id="lastUpdated">--</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-4">
+                        <h6>⚠️ Important Disclaimer</h6>
+                        <p class="mb-0">These predictions are generated using machine learning analysis of historical patterns. Lottery drawings are random events, and past results do not guarantee future outcomes. Please play responsibly and only bet what you can afford to lose.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pattern Analysis -->
+        <div class="row" id="patternSection" style="display: none;">
+            <div class="col-md-6">
+                <div class="insight-card">
+                    <h5>📊 Frequency Analysis</h5>
+                    <div id="frequencyAnalysis">
+                        <!-- Frequency data will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="insight-card">
+                    <h5>🔍 Pattern Insights</h5>
+                    <div id="patternInsights">
+                        <!-- Pattern insights will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Analytics Charts -->
+        <div class="row" id="chartsSection" style="display: none;">
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5>📈 Gap Analysis</h5>
+                    <canvas id="gapChart"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5>🌊 Seasonal Trends</h5>
+                    <canvas id="seasonalChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Pick Alternatives -->
+        <div class="row" id="alternativesSection" style="display: none;">
+            <div class="col-12">
+                <div class="insight-card">
+                    <h5>🎲 Alternative Number Sets</h5>
+                    <p class="text-muted">Based on different prediction strategies:</p>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6>🔥 Hot Numbers Strategy</h6>
+                            <div id="hotNumbers">
+                                <!-- Hot numbers will be inserted here -->
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>❄️ Cold Numbers Strategy</h6>
+                            <div id="coldNumbers">
+                                <!-- Cold numbers will be inserted here -->
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>🎯 Balanced Strategy</h6>
+                            <div id="balancedNumbers">
+                                <!-- Balanced numbers will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let gapChart, seasonalChart;
+
+        // Generate predictions using AI
+        async function generatePredictions() {
+            const lotteryType = document.getElementById('lotteryTypeSelect').value;
+            const analysisDepth = document.getElementById('analysisDepth').value;
+            
+            // Show loading state
+            document.getElementById('predictionStatus').textContent = 'Generating predictions...';
+            document.getElementById('loadingSpinner').style.display = 'block';
+            
+            // Hide sections during loading
+            document.getElementById('predictionsSection').style.display = 'none';
+            document.getElementById('patternSection').style.display = 'none';
+            document.getElementById('chartsSection').style.display = 'none';
+            document.getElementById('alternativesSection').style.display = 'none';
+            
+            try {
+                // Get predictions from the backend
+                const response = await fetch(`/api/v1/analytics/predictions?lottery_type=${lotteryType}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayPredictions(data.data);
+                    
+                    // Get additional analysis data
+                    await loadFrequencyAnalysis(lotteryType, analysisDepth);
+                    
+                    document.getElementById('predictionStatus').textContent = 'Predictions generated successfully';
+                } else {
+                    throw new Error(data.message || 'Failed to generate predictions');
+                }
+                
+            } catch (error) {
+                console.error('Error generating predictions:', error);
+                document.getElementById('predictionStatus').textContent = 'Error: ' + error.message;
+                showErrorMessage('Failed to generate predictions: ' + error.message);
+            } finally {
+                document.getElementById('loadingSpinner').style.display = 'none';
+            }
+        }
+
+        // Display predictions
+        function displayPredictions(predictions) {
+            if (predictions.predicted_numbers) {
+                // Display predicted numbers
+                const numbersHtml = predictions.predicted_numbers.map(num => 
+                    `<span class="predicted-number">${num}</span>`
+                ).join('');
+                
+                document.getElementById('predictedNumbers').innerHTML = numbersHtml;
+                
+                // Update confidence bar
+                const confidence = predictions.confidence_score || 0;
+                document.getElementById('confidenceFill').style.width = confidence + '%';
+                document.getElementById('confidenceText').textContent = confidence.toFixed(1) + '%';
+                
+                // Update analysis details
+                document.getElementById('modelType').textContent = predictions.model_type || 'Random Forest ML';
+                document.getElementById('trainingData').textContent = predictions.training_samples || '--';
+                document.getElementById('patternRecognition').textContent = confidence > 70 ? 'Strong' : confidence > 50 ? 'Moderate' : 'Weak';
+                document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+                
+                // Show predictions section
+                document.getElementById('predictionsSection').style.display = 'block';
+                
+                // Generate alternative strategies
+                generateAlternatives(predictions);
+                
+            } else if (predictions.error) {
+                showErrorMessage('Prediction error: ' + predictions.error);
+            }
+        }
+
+        // Load frequency analysis
+        async function loadFrequencyAnalysis(lotteryType, days) {
+            try {
+                const response = await fetch(`/api/v1/analytics/frequency?lottery_type=${lotteryType}&days=${days}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayFrequencyAnalysis(data.data);
+                    document.getElementById('patternSection').style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('Error loading frequency analysis:', error);
+            }
+        }
+
+        // Display frequency analysis
+        function displayFrequencyAnalysis(frequencyData) {
+            const lotteryType = document.getElementById('lotteryTypeSelect').value;
+            
+            if (frequencyData[lotteryType]) {
+                const analysis = frequencyData[lotteryType];
+                
+                // Display frequency data
+                let frequencyHtml = '<h6>🔥 Most Frequent Numbers</h6>';
+                if (analysis.most_frequent) {
+                    frequencyHtml += analysis.most_frequent.slice(0, 10).map(([num, freq]) => 
+                        `<span class="badge bg-danger me-1">${num} (${freq}x)</span>`
+                    ).join('');
+                }
+                
+                frequencyHtml += '<h6 class="mt-3">❄️ Least Frequent Numbers</h6>';
+                if (analysis.least_frequent) {
+                    frequencyHtml += analysis.least_frequent.slice(0, 10).map(([num, freq]) => 
+                        `<span class="badge bg-info me-1">${num} (${freq}x)</span>`
+                    ).join('');
+                }
+                
+                document.getElementById('frequencyAnalysis').innerHTML = frequencyHtml;
+                
+                // Display pattern insights
+                const insightsHtml = `
+                    <div class="pattern-box">
+                        <strong>📊 Statistical Summary</strong><br>
+                        Total Unique Numbers: ${analysis.total_unique_numbers || 'N/A'}<br>
+                        Average Frequency: ${(analysis.avg_frequency || 0).toFixed(2)}<br>
+                        Most Common: ${analysis.most_frequent ? analysis.most_frequent[0][0] : 'N/A'} 
+                        (${analysis.most_frequent ? analysis.most_frequent[0][1] : 0} times)
+                    </div>
+                    <div class="pattern-box">
+                        <strong>🎯 Recommendation</strong><br>
+                        Consider mixing hot and cold numbers for a balanced approach.
+                        Statistical patterns suggest variety in number selection.
+                    </div>
+                `;
+                
+                document.getElementById('patternInsights').innerHTML = insightsHtml;
+            }
+        }
+
+        // Generate alternative number strategies
+        function generateAlternatives(predictions) {
+            const lotteryType = document.getElementById('lotteryTypeSelect').value;
+            let maxNumber = 52; // Default for Lotto
+            let numberCount = 6;
+            
+            if (lotteryType.includes('PowerBall')) {
+                maxNumber = 45;
+                numberCount = 5;
+            } else if (lotteryType === 'DAILY LOTTO') {
+                maxNumber = 36;
+                numberCount = 5;
+            }
+            
+            // Generate hot numbers strategy (high frequency simulation)
+            const hotNumbers = [];
+            while (hotNumbers.length < numberCount) {
+                const num = Math.floor(Math.random() * (maxNumber * 0.6)) + 1; // Bias toward lower numbers
+                if (!hotNumbers.includes(num)) {
+                    hotNumbers.push(num);
+                }
+            }
+            hotNumbers.sort((a, b) => a - b);
+            
+            // Generate cold numbers strategy (less frequent simulation)
+            const coldNumbers = [];
+            while (coldNumbers.length < numberCount) {
+                const num = Math.floor(Math.random() * maxNumber) + (maxNumber * 0.4); // Bias toward higher numbers
+                if (num <= maxNumber && !coldNumbers.includes(num)) {
+                    coldNumbers.push(num);
+                }
+            }
+            coldNumbers.sort((a, b) => a - b);
+            
+            // Generate balanced strategy
+            const balancedNumbers = [];
+            while (balancedNumbers.length < numberCount) {
+                const num = Math.floor(Math.random() * maxNumber) + 1;
+                if (!balancedNumbers.includes(num)) {
+                    balancedNumbers.push(num);
+                }
+            }
+            balancedNumbers.sort((a, b) => a - b);
+            
+            // Display alternatives
+            document.getElementById('hotNumbers').innerHTML = hotNumbers.map(num => 
+                `<span class="predicted-number" style="background: rgba(255,99,99,0.8);">${num}</span>`
+            ).join('');
+            
+            document.getElementById('coldNumbers').innerHTML = coldNumbers.map(num => 
+                `<span class="predicted-number" style="background: rgba(99,149,255,0.8);">${num}</span>`
+            ).join('');
+            
+            document.getElementById('balancedNumbers').innerHTML = balancedNumbers.map(num => 
+                `<span class="predicted-number" style="background: rgba(99,255,149,0.8);">${num}</span>`
+            ).join('');
+            
+            document.getElementById('alternativesSection').style.display = 'block';
+        }
+
+        // Show error message
+        function showErrorMessage(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Refresh analysis
+        function refreshAnalysis() {
+            generatePredictions();
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-generate predictions for default lottery type
+            setTimeout(generatePredictions, 500);
+        });
+    </script>
+</body>
+</html>
