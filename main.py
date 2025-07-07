@@ -471,6 +471,9 @@ def login():
             login_user(user)
             flash('Login successful!', 'success')
             next_page = request.args.get('next')
+            # Redirect admin users to admin dashboard by default
+            if user.is_admin and not next_page:
+                return redirect(url_for('admin'))
             return redirect(next_page or '/')
         else:
             flash('Invalid username or password', 'danger')
