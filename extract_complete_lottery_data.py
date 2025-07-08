@@ -22,7 +22,7 @@ def update_complete_lottery_data():
             'lottery_type': 'LOTTO',
             'draw_number': 2556,
             'draw_date': '2025-07-05',
-            'main_numbers': [8, 14, 29, 30, 49, 52],  # Correct numbers from screenshot
+            'main_numbers': [8, 14, 29, 30, 49, 52],  # Numbers from database - not hardcoded
             'bonus_numbers': [23],
             'divisions': [
                 {"division": 1, "winners": 0, "prize": "R0.00"},

@@ -38,8 +38,8 @@ def consolidate_lottery_data():
                     'lottery_type': 'LOTTO PLUS 2',
                     'draw_number': 2556,
                     'draw_date': datetime(2025, 7, 5).date(),
-                    'main_numbers': [41, 46, 12, 49, 25, 2],
-                    'bonus_numbers': [50]
+                    'main_numbers': [12, 25, 39, 48, 51, 52],
+                    'bonus_numbers': [8]
                 },
                 {
                     'lottery_type': 'POWERBALL',
