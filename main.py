@@ -4565,7 +4565,7 @@ def api_extraction_action():
         })
 
 @app.route('/api/process_image_for_review', methods=['POST'])
-@login_required 
+@login_required
 def api_process_image_for_review():
     """Process uploaded image and create extraction review entry"""
     try:

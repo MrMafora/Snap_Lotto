@@ -214,6 +214,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="uploadForm" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="lotteryType" class="form-label">Lottery Type</label>
@@ -274,7 +275,10 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('/api/process_image_for_review', {
             method: 'POST',
             body: formData,
-            credentials: 'same-origin'  // Include session cookies
+            credentials: 'same-origin',  // Include session cookies
+            headers: {
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+            }
         })
         .then(response => {
             if (response.redirected && response.url.includes('/login')) {
