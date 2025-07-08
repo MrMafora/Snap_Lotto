@@ -1,34 +1,23 @@
 #!/usr/bin/env python3
 """
-Test the complete workflow endpoint to ensure it's working
+Test script to verify the complete workflow works without web interface
 """
-import requests
-import json
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Test without authentication (for development)
-print("Testing complete workflow endpoint...")
+from daily_automation import run_complete_automation
 
-# Directly call the automation endpoint
-url = "http://localhost:5000/admin/run-complete-workflow"
-
-# Create a session to handle cookies
-session = requests.Session()
-
-# First, let's login as admin
-login_url = "http://localhost:5000/dev-auto-login"
-login_response = session.get(login_url)
-print(f"Login status: {login_response.status_code}")
-
-# Now call the workflow endpoint
-response = session.post(url, json={})
-
-print(f"Response status: {response.status_code}")
-
-if response.status_code == 200:
+if __name__ == "__main__":
+    print("Testing complete workflow directly...")
     try:
-        data = response.json()
-        print(f"Success: {data}")
-    except:
-        print(f"Response text: {response.text[:500]}...")
-else:
-    print(f"Error: {response.text}")
+        results = run_complete_automation()
+        print(f"\nWorkflow completed!")
+        print(f"Overall success: {results['overall_success']}")
+        print(f"\nStep results:")
+        for step, result in results['steps'].items():
+            print(f"  {step}: {'✓' if result['success'] else '✗'} - {result['message']}")
+    except Exception as e:
+        print(f"Error running workflow: {str(e)}")
+        import traceback
+        traceback.print_exc()

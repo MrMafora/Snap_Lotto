@@ -700,8 +700,8 @@ async function runCompleteAutomation() {
         stepDetails.textContent = 'Initializing...';
         progressBar.style.width = '10%';
         
-        // Use GET request to bypass CSRF temporarily
-        const response = await fetch('/admin/run-complete-workflow?' + new Date().getTime(), {
+        // Use GET request to bypass CSRF
+        const response = await fetch('/admin/run-complete-workflow-direct?' + new Date().getTime(), {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
