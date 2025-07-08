@@ -25,6 +25,13 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
   - Fixed redirect routing from 'home' to 'index' function
   - Verified admin user exists with correct credentials (admin/admin123)
   - Complete login workflow now functional from form to dashboard access
+- **ADDRESSED: Cross-Domain Login Issue (July 8, 2025)**
+  - Identified session cookie restriction between .replit.dev:5000 and external URLs
+  - Added development login helper at /dev-login-helper for .replit.dev users
+  - Configured session cookies with SameSite=None for cross-site compatibility
+  - Created quick login workaround for development environment
+  - Added logout button directly on admin dashboard as fallback
+  - Fixed dropdown JavaScript functionality for better cross-browser support
 - Fixed duplicate function issues in main.py (June 22, 2025)
 - Resolved database access issues for authentic prize divisions display
 - Successfully implemented complete lottery data display with all 8 prize divisions

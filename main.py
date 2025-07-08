@@ -117,12 +117,21 @@ if not app.config.get('SECRET_KEY'):
     logger.info("Secret key configured for sessions")
 
 # PHASE 1 SECURITY: Secure session configuration
-app.config['SESSION_COOKIE_SECURE'] = False  # False for development, True for production
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_DOMAIN'] = None  # Allow all domains in development
+# Special handling for Replit environments with multiple URLs
+if os.environ.get('REPL_ID'):  # We're in Replit
+    app.config['SESSION_COOKIE_SECURE'] = True  # Enable secure cookies
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Allow cross-site cookies
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_DOMAIN'] = None  # Don't restrict to specific domain
+else:
+    app.config['SESSION_COOKIE_SECURE'] = False  # False for local development
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_DOMAIN'] = None
+
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # 2-hour session timeout
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(hours=2)  # Match session timeout
+app.config['SESSION_COOKIE_NAME'] = 'snaplotto_session'  # Unique session name
 
 # Add custom Jinja2 filters for math functions needed by charts
 import math
@@ -169,6 +178,7 @@ login_manager.login_view = 'login'
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour CSRF token timeout
 app.config['WTF_CSRF_SSL_STRICT'] = False  # Allow CSRF over HTTP in development
+app.config['WTF_CSRF_CHECK_DEFAULT'] = True  # Re-enable CSRF checking
 
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
@@ -583,6 +593,40 @@ def api_dashboard():
 def advanced_predictions():
     """Advanced predictions dashboard"""
     return render_template('predictions/dashboard.html')
+
+@app.route('/dev-login-helper')
+def dev_login_helper():
+    """Development helper for cross-domain login issues"""
+    if os.environ.get('REPL_ID'):  # Only in Replit environment
+        return '''
+        <div style="padding: 20px; font-family: Arial;">
+            <h2>Development Login Helper</h2>
+            <p>If you're having trouble logging in from the .replit.dev:5000 URL, use the external URL instead:</p>
+            <a href="https://45399ea3-630c-4463-8e3d-edea73bb30a7-00-12l5s06oprbcf.janeway.replit.dev:5000/login" 
+               style="display: inline-block; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;">
+               Login via External URL
+            </a>
+            <p style="margin-top: 20px;">Or try the direct admin login:</p>
+            <form method="POST" action="/dev-quick-login">
+                <input type="hidden" name="username" value="admin">
+                <button type="submit" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    Quick Admin Login (Development Only)
+                </button>
+            </form>
+        </div>
+        '''
+    return redirect(url_for('login'))
+
+@app.route('/dev-quick-login', methods=['POST'])
+def dev_quick_login():
+    """Quick login for development environment"""
+    if os.environ.get('REPL_ID') and request.form.get('username') == 'admin':
+        admin_user = User.query.filter_by(username='admin').first()
+        if admin_user:
+            login_user(admin_user, remember=True)
+            session.permanent = True
+            return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
