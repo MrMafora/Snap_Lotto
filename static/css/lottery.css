@@ -60,6 +60,20 @@
     font-weight: 600;
     padding: 4px 6px;
     font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+/* Compact match column styling */
+.match-compact {
+    font-size: 0.8rem;
+    line-height: 1.1;
+    white-space: nowrap;
+    padding: 4px 6px !important;
+}
+
+/* Ensure table cells don't wrap */
+.table-lottery td {
+    white-space: nowrap;
 }
 
 /* Specific column widths for results table */
