@@ -440,7 +440,7 @@ def home():
             'LOTTO',           # Lottery  
             'LOTTO PLUS 1',    # Lottery Plus 1
             'LOTTO PLUS 2',    # Lottery Plus 2
-            'PowerBall',       # Powerball
+            'POWERBALL',       # Powerball
             'POWERBALL PLUS',  # Powerball Plus
             'DAILY LOTTO'      # Daily Lottery
         ]
