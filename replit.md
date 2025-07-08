@@ -12,9 +12,11 @@ Advanced AI-powered lottery intelligence platform that processes and synchronize
 - **DATABASE OPTIMIZED**: 4 performance indexes, cleaned duplicate tables, major space savings
 
 ## User Preferences
-- Requires authentic data only - no mock or placeholder data
+- **STRICT RULE: NO PLACEHOLDER DATA** - All data must be authentic and extracted from real sources
+- Requires authentic data only - no mock or placeholder data ever
 - Single-image processing with Gemini 2.5 Pro for maximum accuracy
 - Complete lottery result display with all prize divisions and financial details
+- All lottery numbers must be extracted using Google Gemini API 2.5 Pro from official screenshots
 
 ## Recent Changes
 - **WORKING ON: Complete Workflow Automation Button (July 8, 2025)**
