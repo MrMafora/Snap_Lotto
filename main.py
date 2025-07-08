@@ -133,6 +133,9 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # 2-hour session 
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(hours=2)  # Match session timeout
 app.config['SESSION_COOKIE_NAME'] = 'snaplotto_session'  # Unique session name
 
+# Initialize CSRF protection
+csrf = CSRFProtect(app)
+
 # Add custom Jinja2 filters for math functions needed by charts
 import math
 import locale
@@ -4489,6 +4492,7 @@ def run_daily_automation_manual():
 
 @app.route('/admin/run-complete-workflow', methods=['POST'])
 @login_required
+@csrf.exempt
 def run_complete_workflow():
     """Run the complete 4-step automation workflow and return JSON response"""
     if not current_user.is_admin:

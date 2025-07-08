@@ -703,8 +703,9 @@ async function runCompleteAutomation() {
         const response = await fetch('/admin/run-complete-workflow', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-            }
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
         });
         
         if (!response.ok) {
